@@ -1,6 +1,5 @@
 """Tests for CLI module."""
 
-import pytest
 from typer.testing import CliRunner
 
 from brain_go_brrr.cli import app

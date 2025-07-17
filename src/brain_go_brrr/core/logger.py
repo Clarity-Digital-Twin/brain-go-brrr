@@ -3,7 +3,6 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -12,7 +11,7 @@ from rich.logging import RichHandler
 def get_logger(
     name: str,
     level: str = "INFO",
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     rich_console: bool = True,
 ) -> logging.Logger:
     """Get a configured logger with Rich formatting.
@@ -27,13 +26,13 @@ def get_logger(
         Configured logger
     """
     logger = logging.getLogger(name)
-    
+
     # Avoid duplicate handlers
     if logger.handlers:
         return logger
-        
+
     logger.setLevel(getattr(logging, level.upper()))
-    
+
     # Rich console handler
     if rich_console:
         console = Console(stderr=True)
@@ -54,7 +53,7 @@ def get_logger(
         )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
-    
+
     # File handler
     if log_file:
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -64,5 +63,5 @@ def get_logger(
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
-    
+
     return logger
