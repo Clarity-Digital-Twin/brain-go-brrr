@@ -211,6 +211,23 @@ class EEGTransformer(nn.Module):
                  embed_dim: int = 512, embed_num: int = 4, depth: int = 8, num_heads: int = 8,
                  mlp_ratio: float = 4., qkv_bias: bool = True, drop_rate: float = 0., attn_drop_rate: float = 0.,
                  norm_layer: nn.Module = nn.LayerNorm, return_all_tokens: bool = False):
+        """Initialize EEGPT encoder.
+        
+        Args:
+            img_size: Input image size [channels, time_steps].
+            patch_size: Size of each patch in samples.
+            in_chans: Number of input channels.
+            embed_dim: Embedding dimension.
+            embed_num: Number of summary tokens.
+            depth: Number of transformer layers.
+            num_heads: Number of attention heads.
+            mlp_ratio: MLP hidden dimension ratio.
+            qkv_bias: Whether to use bias in QKV projections.
+            drop_rate: Dropout rate.
+            attn_drop_rate: Attention dropout rate.
+            norm_layer: Normalization layer class.
+            return_all_tokens: Whether to return all tokens or just summary tokens.
+        """
         super().__init__()
         if img_size is None:
             img_size = [58, 1024]
