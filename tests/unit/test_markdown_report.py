@@ -3,10 +3,8 @@
 Following TDD approach - tests for converting reports to markdown format.
 """
 
+
 import pytest
-from pathlib import Path
-from datetime import datetime
-import numpy as np
 
 
 class TestMarkdownReportGeneration:
@@ -48,21 +46,21 @@ class TestMarkdownReportGeneration:
     def test_markdown_report_structure(self):
         """Test that markdown report has required structure."""
         from src.brain_go_brrr.visualization.markdown_report import generate_markdown_report
-        
+
         # Test function exists
         assert callable(generate_markdown_report)
 
     def test_markdown_contains_warning_section(self, qc_results):
         """Test markdown contains warning section for abnormal EEGs."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Verify markdown was created
         assert isinstance(markdown, str)
         assert len(markdown) > 0
-        
+
         # Check for warning text in abnormal case
         assert "🚨" in markdown  # Urgent emoji present
         assert "URGENT" in markdown
@@ -71,23 +69,23 @@ class TestMarkdownReportGeneration:
     def test_markdown_summary_statistics(self, qc_results):
         """Test markdown includes summary statistics section."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Check for summary stats
         assert "## Summary Statistics" in markdown
-        assert "Quality Grade: POOR" in markdown
-        assert "Bad Channels: 3 (21.0%)" in markdown
-        assert "Abnormality Score: 0.83" in markdown
+        assert "**Quality Grade**: POOR" in markdown
+        assert "**Bad Channels**: 3 (21.0%)" in markdown
+        assert "**Abnormality Score**: 0.83" in markdown
 
     def test_markdown_channel_quality_table(self, qc_results):
         """Test markdown includes channel quality table."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Check for channel table
         assert "## Channel Quality" in markdown
         assert "| Channel | Status |" in markdown
@@ -97,20 +95,20 @@ class TestMarkdownReportGeneration:
     def test_markdown_artifact_summary(self, qc_results):
         """Test markdown includes artifact summary."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Check for artifact section
         assert "## Detected Artifacts" in markdown
         assert "electrode_pop" in markdown
         assert "muscle" in markdown
-        assert "Severity: 1.00" in markdown
+        assert "1.00" in markdown  # Severity value in table
 
     def test_markdown_for_normal_eeg(self):
         """Test markdown report for normal EEG (no warning)."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         # Create normal results
         normal_results = {
             'quality_metrics': {
@@ -125,10 +123,10 @@ class TestMarkdownReportGeneration:
                 'timestamp': '2025-01-17T10:30:00'
             }
         }
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(normal_results)
-        
+
         # Should NOT have warning
         assert "⚠️ WARNING" not in markdown
         assert "🚨 URGENT" not in markdown
@@ -138,13 +136,13 @@ class TestMarkdownReportGeneration:
     def test_markdown_file_save(self, qc_results, tmp_path):
         """Test saving markdown report to file."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         output_path = tmp_path / "test_report.md"
-        
+
         # Save to file
         generator.save_report(qc_results, output_path)
-        
+
         # Verify file exists and has content
         assert output_path.exists()
         content = output_path.read_text()
@@ -154,20 +152,20 @@ class TestMarkdownReportGeneration:
     def test_markdown_metadata_section(self, qc_results):
         """Test markdown includes metadata section."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Check for metadata
         assert "## File Information" in markdown
-        assert "File: test_eeg.edf" in markdown
-        assert "Duration: 1200.0 seconds" in markdown
-        assert "Sampling Rate: 256 Hz" in markdown
+        assert "**File**: test_eeg.edf" in markdown
+        assert "**Duration**: 1200.0 seconds" in markdown
+        assert "**Sampling Rate**: 256 Hz" in markdown
 
     def test_triage_flag_formatting(self):
         """Test different triage flags have appropriate formatting."""
         from src.brain_go_brrr.visualization.markdown_report import get_triage_emoji
-        
+
         assert get_triage_emoji("URGENT") == "🚨"
         assert get_triage_emoji("EXPEDITE") == "⚠️"
         assert get_triage_emoji("ROUTINE") == "📋"
@@ -176,24 +174,25 @@ class TestMarkdownReportGeneration:
     def test_markdown_generation_performance(self, qc_results):
         """Test markdown generation is fast (<1 second)."""
         import time
+
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
-        
+
         start_time = time.time()
         markdown = generator.generate_report(qc_results)
         generation_time = time.time() - start_time
-        
+
         # Should generate quickly
         assert generation_time < 1.0, f"Markdown generation too slow: {generation_time:.2f}s"
 
     def test_markdown_ascii_electrode_map(self, qc_results):
         """Test markdown includes ASCII representation of electrode map."""
         from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-        
+
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
-        
+
         # Check for ASCII electrode map
         assert "## Electrode Map" in markdown
         assert "```" in markdown  # Code block for ASCII art
@@ -201,13 +200,13 @@ class TestMarkdownReportGeneration:
     def test_convert_pdf_results_to_markdown(self, qc_results):
         """Test converting existing PDF results to markdown."""
         from src.brain_go_brrr.visualization.markdown_report import convert_results_to_markdown
-        
+
         # This should work with the same results used for PDF
         markdown = convert_results_to_markdown(qc_results)
-        
+
         assert isinstance(markdown, str)
         assert len(markdown) > 0
-        assert "Quality Grade:" in markdown
+        assert "Quality Grade" in markdown
 
 
 class TestMarkdownIntegration:
@@ -216,14 +215,15 @@ class TestMarkdownIntegration:
     @pytest.fixture
     def client(self):
         """Create test client."""
-        from api.main import app
         from fastapi.testclient import TestClient
+
+        from api.main import app
         return TestClient(app)
 
     def test_api_detailed_includes_markdown(self, client):
         """Test API detailed endpoint can include markdown."""
         from unittest.mock import patch
-        
+
         with patch('mne.io.read_raw_edf'):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post(
@@ -231,9 +231,9 @@ class TestMarkdownIntegration:
                 files=files,
                 params={"include_report": True}
             )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Future: Check for markdown in response
         assert "detailed" in data

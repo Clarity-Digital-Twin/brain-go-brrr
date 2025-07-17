@@ -1,29 +1,28 @@
-"""
-Brain-Go-Brrr API - FastAPI application for EEG analysis.
+"""Brain-Go-Brrr API - FastAPI application for EEG analysis.
 
 MVP: Auto-QC + Risk Flagger endpoint
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
-from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any, Tuple
-from pathlib import Path
-import tempfile
-import traceback
-import logging
-from datetime import datetime
-import json
 import base64
-
-import mne
+import logging
 
 # Add project to path
 import sys
+import tempfile
+import traceback
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import mne
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from services.qc_flagger import EEGQualityController
+from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
 from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
 # Configure logging
@@ -46,13 +45,13 @@ qc_controller = None
 class AnalysisRequest(BaseModel):
     """Request model for EEG analysis."""
     analysis_type: str = Field(default="qc", description="Type of analysis to perform")
-    options: Dict[str, Any] = Field(default_factory=dict, description="Analysis options")
+    options: dict[str, Any] = Field(default_factory=dict, description="Analysis options")
 
 
 class QCResponse(BaseModel):
     """Response model for QC analysis."""
     status: str
-    bad_channels: List[str]
+    bad_channels: list[str]
     bad_pct: float
     abnormal_prob: float
     flag: str
@@ -60,7 +59,7 @@ class QCResponse(BaseModel):
     processing_time: float
     quality_grade: str
     timestamp: str
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @app.on_event("startup")
@@ -110,53 +109,52 @@ async def analyze_eeg(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """
-    Analyze uploaded EEG file.
-    
+    """Analyze uploaded EEG file.
+
     MVP: Auto-QC + Risk Flagger
     - Detect bad channels
     - Compute abnormality probability
     - Return triage flag
-    
+
     Args:
         file: Uploaded EDF file
-        
+
     Returns:
         QC analysis results
     """
     # Validate file type
     if not file.filename.lower().endswith('.edf'):
         raise HTTPException(status_code=400, detail="Only EDF files are supported")
-    
+
     # Create temporary file
     with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
-        
+
         try:
             # Save uploaded file
             content = await file.read()
             tmp_file.write(content)
             tmp_file.flush()
-            
+
             # Load EEG data
             logger.info(f"Processing file: {file.filename}")
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
-            
+
             # Check if QC controller is available
             if qc_controller is None:
                 raise RuntimeError("QC controller not initialized. Please check logs.")
-                
+
             # Run QC analysis
             logger.info("Running QC analysis...")
             results = qc_controller.run_full_qc_pipeline(raw)
-            
+
             # Extract key metrics
             quality_metrics = results.get('quality_metrics', {})
             bad_channels = quality_metrics.get('bad_channels', [])
             bad_pct = quality_metrics.get('bad_channel_ratio', 0) * 100
             abnormal_prob = quality_metrics.get('abnormality_score', 0)
             quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
-            
+
             # Determine triage flag
             if abnormal_prob > 0.8 or quality_grade == 'POOR':
                 flag = "URGENT - Expedite read"
@@ -166,19 +164,19 @@ async def analyze_eeg(
                 flag = "ROUTINE - Standard workflow"
             else:
                 flag = "NORMAL - Low priority"
-            
+
             # Get confidence score
             if 'processing_info' in results and isinstance(results['processing_info'].get('confidence'), float):
                 confidence = results['processing_info']['confidence']
             else:
                 confidence = 0.8 if qc_controller.eegpt_model is not None else 0.5
-            
+
             # Processing time
             processing_time = results.get('processing_time', 0)
-            
+
             # Schedule cleanup
             background_tasks.add_task(cleanup_temp_file, tmp_path)
-            
+
             return QCResponse(
                 status="success",
                 bad_channels=bad_channels,
@@ -190,15 +188,15 @@ async def analyze_eeg(
                 quality_grade=quality_grade,
                 timestamp=datetime.utcnow().isoformat()
             )
-            
+
         except Exception as e:
             logger.error(f"Error processing file: {e}")
             logger.error(traceback.format_exc())
-            
+
             # Cleanup on error
             if tmp_path.exists():
                 tmp_path.unlink()
-                
+
             return QCResponse(
                 status="error",
                 bad_channels=[],
@@ -219,40 +217,39 @@ async def analyze_eeg_detailed(
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """
-    Detailed EEG analysis with optional PDF report.
-    
+    """Detailed EEG analysis with optional PDF report.
+
     Returns comprehensive analysis results with PDF report.
     """
     # Create temporary file
     with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
-        
+
         try:
             # Save uploaded file
             content = await file.read()
             tmp_file.write(content)
             tmp_file.flush()
-            
+
             # Load EEG data
             logger.info(f"Processing file for detailed analysis: {file.filename}")
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
-            
+
             # Check if QC controller is available
             if qc_controller is None:
                 raise RuntimeError("QC controller not initialized. Please check logs.")
-                
+
             # Run QC analysis
             logger.info("Running detailed QC analysis...")
             results = qc_controller.run_full_qc_pipeline(raw)
-            
+
             # Extract key metrics for basic response
             quality_metrics = results.get('quality_metrics', {})
             bad_channels = quality_metrics.get('bad_channels', [])
             bad_pct = quality_metrics.get('bad_channel_ratio', 0) * 100
             abnormal_prob = quality_metrics.get('abnormality_score', 0)
             quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
-            
+
             # Determine triage flag
             if abnormal_prob > 0.8 or quality_grade == 'POOR':
                 flag = "URGENT - Expedite read"
@@ -262,22 +259,23 @@ async def analyze_eeg_detailed(
                 flag = "ROUTINE - Standard workflow"
             else:
                 flag = "NORMAL - Low priority"
-            
+
             # Get confidence score
             if 'processing_info' in results and isinstance(results['processing_info'].get('confidence'), float):
                 confidence = results['processing_info']['confidence']
             else:
                 confidence = 0.8 if qc_controller.eegpt_model is not None else 0.5
-            
+
             # Processing time
             processing_time = results.get('processing_time', 0)
-            
-            # Generate PDF report if requested
+
+            # Generate reports if requested
             pdf_base64 = None
+            markdown_report = None
             if include_report:
                 try:
-                    # Add more details to results for PDF generation
-                    pdf_results = {
+                    # Add more details to results for report generation
+                    report_results = {
                         'quality_metrics': {
                             **quality_metrics,
                             'channel_positions': _get_channel_positions(raw)
@@ -289,21 +287,37 @@ async def analyze_eeg_detailed(
                             'sampling_rate': raw.info['sfreq']
                         }
                     }
-                    
+
                     # Generate PDF
                     pdf_generator = PDFReportGenerator()
-                    pdf_bytes = pdf_generator.generate_report(pdf_results, raw.get_data())
-                    
+                    pdf_bytes = pdf_generator.generate_report(report_results, raw.get_data())
+
                     # Convert to base64 for JSON response
                     pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
                     logger.info("PDF report generated successfully")
+
+                    # Generate Markdown report
+                    markdown_generator = MarkdownReportGenerator()
+                    markdown_report = markdown_generator.generate_report(report_results)
+                    logger.info("Markdown report generated successfully")
+
+                    # Optionally save markdown to outputs directory
+                    output_dir = project_root / "outputs" / "reports"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Create filename with timestamp
+                    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    markdown_path = output_dir / f"eeg_report_{timestamp_str}.md"
+                    markdown_generator.save_report(report_results, markdown_path)
+                    logger.info(f"Markdown report saved to {markdown_path}")
+
                 except Exception as e:
-                    logger.error(f"Failed to generate PDF report: {e}")
-                    # Continue without PDF
-            
+                    logger.error(f"Failed to generate reports: {e}")
+                    # Continue without reports
+
             # Schedule cleanup
             background_tasks.add_task(cleanup_temp_file, tmp_path)
-            
+
             # Create basic result
             basic_result = QCResponse(
                 status="success",
@@ -316,27 +330,29 @@ async def analyze_eeg_detailed(
                 quality_grade=quality_grade,
                 timestamp=datetime.utcnow().isoformat()
             )
-            
+
             return {
                 "basic": basic_result,
                 "detailed": {
                     "message": "Detailed analysis complete",
                     "pdf_available": pdf_base64 is not None,
                     "pdf_base64": pdf_base64,
+                    "markdown_available": markdown_report is not None,
+                    "markdown_report": markdown_report,
                     "artifact_count": len(quality_metrics.get('artifact_segments', [])),
                     "channel_count": len(raw.ch_names),
                     "duration_seconds": raw.times[-1]
                 }
             }
-            
+
         except Exception as e:
             logger.error(f"Error in detailed analysis: {e}")
             logger.error(traceback.format_exc())
-            
+
             # Cleanup on error
             if tmp_path.exists():
                 tmp_path.unlink()
-                
+
             return {
                 "basic": QCResponse(
                     status="error",
@@ -358,17 +374,17 @@ async def analyze_eeg_detailed(
             }
 
 
-def _get_channel_positions(raw: mne.io.Raw) -> Dict[str, Tuple[float, float]]:
+def _get_channel_positions(raw: mne.io.Raw) -> dict[str, tuple[float, float]]:
     """Extract channel positions from raw data."""
     positions = {}
-    
+
     try:
         # Get montage if available
         montage = raw.get_montage()
         if montage is not None:
             ch_names = montage.ch_names
             pos = montage.get_positions()['ch_pos']
-            
+
             # Convert 3D positions to 2D (x, y) for visualization
             for ch_name in ch_names:
                 if ch_name in pos:
@@ -387,15 +403,15 @@ def _get_channel_positions(raw: mne.io.Raw) -> Dict[str, Tuple[float, float]]:
                 'T5': (-0.8, -0.3), 'T6': (0.8, -0.3),
                 'Fz': (0, 0.6), 'Cz': (0, 0), 'Pz': (0, -0.6)
             }
-            
+
             # Use standard positions for channels that match
             for ch_name in raw.ch_names:
                 if ch_name in standard_positions:
                     positions[ch_name] = standard_positions[ch_name]
-                    
+
     except Exception as e:
         logger.warning(f"Failed to extract channel positions: {e}")
-        
+
     return positions
 
 
