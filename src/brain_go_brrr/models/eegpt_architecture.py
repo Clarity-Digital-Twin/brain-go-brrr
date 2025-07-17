@@ -28,7 +28,7 @@ class RotaryEmbedding(nn.Module):
 
     def __init__(self, dim: int, max_seq_len: int = 5000):
         """Initialize rotary position embeddings.
-        
+
         Args:
             dim: Embedding dimension.
             max_seq_len: Maximum sequence length.
@@ -72,7 +72,7 @@ class Attention(nn.Module):
 
     def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = True, attn_drop: float = 0., proj_drop: float = 0.):
         """Initialize multi-head attention.
-        
+
         Args:
             dim: Input dimension.
             num_heads: Number of attention heads.
@@ -118,7 +118,7 @@ class MLP(nn.Module):
     def __init__(self, in_features: int, hidden_features: int | None = None, out_features: int | None = None,
                  act_layer: nn.Module = nn.GELU, drop: float = 0.):
         """Initialize feed-forward network.
-        
+
         Args:
             in_features: Input feature dimension.
             hidden_features: Hidden layer dimension (defaults to in_features * 4).
@@ -150,7 +150,7 @@ class Block(nn.Module):
                  drop: float = 0., attn_drop: float = 0., act_layer: nn.Module = nn.GELU,
                  norm_layer: nn.Module = nn.LayerNorm):
         """Initialize transformer block.
-        
+
         Args:
             dim: Input dimension.
             num_heads: Number of attention heads.
@@ -179,7 +179,7 @@ class PatchEmbed(nn.Module):
 
     def __init__(self, img_size: list[int] | None = None, patch_size: int = 64, in_chans: int = 1, embed_dim: int = 512):
         """Initialize patch embedding.
-        
+
         Args:
             img_size: Input image size [channels, time_steps].
             patch_size: Size of each patch in samples.
@@ -212,7 +212,7 @@ class EEGTransformer(nn.Module):
                  mlp_ratio: float = 4., qkv_bias: bool = True, drop_rate: float = 0., attn_drop_rate: float = 0.,
                  norm_layer: nn.Module = nn.LayerNorm, return_all_tokens: bool = False):
         """Initialize EEGPT encoder.
-        
+
         Args:
             img_size: Input image size [channels, time_steps].
             patch_size: Size of each patch in samples.

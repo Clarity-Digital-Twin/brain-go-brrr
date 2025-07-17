@@ -1,5 +1,5 @@
-"""
-Test for fixing rotary embedding tensor size mismatch.
+"""Test for fixing rotary embedding tensor size mismatch.
+
 Following TDD approach - test first, then fix implementation.
 """
 

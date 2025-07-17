@@ -1,5 +1,5 @@
-"""
-Test EEGPT model loading functionality.
+"""Test EEGPT model loading functionality.
+
 Following TDD approach - test first, then ensure implementation works.
 """
 

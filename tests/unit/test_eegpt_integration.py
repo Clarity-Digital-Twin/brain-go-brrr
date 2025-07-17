@@ -1,5 +1,4 @@
-"""
-Test suite for EEGPT model integration.
+"""Test suite for EEGPT model integration.
 
 Following TDD approach - tests written before implementation.
 Based on EEGPT paper specifications and architecture diagrams.
@@ -192,8 +191,13 @@ class TestEEGPTModel:
         if not edf_path.exists():
             pytest.skip("Sleep-EDF data not available")
 
-        # Load EEG data
-        raw = mne.io.read_raw_edf(edf_path, preload=True)
+        # Load only 1 minute of EEG data for testing
+        # (Full file is 22 hours - way too much for a unit test!)
+        raw = mne.io.read_raw_edf(edf_path, preload=False)
+
+        # Crop to first minute
+        raw.crop(tmin=0, tmax=60)
+        raw.load_data()
 
         # Extract features using EEGPT
         features = extract_features_from_raw(raw, model_path)
@@ -204,9 +208,23 @@ class TestEEGPTModel:
         assert 'processing_time' in features
         assert features['abnormality_score'] is not None
 
+        # Performance check: should process 1 minute in < 5 seconds
+        assert features['processing_time'] < 5.0, f"Processing too slow: {features['processing_time']:.2f}s"
+
 
 class TestPerformanceBenchmarks:
     """Test performance meets paper benchmarks."""
+
+    @pytest.fixture
+    def model_path(self):
+        """Path to pretrained EEGPT model."""
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+
+    @pytest.fixture
+    def eegpt_model(self, model_path):
+        """Initialize EEGPT model."""
+        return EEGPTModel(checkpoint_path=model_path)
 
     @pytest.mark.slow
     def test_inference_speed(self, eegpt_model):
