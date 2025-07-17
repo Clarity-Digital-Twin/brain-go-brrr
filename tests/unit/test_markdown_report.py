@@ -64,7 +64,8 @@ class TestMarkdownReportGeneration:
         assert len(markdown) > 0
         
         # Check for warning text in abnormal case
-        assert "⚠️ WARNING" in markdown or "🚨 URGENT" in markdown
+        assert "🚨" in markdown  # Urgent emoji present
+        assert "URGENT" in markdown
         assert "Expedite read" in markdown
 
     def test_markdown_summary_statistics(self, qc_results):
