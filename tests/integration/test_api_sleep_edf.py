@@ -15,8 +15,13 @@ class TestSleepEDFIntegration:
 
     @pytest.fixture
     def client(self):
-        """Create test client."""
-        from api.main import app
+        """Create test client with proper startup."""
+        from api.main import app, startup_event
+        
+        # Manually trigger startup event for testing
+        import asyncio
+        asyncio.run(startup_event())
+        
         return TestClient(app)
 
     @pytest.fixture
@@ -182,8 +187,13 @@ class TestAPIRobustness:
 
     @pytest.fixture
     def client(self):
-        """Create test client."""
-        from api.main import app
+        """Create test client with proper startup."""
+        from api.main import app, startup_event
+        
+        # Manually trigger startup event for testing
+        import asyncio
+        asyncio.run(startup_event())
+        
         return TestClient(app)
 
     @pytest.mark.integration

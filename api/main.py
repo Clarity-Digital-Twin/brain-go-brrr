@@ -36,7 +36,8 @@ app = FastAPI(
 )
 
 # Global model instance (loaded once)
-EEGPT_MODEL_PATH = project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+# Use absolute path for model
+EEGPT_MODEL_PATH = (project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt").absolute()
 qc_controller = None
 
 
