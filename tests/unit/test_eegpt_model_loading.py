@@ -8,7 +8,7 @@ import torch
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.models.eegpt_model import EEGPTModel, EEGPTConfig
 from brain_go_brrr.core.config import Config
 
 
@@ -16,17 +16,19 @@ class TestEEGPTModelLoading:
     """Test EEGPT model loading and initialization."""
 
     def test_eegpt_model_initialization_without_checkpoint(self):
-        """Test that EEGPTModel can be initialized without a checkpoint file."""
-        # Given: A valid config but no checkpoint file
-        config = EEGConfig()
+        """Test that EEGPTModel can be initialized with a checkpoint path."""
+        # Given: A valid config and a checkpoint path (even if file doesn't exist)
+        config = EEGPTConfig()
+        checkpoint_path = Path("nonexistent_checkpoint.ckpt")
         
-        # When: We initialize the model without a checkpoint
-        model = EEGPTModel(config=config)
+        # When: We initialize the model without auto-loading
+        model = EEGPTModel(checkpoint_path=checkpoint_path, config=config, auto_load=False)
         
         # Then: The model should be initialized successfully
         assert model is not None
+        assert model.checkpoint_path == checkpoint_path
         assert model.config == config
-        assert model.model is None  # No model loaded yet
+        assert model.is_loaded is False  # No model loaded yet
 
     @patch('brain_go_brrr.models.eegpt_model.torch.load')
     def test_eegpt_model_loading_with_mock_checkpoint(self, mock_torch_load):
@@ -38,7 +40,7 @@ class TestEEGPTModelLoading:
         }
         mock_torch_load.return_value = mock_checkpoint
         
-        config = EEGConfig()
+        config = Config()
         model = EEGPTModel(config=config)
         
         # When: We load a checkpoint
@@ -55,7 +57,7 @@ class TestEEGPTModelLoading:
     def test_eegpt_model_loading_with_nonexistent_file(self):
         """Test model loading fails gracefully with non-existent file."""
         # Given: A model and non-existent checkpoint path
-        config = EEGConfig()
+        config = Config()
         model = EEGPTModel(config=config)
         checkpoint_path = Path("nonexistent_file.ckpt")
         
@@ -72,7 +74,7 @@ class TestEEGPTModelLoading:
         mock_transformer_instance = MagicMock()
         mock_transformer.return_value = mock_transformer_instance
         
-        config = EEGConfig()
+        config = Config()
         model = EEGPTModel(config=config)
         
         # When: We initialize the model architecture
@@ -85,7 +87,7 @@ class TestEEGPTModelLoading:
     def test_feature_extraction_requires_loaded_model(self):
         """Test that feature extraction requires a loaded model."""
         # Given: A model without a loaded checkpoint
-        config = EEGConfig()
+        config = Config()
         model = EEGPTModel(config=config)
         
         # When: We try to extract features without a loaded model
@@ -103,7 +105,7 @@ class TestEEGPTModelLoading:
         mock_transformer_instance.return_value = torch.randn(1, 308, 512)  # Mock features
         mock_transformer.return_value = mock_transformer_instance
         
-        config = EEGConfig()
+        config = Config()
         model = EEGPTModel(config=config)
         model._initialize_model()
         

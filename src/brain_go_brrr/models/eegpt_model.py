@@ -80,15 +80,17 @@ class EEGPTModel:
         self,
         checkpoint_path: str | Path,
         config: EEGPTConfig | None = None,
-        device: torch.device | None = None
+        device: torch.device | None = None,
+        auto_load: bool = True
     ):
         """
         Initialize EEGPT model.
 
         Args:
-            checkpoint_path: Path to pretrained checkpoin
+            checkpoint_path: Path to pretrained checkpoint
             config: Model configuration
             device: PyTorch device (auto-detected if None)
+            auto_load: Whether to automatically load the model checkpoint
         """
         self.checkpoint_path = Path(checkpoint_path)
         self.config = config or EEGPTConfig()
@@ -98,7 +100,8 @@ class EEGPTModel:
         self.is_loaded = False
         self.n_summary_tokens = self.config.n_summary_tokens
 
-        self._load_model()
+        if auto_load:
+            self._load_model()
 
     def _load_model(self):
         """Load pretrained EEGPT model from checkpoint."""
