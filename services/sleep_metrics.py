@@ -370,8 +370,11 @@ class SleepAnalyzer:
             quality_metrics['sleep_efficiency'] = sleep_stats['SE']
         
         # Sleep fragmentation
-        stage_changes = np.sum(np.diff(hypnogram) != 0)
-        quality_metrics['fragmentation_index'] = stage_changes / len(hypnogram)
+        # Convert string hypnogram to numeric for diff calculation
+        stage_map = {'W': 0, 'N1': 1, 'N2': 2, 'N3': 3, 'REM': 4, 'ART': -1}
+        hypnogram_numeric = np.array([stage_map.get(stage, -1) for stage in hypnogram])
+        stage_changes = np.sum(np.diff(hypnogram_numeric) != 0)
+        quality_metrics['fragmentation_index'] = stage_changes / len(hypnogram) if len(hypnogram) > 0 else 0
         
         # REM percentage
         if 'REM' in sleep_stats.get('stage_percentages', {}):

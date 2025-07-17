@@ -108,12 +108,28 @@ class EEGQualityController:
         """
         raw_copy = raw.copy()
         
-        # Apply filters
+        # Apply filters - ensure h_freq is below Nyquist
+        nyquist = raw_copy.info['sfreq'] / 2.0
+        if h_freq and h_freq >= nyquist:
+            h_freq = nyquist - 0.1  # Set to just below Nyquist
+            logger.warning(f"High-pass filter adjusted to {h_freq:.1f}Hz (Nyquist: {nyquist}Hz)")
+        
         raw_copy.filter(l_freq=l_freq, h_freq=h_freq, fir_design='firwin')
         
-        # Notch filter for line noise
+        # Notch filter for line noise - only if below Nyquist
         if notch_freq:
-            raw_copy.notch_filter(freqs=notch_freq, fir_design='firwin')
+            if isinstance(notch_freq, (int, float)):
+                notch_freqs = [notch_freq]
+            else:
+                notch_freqs = notch_freq
+            
+            # Filter out frequencies at or above Nyquist
+            valid_notch_freqs = [f for f in notch_freqs if f < nyquist - 1]
+            
+            if valid_notch_freqs:
+                raw_copy.notch_filter(freqs=valid_notch_freqs, fir_design='firwin')
+            else:
+                logger.warning(f"Notch filter skipped - all frequencies >= Nyquist ({nyquist}Hz)")
         
         # Resample if specified
         if resample_freq and resample_freq != raw_copy.info['sfreq']:
@@ -136,19 +152,43 @@ class EEGQualityController:
         Returns:
             List of bad channel names
         """
-        if method == "autoreject" and self.autoreject is not None:
-            # Create epochs for autoreject
-            events = mne.make_fixed_length_events(raw, duration=2.0)
-            epochs = mne.Epochs(
-                raw, events, tmin=0, tmax=2.0, 
-                baseline=None, preload=True, verbose=False
-            )
-            
-            # Fit autoreject to detect bad channels
-            self.autoreject.fit(epochs)
-            bad_channels = epochs.info['bads']
-            
+        # Check if we have channel positions for autoreject
+        has_positions = False
+        try:
+            # Check if any EEG channel has valid position data
+            for i, ch_type in enumerate(raw.get_channel_types()):
+                if ch_type == 'eeg':
+                    loc = raw.info['chs'][i]['loc'][:3]
+                    if np.any(loc):  # If any position coordinate is non-zero
+                        has_positions = True
+                        break
+        except Exception:
+            has_positions = False
+        
+        if method == "autoreject" and self.autoreject is not None and has_positions:
+            try:
+                # Create epochs for autoreject
+                events = mne.make_fixed_length_events(raw, duration=2.0)
+                epochs = mne.Epochs(
+                    raw, events, tmin=0, tmax=2.0, 
+                    baseline=None, preload=True, verbose=False
+                )
+                
+                # Fit autoreject to detect bad channels
+                self.autoreject.fit(epochs)
+                bad_channels = epochs.info['bads']
+            except RuntimeError as e:
+                if "Valid channel positions" in str(e):
+                    logger.warning("No channel positions available - using amplitude-based detection")
+                    method = "amplitude"
+                else:
+                    raise
         else:
+            if method == "autoreject" and not has_positions:
+                logger.warning("No channel positions available - using amplitude-based detection")
+            method = "amplitude"
+            
+        if method == "amplitude":
             # Fallback: simple amplitude-based detection
             data = raw.get_data()
             bad_channels = []
@@ -156,10 +196,22 @@ class EEGQualityController:
             # Check for channels with extreme amplitudes
             for i, ch_name in enumerate(raw.ch_names):
                 ch_data = data[i]
-                if np.std(ch_data) > 100e-6 or np.std(ch_data) < 1e-6:
+                # Skip non-EEG channels
+                if raw.get_channel_types()[i] not in ['eeg', 'eog']:
+                    continue
+                    
+                # Check for flat channels or extreme amplitudes
+                std = np.std(ch_data)
+                if std < 0.1e-6 or std > 200e-6:  # Less than 0.1 µV or more than 200 µV
                     bad_channels.append(ch_name)
                     
-        logger.info(f"Detected {len(bad_channels)} bad channels: {bad_channels}")
+                # Check for channels with too many extreme values
+                extreme_ratio = np.sum(np.abs(ch_data) > 100e-6) / len(ch_data)
+                if extreme_ratio > 0.1:  # More than 10% extreme values
+                    if ch_name not in bad_channels:
+                        bad_channels.append(ch_name)
+                    
+        logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
         return bad_channels
     
     def create_epochs(
@@ -186,12 +238,19 @@ class EEGQualityController:
             raw, duration=epoch_length, overlap=overlap
         )
         
-        # Default rejection criteria
+        # Default rejection criteria based on available channel types
         if reject_criteria is None:
-            reject_criteria = {
-                'eeg': 150e-6,  # 150 µV
-                'eog': 250e-6,  # 250 µV
-            }
+            reject_criteria = {}
+            
+            # Check what channel types are present
+            ch_types = set(raw.get_channel_types())
+            
+            if 'eeg' in ch_types:
+                reject_criteria['eeg'] = 150e-6  # 150 µV
+            if 'eog' in ch_types:
+                reject_criteria['eog'] = 250e-6  # 250 µV
+            if 'emg' in ch_types:
+                reject_criteria['emg'] = 500e-6  # 500 µV
         
         # Create epochs
         epochs = mne.Epochs(
@@ -221,15 +280,65 @@ class EEGQualityController:
             logger.warning("AutoReject not available - returning original epochs")
             return epochs if not return_log else (epochs, None)
         
-        # Fit and transform epochs
-        epochs_clean, reject_log = self.autoreject.fit_transform(epochs, return_log=True)
+        # Check if we have channel positions
+        has_positions = False
+        try:
+            for i, ch_type in enumerate(epochs.get_channel_types()):
+                if ch_type == 'eeg':
+                    loc = epochs.info['chs'][i]['loc'][:3]
+                    if np.any(loc):
+                        has_positions = True
+                        break
+        except Exception:
+            has_positions = False
+            
+        if not has_positions:
+            logger.warning("No channel positions for AutoReject - using amplitude-based rejection")
+            # Simple amplitude-based rejection
+            reject_dict = {'eeg': 150e-6}  # 150 µV threshold
+            epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
+            
+            # Create a simple reject log for compatibility
+            class SimpleRejectLog:
+                def __init__(self, n_epochs, n_rejected):
+                    self.labels = np.zeros(n_epochs)
+                    self.labels[:n_rejected] = 2  # Mark as rejected
+                    
+            reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
+            
+            logger.info(f"Amplitude-based rejection results:")
+            logger.info(f"  Original epochs: {len(epochs)}")
+            logger.info(f"  Clean epochs: {len(epochs_clean)}")
+            logger.info(f"  Rejected epochs: {len(epochs) - len(epochs_clean)}")
+            
+            return epochs_clean if not return_log else (epochs_clean, reject_log)
         
-        logger.info(f"AutoReject results:")
-        logger.info(f"  Original epochs: {len(epochs)}")
-        logger.info(f"  Clean epochs: {len(epochs_clean)}")
-        logger.info(f"  Rejected epochs: {len(epochs) - len(epochs_clean)}")
-        
-        return epochs_clean if not return_log else (epochs_clean, reject_log)
+        try:
+            # Fit and transform epochs with autoreject
+            epochs_clean, reject_log = self.autoreject.fit_transform(epochs, return_log=True)
+            
+            logger.info(f"AutoReject results:")
+            logger.info(f"  Original epochs: {len(epochs)}")
+            logger.info(f"  Clean epochs: {len(epochs_clean)}")
+            logger.info(f"  Rejected epochs: {len(epochs) - len(epochs_clean)}")
+            
+            return epochs_clean if not return_log else (epochs_clean, reject_log)
+        except RuntimeError as e:
+            if "Valid channel positions" in str(e):
+                logger.warning("AutoReject failed - using amplitude-based rejection")
+                # Fallback to simple rejection
+                reject_dict = {'eeg': 150e-6}
+                epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
+                
+                class SimpleRejectLog:
+                    def __init__(self, n_epochs, n_rejected):
+                        self.labels = np.zeros(n_epochs)
+                        self.labels[:n_rejected] = 2
+                        
+                reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
+                return epochs_clean if not return_log else (epochs_clean, reject_log)
+            else:
+                raise
     
     def compute_abnormality_score(
         self,
