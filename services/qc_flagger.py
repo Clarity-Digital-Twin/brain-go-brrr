@@ -375,8 +375,9 @@ class EEGQualityController:
                 data = epochs.get_data()  # (n_epochs, n_channels, n_times)
                 
                 # Create a temporary raw object from epochs data
-                # Concatenate all epochs
-                concatenated_data = data.reshape(data.shape[0] * data.shape[2], data.shape[1]).T
+                # Reshape to (n_channels, n_samples)
+                n_epochs, n_channels, n_times = data.shape
+                concatenated_data = data.transpose(1, 0, 2).reshape(n_channels, -1)
                 info = epochs.info.copy()
                 raw_from_epochs = mne.io.RawArray(concatenated_data, info)
                 
