@@ -163,6 +163,11 @@ addopts = [
     "--cov-report=xml",
     "-n=auto",
 ]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "unit: marks tests as unit tests",
+]
 
 [tool.coverage.run]
 source = ["src/brain_go_brrr"]

@@ -380,4 +380,4 @@ def extract_features_from_raw(
     result['processing_time'] = time.time() - start_time
     result['features'] = True  # Placeholder
 
-    return resul
+    return result
