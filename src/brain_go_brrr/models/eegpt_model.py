@@ -128,6 +128,49 @@ class EEGPTModel:
             logger.error(f"Failed to load EEGPT model: {e}")
             raise
 
+    def load_checkpoint(self, checkpoint_path: Path) -> bool:
+        """
+        Load model from checkpoint.
+        
+        Args:
+            checkpoint_path: Path to checkpoint file
+            
+        Returns:
+            True if loading successful, False otherwise
+        """
+        try:
+            if not checkpoint_path.exists():
+                logger.warning(f"Checkpoint not found: {checkpoint_path}")
+                return False
+            
+            self.checkpoint_path = checkpoint_path
+            self._load_model()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load checkpoint: {e}")
+            return False
+
+    def _initialize_model(self):
+        """Initialize model architecture without loading checkpoint."""
+        try:
+            from .eegpt_architecture import EEGTransformer
+            
+            # Create model architecture
+            self.encoder = EEGTransformer(
+                embed_dim=self.config.embed_dim,
+                num_heads=self.config.num_heads,
+                num_layers=self.config.num_layers,
+                patch_size=self.config.patch_size,
+                dropout=self.config.dropout
+            )
+            self.encoder.to(self.device)
+            self.encoder.eval()
+            
+            logger.info("Model architecture initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize model: {e}")
+            raise
+
     def _load_task_heads(self):
         """Load task-specific classification heads."""
         # Initialize task-specific heads
@@ -172,7 +215,7 @@ class EEGPTModel:
 
         return windows
 
-    def extract_features(self, window: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
+    def extract_features(self, window: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> np.ndarray | torch.Tensor:
         """
         Extract features from a single window using EEGPT encoder.
 

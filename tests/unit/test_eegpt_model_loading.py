@@ -41,7 +41,7 @@ class TestEEGPTModelLoading:
         mock_torch_load.return_value = mock_checkpoint
         
         config = Config()
-        model = EEGPTModel(config=config)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         
         # When: We load a checkpoint
         checkpoint_path = Path("mock_checkpoint.ckpt")
@@ -58,7 +58,7 @@ class TestEEGPTModelLoading:
         """Test model loading fails gracefully with non-existent file."""
         # Given: A model and non-existent checkpoint path
         config = Config()
-        model = EEGPTModel(config=config)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         checkpoint_path = Path("nonexistent_file.ckpt")
         
         # When: We try to load a non-existent checkpoint
@@ -67,7 +67,7 @@ class TestEEGPTModelLoading:
         # Then: Loading should fail gracefully
         assert result is False
 
-    @patch('brain_go_brrr.models.eegpt_model.EEGTransformer')
+    @patch('brain_go_brrr.models.eegpt_architecture.EEGTransformer')
     def test_model_architecture_initialization(self, mock_transformer):
         """Test that the model architecture is initialized correctly."""
         # Given: A mock transformer
@@ -75,7 +75,7 @@ class TestEEGPTModelLoading:
         mock_transformer.return_value = mock_transformer_instance
         
         config = Config()
-        model = EEGPTModel(config=config)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         
         # When: We initialize the model architecture
         model._initialize_model()
@@ -88,7 +88,7 @@ class TestEEGPTModelLoading:
         """Test that feature extraction requires a loaded model."""
         # Given: A model without a loaded checkpoint
         config = Config()
-        model = EEGPTModel(config=config)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         
         # When: We try to extract features without a loaded model
         dummy_data = torch.randn(1, 19, 1024)  # batch_size=1, channels=19, seq_len=1024
@@ -97,7 +97,7 @@ class TestEEGPTModelLoading:
         with pytest.raises((RuntimeError, ValueError)):
             model.extract_features(dummy_data)
 
-    @patch('brain_go_brrr.models.eegpt_model.EEGTransformer')
+    @patch('brain_go_brrr.models.eegpt_architecture.EEGTransformer')
     def test_feature_extraction_with_loaded_model(self, mock_transformer):
         """Test feature extraction with a properly loaded model."""
         # Given: A model with loaded architecture
@@ -106,7 +106,7 @@ class TestEEGPTModelLoading:
         mock_transformer.return_value = mock_transformer_instance
         
         config = Config()
-        model = EEGPTModel(config=config)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         model._initialize_model()
         
         # When: We extract features from EEG data
