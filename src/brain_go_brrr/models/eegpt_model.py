@@ -139,7 +139,7 @@ class EEGPTModel:
     def extract_windows(
         self,
         data: np.ndarray,
-        sampling_rate: in
+        sampling_rate: int
     ) -> list[np.ndarray]:
         """
         Extract non-overlapping windows from continuous data.
@@ -300,7 +300,7 @@ class EEGPTModel:
     def process_recording(
         self,
         data: np.ndarray,
-        sampling_rate: in
+        sampling_rate: int
     ) -> dict[str, Any]:
         """Process full recording and return results."""
         windows = self.extract_windows(data, sampling_rate)
