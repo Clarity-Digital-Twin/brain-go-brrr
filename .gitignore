@@ -267,4 +267,78 @@ literature/downloads/
 
 # Reference repositories - already have their own git history
 # Uncomment if you want to track specific files from reference repos
-# reference_repos/*/ 
+# reference_repos/*/
+
+# Modern development tools
+# UV (uv.lock is kept for reproducibility)
+.uv/
+uv.lock
+
+# Ruff cache
+.ruff_cache/
+
+# Coverage reports
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+*.py,cover
+
+# Pytest cache
+.pytest_cache/
+
+# Pre-commit
+.pre-commit-config.yaml.bak
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+site/
+
+# Output directories
+outputs/
+logs/
+pipeline.log
+
+# MkDocs
+site/
+docs/_build/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Profile outputs
+*.prof
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Development artifacts
+*.bak
+*.orig
+*.tmp
+*.temp
+
+# Service-specific outputs
+services/outputs/
+services/logs/
+services/*.log
+
+# Example outputs
+examples/outputs/
+examples/logs/
+examples/*.log 
