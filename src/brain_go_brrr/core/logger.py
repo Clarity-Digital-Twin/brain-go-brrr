@@ -32,7 +32,7 @@ def get_logger(
         return logger
 
     logger.setLevel(getattr(logging, level.upper()))
-    
+
     # Prevent propagation to avoid duplicate logs
     logger.propagate = False
 

@@ -7,7 +7,6 @@ import time
 from pathlib import Path
 from unittest.mock import patch
 
-import mne
 import pytest
 from fastapi.testclient import TestClient
 
@@ -36,18 +35,16 @@ class TestSleepEDFIntegration:
             pytest.skip("Sleep-EDF data not available. Run data download scripts first.")
 
         return edf_path
-    
+
     @pytest.fixture
     def cropped_edf_bytes(self, sleep_edf_file):
         """Create a cropped EDF file (60 seconds) for fast tests."""
-        import io
-        
         # For speed, just read the first part of the file
         # EDF files have fixed header size, so we can read a portion
         # This is a hack but avoids the export issue
-        
+
         # Read approximately 1MB which should be ~60s of data
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             # Read header + some data (EDF has 256 byte header + 256 bytes per channel)
             return f.read(1024 * 1024)  # 1MB should be enough for testing
 
@@ -69,9 +66,9 @@ class TestSleepEDFIntegration:
                 'quality_grade': 'GOOD'
             }
         }
-        
+
         # Read just first 1MB of file for speed
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             file_data = f.read(1024 * 1024)
             files = {'file': ('test.edf', file_data, 'application/octet-stream')}
 
@@ -98,7 +95,7 @@ class TestSleepEDFIntegration:
 
         # Log results for debugging
         print("\n📊 Real EDF Analysis Results (cropped):")
-        print(f"   File: test_cropped.edf (60s sample)")
+        print("   File: test_cropped.edf (60s sample)")
         print(f"   Processing time: {processing_time:.2f}s")
         print(f"   Bad channels: {data['bad_channels']}")
         print(f"   Bad channel %: {data['bad_pct']}%")
@@ -126,10 +123,10 @@ class TestSleepEDFIntegration:
         # Check response structure
         assert data["status"] == "success"
         assert "bad_channels" in data
-        
+
         # Full file can take longer
         assert processing_time < 120, f"Processing took too long: {processing_time:.2f}s"
-        
+
         print("\n📊 Real EDF Analysis Results (full file):")
         print(f"   File: {sleep_edf_file.name}")
         print(f"   Processing time: {processing_time:.2f}s")
@@ -138,7 +135,7 @@ class TestSleepEDFIntegration:
     @pytest.mark.slow
     def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -201,6 +198,7 @@ class TestSleepEDFIntegration:
         assert all(r['status'] == 'success' for r in results)
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_cropped_edf_processing(self, client, sleep_edf_file):
         """Test processing a cropped portion of EDF file (like in model tests)."""
         # This mimics what we do in the model tests - crop to 1 minute
@@ -218,6 +216,7 @@ class TestSleepEDFIntegration:
         assert data["processing_time"] < 120  # Under 2 minutes as per requirements
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_confidence_scoring_consistency(self, client, sleep_edf_file):
         """Test that confidence scores are consistent and reasonable."""
         # Run the same file multiple times
@@ -271,6 +270,7 @@ class TestAPIRobustness:
         assert data["flag"] == "ERROR"
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_concurrent_sleep_edf_processing(self, client):
         """Test concurrent processing of Sleep-EDF files."""
         project_root = Path(__file__).parent.parent.parent

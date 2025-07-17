@@ -269,7 +269,7 @@ class PDFReportGenerator:
             # Create empty figure with message
             artifact_fig = plt.figure(figsize=self.figsize)
             ax = artifact_fig.add_subplot(111)
-            ax.text(0.5, 0.5, 'No artifacts to display', 
+            ax.text(0.5, 0.5, 'No artifacts to display',
                    ha='center', va='center', fontsize=14)
             ax.axis('off')
 

@@ -29,7 +29,7 @@ def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
     return raw
 
 
-@pytest.fixture  
+@pytest.fixture
 def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
     """Load full Sleep-EDF file (for slow tests only)."""
     return mne.io.read_raw_edf(sleep_edf_path, preload=True)
@@ -39,17 +39,17 @@ def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
 def mock_eeg_data():
     """Create mock EEG data for unit tests."""
     import numpy as np
-    
+
     # 19 channels, 30 seconds at 256 Hz
     sfreq = 256
     duration = 30
     n_channels = 19
     n_times = int(sfreq * duration)
-    
+
     ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
                 'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
-    
+
     data = np.random.randn(n_channels, n_times) * 20e-6  # ~20 μV
-    
+
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
     return mne.io.RawArray(data, info)
