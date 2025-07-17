@@ -257,5 +257,14 @@ config/secrets.yml
 # Uncomment if you want to track notebooks without outputs
 # *.ipynb
 
-# Literature PDFs (keep structure, but PDFs are large)
-# literature/pdfs/*.pdf 
+# Literature files
+# Keep markdown conversions and metadata, but ignore large PDFs
+literature/pdfs/*.pdf
+!literature/pdfs/.gitkeep
+# Keep processed literature but not raw downloads
+literature/raw/
+literature/downloads/
+
+# Reference repositories - already have their own git history
+# Uncomment if you want to track specific files from reference repos
+# reference_repos/*/ 
