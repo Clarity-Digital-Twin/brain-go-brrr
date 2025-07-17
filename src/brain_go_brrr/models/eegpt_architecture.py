@@ -117,6 +117,15 @@ class MLP(nn.Module):
 
     def __init__(self, in_features: int, hidden_features: int | None = None, out_features: int | None = None,
                  act_layer: nn.Module = nn.GELU, drop: float = 0.):
+        """Initialize feed-forward network.
+        
+        Args:
+            in_features: Input feature dimension.
+            hidden_features: Hidden layer dimension (defaults to in_features * 4).
+            out_features: Output feature dimension (defaults to in_features).
+            act_layer: Activation layer class.
+            drop: Dropout rate.
+        """
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
