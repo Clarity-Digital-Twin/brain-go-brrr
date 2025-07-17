@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.core.config import EEGConfig
+from brain_go_brrr.core.config import Config
 
 
 class TestEEGPTModelLoading:
