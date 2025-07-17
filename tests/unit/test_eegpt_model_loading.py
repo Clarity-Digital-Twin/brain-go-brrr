@@ -41,7 +41,7 @@ class TestEEGPTModelLoading:
         }
         mock_torch_load.return_value = mock_checkpoint
 
-        config = Config()
+        config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
 
         # When: We load a checkpoint
@@ -58,7 +58,7 @@ class TestEEGPTModelLoading:
     def test_eegpt_model_loading_with_nonexistent_file(self):
         """Test model loading fails gracefully with non-existent file."""
         # Given: A model and non-existent checkpoint path
-        config = Config()
+        config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         checkpoint_path = Path("nonexistent_file.ckpt")
 
@@ -75,7 +75,7 @@ class TestEEGPTModelLoading:
         mock_transformer_instance = MagicMock()
         mock_transformer.return_value = mock_transformer_instance
 
-        config = Config()
+        config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
 
         # When: We initialize the model architecture
@@ -88,7 +88,7 @@ class TestEEGPTModelLoading:
     def test_feature_extraction_requires_loaded_model(self):
         """Test that feature extraction requires a loaded model."""
         # Given: A model without a loaded checkpoint
-        config = Config()
+        config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
 
         # When: We try to extract features without a loaded model
@@ -106,7 +106,7 @@ class TestEEGPTModelLoading:
         mock_transformer_instance.return_value = torch.randn(1, 308, 512)  # Mock features
         mock_transformer.return_value = mock_transformer_instance
 
-        config = Config()
+        config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         model._initialize_model()
 
