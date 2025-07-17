@@ -29,7 +29,8 @@ literature/
 | Architecture Overview | `_page_3_Figure_0.jpeg` | Shows dual self-supervised learning with masked prediction and reconstruction |
 | Patching Method | `_page_4_Figure_7.jpeg` | Illustrates channel embedding and patch creation process |
 | Fine-tuning Pipeline | `_page_5_Figure_0.jpeg` | Demonstrates frozen encoder with task-specific heads and electrode mapping |
-| Model Scaling | `_page_13_Figure_2.jpeg` | Performance vs model size plots |
+| Model Scaling | `_page_8_Figure_6.jpeg` | Performance vs model size plots |
+| Training Curves | `_page_13_Figure_2.jpeg` | Validation loss during training |
 | Results Tables | `_page_22_Figure_0.jpeg` | Comprehensive performance metrics across tasks |
 
 ### Technical Specifications
@@ -44,7 +45,7 @@ literature/
   - Dual self-supervised objectives
   - Channel-wise and temporal patching
   - Rotary position embeddings
-- **Performance**: 58-87.5% accuracy across tasks
+- **Performance**: 65-87.5% accuracy across tasks (TUEV: 65.42%, TUAB: 79.83%)
 
 ### Implementation Notes
 - Requires electrode position mapping (see `_page_5_Figure_0.jpeg`)
@@ -127,10 +128,11 @@ literature/
 
 ### Key Finding
 **BioSerenity-E1 Foundation Model** achieves best performance:
-- 94.63% balanced accuracy
+- 94.63% balanced accuracy [92.32-98.12 CI]
 - Uses frozen pretrained encoder
-- Requires only 128 Hz sampling
+- Resamples to 128 Hz (from 250/256/500 Hz originals)
 - 16-second input windows
+- Note: CNN-LSTM and Transformer models use 256 Hz
 
 ### Implementation Strategy
 For abnormal detection, prioritize foundation models (EEGPT or BioSerenity-E1) over training from scratch.
@@ -183,7 +185,7 @@ For abnormal detection, prioritize foundation models (EEGPT or BioSerenity-E1) o
 | Sleep Staging | YASA | 87.46% | NSRR |
 | IED Detection | InceptionTime | 97% F1 | Temple |
 | Artifact Rejection | Autoreject | 87.5% | Multiple |
-| General Features | EEGPT | 58-80% | 6 datasets |
+| General Features | EEGPT | 65-87.5% | 6 datasets |
 
 ## Data Requirements
 
