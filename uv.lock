@@ -481,12 +481,14 @@ dependencies = [
     { name = "hydra-core" },
     { name = "lightgbm" },
     { name = "lightning" },
+    { name = "matplotlib" },
     { name = "mne" },
     { name = "numpy" },
     { name = "omegaconf" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pypdf2" },
     { name = "python-multipart" },
     { name = "rich" },
     { name = "scikit-learn" },
@@ -561,6 +563,7 @@ requires-dist = [
     { name = "jupyterlab", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "lightgbm", specifier = ">=4.0.0" },
     { name = "lightning", specifier = ">=2.1.0" },
+    { name = "matplotlib", specifier = ">=3.8.0" },
     { name = "matplotlib", marker = "extra == 'viz'", specifier = ">=3.8.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.5.0" },
     { name = "mkdocs-jupyter", marker = "extra == 'docs'", specifier = ">=0.24.0" },
@@ -576,6 +579,7 @@ requires-dist = [
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.6.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pydantic-settings", specifier = ">=2.1.0" },
+    { name = "pypdf2", specifier = ">=3.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4.0" },
     { name = "pytest-benchmark", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
@@ -4184,6 +4188,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bb/22/f1129e69d94ffff626bdb5c835506b3a5b4f3d070f17ea295e12c2c6f60f/pyparsing-3.2.3.tar.gz", hash = "sha256:b9c13f1ab8b3b542f72e28f634bad4de758ab3ce4546e4301970ad6fa77c38be", size = 1088608 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl", hash = "sha256:a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf", size = 111120 },
+]
+
+[[package]]
+name = "pypdf2"
+version = "3.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/bb/18dc3062d37db6c491392007dfd1a7f524bb95886eb956569ac38a23a784/PyPDF2-3.0.1.tar.gz", hash = "sha256:a74408f69ba6271f71b9352ef4ed03dc53a31aa404d29b5d31f53bfecfee1440", size = 227419 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/5e/c86a5643653825d3c913719e788e41386bee415c2b87b4f955432f2de6b2/pypdf2-3.0.1-py3-none-any.whl", hash = "sha256:d16e4205cfee272fbdc0568b68d82be796540b1537508cef59388f839c191928", size = 232572 },
 ]
 
 [[package]]
