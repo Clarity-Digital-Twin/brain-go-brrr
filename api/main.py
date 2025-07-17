@@ -71,6 +71,12 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to load EEGPT model: {e}")
         # Continue without EEGPT - will use fallback methods
+        try:
+            qc_controller = EEGQualityController(eegpt_model_path=None)
+            logger.info("QC controller initialized without EEGPT model")
+        except Exception as e2:
+            logger.error(f"Failed to initialize QC controller: {e2}")
+            qc_controller = None
 
 
 @app.get("/")
@@ -133,6 +139,10 @@ async def analyze_eeg(
             logger.info(f"Processing file: {file.filename}")
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
             
+            # Check if QC controller is available
+            if qc_controller is None:
+                raise RuntimeError("QC controller not initialized. Please check logs.")
+                
             # Run QC analysis
             logger.info("Running QC analysis...")
             results = qc_controller.run_full_qc_pipeline(raw)
