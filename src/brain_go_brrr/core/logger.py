@@ -36,23 +36,23 @@ def get_logger(
     # Rich console handler
     if rich_console:
         console = Console(stderr=True)
-        handler = RichHandler(
+        rich_handler = RichHandler(
             console=console,
             show_time=True,
             show_path=False,
             rich_tracebacks=True,
             tracebacks_show_locals=True,
         )
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logger.addHandler(handler)
+        rich_handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(rich_handler)
     else:
         # Standard console handler
-        handler = logging.StreamHandler(sys.stdout)
+        stream_handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
 
     # File handler
     if log_file:

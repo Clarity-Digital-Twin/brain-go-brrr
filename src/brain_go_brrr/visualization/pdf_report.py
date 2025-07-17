@@ -137,7 +137,7 @@ class PDFReportGenerator:
         color = get_banner_color(flag)
 
         # Add banner as colored rectangle at top
-        ax = fig.add_axes([0, 0.92, 1, 0.08])
+        ax = fig.add_axes((0, 0.92, 1, 0.08))
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
 
@@ -153,7 +153,7 @@ class PDFReportGenerator:
 
     def _add_normal_banner(self, fig: plt.Figure, text: str) -> None:
         """Add green banner for normal EEG."""
-        ax = fig.add_axes([0, 0.92, 1, 0.08])
+        ax = fig.add_axes((0, 0.92, 1, 0.08))
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
 
@@ -169,7 +169,7 @@ class PDFReportGenerator:
 
     def _add_header(self, fig: plt.Figure, processing_info: dict[str, Any]) -> None:
         """Add report header with file info."""
-        ax = fig.add_axes([0.1, 0.82, 0.8, 0.08])
+        ax = fig.add_axes((0.1, 0.82, 0.8, 0.08))
         ax.axis('off')
 
         # Title
@@ -186,7 +186,7 @@ class PDFReportGenerator:
     def _add_summary_stats(self, fig: plt.Figure, quality_metrics: dict[str, Any],
                           processing_info: dict[str, Any]) -> None:
         """Add summary statistics section."""
-        ax = fig.add_axes([0.1, 0.6, 0.8, 0.2])
+        ax = fig.add_axes((0.1, 0.6, 0.8, 0.2))
         ax.axis('off')
 
         # Extract metrics
@@ -219,7 +219,7 @@ class PDFReportGenerator:
     def _add_electrode_heatmap(self, fig: plt.Figure, channel_positions: dict[str, tuple[float, float]],
                                bad_channels: list[str]) -> None:
         """Add electrode heatmap visualization."""
-        ax = fig.add_axes([0.2, 0.15, 0.6, 0.4])
+        ax = fig.add_axes((0.2, 0.15, 0.6, 0.4))
 
         # Normalize positions if needed
         positions = normalize_electrode_positions(channel_positions)
@@ -263,6 +263,15 @@ class PDFReportGenerator:
             sorted_artifacts,
             results.get('processing_info', {}).get('sampling_rate', 256)
         )
+
+        # Handle case where no artifacts to visualize
+        if artifact_fig is None:
+            # Create empty figure with message
+            artifact_fig = plt.figure(figsize=self.figsize)
+            ax = artifact_fig.add_subplot(111)
+            ax.text(0.5, 0.5, 'No artifacts to display', 
+                   ha='center', va='center', fontsize=14)
+            ax.axis('off')
 
         return artifact_fig
 
@@ -312,7 +321,7 @@ def create_electrode_heatmap(channel_positions: dict[str, tuple[float, float]],
 
 
 def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, Any]],
-                           sampling_rate: int) -> plt.Figure:
+                           sampling_rate: int) -> plt.Figure | None:
     """Create visualization of artifact examples.
 
     Args:
@@ -321,7 +330,7 @@ def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, An
         sampling_rate: Sampling rate in Hz
 
     Returns:
-        Matplotlib figure
+        Matplotlib figure or None if no artifacts
     """
     if not artifacts:
         return None
