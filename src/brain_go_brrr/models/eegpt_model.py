@@ -93,16 +93,16 @@ class EEGPTModel:
         self.config = config or EEGPTConfig()
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.encoder = None
+        self.encoder: EEGTransformer | None = None
         self.is_loaded = False
         self.n_summary_tokens = self.config.n_summary_tokens
 
         if auto_load and self.checkpoint_path and self.checkpoint_path.exists():
             self._load_model()
 
-    def _load_model(self):
+    def _load_model(self) -> None:
         """Load pretrained EEGPT model from checkpoint."""
-        if not self.checkpoint_path.exists():
+        if not self.checkpoint_path or not self.checkpoint_path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {self.checkpoint_path}")
 
         try:
@@ -174,7 +174,7 @@ class EEGPTModel:
             logger.error(f"Failed to initialize model: {e}")
             raise
 
-    def _load_task_heads(self):
+    def _load_task_heads(self) -> None:
         """Load task-specific classification heads."""
         # Initialize task-specific heads
         # These would be loaded from separate checkpoints or trained
@@ -232,7 +232,7 @@ class EEGPTModel:
 
         # Convert to numpy if it's a tensor
         if input_was_tensor:
-            window = window.numpy()
+            window = window.detach().cpu().numpy()
 
         # Ensure window is correct size (handle both 2D and 3D shapes)
         time_axis = -1  # Last dimension is always time
@@ -395,7 +395,10 @@ class EEGPTModel:
             # Extract features for the entire batch
             batch_features = self.extract_features_batch(batch_array)
             # Convert to list and extend results
-            results['features'].extend(batch_features.tolist())
+            # Type annotation to help mypy
+            features_list = results['features']
+            if isinstance(features_list, list):
+                features_list.extend(batch_features.tolist())
 
         return results
 
