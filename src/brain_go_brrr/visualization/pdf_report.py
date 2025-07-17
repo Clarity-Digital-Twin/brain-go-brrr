@@ -270,11 +270,11 @@ class PDFReportGenerator:
 def create_electrode_heatmap(channel_positions: dict[str, tuple[float, float]],
                             bad_channels: list[str]) -> plt.Figure:
     """Create electrode heatmap figure.
-    
+
     Args:
         channel_positions: Dictionary of channel positions
         bad_channels: List of bad channel names
-        
+
     Returns:
         Matplotlib figure
     """
@@ -314,12 +314,12 @@ def create_electrode_heatmap(channel_positions: dict[str, tuple[float, float]],
 def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, Any]],
                            sampling_rate: int) -> plt.Figure:
     """Create visualization of artifact examples.
-    
+
     Args:
         eeg_data: EEG data array
         artifacts: List of artifact segments
         sampling_rate: Sampling rate in Hz
-        
+
     Returns:
         Matplotlib figure
     """
@@ -362,10 +362,10 @@ def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, An
 
 def normalize_electrode_positions(positions: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
     """Normalize electrode positions to -1 to 1 range.
-    
+
     Args:
         positions: Raw position coordinates
-        
+
     Returns:
         Normalized positions
     """
@@ -396,10 +396,10 @@ def normalize_electrode_positions(positions: dict[str, tuple[float, float]]) -> 
 
 def get_banner_color(flag: str) -> str:
     """Get banner color based on triage flag.
-    
+
     Args:
         flag: Triage flag (URGENT, EXPEDITE, ROUTINE, NORMAL)
-        
+
     Returns:
         Color string or RGB tuple
     """
@@ -414,10 +414,10 @@ def get_banner_color(flag: str) -> str:
 
 def severity_to_color(severity: float) -> str:
     """Map severity score to color.
-    
+
     Args:
         severity: Severity score (0-1)
-        
+
     Returns:
         Color string
     """
