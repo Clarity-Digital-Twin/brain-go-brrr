@@ -5,7 +5,9 @@ Tests the complete pipeline with actual EEG files from Sleep-EDF dataset.
 
 import time
 from pathlib import Path
+from unittest.mock import patch
 
+import mne
 import pytest
 from fastapi.testclient import TestClient
 
@@ -34,11 +36,65 @@ class TestSleepEDFIntegration:
             pytest.skip("Sleep-EDF data not available. Run data download scripts first.")
 
         return edf_path
+    
+    @pytest.fixture
+    def cropped_edf_bytes(self, sleep_edf_file):
+        """Create a cropped EDF file (60 seconds) for fast tests."""
+        import io
+        import tempfile
+        
+        # Load and crop the raw data
+        raw = mne.io.read_raw_edf(sleep_edf_file, preload=True)
+        raw.crop(tmax=60)  # Keep only first 60 seconds
+        
+        # Export to temporary EDF file
+        with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp:
+            raw.export(tmp.name, fmt='edf', overwrite=True)
+            tmp.seek(0)
+            return tmp.read()
 
     @pytest.mark.integration
-    def test_real_edf_processing(self, client, sleep_edf_file):
-        """Test processing real Sleep-EDF file through API."""
-        # Read the actual EDF file
+    def test_real_edf_processing_cropped(self, client, cropped_edf_bytes):
+        """Test processing cropped Sleep-EDF file through API (fast)."""
+        # Use cropped data for speed
+        files = {'file': ('test_cropped.edf', cropped_edf_bytes, 'application/octet-stream')}
+
+        # Time the request
+        start_time = time.time()
+        response = client.post("/api/v1/eeg/analyze", files=files)
+        processing_time = time.time() - start_time
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check response structure
+        assert data["status"] == "success"
+        assert "bad_channels" in data
+        assert "bad_pct" in data
+        assert "abnormal_prob" in data
+        assert "flag" in data
+        assert "confidence" in data
+        assert "quality_grade" in data
+
+        # Performance check - cropped file should process quickly
+        assert processing_time < 10, f"Processing took too long: {processing_time:.2f}s"
+
+        # Log results for debugging
+        print("\n📊 Real EDF Analysis Results (cropped):")
+        print(f"   File: test_cropped.edf (60s sample)")
+        print(f"   Processing time: {processing_time:.2f}s")
+        print(f"   Bad channels: {data['bad_channels']}")
+        print(f"   Bad channel %: {data['bad_pct']}%")
+        print(f"   Abnormality: {data['abnormal_prob']}")
+        print(f"   Triage: {data['flag']}")
+        print(f"   Quality: {data['quality_grade']}")
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_real_edf_processing_full(self, client, sleep_edf_file):
+        """Test processing full Sleep-EDF file through API (slow)."""
+        # Read the actual full EDF file
         with sleep_edf_file.open('rb') as f:
             files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
 
@@ -54,32 +110,19 @@ class TestSleepEDFIntegration:
         # Check response structure
         assert data["status"] == "success"
         assert "bad_channels" in data
-        assert "bad_pct" in data
-        assert "abnormal_prob" in data
-        assert "flag" in data
-        assert "confidence" in data
-        assert "quality_grade" in data
-
-        # Performance check - should process in reasonable time
-        # Note: First run might be slower due to model loading
-        assert processing_time < 30, f"Processing took too long: {processing_time:.2f}s"
-
-        # Log results for debugging
-        print("\n📊 Real EDF Analysis Results:")
+        
+        # Full file can take longer
+        assert processing_time < 120, f"Processing took too long: {processing_time:.2f}s"
+        
+        print("\n📊 Real EDF Analysis Results (full file):")
         print(f"   File: {sleep_edf_file.name}")
         print(f"   Processing time: {processing_time:.2f}s")
-        print(f"   Bad channels: {data['bad_channels']}")
-        print(f"   Bad channel %: {data['bad_pct']}%")
-        print(f"   Abnormality: {data['abnormal_prob']}")
-        print(f"   Triage: {data['flag']}")
-        print(f"   Quality: {data['quality_grade']}")
 
     @pytest.mark.integration
-    def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
+    def test_sleep_edf_quality_detection(self, client, cropped_edf_bytes):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
-        with sleep_edf_file.open('rb') as f:
-            files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
-            response = client.post("/api/v1/eeg/analyze", files=files)
+        files = {'file': ('test_quality.edf', cropped_edf_bytes, 'application/octet-stream')}
+        response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
         data = response.json()

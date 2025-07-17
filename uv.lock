@@ -476,6 +476,7 @@ source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
     { name = "autoreject" },
+    { name = "edfio" },
     { name = "einops" },
     { name = "fastapi" },
     { name = "hydra-core" },
@@ -554,6 +555,7 @@ requires-dist = [
     { name = "accelerate", specifier = ">=0.26.0" },
     { name = "autoreject", specifier = ">=0.4.0" },
     { name = "dash", marker = "extra == 'viz'", specifier = ">=2.14.0" },
+    { name = "edfio", specifier = ">=0.4.9" },
     { name = "einops", specifier = ">=0.7.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "hydra-core", specifier = ">=1.3.0" },
@@ -1319,6 +1321,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/ef/da712c4d9c7d6cacac27d7b2779e6a97c3381ef2c963c33719d39113b6a3/dvc_task-0.40.2.tar.gz", hash = "sha256:909af541bf5fde83439da56c4c0ebac592af178a59b702708fadaacfd6e7b704", size = 36147 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/bf/f23e8eff38556d479ab421f8b9ac9a9a0b44f8400098c934dce0607da1de/dvc_task-0.40.2-py3-none-any.whl", hash = "sha256:3891b94cf9d349072ee32ce47217b73530b1905e6dd5a1e378bd74afc8b4c030", size = 21392 },
+]
+
+[[package]]
+name = "edfio"
+version = "0.4.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4e/67/35e7af1fbc871ff80e9426acb893aeff43b598d2ea5f206429673379d5d3/edfio-0.4.9.tar.gz", hash = "sha256:c072c37f62ec994e277bfa60200805a9cec1e0f2f8bc15c40af692d3902f891c", size = 24740 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/36/38/69c7ff6215238cc6e00b0d5d79e1b50c16081bb70d096598e2684580963c/edfio-0.4.9-py3-none-any.whl", hash = "sha256:61a3fec7e5d3057d74c2b27e7666af404f311393575eba9e3b58c8e8f53e68f9", size = 27701 },
 ]
 
 [[package]]

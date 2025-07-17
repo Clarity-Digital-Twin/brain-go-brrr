@@ -1,0 +1,55 @@
+"""Shared test fixtures and configuration."""
+
+from pathlib import Path
+
+import mne
+import pytest
+
+
+@pytest.fixture
+def project_root() -> Path:
+    """Get project root directory."""
+    return Path(__file__).parent.parent
+
+
+@pytest.fixture
+def sleep_edf_path(project_root) -> Path:
+    """Get path to a Sleep-EDF file."""
+    edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+    if not edf_path.exists():
+        pytest.skip("Sleep-EDF data not available. Run data download scripts first.")
+    return edf_path
+
+
+@pytest.fixture
+def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
+    """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
+    raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
+    raw.crop(tmax=60)  # 1-minute slice for CI speed
+    return raw
+
+
+@pytest.fixture  
+def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
+    """Load full Sleep-EDF file (for slow tests only)."""
+    return mne.io.read_raw_edf(sleep_edf_path, preload=True)
+
+
+@pytest.fixture
+def mock_eeg_data():
+    """Create mock EEG data for unit tests."""
+    import numpy as np
+    
+    # 19 channels, 30 seconds at 256 Hz
+    sfreq = 256
+    duration = 30
+    n_channels = 19
+    n_times = int(sfreq * duration)
+    
+    ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
+                'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
+    
+    data = np.random.randn(n_channels, n_times) * 20e-6  # ~20 μV
+    
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+    return mne.io.RawArray(data, info)

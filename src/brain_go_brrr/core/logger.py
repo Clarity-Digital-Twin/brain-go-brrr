@@ -27,11 +27,14 @@ def get_logger(
     """
     logger = logging.getLogger(name)
 
-    # Avoid duplicate handlers
+    # Avoid duplicate handlers - return existing logger if already configured
     if logger.handlers:
         return logger
 
     logger.setLevel(getattr(logging, level.upper()))
+    
+    # Prevent propagation to avoid duplicate logs
+    logger.propagate = False
 
     # Rich console handler
     if rich_console:
