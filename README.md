@@ -73,7 +73,7 @@ brain-go-brrr/
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.11+
 - PyTorch
 - NumPy, SciPy
 - MNE-Python (for EEG processing)
@@ -82,12 +82,17 @@ brain-go-brrr/
 
 ```bash
 # Clone the repository
-git clone https://github.com/CLARITY-DIGITAL-TWIN/brain-go-brrr.git
+git clone https://github.com/Clarity-Digital-Twin/brain-go-brrr.git
 cd brain-go-brrr
 
-# Install EEGPT dependencies (see reference implementation)
-cd reference_repos/EEGPT
-pip install -r requirements.txt
+# Install uv (fast Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create virtual environment and install dependencies
+make dev-setup
+
+# Run tests to verify installation
+make test
 ```
 
 ## 📊 Research Applications
