@@ -31,16 +31,9 @@ class TestEEGPTModelLoading:
         assert model.config == config
         assert model.is_loaded is False  # No model loaded yet
 
-    @patch('brain_go_brrr.models.eegpt_model.torch.load')
-    def test_eegpt_model_loading_with_mock_checkpoint(self, mock_torch_load):
+    def test_eegpt_model_loading_with_mock_checkpoint(self):
         """Test model loading with a mocked checkpoint."""
-        # Given: A mock checkpoint file with proper structure
-        mock_checkpoint = {
-            'state_dict': {'dummy_param': torch.tensor([1.0])},
-            'config': {'n_channels': 19, 'seq_len': 1024}
-        }
-        mock_torch_load.return_value = mock_checkpoint
-        
+        # Given: A model without auto-loading
         config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
         
@@ -58,7 +51,12 @@ class TestEEGPTModelLoading:
         
         # Then: The loading should succeed
         assert result is True
-        mock_torch_load.assert_called_once()
+        mock_create.assert_called_once_with(
+            checkpoint_path=str(checkpoint_path),
+            return_all_tokens=False
+        )
+        assert model.is_loaded is True
+        assert model.encoder is mock_encoder
 
     def test_eegpt_model_loading_with_nonexistent_file(self):
         """Test model loading fails gracefully with non-existent file."""
@@ -88,7 +86,7 @@ class TestEEGPTModelLoading:
 
         # Then: The transformer should be initialized with correct parameters
         mock_transformer.assert_called_once()
-        assert model.model == mock_transformer_instance
+        assert model.encoder == mock_transformer_instance
 
     def test_feature_extraction_requires_loaded_model(self):
         """Test that feature extraction requires a loaded model."""

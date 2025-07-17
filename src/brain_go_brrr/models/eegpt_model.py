@@ -78,7 +78,7 @@ class EEGPTModel:
 
     def __init__(
         self,
-        checkpoint_path: str | Path,
+        checkpoint_path: str | Path | None = None,
         config: EEGPTConfig | None = None,
         device: torch.device | None = None,
         auto_load: bool = True
@@ -87,12 +87,12 @@ class EEGPTModel:
         Initialize EEGPT model.
 
         Args:
-            checkpoint_path: Path to pretrained checkpoint
+            checkpoint_path: Path to pretrained checkpoint (optional)
             config: Model configuration
             device: PyTorch device (auto-detected if None)
             auto_load: Whether to automatically load the model checkpoint
         """
-        self.checkpoint_path = Path(checkpoint_path)
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.config = config or EEGPTConfig()
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -100,7 +100,7 @@ class EEGPTModel:
         self.is_loaded = False
         self.n_summary_tokens = self.config.n_summary_tokens
 
-        if auto_load:
+        if auto_load and self.checkpoint_path and self.checkpoint_path.exists():
             self._load_model()
 
     def _load_model(self):

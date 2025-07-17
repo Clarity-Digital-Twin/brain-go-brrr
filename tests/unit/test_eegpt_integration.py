@@ -38,11 +38,15 @@ class TestEEGPTConfig:
 
     def test_config_validation(self):
         """Test configuration validation."""
+        # Test invalid window duration
+        config = EEGPTConfig(window_duration=3.7)  # Would give 947.2 samples
         with pytest.raises(ValueError, match="Window duration must result in integer samples"):
-            EEGPTConfig(window_duration=3.7)  # Would give 947.2 samples
+            _ = config.window_samples  # This triggers the validation
 
+        # Test invalid patch size
+        config = EEGPTConfig(patch_size=100)  # 1024 not divisible by 100
         with pytest.raises(ValueError, match="Patch size must divide window samples"):
-            EEGPTConfig(patch_size=100)  # 1024 not divisible by 100
+            _ = config.n_patches_per_window  # This triggers the validation
 
 
 class TestEEGPTModel:
