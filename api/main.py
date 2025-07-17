@@ -7,13 +7,14 @@ MVP: Auto-QC + Risk Flagger endpoint
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import tempfile
 import traceback
 import logging
 from datetime import datetime
 import json
+import base64
 
 import mne
 
@@ -23,6 +24,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from services.qc_flagger import EEGQualityController
+from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -214,28 +216,187 @@ async def analyze_eeg(
 @app.post("/api/v1/eeg/analyze/detailed")
 async def analyze_eeg_detailed(
     file: UploadFile = File(...),
-    include_report: bool = True
+    include_report: bool = True,
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """
     Detailed EEG analysis with optional PDF report.
     
-    Returns comprehensive analysis results.
+    Returns comprehensive analysis results with PDF report.
     """
-    # Run basic analysis first
-    basic_result = await analyze_eeg(file)
+    # Create temporary file
+    with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
+        tmp_path = Path(tmp_file.name)
+        
+        try:
+            # Save uploaded file
+            content = await file.read()
+            tmp_file.write(content)
+            tmp_file.flush()
+            
+            # Load EEG data
+            logger.info(f"Processing file for detailed analysis: {file.filename}")
+            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+            
+            # Check if QC controller is available
+            if qc_controller is None:
+                raise RuntimeError("QC controller not initialized. Please check logs.")
+                
+            # Run QC analysis
+            logger.info("Running detailed QC analysis...")
+            results = qc_controller.run_full_qc_pipeline(raw)
+            
+            # Extract key metrics for basic response
+            quality_metrics = results.get('quality_metrics', {})
+            bad_channels = quality_metrics.get('bad_channels', [])
+            bad_pct = quality_metrics.get('bad_channel_ratio', 0) * 100
+            abnormal_prob = quality_metrics.get('abnormality_score', 0)
+            quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+            
+            # Determine triage flag
+            if abnormal_prob > 0.8 or quality_grade == 'POOR':
+                flag = "URGENT - Expedite read"
+            elif abnormal_prob > 0.6 or quality_grade == 'FAIR':
+                flag = "EXPEDITE - Priority review"
+            elif abnormal_prob > 0.4:
+                flag = "ROUTINE - Standard workflow"
+            else:
+                flag = "NORMAL - Low priority"
+            
+            # Get confidence score
+            if 'processing_info' in results and isinstance(results['processing_info'].get('confidence'), float):
+                confidence = results['processing_info']['confidence']
+            else:
+                confidence = 0.8 if qc_controller.eegpt_model is not None else 0.5
+            
+            # Processing time
+            processing_time = results.get('processing_time', 0)
+            
+            # Generate PDF report if requested
+            pdf_base64 = None
+            if include_report:
+                try:
+                    # Add more details to results for PDF generation
+                    pdf_results = {
+                        'quality_metrics': {
+                            **quality_metrics,
+                            'channel_positions': _get_channel_positions(raw)
+                        },
+                        'processing_info': {
+                            'file_name': file.filename,
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'duration_seconds': raw.times[-1],
+                            'sampling_rate': raw.info['sfreq']
+                        }
+                    }
+                    
+                    # Generate PDF
+                    pdf_generator = PDFReportGenerator()
+                    pdf_bytes = pdf_generator.generate_report(pdf_results, raw.get_data())
+                    
+                    # Convert to base64 for JSON response
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+                    logger.info("PDF report generated successfully")
+                except Exception as e:
+                    logger.error(f"Failed to generate PDF report: {e}")
+                    # Continue without PDF
+            
+            # Schedule cleanup
+            background_tasks.add_task(cleanup_temp_file, tmp_path)
+            
+            # Create basic result
+            basic_result = QCResponse(
+                status="success",
+                bad_channels=bad_channels,
+                bad_pct=round(bad_pct, 1),
+                abnormal_prob=round(abnormal_prob, 3),
+                flag=flag,
+                confidence=round(confidence, 3),
+                processing_time=round(processing_time, 2),
+                quality_grade=quality_grade,
+                timestamp=datetime.utcnow().isoformat()
+            )
+            
+            return {
+                "basic": basic_result,
+                "detailed": {
+                    "message": "Detailed analysis complete",
+                    "pdf_available": pdf_base64 is not None,
+                    "pdf_base64": pdf_base64,
+                    "artifact_count": len(quality_metrics.get('artifact_segments', [])),
+                    "channel_count": len(raw.ch_names),
+                    "duration_seconds": raw.times[-1]
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in detailed analysis: {e}")
+            logger.error(traceback.format_exc())
+            
+            # Cleanup on error
+            if tmp_path.exists():
+                tmp_path.unlink()
+                
+            return {
+                "basic": QCResponse(
+                    status="error",
+                    bad_channels=[],
+                    bad_pct=0,
+                    abnormal_prob=0,
+                    flag="ERROR",
+                    confidence=0,
+                    processing_time=0,
+                    quality_grade="ERROR",
+                    timestamp=datetime.utcnow().isoformat(),
+                    error=str(e)
+                ),
+                "detailed": {
+                    "message": "Detailed analysis failed",
+                    "pdf_available": False,
+                    "error": str(e)
+                }
+            }
+
+
+def _get_channel_positions(raw: mne.io.Raw) -> Dict[str, Tuple[float, float]]:
+    """Extract channel positions from raw data."""
+    positions = {}
     
-    # TODO: Add detailed analysis
-    # - Generate PDF report
-    # - Include visualization
-    # - Add event timeline
-    
-    return {
-        "basic": basic_result,
-        "detailed": {
-            "message": "Detailed analysis coming soon",
-            "pdf_available": False
-        }
-    }
+    try:
+        # Get montage if available
+        montage = raw.get_montage()
+        if montage is not None:
+            ch_names = montage.ch_names
+            pos = montage.get_positions()['ch_pos']
+            
+            # Convert 3D positions to 2D (x, y) for visualization
+            for ch_name in ch_names:
+                if ch_name in pos:
+                    x, y, z = pos[ch_name]
+                    positions[ch_name] = (x, y)
+        else:
+            # Fallback to standard 10-20 positions for common channels
+            standard_positions = {
+                'Fp1': (-0.3, 0.8), 'Fp2': (0.3, 0.8),
+                'F3': (-0.5, 0.5), 'F4': (0.5, 0.5),
+                'C3': (-0.5, 0), 'C4': (0.5, 0),
+                'P3': (-0.5, -0.5), 'P4': (0.5, -0.5),
+                'O1': (-0.3, -0.8), 'O2': (0.3, -0.8),
+                'F7': (-0.8, 0.3), 'F8': (0.8, 0.3),
+                'T3': (-0.8, 0), 'T4': (0.8, 0),
+                'T5': (-0.8, -0.3), 'T6': (0.8, -0.3),
+                'Fz': (0, 0.6), 'Cz': (0, 0), 'Pz': (0, -0.6)
+            }
+            
+            # Use standard positions for channels that match
+            for ch_name in raw.ch_names:
+                if ch_name in standard_positions:
+                    positions[ch_name] = standard_positions[ch_name]
+                    
+    except Exception as e:
+        logger.warning(f"Failed to extract channel positions: {e}")
+        
+    return positions
 
 
 def cleanup_temp_file(file_path: Path):
