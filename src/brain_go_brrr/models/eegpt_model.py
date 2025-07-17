@@ -131,10 +131,10 @@ class EEGPTModel:
     def load_checkpoint(self, checkpoint_path: Path) -> bool:
         """
         Load model from checkpoint.
-        
+
         Args:
             checkpoint_path: Path to checkpoint file
-            
+
         Returns:
             True if loading successful, False otherwise
         """
@@ -142,7 +142,7 @@ class EEGPTModel:
             if not checkpoint_path.exists():
                 logger.warning(f"Checkpoint not found: {checkpoint_path}")
                 return False
-            
+
             self.checkpoint_path = checkpoint_path
             self._load_model()
             return True
@@ -154,7 +154,7 @@ class EEGPTModel:
         """Initialize model architecture without loading checkpoint."""
         try:
             from .eegpt_architecture import EEGTransformer
-            
+
             # Create model architecture
             self.encoder = EEGTransformer(
                 embed_dim=self.config.embed_dim,
@@ -165,7 +165,7 @@ class EEGPTModel:
             )
             self.encoder.to(self.device)
             self.encoder.eval()
-            
+
             logger.info("Model architecture initialized")
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
