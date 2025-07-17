@@ -135,10 +135,12 @@ class TestSleepEDFIntegration:
         print(f"   Processing time: {processing_time:.2f}s")
 
     @pytest.mark.integration
-    def test_sleep_edf_quality_detection(self, client, cropped_edf_bytes):
+    @pytest.mark.slow
+    def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
-        files = {'file': ('test_quality.edf', cropped_edf_bytes, 'application/octet-stream')}
-        response = client.post("/api/v1/eeg/analyze", files=files)
+        with open(sleep_edf_file, 'rb') as f:
+            files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
+            response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
         data = response.json()
