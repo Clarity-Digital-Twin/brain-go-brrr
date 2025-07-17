@@ -125,4 +125,4 @@ class TestEEGPTModelLoading:
         # Verify the call arguments had correct shapes
         call_args = mock_transformer_instance.call_args[0]
         assert len(call_args) >= 1  # At least one argument (the tensor)
-        assert call_args[0].shape == torch.Size([1, 19, 1024])  # Expected shape
+        assert call_args[0].shape == torch.Size([1, 1, 19, 1024])  # Expected shape after unsqueeze

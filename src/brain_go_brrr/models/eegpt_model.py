@@ -260,6 +260,10 @@ class EEGPTModel:
         # Convert to tensor
         window_tensor = torch.FloatTensor(window).unsqueeze(0).to(self.device)
 
+        # Check if model is loaded
+        if self.encoder is None:
+            raise RuntimeError("Model not loaded. Call load_checkpoint() first.")
+
         # Prepare channel IDs
         if channel_names is not None:
             chan_ids = self.encoder.prepare_chan_ids(channel_names).to(self.device)
