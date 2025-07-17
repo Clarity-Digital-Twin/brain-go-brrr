@@ -67,6 +67,9 @@ dependencies = [
     "yasa>=0.6.5",
     "autoreject>=0.4.0",
     "lightgbm>=4.0.0",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+    "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]
