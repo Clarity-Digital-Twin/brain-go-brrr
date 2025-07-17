@@ -180,7 +180,7 @@ class TestMarkdownReportGeneration:
         generator = MarkdownReportGenerator()
 
         start_time = time.time()
-        markdown = generator.generate_report(qc_results)
+        generator.generate_report(qc_results)
         generation_time = time.time() - start_time
 
         # Should generate quickly

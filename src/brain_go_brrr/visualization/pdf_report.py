@@ -40,7 +40,7 @@ def generate_qc_report(qc_results: dict[str, Any], eeg_data: npt.NDArray | None 
 class PDFReportGenerator:
     """Generate professional PDF reports for EEG QC analysis."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize PDF report generator."""
         self.figsize = (8.5, 11)  # Letter size
         self.dpi = 100
@@ -132,7 +132,7 @@ class PDFReportGenerator:
 
         return fig
 
-    def _add_warning_banner(self, fig: plt.Figure, flag: str, text: str):
+    def _add_warning_banner(self, fig: plt.Figure, flag: str, text: str) -> None:
         """Add colored warning banner based on triage flag."""
         color = get_banner_color(flag)
 
@@ -151,7 +151,7 @@ class PDFReportGenerator:
 
         ax.axis('off')
 
-    def _add_normal_banner(self, fig: plt.Figure, text: str):
+    def _add_normal_banner(self, fig: plt.Figure, text: str) -> None:
         """Add green banner for normal EEG."""
         ax = fig.add_axes([0, 0.92, 1, 0.08])
         ax.set_xlim(0, 1)
@@ -167,7 +167,7 @@ class PDFReportGenerator:
 
         ax.axis('off')
 
-    def _add_header(self, fig: plt.Figure, processing_info: dict[str, Any]):
+    def _add_header(self, fig: plt.Figure, processing_info: dict[str, Any]) -> None:
         """Add report header with file info."""
         ax = fig.add_axes([0.1, 0.82, 0.8, 0.08])
         ax.axis('off')
@@ -184,7 +184,7 @@ class PDFReportGenerator:
         ax.text(0.5, 0.1, f'Generated: {timestamp}', ha='center', fontsize=8)
 
     def _add_summary_stats(self, fig: plt.Figure, quality_metrics: dict[str, Any],
-                          processing_info: dict[str, Any]):
+                          processing_info: dict[str, Any]) -> None:
         """Add summary statistics section."""
         ax = fig.add_axes([0.1, 0.6, 0.8, 0.2])
         ax.axis('off')
@@ -217,7 +217,7 @@ class PDFReportGenerator:
             y_pos -= 0.15
 
     def _add_electrode_heatmap(self, fig: plt.Figure, channel_positions: dict[str, tuple[float, float]],
-                               bad_channels: list[str]):
+                               bad_channels: list[str]) -> None:
         """Add electrode heatmap visualization."""
         ax = fig.add_axes([0.2, 0.15, 0.6, 0.4])
 

@@ -39,7 +39,7 @@ class TestSleepEDFIntegration:
     def test_real_edf_processing(self, client, sleep_edf_file):
         """Test processing real Sleep-EDF file through API."""
         # Read the actual EDF file
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
 
             # Time the request
@@ -77,7 +77,7 @@ class TestSleepEDFIntegration:
     @pytest.mark.integration
     def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -121,7 +121,7 @@ class TestSleepEDFIntegration:
 
         results = []
         for edf_file in edf_files:
-            with open(edf_file, 'rb') as f:
+            with edf_file.open('rb') as f:
                 files = {'file': (edf_file.name, f, 'application/octet-stream')}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -145,7 +145,7 @@ class TestSleepEDFIntegration:
         # This mimics what we do in the model tests - crop to 1 minute
         # We can't actually crop here, but we verify the API handles it
 
-        with open(sleep_edf_file, 'rb') as f:
+        with sleep_edf_file.open('rb') as f:
             files = {'file': ('cropped_test.edf', f, 'application/octet-stream')}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -163,7 +163,7 @@ class TestSleepEDFIntegration:
         confidence_scores = []
 
         for _ in range(2):
-            with open(sleep_edf_file, 'rb') as f:
+            with sleep_edf_file.open('rb') as f:
                 files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -222,7 +222,7 @@ class TestAPIRobustness:
         import concurrent.futures
 
         def process_file():
-            with open(edf_path, 'rb') as f:
+            with edf_path.open('rb') as f:
                 files = {'file': (edf_path.name, f, 'application/octet-stream')}
                 return client.post("/api/v1/eeg/analyze", files=files)
 
