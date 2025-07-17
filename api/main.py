@@ -7,6 +7,7 @@ import base64
 import logging
 
 # Add project to path
+import os
 import sys
 import tempfile
 import traceback
@@ -37,8 +38,9 @@ app = FastAPI(
 )
 
 # Global model instance (loaded once)
-# Use absolute path for model
-EEGPT_MODEL_PATH = (project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt").absolute()
+# Support environment variable for model path (useful for Docker/cloud)
+default_model_path = project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+EEGPT_MODEL_PATH = Path(os.getenv("EEGPT_MODEL_PATH", str(default_model_path))).absolute()
 qc_controller = None
 
 
