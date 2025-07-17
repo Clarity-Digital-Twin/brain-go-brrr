@@ -1,5 +1,4 @@
-"""
-EEGPT Model Integration Module
+"""EEGPT Model Integration Module.
 
 Implements the EEGPT foundation model for EEG analysis.
 Based on the paper "EEGPT: Pretrained Transformer for Universal
@@ -66,8 +65,7 @@ class EEGPTConfig:
 
 
 class EEGPTModel:
-    """
-    EEGPT model wrapper for EEG analysis.
+    """EEGPT model wrapper for EEG analysis.
 
     Provides high-level interface for:
     - Loading pretrained checkpoints
@@ -83,8 +81,7 @@ class EEGPTModel:
         device: torch.device | None = None,
         auto_load: bool = True
     ):
-        """
-        Initialize EEGPT model.
+        """Initialize EEGPT model.
 
         Args:
             checkpoint_path: Path to pretrained checkpoint (optional)
@@ -129,8 +126,7 @@ class EEGPTModel:
             raise
 
     def load_checkpoint(self, checkpoint_path: Path) -> bool:
-        """
-        Load model from checkpoint.
+        """Load model from checkpoint.
 
         Args:
             checkpoint_path: Path to checkpoint file
@@ -154,7 +150,7 @@ class EEGPTModel:
         """Initialize model architecture without loading checkpoint."""
         try:
             from .eegpt_architecture import EEGTransformer
-            
+
             # Create model architecture with correct parameters
             self.encoder = EEGTransformer(
                 img_size=[self.config.max_channels, self.config.window_samples],
@@ -172,7 +168,7 @@ class EEGPTModel:
             )
             self.encoder.to(self.device)
             self.encoder.eval()
-            
+
             logger.info("Model architecture initialized")
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")
@@ -194,8 +190,7 @@ class EEGPTModel:
         data: np.ndarray,
         sampling_rate: int
     ) -> list[np.ndarray]:
-        """
-        Extract non-overlapping windows from continuous data.
+        """Extract non-overlapping windows from continuous data.
 
         Args:
             data: EEG data (channels, samples)
@@ -223,8 +218,7 @@ class EEGPTModel:
         return windows
 
     def extract_features(self, window: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> np.ndarray | torch.Tensor:
-        """
-        Extract features from a single window using EEGPT encoder.
+        """Extract features from a single window using EEGPT encoder.
 
         Args:
             window: EEG window (channels, samples)
@@ -235,11 +229,11 @@ class EEGPTModel:
         """
         # Remember input type to return same type
         input_was_tensor = isinstance(window, torch.Tensor)
-        
+
         # Convert to numpy if it's a tensor
         if input_was_tensor:
             window = window.numpy()
-        
+
         # Ensure window is correct size (handle both 2D and 3D shapes)
         time_axis = -1  # Last dimension is always time
         if window.shape[time_axis] != self.config.window_samples:
@@ -283,8 +277,7 @@ class EEGPTModel:
             return features.cpu().numpy()  # Convert to numpy
 
     def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
-        """
-        Extract features from batch of windows.
+        """Extract features from batch of windows.
 
         Args:
             windows: Batch of windows (batch, channels, samples)
@@ -309,8 +302,7 @@ class EEGPTModel:
         return features.cpu().numpy()
 
     def predict_abnormality(self, raw: mne.io.Raw) -> dict[str, Any]:
-        """
-        Predict abnormality score for raw EEG.
+        """Predict abnormality score for raw EEG.
 
         Args:
             raw: MNE Raw objec
@@ -393,8 +385,7 @@ class EEGPTModel:
 
 
 def preprocess_for_eegpt(raw: mne.io.Raw) -> mne.io.Raw:
-    """
-    Preprocess raw EEG data according to EEGPT requirements.
+    """Preprocess raw EEG data according to EEGPT requirements.
 
     Based on paper specifications:
     - Resample to 256 Hz
@@ -431,8 +422,7 @@ def extract_features_from_raw(
     raw: mne.io.Raw,
     model_path: str | Path
 ) -> dict[str, Any]:
-    """
-    High-level function to extract features from raw EEG.
+    """High-level function to extract features from raw EEG.
 
     Args:
         raw: Raw EEG data

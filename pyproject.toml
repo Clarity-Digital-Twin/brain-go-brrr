@@ -130,11 +130,26 @@ select = [
     "RUF",  # Ruff-specific rules
     "PTH",  # flake8-use-pathlib
     "N",    # pep8-naming
+    "D",    # pydocstyle (docstring conventions)
 ]
-ignore = ["E501", "B008", "RUF012"]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "B008",   # Do not perform function calls in argument defaults
+    "RUF012", # Mutable class attributes should be annotated
+    # Docstring exceptions for now (will fix incrementally)
+    "D100",   # Missing docstring in public module
+    "D101",   # Missing docstring in public class  
+    "D102",   # Missing docstring in public method
+    "D103",   # Missing docstring in public function
+    "D104",   # Missing docstring in public package
+    "D105",   # Missing docstring in magic method
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Use Google-style docstrings
 
 [tool.mypy]
 python_version = "3.11"

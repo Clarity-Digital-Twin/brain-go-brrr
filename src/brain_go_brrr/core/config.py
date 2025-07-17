@@ -99,6 +99,7 @@ class Config(BaseSettings):
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
 
     class Config:
+        """Pydantic configuration class."""
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False

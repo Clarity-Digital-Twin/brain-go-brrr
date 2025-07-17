@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from brain_go_brrr.core.config import Config
 from brain_go_brrr.models.eegpt_model import EEGPTConfig, EEGPTModel
 
 
@@ -36,19 +35,19 @@ class TestEEGPTModelLoading:
         # Given: A model without auto-loading
         config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
-        
+
         # When: We load a checkpoint
         checkpoint_path = Path("mock_checkpoint.ckpt")
-        
+
         # Mock the path exists check and create_eegpt_model function
         with patch.object(Path, 'exists', return_value=True), \
              patch('brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
-            
+
             mock_encoder = MagicMock()
             mock_create.return_value = mock_encoder
-            
+
             result = model.load_checkpoint(checkpoint_path)
-        
+
         # Then: The loading should succeed
         assert result is True
         mock_create.assert_called_once_with(

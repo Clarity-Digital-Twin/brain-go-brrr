@@ -1,5 +1,4 @@
-"""
-EEGPT Architecture Implementation
+"""EEGPT Architecture Implementation.
 
 Based on the official EEGPT paper and reference implementation.
 Vision Transformer architecture adapted for EEG signals.
@@ -28,6 +27,12 @@ class RotaryEmbedding(nn.Module):
     """Rotary Position Embeddings for temporal encoding."""
 
     def __init__(self, dim: int, max_seq_len: int = 5000):
+        """Initialize rotary position embeddings.
+        
+        Args:
+            dim: Embedding dimension.
+            max_seq_len: Maximum sequence length.
+        """
         super().__init__()
         inv_freq = 1.0 / (10000 ** (torch.arange(0, dim, 2).float() / dim))
         self.register_buffer('inv_freq', inv_freq)
@@ -66,6 +71,15 @@ class Attention(nn.Module):
     """Multi-head attention with rotary position embeddings."""
 
     def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = True, attn_drop: float = 0., proj_drop: float = 0.):
+        """Initialize multi-head attention.
+        
+        Args:
+            dim: Input dimension.
+            num_heads: Number of attention heads.
+            qkv_bias: Whether to use bias in QKV projections.
+            attn_drop: Attention dropout rate.
+            proj_drop: Output projection dropout rate.
+        """
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -229,8 +243,7 @@ class EEGTransformer(nn.Module):
         return torch.tensor(chan_ids, dtype=torch.long)
 
     def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
-        """
-        Forward pass.
+        """Forward pass.
 
         Args:
             x: Input tensor (batch_size, n_channels, n_samples)
@@ -271,8 +284,7 @@ class EEGTransformer(nn.Module):
 
 
 def create_eegpt_model(checkpoint_path: str | None = None, **kwargs) -> EEGTransformer:
-    """
-    Create EEGPT model and optionally load pretrained weights.
+    """Create EEGPT model and optionally load pretrained weights.
 
     Args:
         checkpoint_path: Path to pretrained checkpoint

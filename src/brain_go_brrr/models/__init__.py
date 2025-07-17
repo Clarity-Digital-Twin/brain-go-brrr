@@ -1,4 +1,4 @@
-"""Brain-Go-Brrr Models Module
+"""Brain-Go-Brrr Models Module.
 
 Contains model implementations for EEG analysis.
 """

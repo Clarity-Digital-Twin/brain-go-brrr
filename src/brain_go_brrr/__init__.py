@@ -1,5 +1,4 @@
-"""
-Brain Go Brrr: A digital twin brain-computer interface project.
+"""Brain Go Brrr: A digital twin brain-computer interface project.
 
 This package provides tools for EEG signal processing and neural representation
 learning based on the EEGPT transformer architecture.
