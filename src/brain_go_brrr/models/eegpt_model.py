@@ -366,21 +366,37 @@ class EEGPTModel:
     def process_recording(
         self,
         data: np.ndarray,
-        sampling_rate: int
+        sampling_rate: int,
+        batch_size: int = 32
     ) -> dict[str, Any]:
-        """Process full recording and return results."""
+        """Process full recording and return results.
+        
+        Args:
+            data: EEG data array (channels, samples)
+            sampling_rate: Sampling rate in Hz
+            batch_size: Number of windows to process at once
+            
+        Returns:
+            Dictionary with processing results
+        """
         windows = self.extract_windows(data, sampling_rate)
-
+        
         results = {
             'n_windows': len(windows),
             'features': [],
             'processing_complete': True
         }
-
-        for window in windows:
-            features = self.extract_features(window)
-            results['features'].append(features)
-
+        
+        # Process windows in batches for efficiency
+        for i in range(0, len(windows), batch_size):
+            batch_windows = windows[i:i + batch_size]
+            # Stack windows into batch array (batch, channels, samples)
+            batch_array = np.stack(batch_windows, axis=0)
+            # Extract features for the entire batch
+            batch_features = self.extract_features_batch(batch_array)
+            # Convert to list and extend results
+            results['features'].extend(batch_features.tolist())
+        
         return results
 
 
