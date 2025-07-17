@@ -149,6 +149,18 @@ class Block(nn.Module):
     def __init__(self, dim: int, num_heads: int, mlp_ratio: float = 4., qkv_bias: bool = True,
                  drop: float = 0., attn_drop: float = 0., act_layer: nn.Module = nn.GELU,
                  norm_layer: nn.Module = nn.LayerNorm):
+        """Initialize transformer block.
+        
+        Args:
+            dim: Input dimension.
+            num_heads: Number of attention heads.
+            mlp_ratio: MLP hidden dimension ratio.
+            qkv_bias: Whether to use bias in QKV projections.
+            drop: Dropout rate.
+            attn_drop: Attention dropout rate.
+            act_layer: Activation layer class.
+            norm_layer: Normalization layer class.
+        """
         super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop)
@@ -166,6 +178,14 @@ class PatchEmbed(nn.Module):
     """Patch embedding for EEG signals."""
 
     def __init__(self, img_size: list[int] | None = None, patch_size: int = 64, in_chans: int = 1, embed_dim: int = 512):
+        """Initialize patch embedding.
+        
+        Args:
+            img_size: Input image size [channels, time_steps].
+            patch_size: Size of each patch in samples.
+            in_chans: Number of input channels.
+            embed_dim: Embedding dimension.
+        """
         super().__init__()
         if img_size is None:
             img_size = [58, 1024]
