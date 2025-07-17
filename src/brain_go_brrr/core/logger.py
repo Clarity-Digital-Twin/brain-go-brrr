@@ -15,13 +15,13 @@ def get_logger(
     rich_console: bool = True,
 ) -> logging.Logger:
     """Get a configured logger with Rich formatting.
-    
+
     Args:
         name: Logger name
         level: Logging level
         log_file: Optional file to log to
         rich_console: Whether to use Rich console formatting
-        
+
     Returns:
         Configured logger
     """

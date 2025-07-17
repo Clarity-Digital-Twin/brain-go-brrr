@@ -36,6 +36,8 @@ def train(
 
     # Load configuration
     config = Config(debug=debug)
+    if config_file:
+        logger.info(f"Loading config from: {config_file}")
     if data_path:
         config.data_dir = data_path
     if output_dir:
@@ -60,7 +62,8 @@ def preprocess(
     """Preprocess EEG data."""
     console.print("[green]Starting EEG preprocessing...[/green]")
 
-    config = Config()
+    if config_file:
+        logger.info(f"Loading config from: {config_file}")
     logger.info(f"Preprocessing {data_path} -> {output_path}")
 
     # TODO: Implement preprocessing logic
@@ -80,6 +83,8 @@ def evaluate(
 
     logger.info(f"Evaluating model: {model_path}")
     logger.info(f"Evaluation data: {data_path}")
+    if output_path:
+        logger.info(f"Results will be saved to: {output_path}")
 
     # TODO: Implement evaluation logic
     console.print("[yellow]Evaluation logic not implemented yet[/yellow]")
@@ -93,6 +98,7 @@ def serve(
 ) -> None:
     """Serve a trained model via REST API."""
     console.print(f"[green]Starting model server on {host}:{port}[/green]")
+    logger.info(f"Loading model from: {model_path}")
 
     # TODO: Implement serving logic
     console.print("[yellow]Serving logic not implemented yet[/yellow]")

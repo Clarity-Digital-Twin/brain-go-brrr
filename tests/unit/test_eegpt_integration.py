@@ -214,7 +214,7 @@ class TestPerformanceBenchmarks:
         data = np.random.randn(19, int(256 * duration)) * 50e-6
 
         start_time = time.time()
-        result = eegpt_model.process_recording(data, sampling_rate=256)
+        _ = eegpt_model.process_recording(data, sampling_rate=256)
         processing_time = time.time() - start_time
 
         # Should process 20-min recording in <2 minutes (paper target)

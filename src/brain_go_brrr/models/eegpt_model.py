@@ -2,7 +2,7 @@
 EEGPT Model Integration Module
 
 Implements the EEGPT foundation model for EEG analysis.
-Based on the paper "EEGPT: Pretrained Transformer for Universal 
+Based on the paper "EEGPT: Pretrained Transformer for Universal
 and Reliable Representation of EEG Signals"
 
 Model specifications:
@@ -68,7 +68,7 @@ class EEGPTConfig:
 class EEGPTModel:
     """
     EEGPT model wrapper for EEG analysis.
-    
+
     Provides high-level interface for:
     - Loading pretrained checkpoints
     - Preprocessing EEG data
@@ -84,9 +84,9 @@ class EEGPTModel:
     ):
         """
         Initialize EEGPT model.
-        
+
         Args:
-            checkpoint_path: Path to pretrained checkpoint
+            checkpoint_path: Path to pretrained checkpoin
             config: Model configuration
             device: PyTorch device (auto-detected if None)
         """
@@ -139,15 +139,15 @@ class EEGPTModel:
     def extract_windows(
         self,
         data: np.ndarray,
-        sampling_rate: int
+        sampling_rate: in
     ) -> list[np.ndarray]:
         """
         Extract non-overlapping windows from continuous data.
-        
+
         Args:
             data: EEG data (channels, samples)
             sampling_rate: Sampling rate in Hz
-            
+
         Returns:
             List of windows (channels, window_samples)
         """
@@ -172,11 +172,11 @@ class EEGPTModel:
     def extract_features(self, window: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
         """
         Extract features from a single window using EEGPT encoder.
-        
+
         Args:
             window: EEG window (channels, samples)
             channel_names: List of channel names
-            
+
         Returns:
             Features array (n_summary_tokens, feature_dim)
         """
@@ -211,11 +211,11 @@ class EEGPTModel:
     def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
         """
         Extract features from batch of windows.
-        
+
         Args:
             windows: Batch of windows (batch, channels, samples)
             channel_names: List of channel names
-            
+
         Returns:
             Features (batch, n_summary_tokens, feature_dim)
         """
@@ -237,10 +237,10 @@ class EEGPTModel:
     def predict_abnormality(self, raw: mne.io.Raw) -> dict[str, Any]:
         """
         Predict abnormality score for raw EEG.
-        
+
         Args:
-            raw: MNE Raw object
-            
+            raw: MNE Raw objec
+
         Returns:
             Dictionary with abnormality score and metadata
         """
@@ -300,7 +300,7 @@ class EEGPTModel:
     def process_recording(
         self,
         data: np.ndarray,
-        sampling_rate: int
+        sampling_rate: in
     ) -> dict[str, Any]:
         """Process full recording and return results."""
         windows = self.extract_windows(data, sampling_rate)
@@ -321,16 +321,16 @@ class EEGPTModel:
 def preprocess_for_eegpt(raw: mne.io.Raw) -> mne.io.Raw:
     """
     Preprocess raw EEG data according to EEGPT requirements.
-    
+
     Based on paper specifications:
     - Resample to 256 Hz
     - Average reference
     - Convert to mV
     - Optional bandpass filtering
-    
+
     Args:
         raw: Input raw EEG data
-        
+
     Returns:
         Preprocessed raw data
     """
@@ -359,11 +359,11 @@ def extract_features_from_raw(
 ) -> dict[str, Any]:
     """
     High-level function to extract features from raw EEG.
-    
+
     Args:
         raw: Raw EEG data
-        model_path: Path to EEGPT checkpoint
-        
+        model_path: Path to EEGPT checkpoin
+
     Returns:
         Dictionary with features and metadata
     """
@@ -380,4 +380,4 @@ def extract_features_from_raw(
     result['processing_time'] = time.time() - start_time
     result['features'] = True  # Placeholder
 
-    return result
+    return resul

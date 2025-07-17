@@ -74,8 +74,8 @@ class Attention(nn.Module):
         self.rotary_emb = RotaryEmbedding(head_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        batch_size, seq_len, channels = x.shape
+        qkv = self.qkv(x).reshape(batch_size, seq_len, 3, self.num_heads, channels // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         # Apply rotary embeddings
@@ -86,7 +86,7 @@ class Attention(nn.Module):
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = (attn @ v).transpose(1, 2).reshape(batch_size, seq_len, channels)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -136,8 +136,10 @@ class Block(nn.Module):
 class PatchEmbed(nn.Module):
     """Patch embedding for EEG signals."""
 
-    def __init__(self, img_size: list[int] = [58, 1024], patch_size: int = 64, in_chans: int = 1, embed_dim: int = 512):
+    def __init__(self, img_size: list[int] | None = None, patch_size: int = 64, in_chans: int = 1, embed_dim: int = 512):
         super().__init__()
+        if img_size is None:
+            img_size = [58, 1024]
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = (img_size[0], img_size[1] // patch_size)
@@ -145,29 +147,30 @@ class PatchEmbed(nn.Module):
         self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=(1, patch_size), stride=(1, patch_size))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, C, T = x.shape
+        batch_size, channels, time_steps = x.shape
         x = x.unsqueeze(1)  # Add channel dimension for conv2d
-        x = self.proj(x)  # B, embed_dim, C, T//patch_size
-        x = x.permute(0, 2, 3, 1)  # B, C, T//patch_size, embed_dim
-        x = x.reshape(B, -1, x.shape[-1])  # B, C*num_patches, embed_dim
+        x = self.proj(x)  # batch_size, embed_dim, channels, time_steps//patch_size
+        x = x.permute(0, 2, 3, 1)  # batch_size, channels, time_steps//patch_size, embed_dim
+        x = x.reshape(batch_size, -1, x.shape[-1])  # batch_size, channels*num_patches, embed_dim
         return x
 
 
 class EEGTransformer(nn.Module):
     """EEGPT Encoder - Vision Transformer for EEG."""
 
-    def __init__(self, img_size: list[int] = [58, 1024], patch_size: int = 64, in_chans: int = 1,
+    def __init__(self, img_size: list[int] | None = None, patch_size: int = 64, in_chans: int = 1,
                  embed_dim: int = 512, embed_num: int = 4, depth: int = 8, num_heads: int = 8,
                  mlp_ratio: float = 4., qkv_bias: bool = True, drop_rate: float = 0., attn_drop_rate: float = 0.,
                  norm_layer: nn.Module = nn.LayerNorm, return_all_tokens: bool = False):
         super().__init__()
+        if img_size is None:
+            img_size = [58, 1024]
         self.return_all_tokens = return_all_tokens
         self.embed_num = embed_num
         self.embed_dim = embed_dim
 
         # Patch embedding
         self.patch_embed = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
-        num_patches = self.patch_embed.num_patches[0] * self.patch_embed.num_patches[1]
 
         # Channel embedding
         self.chan_embed = nn.Embedding(62, embed_dim)  # 62 possible channels
@@ -222,15 +225,15 @@ class EEGTransformer(nn.Module):
     def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
         """
         Forward pass.
-        
+
         Args:
             x: Input tensor (batch_size, n_channels, n_samples)
             chan_ids: Channel IDs tensor (n_channels,)
-            
+
         Returns:
             Features tensor
         """
-        B, C, T = x.shape
+        batch_size, channels, time_steps = x.shape
 
         # Patch embedding
         x = self.patch_embed(x)  # B, C*num_patches, embed_dim
@@ -239,13 +242,13 @@ class EEGTransformer(nn.Module):
         if chan_ids is not None:
             chan_embeds = self.chan_embed(chan_ids)  # C, embed_dim
             # Expand and add to each patch
-            num_patches_per_chan = x.shape[1] // C
+            num_patches_per_chan = x.shape[1] // channels
             chan_embeds = chan_embeds.unsqueeze(1).expand(-1, num_patches_per_chan, -1)  # C, num_patches, embed_dim
             chan_embeds = chan_embeds.reshape(-1, self.embed_dim)  # C*num_patches, embed_dim
             x = x + chan_embeds.unsqueeze(0)
 
         # Prepend summary tokens
-        summary_tokens = self.summary_token.expand(B, -1, -1)
+        summary_tokens = self.summary_token.expand(batch_size, -1, -1)
         x = torch.cat([summary_tokens, x], dim=1)
 
         # Apply transformer blocks
@@ -264,11 +267,11 @@ class EEGTransformer(nn.Module):
 def create_eegpt_model(checkpoint_path: str | None = None, **kwargs) -> EEGTransformer:
     """
     Create EEGPT model and optionally load pretrained weights.
-    
+
     Args:
         checkpoint_path: Path to pretrained checkpoint
         **kwargs: Model configuration parameters
-        
+
     Returns:
         EEGPT model
     """
