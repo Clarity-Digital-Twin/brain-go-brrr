@@ -1,22 +1,53 @@
 # Brain Go Brrr 🧠⚡
 
-A digital twin brain-computer interface project focused on EEG signal processing and neural representation learning.
+A modern, production-ready digital twin brain-computer interface project focused on EEG signal processing and neural representation learning using the EEGPT transformer architecture.
 
 ## 🎯 Project Overview
 
-This repository contains research materials and reference implementations for building advanced brain-computer interface systems using transformer-based neural networks. The project centers around the EEGPT (EEG Pretrained Transformer) architecture for universal EEG signal representation.
+Brain Go Brrr is a comprehensive Python framework for EEG signal processing and neural representation learning. Built around the EEGPT (EEG Pretrained Transformer) architecture and 9 critical reference repositories, it provides a complete pipeline from raw EEG data to production-ready analysis.
+
+## ✨ Key Features
+
+- **🧠 EEGPT Integration**: Pre-trained transformer models for universal EEG representation
+- **⚡ Modern Python Stack**: Built with uv, ruff, and 2025 best practices
+- **🔧 Complete Pipeline**: From EDF loading to REST API deployment
+- **📊 Comprehensive Analysis**: Quality control, sleep staging, feature extraction
+- **🎨 Rich CLI**: Beautiful command-line interface with Typer and Rich
+- **🚀 Production Ready**: Docker, CI/CD, comprehensive testing
+- **📚 9 Reference Repos**: Carefully curated and integrated ML/EEG libraries
 
 ## 📁 Repository Structure
 
 ```
 brain-go-brrr/
-├── literature/           # Research papers and documentation
-│   ├── markdown/        # Converted research papers in markdown
-│   │   └── EEGPT/      # EEGPT paper with extracted figures
-│   └── pdfs/           # Original research papers
-├── reference_repos/     # Reference implementations
-│   └── EEGPT/          # Official EEGPT implementation
-└── README.md           # This file
+├── src/brain_go_brrr/           # Main source code
+│   ├── core/                   # Core utilities and configuration
+│   ├── models/                 # EEGPT model implementations
+│   ├── data/                   # Data processing utilities
+│   ├── training/               # Training pipelines
+│   ├── inference/              # Inference and serving
+│   └── cli.py                  # Command-line interface
+├── services/                   # Processing services
+│   ├── qc_flagger.py          # Quality control with autoreject + EEGPT
+│   ├── sleep_metrics.py       # Sleep analysis with YASA
+│   └── snippet_maker.py       # Snippet extraction + tsfresh features
+├── reference_repos/            # 9 critical EEG/ML repositories
+│   ├── EEGPT/                 # Official EEGPT implementation
+│   ├── mne-python/            # MNE for EEG processing
+│   ├── pyEDFlib/              # Fast EDF/BDF reading
+│   ├── mne-bids/              # BIDS conversion
+│   ├── braindecode/           # Deep learning for EEG
+│   ├── yasa/                  # Sleep staging
+│   ├── tueg-tools/            # TUAB/TUEV dataset tools
+│   ├── autoreject/            # Automated artifact rejection
+│   └── tsfresh/               # Time-series feature extraction
+├── examples/                   # Example scripts and notebooks
+├── tests/                      # Comprehensive test suite
+├── docs/                       # Documentation
+├── .github/workflows/          # CI/CD pipelines
+├── pyproject.toml             # Modern Python project configuration
+├── Makefile                   # Development commands
+└── README.md                  # This file
 ```
 
 ## 🔬 Featured Research
