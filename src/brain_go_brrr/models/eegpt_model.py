@@ -233,16 +233,29 @@ class EEGPTModel:
         Returns:
             Features array (n_summary_tokens, feature_dim)
         """
-        # Ensure window is correct size
-        if window.shape[1] != self.config.window_samples:
+        # Remember input type to return same type
+        input_was_tensor = isinstance(window, torch.Tensor)
+        
+        # Convert to numpy if it's a tensor
+        if input_was_tensor:
+            window = window.numpy()
+        
+        # Ensure window is correct size (handle both 2D and 3D shapes)
+        time_axis = -1  # Last dimension is always time
+        if window.shape[time_axis] != self.config.window_samples:
             # Resample or pad/crop as needed
-            if window.shape[1] < self.config.window_samples:
-                # Pad with zeros
-                pad_width = self.config.window_samples - window.shape[1]
-                window = np.pad(window, ((0, 0), (0, pad_width)), mode='constant')
+            if window.shape[time_axis] < self.config.window_samples:
+                # Pad with zeros - create padding tuple for all dimensions
+                pad_width = self.config.window_samples - window.shape[time_axis]
+                # For N-D array, pad only the last dimension (time axis)
+                padding = [(0, 0)] * window.ndim
+                padding[time_axis] = (0, pad_width)
+                window = np.pad(window, padding, mode='constant')
             else:
-                # Crop
-                window = window[:, :self.config.window_samples]
+                # Crop - use slicing that works for any number of dimensions
+                slices = [slice(None)] * window.ndim
+                slices[time_axis] = slice(None, self.config.window_samples)
+                window = window[tuple(slices)]
 
         # Convert to tensor
         window_tensor = torch.FloatTensor(window).unsqueeze(0).to(self.device)
@@ -259,7 +272,11 @@ class EEGPTModel:
             features = self.encoder(window_tensor, chan_ids)  # B, n_summary_tokens, embed_dim
             features = features.squeeze(0)  # Remove batch dimension
 
-        return features.cpu().numpy()
+        # Return same type as input
+        if input_was_tensor:
+            return features.cpu()  # Keep as tensor, move to CPU
+        else:
+            return features.cpu().numpy()  # Convert to numpy
 
     def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
         """
