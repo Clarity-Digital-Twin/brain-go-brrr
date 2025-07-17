@@ -23,7 +23,7 @@ import torch
 import torch.nn as nn
 from scipy import signal
 
-from .eegpt_architecture import create_eegpt_model
+from .eegpt_architecture import EEGTransformer, create_eegpt_model
 
 logger = logging.getLogger(__name__)
 
