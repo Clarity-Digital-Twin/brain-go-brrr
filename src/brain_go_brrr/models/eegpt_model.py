@@ -154,18 +154,25 @@ class EEGPTModel:
         """Initialize model architecture without loading checkpoint."""
         try:
             from .eegpt_architecture import EEGTransformer
-
-            # Create model architecture
+            
+            # Create model architecture with correct parameters
             self.encoder = EEGTransformer(
-                embed_dim=self.config.embed_dim,
-                num_heads=self.config.num_heads,
-                num_layers=self.config.num_layers,
+                img_size=[self.config.max_channels, self.config.window_samples],
                 patch_size=self.config.patch_size,
-                dropout=self.config.dropout
+                in_chans=1,
+                embed_dim=512,  # Default from paper
+                embed_num=self.config.n_summary_tokens,
+                depth=8,  # Default from paper
+                num_heads=8,  # Default from paper
+                mlp_ratio=4.0,
+                qkv_bias=True,
+                drop_rate=0.0,
+                attn_drop_rate=0.0,
+                return_all_tokens=False
             )
             self.encoder.to(self.device)
             self.encoder.eval()
-
+            
             logger.info("Model architecture initialized")
         except Exception as e:
             logger.error(f"Failed to initialize model: {e}")

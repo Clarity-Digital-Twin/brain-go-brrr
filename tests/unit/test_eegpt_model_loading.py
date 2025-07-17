@@ -34,23 +34,28 @@ class TestEEGPTModelLoading:
     @patch('brain_go_brrr.models.eegpt_model.torch.load')
     def test_eegpt_model_loading_with_mock_checkpoint(self, mock_torch_load):
         """Test model loading with a mocked checkpoint."""
-        # Given: A mock checkpoint file
+        # Given: A mock checkpoint file with proper structure
         mock_checkpoint = {
-            'model_state_dict': {'dummy_param': torch.tensor([1.0])},
+            'state_dict': {'dummy_param': torch.tensor([1.0])},
             'config': {'n_channels': 19, 'seq_len': 1024}
         }
         mock_torch_load.return_value = mock_checkpoint
-
+        
         config = EEGPTConfig()
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
-
+        
         # When: We load a checkpoint
         checkpoint_path = Path("mock_checkpoint.ckpt")
-
-        # Mock the path exists check
-        with patch.object(Path, 'exists', return_value=True):
+        
+        # Mock the path exists check and create_eegpt_model function
+        with patch.object(Path, 'exists', return_value=True), \
+             patch('brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
+            
+            mock_encoder = MagicMock()
+            mock_create.return_value = mock_encoder
+            
             result = model.load_checkpoint(checkpoint_path)
-
+        
         # Then: The loading should succeed
         assert result is True
         mock_torch_load.assert_called_once()
