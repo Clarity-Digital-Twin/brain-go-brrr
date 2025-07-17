@@ -51,7 +51,9 @@ class TestEEGPTModel:
     @pytest.fixture
     def model_path(self):
         """Path to pretrained EEGPT model."""
-        return Path("/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
+        # Use relative path from project root
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
     
     @pytest.fixture
     def eegpt_model(self, model_path):

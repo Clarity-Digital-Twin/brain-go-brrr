@@ -77,10 +77,16 @@ class EEGQualityController:
     def _load_eegpt_model(self, model_path: Path) -> None:
         """Load pretrained EEGPT model."""
         try:
-            # TODO: Implement EEGPT model loading
-            # This would load the actual pretrained model
+            from brain_go_brrr.models.eegpt_model import EEGPTModel
+            
+            if not model_path.exists():
+                logger.warning(f"EEGPT model not found at {model_path}")
+                self.eegpt_model = None
+                return
+                
             logger.info(f"Loading EEGPT model from {model_path}")
-            self.eegpt_model = "placeholder"  # Replace with actual model loading
+            self.eegpt_model = EEGPTModel(checkpoint_path=model_path)
+            logger.info("EEGPT model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load EEGPT model: {e}")
             self.eegpt_model = None
@@ -355,20 +361,43 @@ class EEGQualityController:
         Returns:
             Abnormality score or detailed results
         """
+        import time
+        start_time = time.time()
+        
         if self.eegpt_model is None:
             logger.warning("EEGPT model not loaded - returning dummy score")
             score = np.random.random()  # Dummy score
+            confidence = 0.5
         else:
-            # TODO: Implement actual EEGPT inference
-            # This would use the loaded model to compute abnormality
-            score = np.random.random()  # Placeholder
+            try:
+                # Convert epochs to raw for EEGPT processing
+                # Stack all epochs into continuous data
+                data = epochs.get_data()  # (n_epochs, n_channels, n_times)
+                
+                # Create a temporary raw object from epochs data
+                # Concatenate all epochs
+                concatenated_data = data.reshape(data.shape[0] * data.shape[2], data.shape[1]).T
+                info = epochs.info.copy()
+                raw_from_epochs = mne.io.RawArray(concatenated_data, info)
+                
+                # Get abnormality prediction
+                result = self.eegpt_model.predict_abnormality(raw_from_epochs)
+                score = result['abnormality_score']
+                confidence = result['confidence']
+                
+            except Exception as e:
+                logger.error(f"EEGPT inference failed: {e}")
+                score = 0.5  # Default to uncertain
+                confidence = 0.0
+        
+        processing_time = time.time() - start_time
             
         if return_details:
             return {
                 'abnormality_score': score,
-                'confidence': 0.85,  # Placeholder
+                'confidence': confidence,
                 'model_version': 'eegpt-v1.0',
-                'processing_time': 0.1  # Placeholder
+                'processing_time': processing_time
             }
         
         return score
