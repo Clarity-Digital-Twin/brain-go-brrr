@@ -145,11 +145,10 @@ class TestAPIEndpoints:
             files = {'file': ('invalid.txt', f, 'text/plain')}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
-        assert response.status_code == 200
+        assert response.status_code == 400
         data = response.json()
-        assert data['status'] == 'error'
-        assert 'error' in data
-        assert data['flag'] == 'ERROR'
+        assert 'detail' in data
+        assert 'EDF' in data['detail']
 
     def test_analyze_eeg_controller_error(self, client, sample_edf_file, mock_qc_controller):
         """Test handling of controller errors."""
