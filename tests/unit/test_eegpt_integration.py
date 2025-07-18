@@ -89,10 +89,10 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 10  # seconds
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # µV scale converted to V
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
-        raw = mne.io.RawArray(data, info)
+        raw = mne.io.RawArray(data, info)  # MNE expects data in volts
 
         # Preprocess for EEGPT
         processed = preprocess_for_eegpt(raw)

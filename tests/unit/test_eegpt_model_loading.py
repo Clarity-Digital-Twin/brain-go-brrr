@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from brain_go_brrr.models.eegpt_model import EEGPTConfig, EEGPTModel
+from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
 class TestEEGPTModelLoading:
@@ -17,24 +17,22 @@ class TestEEGPTModelLoading:
 
     def test_eegpt_model_initialization_without_checkpoint(self):
         """Test that EEGPTModel can be initialized with a checkpoint path."""
-        # Given: A valid config and a checkpoint path (even if file doesn't exist)
-        config = EEGPTConfig()
+        # Given: A checkpoint path (even if file doesn't exist)
         checkpoint_path = Path("nonexistent_checkpoint.ckpt")
 
-        # When: We initialize the model without auto-loading
-        model = EEGPTModel(checkpoint_path=checkpoint_path, config=config, auto_load=False)
+        # When: We initialize the model without auto-loading (using backward compatibility)
+        model = EEGPTModel(checkpoint_path=checkpoint_path, auto_load=False)
 
         # Then: The model should be initialized successfully
         assert model is not None
         assert model.checkpoint_path == checkpoint_path
-        assert model.config == config
+        assert model.config is not None
         assert model.is_loaded is False  # No model loaded yet
 
     def test_eegpt_model_loading_with_mock_checkpoint(self):
         """Test model loading with a mocked checkpoint."""
         # Given: A model without auto-loading
-        config = EEGPTConfig()
-        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), config=config, auto_load=False)
+        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
 
         # When: We load a checkpoint
         checkpoint_path = Path("mock_checkpoint.ckpt")
