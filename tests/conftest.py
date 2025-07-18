@@ -26,13 +26,20 @@ def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     raw.crop(tmax=60)  # 1-minute slice for CI speed
-    return raw
+    yield raw
+    # Cleanup: explicitly delete to free memory
+    del raw._data
+    del raw
 
 
 @pytest.fixture
 def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
     """Load full Sleep-EDF file (for slow tests only)."""
-    return mne.io.read_raw_edf(sleep_edf_path, preload=True)
+    raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
+    yield raw
+    # Cleanup: explicitly delete to free memory
+    del raw._data
+    del raw
 
 
 @pytest.fixture
