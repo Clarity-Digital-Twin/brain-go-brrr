@@ -1,10 +1,5 @@
 name: Claude PR Action
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
 on:
   issue_comment:
     types: [created]
@@ -12,6 +7,12 @@ on:
     types: [created]
   issues:
     types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
 
 jobs:
   claude-pr:
@@ -21,9 +22,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+        with:
+          fetch-depth: 0
+          
       - name: Run Claude Code Action
         uses: anthropics/claude-code-action@v0.0.33
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: "claude-opus-4-20250514"
+          allowed_tools: "Bash(git:*),View,GlobTool,GrepTool,BatchTool,FileEditTool,CreateFileTool"
