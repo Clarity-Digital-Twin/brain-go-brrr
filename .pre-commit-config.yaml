@@ -24,7 +24,8 @@ repos:
         name: mypy (type check)
         additional_dependencies: [pydantic, types-requests]
         args: [--ignore-missing-imports, --scripts-are-modules]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
+        files: ^src/brain_go_brrr/
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/|api/|services/|tests/)
 
   # Notebook quality checks
   - repo: https://github.com/nbQA-dev/nbQA

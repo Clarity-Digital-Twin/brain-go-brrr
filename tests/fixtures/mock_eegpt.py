@@ -33,6 +33,7 @@ class MockEEGPTModel:
 
         # Mock config for compatibility
         from types import SimpleNamespace
+
         self.config = SimpleNamespace(model_path="fake/path.ckpt")
 
     def extract_features(self, window_data, channel_names=None):
