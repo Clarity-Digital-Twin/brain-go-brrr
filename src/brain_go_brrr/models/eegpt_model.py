@@ -394,20 +394,23 @@ class EEGPTModel:
         Returns:
             Features (batch, n_summary_tokens, feature_dim)
         """
-        # Convert to tensor
-        windows_tensor = torch.FloatTensor(windows).to(self.device)
-
-        # Prepare channel IDs
-        if channel_names is not None:
-            chan_ids = self.encoder.prepare_chan_ids(channel_names).to(self.device)
-        else:
-            chan_ids = torch.arange(windows.shape[1], device=self.device)
-
-        # Extract features for batch
-        with torch.no_grad():
-            features = self.encoder(windows_tensor, chan_ids)
-
-        return features.cpu().numpy()
+        batch_size, n_channels, n_samples = windows.shape
+        
+        # Process each window individually for now
+        # TODO: Optimize for true batch processing
+        batch_features = []
+        
+        for i in range(batch_size):
+            window = windows[i]
+            if channel_names is None:
+                ch_names = [f"EEG{j:03d}" for j in range(n_channels)]
+            else:
+                ch_names = channel_names
+            
+            features = self.extract_features(window, ch_names)
+            batch_features.append(features)
+        
+        return np.stack(batch_features, axis=0)
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""
