@@ -19,13 +19,16 @@ class TestConfig:
     def test_model_config_defaults(self):
         """Test default model configuration."""
         model_config = ModelConfig()
-        assert model_config.name == "eegpt"
-        assert model_config.embed_dim == 128
-        assert model_config.num_heads == 8
-        assert model_config.num_layers == 6
+        assert model_config.device == "auto"
+        assert model_config.batch_size == 8
+        assert model_config.sampling_rate == 256
+        assert model_config.window_duration == 4.0
         assert model_config.patch_size == 64
-        assert model_config.mask_ratio == 0.75
-        assert model_config.dropout == 0.1
+        assert model_config.n_summary_tokens == 4
+        assert model_config.embed_dim == 512
+        assert model_config.streaming_threshold == 120.0
+        assert model_config.window_overlap == 0.5
+        assert model_config.model_path.name == "eegpt_mcae_58chs_4s_large4E.ckpt"
 
     def test_training_config_defaults(self):
         """Test default training configuration."""

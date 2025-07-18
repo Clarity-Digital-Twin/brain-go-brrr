@@ -15,7 +15,7 @@ Model specifications:
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import mne
 import numpy as np
@@ -71,21 +71,47 @@ class EEGPTModel:
     """EEGPT Model wrapper for inference and feature extraction."""
 
     def __init__(self,
-                 config: ModelConfig | None = None) -> None:
-        """Initialize EEGPT model."""
+                 config: ModelConfig | None = None,
+                 checkpoint_path: Union[str, Path] | None = None,
+                 device: str | None = None,
+                 auto_load: bool = True) -> None:
+        """Initialize EEGPT model.
+        
+        Args:
+            config: Model configuration (preferred)
+            checkpoint_path: Backward compatibility - path to checkpoint
+            device: Backward compatibility - device to use
+            auto_load: Backward compatibility - whether to auto-load model
+        """
+        # Handle backward compatibility
+        if config is None and checkpoint_path is not None:
+            # Create config from legacy parameters
+            config = ModelConfig()
+            if checkpoint_path:
+                config.model_path = Path(checkpoint_path)
+            if device:
+                config.device = device
+        
         self.config = config or ModelConfig()
-
+        
         # Set device
         if self.config.device == "auto":
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
-            self.device = self.config.device
-
-        self.encoder: EEGTransformer | None = None
-        self.abnormality_head: nn.Module | None = None
+            self.device = torch.device(self.config.device)
+            
+        self.encoder: Optional[EEGTransformer] = None
+        self.abnormality_head: Optional[nn.Module] = None
         self.is_loaded = False
-
+        
         self.logger = logging.getLogger(__name__)
+        
+        # Auto-load for backward compatibility
+        if auto_load and self.config.model_path.exists():
+            try:
+                self.load_model()
+            except Exception as e:
+                self.logger.warning(f"Auto-load failed: {e}")
 
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""

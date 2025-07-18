@@ -47,16 +47,25 @@ class RoPE(nn.Module):
         self.register_buffer('position', position)
         self.register_buffer('div_term', div_term)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
+        """Forward pass returning cosine and sine embeddings.
+        
+        Args:
+            x: Input tensor of shape (batch, seq_len, embed_dim)
+            
+        Returns:
+            Tuple of (cos_emb, sin_emb) each of shape (seq_len, embed_dim//2)
+        """
         seq_len = x.size(1)
-        position = self.position[:seq_len]
-
-        # Apply rotary embedding - use direct tensor operations
-        sin_pos = torch.sin(position * self.div_term).to(x.device, x.dtype)
-        cos_pos = torch.cos(position * self.div_term).to(x.device, x.dtype)
-
-        # Apply rotation (simplified implementation)
-        return x + sin_pos.unsqueeze(0) * 0.1 + cos_pos.unsqueeze(0) * 0.1
+        position = self.position[:seq_len]  # (seq_len, 1)
+        
+        # Apply frequency terms: (seq_len, embed_dim//2)
+        angles = position * self.div_term.unsqueeze(0)  # (seq_len, embed_dim//2)
+        
+        cos_emb = torch.cos(angles)  # (seq_len, embed_dim//2)
+        sin_emb = torch.sin(angles)  # (seq_len, embed_dim//2)
+        
+        return cos_emb, sin_emb
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
