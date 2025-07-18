@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import mne
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, Header
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, Header, Depends
 from pydantic import BaseModel, Field
 
 project_root = Path(__file__).parent.parent
@@ -26,6 +26,7 @@ from services.qc_flagger import EEGQualityController
 from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
 from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 from api.cache import get_cache, RedisCache
+from api.auth import verify_cache_clear_permission
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -545,14 +546,13 @@ async def get_cache_stats():
 
 @app.delete("/api/v1/cache/clear")
 async def clear_cache(
-    authorization: Optional[str] = Header(None),
-    pattern: str = "eeg_analysis:*"
+    pattern: str = "eeg_analysis:*",
+    authorized: bool = Depends(verify_cache_clear_permission)
 ):
-    """Clear cache entries matching pattern."""
-    # In production, verify authorization token
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization required")
+    """Clear cache entries matching pattern.
     
+    Requires admin token or HMAC signature for authorization.
+    """
     if not cache_client or not cache_client.connected:
         return {
             "status": "unavailable",

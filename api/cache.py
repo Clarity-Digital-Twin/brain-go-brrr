@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import time
 from typing import Optional, Any
 import redis
 from redis.exceptions import ConnectionError, TimeoutError
@@ -14,28 +15,82 @@ class RedisCache:
     """Redis cache wrapper for EEG analysis results."""
     
     def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0, 
-                 decode_responses: bool = True, socket_timeout: int = 5):
+                 decode_responses: bool = True, socket_timeout: int = 5,
+                 max_retries: int = 3, retry_on_timeout: bool = True):
         """Initialize Redis client with connection parameters."""
         self.host = host
         self.port = port
         self.db = db
+        self.decode_responses = decode_responses
+        self.socket_timeout = socket_timeout
+        self.max_retries = max_retries
+        self.retry_on_timeout = retry_on_timeout
+        self._last_ping_time = 0
+        self._ping_interval = 30  # seconds
         
+        self._connect()
+    
+    def _connect(self):
+        """Establish connection to Redis."""
         try:
             self.client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                decode_responses=decode_responses,
-                socket_timeout=socket_timeout
+                host=self.host,
+                port=self.port,
+                db=self.db,
+                decode_responses=self.decode_responses,
+                socket_timeout=self.socket_timeout,
+                socket_connect_timeout=self.socket_timeout,
+                retry_on_timeout=self.retry_on_timeout,
+                max_connections=50,
+                health_check_interval=30
             )
             # Test connection
             self.client.ping()
             self.connected = True
-            logger.info(f"Connected to Redis at {host}:{port}")
+            logger.info(f"Connected to Redis at {self.host}:{self.port}")
         except (ConnectionError, TimeoutError) as e:
             logger.warning(f"Failed to connect to Redis: {e}. Cache disabled.")
             self.client = None
             self.connected = False
+    
+    def _ensure_connected(self) -> bool:
+        """Ensure Redis connection is active, reconnect if needed."""
+        if not self.client:
+            return False
+            
+        # Periodic health check
+        current_time = time.time()
+        if current_time - self._last_ping_time > self._ping_interval:
+            try:
+                self.client.ping()
+                self._last_ping_time = current_time
+                self.connected = True
+            except (ConnectionError, TimeoutError):
+                logger.warning("Redis connection lost, attempting reconnect...")
+                self._connect()
+        
+        return self.connected
+    
+    def health_check(self) -> dict:
+        """Perform health check on Redis connection."""
+        if not self.client:
+            return {"healthy": False, "error": "No client initialized"}
+        
+        try:
+            start_time = time.time()
+            self.client.ping()
+            ping_time = (time.time() - start_time) * 1000  # ms
+            
+            info = self.client.info()
+            return {
+                "healthy": True,
+                "ping_ms": round(ping_time, 2),
+                "version": info.get("redis_version", "unknown"),
+                "connected_clients": info.get("connected_clients", 0),
+                "used_memory_human": info.get("used_memory_human", "N/A")
+            }
+        except Exception as e:
+            return {"healthy": False, "error": str(e)}
     
     def generate_cache_key(self, file_content: bytes, analysis_type: str = "standard") -> str:
         """Generate cache key from file content hash."""
@@ -44,7 +99,7 @@ class RedisCache:
     
     def get(self, key: str) -> Optional[dict]:
         """Get cached result."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return None
             
         try:
