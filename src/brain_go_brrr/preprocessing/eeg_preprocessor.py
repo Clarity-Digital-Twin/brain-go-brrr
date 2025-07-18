@@ -11,36 +11,85 @@ import numpy as np
 # Maps various channel naming conventions to standard indices
 CHANNEL_MAPPING = {
     # Frontal
-    "FP1": 0, "Fp1": 0,
-    "FPZ": 1, "Fpz": 1,
-    "FP2": 2, "Fp2": 2,
-    "AF7": 3, "AF3": 4, "AF4": 5, "AF8": 6,
-    "F7": 7, "F5": 8, "F3": 9, "F1": 10,
-    "FZ": 11, "Fz": 11,
-    "F2": 12, "F4": 13, "F6": 14, "F8": 15,
+    "FP1": 0,
+    "Fp1": 0,
+    "FPZ": 1,
+    "Fpz": 1,
+    "FP2": 2,
+    "Fp2": 2,
+    "AF7": 3,
+    "AF3": 4,
+    "AF4": 5,
+    "AF8": 6,
+    "F7": 7,
+    "F5": 8,
+    "F3": 9,
+    "F1": 10,
+    "FZ": 11,
+    "Fz": 11,
+    "F2": 12,
+    "F4": 13,
+    "F6": 14,
+    "F8": 15,
     # Fronto-temporal
-    "FT7": 16, "FC5": 17, "FC3": 18, "FC1": 19,
-    "FCZ": 20, "FCz": 20,
-    "FC2": 21, "FC4": 22, "FC6": 23, "FT8": 24,
+    "FT7": 16,
+    "FC5": 17,
+    "FC3": 18,
+    "FC1": 19,
+    "FCZ": 20,
+    "FCz": 20,
+    "FC2": 21,
+    "FC4": 22,
+    "FC6": 23,
+    "FT8": 24,
     # Temporal/Central
-    "T7": 25, "T3": 25,  # T3/T7 are same position
-    "C5": 26, "C3": 27, "C1": 28,
-    "CZ": 29, "Cz": 29,
-    "C2": 30, "C4": 31, "C6": 32,
-    "T8": 33, "T4": 33,  # T4/T8 are same position
+    "T7": 25,
+    "T3": 25,  # T3/T7 are same position
+    "C5": 26,
+    "C3": 27,
+    "C1": 28,
+    "CZ": 29,
+    "Cz": 29,
+    "C2": 30,
+    "C4": 31,
+    "C6": 32,
+    "T8": 33,
+    "T4": 33,  # T4/T8 are same position
     # Centro-parietal
-    "TP7": 34, "CP5": 35, "CP3": 36, "CP1": 37,
-    "CPZ": 38, "CPz": 38,
-    "CP2": 39, "CP4": 40, "CP6": 41, "TP8": 42,
+    "TP7": 34,
+    "CP5": 35,
+    "CP3": 36,
+    "CP1": 37,
+    "CPZ": 38,
+    "CPz": 38,
+    "CP2": 39,
+    "CP4": 40,
+    "CP6": 41,
+    "TP8": 42,
     # Parietal
-    "P7": 43, "P5": 44, "P3": 45, "P1": 46,
-    "PZ": 47, "Pz": 47,
-    "P2": 48, "P4": 49, "P6": 50, "P8": 51,
+    "P7": 43,
+    "P5": 44,
+    "P3": 45,
+    "P1": 46,
+    "PZ": 47,
+    "Pz": 47,
+    "P2": 48,
+    "P4": 49,
+    "P6": 50,
+    "P8": 51,
     # Occipital
-    "PO7": 52, "PO3": 53, "POZ": 54, "POz": 54,
-    "PO4": 55, "PO8": 56,
-    "O1": 57, "OZ": 58, "Oz": 58, "O2": 59,
-    "IZ": 60, "Iz": 60,
+    "PO7": 52,
+    "PO3": 53,
+    "POZ": 54,
+    "POz": 54,
+    "PO4": 55,
+    "PO8": 56,
+    "O1": 57,
+    "OZ": 58,
+    "Oz": 58,
+    "O2": 59,
+    "IZ": 60,
+    "Iz": 60,
     # Common alternatives
     "T5": 43,  # P7 in newer nomenclature
     "T6": 51,  # P8 in newer nomenclature
@@ -49,23 +98,26 @@ CHANNEL_MAPPING = {
 # BioSerenity-E1 16-channel montage based on standard 10-20 positions
 # Provides good coverage while being computationally efficient
 BIOSERENITY_16_CHANNELS = [
-    'Fp1', 'Fp2',  # Frontal polar
-    'F3', 'F4',    # Frontal
-    'F7', 'F8',    # Lateral frontal
-    'C3', 'C4',    # Central
-    'T3', 'T4',    # Temporal (T7/T8 in newer nomenclature)
-    'P3', 'P4',    # Parietal
-    'O1', 'O2',    # Occipital
-    'Fz', 'Cz'     # Midline
+    "Fp1",
+    "Fp2",  # Frontal polar
+    "F3",
+    "F4",  # Frontal
+    "F7",
+    "F8",  # Lateral frontal
+    "C3",
+    "C4",  # Central
+    "T3",
+    "T4",  # Temporal (T7/T8 in newer nomenclature)
+    "P3",
+    "P4",  # Parietal
+    "O1",
+    "O2",  # Occipital
+    "Fz",
+    "Cz",  # Midline
 ]
 
 # Alternative names for compatibility
-CHANNEL_ALIASES = {
-    'T3': ['T7'],
-    'T4': ['T8'],
-    'T5': ['P7'],
-    'T6': ['P8']
-}
+CHANNEL_ALIASES = {"T3": ["T7"], "T4": ["T8"], "T5": ["P7"], "T6": ["P8"]}
 
 
 class EEGPreprocessor:
@@ -78,7 +130,7 @@ class EEGPreprocessor:
         highpass_freq: float = 0.5,
         notch_freq: float = 50.0,
         channel_subset_size: int = 16,
-        use_standard_montage: bool = True
+        use_standard_montage: bool = True,
     ):
         """Initialize preprocessor with filtering parameters.
 
@@ -124,10 +176,10 @@ class EEGPreprocessor:
         raw.filter(
             l_freq=self.highpass_freq,
             h_freq=None,
-            picks='eeg',
-            method='iir',
-            iir_params={'order': 5, 'ftype': 'butter'},
-            verbose=False
+            picks="eeg",
+            method="iir",
+            iir_params={"order": 5, "ftype": "butter"},
+            verbose=False,
         )
         return raw
 
@@ -136,32 +188,27 @@ class EEGPreprocessor:
         raw.filter(
             l_freq=None,
             h_freq=self.lowpass_freq,
-            picks='eeg',
-            method='iir',
-            iir_params={'order': 5, 'ftype': 'butter'},
-            verbose=False
+            picks="eeg",
+            method="iir",
+            iir_params={"order": 5, "ftype": "butter"},
+            verbose=False,
         )
         return raw
 
     def _apply_notch_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply notch filter to remove powerline interference."""
-        raw.notch_filter(
-            freqs=self.notch_freq,
-            picks='eeg',
-            method='iir',
-            verbose=False
-        )
+        raw.notch_filter(freqs=self.notch_freq, picks="eeg", method="iir", verbose=False)
         return raw
 
     def _resample_to_target(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Resample to target frequency (128 Hz for BioSerenity-E1)."""
-        if raw.info['sfreq'] != self.target_sfreq:
+        if raw.info["sfreq"] != self.target_sfreq:
             raw.resample(sfreq=self.target_sfreq, verbose=False)
         return raw
 
     def _apply_average_reference(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply average re-referencing."""
-        raw.set_eeg_reference('average', projection=False, verbose=False)
+        raw.set_eeg_reference("average", projection=False, verbose=False)
         return raw
 
     def _select_channel_subset(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
@@ -197,7 +244,7 @@ class EEGPreprocessor:
 
             # If we found enough channels from the standard montage, use them
             if len(found_channels) >= self.channel_subset_size:
-                channels_to_keep = found_channels[:self.channel_subset_size]
+                channels_to_keep = found_channels[: self.channel_subset_size]
             else:
                 # Fill remaining slots with channels ordered by EEGPT mapping priority
                 channels_to_keep = found_channels.copy()
@@ -219,17 +266,14 @@ class EEGPreprocessor:
                         break
         else:
             # Fallback: Use first N channels
-            channels_to_keep = raw.ch_names[:self.channel_subset_size]
+            channels_to_keep = raw.ch_names[: self.channel_subset_size]
 
         # Pick the selected channels
         raw.pick_channels(channels_to_keep, ordered=True)
         return raw
 
     def extract_windows(
-        self,
-        raw: mne.io.BaseRaw,
-        window_duration: float = 16.0,
-        overlap: float = 0.0
+        self, raw: mne.io.BaseRaw, window_duration: float = 16.0, overlap: float = 0.0
     ) -> list[np.ndarray]:
         """Extract windows from EEG data.
 
@@ -242,7 +286,7 @@ class EEGPreprocessor:
             List of window arrays
         """
         data = raw.get_data()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         window_samples = int(window_duration * sfreq)
         step_samples = int(window_samples * (1 - overlap))
@@ -250,7 +294,7 @@ class EEGPreprocessor:
         windows = []
         start = 0
         while start + window_samples <= data.shape[1]:
-            window = data[:, start:start + window_samples]
+            window = data[:, start : start + window_samples]
             windows.append(window)
             start += step_samples
 

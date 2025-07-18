@@ -114,7 +114,7 @@ Repository = "https://github.com/Clarity-Digital-Twin/brain-go-brrr"
 Issues = "https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues"
 
 [project.scripts]
-brain-go-brrr = "brain_go_brrr.cli:app"
+brain-go-brrr = "src.brain_go_brrr.cli:app"
 
 [tool.ruff]
 line-length = 100
@@ -144,7 +144,7 @@ ignore = [
     "RUF012", # Mutable class attributes should be annotated
     # Docstring exceptions for now (will fix incrementally)
     "D100",   # Missing docstring in public module
-    "D101",   # Missing docstring in public class  
+    "D101",   # Missing docstring in public class
     "D102",   # Missing docstring in public method
     "D103",   # Missing docstring in public function
     "D104",   # Missing docstring in public package
@@ -235,3 +235,7 @@ include = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/brain_go_brrr"]
+
+
+[tool.bandit]
+exclude = ["/tests/", "/scripts/"]

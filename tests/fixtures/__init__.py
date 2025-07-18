@@ -1,13 +1,15 @@
 """Test fixtures for brain-go-brrr."""
 
 from .mock_eegpt import (
+    MockAbnormalEEGPTModel,
     MockEEGPTModel,
-    MockClassifierHead,
-    create_mock_detector_with_realistic_model
+    MockNormalEEGPTModel,
+    create_deterministic_embeddings,
 )
 
 __all__ = [
+    "MockAbnormalEEGPTModel",
     "MockEEGPTModel",
-    "MockClassifierHead", 
-    "create_mock_detector_with_realistic_model"
+    "MockNormalEEGPTModel",
+    "create_deterministic_embeddings",
 ]

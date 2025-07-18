@@ -44,7 +44,7 @@ class ProcessingConfig:
     min_windows_for_prediction: int = 10
 
     # Channel constraints
-    min_required_channels: int = 19
+    min_required_channels: int = 16  # BioSerenity-E1 minimum
     max_bad_channel_ratio: float = 0.3  # Maximum 30% bad channels
     channel_subset_size: int = 16  # BioSerenity-E1 uses 16 channels
 
@@ -86,7 +86,7 @@ class ModelConfig:
     classifier_hidden_1: int = 256
     classifier_hidden_2: int = 128
     classifier_dropout: float = 0.3
-    feature_dim: int = 512
+    feature_dim: int = 768  # EEGPT produces 768-dim embeddings
     num_classes: int = 2
 
     # Model versioning

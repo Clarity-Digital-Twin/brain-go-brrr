@@ -1,166 +1,189 @@
-"""Improved mock fixtures for EEGPT model testing."""
+"""Mock EEGPT model for testing with realistic feature dimensions.
+
+This module provides deterministic mock implementations of EEGPT
+that return proper 768-dimensional embeddings for testing.
+"""
+
+from typing import Any
 
 import numpy as np
 import torch
-import torch.nn as nn
-from typing import Union, Optional
 
 
 class MockEEGPTModel:
-    """A more realistic mock for EEGPT model that produces meaningful embeddings."""
-    
-    def __init__(self, device: str = "cpu"):
+    """Mock EEGPT model that returns deterministic 768-dim embeddings."""
+
+    def __init__(self, seed: int = 42, device: str = "cpu"):
+        """Initialize mock model with deterministic seed.
+
+        Args:
+            seed: Random seed for reproducible embeddings
+            device: Device for tensors (cpu/cuda)
+        """
+        self.seed = seed
         self.device = device
         self.is_loaded = True
-        self.embedding_dim = 512
-        
-        # Create a simple but meaningful feature extractor
-        # This simulates what EEGPT might learn during pretraining
-        self._init_feature_patterns()
-        
-    def _init_feature_patterns(self):
-        """Initialize patterns that distinguish normal from abnormal EEG."""
-        # These patterns would be learned by EEGPT during pretraining
-        # We're creating simplified versions for testing
-        
-        # Pattern 1: High frequency content (might indicate muscle artifacts)
-        self.high_freq_pattern = np.random.randn(self.embedding_dim).astype(np.float32)
-        self.high_freq_pattern[:50] = 2.0  # Strong activation in first 50 dims
-        
-        # Pattern 2: Spike patterns (might indicate epileptiform activity)
-        self.spike_pattern = np.random.randn(self.embedding_dim).astype(np.float32)
-        self.spike_pattern[100:150] = -1.5  # Different activation pattern
-        
-        # Pattern 3: Slow wave patterns (might indicate slowing)
-        self.slow_wave_pattern = np.random.randn(self.embedding_dim).astype(np.float32)
-        self.slow_wave_pattern[200:250] = 1.8
-        
-        # Normal pattern (balanced activity)
-        self.normal_pattern = np.random.randn(self.embedding_dim).astype(np.float32) * 0.5
-        
-    def extract_features(self, window_tensor: torch.Tensor) -> np.ndarray:
-        """Extract features from EEG window.
-        
-        This mock analyzes basic statistics of the input and returns
-        embeddings that would distinguish different EEG patterns.
+        self._call_count = 0
+
+        # Mock config for compatibility
+        from types import SimpleNamespace
+
+        self.config = SimpleNamespace(model_path="fake/path.ckpt")
+
+    def extract_features(self, window_tensor: torch.Tensor) -> torch.Tensor:
+        """Extract 768-dimensional features from EEG window.
+
+        Args:
+            window_tensor: Input tensor of shape (batch, channels, samples)
+
+        Returns:
+            Feature tensor of shape (batch, 768)
         """
-        # Convert to numpy for analysis
-        window_np = window_tensor.cpu().numpy()
-        
-        # Analyze window characteristics
-        # Shape: (batch, channels, time)
-        std_per_channel = np.std(window_np, axis=-1)
-        mean_std = np.mean(std_per_channel)
-        max_std = np.max(std_per_channel)
-        
-        # Check for high frequency content (simplified)
-        if len(window_np.shape) > 2:
-            diff = np.diff(window_np, axis=-1)
-            high_freq_score = np.mean(np.abs(diff))
+        batch_size = window_tensor.shape[0]
+
+        # Use seed + call count for deterministic but varying outputs
+        rng = np.random.RandomState(self.seed + self._call_count)
+        self._call_count += 1
+
+        # Generate realistic embeddings with structure
+        # EEGPT embeddings typically have some structure, not pure random
+        base_embedding = rng.randn(batch_size, 768).astype(np.float32)
+
+        # Add some realistic structure:
+        # - First 256 dims: lower variance (more stable features)
+        # - Middle 256 dims: medium variance
+        # - Last 256 dims: higher variance (more task-specific)
+        base_embedding[:, :256] *= 0.5
+        base_embedding[:, 256:512] *= 0.8
+        base_embedding[:, 512:] *= 1.2
+
+        # Add some correlation structure within feature groups
+        for i in range(0, 768, 64):
+            group_factor = rng.randn(batch_size, 1)
+            base_embedding[:, i : i + 64] += group_factor * 0.3
+
+        # Convert to tensor
+        features = torch.from_numpy(base_embedding).float().to(self.device)
+
+        return features
+
+
+class MockAbnormalEEGPTModel(MockEEGPTModel):
+    """Mock EEGPT model that produces embeddings for abnormal EEG."""
+
+    def __init__(self, abnormality_strength: float = 0.8, **kwargs: Any) -> None:
+        """Initialize mock for abnormal patterns.
+
+        Args:
+            abnormality_strength: How abnormal the embeddings should be (0-1)
+            **kwargs: Additional arguments for parent class
+        """
+        super().__init__(**kwargs)
+        self.abnormality_strength = abnormality_strength
+
+    def extract_features(self, window_tensor: torch.Tensor) -> torch.Tensor:
+        """Extract features that will produce high abnormality scores.
+
+        The embeddings are shifted in a way that would make a trained
+        classifier detect abnormality.
+        """
+        # Get base embeddings
+        features = super().extract_features(window_tensor)
+
+        # Shift certain dimensions that correlate with abnormality
+        # In real EEGPT, certain embedding dimensions correlate with
+        # epileptiform activity, slowing, etc.
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+
+        for dim in abnormal_dims:
+            features[:, dim] += 2.0 * self.abnormality_strength
+
+        # Add some high-frequency components (often abnormal)
+        high_freq_dims = range(600, 768)
+        features[:, high_freq_dims] *= 1 + self.abnormality_strength
+
+        return features
+
+
+class MockNormalEEGPTModel(MockEEGPTModel):
+    """Mock EEGPT model that produces embeddings for normal EEG."""
+
+    def __init__(self, normality_strength: float = 0.9, **kwargs: Any) -> None:
+        """Initialize mock for normal patterns.
+
+        Args:
+            normality_strength: How normal the embeddings should be (0-1)
+            **kwargs: Additional arguments for parent class
+        """
+        super().__init__(**kwargs)
+        self.normality_strength = normality_strength
+
+    def extract_features(self, window_tensor: torch.Tensor) -> torch.Tensor:
+        """Extract features that will produce low abnormality scores.
+
+        The embeddings represent typical healthy EEG patterns.
+        """
+        # Get base embeddings
+        features = super().extract_features(window_tensor)
+
+        # Reduce variance in dimensions associated with abnormality
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+
+        for dim in abnormal_dims:
+            features[:, dim] *= 1 - self.normality_strength
+
+        # Reduce high-frequency components
+        high_freq_dims = range(600, 768)
+        features[:, high_freq_dims] *= 0.5
+
+        # Enhance alpha rhythm components (normal EEG)
+        alpha_dims = range(100, 150)
+        features[:, alpha_dims] *= 1.5
+
+        return features
+
+
+def create_deterministic_embeddings(
+    num_windows: int, abnormality_pattern: list[float] | None = None, seed: int = 42
+) -> list[np.ndarray]:
+    """Create a sequence of deterministic embeddings for testing.
+
+    Args:
+        num_windows: Number of embedding vectors to create
+        abnormality_pattern: Optional list of abnormality levels (0-1) per window
+        seed: Random seed for reproducibility
+
+    Returns:
+        List of 768-dimensional embedding arrays
+    """
+    rng = np.random.RandomState(seed)
+    embeddings = []
+
+    if abnormality_pattern is None:
+        abnormality_pattern = [0.5] * num_windows
+
+    for _i, abnorm_level in enumerate(abnormality_pattern):
+        # Base embedding
+        embedding = rng.randn(768).astype(np.float32)
+
+        # Apply structure similar to MockEEGPTModel
+        embedding[:256] *= 0.5
+        embedding[256:512] *= 0.8
+        embedding[512:] *= 1.2
+
+        # Shift based on abnormality level
+        if abnorm_level > 0.5:
+            # Make more abnormal
+            strength = (abnorm_level - 0.5) * 2
+            abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+            for dim in abnormal_dims:
+                embedding[dim] += 2.0 * strength
         else:
-            high_freq_score = 0
-        
-        # Create embedding based on characteristics
-        embedding = self.normal_pattern.copy()
-        
-        # Mix in patterns based on window characteristics
-        if max_std > 3.0:  # High amplitude
-            embedding = 0.5 * embedding + 0.5 * self.high_freq_pattern
-        elif mean_std < 0.1:  # Very low amplitude (might be suppression)
-            embedding = 0.7 * embedding + 0.3 * self.slow_wave_pattern
-        elif high_freq_score > 1.5:  # High frequency content
-            embedding = 0.6 * embedding + 0.4 * self.spike_pattern
-            
-        # Add some noise for realism
-        embedding += np.random.randn(self.embedding_dim).astype(np.float32) * 0.1
-        
-        # Normalize (EEGPT embeddings are typically normalized)
-        embedding = embedding / (np.linalg.norm(embedding) + 1e-8)
-        
-        # Return with correct shape (batch_size, embedding_dim)
-        return embedding.reshape(1, -1)
+            # Make more normal
+            strength = (0.5 - abnorm_level) * 2
+            embedding[100:150] *= 1 + strength  # Enhance alpha
+            embedding[600:] *= 1 - strength * 0.5  # Reduce high freq
 
+        embeddings.append(embedding)
 
-class MockClassifierHead(nn.Module):
-    """A mock classifier head with meaningful weights for testing."""
-    
-    def __init__(self, input_dim: int = 512, hidden_dim1: int = 256, 
-                 hidden_dim2: int = 128, num_classes: int = 2):
-        super().__init__()
-        
-        # Create the same architecture as the real classifier
-        self.layers = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim1),
-            nn.BatchNorm1d(hidden_dim1),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden_dim1, hidden_dim2),
-            nn.BatchNorm1d(hidden_dim2),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden_dim2, num_classes)
-        )
-        
-        # Initialize with meaningful weights
-        self._init_weights()
-        
-    def _init_weights(self):
-        """Initialize weights to produce meaningful classifications."""
-        with torch.no_grad():
-            # Set weights so that certain embedding patterns lead to abnormal classification
-            # This simulates a trained classifier
-            
-            # First layer: detect patterns
-            first_layer = self.layers[0]
-            # Make first 50 neurons sensitive to high frequency pattern
-            first_layer.weight[:50, :50] = 0.1
-            # Make next 50 sensitive to spike pattern
-            first_layer.weight[50:100, 100:150] = -0.1
-            # Make next 50 sensitive to slow waves
-            first_layer.weight[100:150, 200:250] = 0.1
-            
-            # Output layer: combine patterns for classification
-            output_layer = self.layers[-1]
-            # Normal class (index 0) - low activation from abnormal patterns
-            output_layer.weight[0, :50] = -0.1  # Negative weight for high freq
-            output_layer.weight[0, 50:100] = -0.1  # Negative weight for spikes
-            # Abnormal class (index 1) - high activation from abnormal patterns
-            output_layer.weight[1, :50] = 0.1  # Positive weight for high freq
-            output_layer.weight[1, 50:100] = 0.1  # Positive weight for spikes
-            
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass through classifier."""
-        return self.layers(x)
-
-
-def create_mock_detector_with_realistic_model():
-    """Create a detector with properly mocked EEGPT and classifier."""
-    from pathlib import Path
-    from unittest.mock import patch, MagicMock
-    from services.abnormality_detector import AbnormalityDetector
-    
-    # Create mock model
-    mock_model = MockEEGPTModel(device="cpu")
-    
-    # Create wrapper that behaves like the real model
-    model_wrapper = MagicMock()
-    model_wrapper.extract_features = mock_model.extract_features
-    model_wrapper.is_loaded = True
-    
-    with patch('services.abnormality_detector.EEGPTModel') as mock_model_class, \
-         patch('services.abnormality_detector.ModelConfig'):
-        mock_model_class.return_value = model_wrapper
-        
-        detector = AbnormalityDetector(
-            model_path=Path("fake/path.ckpt"),
-            device="cpu"
-        )
-        
-        # Replace classifier with our mock classifier
-        detector.classifier = MockClassifierHead()
-        detector.classifier.eval()
-        
-        # Set the model
-        detector.model = model_wrapper
-        
-        return detector
+    return embeddings

@@ -4,7 +4,7 @@
 repos:
   # Ruff - Modern Python linter and formatter (replaces black, isort, flake8, etc.)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.2.0
+    rev: v0.12.4
     hooks:
       - id: ruff
         name: ruff (lint)
@@ -16,7 +16,7 @@ repos:
 
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.17.0
     hooks:
       - id: mypy
         name: mypy (type check)
@@ -25,7 +25,7 @@ repos:
 
   # Notebook quality checks
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.7.1
+    rev: 1.9.1
     hooks:
       - id: nbqa-ruff
         name: nbqa-ruff (notebook lint)
@@ -35,7 +35,7 @@ repos:
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         name: trim trailing whitespace
@@ -61,11 +61,11 @@ repos:
 
   # Security checks
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+    rev: 1.8.6
     hooks:
       - id: bandit
         name: bandit (security check)
-        args: ["-c", "pyproject.toml"]
+        args: ["-c", "pyproject.toml", "-x", "tests/"]
         additional_dependencies: ["bandit[toml]"]
 
   # Documentation checks
@@ -88,7 +88,7 @@ repos:
 
   # Commit message formatting
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.13.0
+    rev: v4.8.3
     hooks:
       - id: commitizen
         name: commitizen check
@@ -96,7 +96,7 @@ repos:
 
   # Additional Python checks
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.20.0
     hooks:
       - id: pyupgrade
         name: pyupgrade (modernize syntax)
@@ -129,8 +129,8 @@ ci:
 
     for more information, see https://pre-commit.ci
   autofix_prs: true
-  autoupdate_branch: ''
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
   autoupdate_schedule: weekly
   skip: []
   submodules: false
