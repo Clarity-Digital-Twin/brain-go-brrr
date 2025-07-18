@@ -135,6 +135,7 @@ class Config(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # Allow extra fields from env vars
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization setup."""

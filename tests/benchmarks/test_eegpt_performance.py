@@ -31,17 +31,10 @@ except ImportError:
     def profile(func):
         return func
 
-from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.core.config import ModelConfig
+from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 # Import realistic benchmark data fixtures
-from tests.fixtures.benchmark_data import (
-    realistic_single_window,
-    realistic_batch_windows,
-    realistic_twenty_min_recording,
-    benchmark_edf_path,
-    benchmark_raw_data
-)
 
 # Performance targets from requirements
 SINGLE_WINDOW_TARGET_MS = 50  # milliseconds
@@ -54,7 +47,7 @@ def eegpt_model_cpu():
     """Create EEGPT model for CPU benchmarks."""
     # Use mock model if no checkpoint available to avoid dependency issues
     from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
-    
+
     config = ModelConfig(device="cpu")
     model = EEGPTModel(config=config, auto_load=False)
     # Create architecture without checkpoint
@@ -69,9 +62,9 @@ def eegpt_model_gpu():
     """Create EEGPT model for GPU benchmarks."""
     if not torch.cuda.is_available():
         pytest.skip("GPU not available for testing")
-    
+
     from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
-    
+
     config = ModelConfig(device="cuda")
     model = EEGPTModel(config=config, auto_load=False)
     # Create architecture without checkpoint
@@ -162,8 +155,8 @@ class TestSingleWindowBenchmarks:
 
             # Generate channel names for this size
             ch_names = [f"CH{i}" for i in range(n_channels)]
-            
-            def extract_features(window=window):
+
+            def extract_features(window=window, ch_names=ch_names):
                 return eegpt_model_cpu.extract_features(window, ch_names)
 
             benchmark(extract_features)
@@ -399,7 +392,7 @@ class TestPerformanceComparison:
     def test_cpu_vs_gpu_single_window(self, benchmark, eegpt_model_cpu, eegpt_model_gpu, realistic_single_window):
         """Compare CPU vs GPU performance for single window."""
         data, ch_names = realistic_single_window
-        
+
         # Benchmark CPU
         benchmark(lambda: eegpt_model_cpu.extract_features(data, ch_names))
 
@@ -425,7 +418,7 @@ class TestPerformanceComparison:
     def test_cpu_vs_gpu_batch_processing(self, eegpt_model_cpu, eegpt_model_gpu, realistic_batch_windows):
         """Compare CPU vs GPU performance for batch processing."""
         batch_data, ch_names = realistic_batch_windows
-        
+
         # Time CPU batch processing
         start_time = time.perf_counter()
         cpu_result = eegpt_model_cpu.extract_features_batch(batch_data)
