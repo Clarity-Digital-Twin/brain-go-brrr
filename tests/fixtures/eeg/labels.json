@@ -1,0 +1,65 @@
+{
+  "tuab_001_norm_30s.fif": {
+    "label": 0,
+    "label_name": "normal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 29.99609375
+  },
+  "tuab_001_norm_5s.fif": {
+    "label": 0,
+    "label_name": "normal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 5.0
+  },
+  "tuab_002_norm_30s.fif": {
+    "label": 0,
+    "label_name": "normal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 29.99609375
+  },
+  "tuab_002_norm_5s.fif": {
+    "label": 0,
+    "label_name": "normal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 5.0
+  },
+  "tuab_003_abnorm_30s.fif": {
+    "label": 1,
+    "label_name": "abnormal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 29.99609375
+  },
+  "tuab_003_abnorm_5s.fif": {
+    "label": 1,
+    "label_name": "abnormal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 5.0
+  },
+  "tuab_004_abnorm_30s.fif": {
+    "label": 1,
+    "label_name": "abnormal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 29.99609375
+  },
+  "tuab_004_abnorm_5s.fif": {
+    "label": 1,
+    "label_name": "abnormal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 5.0
+  },
+  "tuab_005_short_10s.fif": {
+    "label": 0,
+    "label_name": "normal",
+    "channels": 19,
+    "sfreq": 256.0,
+    "duration": 9.99609375
+  }
+}

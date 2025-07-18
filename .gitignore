@@ -183,6 +183,8 @@ datasets/*/raw/
 datasets/*/processed/
 *.csv
 *.tsv
+# Don't ignore JSON in test fixtures
+!tests/fixtures/**/*.json
 *.json
 *.jsonl
 *.parquet
@@ -252,6 +254,8 @@ config/secrets.yml
 *.eeg
 *.fdt
 *.set
+# Note: .fif files in tests/fixtures/ are synthetic test data and should be committed
+# Real patient .fif files should never be committed
 
 # Jupyter notebook outputs (keep structure, remove outputs)
 # Uncomment if you want to track notebooks without outputs
