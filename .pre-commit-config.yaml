@@ -10,9 +10,11 @@ repos:
         name: ruff (lint)
         args: [--fix, --exit-non-zero-on-fix]
         types_or: [python, pyi, jupyter]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
       - id: ruff-format
         name: ruff (format)
         types_or: [python, pyi, jupyter]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
 
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -39,8 +41,10 @@ repos:
     hooks:
       - id: trailing-whitespace
         name: trim trailing whitespace
+        exclude: ^(reference_repos/|data/)
       - id: end-of-file-fixer
         name: fix end of files
+        exclude: ^(reference_repos/|data/)
       - id: check-yaml
         name: check yaml
       - id: check-toml
@@ -84,7 +88,7 @@ repos:
       - id: prettier
         name: prettier (format configs)
         types_or: [yaml, markdown, json]
-        exclude: ^(\.github/|docs/|literature/)
+        exclude: ^(\.github/|docs/|literature/|reference_repos/|data/)
 
   # Commit message formatting
   - repo: https://github.com/commitizen-tools/commitizen

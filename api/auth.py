@@ -1,15 +1,16 @@
 """Authentication utilities for API endpoints."""
 
-import os
-import hmac
 import hashlib
-import secrets
-from datetime import datetime, timedelta, timezone
-from src.brain_go_brrr.utils import utc_now
-from typing import Optional
-from fastapi import HTTPException, Header
-from pydantic import BaseModel
+import hmac
 import logging
+import os
+import secrets
+from datetime import datetime
+
+from fastapi import Header, HTTPException
+from pydantic import BaseModel
+
+from src.brain_go_brrr.utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ TOKEN_EXPIRY_HOURS = 24
 
 class AuthToken(BaseModel):
     """Authentication token model."""
+
     token: str
     expires_at: datetime
     permissions: list[str]
@@ -47,17 +49,15 @@ def get_cache_clear_secret() -> str:
     """Get cache clear secret from environment."""
     secret = os.getenv(CACHE_CLEAR_SECRET_ENV, "default-secret-change-me")
     if secret == "default-secret-change-me":
-        logger.warning(f"Using default cache clear secret. Set {CACHE_CLEAR_SECRET_ENV} for security!")
+        logger.warning(
+            f"Using default cache clear secret. Set {CACHE_CLEAR_SECRET_ENV} for security!"
+        )
     return secret
 
 
 def create_hmac_signature(message: str, secret: str) -> str:
     """Create HMAC signature for message."""
-    return hmac.new(
-        secret.encode(),
-        message.encode(),
-        hashlib.sha256
-    ).hexdigest()
+    return hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
 
 
 def verify_hmac_signature(message: str, signature: str, secret: str) -> bool:
@@ -66,44 +66,43 @@ def verify_hmac_signature(message: str, signature: str, secret: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-def verify_admin_token(authorization: Optional[str] = Header(None)) -> bool:
+def verify_admin_token(authorization: str | None = Header(None)) -> bool:
     """Verify admin token from Authorization header."""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
-    
+
     # Extract token from Bearer scheme
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization scheme")
-    
+
     token = authorization.replace("Bearer ", "")
     admin_token = get_admin_token()
-    
+
     if not hmac.compare_digest(token, admin_token):
         raise HTTPException(status_code=403, detail="Invalid admin token")
-    
+
     return True
 
 
-def verify_cache_clear_permission(authorization: Optional[str] = Header(None)) -> bool:
+def verify_cache_clear_permission(authorization: str | None = Header(None)) -> bool:
     """Verify permission to clear cache."""
     if not authorization:
         raise HTTPException(status_code=401, detail="Authorization header required")
-    
+
     # Check if it's a Bearer token
     if authorization.startswith("Bearer "):
         return verify_admin_token(authorization)
-    
+
     # Check if it's an HMAC signature
     if authorization.startswith("HMAC "):
         signature = authorization.replace("HMAC ", "")
         # For cache clear, we use timestamp as message to prevent replay attacks
         # In production, would validate timestamp is recent
-        secret = get_cache_clear_secret()
         # For now, just validate format
         if len(signature) == 64:  # SHA256 hex length
             return True
         raise HTTPException(status_code=403, detail="Invalid HMAC signature")
-    
+
     raise HTTPException(status_code=401, detail="Invalid authorization scheme")
 
 

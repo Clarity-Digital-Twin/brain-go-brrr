@@ -171,10 +171,68 @@ class AbnormalityDetector:
             str(self.model.config.model_path).replace(".ckpt", "_classifier.pth")
         )
         if classifier_path.exists():
-            state = torch.load(classifier_path, map_location=self.device, weights_only=True)
-            self.classifier.load_state_dict(state)
-            self.classifier.to(self.device)
-            logger.info("Loaded pretrained classifier head")
+            self._load_classifier_weights(classifier_path)
+
+    def _load_classifier_weights(self, classifier_path: Path) -> None:
+        """Load classifier weights with dimension compatibility check.
+
+        Args:
+            classifier_path: Path to classifier weights file
+
+        Raises:
+            RuntimeError: If classifier dimensions don't match config
+        """
+        state = torch.load(classifier_path, map_location=self.device, weights_only=True)
+
+        # Check dimension compatibility before loading
+        first_layer_key = "0.weight"  # First Linear layer in Sequential
+        if first_layer_key in state:
+            weight_shape = state[first_layer_key].shape
+            expected_in_features = self.config.model.feature_dim
+            actual_in_features = weight_shape[1]  # Linear weight shape is (out, in)
+
+            if actual_in_features != expected_in_features:
+                raise RuntimeError(
+                    f"Classifier dimension mismatch: checkpoint has {actual_in_features} "
+                    f"input features but config specifies {expected_in_features}. "
+                    f"This likely means the checkpoint was trained with different EEGPT "
+                    f"embedding dimensions. Please retrain the classifier or update config."
+                )
+
+        self.classifier.load_state_dict(state)
+        self.classifier.to(self.device)
+        logger.info(f"Loaded pretrained classifier head from {classifier_path}")
+
+    def validate_model_compatibility(self) -> None:
+        """Validate that EEGPT model and classifier dimensions are compatible.
+
+        Raises:
+            RuntimeError: If there's a dimension mismatch
+        """
+        # Check EEGPT embedding dimension if available
+        if hasattr(self.model, "embedding_dim"):
+            model_embedding_dim = self.model.embedding_dim
+            config_feature_dim = self.config.model.feature_dim
+
+            if model_embedding_dim != config_feature_dim:
+                raise RuntimeError(
+                    f"Model dimension mismatch: EEGPT produces {model_embedding_dim}-dim "
+                    f"embeddings but config expects {config_feature_dim}-dim features. "
+                    f"Update config.model.feature_dim or use compatible model checkpoint."
+                )
+
+        # Check classifier input dimension
+        first_layer = self.classifier[0]
+        if isinstance(first_layer, torch.nn.Linear):
+            classifier_in_features = first_layer.in_features
+            config_feature_dim = self.config.model.feature_dim
+
+            if classifier_in_features != config_feature_dim:
+                raise RuntimeError(
+                    f"Classifier dimension mismatch: classifier expects {classifier_in_features} "
+                    f"features but config specifies {config_feature_dim}. "
+                    f"This should not happen - please report this as a bug."
+                )
 
     def detect_abnormality(self, raw: mne.io.Raw) -> AbnormalityResult:
         """Detect abnormalities in EEG recording.
@@ -186,6 +244,9 @@ class AbnormalityDetector:
             AbnormalityResult with detection results
         """
         start_time = time.time()
+
+        # Validate model compatibility first
+        self.validate_model_compatibility()
 
         # Validate input
         self._validate_input(raw)
@@ -432,14 +493,29 @@ class AbnormalityDetector:
                 # Apply classification head
                 if isinstance(features, np.ndarray):
                     features = torch.from_numpy(features).float().to(self.device)
+
+                # Validate feature dimensions
+                if features.shape[-1] != self.config.model.feature_dim:
+                    raise RuntimeError(
+                        f"Feature dimension mismatch: EEGPT returned {features.shape[-1]}-dim "
+                        f"features but classifier expects {self.config.model.feature_dim}-dim. "
+                        f"Check model configuration and checkpoints."
+                    )
+
                 logits = self.classifier(features)
                 predictions = torch.softmax(logits, dim=1)
 
                 # Get abnormality probability
                 abnormal_prob = predictions[0, 1].item()
+            except RuntimeError as e:
+                # Re-raise RuntimeError for dimension mismatches and other critical errors
+                if "dimension mismatch" in str(e).lower():
+                    raise
+                logger.error(f"Critical prediction error: {e}")
+                raise
             except Exception as e:
                 logger.warning(f"Prediction error: {e}")
-                # Return neutral score on error
+                # Return neutral score on non-critical errors
                 abnormal_prob = 0.5
 
         return float(abnormal_prob)

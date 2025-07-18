@@ -11,24 +11,24 @@ import os
 import sys
 import tempfile
 import traceback
-from datetime import datetime, timezone
-from src.brain_go_brrr.utils import utc_now
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
-import mne
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, Header, Depends
-from pydantic import BaseModel, Field
-
+# Add project root to path first, before any project imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from services.qc_flagger import EEGQualityController
-from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
-from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
-from api.cache import get_cache, RedisCache
-from api.auth import verify_cache_clear_permission
-from src.brain_go_brrr.data.edf_streaming import estimate_memory_usage
+import mne  # noqa: E402
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+
+from api.auth import verify_cache_clear_permission  # noqa: E402
+from api.cache import RedisCache, get_cache  # noqa: E402
+from services.qc_flagger import EEGQualityController  # noqa: E402
+from src.brain_go_brrr.data.edf_streaming import estimate_memory_usage  # noqa: E402
+from src.brain_go_brrr.utils import utc_now  # noqa: E402
+from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator  # noqa: E402
+from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Brain-Go-Brrr API",
     description="Production-ready EEG analysis API with EEGPT",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 # Global model instance (loaded once)
@@ -46,17 +46,19 @@ app = FastAPI(
 default_model_path = project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
 EEGPT_MODEL_PATH = Path(os.getenv("EEGPT_MODEL_PATH", str(default_model_path))).absolute()
 qc_controller = None
-cache_client: Optional[RedisCache] = None
+cache_client: RedisCache | None = None
 
 
 class AnalysisRequest(BaseModel):
     """Request model for EEG analysis."""
+
     analysis_type: str = Field(default="qc", description="Type of analysis to perform")
     options: dict[str, Any] = Field(default_factory=dict, description="Analysis options")
 
 
 class QCResponse(BaseModel):
     """Response model for QC analysis."""
+
     status: str
     bad_channels: list[str]
     bad_pct: float
@@ -87,7 +89,7 @@ async def startup_event():
         except Exception as e2:
             logger.error(f"Failed to initialize QC controller: {e2}")
             qc_controller = None
-    
+
     # Initialize cache
     try:
         cache_client = get_cache()
@@ -104,7 +106,7 @@ async def startup_event():
 async def shutdown_event():
     """Clean up resources on shutdown."""
     global qc_controller
-    if qc_controller is not None and hasattr(qc_controller, 'cleanup'):
+    if qc_controller is not None and hasattr(qc_controller, "cleanup"):
         logger.info("Cleaning up resources...")
         qc_controller.cleanup()
         logger.info("Cleanup completed")
@@ -118,8 +120,8 @@ async def root():
         "version": "0.1.0",
         "endpoints": {
             "/health": "Health check",
-            "/api/v1/eeg/analyze": "Upload and analyze EEG file"
-        }
+            "/api/v1/eeg/analyze": "Upload and analyze EEG file",
+        },
     }
 
 
@@ -129,20 +131,19 @@ async def health_check():
     redis_health = {}
     if cache_client:
         redis_health = cache_client.health_check()
-    
+
     return {
         "status": "healthy",
         "version": app.version,
         "eegpt_loaded": qc_controller is not None and qc_controller.eegpt_model is not None,
         "redis": redis_health,
-        "timestamp": utc_now().isoformat()
+        "timestamp": utc_now().isoformat(),
     }
 
 
 @app.post("/api/v1/eeg/analyze", response_model=QCResponse)
 async def analyze_eeg(
-    file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     """Analyze uploaded EEG file.
 
@@ -153,12 +154,13 @@ async def analyze_eeg(
 
     Args:
         file: Uploaded EDF file
+        background_tasks: FastAPI background tasks for async cleanup
 
     Returns:
         QC analysis results
     """
     # Validate file type
-    if not file.filename.lower().endswith('.edf'):
+    if not file.filename.lower().endswith(".edf"):
         raise HTTPException(status_code=400, detail="Only EDF files are supported")
 
     # Read file content for caching
@@ -173,14 +175,14 @@ async def analyze_eeg(
         except Exception as e:
             logger.warning(f"Cache read failed: {e}")
             cached_result = None
-        
+
         if cached_result:
             logger.info(f"Returning cached result for {file.filename}")
-            cached_result['cached'] = True
+            cached_result["cached"] = True
             return QCResponse(**cached_result)
 
     # Create temporary file
-    with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
 
         try:
@@ -190,13 +192,16 @@ async def analyze_eeg(
 
             # Check memory requirements
             mem_estimate = estimate_memory_usage(tmp_path, preload=True)
-            logger.info(f"Processing file: {file.filename} "
-                       f"(~{mem_estimate['estimated_total_mb']:.1f} MB)")
-            
+            logger.info(
+                f"Processing file: {file.filename} (~{mem_estimate['estimated_total_mb']:.1f} MB)"
+            )
+
             # Warn if file is large
-            if mem_estimate['estimated_total_mb'] > 500:
-                logger.warning(f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
-                             "Consider using streaming mode for production.")
+            if mem_estimate["estimated_total_mb"] > 500:
+                logger.warning(
+                    f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
+                    "Consider using streaming mode for production."
+                )
 
             # Load EEG data
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
@@ -210,16 +215,16 @@ async def analyze_eeg(
             results = qc_controller.run_full_qc_pipeline(raw)
 
             # Extract key metrics
-            quality_metrics = results.get('quality_metrics', {})
-            bad_channels = quality_metrics.get('bad_channels', [])
-            bad_pct = quality_metrics.get('bad_channel_ratio', 0) * 100
-            abnormal_prob = quality_metrics.get('abnormality_score', 0)
-            quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+            quality_metrics = results.get("quality_metrics", {})
+            bad_channels = quality_metrics.get("bad_channels", [])
+            bad_pct = quality_metrics.get("bad_channel_ratio", 0) * 100
+            abnormal_prob = quality_metrics.get("abnormality_score", 0)
+            quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
             # Determine triage flag
-            if abnormal_prob > 0.8 or quality_grade == 'POOR':
+            if abnormal_prob > 0.8 or quality_grade == "POOR":
                 flag = "URGENT - Expedite read"
-            elif abnormal_prob > 0.6 or quality_grade == 'FAIR':
+            elif abnormal_prob > 0.6 or quality_grade == "FAIR":
                 flag = "EXPEDITE - Priority review"
             elif abnormal_prob > 0.4:
                 flag = "ROUTINE - Standard workflow"
@@ -227,13 +232,15 @@ async def analyze_eeg(
                 flag = "NORMAL - Low priority"
 
             # Get confidence score
-            if 'processing_info' in results and isinstance(results['processing_info'].get('confidence'), float):
-                confidence = results['processing_info']['confidence']
+            if "processing_info" in results and isinstance(
+                results["processing_info"].get("confidence"), float
+            ):
+                confidence = results["processing_info"]["confidence"]
             else:
                 confidence = 0.8 if qc_controller.eegpt_model is not None else 0.5
 
             # Processing time
-            processing_time = results.get('processing_time', 0)
+            processing_time = results.get("processing_time", 0)
 
             # Schedule cleanup
             background_tasks.add_task(cleanup_temp_file, tmp_path)
@@ -248,7 +255,7 @@ async def analyze_eeg(
                 "confidence": round(confidence, 3),
                 "processing_time": round(processing_time, 2),
                 "quality_grade": quality_grade,
-                "timestamp": utc_now().isoformat()
+                "timestamp": utc_now().isoformat(),
             }
 
             # Cache the result if cache is available
@@ -279,7 +286,7 @@ async def analyze_eeg(
                 processing_time=0,
                 quality_grade="ERROR",
                 timestamp=utc_now().isoformat(),
-                error=str(e)
+                error=str(e),
             )
 
 
@@ -287,7 +294,7 @@ async def analyze_eeg(
 async def analyze_eeg_detailed(
     file: UploadFile = File(...),
     include_report: bool = True,
-    background_tasks: BackgroundTasks = BackgroundTasks()
+    background_tasks: BackgroundTasks = BackgroundTasks(),
 ):
     """Detailed EEG analysis with optional PDF report.
 
@@ -301,14 +308,14 @@ async def analyze_eeg_detailed(
     if cache_client and cache_client.connected:
         cache_key = cache_client.generate_cache_key(content, "detailed")
         cached_result = cache_client.get(cache_key)
-        
+
         if cached_result:
             logger.info(f"Returning cached detailed result for {file.filename}")
-            cached_result['basic']['cached'] = True
+            cached_result["basic"]["cached"] = True
             return cached_result
 
     # Create temporary file
-    with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
 
         try:
@@ -318,13 +325,17 @@ async def analyze_eeg_detailed(
 
             # Check memory requirements
             mem_estimate = estimate_memory_usage(tmp_path, preload=True)
-            logger.info(f"Processing file for detailed analysis: {file.filename} "
-                       f"(~{mem_estimate['estimated_total_mb']:.1f} MB)")
-            
+            logger.info(
+                f"Processing file for detailed analysis: {file.filename} "
+                f"(~{mem_estimate['estimated_total_mb']:.1f} MB)"
+            )
+
             # Warn if file is large
-            if mem_estimate['estimated_total_mb'] > 500:
-                logger.warning(f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
-                             "Consider using streaming mode for production.")
+            if mem_estimate["estimated_total_mb"] > 500:
+                logger.warning(
+                    f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
+                    "Consider using streaming mode for production."
+                )
 
             # Load EEG data
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
@@ -338,16 +349,16 @@ async def analyze_eeg_detailed(
             results = qc_controller.run_full_qc_pipeline(raw)
 
             # Extract key metrics for basic response
-            quality_metrics = results.get('quality_metrics', {})
-            bad_channels = quality_metrics.get('bad_channels', [])
-            bad_pct = quality_metrics.get('bad_channel_ratio', 0) * 100
-            abnormal_prob = quality_metrics.get('abnormality_score', 0)
-            quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+            quality_metrics = results.get("quality_metrics", {})
+            bad_channels = quality_metrics.get("bad_channels", [])
+            bad_pct = quality_metrics.get("bad_channel_ratio", 0) * 100
+            abnormal_prob = quality_metrics.get("abnormality_score", 0)
+            quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
             # Determine triage flag
-            if abnormal_prob > 0.8 or quality_grade == 'POOR':
+            if abnormal_prob > 0.8 or quality_grade == "POOR":
                 flag = "URGENT - Expedite read"
-            elif abnormal_prob > 0.6 or quality_grade == 'FAIR':
+            elif abnormal_prob > 0.6 or quality_grade == "FAIR":
                 flag = "EXPEDITE - Priority review"
             elif abnormal_prob > 0.4:
                 flag = "ROUTINE - Standard workflow"
@@ -355,13 +366,15 @@ async def analyze_eeg_detailed(
                 flag = "NORMAL - Low priority"
 
             # Get confidence score
-            if 'processing_info' in results and isinstance(results['processing_info'].get('confidence'), float):
-                confidence = results['processing_info']['confidence']
+            if "processing_info" in results and isinstance(
+                results["processing_info"].get("confidence"), float
+            ):
+                confidence = results["processing_info"]["confidence"]
             else:
                 confidence = 0.8 if qc_controller.eegpt_model is not None else 0.5
 
             # Processing time
-            processing_time = results.get('processing_time', 0)
+            processing_time = results.get("processing_time", 0)
 
             # Generate reports if requested
             pdf_base64 = None
@@ -370,36 +383,38 @@ async def analyze_eeg_detailed(
                 try:
                     # Add more details to results for report generation
                     # Ensure artifacts have severity scores
-                    if 'artifact_segments' in quality_metrics:
-                        for artifact in quality_metrics['artifact_segments']:
-                            if 'severity' not in artifact:
+                    if "artifact_segments" in quality_metrics:
+                        for artifact in quality_metrics["artifact_segments"]:
+                            if "severity" not in artifact:
                                 # Assign severity based on type
                                 severity_map = {
-                                    'motion': 0.9,
-                                    'muscle': 0.7,
-                                    'eye_blink': 0.5,
-                                    'heartbeat': 0.3,
-                                    'other': 0.6
+                                    "motion": 0.9,
+                                    "muscle": 0.7,
+                                    "eye_blink": 0.5,
+                                    "heartbeat": 0.3,
+                                    "other": 0.6,
                                 }
-                                artifact['severity'] = severity_map.get(artifact.get('type', 'other'), 0.6)
-                    
+                                artifact["severity"] = severity_map.get(
+                                    artifact.get("type", "other"), 0.6
+                                )
+
                     report_results = {
-                        'quality_metrics': {
+                        "quality_metrics": {
                             **quality_metrics,
-                            'channel_positions': _get_channel_positions(raw),
-                            'flag': flag,  # Add triage flag
+                            "channel_positions": _get_channel_positions(raw),
+                            "flag": flag,  # Add triage flag
                         },
-                        'processing_info': {
-                            'file_name': file.filename,
-                            'timestamp': utc_now().isoformat(),
-                            'duration_seconds': raw.times[-1],
-                            'sampling_rate': raw.info['sfreq'],
-                            'confidence': confidence,
-                            'channels_used': len(raw.ch_names)
+                        "processing_info": {
+                            "file_name": file.filename,
+                            "timestamp": utc_now().isoformat(),
+                            "duration_seconds": raw.times[-1],
+                            "sampling_rate": raw.info["sfreq"],
+                            "confidence": confidence,
+                            "channels_used": len(raw.ch_names),
                         },
-                        'autoreject_results': results.get('autoreject_results', {}),
-                        'eegpt_features': results.get('eegpt_features', {}),
-                        'processing_time': processing_time
+                        "autoreject_results": results.get("autoreject_results", {}),
+                        "eegpt_features": results.get("eegpt_features", {}),
+                        "processing_time": processing_time,
                     }
 
                     # Generate PDF
@@ -407,7 +422,7 @@ async def analyze_eeg_detailed(
                     pdf_bytes = pdf_generator.generate_report(report_results, raw.get_data())
 
                     # Convert to base64 for JSON response
-                    pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
                     logger.info("PDF report generated successfully")
 
                     # Generate Markdown report
@@ -442,7 +457,7 @@ async def analyze_eeg_detailed(
                 confidence=round(confidence, 3),
                 processing_time=round(processing_time, 2),
                 quality_grade=quality_grade,
-                timestamp=utc_now().isoformat()
+                timestamp=utc_now().isoformat(),
             )
 
             # Prepare response
@@ -454,10 +469,10 @@ async def analyze_eeg_detailed(
                     "pdf_base64": pdf_base64,
                     "markdown_available": markdown_report is not None,
                     "markdown_report": markdown_report,
-                    "artifact_count": len(quality_metrics.get('artifact_segments', [])),
+                    "artifact_count": len(quality_metrics.get("artifact_segments", [])),
                     "channel_count": len(raw.ch_names),
-                    "duration_seconds": raw.times[-1]
-                }
+                    "duration_seconds": raw.times[-1],
+                },
             }
 
             # Cache the result if cache is available
@@ -489,13 +504,13 @@ async def analyze_eeg_detailed(
                     processing_time=0,
                     quality_grade="ERROR",
                     timestamp=utc_now().isoformat(),
-                    error=str(e)
+                    error=str(e),
                 ),
                 "detailed": {
                     "message": "Detailed analysis failed",
                     "pdf_available": False,
-                    "error": str(e)
-                }
+                    "error": str(e),
+                },
             }
 
 
@@ -508,7 +523,7 @@ def _get_channel_positions(raw: mne.io.Raw) -> dict[str, tuple[float, float]]:
         montage = raw.get_montage()
         if montage is not None:
             ch_names = montage.ch_names
-            pos = montage.get_positions()['ch_pos']
+            pos = montage.get_positions()["ch_pos"]
 
             # Convert 3D positions to 2D (x, y) for visualization
             for ch_name in ch_names:
@@ -518,15 +533,25 @@ def _get_channel_positions(raw: mne.io.Raw) -> dict[str, tuple[float, float]]:
         else:
             # Fallback to standard 10-20 positions for common channels
             standard_positions = {
-                'Fp1': (-0.3, 0.8), 'Fp2': (0.3, 0.8),
-                'F3': (-0.5, 0.5), 'F4': (0.5, 0.5),
-                'C3': (-0.5, 0), 'C4': (0.5, 0),
-                'P3': (-0.5, -0.5), 'P4': (0.5, -0.5),
-                'O1': (-0.3, -0.8), 'O2': (0.3, -0.8),
-                'F7': (-0.8, 0.3), 'F8': (0.8, 0.3),
-                'T3': (-0.8, 0), 'T4': (0.8, 0),
-                'T5': (-0.8, -0.3), 'T6': (0.8, -0.3),
-                'Fz': (0, 0.6), 'Cz': (0, 0), 'Pz': (0, -0.6)
+                "Fp1": (-0.3, 0.8),
+                "Fp2": (0.3, 0.8),
+                "F3": (-0.5, 0.5),
+                "F4": (0.5, 0.5),
+                "C3": (-0.5, 0),
+                "C4": (0.5, 0),
+                "P3": (-0.5, -0.5),
+                "P4": (0.5, -0.5),
+                "O1": (-0.3, -0.8),
+                "O2": (0.3, -0.8),
+                "F7": (-0.8, 0.3),
+                "F8": (0.8, 0.3),
+                "T3": (-0.8, 0),
+                "T4": (0.8, 0),
+                "T5": (-0.8, -0.3),
+                "T6": (0.8, -0.3),
+                "Fz": (0, 0.6),
+                "Cz": (0, 0),
+                "Pz": (0, -0.6),
             }
 
             # Use standard positions for channels that match
@@ -554,54 +579,38 @@ def cleanup_temp_file(file_path: Path):
 async def get_cache_stats():
     """Get Redis cache statistics."""
     if not cache_client or not cache_client.connected:
-        return {
-            "status": "unavailable",
-            "message": "Cache not available"
-        }
-    
+        return {"status": "unavailable", "message": "Cache not available"}
+
     try:
         stats = cache_client.get_stats()
         return stats
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 @app.delete("/api/v1/cache/clear")
 async def clear_cache(
-    pattern: str = "eeg_analysis:*",
-    authorized: bool = Depends(verify_cache_clear_permission)
+    pattern: str = "eeg_analysis:*", _authorized: bool = Depends(verify_cache_clear_permission)
 ):
     """Clear cache entries matching pattern.
-    
+
     Requires admin token or HMAC signature for authorization.
     """
     if not cache_client or not cache_client.connected:
-        return {
-            "status": "unavailable",
-            "message": "Cache not available"
-        }
-    
+        return {"status": "unavailable", "message": "Cache not available"}
+
     try:
         keys_deleted = cache_client.clear_pattern(pattern)
-        return {
-            "status": "success",
-            "keys_deleted": keys_deleted,
-            "pattern": pattern
-        }
+        return {"status": "success", "keys_deleted": keys_deleted, "pattern": pattern}
     except Exception as e:
         logger.error(f"Failed to clear cache: {e}")
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return {"status": "error", "error": str(e)}
 
 
 class CacheWarmupRequest(BaseModel):
     """Request model for cache warmup."""
+
     file_patterns: list[str] = Field(default=["sleep-*.edf"], description="File patterns to cache")
 
 
@@ -614,10 +623,11 @@ async def warmup_cache(request: CacheWarmupRequest):
         "status": "success",
         "message": "Cache warmup initiated",
         "files_cached": 0,
-        "patterns": request.file_patterns
+        "patterns": request.file_patterns,
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -120,6 +120,20 @@ brain-go-brrr = "src.brain_go_brrr.cli:app"
 line-length = 100
 target-version = "py311"
 extend-include = ["*.ipynb"]
+exclude = [
+    "reference_repos/",
+    "data/",
+    ".venv/",
+    "__pycache__/",
+    "*.egg-info/",
+    "build/",
+    "dist/",
+    ".git/",
+    ".pytest_cache/",
+    ".mypy_cache/",
+    ".ruff_cache/",
+    "node_modules/",
+]
 
 [tool.ruff.lint]
 select = [
