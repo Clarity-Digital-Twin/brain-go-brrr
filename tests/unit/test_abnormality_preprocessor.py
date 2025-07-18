@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 from scipy import signal
 
-from services.abnormality_detector import EEGPreprocessor
+from src.brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class TestEEGPreprocessor:

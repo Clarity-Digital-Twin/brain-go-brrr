@@ -17,6 +17,7 @@ from services.abnormality_detector import (
     TriageLevel,
     WindowResult,
 )
+from src.brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class TestAbnormalityDetector:
@@ -85,7 +86,16 @@ class TestAbnormalityDetector:
 
     def test_preprocessing_pipeline(self, detector, mock_eeg_data):
         """Test preprocessing applies correct filters and normalization."""
-        preprocessed = detector._preprocess_eeg(mock_eeg_data)
+        # Create preprocessor and apply preprocessing
+        preprocessor = EEGPreprocessor(
+            target_sfreq=detector.target_sfreq,
+            lowpass_freq=45.0,
+            highpass_freq=0.5,
+            notch_freq=50.0,
+            channel_subset_size=19
+        )
+        preprocessed = preprocessor.preprocess(mock_eeg_data.copy())
+        preprocessed = detector._apply_normalization(preprocessed)
 
         # Check sampling rate is correct
         assert preprocessed.info['sfreq'] == 256
@@ -324,7 +334,16 @@ class TestAbnormalityDetector:
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
         raw = mne.io.RawArray(data, info)
 
-        preprocessed = detector._preprocess_eeg(raw)
+        # Create preprocessor and apply preprocessing
+        preprocessor = EEGPreprocessor(
+            target_sfreq=detector.target_sfreq,
+            lowpass_freq=45.0,
+            highpass_freq=0.5,
+            notch_freq=50.0,
+            channel_subset_size=19
+        )
+        preprocessed = preprocessor.preprocess(raw.copy())
+        preprocessed = detector._apply_normalization(preprocessed)
 
         assert preprocessed.info['sfreq'] == expected_sfreq
 
