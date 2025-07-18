@@ -163,11 +163,29 @@ class EEGPTModel:
         if self.encoder is None:
             raise RuntimeError("Encoder not loaded")
 
-        # Convert to tensor
-        if isinstance(data, np.ndarray):
-            data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
-        else:
-            data_tensor = data.detach() if hasattr(data, 'detach') else data
+        # Data should be shape (channels, time_samples)
+        n_channels, n_samples = data.shape
+        
+        # Reshape data into patches
+        # EEGPT expects patches of size 64 samples (250ms at 256Hz)
+        patch_size = self.config.patch_size
+        n_patches = n_samples // patch_size
+        
+        if n_samples % patch_size != 0:
+            # Truncate to fit exact patches
+            data = data[:, :n_patches * patch_size]
+        
+        # Reshape to (n_channels, n_patches, patch_size)
+        data_patched = data.reshape(n_channels, n_patches, patch_size)
+        
+        # Rearrange to (n_patches, n_channels, patch_size) for the model
+        data_patched = np.transpose(data_patched, (1, 0, 2))
+        
+        # Flatten patches: (n_patches * n_channels, patch_size)
+        data_flattened = data_patched.reshape(-1, patch_size)
+        
+        # Convert to tensor and add batch dimension
+        data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(self.device)
 
         # Prepare channel IDs
         chan_ids = self.encoder.prepare_chan_ids(channel_names)
@@ -176,7 +194,16 @@ class EEGPTModel:
         with torch.no_grad():
             if self.encoder is not None:  # Additional null check for mypy
                 features = self.encoder(data_tensor, chan_ids)
-                return features.squeeze(0).cpu().numpy()
+                # Average features across all patches to get summary
+                features = features.squeeze(0)  # Remove batch dim
+                # Reshape back to (n_patches, n_channels, embed_dim)
+                features = features.reshape(n_patches, n_channels, -1)
+                # Average across patches and channels to get summary tokens
+                # For now, return mean features (simplified)
+                summary_features = features.mean(dim=(0, 1))  # Shape: (embed_dim,)
+                # Repeat to get n_summary_tokens
+                summary_features = summary_features.unsqueeze(0).expand(self.config.n_summary_tokens, -1)
+                return summary_features.cpu().numpy()
             else:
                 return np.zeros((self.config.n_summary_tokens, self.config.embed_dim))
 

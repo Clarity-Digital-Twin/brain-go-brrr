@@ -165,9 +165,10 @@ class TestEEGPTModel:
         # Test with different channel counts
         for n_channels in [10, 19, 32, 58]:
             window = np.random.randn(n_channels, 1024) * 50e-6
+            channel_names = [f"EEG{i:03d}" for i in range(n_channels)]
 
             # Should handle variable channel counts
-            features = eegpt_model.extract_features(window)
+            features = eegpt_model.extract_features(window, channel_names)
             assert features is not None
             assert features.shape[0] == 4  # Always 4 summary tokens
 
