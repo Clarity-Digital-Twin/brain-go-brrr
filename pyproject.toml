@@ -169,6 +169,28 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
+# Ignore missing imports for libraries without type stubs
+[[tool.mypy.overrides]]
+module = [
+    "mne",
+    "mne.*",
+    "scipy",
+    "scipy.*",
+    "yasa",
+    "yasa.*",
+    "autoreject",
+    "autoreject.*",
+    "matplotlib",
+    "matplotlib.*",
+    "sklearn",
+    "sklearn.*",
+    "reportlab",
+    "reportlab.*",
+    "tsfresh",
+    "tsfresh.*",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
