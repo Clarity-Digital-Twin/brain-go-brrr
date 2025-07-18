@@ -8,7 +8,7 @@ import torch
 from brain_go_brrr.models.eegpt_architecture import (
     Attention,
     EEGTransformer,
-    RotaryEmbedding,
+    RoPE,
     apply_rotary_pos_emb,
 )
 
@@ -20,7 +20,7 @@ class TestRotaryEmbeddingFix:
         """Test that rotary embedding produces correct dimensions."""
         # Given: A rotary embedding with head dimension
         head_dim = 64
-        rotary_emb = RotaryEmbedding(dim=head_dim)
+        rotary_emb = RoPE(embed_dim=head_dim)
 
         # When: We have a sequence of length 308 (4 summary tokens + 19*16 patches)
         batch_size = 1
