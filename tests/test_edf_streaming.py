@@ -32,7 +32,9 @@ class TestEDFStreamer:
         raw = mne.io.RawArray(data, info)
         
         edf_path = tmp_path / "test_small.edf"
-        raw.export(edf_path, fmt='edf', overwrite=True)
+        # Scale data for EDF export
+        raw._data = raw._data / 1e6
+        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
         
         return edf_path
     
@@ -56,7 +58,8 @@ class TestEDFStreamer:
         # Create small chunk and save
         chunk_data = np.random.randn(n_channels, sfreq * 60) * 50  # 1 minute
         raw = mne.io.RawArray(chunk_data, info)
-        raw.export(edf_path, fmt='edf', overwrite=True)
+        raw._data = raw._data / 1e6
+        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
         
         return edf_path
     
@@ -162,7 +165,8 @@ class TestMemoryEstimation:
         raw = mne.io.RawArray(data, info)
         
         edf_path = tmp_path / "test_memory.edf"
-        raw.export(edf_path, fmt='edf', overwrite=True)
+        raw._data = raw._data / 1e6
+        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
         
         # Test estimation
         estimate = estimate_memory_usage(edf_path, preload=True)
