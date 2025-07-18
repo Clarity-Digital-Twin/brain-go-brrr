@@ -333,9 +333,19 @@ class AbnormalityDetector:
         # Validate input
         self._validate_input(raw)
         
-        # Preprocess EEG
+        # Detect bad channels BEFORE preprocessing
+        bad_channels_pre = self._detect_bad_channels_raw(raw)
+        
+        # Preprocess EEG using the dedicated preprocessor
         logger.info("Preprocessing EEG data...")
-        preprocessed = self._preprocess_eeg(raw)
+        preprocessor = EEGPreprocessor(
+            target_sfreq=self.target_sfreq,
+            lowpass_freq=45.0,
+            highpass_freq=0.5,
+            notch_freq=50.0 if raw.info.get('line_freq', 50) == 50 else 60.0,
+            channel_subset_size=19  # Don't subset for now
+        )
+        preprocessed = preprocessor.preprocess(raw.copy())
         
         # Extract windows
         logger.info("Extracting analysis windows...")
@@ -380,7 +390,7 @@ class AbnormalityDetector:
         classification = "abnormal" if final_score > 0.5 else "normal"
         
         # Get quality metrics
-        quality_metrics = self._compute_quality_metrics(preprocessed, quality_scores)
+        quality_metrics = self._compute_quality_metrics(preprocessed, quality_scores, bad_channels_pre)
         
         # Determine triage level
         triage = self._determine_triage(final_score, quality_metrics['quality_grade'])
@@ -438,6 +448,22 @@ class AbnormalityDetector:
         info = raw.info
         if 'bads' in info and len(info['bads']) > n_channels * 0.3:
             raise ValueError(f"Too many bad channels: {len(info['bads'])} > 30% of total")
+            
+    def _detect_bad_channels_raw(self, raw: mne.io.Raw) -> List[str]:
+        """Detect bad channels in raw data before preprocessing."""
+        data = raw.get_data()
+        bad_channels = []
+        
+        for i, ch_name in enumerate(raw.ch_names):
+            ch_data = data[i]
+            # Check for flat channel (essentially no signal)
+            if np.std(ch_data) < 1e-9:  # Less than 1 nanovolt
+                bad_channels.append(ch_name)
+            # Check for saturated channel
+            elif np.sum(np.abs(ch_data) > 1e-3) > len(ch_data) * 0.1:  # >1mV for >10% samples
+                bad_channels.append(ch_name)
+                
+        return bad_channels
             
     def _preprocess_eeg(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Preprocess EEG data for analysis."""
@@ -614,11 +640,11 @@ class AbnormalityDetector:
         
         for i, ch_name in enumerate(raw.ch_names):
             ch_data = data[i]
-            # Check for flat channel (normalized data)
-            if np.std(ch_data) < 0.1:
+            # Check if channel was flattened during normalization (all zeros)
+            if np.all(ch_data == 0.0):
                 bad_channels.append(ch_name)
-            # Check for excessive noise (normalized data)
-            elif np.std(ch_data) > 10.0:
+            # Or has very low variance (essentially flat)
+            elif np.std(ch_data) < 0.01:
                 bad_channels.append(ch_name)
                 
         # Calculate overall quality grade
@@ -820,13 +846,21 @@ class AbnormalityDetector:
     ) -> Dict[str, Any]:
         """Compute overall quality metrics."""
         # Detect bad channels (simplified)
+        # Check for channels that were zeroed out during normalization
         data = raw.get_data()
-        channel_stds = np.std(data, axis=1)
-        bad_channels = [
-            raw.ch_names[i] for i, std in enumerate(channel_stds)
-            # For normalized data, typical std is ~1.0
-            if std < 0.1 or std > 10.0
-        ]
+        bad_channels = []
+        
+        for i, ch_name in enumerate(raw.ch_names):
+            ch_data = data[i]
+            # Check if channel was flattened during normalization (all zeros)
+            if np.all(ch_data == 0.0):
+                bad_channels.append(ch_name)
+            # Or has very low variance (essentially flat)
+            elif np.std(ch_data) < 0.01:
+                bad_channels.append(ch_name)
+        
+        # Debug print
+        logger.info(f"Bad channels detected: {len(bad_channels)}/{len(raw.ch_names)}")
         
         # Compute quality grade
         avg_quality = np.mean(quality_scores)
