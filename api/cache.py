@@ -114,7 +114,7 @@ class RedisCache:
     
     def set(self, key: str, value: dict, ttl: int = 3600) -> bool:
         """Set cache entry with TTL."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return False
             
         try:
