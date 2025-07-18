@@ -224,7 +224,8 @@ class TestMemoryEstimation:
         raw = mne.io.RawArray(data, info)
         
         edf_path = tmp_path / "test_tiny.edf"
-        raw.export(edf_path, fmt='edf', overwrite=True)
+        raw._data = raw._data / 1e6
+        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
         
         # Process with high memory limit
         results = process_large_edf(edf_path, max_memory_mb=1000.0)
