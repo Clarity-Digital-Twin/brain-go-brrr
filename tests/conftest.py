@@ -1,6 +1,5 @@
 """Shared test fixtures and configuration."""
 
-import importlib
 from pathlib import Path
 
 import mne
@@ -11,7 +10,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture(autouse=True)
 def fresh_app():
     """Reload api.main module for each test to ensure clean state.
-    
+
     This fixture addresses the flaky test issue where global state
     (qc_controller) gets mutated by some tests and affects others.
     By reloading the module, we ensure each test starts with a fresh
@@ -23,13 +22,12 @@ def fresh_app():
         del sys.modules['api.main']
     if 'api' in sys.modules:
         del sys.modules['api']
-    
+
     # Import fresh
-    import api.main
-    
+
     # The module is now fresh for this test
     yield
-    
+
     # Cleanup after test
     if 'api.main' in sys.modules:
         del sys.modules['api.main']

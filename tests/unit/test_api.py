@@ -65,11 +65,11 @@ class TestAPIEndpoints:
         """Test health check endpoint."""
         # Mock the qc_controller to have a loaded model
         import api.main
-        
+
         mock_controller = MagicMock()
         mock_controller.eegpt_model = MagicMock()  # Model is loaded
         monkeypatch.setattr(api.main, "qc_controller", mock_controller)
-        
+
         response = client.get("/health")
 
         assert response.status_code == 200
@@ -371,8 +371,9 @@ class TestAPIPerformance:
         """Test API response time requirement (NFR1.4: <100ms response time)."""
         # Note: This tests the endpoint itself, not the processing
         import time
+
         import api.main
-        
+
         # Mock the controller to ensure consistent state
         monkeypatch.setattr(api.main, "qc_controller", mock_qc_controller)
 
