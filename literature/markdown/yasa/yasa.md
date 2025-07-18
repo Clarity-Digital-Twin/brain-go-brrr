@@ -16,7 +16,7 @@ Polysomnography (PSG) – the simultaneous measurement of brainwaves, eye moveme
 
 Currently, such sleep scoring is typically performed by humans, accomplished by first dividing the night of PSG recording into 30 s segments (called 'epochs'). Each epoch is then assigned a sleep stage based on standard rules defined by the American Academy of Sleep Medicine (AASM, *[Berry et al.,](#page-21-7)  [2012](#page-21-7)*; *[Iber et al., 2007](#page-21-8)*).
 
-Every night, thousands of hours of sleep are recorded in research, clinical, and commercial ventures across the globe. However, since sleep staging is performed visually by human experts, it represents a pragmatic bottleneck. It is a non-trivial, time-intensive process, with visual scoring of a single night of human sleep requiring up to 2 hr to complete by a well-trained individual. As if not more critical, this human-scored approach suffers from issues of lower than desirable *inter*scorer consistency of agreement (~83% agreement, *[Rosenberg and Van Hout, 2013](#page-22-2)*). Moreover, the same scoring individual typically experiences low *intra*scorer agreement of the same sleep recording (~90%, *[Fiorillo et al.,](#page-21-9)* 
+Every night, thousands of hours of sleep are recorded in research, clinical, and commercial ventures across the globe. However, since sleep staging is performed visually by human experts, it represents a pragmatic bottleneck. It is a non-trivial, time-intensive process, with visual scoring of a single night of human sleep requiring up to 2 hr to complete by a well-trained individual. As if not more critical, this human-scored approach suffers from issues of lower than desirable *inter*scorer consistency of agreement (~83% agreement, *[Rosenberg and Van Hout, 2013](#page-22-2)*). Moreover, the same scoring individual typically experiences low *intra*scorer agreement of the same sleep recording (~90%, *[Fiorillo et al.,](#page-21-9)*
 
 \*For correspondence: [raphaelvallat@berkeley.edu](mailto:raphaelvallat@berkeley.edu) (RV); [mpwalker@berkeley.edu](mailto:mpwalker@berkeley.edu) (MPW)
 
@@ -93,7 +93,7 @@ We further tested for any systematic bias of the algorithm towards one or more s
 
 ## Testing set 2: Consensus scoring on the DOD-Healthy and DOD-Obstructive datasets
 
-Next, we examined the performance of YASA on the testing set 2, a previously unseen dataset of healthy and sleep-disordered breathing patients that was scored by five registered experts (*[Guillot](#page-21-10)* 
+Next, we examined the performance of YASA on the testing set 2, a previously unseen dataset of healthy and sleep-disordered breathing patients that was scored by five registered experts (*[Guillot](#page-21-10)*
 
 ![](_page_4_Figure_2.jpeg)
 

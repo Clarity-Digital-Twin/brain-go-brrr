@@ -148,7 +148,7 @@ In addition, instead of using Gaussian noise for data augmentation in this case,
 $$
 \hat{x} = \lambda x_i + (1 - \lambda)x_j
 $$
-  
+
 \n
 $$
 \hat{y} = \lambda y_i + (1 - \lambda)y_j

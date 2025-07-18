@@ -19,13 +19,13 @@ jobs:
   claude-pr:
     if: contains(github.event.comment.body, '@claude') || contains(github.event.issue.body, '@claude')
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Run Claude Code Action
         uses: anthropics/claude-code-action@v0.0.33
         with:

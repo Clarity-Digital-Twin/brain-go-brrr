@@ -85,7 +85,7 @@ brain-go-brrr/
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
 │   └── datasets/          # EEG datasets
-│       └── external/      
+│       └── external/
 │           └── sleep-edf/ # 197 PSG recordings (✅ downloaded)
 └── literature/            # Research papers & markdown
 ```
@@ -165,12 +165,12 @@ def process_eeg(
     window_size: float = 4.0
 ) -> Dict[str, npt.NDArray[np.float32]]:
     """Process EEG data with EEGPT.
-    
+
     Args:
         file_path: Path to EDF file
         sampling_rate: Target sampling rate in Hz
         window_size: Window size in seconds
-        
+
     Returns:
         Dictionary with predictions and confidence scores
     """

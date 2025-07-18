@@ -105,6 +105,7 @@ make test
 ## 🔧 Development
 
 This project serves as a foundation for:
+
 - EEG signal processing research
 - Neural representation learning
 - Brain-computer interface development
@@ -113,6 +114,7 @@ This project serves as a foundation for:
 ## 📄 Literature
 
 The `literature/` directory contains processed research papers with:
+
 - Markdown conversions for easy reading and searching
 - Extracted figures and diagrams
 - Metadata for research organization
@@ -120,6 +122,7 @@ The `literature/` directory contains processed research papers with:
 ## 🤝 Contributing
 
 This project is part of the CLARITY-DIGITAL-TWIN organization's research initiative. Contributions are welcome for:
+
 - Additional EEG processing methods
 - Novel neural architectures
 - BCI applications
@@ -128,6 +131,7 @@ This project is part of the CLARITY-DIGITAL-TWIN organization's research initiat
 ## 📜 License
 
 This project contains reference materials and implementations with various licenses:
+
 - Research papers: Academic use
 - EEGPT implementation: Apache-2.0 License
 - Original contributions: To be determined
@@ -143,4 +147,4 @@ For questions about this research project, please open an issue or contact the C
 
 ---
 
-**Note**: This repository contains research materials and reference implementations. Please refer to individual project licenses and citations when using this work. 
+**Note**: This repository contains research materials and reference implementations. Please refer to individual project licenses and citations when using this work.

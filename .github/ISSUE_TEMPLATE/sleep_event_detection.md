@@ -28,7 +28,7 @@ class SleepEventDetector:
         # Hilbert transform for envelope
         # Threshold crossing detection
         pass
-        
+
     def detect_slow_waves(self, eeg_data, sf, amp_threshold=75):
         # Bandpass filter 0.5-4 Hz
         # Peak-to-peak amplitude detection

@@ -1,9 +1,11 @@
 # CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
 
 ## 🧠 Critical Context
+
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.
 
 ## 📚 Project Overview
+
 - **Purpose**: Production-ready Python wrapper around EEGPT for EEG analysis (QC, abnormality detection, sleep staging, event detection)
 - **Model**: EEGPT 10M parameters at `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 - **Architecture**: Service-oriented (not microservices yet), FastAPI + PyTorch + MNE
@@ -11,6 +13,7 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **Python**: 3.11+ (current venv uses 3.13.2)
 
 ## 📖 Essential Reading Before Starting
+
 ```bash
 # Technical specifications and requirements
 /docs/literature-master-reference.md    # Complete technical reference
@@ -22,6 +25,7 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 ```
 
 ## 🔧 Development Commands
+
 ```bash
 # Environment Management
 uv sync                    # Install/update dependencies
@@ -44,6 +48,7 @@ make docs                 # Build documentation
 ## 🏗️ Architecture & Tech Stack
 
 ### Backend Stack
+
 - **API**: FastAPI 0.100+ with Pydantic v2
 - **ML**: PyTorch 2.0+, MNE-Python 1.6+, NumPy, SciPy
 - **Models**: EEGPT, YASA (sleep), Autoreject (QC), tsfresh (features)
@@ -52,12 +57,14 @@ make docs                 # Build documentation
 - **Storage**: AWS S3 for EDF files and results
 
 ### Frontend Stack (Future)
+
 - React 18+ / Next.js 14
 - Material-UI / Ant Design
 - Redux Toolkit for state
 - Recharts for visualizations
 
 ## 📁 Project Structure
+
 ```
 brain-go-brrr/
 ├── src/brain_go_brrr/      # Main package (underscore naming!)
@@ -85,7 +92,7 @@ brain-go-brrr/
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
 │   └── datasets/          # EEG datasets
-│       └── external/      
+│       └── external/
 │           └── sleep-edf/ # 197 PSG recordings (✅ downloaded)
 └── literature/            # Research papers & markdown
 ```
@@ -93,6 +100,7 @@ brain-go-brrr/
 ## 🧪 Core Features & Requirements
 
 ### 1. Quality Control Module
+
 - Detect bad channels with >95% accuracy
 - Calculate impedance metrics
 - Identify artifacts (eye blinks, muscle, heartbeat)
@@ -100,19 +108,22 @@ brain-go-brrr/
 - Implementation: `/services/qc_flagger.py`
 
 ### 2. Abnormality Detection
+
 - Binary classification (normal/abnormal)
-- >80% balanced accuracy target
+- > 80% balanced accuracy target
 - Confidence scoring (0-1)
 - Triage flags: routine/expedite/urgent
 - Reference: BioSerenity-E1 (94.63% accuracy)
 
 ### 3. Event Detection
+
 - Epileptiform discharge identification
 - GPED/PLED pattern detection
 - Time-stamped events with confidence
 - Implementation pending
 
 ### 4. Sleep Analysis
+
 - 5-stage classification (W, N1, N2, N3, REM)
 - Hypnogram visualization
 - Sleep metrics: efficiency, REM%, N3%, WASO
@@ -120,6 +131,7 @@ brain-go-brrr/
 - Reference: YASA (87.46% accuracy)
 
 ## 🎯 Performance Targets
+
 - Process 20-minute EEG in <2 minutes
 - Support 50 concurrent analyses
 - API response time <100ms
@@ -129,6 +141,7 @@ brain-go-brrr/
 ## 🔬 EEG Processing Standards
 
 ### EEGPT Specifications
+
 - **Sampling**: 256 Hz (resample if needed)
 - **Windows**: 4 seconds (1024 samples)
 - **Channels**: Up to 58 electrodes
@@ -136,6 +149,7 @@ brain-go-brrr/
 - **Architecture**: Vision Transformer with masked autoencoding
 
 ### Processing Pipeline
+
 ```python
 # Standard pipeline order:
 Raw EEG → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
@@ -147,12 +161,14 @@ Raw EEG → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
 ```
 
 ### Channel Standards
+
 - Use 10-20 system naming (Fp1, Fp2, C3, C4, etc.)
 - Handle missing channels gracefully
 - Minimum channels for analysis: 19
 - Reference: average or linked mastoids
 
 ## 💻 Code Style Rules
+
 ```python
 # ALWAYS use type hints
 from pathlib import Path
@@ -165,12 +181,12 @@ def process_eeg(
     window_size: float = 4.0
 ) -> Dict[str, npt.NDArray[np.float32]]:
     """Process EEG data with EEGPT.
-    
+
     Args:
         file_path: Path to EDF file
         sampling_rate: Target sampling rate in Hz
         window_size: Window size in seconds
-        
+
     Returns:
         Dictionary with predictions and confidence scores
     """
@@ -178,6 +194,7 @@ def process_eeg(
 ```
 
 ### Key Principles
+
 - Use `pathlib.Path`, NEVER string paths
 - Async/await for ALL I/O operations
 - Dependency injection (SOLID principles)
@@ -188,6 +205,7 @@ def process_eeg(
 ## 🧪 Testing Philosophy
 
 ### Test-Driven Development (TDD)
+
 ```bash
 # 1. Write failing test first
 uv run pytest tests/test_new_feature.py::test_specific -xvs
@@ -202,6 +220,7 @@ make test-watch
 ```
 
 ### Test Structure
+
 ```python
 # tests/test_sleep_analysis.py
 import pytest
@@ -223,6 +242,7 @@ def test_sleep_staging_accuracy(mock_eeg_data):
 ## 🚀 API Development
 
 ### Endpoint Structure
+
 ```python
 # FastAPI with full typing
 from fastapi import APIRouter, UploadFile, BackgroundTasks
@@ -243,6 +263,7 @@ async def analyze_eeg(
 ```
 
 ### Security Requirements
+
 - OAuth2 with JWT (RS256)
 - HIPAA compliant data handling
 - Encryption: AES-256 (rest), TLS 1.3 (transit)
@@ -254,6 +275,7 @@ async def analyze_eeg(
 Based on ROUGH_DRAFT.md, implement in this order:
 
 ### 1. Basic EEG Pipeline
+
 ```bash
 # Test basic model loading and inference
 uv run python scripts/test_sleep_analysis.py
@@ -264,6 +286,7 @@ write tests for loading EDF, running EEGPT, getting features
 ```
 
 ### 2. Sleep Analysis Service
+
 - Load Sleep-EDF data ✅ (already downloaded)
 - Run YASA sleep staging
 - Compare with EEGPT features
@@ -271,12 +294,14 @@ write tests for loading EDF, running EEGPT, getting features
 - Calculate sleep metrics
 
 ### 3. Quality Control Service
+
 - Implement Autoreject integration
 - Add EEGPT-based QC
 - Generate QC reports
 - Test on noisy data
 
 ### 4. Simple API
+
 - FastAPI endpoint for file upload
 - Async processing with Celery
 - Status checking endpoint
@@ -285,6 +310,7 @@ write tests for loading EDF, running EEGPT, getting features
 ## 🛠️ Common Workflows
 
 ### Adding a New Feature
+
 ```bash
 # 1. Think and plan
 think hard about implementing [FEATURE]
@@ -306,6 +332,7 @@ make docs
 ```
 
 ### Processing Sleep-EDF Data
+
 ```python
 from pathlib import Path
 import mne
@@ -329,6 +356,7 @@ results = analyzer.run_full_sleep_analysis(raw)
 ## 🚨 Safety & Compliance
 
 ### Critical Safety Rules
+
 1. **Input Validation**: Always validate EEG data format and ranges
 2. **Confidence Scores**: Never present results without confidence
 3. **Error Handling**: Fail safely with informative messages
@@ -336,6 +364,7 @@ results = analyzer.run_full_sleep_analysis(raw)
 5. **Human Review**: Flag low-confidence results
 
 ### HIPAA Compliance
+
 - No PHI in logs or error messages
 - Secure all data at rest and in transit
 - Implement access controls
@@ -368,6 +397,7 @@ find data/datasets/external/sleep-edf -name "*.edf" | wc -l
 ## 📊 Performance Benchmarks
 
 Target metrics from literature:
+
 - **EEGPT**: 65-87.5% accuracy across tasks
 - **Sleep Staging**: 87.46% (YASA), 85% (EEGPT)
 - **Abnormal Detection**: 94.63% (BioSerenity-E1)
@@ -385,6 +415,7 @@ Target metrics from literature:
 - **mne-bids**: BIDS format conversion
 
 ## 📝 Git Workflow
+
 ```bash
 # Feature branches
 git checkout -b feature/add-event-detection
@@ -402,12 +433,14 @@ make check-all  # Run all quality checks
 ```
 
 ## 🤔 Thinking Triggers
+
 - `think` - Standard analysis
 - `think hard` - Complex architectural decisions
 - `think harder` - Multi-component integration
 - `ultrathink` - System-wide changes
 
 ## ❌ Do NOT
+
 - Log patient identifiers or PHI
 - Hardcode file paths
 - Skip input validation
@@ -431,6 +464,7 @@ make check-all  # Run all quality checks
 Remember: This handles brain data. Accuracy matters. Test everything.
 
 ## 🔗 Quick Links
+
 - [Literature Master Reference](docs/literature-master-reference.md)
 - [Product Requirements](docs/PRD-product-requirements.md)
 - [Technical Requirements](docs/TRD-technical-requirements.md)

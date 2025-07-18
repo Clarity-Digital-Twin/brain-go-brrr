@@ -12,13 +12,13 @@ jobs:
       github.event.pull_request.merged == true &&
       github.event.pull_request.user.type != 'Bot' &&
       !startsWith(github.event.pull_request.title, 'docs:')
-    
+
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
       pull-requests: write
-      
+
     steps:
       - uses: textcortex/claude-code-pr-autodoc-action@v1
         with:

@@ -163,7 +163,7 @@ jobs:
           title: 'Weekly dependency updates'
           body: |
             ## Dependency Updates
-            
+
             This PR contains the latest dependency updates.
             All tests have been run to ensure compatibility.
           branch: deps/weekly-update
