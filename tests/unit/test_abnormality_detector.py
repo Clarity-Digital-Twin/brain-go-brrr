@@ -17,7 +17,7 @@ from services.abnormality_detector import (
     TriageLevel,
     WindowResult,
 )
-from src.brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class TestAbnormalityDetector:

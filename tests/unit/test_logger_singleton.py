@@ -4,7 +4,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-from src.brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.core.logger import get_logger
 
 
 class TestLoggerSingleton:
@@ -50,7 +50,7 @@ class TestLoggerSingleton:
         """Test that repeated module imports don't duplicate handlers."""
         # Simulate repeated imports
         for _ in range(3):
-            from src.brain_go_brrr.core.logger import get_logger as get_logger_again
+            from brain_go_brrr.core.logger import get_logger as get_logger_again
 
             logger = get_logger_again("test_import_duplication")
 

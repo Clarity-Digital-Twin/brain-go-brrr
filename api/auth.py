@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 
-from src.brain_go_brrr.utils import utc_now
+from brain_go_brrr.utils import utc_now
 
 logger = logging.getLogger(__name__)
 

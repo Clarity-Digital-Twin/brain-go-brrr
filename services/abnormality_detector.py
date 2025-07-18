@@ -14,11 +14,11 @@ import mne
 import numpy as np
 import torch
 
-from src.brain_go_brrr.core.abnormality_config import AbnormalityConfig
-from src.brain_go_brrr.core.config import ModelConfig
-from src.brain_go_brrr.core.logger import get_logger
-from src.brain_go_brrr.models.eegpt_model import EEGPTModel
-from src.brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr.core.abnormality_config import AbnormalityConfig
+from brain_go_brrr.core.config import ModelConfig
+from brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 logger = get_logger(__name__)
 

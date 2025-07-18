@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import torch
 
-from src.brain_go_brrr.models.eegpt_model import (
+from brain_go_brrr.models.eegpt_model import (
     EEGPTConfig,
     EEGPTModel,
     preprocess_for_eegpt,
