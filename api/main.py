@@ -24,11 +24,11 @@ from pydantic import BaseModel, Field  # noqa: E402
 
 from api.auth import verify_cache_clear_permission  # noqa: E402
 from api.cache import RedisCache, get_cache  # noqa: E402
-from services.qc_flagger import EEGQualityController  # noqa: E402
 from brain_go_brrr.data.edf_streaming import estimate_memory_usage  # noqa: E402
 from brain_go_brrr.utils import utc_now  # noqa: E402
 from brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator  # noqa: E402
 from brain_go_brrr.visualization.pdf_report import PDFReportGenerator  # noqa: E402
+from services.qc_flagger import EEGQualityController  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -10,6 +10,7 @@ import mne
 import numpy as np
 import pytest
 
+from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 from services.abnormality_detector import (
     AbnormalityDetector,
     AbnormalityResult,
@@ -17,7 +18,6 @@ from services.abnormality_detector import (
     TriageLevel,
     WindowResult,
 )
-from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class TestAbnormalityDetector:

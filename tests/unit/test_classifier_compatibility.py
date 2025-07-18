@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from services.abnormality_detector import AbnormalityDetector
 from brain_go_brrr.core.abnormality_config import AbnormalityConfig
+from services.abnormality_detector import AbnormalityDetector
 
 
 class TestClassifierCompatibility:
