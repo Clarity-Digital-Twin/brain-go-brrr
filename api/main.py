@@ -287,17 +287,37 @@ async def analyze_eeg_detailed(
             if include_report:
                 try:
                     # Add more details to results for report generation
+                    # Ensure artifacts have severity scores
+                    if 'artifact_segments' in quality_metrics:
+                        for artifact in quality_metrics['artifact_segments']:
+                            if 'severity' not in artifact:
+                                # Assign severity based on type
+                                severity_map = {
+                                    'motion': 0.9,
+                                    'muscle': 0.7,
+                                    'eye_blink': 0.5,
+                                    'heartbeat': 0.3,
+                                    'other': 0.6
+                                }
+                                artifact['severity'] = severity_map.get(artifact.get('type', 'other'), 0.6)
+                    
                     report_results = {
                         'quality_metrics': {
                             **quality_metrics,
-                            'channel_positions': _get_channel_positions(raw)
+                            'channel_positions': _get_channel_positions(raw),
+                            'flag': flag,  # Add triage flag
                         },
                         'processing_info': {
                             'file_name': file.filename,
                             'timestamp': datetime.now(timezone.utc).isoformat(),
                             'duration_seconds': raw.times[-1],
-                            'sampling_rate': raw.info['sfreq']
-                        }
+                            'sampling_rate': raw.info['sfreq'],
+                            'confidence': confidence,
+                            'channels_used': len(raw.ch_names)
+                        },
+                        'autoreject_results': results.get('autoreject_results', {}),
+                        'eegpt_features': results.get('eegpt_features', {}),
+                        'processing_time': processing_time
                     }
 
                     # Generate PDF
