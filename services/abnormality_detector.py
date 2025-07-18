@@ -4,20 +4,24 @@ This module implements a production-ready abnormality detection system
 using EEGPT foundation model with clinical-grade accuracy requirements.
 """
 
+import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 
+import mne
 import numpy as np
 import torch
-import mne
 
-from src.brain_go_brrr.models.eegpt_model import EEGPTModel
+# Add src to path to resolve imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.brain_go_brrr.core.abnormality_config import AbnormalityConfig
 from src.brain_go_brrr.core.config import ModelConfig
 from src.brain_go_brrr.core.logger import get_logger
-from src.brain_go_brrr.core.abnormality_config import AbnormalityConfig
+from src.brain_go_brrr.models.eegpt_model import EEGPTModel
 from src.brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 logger = get_logger(__name__)
@@ -98,7 +102,7 @@ class AbnormalityDetector:
         """
         # Use provided config or create default
         self.config = config or AbnormalityConfig.from_spec()
-        
+
         # Allow overrides of specific parameters
         self.window_duration = window_duration or self.config.processing.window_duration_seconds
         self.overlap_ratio = overlap_ratio or self.config.processing.window_overlap_ratio
@@ -122,7 +126,7 @@ class AbnormalityDetector:
 
         logger.info(f"AbnormalityDetector initialized on {self.device}")
 
-    def _init_model(self, model_path: Path):
+    def _init_model(self, model_path: Path) -> None:
         """Initialize EEGPT model."""
         config = ModelConfig(
             model_path=model_path,
@@ -140,7 +144,7 @@ class AbnormalityDetector:
             # Create mock model for testing
             self.model = EEGPTModel(config=config, auto_load=False)
 
-    def _init_classification_head(self):
+    def _init_classification_head(self) -> None:
         """Initialize classification head for abnormality detection."""
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(self.config.model.feature_dim, self.config.model.classifier_hidden_1),
@@ -279,7 +283,7 @@ class AbnormalityDetector:
 
         return results
 
-    def _validate_input(self, raw: mne.io.Raw):
+    def _validate_input(self, raw: mne.io.Raw) -> None:
         """Validate input EEG data."""
         # Check duration
         duration = raw.times[-1]
@@ -305,10 +309,7 @@ class AbnormalityDetector:
         for i, ch_name in enumerate(raw.ch_names):
             ch_data = data[i]
             # Check for flat channel (essentially no signal)
-            if np.std(ch_data) < self.config.quality.flat_channel_nanovolt_threshold:
-                bad_channels.append(ch_name)
-            # Check for saturated channel
-            elif np.sum(np.abs(ch_data) > self.config.quality.saturated_amplitude_millivolt) > len(ch_data) * self.config.quality.saturated_sample_ratio:
+            if np.std(ch_data) < self.config.quality.flat_channel_nanovolt_threshold or np.sum(np.abs(ch_data) > self.config.quality.saturated_amplitude_millivolt) > len(ch_data) * self.config.quality.saturated_sample_ratio:
                 bad_channels.append(ch_name)
 
         return bad_channels
@@ -363,7 +364,7 @@ class AbnormalityDetector:
         if max_amp > self.config.quality.excessive_noise_threshold:
             quality *= self.config.quality.excessive_noise_penalty
 
-        return max(0.0, min(1.0, quality))
+        return float(max(0.0, min(1.0, quality)))
 
     def _predict_window(self, window: np.ndarray) -> float:
         """Get abnormality prediction for a single window."""
@@ -445,10 +446,10 @@ class AbnormalityDetector:
         # Adjust for extreme scores (more confident at extremes)
         extremity = 2 * abs(mean_score - 0.5)
 
-        confidence = (self.config.classification.confidence_std_weight * consistency + 
+        confidence = (self.config.classification.confidence_std_weight * consistency +
                      self.config.classification.confidence_extremity_weight * extremity)
 
-        return max(0.0, min(1.0, confidence))
+        return float(max(0.0, min(1.0, confidence)))
 
     def _compute_quality_metrics(
         self,
@@ -464,13 +465,13 @@ class AbnormalityDetector:
         avg_quality = np.mean(window_qualities)
         bad_channel_ratio = len(bad_channels) / len(raw.ch_names)
 
-        if (avg_quality > self.config.quality.excellent_avg_quality and 
+        if (avg_quality > self.config.quality.excellent_avg_quality and
             bad_channel_ratio < self.config.quality.excellent_bad_channel_ratio):
             quality_grade = "EXCELLENT"
-        elif (avg_quality > self.config.quality.good_avg_quality and 
+        elif (avg_quality > self.config.quality.good_avg_quality and
               bad_channel_ratio < self.config.quality.good_bad_channel_ratio):
             quality_grade = "GOOD"
-        elif (avg_quality > self.config.quality.fair_avg_quality and 
+        elif (avg_quality > self.config.quality.fair_avg_quality and
               bad_channel_ratio < self.config.quality.fair_bad_channel_ratio):
             quality_grade = "FAIR"
         else:

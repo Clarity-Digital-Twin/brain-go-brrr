@@ -1,19 +1,17 @@
-"""
-EEG Snippet Maker Service
+"""EEG Snippet Maker Service
 
 Creates and manages EEG snippets for analysis, featuring extraction, processing,
 and integration with EEGPT for comprehensive snippet analysis.
 """
 
+import json
+import logging
 import sys
+from pathlib import Path
+
+import mne
 import numpy as np
 import pandas as pd
-import mne
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-import logging
-from datetime import datetime, timedelta
-import json
 
 from brain_go_brrr.utils import utc_now
 
@@ -34,8 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 class EEGSnippetMaker:
-    """
-    EEG Snippet creation and analysis service.
+    """EEG Snippet creation and analysis service.
     
     This class provides:
     1. Snippet extraction from continuous EEG
@@ -44,7 +41,7 @@ class EEGSnippetMaker:
     4. EEGPT-based snippet analysis
     5. Snippet classification and annotation
     """
-    
+
     def __init__(
         self,
         snippet_length: float = 10.0,
@@ -53,8 +50,7 @@ class EEGSnippetMaker:
         max_snippets_per_file: int = 1000,
         feature_extraction: bool = True
     ):
-        """
-        Initialize the EEG Snippet Maker.
+        """Initialize the EEG Snippet Maker.
         
         Args:
             snippet_length: Default snippet length in seconds
@@ -68,23 +64,22 @@ class EEGSnippetMaker:
         self.min_snippet_length = min_snippet_length
         self.max_snippets_per_file = max_snippets_per_file
         self.feature_extraction = feature_extraction
-        
+
         # Initialize feature extraction
         if feature_extraction and not TSFRESH_AVAILABLE:
             logger.warning("tsfresh not available - feature extraction disabled")
             self.feature_extraction = False
-    
+
     def extract_fixed_snippets(
         self,
         raw: mne.io.Raw,
-        snippet_length: Optional[float] = None,
-        overlap: Optional[float] = None,
+        snippet_length: float | None = None,
+        overlap: float | None = None,
         start_time: float = 0.0,
-        end_time: Optional[float] = None,
-        channel_selection: Optional[List[str]] = None
-    ) -> List[Dict]:
-        """
-        Extract fixed-length snippets from continuous EEG.
+        end_time: float | None = None,
+        channel_selection: list[str] | None = None
+    ) -> list[dict]:
+        """Extract fixed-length snippets from continuous EEG.
         
         Args:
             raw: Raw EEG data
@@ -100,27 +95,27 @@ class EEGSnippetMaker:
         snippet_length = snippet_length or self.snippet_length
         overlap = overlap or self.overlap
         end_time = end_time or raw.times[-1]
-        
+
         # Calculate step size
         step_size = snippet_length * (1 - overlap)
-        
+
         # Select channels
         if channel_selection:
             picks = mne.pick_channels(raw.ch_names, channel_selection)
         else:
             picks = mne.pick_types(raw.info, eeg=True, exclude='bads')
-        
+
         snippets = []
         current_time = start_time
         snippet_id = 0
-        
+
         while current_time + snippet_length <= end_time and len(snippets) < self.max_snippets_per_file:
             # Extract snippet data
             start_sample = int(current_time * raw.info['sfreq'])
             end_sample = int((current_time + snippet_length) * raw.info['sfreq'])
-            
+
             snippet_data = raw.get_data(picks=picks, start=start_sample, stop=end_sample)
-            
+
             # Create snippet dictionary
             snippet = {
                 'id': snippet_id,
@@ -135,26 +130,25 @@ class EEGSnippetMaker:
                 'extraction_method': 'fixed_length',
                 'timestamp': utc_now().isoformat()
             }
-            
+
             snippets.append(snippet)
             current_time += step_size
             snippet_id += 1
-        
+
         logger.info(f"Extracted {len(snippets)} fixed-length snippets")
         return snippets
-    
+
     def extract_event_snippets(
         self,
         raw: mne.io.Raw,
         events: np.ndarray,
-        event_id: Dict[str, int],
+        event_id: dict[str, int],
         tmin: float = -1.0,
         tmax: float = 2.0,
-        channel_selection: Optional[List[str]] = None,
-        reject_criteria: Optional[Dict] = None
-    ) -> List[Dict]:
-        """
-        Extract event-based snippets from EEG data.
+        channel_selection: list[str] | None = None,
+        reject_criteria: dict | None = None
+    ) -> list[dict]:
+        """Extract event-based snippets from EEG data.
         
         Args:
             raw: Raw EEG data
@@ -174,28 +168,28 @@ class EEGSnippetMaker:
             baseline=None, reject=reject_criteria,
             preload=True, verbose=False
         )
-        
+
         # Select channels
         if channel_selection:
             epochs.pick_channels(channel_selection)
-        
+
         snippets = []
         for i, epoch in enumerate(epochs):
             if len(snippets) >= self.max_snippets_per_file:
                 break
-                
+
             # Get event information
             event_sample = events[i, 0]
             event_time = event_sample / raw.info['sfreq']
             event_type = events[i, 2]
-            
+
             # Find event name
             event_name = None
             for name, id_val in event_id.items():
                 if id_val == event_type:
                     event_name = name
                     break
-            
+
             snippet = {
                 'id': i,
                 'event_name': event_name,
@@ -212,22 +206,21 @@ class EEGSnippetMaker:
                 'extraction_method': 'event_based',
                 'timestamp': utc_now().isoformat()
             }
-            
+
             snippets.append(snippet)
-        
+
         logger.info(f"Extracted {len(snippets)} event-based snippets")
         return snippets
-    
+
     def extract_anomaly_snippets(
         self,
         raw: mne.io.Raw,
         anomaly_scores: np.ndarray,
         score_threshold: float = 0.8,
         snippet_length: float = 5.0,
-        channel_selection: Optional[List[str]] = None
-    ) -> List[Dict]:
-        """
-        Extract snippets around detected anomalies.
+        channel_selection: list[str] | None = None
+    ) -> list[dict]:
+        """Extract snippets around detected anomalies.
         
         Args:
             raw: Raw EEG data
@@ -241,35 +234,35 @@ class EEGSnippetMaker:
         """
         # Find anomaly peaks
         anomaly_indices = np.where(anomaly_scores > score_threshold)[0]
-        
+
         if len(anomaly_indices) == 0:
             logger.info("No anomalies detected above threshold")
             return []
-        
+
         # Select channels
         if channel_selection:
             picks = mne.pick_channels(raw.ch_names, channel_selection)
         else:
             picks = mne.pick_types(raw.info, eeg=True, exclude='bads')
-        
+
         snippets = []
         snippet_id = 0
-        
+
         for idx in anomaly_indices:
             if len(snippets) >= self.max_snippets_per_file:
                 break
-                
+
             # Calculate snippet boundaries
             anomaly_time = idx / raw.info['sfreq']
             start_time = max(0, anomaly_time - snippet_length / 2)
             end_time = min(raw.times[-1], anomaly_time + snippet_length / 2)
-            
+
             # Extract snippet data
             start_sample = int(start_time * raw.info['sfreq'])
             end_sample = int(end_time * raw.info['sfreq'])
-            
+
             snippet_data = raw.get_data(picks=picks, start=start_sample, stop=end_sample)
-            
+
             snippet = {
                 'id': snippet_id,
                 'anomaly_time': anomaly_time,
@@ -285,20 +278,19 @@ class EEGSnippetMaker:
                 'extraction_method': 'anomaly_based',
                 'timestamp': utc_now().isoformat()
             }
-            
+
             snippets.append(snippet)
             snippet_id += 1
-        
+
         logger.info(f"Extracted {len(snippets)} anomaly-based snippets")
         return snippets
-    
+
     def extract_features_from_snippet(
         self,
-        snippet: Dict,
-        feature_settings: Optional[Dict] = None
-    ) -> Dict:
-        """
-        Extract time-series features from a snippet using tsfresh.
+        snippet: dict,
+        feature_settings: dict | None = None
+    ) -> dict:
+        """Extract time-series features from a snippet using tsfresh.
         
         Args:
             snippet: Snippet dictionary
@@ -310,12 +302,12 @@ class EEGSnippetMaker:
         if not TSFRESH_AVAILABLE:
             logger.warning("tsfresh not available - skipping feature extraction")
             return {}
-        
+
         try:
             # Prepare data for tsfresh
             data = snippet['data']
             n_channels, n_samples = data.shape
-            
+
             # Create DataFrame for tsfresh
             df_list = []
             for ch_idx, ch_name in enumerate(snippet['channels']):
@@ -326,9 +318,9 @@ class EEGSnippetMaker:
                         'time': sample_idx / snippet['sampling_rate'],
                         'value': data[ch_idx, sample_idx]
                     })
-            
+
             df = pd.DataFrame(df_list)
-            
+
             # Extract features
             if feature_settings is None:
                 # Use default feature settings
@@ -342,26 +334,25 @@ class EEGSnippetMaker:
                     column_value='value', column_kind='channel',
                     default_fc_parameters=feature_settings
                 )
-            
+
             # Impute missing values
             impute(features)
-            
+
             # Convert to dictionary
             features_dict = features.iloc[0].to_dict()
-            
+
             return features_dict
-            
+
         except Exception as e:
             logger.error(f"Feature extraction failed: {e}")
             return {}
-    
+
     def analyze_snippet_with_eegpt(
         self,
-        snippet: Dict,
-        model_path: Optional[Path] = None
-    ) -> Dict:
-        """
-        Analyze snippet using EEGPT model.
+        snippet: dict,
+        model_path: Path | None = None
+    ) -> dict:
+        """Analyze snippet using EEGPT model.
         
         Args:
             snippet: Snippet dictionary
@@ -372,11 +363,11 @@ class EEGSnippetMaker:
         """
         # TODO: Implement actual EEGPT analysis
         # This is a placeholder for EEGPT integration
-        
+
         try:
             # Prepare data for EEGPT
             data = snippet['data']
-            
+
             # Dummy EEGPT analysis (replace with actual implementation)
             analysis = {
                 'abnormality_score': np.random.random(),
@@ -386,21 +377,20 @@ class EEGSnippetMaker:
                 'model_version': 'eegpt-v1.0',
                 'processing_time': 0.1
             }
-            
+
             return analysis
-            
+
         except Exception as e:
             logger.error(f"EEGPT analysis failed: {e}")
             return {'error': str(e)}
-    
+
     def classify_snippet(
         self,
-        snippet: Dict,
-        features: Dict,
-        eegpt_results: Dict
-    ) -> Dict:
-        """
-        Classify snippet based on features and EEGPT results.
+        snippet: dict,
+        features: dict,
+        eegpt_results: dict
+    ) -> dict:
+        """Classify snippet based on features and EEGPT results.
         
         Args:
             snippet: Snippet dictionary
@@ -417,41 +407,40 @@ class EEGSnippetMaker:
             'secondary_classes': [],
             'quality_score': 0.0
         }
-        
+
         # Use EEGPT results for classification
         if 'predicted_class' in eegpt_results:
             classification['primary_class'] = eegpt_results['predicted_class']
             classification['confidence'] = eegpt_results.get('confidence', 0.0)
-        
+
         # Compute quality score based on various factors
         quality_factors = []
-        
+
         # Signal quality
         if snippet['data'].std() > 0:
             snr = np.mean(snippet['data']) / np.std(snippet['data'])
             quality_factors.append(min(abs(snr) / 10, 1.0))
-        
+
         # Feature completeness
         if features:
             completeness = len([v for v in features.values() if not np.isnan(v)]) / len(features)
             quality_factors.append(completeness)
-        
+
         # EEGPT confidence
         if 'confidence' in eegpt_results:
             quality_factors.append(eegpt_results['confidence'])
-        
+
         classification['quality_score'] = np.mean(quality_factors) if quality_factors else 0.0
-        
+
         return classification
-    
+
     def create_snippet_report(
         self,
-        snippets: List[Dict],
+        snippets: list[dict],
         include_features: bool = True,
         include_eegpt: bool = True
-    ) -> Dict:
-        """
-        Create comprehensive report for all snippets.
+    ) -> dict:
+        """Create comprehensive report for all snippets.
         
         Args:
             snippets: List of snippet dictionaries
@@ -462,25 +451,25 @@ class EEGSnippetMaker:
             Comprehensive snippet report
         """
         logger.info(f"Creating report for {len(snippets)} snippets")
-        
+
         processed_snippets = []
         feature_summary = {}
         classification_summary = {}
-        
+
         for snippet in snippets:
             # Extract features
             features = {}
             if include_features and self.feature_extraction:
                 features = self.extract_features_from_snippet(snippet)
-            
+
             # EEGPT analysis
             eegpt_results = {}
             if include_eegpt:
                 eegpt_results = self.analyze_snippet_with_eegpt(snippet)
-            
+
             # Classify snippet
             classification = self.classify_snippet(snippet, features, eegpt_results)
-            
+
             # Store processed snippet
             processed_snippet = {
                 'snippet_info': {
@@ -495,15 +484,15 @@ class EEGSnippetMaker:
                 'eegpt_analysis': eegpt_results,
                 'classification': classification
             }
-            
+
             processed_snippets.append(processed_snippet)
-            
+
             # Update summaries
             class_name = classification['primary_class']
             if class_name not in classification_summary:
                 classification_summary[class_name] = 0
             classification_summary[class_name] += 1
-        
+
         # Create final report
         report = {
             'summary': {
@@ -522,18 +511,17 @@ class EEGSnippetMaker:
                 'timestamp': utc_now().isoformat()
             }
         }
-        
+
         logger.info(f"Snippet report created with {len(processed_snippets)} processed snippets")
         return report
-    
+
     def save_snippets(
         self,
-        snippets: List[Dict],
+        snippets: list[dict],
         output_dir: Path,
         format: str = 'json'
-    ) -> List[Path]:
-        """
-        Save snippets to files.
+    ) -> list[Path]:
+        """Save snippets to files.
         
         Args:
             snippets: List of snippet dictionaries
@@ -545,31 +533,31 @@ class EEGSnippetMaker:
         """
         output_dir.mkdir(parents=True, exist_ok=True)
         saved_files = []
-        
+
         for snippet in snippets:
             filename = f"snippet_{snippet['id']:04d}_{snippet['extraction_method']}"
-            
+
             if format == 'json':
                 filepath = output_dir / f"{filename}.json"
                 # Convert numpy arrays to lists for JSON serialization
                 snippet_copy = snippet.copy()
                 snippet_copy['data'] = snippet_copy['data'].tolist()
-                
+
                 with open(filepath, 'w') as f:
                     json.dump(snippet_copy, f, indent=2)
-                    
+
             elif format == 'npz':
                 filepath = output_dir / f"{filename}.npz"
                 np.savez(filepath, **snippet)
-                
+
             elif format == 'csv':
                 filepath = output_dir / f"{filename}.csv"
                 data = snippet['data']
                 df = pd.DataFrame(data.T, columns=snippet['channels'])
                 df.to_csv(filepath, index=False)
-            
+
             saved_files.append(filepath)
-        
+
         logger.info(f"Saved {len(saved_files)} snippets to {output_dir}")
         return saved_files
 

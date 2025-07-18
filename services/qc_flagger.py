@@ -1,16 +1,15 @@
-"""
-EEG Quality Control Flagger Service
+"""EEG Quality Control Flagger Service
 
 Integrates autoreject for automatic artifact detection and EEGPT for abnormality scoring.
 This service provides a comprehensive QC pipeline for EEG data.
 """
 
-import sys
-import numpy as np
-import mne
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
 import logging
+import sys
+from pathlib import Path
+
+import mne
+import numpy as np
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autoreject"))
@@ -27,8 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class EEGQualityController:
-    """
-    Comprehensive EEG quality control using autoreject and EEGPT.
+    """Comprehensive EEG quality control using autoreject and EEGPT.
     
     This class provides:
     1. Automatic bad channel detection
@@ -36,16 +34,15 @@ class EEGQualityController:
     3. Abnormality scoring with EEGPT
     4. Comprehensive QC reporting
     """
-    
+
     def __init__(
         self,
-        eegpt_model_path: Optional[Path] = None,
+        eegpt_model_path: Path | None = None,
         rejection_threshold: float = 0.1,
         interpolation_threshold: float = 0.8,
         random_state: int = 42
     ):
-        """
-        Initialize the EEG Quality Controller.
+        """Initialize the EEG Quality Controller.
         
         Args:
             eegpt_model_path: Path to pretrained EEGPT model
@@ -56,7 +53,7 @@ class EEGQualityController:
         self.rejection_threshold = rejection_threshold
         self.interpolation_threshold = interpolation_threshold
         self.random_state = random_state
-        
+
         # Initialize AutoReject if available
         if AutoReject is not None:
             self.autoreject = AutoReject(
@@ -68,39 +65,38 @@ class EEGQualityController:
         else:
             self.autoreject = None
             logger.warning("AutoReject not available - using basic rejection")
-            
+
         # Initialize EEGPT model (placeholder)
         self.eegpt_model = None
         if eegpt_model_path and eegpt_model_path.exists():
             self._load_eegpt_model(eegpt_model_path)
-    
+
     def _load_eegpt_model(self, model_path: Path) -> None:
         """Load pretrained EEGPT model."""
         try:
             from brain_go_brrr.models.eegpt_model import EEGPTModel
-            
+
             if not model_path.exists():
                 logger.warning(f"EEGPT model not found at {model_path}")
                 self.eegpt_model = None
                 return
-                
+
             logger.info(f"Loading EEGPT model from {model_path}")
             self.eegpt_model = EEGPTModel(checkpoint_path=model_path)
             logger.info("EEGPT model loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load EEGPT model: {e}")
             self.eegpt_model = None
-    
+
     def preprocess_raw(
         self,
         raw: mne.io.Raw,
         l_freq: float = 0.5,
         h_freq: float = 50.0,
         notch_freq: float = 50.0,
-        resample_freq: Optional[float] = None
+        resample_freq: float | None = None
     ) -> mne.io.Raw:
-        """
-        Basic preprocessing of raw EEG data.
+        """Basic preprocessing of raw EEG data.
         
         Args:
             raw: Raw EEG data
@@ -113,43 +109,42 @@ class EEGQualityController:
             Preprocessed raw EEG data
         """
         raw_copy = raw.copy()
-        
+
         # Apply filters - ensure h_freq is below Nyquist
         nyquist = raw_copy.info['sfreq'] / 2.0
         if h_freq and h_freq >= nyquist:
             h_freq = nyquist - 0.1  # Set to just below Nyquist
             logger.warning(f"High-pass filter adjusted to {h_freq:.1f}Hz (Nyquist: {nyquist}Hz)")
-        
+
         raw_copy.filter(l_freq=l_freq, h_freq=h_freq, fir_design='firwin')
-        
+
         # Notch filter for line noise - only if below Nyquist
         if notch_freq:
             if isinstance(notch_freq, (int, float)):
                 notch_freqs = [notch_freq]
             else:
                 notch_freqs = notch_freq
-            
+
             # Filter out frequencies at or above Nyquist
             valid_notch_freqs = [f for f in notch_freqs if f < nyquist - 1]
-            
+
             if valid_notch_freqs:
                 raw_copy.notch_filter(freqs=valid_notch_freqs, fir_design='firwin')
             else:
                 logger.warning(f"Notch filter skipped - all frequencies >= Nyquist ({nyquist}Hz)")
-        
+
         # Resample if specified
         if resample_freq and resample_freq != raw_copy.info['sfreq']:
             raw_copy.resample(resample_freq)
-            
+
         return raw_copy
-    
+
     def detect_bad_channels(
         self,
         raw: mne.io.Raw,
         method: str = "autoreject"
-    ) -> List[str]:
-        """
-        Detect bad channels using specified method.
+    ) -> list[str]:
+        """Detect bad channels using specified method.
         
         Args:
             raw: Raw EEG data
@@ -170,16 +165,16 @@ class EEGQualityController:
                         break
         except Exception:
             has_positions = False
-        
+
         if method == "autoreject" and self.autoreject is not None and has_positions:
             try:
                 # Create epochs for autoreject
                 events = mne.make_fixed_length_events(raw, duration=2.0)
                 epochs = mne.Epochs(
-                    raw, events, tmin=0, tmax=2.0, 
+                    raw, events, tmin=0, tmax=2.0,
                     baseline=None, preload=True, verbose=False
                 )
-                
+
                 # Fit autoreject to detect bad channels
                 self.autoreject.fit(epochs)
                 bad_channels = epochs.info['bads']
@@ -193,42 +188,41 @@ class EEGQualityController:
             if method == "autoreject" and not has_positions:
                 logger.warning("No channel positions available - using amplitude-based detection")
             method = "amplitude"
-            
+
         if method == "amplitude":
             # Fallback: simple amplitude-based detection
             data = raw.get_data()
             bad_channels = []
-            
+
             # Check for channels with extreme amplitudes
             for i, ch_name in enumerate(raw.ch_names):
                 ch_data = data[i]
                 # Skip non-EEG channels
                 if raw.get_channel_types()[i] not in ['eeg', 'eog']:
                     continue
-                    
+
                 # Check for flat channels or extreme amplitudes
                 std = np.std(ch_data)
                 if std < 0.1e-6 or std > 200e-6:  # Less than 0.1 µV or more than 200 µV
                     bad_channels.append(ch_name)
-                    
+
                 # Check for channels with too many extreme values
                 extreme_ratio = np.sum(np.abs(ch_data) > 100e-6) / len(ch_data)
                 if extreme_ratio > 0.1:  # More than 10% extreme values
                     if ch_name not in bad_channels:
                         bad_channels.append(ch_name)
-                    
+
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
         return bad_channels
-    
+
     def create_epochs(
         self,
         raw: mne.io.Raw,
         epoch_length: float = 2.0,
         overlap: float = 0.0,
-        reject_criteria: Optional[Dict] = None
+        reject_criteria: dict | None = None
     ) -> mne.Epochs:
-        """
-        Create epochs from raw data.
+        """Create epochs from raw data.
         
         Args:
             raw: Raw EEG data
@@ -243,37 +237,36 @@ class EEGQualityController:
         events = mne.make_fixed_length_events(
             raw, duration=epoch_length, overlap=overlap
         )
-        
+
         # Default rejection criteria based on available channel types
         if reject_criteria is None:
             reject_criteria = {}
-            
+
             # Check what channel types are present
             ch_types = set(raw.get_channel_types())
-            
+
             if 'eeg' in ch_types:
                 reject_criteria['eeg'] = 150e-6  # 150 µV
             if 'eog' in ch_types:
                 reject_criteria['eog'] = 250e-6  # 250 µV
             if 'emg' in ch_types:
                 reject_criteria['emg'] = 500e-6  # 500 µV
-        
+
         # Create epochs
         epochs = mne.Epochs(
             raw, events, tmin=0, tmax=epoch_length,
-            reject=reject_criteria, baseline=None, 
+            reject=reject_criteria, baseline=None,
             preload=True, verbose=False
         )
-        
+
         return epochs
-    
+
     def auto_reject_epochs(
         self,
         epochs: mne.Epochs,
         return_log: bool = False
-    ) -> Union[mne.Epochs, Tuple[mne.Epochs, object]]:
-        """
-        Apply autoreject to epochs.
+    ) -> mne.Epochs | tuple[mne.Epochs, object]:
+        """Apply autoreject to epochs.
         
         Args:
             epochs: Input epochs
@@ -285,7 +278,7 @@ class EEGQualityController:
         if self.autoreject is None:
             logger.warning("AutoReject not available - returning original epochs")
             return epochs if not return_log else (epochs, None)
-        
+
         # Check if we have channel positions
         has_positions = False
         try:
@@ -297,37 +290,37 @@ class EEGQualityController:
                         break
         except Exception:
             has_positions = False
-            
+
         if not has_positions:
             logger.warning("No channel positions for AutoReject - using amplitude-based rejection")
             # Simple amplitude-based rejection
             reject_dict = {'eeg': 150e-6}  # 150 µV threshold
             epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
-            
+
             # Create a simple reject log for compatibility
             class SimpleRejectLog:
                 def __init__(self, n_epochs, n_rejected):
                     self.labels = np.zeros(n_epochs)
                     self.labels[:n_rejected] = 2  # Mark as rejected
-                    
+
             reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
-            
-            logger.info(f"Amplitude-based rejection results:")
+
+            logger.info("Amplitude-based rejection results:")
             logger.info(f"  Original epochs: {len(epochs)}")
             logger.info(f"  Clean epochs: {len(epochs_clean)}")
             logger.info(f"  Rejected epochs: {len(epochs) - len(epochs_clean)}")
-            
+
             return epochs_clean if not return_log else (epochs_clean, reject_log)
-        
+
         try:
             # Fit and transform epochs with autoreject
             epochs_clean, reject_log = self.autoreject.fit_transform(epochs, return_log=True)
-            
-            logger.info(f"AutoReject results:")
+
+            logger.info("AutoReject results:")
             logger.info(f"  Original epochs: {len(epochs)}")
             logger.info(f"  Clean epochs: {len(epochs_clean)}")
             logger.info(f"  Rejected epochs: {len(epochs) - len(epochs_clean)}")
-            
+
             return epochs_clean if not return_log else (epochs_clean, reject_log)
         except RuntimeError as e:
             if "Valid channel positions" in str(e):
@@ -335,24 +328,23 @@ class EEGQualityController:
                 # Fallback to simple rejection
                 reject_dict = {'eeg': 150e-6}
                 epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
-                
+
                 class SimpleRejectLog:
                     def __init__(self, n_epochs, n_rejected):
                         self.labels = np.zeros(n_epochs)
                         self.labels[:n_rejected] = 2
-                        
+
                 reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
                 return epochs_clean if not return_log else (epochs_clean, reject_log)
             else:
                 raise
-    
+
     def compute_abnormality_score(
         self,
         epochs: mne.Epochs,
         return_details: bool = False
-    ) -> Union[float, Dict]:
-        """
-        Compute abnormality score using EEGPT.
+    ) -> float | dict:
+        """Compute abnormality score using EEGPT.
         
         Args:
             epochs: Input epochs
@@ -363,7 +355,7 @@ class EEGQualityController:
         """
         import time
         start_time = time.time()
-        
+
         if self.eegpt_model is None:
             logger.warning("EEGPT model not loaded - returning dummy score")
             score = np.random.random()  # Dummy score
@@ -373,26 +365,26 @@ class EEGQualityController:
                 # Convert epochs to raw for EEGPT processing
                 # Stack all epochs into continuous data
                 data = epochs.get_data()  # (n_epochs, n_channels, n_times)
-                
+
                 # Create a temporary raw object from epochs data
                 # Reshape to (n_channels, n_samples)
                 n_epochs, n_channels, n_times = data.shape
                 concatenated_data = data.transpose(1, 0, 2).reshape(n_channels, -1)
                 info = epochs.info.copy()
                 raw_from_epochs = mne.io.RawArray(concatenated_data, info)
-                
+
                 # Get abnormality prediction
                 result = self.eegpt_model.predict_abnormality(raw_from_epochs)
                 score = result['abnormality_score']
                 confidence = result['confidence']
-                
+
             except Exception as e:
                 logger.error(f"EEGPT inference failed: {e}")
                 score = 0.5  # Default to uncertain
                 confidence = 0.0
-        
+
         processing_time = time.time() - start_time
-            
+
         if return_details:
             return {
                 'abnormality_score': score,
@@ -400,19 +392,18 @@ class EEGQualityController:
                 'model_version': 'eegpt-v1.0',
                 'processing_time': processing_time
             }
-        
+
         return score
-    
+
     def generate_qc_report(
         self,
         raw: mne.io.Raw,
         epochs: mne.Epochs,
-        bad_channels: List[str],
+        bad_channels: list[str],
         abnormality_score: float,
-        reject_log: Optional[object] = None
-    ) -> Dict:
-        """
-        Generate comprehensive QC report.
+        reject_log: object | None = None
+    ) -> dict:
+        """Generate comprehensive QC report.
         
         Args:
             raw: Original raw data
@@ -445,7 +436,7 @@ class EEGQualityController:
                 'interpolation_threshold': self.interpolation_threshold
             }
         }
-        
+
         # Add rejection statistics if available
         if reject_log is not None:
             report['rejection_stats'] = {
@@ -454,18 +445,18 @@ class EEGQualityController:
                 'interpolation_rate': np.mean(reject_log.labels == 1),
                 'rejection_rate': np.mean(reject_log.labels == 2)
             }
-        
+
         return report
-    
+
     def _compute_quality_grade(
         self,
         abnormality_score: float,
-        bad_channels: List[str],
+        bad_channels: list[str],
         raw: mne.io.Raw
     ) -> str:
         """Compute overall quality grade."""
         bad_channel_ratio = len(bad_channels) / len(raw.ch_names)
-        
+
         if abnormality_score > 0.8 or bad_channel_ratio > 0.3:
             return "POOR"
         elif abnormality_score > 0.6 or bad_channel_ratio > 0.15:
@@ -474,15 +465,14 @@ class EEGQualityController:
             return "GOOD"
         else:
             return "EXCELLENT"
-    
+
     def run_full_qc_pipeline(
         self,
         raw: mne.io.Raw,
         preprocess: bool = True,
         **kwargs
-    ) -> Dict:
-        """
-        Run the complete QC pipeline.
+    ) -> dict:
+        """Run the complete QC pipeline.
         
         Args:
             raw: Raw EEG data
@@ -493,32 +483,32 @@ class EEGQualityController:
             Complete QC report
         """
         logger.info("Starting full QC pipeline")
-        
+
         # Preprocessing
         if preprocess:
             raw = self.preprocess_raw(raw)
-        
+
         # Bad channel detection
         bad_channels = self.detect_bad_channels(raw)
         raw.info['bads'] = bad_channels
-        
+
         # Create epochs
         epochs = self.create_epochs(raw)
-        
+
         # Auto-reject epochs
         epochs_clean, reject_log = self.auto_reject_epochs(epochs, return_log=True)
-        
+
         # Compute abnormality score
         abnormality_score = self.compute_abnormality_score(epochs_clean)
-        
+
         # Generate report
         report = self.generate_qc_report(
             raw, epochs_clean, bad_channels, abnormality_score, reject_log
         )
-        
+
         logger.info(f"QC pipeline completed. Quality grade: {report['quality_metrics']['quality_grade']}")
         return report
-    
+
     def cleanup(self) -> None:
         """Clean up resources, especially GPU memory."""
         if self.eegpt_model is not None and hasattr(self.eegpt_model, 'cleanup'):

@@ -4,7 +4,7 @@ This module defines all configuration parameters and thresholds
 used in the abnormality detection pipeline.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -96,10 +96,10 @@ class ModelConfig:
 class AbnormalityConfig:
     """Complete configuration for abnormality detection."""
     
-    quality: QualityConfig = QualityConfig()
-    processing: ProcessingConfig = ProcessingConfig()
-    classification: ClassificationConfig = ClassificationConfig()
-    model: ModelConfig = ModelConfig()
+    quality: QualityConfig = field(default_factory=QualityConfig)
+    processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    classification: ClassificationConfig = field(default_factory=ClassificationConfig)
+    model: ModelConfig = field(default_factory=ModelConfig)
     
     @classmethod
     def from_spec(cls) -> "AbnormalityConfig":
