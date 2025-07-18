@@ -70,9 +70,9 @@ class AbnormalityResult:
         # Convert enum to string
         result['triage_flag'] = self.triage_flag.value
         # Convert window results to dicts
-        if isinstance(self.window_scores, list) and len(self.window_scores) > 0:
-            if isinstance(self.window_scores[0], WindowResult):
-                result['window_scores'] = [asdict(w) for w in self.window_scores]
+        if (isinstance(self.window_scores, list) and len(self.window_scores) > 0 and
+            isinstance(self.window_scores[0], WindowResult)):
+            result['window_scores'] = [asdict(w) for w in self.window_scores]
         return result
 
 
@@ -183,19 +183,30 @@ class AbnormalityDetector:
         # Validate input
         self._validate_input(raw)
 
+        # Log initial info
+        logger.info(f"Processing {raw.times[-1]:.1f}s recording with {len(raw.ch_names)} channels")
+
         # Detect bad channels BEFORE preprocessing
         bad_channels_pre = self._detect_bad_channels_raw(raw)
 
         # Preprocess EEG using the dedicated preprocessor
         logger.info("Preprocessing EEG data...")
+        logger.info(f"Input channels ({len(raw.ch_names)}): {raw.ch_names}")
+
+        # Determine channel subset size based on configuration
+        channel_subset_size = self.config.processing.channel_subset_size if hasattr(self.config.processing, 'channel_subset_size') else 16
+
         preprocessor = EEGPreprocessor(
             target_sfreq=self.target_sfreq,
             lowpass_freq=45.0,
             highpass_freq=0.5,
             notch_freq=50.0 if raw.info.get('line_freq', 50) == 50 else 60.0,
-            channel_subset_size=19  # Don't subset for now
+            channel_subset_size=channel_subset_size,
+            use_standard_montage=True  # Use BioSerenity-E1 standard montage
         )
         preprocessed = preprocessor.preprocess(raw.copy())
+
+        logger.info(f"Preprocessed channels ({len(preprocessed.ch_names)}): {preprocessed.ch_names}")
 
         # Apply z-score normalization
         preprocessed = self._apply_normalization(preprocessed)
@@ -348,12 +359,12 @@ class AbnormalityDetector:
     def _assess_window_quality(self, window: np.ndarray) -> float:
         """Assess quality of a single window."""
         # Check for flat channels
-        flat_channels = np.sum(np.std(window, axis=1) < self.config.quality.flat_channel_std_threshold)
+        flat_channels: int = int(np.sum(np.std(window, axis=1) < self.config.quality.flat_channel_std_threshold))
 
         # Check for high amplitude artifacts (normalized data)
         # After z-score normalization, typical values are -3 to +3
-        max_amp = np.max(np.abs(window))
-        artifact_channels = np.sum(np.max(np.abs(window), axis=1) > self.config.quality.artifact_amplitude_threshold)
+        max_amp: float = float(np.max(np.abs(window)))
+        artifact_channels: int = int(np.sum(np.max(np.abs(window), axis=1) > self.config.quality.artifact_amplitude_threshold))
 
         # Calculate quality score
         quality = 1.0
@@ -364,7 +375,7 @@ class AbnormalityDetector:
         if max_amp > self.config.quality.excessive_noise_threshold:
             quality *= self.config.quality.excessive_noise_penalty
 
-        return float(max(0.0, min(1.0, quality)))
+        return max(0.0, min(1.0, quality))
 
     def _predict_window(self, window: np.ndarray) -> float:
         """Get abnormality prediction for a single window."""

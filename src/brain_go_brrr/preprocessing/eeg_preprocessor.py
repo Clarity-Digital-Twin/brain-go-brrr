@@ -7,6 +7,66 @@ that prepares recordings for abnormality detection using EEGPT.
 import mne
 import numpy as np
 
+# Standard 10-20 channel mapping from EEGPT
+# Maps various channel naming conventions to standard indices
+CHANNEL_MAPPING = {
+    # Frontal
+    "FP1": 0, "Fp1": 0,
+    "FPZ": 1, "Fpz": 1,
+    "FP2": 2, "Fp2": 2,
+    "AF7": 3, "AF3": 4, "AF4": 5, "AF8": 6,
+    "F7": 7, "F5": 8, "F3": 9, "F1": 10,
+    "FZ": 11, "Fz": 11,
+    "F2": 12, "F4": 13, "F6": 14, "F8": 15,
+    # Fronto-temporal
+    "FT7": 16, "FC5": 17, "FC3": 18, "FC1": 19,
+    "FCZ": 20, "FCz": 20,
+    "FC2": 21, "FC4": 22, "FC6": 23, "FT8": 24,
+    # Temporal/Central
+    "T7": 25, "T3": 25,  # T3/T7 are same position
+    "C5": 26, "C3": 27, "C1": 28,
+    "CZ": 29, "Cz": 29,
+    "C2": 30, "C4": 31, "C6": 32,
+    "T8": 33, "T4": 33,  # T4/T8 are same position
+    # Centro-parietal
+    "TP7": 34, "CP5": 35, "CP3": 36, "CP1": 37,
+    "CPZ": 38, "CPz": 38,
+    "CP2": 39, "CP4": 40, "CP6": 41, "TP8": 42,
+    # Parietal
+    "P7": 43, "P5": 44, "P3": 45, "P1": 46,
+    "PZ": 47, "Pz": 47,
+    "P2": 48, "P4": 49, "P6": 50, "P8": 51,
+    # Occipital
+    "PO7": 52, "PO3": 53, "POZ": 54, "POz": 54,
+    "PO4": 55, "PO8": 56,
+    "O1": 57, "OZ": 58, "Oz": 58, "O2": 59,
+    "IZ": 60, "Iz": 60,
+    # Common alternatives
+    "T5": 43,  # P7 in newer nomenclature
+    "T6": 51,  # P8 in newer nomenclature
+}
+
+# BioSerenity-E1 16-channel montage based on standard 10-20 positions
+# Provides good coverage while being computationally efficient
+BIOSERENITY_16_CHANNELS = [
+    'Fp1', 'Fp2',  # Frontal polar
+    'F3', 'F4',    # Frontal
+    'F7', 'F8',    # Lateral frontal
+    'C3', 'C4',    # Central
+    'T3', 'T4',    # Temporal (T7/T8 in newer nomenclature)
+    'P3', 'P4',    # Parietal
+    'O1', 'O2',    # Occipital
+    'Fz', 'Cz'     # Midline
+]
+
+# Alternative names for compatibility
+CHANNEL_ALIASES = {
+    'T3': ['T7'],
+    'T4': ['T8'],
+    'T5': ['P7'],
+    'T6': ['P8']
+}
+
 
 class EEGPreprocessor:
     """EEG preprocessing pipeline following BioSerenity-E1 specifications."""
@@ -17,7 +77,8 @@ class EEGPreprocessor:
         lowpass_freq: float = 45.0,
         highpass_freq: float = 0.5,
         notch_freq: float = 50.0,
-        channel_subset_size: int = 16
+        channel_subset_size: int = 16,
+        use_standard_montage: bool = True
     ):
         """Initialize preprocessor with filtering parameters.
 
@@ -27,12 +88,14 @@ class EEGPreprocessor:
             highpass_freq: High-pass filter cutoff (0.5 Hz)
             notch_freq: Notch filter frequency (50/60 Hz)
             channel_subset_size: Number of channels to select (16)
+            use_standard_montage: Use BioSerenity-E1 16-channel montage
         """
         self.target_sfreq = target_sfreq
         self.lowpass_freq = lowpass_freq
         self.highpass_freq = highpass_freq
         self.notch_freq = notch_freq
         self.channel_subset_size = channel_subset_size
+        self.use_standard_montage = use_standard_montage
 
     def preprocess(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply full preprocessing pipeline.
@@ -107,30 +170,56 @@ class EEGPreprocessor:
         if len(raw.ch_names) <= self.channel_subset_size:
             return raw
 
-        # Define priority channels for 16-channel montage
-        # Based on standard 10-20 system, excluding T5, T6, Pz
-        priority_channels = [
-            'Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4',
-            'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'Fz', 'Cz'
-        ]
+        if self.use_standard_montage:
+            # Try to use BioSerenity-E1 standard 16-channel montage
+            channels_to_find = BIOSERENITY_16_CHANNELS.copy()
+            found_channels = []
 
-        # Find channels that exist in the data
-        available_channels = []
-        for ch in priority_channels:
-            if ch in raw.ch_names:
-                available_channels.append(ch)
+            # Normalize channel names in raw data for matching
+            raw_channels_upper = {ch.upper(): ch for ch in raw.ch_names}
 
-        # If we have enough priority channels, use them
-        if len(available_channels) >= self.channel_subset_size:
-            channels_to_keep = available_channels[:self.channel_subset_size]
-        else:
-            # Otherwise, keep priority channels and fill with others
-            channels_to_keep = available_channels.copy()
-            for ch in raw.ch_names:
-                if ch not in channels_to_keep:
+            for target_ch in channels_to_find:
+                # Try exact match first
+                if target_ch in raw.ch_names:
+                    found_channels.append(target_ch)
+                # Try uppercase match
+                elif target_ch.upper() in raw_channels_upper:
+                    found_channels.append(raw_channels_upper[target_ch.upper()])
+                # Try aliases (e.g., T3 -> T7)
+                elif target_ch in CHANNEL_ALIASES:
+                    for alias in CHANNEL_ALIASES[target_ch]:
+                        if alias in raw.ch_names:
+                            found_channels.append(alias)
+                            break
+                        elif alias.upper() in raw_channels_upper:
+                            found_channels.append(raw_channels_upper[alias.upper()])
+                            break
+
+            # If we found enough channels from the standard montage, use them
+            if len(found_channels) >= self.channel_subset_size:
+                channels_to_keep = found_channels[:self.channel_subset_size]
+            else:
+                # Fill remaining slots with channels ordered by EEGPT mapping priority
+                channels_to_keep = found_channels.copy()
+
+                # Sort remaining channels by their position in CHANNEL_MAPPING
+                remaining_channels = [ch for ch in raw.ch_names if ch not in channels_to_keep]
+                channel_priorities = []
+
+                for ch in remaining_channels:
+                    # Get priority from CHANNEL_MAPPING
+                    priority = CHANNEL_MAPPING.get(ch, CHANNEL_MAPPING.get(ch.upper(), 999))
+                    channel_priorities.append((priority, ch))
+
+                # Sort by priority and add channels until we reach subset size
+                channel_priorities.sort(key=lambda x: x[0])
+                for _, ch in channel_priorities:
                     channels_to_keep.append(ch)
-                if len(channels_to_keep) >= self.channel_subset_size:
-                    break
+                    if len(channels_to_keep) >= self.channel_subset_size:
+                        break
+        else:
+            # Fallback: Use first N channels
+            channels_to_keep = raw.ch_names[:self.channel_subset_size]
 
         # Pick the selected channels
         raw.pick_channels(channels_to_keep, ordered=True)
