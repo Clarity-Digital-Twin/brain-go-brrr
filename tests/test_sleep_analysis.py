@@ -100,9 +100,9 @@ class TestSleepAnalyzer:
 
         # Check that stages are valid
         # YASA may use different values or strings
-        if isinstance(hypnogram[0], (int, float)):
+        if isinstance(hypnogram[0], int | float):
             # Numeric stages - could be 0-4 or 1-5 or even -1 for unknown
-            assert all(isinstance(stage, (int, float)) for stage in hypnogram)
+            assert all(isinstance(stage, int | float) for stage in hypnogram)
         else:
             # String stages like 'W', 'N1', 'N2', 'N3', 'R'
             valid_stages = ['W', 'N1', 'N2', 'N3', 'R', 'REM', 'Wake']
