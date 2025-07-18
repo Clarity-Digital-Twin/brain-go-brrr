@@ -22,24 +22,37 @@ class TestEEGPTStreamingIntegration:
             mock_encoder = Mock()
             mock_encoder.prepare_chan_ids = Mock(return_value=Mock())
             
-            # Mock forward pass to return features
+            # Mock forward pass to return proper tensor-like object
             def mock_forward(x, chan_ids):
                 batch_size = x.shape[0]
-                return Mock(cpu=lambda: Mock(numpy=lambda: np.random.randn(batch_size, 8, 768)))
+                # Create a mock tensor that behaves like a real tensor
+                features = np.random.randn(batch_size, 4, 512)  # 4 summary tokens, 512 embed_dim
+                mock_tensor = Mock()
+                mock_tensor.squeeze = Mock(return_value=mock_tensor)
+                mock_tensor.cpu = Mock(return_value=mock_tensor)
+                mock_tensor.numpy = Mock(return_value=features.squeeze(0))
+                return mock_tensor
             
             mock_encoder.__call__ = Mock(side_effect=mock_forward)
             mock_encoder.to = Mock(return_value=mock_encoder)
             model.encoder = mock_encoder
             
-            # Mock abnormality head
+            # Mock abnormality head with proper tensor behavior
+            def mock_classifier_forward(x):
+                # Return mock tensor with proper softmax behavior
+                logits = Mock()
+                probs = Mock()
+                probs.__getitem__ = Mock(side_effect=lambda idx: Mock(item=Mock(return_value=0.75)))
+                logits.softmax = Mock(return_value=probs)
+                return logits
+            
             mock_classifier = Mock()
-            mock_classifier.forward = Mock(return_value=Mock(
-                softmax=lambda dim=-1: Mock(
-                    cpu=lambda: Mock(numpy=lambda: np.array([[0.2, 0.8]]))
-                )
-            ))
-            mock_classifier.__call__ = mock_classifier.forward
+            mock_classifier.__call__ = Mock(side_effect=mock_classifier_forward)
+            mock_classifier.to = Mock(return_value=mock_classifier)
             model.abnormality_head = mock_classifier
+            
+            # Set config for consistency
+            model.config.n_summary_tokens = 4
             
             return model
     

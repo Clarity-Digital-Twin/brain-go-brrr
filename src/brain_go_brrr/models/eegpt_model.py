@@ -383,7 +383,7 @@ class EEGPTModel:
             data = processed.get_data()
             windows = self.extract_windows(data, int(processed.info['sfreq']))
 
-        if len(windows) == 0:
+            if len(windows) == 0:
             return {
                 'abnormal_probability': 0.0,
                 'confidence': 0.0,
