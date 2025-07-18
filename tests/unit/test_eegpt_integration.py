@@ -89,7 +89,7 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 10  # seconds
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # µV scale
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
         raw = mne.io.RawArray(data, info)
@@ -101,9 +101,10 @@ class TestEEGPTModel:
         assert processed.info['sfreq'] == 256  # Resampled to 256 Hz
         assert processed.get_data().shape[0] <= 58  # Max 58 channels
 
-        # Check units conversion (should be in mV)
-        data_mv = processed.get_data() * 1e3  # Convert to mV if in V
-        assert np.abs(data_mv).max() < 1000  # Reasonable mV range
+        # Check data is in reasonable range (MNE uses V internally)
+        # Our input was µV, MNE converts to V, so values should be small
+        data_v = processed.get_data()  # In volts
+        assert np.abs(data_v).max() < 0.001  # Should be < 1mV when in V
 
     def test_window_extraction(self, eegpt_model):
         """Test 4-second window extraction."""
@@ -112,7 +113,7 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 20
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
 
         # Extract windows
         windows = eegpt_model.extract_windows(data, sfreq)
@@ -124,10 +125,11 @@ class TestEEGPTModel:
     def test_feature_extraction(self, eegpt_model):
         """Test feature extraction from windows."""
         # Create single 4-second window
-        window = np.random.randn(19, 1024) * 50e-6  # (channels, samples)
+        window = np.random.randn(19, 1024) * 50  # (channels, samples) in µV scale
+        channel_names = [f"EEG{i:03d}" for i in range(19)]
 
         # Extract features
-        features = eegpt_model.extract_features(window)
+        features = eegpt_model.extract_features(window, channel_names)
 
         # Check output shape - should be summary tokens
         assert features.shape[0] == 4  # 4 summary tokens
@@ -140,7 +142,7 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 20  # 20 seconds
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
         raw = mne.io.RawArray(data, info)
@@ -149,12 +151,12 @@ class TestEEGPTModel:
         result = eegpt_model.predict_abnormality(raw)
 
         # Check result structure
-        assert 'abnormality_score' in result
+        assert 'abnormal_probability' in result
         assert 'confidence' in result
         assert 'window_scores' in result
 
         # Check value ranges
-        assert 0 <= result['abnormality_score'] <= 1
+        assert 0 <= result['abnormal_probability'] <= 1
         assert 0 <= result['confidence'] <= 1
         assert len(result['window_scores']) == 5  # 5 windows in 20s
 
