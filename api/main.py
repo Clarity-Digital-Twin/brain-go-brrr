@@ -186,8 +186,17 @@ async def analyze_eeg(
             tmp_file.write(content)
             tmp_file.flush()
 
+            # Check memory requirements
+            mem_estimate = estimate_memory_usage(tmp_path, preload=True)
+            logger.info(f"Processing file: {file.filename} "
+                       f"(~{mem_estimate['estimated_total_mb']:.1f} MB)")
+            
+            # Warn if file is large
+            if mem_estimate['estimated_total_mb'] > 500:
+                logger.warning(f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
+                             "Consider using streaming mode for production.")
+
             # Load EEG data
-            logger.info(f"Processing file: {file.filename}")
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
 
             # Check if QC controller is available
@@ -305,8 +314,17 @@ async def analyze_eeg_detailed(
             tmp_file.write(content)
             tmp_file.flush()
 
+            # Check memory requirements
+            mem_estimate = estimate_memory_usage(tmp_path, preload=True)
+            logger.info(f"Processing file for detailed analysis: {file.filename} "
+                       f"(~{mem_estimate['estimated_total_mb']:.1f} MB)")
+            
+            # Warn if file is large
+            if mem_estimate['estimated_total_mb'] > 500:
+                logger.warning(f"Large file detected: {mem_estimate['estimated_total_mb']:.1f} MB. "
+                             "Consider using streaming mode for production.")
+
             # Load EEG data
-            logger.info(f"Processing file for detailed analysis: {file.filename}")
             raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
 
             # Check if QC controller is available
