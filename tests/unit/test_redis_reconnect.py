@@ -25,7 +25,7 @@ class TestRedisReconnect:
         mock_client.ping.return_value = True  # Initial connection works
         mock_client.get.side_effect = [
             redis.ConnectionError("Connection lost"),  # First call fails
-            b"test_value"  # Second call succeeds after reconnect
+            '{"test": "test_value"}'  # Second call succeeds after reconnect - returns JSON string
         ]
         mock_redis_class.return_value = mock_client
         
@@ -35,7 +35,7 @@ class TestRedisReconnect:
         result = cache.get("test_key")
         
         # Then: Should have retried and succeeded
-        assert result == "test_value"
+        assert result == {"test": "test_value"}
         assert mock_client.get.call_count == 2  # Failed once, retried once
         
     @patch('api.cache.redis.Redis')
@@ -53,12 +53,13 @@ class TestRedisReconnect:
             redis.TimeoutError("Operation timed out"),  # First call times out
             True  # Second call succeeds
         ]
+        mock_client.expire.return_value = True  # expire should also succeed
         mock_redis_class.return_value = mock_client
         
         cache = RedisCache()
         
         # When: We attempt a set operation that initially times out
-        result = cache.set("test_key", "test_value", ttl=300)
+        result = cache.set("test_key", {"value": "test_value"}, ttl=300)
         
         # Then: Should have retried and succeeded
         assert result is True
@@ -99,7 +100,7 @@ class TestRedisReconnect:
         # Given: Mock Redis client that works immediately
         mock_client = MagicMock()
         mock_client.ping.return_value = True  # Initial connection works
-        mock_client.get.return_value = b"success"
+        mock_client.get.return_value = '{"result": "success"}'
         mock_redis_class.return_value = mock_client
         
         cache = RedisCache()
@@ -108,5 +109,5 @@ class TestRedisReconnect:
         result = cache.get("test_key")
         
         # Then: Should succeed without retry
-        assert result == "success"
+        assert result == {"result": "success"}
         assert mock_client.get.call_count == 1  # Called exactly once

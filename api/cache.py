@@ -106,47 +106,67 @@ class RedisCache:
         return f"eeg_analysis:{CACHE_VERSION}:{file_hash}:{analysis_type}"
     
     def get(self, key: str) -> Optional[dict]:
-        """Get cached result."""
+        """Get cached result with retry logic."""
         if not self._ensure_connected():
             return None
             
-        try:
-            cached = self.client.get(key)
-            if cached:
-                logger.info(f"Cache hit for key: {key}")
-                data = json.loads(cached)
-                # Remove metadata before returning
-                if "_cache_meta" in data:
-                    del data["_cache_meta"]
-                return data
-            return None
-        except Exception as e:
-            logger.error(f"Redis get error: {e}")
-            return None
+        for attempt in range(self.max_retries):
+            try:
+                cached = self.client.get(key)
+                if cached:
+                    logger.info(f"Cache hit for key: {key}")
+                    data = json.loads(cached)
+                    # Remove metadata before returning
+                    if "_cache_meta" in data:
+                        del data["_cache_meta"]
+                    return data
+                return None
+            except (ConnectionError, TimeoutError) as e:
+                logger.warning(f"Redis get error (attempt {attempt + 1}/{self.max_retries}): {e}")
+                if attempt < self.max_retries - 1:
+                    # Try to reconnect before next attempt
+                    self._connect()
+                    if self.connected:
+                        continue
+                logger.error(f"Redis get failed after {self.max_retries} attempts")
+                return None
+            except Exception as e:
+                logger.error(f"Redis get error: {e}")
+                return None
     
     def set(self, key: str, value: dict, ttl: int = 3600) -> bool:
-        """Set cache entry with TTL."""
+        """Set cache entry with TTL and retry logic."""
         if not self._ensure_connected():
             return False
             
-        try:
-            # Add version metadata
-            value_with_meta = {
-                **value,
-                "_cache_meta": {
-                    "app_version": APP_VERSION,
-                    "cache_version": CACHE_VERSION,
-                    "cached_at": time.time()
+        for attempt in range(self.max_retries):
+            try:
+                # Add version metadata
+                value_with_meta = {
+                    **value,
+                    "_cache_meta": {
+                        "app_version": APP_VERSION,
+                        "cache_version": CACHE_VERSION,
+                        "cached_at": time.time()
+                    }
                 }
-            }
-            json_value = json.dumps(value_with_meta)
-            self.client.set(key, json_value)
-            self.client.expire(key, ttl)
-            logger.info(f"Cached result for key: {key} with TTL: {ttl}s")
-            return True
-        except Exception as e:
-            logger.error(f"Redis set error: {e}")
-            return False
+                json_value = json.dumps(value_with_meta)
+                self.client.set(key, json_value)
+                self.client.expire(key, ttl)
+                logger.info(f"Cached result for key: {key} with TTL: {ttl}s")
+                return True
+            except (ConnectionError, TimeoutError) as e:
+                logger.warning(f"Redis set error (attempt {attempt + 1}/{self.max_retries}): {e}")
+                if attempt < self.max_retries - 1:
+                    # Try to reconnect before next attempt
+                    self._connect()
+                    if self.connected:
+                        continue
+                logger.error(f"Redis set failed after {self.max_retries} attempts")
+                return False
+            except Exception as e:
+                logger.error(f"Redis set error: {e}")
+                return False
     
     def exists(self, key: str) -> bool:
         """Check if key exists."""

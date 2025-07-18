@@ -27,106 +27,117 @@ CHANNEL_DICT = {
 }
 
 
+# rotary embedding helper functions
+def rotate_half(x):
+    """Rotate half the hidden dims of the input."""
+    x = x.reshape((*x.shape[:-1], x.shape[-1]//2, 2))
+    x1, x2 = x.unbind(dim=-1)
+    x = torch.stack((-x2, x1), dim=-1)
+    return x.flatten(-2)
+
+
+def apply_rotary_emb(freqs, t, start_index=0, scale=1.):
+    """Apply rotary positional embeddings to a tensor."""
+    freqs = freqs.to(t.device)
+    rot_dim = freqs.shape[-1]
+    end_index = start_index + rot_dim
+    
+    assert rot_dim <= t.shape[-1], f'feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}'
+    
+    t_left, t_middle, t_right = t[..., :start_index], t[..., start_index:end_index], t[..., end_index:]
+    
+    # Apply rotary embeddings to the middle segment
+    t_rotated_middle = (t_middle * freqs.cos() * scale) + (rotate_half(t_middle) * freqs.sin() * scale)
+    
+    return torch.cat((t_left, t_rotated_middle, t_right), dim=-1)
+
+
 class RoPE(nn.Module):
-    """Rotary Position Embedding implementation."""
-
-    position: Tensor
-    div_term: Tensor
-
-    def __init__(self, embed_dim: int, max_seq_len: int = 1024) -> None:
+    """Rotary Position Embedding implementation based on original EEGPT."""
+    
+    def __init__(self, dim: int, theta: float = 10000.0, max_seq_len: int = 1024) -> None:
         super().__init__()
-        self.embed_dim = embed_dim
+        self.dim = dim
+        self.theta = theta
         self.max_seq_len = max_seq_len
-
-        # Create frequency matrix
-        position = torch.arange(max_seq_len).unsqueeze(1).float()
-        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() *
-                           -(math.log(10000.0) / embed_dim))
-
-        # Register as buffer (non-parameter)
-        self.register_buffer('position', position)
-        self.register_buffer('div_term', div_term)
-
-    def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
-        """Forward pass returning cosine and sine embeddings.
         
-        Args:
-            x: Input tensor of shape (batch, seq_len, embed_dim)
-            
-        Returns:
-            Tuple of (cos_emb, sin_emb) each of shape (seq_len, embed_dim//2)
-        """
-        seq_len = x.size(1)
-        position = self.position[:seq_len]  # (seq_len, 1)
-        
-        # Apply frequency terms: (seq_len, embed_dim//2)
-        angles = position * self.div_term.unsqueeze(0)  # (seq_len, embed_dim//2)
-        
-        cos_emb = torch.cos(angles)  # (seq_len, embed_dim//2)
-        sin_emb = torch.sin(angles)  # (seq_len, embed_dim//2)
-        
-        return cos_emb, sin_emb
+        # Initialize frequency parameters (matching original EEGPT)
+        freqs = 1. / (theta ** (torch.arange(0, dim, 2)[:(dim // 2)].float() / dim))
+        self.register_buffer('freqs', freqs)
+        self.cache = {}
 
-
-def rotate_half(x: torch.Tensor) -> torch.Tensor:
-    """Helper function for rotary embeddings."""
-    x1, x2 = x.chunk(2, dim=-1)
-    return torch.cat((-x2, x1), dim=-1)
+    def prepare_freqs(self, num_patches: tuple[int, int], device='cuda', dtype=torch.float32, offset=0):
+        """Prepare frequency embeddings for given number of patches."""
+        C, N = num_patches
+        cache_key = f'freqs:{num_patches}'
+        
+        # Return cached result if available
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        # Generate sequence positions and apply offset
+        seq_pos = torch.arange(N, device=device, dtype=dtype).repeat_interleave(repeats=C)
+        seq_pos = seq_pos + offset
+        
+        # Compute outer product of positions and frequencies, then expand along the last dimension
+        freqs_scaled = torch.outer(seq_pos.type(self.freqs.dtype), self.freqs).repeat_interleave(repeats=2, dim=-1)
+        
+        # Cache and return the computed frequencies
+        self.cache[cache_key] = freqs_scaled
+        return freqs_scaled
+    
+    def forward(self, x: Tensor) -> Tensor:
+        """Forward pass - prepare frequencies for the input."""
+        batch_size, seq_len, embed_dim = x.shape
+        # For EEGPT, we assume patches are arranged as (channels, patches_per_channel)
+        # Simplified: treat seq_len as total patches
+        return self.prepare_freqs((1, seq_len), device=x.device, dtype=x.dtype)
 
 
 def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """Apply rotary position embeddings to queries and keys."""
-    # Ensure cos and sin have the right shape for broadcasting
-    # q, k shape: (batch, num_heads, seq_len, head_dim)
-    # cos, sin shape: (1, seq_len, 1, head_dim) -> need (1, 1, seq_len, head_dim) for broadcasting
-    cos = cos.transpose(1, 2)  # (1, 1, seq_len, head_dim)
-    sin = sin.transpose(1, 2)  # (1, 1, seq_len, head_dim)
-
-    q_embed = (q * cos) + (rotate_half(q) * sin)
-    k_embed = (k * cos) + (rotate_half(k) * sin)
-    return q_embed, k_embed
+    """Apply rotary position embeddings to queries and keys - deprecated, use apply_rotary_emb instead."""
+    # This is kept for backward compatibility but not used in the main implementation
+    return q, k
 
 
 class Attention(nn.Module):
     """Multi-head attention with rotary position embeddings."""
-
-    def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = True, attn_drop: float = 0., proj_drop: float = 0.):
-        """Initialize multi-head attention.
-
-        Args:
-            dim: Input dimension.
-            num_heads: Number of attention heads.
-            qkv_bias: Whether to use bias in QKV projections.
-            attn_drop: Attention dropout rate.
-            proj_drop: Output projection dropout rate.
-        """
+    
+    def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = False, 
+                 attn_drop: float = 0., proj_drop: float = 0., use_rope: bool = True) -> None:
+        """Initialize attention module."""
         super().__init__()
         self.num_heads = num_heads
-        head_dim = dim // num_heads
-        self.scale = head_dim ** -0.5
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim ** -0.5
+        self.use_rope = use_rope
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
 
-        # Rotary embeddings
-        self.rotary_emb = RoPE(head_dim)
+        # Rotary embeddings for head dimension
+        if self.use_rope:
+            self.rotary_emb = RoPE(self.head_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass with rotary position embeddings."""
         batch_size, seq_len, channels = x.shape
         qkv = self.qkv(x).reshape(batch_size, seq_len, 3, self.num_heads, channels // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        # Apply rotary embeddings
-        cos_emb, sin_emb = self.rotary_emb(x)
-        q, k = apply_rotary_pos_emb(q, k, cos_emb, sin_emb)
+        # Apply rotary embeddings if enabled
+        if self.use_rope:
+            freqs = self.rotary_emb(x)  # Get frequency embeddings
+            q = apply_rotary_emb(freqs, q)
+            k = apply_rotary_emb(freqs, k)
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
-
-        x = (attn @ v).transpose(1, 2).reshape(batch_size, seq_len, channels)
+        # Efficient attention using Flash Attention
+        attn = torch.nn.functional.scaled_dot_product_attention(
+            q, k, v, attn_mask=None, dropout_p=self.attn_drop.p if self.training else 0, is_causal=False)
+        
+        x = attn.transpose(1, 2).contiguous().view(batch_size, seq_len, channels)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x

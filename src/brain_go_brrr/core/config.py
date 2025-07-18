@@ -29,6 +29,14 @@ class ModelConfig(BaseModel):
     streaming_threshold: float = Field(default=120.0, description="Duration threshold for streaming (seconds)")
     window_overlap: float = Field(default=0.5, description="Window overlap ratio for streaming")
 
+    @property
+    def window_samples(self) -> int:
+        """Calculate window size in samples."""
+        samples = self.window_duration * self.sampling_rate
+        if not samples.is_integer():
+            raise ValueError("Window duration must result in integer samples")
+        return int(samples)
+
     @field_validator("model_path")
     @classmethod
     def validate_model_path(cls, v: Path) -> Path:
