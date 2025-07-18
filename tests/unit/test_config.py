@@ -1,6 +1,5 @@
 """Tests for configuration module."""
 
-
 from brain_go_brrr.core.config import Config, ModelConfig, TrainingConfig
 
 

@@ -84,7 +84,7 @@ class TestRotaryEmbeddingFix:
             patch_size=64,
             embed_dim=512,
             depth=2,  # Use fewer blocks for faster testing
-            num_heads=8
+            num_heads=8,
         )
 
         # Given: Sample EEG data (batch=1, patches=308, features=64)

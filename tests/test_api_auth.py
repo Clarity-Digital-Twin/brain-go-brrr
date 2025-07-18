@@ -30,7 +30,7 @@ class TestAuthUtilities:
         assert token1 != token2
 
         # Should be URL-safe
-        assert all(c.isalnum() or c in '-_' for c in token1)
+        assert all(c.isalnum() or c in "-_" for c in token1)
 
         # Should be reasonably long
         assert len(token1) >= 32
@@ -61,7 +61,7 @@ class TestAuthUtilities:
         signature = create_hmac_signature(message, secret)
 
         # Should be hex string
-        assert all(c in '0123456789abcdef' for c in signature)
+        assert all(c in "0123456789abcdef" for c in signature)
 
         # Should be consistent
         signature2 = create_hmac_signature(message, secret)
@@ -147,7 +147,7 @@ class TestAuthUtilities:
         # Should have valid signature format
         signature = token.replace("HMAC ", "")
         assert len(signature) == 64
-        assert all(c in '0123456789abcdef' for c in signature)
+        assert all(c in "0123456789abcdef" for c in signature)
 
 
 class TestAPIAuthentication:
@@ -157,6 +157,7 @@ class TestAPIAuthentication:
     def client(self):
         """Create test client."""
         from api.main import app
+
         return TestClient(app)
 
     def test_cache_clear_requires_auth(self, client):
@@ -171,8 +172,7 @@ class TestAPIAuthentication:
 
         with patch.dict(os.environ, {"BRAIN_GO_BRRR_ADMIN_TOKEN": test_token}):
             response = client.delete(
-                "/api/v1/cache/clear",
-                headers={"Authorization": f"Bearer {test_token}"}
+                "/api/v1/cache/clear", headers={"Authorization": f"Bearer {test_token}"}
             )
             # Should succeed (or return cache unavailable if Redis not running)
             assert response.status_code == 200
@@ -182,8 +182,7 @@ class TestAPIAuthentication:
     def test_cache_clear_with_invalid_auth(self, client):
         """Test cache clear with invalid authentication."""
         response = client.delete(
-            "/api/v1/cache/clear",
-            headers={"Authorization": "Bearer invalid-token"}
+            "/api/v1/cache/clear", headers={"Authorization": "Bearer invalid-token"}
         )
         assert response.status_code == 403
 
@@ -192,10 +191,7 @@ class TestAPIAuthentication:
         # Create valid HMAC token
         token = create_cache_clear_token()
 
-        response = client.delete(
-            "/api/v1/cache/clear",
-            headers={"Authorization": token}
-        )
+        response = client.delete("/api/v1/cache/clear", headers={"Authorization": token})
         # Should succeed (or return cache unavailable if Redis not running)
         assert response.status_code == 200
         result = response.json()

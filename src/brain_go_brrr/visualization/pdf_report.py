@@ -14,7 +14,7 @@ import matplotlib
 
 from brain_go_brrr.utils import utc_now
 
-matplotlib.use('Agg')  # Use non-interactive backend
+matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,9 +47,7 @@ class PDFReportGenerator:
         self.dpi = 100
 
     def generate_report(
-        self,
-        results: dict[str, Any],
-        eeg_data: npt.NDArray | None = None
+        self, results: dict[str, Any], eeg_data: npt.NDArray | None = None
     ) -> bytes:
         """Generate complete PDF report.
 
@@ -62,24 +60,27 @@ class PDFReportGenerator:
         """
         pdf_buffer = io.BytesIO()
 
-        with PdfPages(pdf_buffer, metadata={
-            'Title': 'EEG Quality Control Report',
-            'Author': 'Brain-Go-Brrr',
-            'Subject': 'EEG Analysis Results',
-            'Creator': 'Brain-Go-Brrr v0.1.0',
-            'CreationDate': utc_now()
-        }) as pdf:
+        with PdfPages(
+            pdf_buffer,
+            metadata={
+                "Title": "EEG Quality Control Report",
+                "Author": "Brain-Go-Brrr",
+                "Subject": "EEG Analysis Results",
+                "Creator": "Brain-Go-Brrr v0.1.0",
+                "CreationDate": utc_now(),
+            },
+        ) as pdf:
             # Create main report page
             fig = self._create_main_page(results)
-            pdf.savefig(fig, bbox_inches='tight')
+            pdf.savefig(fig, bbox_inches="tight")
             plt.close(fig)
 
             # Add artifact examples if available
-            if eeg_data is not None and 'quality_metrics' in results:
-                artifacts = results['quality_metrics'].get('artifact_segments', [])
+            if eeg_data is not None and "quality_metrics" in results:
+                artifacts = results["quality_metrics"].get("artifact_segments", [])
                 if artifacts:
                     fig = self._create_artifact_page(eeg_data, artifacts, results)
-                    pdf.savefig(fig, bbox_inches='tight')
+                    pdf.savefig(fig, bbox_inches="tight")
                     plt.close(fig)
 
         pdf_buffer.seek(0)
@@ -90,29 +91,29 @@ class PDFReportGenerator:
         fig = plt.figure(figsize=self.figsize)
 
         # Get quality metrics
-        quality_metrics = results.get('quality_metrics', {})
-        processing_info = results.get('processing_info', {})
+        quality_metrics = results.get("quality_metrics", {})
+        processing_info = results.get("processing_info", {})
 
         # Determine abnormality and triage flag
-        abnormality_score = quality_metrics.get('abnormality_score', 0)
-        quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+        abnormality_score = quality_metrics.get("abnormality_score", 0)
+        quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
         # Determine triage flag based on score
-        if abnormality_score > 0.8 or quality_grade == 'POOR':
-            flag = 'URGENT'
-            banner_text = 'WARNING: URGENT - Expedite read'
-        elif abnormality_score > 0.6 or quality_grade == 'FAIR':
-            flag = 'EXPEDITE'
-            banner_text = 'EXPEDITE - Priority review recommended'
+        if abnormality_score > 0.8 or quality_grade == "POOR":
+            flag = "URGENT"
+            banner_text = "WARNING: URGENT - Expedite read"
+        elif abnormality_score > 0.6 or quality_grade == "FAIR":
+            flag = "EXPEDITE"
+            banner_text = "EXPEDITE - Priority review recommended"
         elif abnormality_score > 0.4:
-            flag = 'ROUTINE'
-            banner_text = 'ROUTINE - Standard workflow'
+            flag = "ROUTINE"
+            banner_text = "ROUTINE - Standard workflow"
         else:
-            flag = 'NORMAL'
-            banner_text = 'NORMAL - Good Quality EEG'
+            flag = "NORMAL"
+            banner_text = "NORMAL - Good Quality EEG"
 
         # Add warning banner at top
-        if flag != 'NORMAL':
+        if flag != "NORMAL":
             self._add_warning_banner(fig, flag, banner_text)
         else:
             self._add_normal_banner(fig, banner_text)
@@ -124,11 +125,9 @@ class PDFReportGenerator:
         self._add_summary_stats(fig, quality_metrics, processing_info)
 
         # Add electrode heatmap if channel positions available
-        if 'channel_positions' in quality_metrics:
+        if "channel_positions" in quality_metrics:
             self._add_electrode_heatmap(
-                fig,
-                quality_metrics['channel_positions'],
-                quality_metrics.get('bad_channels', [])
+                fig, quality_metrics["channel_positions"], quality_metrics.get("bad_channels", [])
             )
 
         return fig
@@ -143,14 +142,15 @@ class PDFReportGenerator:
         ax.set_ylim(0, 1)
 
         # Add colored background
-        rect = patches.Rectangle((0, 0), 1, 1, facecolor=color, edgecolor='none')
+        rect = patches.Rectangle((0, 0), 1, 1, facecolor=color, edgecolor="none")
         ax.add_patch(rect)
 
         # Add warning text
-        ax.text(0.5, 0.5, text, ha='center', va='center',
-                fontsize=16, fontweight='bold', color='white')
+        ax.text(
+            0.5, 0.5, text, ha="center", va="center", fontsize=16, fontweight="bold", color="white"
+        )
 
-        ax.axis('off')
+        ax.axis("off")
 
     def _add_normal_banner(self, fig: plt.Figure, text: str) -> None:
         """Add green banner for normal EEG."""
@@ -159,66 +159,71 @@ class PDFReportGenerator:
         ax.set_ylim(0, 1)
 
         # Add green background
-        rect = patches.Rectangle((0, 0), 1, 1, facecolor='green', edgecolor='none')
+        rect = patches.Rectangle((0, 0), 1, 1, facecolor="green", edgecolor="none")
         ax.add_patch(rect)
 
         # Add text
-        ax.text(0.5, 0.5, text, ha='center', va='center',
-                fontsize=16, fontweight='bold', color='white')
+        ax.text(
+            0.5, 0.5, text, ha="center", va="center", fontsize=16, fontweight="bold", color="white"
+        )
 
-        ax.axis('off')
+        ax.axis("off")
 
     def _add_header(self, fig: plt.Figure, processing_info: dict[str, Any]) -> None:
         """Add report header with file info."""
         ax = fig.add_axes((0.1, 0.82, 0.8, 0.08))
-        ax.axis('off')
+        ax.axis("off")
 
         # Title
-        ax.text(0.5, 0.7, 'EEG Quality Control Report',
-                ha='center', fontsize=18, fontweight='bold')
+        ax.text(0.5, 0.7, "EEG Quality Control Report", ha="center", fontsize=18, fontweight="bold")
 
         # File info
-        filename = processing_info.get('file_name', 'Unknown')
-        timestamp = processing_info.get('timestamp', utc_now().isoformat())
+        filename = processing_info.get("file_name", "Unknown")
+        timestamp = processing_info.get("timestamp", utc_now().isoformat())
 
-        ax.text(0.5, 0.3, f'File: {filename}', ha='center', fontsize=10)
-        ax.text(0.5, 0.1, f'Generated: {timestamp}', ha='center', fontsize=8)
+        ax.text(0.5, 0.3, f"File: {filename}", ha="center", fontsize=10)
+        ax.text(0.5, 0.1, f"Generated: {timestamp}", ha="center", fontsize=8)
 
-    def _add_summary_stats(self, fig: plt.Figure, quality_metrics: dict[str, Any],
-                          processing_info: dict[str, Any]) -> None:
+    def _add_summary_stats(
+        self, fig: plt.Figure, quality_metrics: dict[str, Any], processing_info: dict[str, Any]
+    ) -> None:
         """Add summary statistics section."""
         ax = fig.add_axes((0.1, 0.6, 0.8, 0.2))
-        ax.axis('off')
+        ax.axis("off")
 
         # Extract metrics
-        bad_channels = quality_metrics.get('bad_channels', [])
-        bad_ratio = quality_metrics.get('bad_channel_ratio', 0)
-        abnormality = quality_metrics.get('abnormality_score', 0)
-        quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+        bad_channels = quality_metrics.get("bad_channels", [])
+        bad_ratio = quality_metrics.get("bad_channel_ratio", 0)
+        abnormality = quality_metrics.get("abnormality_score", 0)
+        quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
         # Format text
         stats_text = [
             f"Quality Grade: {quality_grade}",
-            f"Bad Channels: {len(bad_channels)} ({bad_ratio*100:.1f}%)",
+            f"Bad Channels: {len(bad_channels)} ({bad_ratio * 100:.1f}%)",
             f"Abnormality Score: {abnormality:.2f}",
             f"Duration: {processing_info.get('duration_seconds', 0):.1f}s",
-            f"Sampling Rate: {processing_info.get('sampling_rate', 0)}Hz"
+            f"Sampling Rate: {processing_info.get('sampling_rate', 0)}Hz",
         ]
 
         # Add bad channel names if any
         if bad_channels:
             stats_text.append(f"Bad channels: {', '.join(bad_channels[:10])}")
             if len(bad_channels) > 10:
-                stats_text.append(f"    ... and {len(bad_channels)-10} more")
+                stats_text.append(f"    ... and {len(bad_channels) - 10} more")
 
         # Display stats
         y_pos = 0.9
         for stat in stats_text:
-            ax.text(0.1, y_pos, stat, fontsize=11, verticalalignment='top')
+            ax.text(0.1, y_pos, stat, fontsize=11, verticalalignment="top")
             y_pos -= 0.15
 
-    def _add_electrode_heatmap(self, fig: plt.Figure, channel_positions: dict[str, tuple[float, float]],
-                               bad_channels: list[str]) -> None:
+    def _add_electrode_heatmap(
+        self,
+        fig: plt.Figure,
+        channel_positions: dict[str, tuple[float, float]],
+        bad_channels: list[str],
+    ) -> None:
         """Add electrode heatmap visualization."""
         ax = fig.add_axes((0.2, 0.15, 0.6, 0.4))
 
@@ -237,32 +242,45 @@ class PDFReportGenerator:
         for channel, (x, y) in positions.items():
             if channel in bad_channels:
                 # Bad channels in red
-                ax.plot(x, y, 'ro', markersize=12, markerfacecolor='red',
-                       markeredgecolor='darkred', markeredgewidth=2)
-                ax.text(x, y-0.15, channel, ha='center', fontsize=8, color='red')
+                ax.plot(
+                    x,
+                    y,
+                    "ro",
+                    markersize=12,
+                    markerfacecolor="red",
+                    markeredgecolor="darkred",
+                    markeredgewidth=2,
+                )
+                ax.text(x, y - 0.15, channel, ha="center", fontsize=8, color="red")
             else:
                 # Good channels in green
-                ax.plot(x, y, 'go', markersize=10, markerfacecolor='lightgreen',
-                       markeredgecolor='darkgreen', markeredgewidth=1)
-                ax.text(x, y-0.15, channel, ha='center', fontsize=6)
+                ax.plot(
+                    x,
+                    y,
+                    "go",
+                    markersize=10,
+                    markerfacecolor="lightgreen",
+                    markeredgecolor="darkgreen",
+                    markeredgewidth=1,
+                )
+                ax.text(x, y - 0.15, channel, ha="center", fontsize=6)
 
         ax.set_xlim(-1.2, 1.2)
         ax.set_ylim(-1.2, 1.2)
-        ax.set_aspect('equal')
-        ax.axis('off')
-        ax.set_title('Electrode Quality Map', fontsize=14, pad=20)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title("Electrode Quality Map", fontsize=14, pad=20)
 
-    def _create_artifact_page(self, eeg_data: npt.NDArray, artifacts: list[dict[str, Any]],
-                             results: dict[str, Any]) -> plt.Figure:
+    def _create_artifact_page(
+        self, eeg_data: npt.NDArray, artifacts: list[dict[str, Any]], results: dict[str, Any]
+    ) -> plt.Figure:
         """Create page showing worst artifact examples."""
         # Sort artifacts by severity
-        sorted_artifacts = sorted(artifacts, key=lambda x: x['severity'], reverse=True)[:5]
+        sorted_artifacts = sorted(artifacts, key=lambda x: x["severity"], reverse=True)[:5]
 
         # Create artifact visualizations
         artifact_fig = create_artifact_examples(
-            eeg_data,
-            sorted_artifacts,
-            results.get('processing_info', {}).get('sampling_rate', 256)
+            eeg_data, sorted_artifacts, results.get("processing_info", {}).get("sampling_rate", 256)
         )
 
         # Handle case where no artifacts to visualize
@@ -270,15 +288,15 @@ class PDFReportGenerator:
             # Create empty figure with message
             artifact_fig = plt.figure(figsize=self.figsize)
             ax = artifact_fig.add_subplot(111)
-            ax.text(0.5, 0.5, 'No artifacts to display',
-                   ha='center', va='center', fontsize=14)
-            ax.axis('off')
+            ax.text(0.5, 0.5, "No artifacts to display", ha="center", va="center", fontsize=14)
+            ax.axis("off")
 
         return artifact_fig
 
 
-def create_electrode_heatmap(channel_positions: dict[str, tuple[float, float]],
-                            bad_channels: list[str]) -> plt.Figure:
+def create_electrode_heatmap(
+    channel_positions: dict[str, tuple[float, float]], bad_channels: list[str]
+) -> plt.Figure:
     """Create electrode heatmap figure.
 
     Args:
@@ -304,25 +322,26 @@ def create_electrode_heatmap(channel_positions: dict[str, tuple[float, float]],
     # Plot electrodes
     for channel, (x, y) in positions.items():
         if channel in bad_channels:
-            color = 'red'
+            color = "red"
             size = 12
         else:
-            color = 'green'
+            color = "green"
             size = 10
 
-        ax.plot(x, y, 'o', color=color, markersize=size)
-        ax.text(x, y-0.1, channel, ha='center', fontsize=8)
+        ax.plot(x, y, "o", color=color, markersize=size)
+        ax.text(x, y - 0.1, channel, ha="center", fontsize=8)
 
     ax.set_xlim(-1.2, 1.2)
     ax.set_ylim(-1.2, 1.2)
-    ax.set_aspect('equal')
-    ax.axis('off')
+    ax.set_aspect("equal")
+    ax.axis("off")
 
     return fig
 
 
-def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, Any]],
-                           sampling_rate: int) -> plt.Figure | None:
+def create_artifact_examples(
+    eeg_data: npt.NDArray, artifacts: list[dict[str, Any]], sampling_rate: int
+) -> plt.Figure | None:
     """Create visualization of artifact examples.
 
     Args:
@@ -337,15 +356,15 @@ def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, An
         return None
 
     n_artifacts = min(len(artifacts), 5)
-    fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2*n_artifacts))
+    fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
     if n_artifacts == 1:
         axes = [axes]
 
     for i, (ax, artifact) in enumerate(zip(axes, artifacts[:n_artifacts], strict=False)):
         # Extract segment
-        start_sample = int(artifact['start'] * sampling_rate)
-        end_sample = int(artifact['end'] * sampling_rate)
+        start_sample = int(artifact["start"] * sampling_rate)
+        end_sample = int(artifact["end"] * sampling_rate)
 
         # Ensure valid range
         start_sample = max(0, start_sample)
@@ -358,19 +377,23 @@ def create_artifact_examples(eeg_data: npt.NDArray, artifacts: list[dict[str, An
             # Plot first few channels
             n_channels_to_plot = min(5, segment.shape[0])
             for ch in range(n_channels_to_plot):
-                ax.plot(time, segment[ch] * 1e6 + ch * 100, label=f'Ch{ch+1}')
+                ax.plot(time, segment[ch] * 1e6 + ch * 100, label=f"Ch{ch + 1}")
 
-            ax.set_ylabel('Amplitude (μV)')
-            ax.set_title(f"Artifact {i+1}: {artifact['type']} (severity: {artifact['severity']:.2f})")
+            ax.set_ylabel("Amplitude (μV)")
+            ax.set_title(
+                f"Artifact {i + 1}: {artifact['type']} (severity: {artifact['severity']:.2f})"
+            )
 
             if i == n_artifacts - 1:
-                ax.set_xlabel('Time (s)')
+                ax.set_xlabel("Time (s)")
 
     plt.tight_layout()
     return fig
 
 
-def normalize_electrode_positions(positions: dict[str, tuple[float, float]]) -> dict[str, tuple[float, float]]:
+def normalize_electrode_positions(
+    positions: dict[str, tuple[float, float]],
+) -> dict[str, tuple[float, float]]:
     """Normalize electrode positions to -1 to 1 range.
 
     Args:
@@ -413,13 +436,8 @@ def get_banner_color(flag: str) -> str:
     Returns:
         Color string or RGB tuple
     """
-    color_map = {
-        'URGENT': 'red',
-        'EXPEDITE': 'orange',
-        'ROUTINE': 'yellow',
-        'NORMAL': 'green'
-    }
-    return color_map.get(flag.upper(), 'gray')
+    color_map = {"URGENT": "red", "EXPEDITE": "orange", "ROUTINE": "yellow", "NORMAL": "green"}
+    return color_map.get(flag.upper(), "gray")
 
 
 def severity_to_color(severity: float) -> str:
@@ -432,10 +450,10 @@ def severity_to_color(severity: float) -> str:
         Color string
     """
     if severity >= 0.8:
-        return 'red'
+        return "red"
     elif severity >= 0.5:
-        return 'orange'
+        return "orange"
     elif severity >= 0.3:
-        return 'yellow'
+        return "yellow"
     else:
-        return 'green'
+        return "green"

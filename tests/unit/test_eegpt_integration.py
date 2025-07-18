@@ -91,14 +91,14 @@ class TestEEGPTModel:
 
         data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # µV scale converted to V
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)  # MNE expects data in volts
 
         # Preprocess for EEGPT
         processed = preprocess_for_eegpt(raw)
 
         # Check preprocessing results
-        assert processed.info['sfreq'] == 256  # Resampled to 256 Hz
+        assert processed.info["sfreq"] == 256  # Resampled to 256 Hz
         assert processed.get_data().shape[0] <= 58  # Max 58 channels
 
         # Check data is in reasonable range (MNE uses V internally)
@@ -144,21 +144,21 @@ class TestEEGPTModel:
 
         data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # V scale (50 µV)
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Get abnormality prediction
         result = eegpt_model.predict_abnormality(raw)
 
         # Check result structure
-        assert 'abnormal_probability' in result
-        assert 'confidence' in result
-        assert 'window_scores' in result
+        assert "abnormal_probability" in result
+        assert "confidence" in result
+        assert "window_scores" in result
 
         # Check value ranges
-        assert 0 <= result['abnormal_probability'] <= 1
-        assert 0 <= result['confidence'] <= 1
-        assert len(result['window_scores']) == 5  # 5 windows in 20s
+        assert 0 <= result["abnormal_probability"] <= 1
+        assert 0 <= result["confidence"] <= 1
+        assert len(result["window_scores"]) == 5  # 5 windows in 20s
 
     def test_channel_adaptation(self, eegpt_model):
         """Test adaptive spatial filter for different channel configurations."""
@@ -190,7 +190,9 @@ class TestEEGPTModel:
     def test_end_to_end_pipeline(self, model_path):
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
-        edf_path = Path("/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+        edf_path = Path(
+            "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        )
 
         if not edf_path.exists():
             pytest.skip("Sleep-EDF data not available")
@@ -207,13 +209,15 @@ class TestEEGPTModel:
         features = extract_features_from_raw(raw, model_path)
 
         # Check results
-        assert 'features' in features
-        assert 'abnormality_score' in features
-        assert 'processing_time' in features
-        assert features['abnormality_score'] is not None
+        assert "features" in features
+        assert "abnormality_score" in features
+        assert "processing_time" in features
+        assert features["abnormality_score"] is not None
 
         # Performance check: should process 1 minute in < 5 seconds
-        assert features['processing_time'] < 5.0, f"Processing too slow: {features['processing_time']:.2f}s"
+        assert features["processing_time"] < 5.0, (
+            f"Processing too slow: {features['processing_time']:.2f}s"
+        )
 
 
 class TestPerformanceBenchmarks:
@@ -247,7 +251,9 @@ class TestPerformanceBenchmarks:
         # Should process at a rate that would complete 20-min in <2 minutes
         # Expected: 2 min data should process in <12 seconds (proportional)
         expected_time = 12  # seconds
-        assert processing_time < expected_time, f"Processing too slow: {processing_time:.2f}s > {expected_time}s"
+        assert processing_time < expected_time, (
+            f"Processing too slow: {processing_time:.2f}s > {expected_time}s"
+        )
         print(f"Processing time for 2-min recording: {processing_time:.2f}s")
 
     @pytest.mark.slow

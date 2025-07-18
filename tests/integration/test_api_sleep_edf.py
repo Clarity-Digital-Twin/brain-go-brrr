@@ -21,6 +21,7 @@ class TestSleepEDFIntegration:
         import asyncio
 
         from api.main import app, startup_event
+
         asyncio.run(startup_event())
 
         return TestClient(app)
@@ -44,33 +45,33 @@ class TestSleepEDFIntegration:
         # This is a hack but avoids the export issue
 
         # Read approximately 1MB which should be ~60s of data
-        with sleep_edf_file.open('rb') as f:
+        with sleep_edf_file.open("rb") as f:
             # Read header + some data (EDF has 256 byte header + 256 bytes per channel)
             return f.read(1024 * 1024)  # 1MB should be enough for testing
 
     @pytest.mark.integration
-    @patch('services.qc_flagger.EEGQualityController.run_full_qc_pipeline')
+    @patch("services.qc_flagger.EEGQualityController.run_full_qc_pipeline")
     def test_real_edf_processing_fast(self, mock_qc_pipeline, client, sleep_edf_file):
         """Test API endpoint with mocked processing (fast)."""
         # Mock the heavy processing to return quickly
         mock_qc_pipeline.return_value = {
-            'bad_channels': ['T3', 'O2'],
-            'bad_channel_ratio': 0.1,
-            'abnormality_score': 0.3,
-            'quality_grade': 'GOOD',
-            'confidence': 0.9,
-            'quality_metrics': {
-                'bad_channels': ['T3', 'O2'],
-                'bad_channel_ratio': 0.1,
-                'abnormality_score': 0.3,
-                'quality_grade': 'GOOD'
-            }
+            "bad_channels": ["T3", "O2"],
+            "bad_channel_ratio": 0.1,
+            "abnormality_score": 0.3,
+            "quality_grade": "GOOD",
+            "confidence": 0.9,
+            "quality_metrics": {
+                "bad_channels": ["T3", "O2"],
+                "bad_channel_ratio": 0.1,
+                "abnormality_score": 0.3,
+                "quality_grade": "GOOD",
+            },
         }
 
         # Read just first 1MB of file for speed
-        with sleep_edf_file.open('rb') as f:
+        with sleep_edf_file.open("rb") as f:
             file_data = f.read(1024 * 1024)
-            files = {'file': ('test.edf', file_data, 'application/octet-stream')}
+            files = {"file": ("test.edf", file_data, "application/octet-stream")}
 
             # Time the request
             start_time = time.time()
@@ -108,8 +109,8 @@ class TestSleepEDFIntegration:
     def test_real_edf_processing_full(self, client, sleep_edf_file):
         """Test processing full Sleep-EDF file through API (slow)."""
         # Read the actual full EDF file
-        with sleep_edf_file.open('rb') as f:
-            files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
+        with sleep_edf_file.open("rb") as f:
+            files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
 
             # Time the request
             start_time = time.time()
@@ -135,8 +136,8 @@ class TestSleepEDFIntegration:
     @pytest.mark.slow
     def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
-        with sleep_edf_file.open('rb') as f:
-            files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
+        with sleep_edf_file.open("rb") as f:
+            files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -144,17 +145,16 @@ class TestSleepEDFIntegration:
 
         # Sleep-EDF files often have non-EEG channels that should be flagged
         # Common bad channels: EOG, EMG, event markers, respiration
-        if data['bad_channels']:
+        if data["bad_channels"]:
             # Check that detected bad channels make sense
-            bad_channel_names = [ch.upper() for ch in data['bad_channels']]
+            bad_channel_names = [ch.upper() for ch in data["bad_channels"]]
 
             # These are typically non-EEG channels in Sleep-EDF
-            expected_bad_patterns = ['EOG', 'EMG', 'RESP', 'EVENT', 'ECG']
+            expected_bad_patterns = ["EOG", "EMG", "RESP", "EVENT", "ECG"]
 
             # At least some bad channels should match expected patterns
             found_expected = any(
-                any(pattern in ch for pattern in expected_bad_patterns)
-                for ch in bad_channel_names
+                any(pattern in ch for pattern in expected_bad_patterns) for ch in bad_channel_names
             )
 
             print("\n🔍 Quality Analysis:")
@@ -179,8 +179,8 @@ class TestSleepEDFIntegration:
 
         results = []
         for edf_file in edf_files:
-            with edf_file.open('rb') as f:
-                files = {'file': (edf_file.name, f, 'application/octet-stream')}
+            with edf_file.open("rb") as f:
+                files = {"file": (edf_file.name, f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
             assert response.status_code == 200
@@ -189,13 +189,13 @@ class TestSleepEDFIntegration:
         # Analyze consistency
         print(f"\n📈 Multiple File Analysis ({len(results)} files):")
         for i, (file, result) in enumerate(zip(edf_files, results, strict=False)):
-            print(f"\n   File {i+1}: {file.name}")
+            print(f"\n   File {i + 1}: {file.name}")
             print(f"   - Abnormality: {result['abnormal_prob']:.3f}")
             print(f"   - Quality: {result['quality_grade']}")
             print(f"   - Flag: {result['flag']}")
 
         # All should process successfully
-        assert all(r['status'] == 'success' for r in results)
+        assert all(r["status"] == "success" for r in results)
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -204,8 +204,8 @@ class TestSleepEDFIntegration:
         # This mimics what we do in the model tests - crop to 1 minute
         # We can't actually crop here, but we verify the API handles it
 
-        with sleep_edf_file.open('rb') as f:
-            files = {'file': ('cropped_test.edf', f, 'application/octet-stream')}
+        with sleep_edf_file.open("rb") as f:
+            files = {"file": ("cropped_test.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -223,18 +223,18 @@ class TestSleepEDFIntegration:
         confidence_scores = []
 
         for _ in range(2):
-            with sleep_edf_file.open('rb') as f:
-                files = {'file': (sleep_edf_file.name, f, 'application/octet-stream')}
+            with sleep_edf_file.open("rb") as f:
+                files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
             data = response.json()
-            confidence_scores.append(data['confidence'])
+            confidence_scores.append(data["confidence"])
 
         # Confidence should be consistent for the same file
         assert all(0 <= score <= 1 for score in confidence_scores)
 
         # If model is loaded, confidence should be relatively high
-        if data.get('abnormal_prob', 0) > 0:  # Model made a prediction
+        if data.get("abnormal_prob", 0) > 0:  # Model made a prediction
             assert min(confidence_scores) > 0.5, "Confidence too low for loaded model"
 
         print("\n🎯 Confidence Analysis:")
@@ -252,6 +252,7 @@ class TestAPIRobustness:
         import asyncio
 
         from api.main import app, startup_event
+
         asyncio.run(startup_event())
 
         return TestClient(app)
@@ -260,7 +261,7 @@ class TestAPIRobustness:
     def test_empty_file_handling(self, client):
         """Test handling of empty or very small files."""
         # Create a minimal invalid EDF
-        files = {'file': ('empty.edf', b'', 'application/octet-stream')}
+        files = {"file": ("empty.edf", b"", "application/octet-stream")}
         response = client.post("/api/v1/eeg/analyze", files=files)
 
         # Should handle gracefully
@@ -283,8 +284,8 @@ class TestAPIRobustness:
         import concurrent.futures
 
         def process_file():
-            with edf_path.open('rb') as f:
-                files = {'file': (edf_path.name, f, 'application/octet-stream')}
+            with edf_path.open("rb") as f:
+                files = {"file": (edf_path.name, f, "application/octet-stream")}
                 return client.post("/api/v1/eeg/analyze", files=files)
 
         # Process 3 requests concurrently

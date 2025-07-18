@@ -3,7 +3,6 @@
 Following TDD approach - tests for converting reports to markdown format.
 """
 
-
 import pytest
 
 
@@ -14,33 +13,39 @@ class TestMarkdownReportGeneration:
     def qc_results(self):
         """Mock QC analysis results."""
         return {
-            'quality_metrics': {
-                'bad_channels': ['T3', 'O2', 'Fp1'],
-                'bad_channel_ratio': 0.21,
-                'abnormality_score': 0.83,
-                'quality_grade': 'POOR',
-                'artifact_segments': [
-                    {'start': 10.5, 'end': 12.3, 'type': 'muscle', 'severity': 0.9},
-                    {'start': 45.2, 'end': 47.8, 'type': 'eye_blink', 'severity': 0.8},
-                    {'start': 120.0, 'end': 125.5, 'type': 'electrode_pop', 'severity': 1.0},
-                    {'start': 200.1, 'end': 203.4, 'type': 'movement', 'severity': 0.85},
-                    {'start': 310.0, 'end': 315.0, 'type': 'muscle', 'severity': 0.95},
+            "quality_metrics": {
+                "bad_channels": ["T3", "O2", "Fp1"],
+                "bad_channel_ratio": 0.21,
+                "abnormality_score": 0.83,
+                "quality_grade": "POOR",
+                "artifact_segments": [
+                    {"start": 10.5, "end": 12.3, "type": "muscle", "severity": 0.9},
+                    {"start": 45.2, "end": 47.8, "type": "eye_blink", "severity": 0.8},
+                    {"start": 120.0, "end": 125.5, "type": "electrode_pop", "severity": 1.0},
+                    {"start": 200.1, "end": 203.4, "type": "movement", "severity": 0.85},
+                    {"start": 310.0, "end": 315.0, "type": "muscle", "severity": 0.95},
                 ],
-                'channel_positions': {
-                    'Fp1': (-0.3, 0.8), 'Fp2': (0.3, 0.8),
-                    'F3': (-0.5, 0.5), 'F4': (0.5, 0.5),
-                    'C3': (-0.5, 0), 'C4': (0.5, 0),
-                    'P3': (-0.5, -0.5), 'P4': (0.5, -0.5),
-                    'O1': (-0.3, -0.8), 'O2': (0.3, -0.8),
-                    'T3': (-0.8, 0), 'T4': (0.8, 0),
-                }
+                "channel_positions": {
+                    "Fp1": (-0.3, 0.8),
+                    "Fp2": (0.3, 0.8),
+                    "F3": (-0.5, 0.5),
+                    "F4": (0.5, 0.5),
+                    "C3": (-0.5, 0),
+                    "C4": (0.5, 0),
+                    "P3": (-0.5, -0.5),
+                    "P4": (0.5, -0.5),
+                    "O1": (-0.3, -0.8),
+                    "O2": (0.3, -0.8),
+                    "T3": (-0.8, 0),
+                    "T4": (0.8, 0),
+                },
             },
-            'processing_info': {
-                'file_name': 'test_eeg.edf',
-                'duration_seconds': 1200,
-                'sampling_rate': 256,
-                'timestamp': '2025-01-17T10:30:00'
-            }
+            "processing_info": {
+                "file_name": "test_eeg.edf",
+                "duration_seconds": 1200,
+                "sampling_rate": 256,
+                "timestamp": "2025-01-17T10:30:00",
+            },
         }
 
     def test_markdown_report_structure(self):
@@ -111,17 +116,14 @@ class TestMarkdownReportGeneration:
 
         # Create normal results
         normal_results = {
-            'quality_metrics': {
-                'bad_channels': [],
-                'bad_channel_ratio': 0.0,
-                'abnormality_score': 0.15,
-                'quality_grade': 'EXCELLENT',
-                'artifact_segments': []
+            "quality_metrics": {
+                "bad_channels": [],
+                "bad_channel_ratio": 0.0,
+                "abnormality_score": 0.15,
+                "quality_grade": "EXCELLENT",
+                "artifact_segments": [],
             },
-            'processing_info': {
-                'file_name': 'normal_eeg.edf',
-                'timestamp': '2025-01-17T10:30:00'
-            }
+            "processing_info": {"file_name": "normal_eeg.edf", "timestamp": "2025-01-17T10:30:00"},
         }
 
         generator = MarkdownReportGenerator()
@@ -218,18 +220,17 @@ class TestMarkdownIntegration:
         from fastapi.testclient import TestClient
 
         from api.main import app
+
         return TestClient(app)
 
     def test_api_detailed_includes_markdown(self, client):
         """Test API detailed endpoint can include markdown."""
         from unittest.mock import patch
 
-        with patch('mne.io.read_raw_edf'):
+        with patch("mne.io.read_raw_edf"):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post(
-                "/api/v1/eeg/analyze/detailed",
-                files=files,
-                params={"include_report": True}
+                "/api/v1/eeg/analyze/detailed", files=files, params={"include_report": True}
             )
 
         assert response.status_code == 200

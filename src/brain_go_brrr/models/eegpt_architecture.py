@@ -4,7 +4,6 @@ Based on the official EEGPT paper and reference implementation.
 Vision Transformer architecture adapted for EEG signals.
 """
 
-
 from typing import Any
 
 import torch
@@ -13,40 +12,102 @@ from torch import Tensor
 
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
-    'FP1': 0, 'FPZ': 1, 'FP2': 2,
-    'AF7': 3, 'AF3': 4, 'AF4': 5, 'AF8': 6,
-    'F7': 7, 'F5': 8, 'F3': 9, 'F1': 10, 'FZ': 11, 'F2': 12, 'F4': 13, 'F6': 14, 'F8': 15,
-    'FT7': 16, 'FC5': 17, 'FC3': 18, 'FC1': 19, 'FCZ': 20, 'FC2': 21, 'FC4': 22, 'FC6': 23, 'FT8': 24,
-    'T7': 25, 'T3': 25, 'C5': 26, 'C3': 27, 'C1': 28, 'CZ': 29, 'C2': 30, 'C4': 31, 'C6': 32, 'T8': 33, 'T4': 33,
-    'TP7': 34, 'CP5': 35, 'CP3': 36, 'CP1': 37, 'CPZ': 38, 'CP2': 39, 'CP4': 40, 'CP6': 41, 'TP8': 42,
-    'P7': 43, 'P5': 44, 'P3': 45, 'P1': 46, 'PZ': 47, 'P2': 48, 'P4': 49, 'P6': 50, 'P8': 51,
-    'PO7': 52, 'PO3': 53, 'POZ': 54, 'PO4': 55, 'PO8': 56,
-    'O1': 57, 'OZ': 58, 'O2': 59,
-    'IZ': 60, 'FCZ_REF': 61
+    "FP1": 0,
+    "FPZ": 1,
+    "FP2": 2,
+    "AF7": 3,
+    "AF3": 4,
+    "AF4": 5,
+    "AF8": 6,
+    "F7": 7,
+    "F5": 8,
+    "F3": 9,
+    "F1": 10,
+    "FZ": 11,
+    "F2": 12,
+    "F4": 13,
+    "F6": 14,
+    "F8": 15,
+    "FT7": 16,
+    "FC5": 17,
+    "FC3": 18,
+    "FC1": 19,
+    "FCZ": 20,
+    "FC2": 21,
+    "FC4": 22,
+    "FC6": 23,
+    "FT8": 24,
+    "T7": 25,
+    "T3": 25,
+    "C5": 26,
+    "C3": 27,
+    "C1": 28,
+    "CZ": 29,
+    "C2": 30,
+    "C4": 31,
+    "C6": 32,
+    "T8": 33,
+    "T4": 33,
+    "TP7": 34,
+    "CP5": 35,
+    "CP3": 36,
+    "CP1": 37,
+    "CPZ": 38,
+    "CP2": 39,
+    "CP4": 40,
+    "CP6": 41,
+    "TP8": 42,
+    "P7": 43,
+    "P5": 44,
+    "P3": 45,
+    "P1": 46,
+    "PZ": 47,
+    "P2": 48,
+    "P4": 49,
+    "P6": 50,
+    "P8": 51,
+    "PO7": 52,
+    "PO3": 53,
+    "POZ": 54,
+    "PO4": 55,
+    "PO8": 56,
+    "O1": 57,
+    "OZ": 58,
+    "O2": 59,
+    "IZ": 60,
+    "FCZ_REF": 61,
 }
 
 
 # rotary embedding helper functions
 def rotate_half(x):
     """Rotate half the hidden dims of the input."""
-    x = x.reshape((*x.shape[:-1], x.shape[-1]//2, 2))
+    x = x.reshape((*x.shape[:-1], x.shape[-1] // 2, 2))
     x1, x2 = x.unbind(dim=-1)
     x = torch.stack((-x2, x1), dim=-1)
     return x.flatten(-2)
 
 
-def apply_rotary_emb(freqs, t, start_index=0, scale=1.):
+def apply_rotary_emb(freqs, t, start_index=0, scale=1.0):
     """Apply rotary positional embeddings to a tensor."""
     freqs = freqs.to(t.device)
     rot_dim = freqs.shape[-1]
     end_index = start_index + rot_dim
 
-    assert rot_dim <= t.shape[-1], f'feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}'
+    assert rot_dim <= t.shape[-1], (
+        f"feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}"
+    )
 
-    t_left, t_middle, t_right = t[..., :start_index], t[..., start_index:end_index], t[..., end_index:]
+    t_left, t_middle, t_right = (
+        t[..., :start_index],
+        t[..., start_index:end_index],
+        t[..., end_index:],
+    )
 
     # Apply rotary embeddings to the middle segment
-    t_rotated_middle = (t_middle * freqs.cos() * scale) + (rotate_half(t_middle) * freqs.sin() * scale)
+    t_rotated_middle = (t_middle * freqs.cos() * scale) + (
+        rotate_half(t_middle) * freqs.sin() * scale
+    )
 
     return torch.cat((t_left, t_rotated_middle, t_right), dim=-1)
 
@@ -61,14 +122,16 @@ class RoPE(nn.Module):
         self.max_seq_len = max_seq_len
 
         # Initialize frequency parameters (matching original EEGPT)
-        freqs = 1. / (theta ** (torch.arange(0, dim, 2)[:(dim // 2)].float() / dim))
-        self.register_buffer('freqs', freqs)
+        freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+        self.register_buffer("freqs", freqs)
         self.cache = {}
 
-    def prepare_freqs(self, num_patches: tuple[int, int], device='cuda', dtype=torch.float32, offset=0):
+    def prepare_freqs(
+        self, num_patches: tuple[int, int], device="cuda", dtype=torch.float32, offset=0
+    ):
         """Prepare frequency embeddings for given number of patches."""
         C, N = num_patches
-        cache_key = f'freqs:{num_patches}'
+        cache_key = f"freqs:{num_patches}"
 
         # Return cached result if available
         if cache_key in self.cache:
@@ -79,7 +142,9 @@ class RoPE(nn.Module):
         seq_pos = seq_pos + offset
 
         # Compute outer product of positions and frequencies, then expand along the last dimension
-        freqs_scaled = torch.outer(seq_pos.type(self.freqs.dtype), self.freqs).repeat_interleave(repeats=2, dim=-1)
+        freqs_scaled = torch.outer(seq_pos.type(self.freqs.dtype), self.freqs).repeat_interleave(
+            repeats=2, dim=-1
+        )
 
         # Cache and return the computed frequencies
         self.cache[cache_key] = freqs_scaled
@@ -93,7 +158,9 @@ class RoPE(nn.Module):
         return self.prepare_freqs((1, seq_len), device=x.device, dtype=x.dtype)
 
 
-def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def apply_rotary_pos_emb(
+    q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply rotary position embeddings to queries and keys - deprecated, use apply_rotary_emb instead."""
     # This is kept for backward compatibility but not used in the main implementation
     return q, k
@@ -102,13 +169,20 @@ def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, si
 class Attention(nn.Module):
     """Multi-head attention with rotary position embeddings."""
 
-    def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = False,
-                 attn_drop: float = 0., proj_drop: float = 0., use_rope: bool = True) -> None:
+    def __init__(
+        self,
+        dim: int,
+        num_heads: int = 8,
+        qkv_bias: bool = False,
+        attn_drop: float = 0.0,
+        proj_drop: float = 0.0,
+        use_rope: bool = True,
+    ) -> None:
         """Initialize attention module."""
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
         self.use_rope = use_rope
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
@@ -123,7 +197,11 @@ class Attention(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with rotary position embeddings."""
         batch_size, seq_len, channels = x.shape
-        qkv = self.qkv(x).reshape(batch_size, seq_len, 3, self.num_heads, channels // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = (
+            self.qkv(x)
+            .reshape(batch_size, seq_len, 3, self.num_heads, channels // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         # Apply rotary embeddings if enabled
@@ -134,7 +212,13 @@ class Attention(nn.Module):
 
         # Efficient attention using Flash Attention
         attn = torch.nn.functional.scaled_dot_product_attention(
-            q, k, v, attn_mask=None, dropout_p=self.attn_drop.p if self.training else 0, is_causal=False)
+            q,
+            k,
+            v,
+            attn_mask=None,
+            dropout_p=self.attn_drop.p if self.training else 0,
+            is_causal=False,
+        )
 
         x = attn.transpose(1, 2).contiguous().view(batch_size, seq_len, channels)
         x = self.proj(x)
@@ -151,7 +235,7 @@ class MLP(nn.Module):
         hidden_features: int | None = None,
         out_features: int | None = None,
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
-        drop: float = 0.0
+        drop: float = 0.0,
     ) -> None:
         super().__init__()
         out_features = out_features or in_features
@@ -170,6 +254,7 @@ class MLP(nn.Module):
         x = self.drop(x)
         return x
 
+
 class Block(nn.Module):
     """Transformer block with attention and MLP."""
 
@@ -182,24 +267,17 @@ class Block(nn.Module):
         drop: float = 0.0,
         attn_drop: float = 0.0,
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
-        norm_layer: type[nn.Module] = nn.LayerNorm  # Fixed type annotation
+        norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = nn.MultiheadAttention(
-            embed_dim=dim,
-            num_heads=num_heads,
-            dropout=attn_drop,
-            bias=qkv_bias,
-            batch_first=True
+            embed_dim=dim, num_heads=num_heads, dropout=attn_drop, bias=qkv_bias, batch_first=True
         )
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = MLP(
-            in_features=dim,
-            hidden_features=mlp_hidden_dim,
-            act_layer=act_layer,
-            drop=drop
+            in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -216,7 +294,13 @@ class Block(nn.Module):
 class PatchEmbed(nn.Module):
     """Patch embedding for EEG signals."""
 
-    def __init__(self, img_size: list[int] | None = None, patch_size: int = 64, in_chans: int = 1, embed_dim: int = 512):
+    def __init__(
+        self,
+        img_size: list[int] | None = None,
+        patch_size: int = 64,
+        in_chans: int = 1,
+        embed_dim: int = 512,
+    ):
         """Initialize patch embedding.
 
         Args:
@@ -232,7 +316,9 @@ class PatchEmbed(nn.Module):
         self.patch_size = patch_size
         self.num_patches = (img_size[0], img_size[1] // patch_size)
 
-        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=(1, patch_size), stride=(1, patch_size))
+        self.proj = nn.Conv2d(
+            in_chans, embed_dim, kernel_size=(1, patch_size), stride=(1, patch_size)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, channels, time_steps = x.shape
@@ -257,7 +343,7 @@ class EEGTransformer(nn.Module):
         qkv_bias: bool = True,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
-        norm_layer: type[nn.Module] = nn.LayerNorm  # Fixed type annotation
+        norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
         super().__init__()
         self.n_channels = n_channels or list(range(58))  # Default to 58 channels
@@ -268,18 +354,20 @@ class EEGTransformer(nn.Module):
         self.patch_embed = nn.Linear(patch_size, embed_dim)
 
         # Transformer blocks
-        self.blocks = nn.ModuleList([
-            Block(
-                dim=embed_dim,
-                num_heads=num_heads,
-                mlp_ratio=mlp_ratio,
-                qkv_bias=qkv_bias,
-                drop=drop_rate,
-                attn_drop=attn_drop_rate,
-                norm_layer=norm_layer
-            )
-            for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList(
+            [
+                Block(
+                    dim=embed_dim,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    qkv_bias=qkv_bias,
+                    drop=drop_rate,
+                    attn_drop=attn_drop_rate,
+                    norm_layer=norm_layer,
+                )
+                for _ in range(depth)
+            ]
+        )
 
         self.norm = norm_layer(embed_dim)
 
@@ -320,13 +408,13 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
     """
     # Default configuration for large model
     default_config = {
-        'img_size': [58, 1024],
-        'patch_size': 64,
-        'embed_dim': 512,
-        'embed_num': 4,
-        'depth': 8,
-        'num_heads': 8,
-        'mlp_ratio': 4.0,
+        "img_size": [58, 1024],
+        "patch_size": 64,
+        "embed_dim": 512,
+        "embed_num": 4,
+        "depth": 8,
+        "num_heads": 8,
+        "mlp_ratio": 4.0,
     }
     default_config.update(kwargs)
 
@@ -334,14 +422,14 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
 
     if checkpoint_path is not None:
         # Load pretrained weights
-        checkpoint = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
         # Extract encoder weights
         encoder_state = {}
-        for k, v in checkpoint['state_dict'].items():
-            if k.startswith('encoder.'):
+        for k, v in checkpoint["state_dict"].items():
+            if k.startswith("encoder."):
                 encoder_state[k[8:]] = v  # Remove 'encoder.' prefix
-            elif k.startswith('target_encoder.'):
+            elif k.startswith("target_encoder."):
                 encoder_state[k[15:]] = v  # Remove 'target_encoder.' prefix
 
         model.load_state_dict(encoder_state, strict=False)
@@ -354,16 +442,16 @@ def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
     """Initialize EEG Transformer with proper argument handling."""
     # Extract known arguments
     known_args = {
-        'n_channels': kwargs.get('n_channels'),
-        'patch_size': kwargs.get('patch_size', 64),
-        'embed_dim': kwargs.get('embed_dim', 768),
-        'depth': kwargs.get('depth', 12),
-        'num_heads': kwargs.get('num_heads', 12),
-        'mlp_ratio': kwargs.get('mlp_ratio', 4.0),
-        'qkv_bias': kwargs.get('qkv_bias', True),
-        'drop_rate': kwargs.get('drop_rate', 0.0),
-        'attn_drop_rate': kwargs.get('attn_drop_rate', 0.0),
-        'norm_layer': kwargs.get('norm_layer', nn.LayerNorm)
+        "n_channels": kwargs.get("n_channels"),
+        "patch_size": kwargs.get("patch_size", 64),
+        "embed_dim": kwargs.get("embed_dim", 768),
+        "depth": kwargs.get("depth", 12),
+        "num_heads": kwargs.get("num_heads", 12),
+        "mlp_ratio": kwargs.get("mlp_ratio", 4.0),
+        "qkv_bias": kwargs.get("qkv_bias", True),
+        "drop_rate": kwargs.get("drop_rate", 0.0),
+        "attn_drop_rate": kwargs.get("attn_drop_rate", 0.0),
+        "norm_layer": kwargs.get("norm_layer", nn.LayerNorm),
     }
 
     # Filter out None values

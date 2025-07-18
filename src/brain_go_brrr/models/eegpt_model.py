@@ -70,13 +70,15 @@ class EEGPTConfig:
 class EEGPTModel:
     """EEGPT Model wrapper for inference and feature extraction."""
 
-    def __init__(self,
-                 config: ModelConfig | None = None,
-                 checkpoint_path: str | Path | None = None,
-                 device: str | None = None,
-                 auto_load: bool = True) -> None:
+    def __init__(
+        self,
+        config: ModelConfig | None = None,
+        checkpoint_path: str | Path | None = None,
+        device: str | None = None,
+        auto_load: bool = True,
+    ) -> None:
         """Initialize EEGPT model.
-        
+
         Args:
             config: Model configuration (preferred)
             checkpoint_path: Backward compatibility - path to checkpoint
@@ -96,7 +98,7 @@ class EEGPTModel:
 
         # Set device
         if self.config.device == "auto":
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device(self.config.device)
 
@@ -147,15 +149,15 @@ class EEGPTModel:
             nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(512, 2)  # Binary classification
+            nn.Linear(512, 2),  # Binary classification
         ).to(self.device)
 
         self.is_loaded = True
         self.logger.info(f"✅ Loaded real EEGPT model from {self.config.model_path}")
 
-    def extract_features(self,
-                        data: npt.NDArray[np.float64],
-                        channel_names: list[str]) -> npt.NDArray[np.float64]:
+    def extract_features(
+        self, data: npt.NDArray[np.float64], channel_names: list[str]
+    ) -> npt.NDArray[np.float64]:
         """Extract features from EEG data using EEGPT encoder."""
         if not self.is_loaded or self.encoder is None:
             self.load_model()
@@ -165,25 +167,25 @@ class EEGPTModel:
 
         # Data should be shape (channels, time_samples)
         n_channels, n_samples = data.shape
-        
+
         # Reshape data into patches
         # EEGPT expects patches of size 64 samples (250ms at 256Hz)
         patch_size = self.config.patch_size
         n_patches = n_samples // patch_size
-        
+
         if n_samples % patch_size != 0:
             # Truncate to fit exact patches
-            data = data[:, :n_patches * patch_size]
-        
+            data = data[:, : n_patches * patch_size]
+
         # Reshape to (n_channels, n_patches, patch_size)
         data_patched = data.reshape(n_channels, n_patches, patch_size)
-        
+
         # Rearrange to (n_patches, n_channels, patch_size) for the model
         data_patched = np.transpose(data_patched, (1, 0, 2))
-        
+
         # Flatten patches: (n_patches * n_channels, patch_size)
         data_flattened = data_patched.reshape(-1, patch_size)
-        
+
         # Convert to tensor and add batch dimension
         data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(self.device)
 
@@ -202,16 +204,28 @@ class EEGPTModel:
                 # For now, return mean features (simplified)
                 summary_features = features.mean(dim=(0, 1))  # Shape: (embed_dim,)
                 # Repeat to get n_summary_tokens
-                summary_features = summary_features.unsqueeze(0).expand(self.config.n_summary_tokens, -1)
+                summary_features = summary_features.unsqueeze(0).expand(
+                    self.config.n_summary_tokens, -1
+                )
                 return summary_features.cpu().numpy()
             else:
                 return np.zeros((self.config.n_summary_tokens, self.config.embed_dim))
 
-    def predict_abnormality(self,
-                           raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
+    def predict_abnormality(self, raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
         """Predict abnormality from raw EEG data with streaming support."""
         if not self.is_loaded:
-            self.load_model()
+            try:
+                self.load_model()
+            except Exception as e:
+                # Return error result if model loading fails
+                return {
+                    "abnormal_probability": 0.5,  # Unknown
+                    "confidence": 0.0,
+                    "window_scores": [],
+                    "n_windows": 0,
+                    "used_streaming": False,
+                    "error": str(e),
+                }
 
         # Preprocess data
         processed = preprocess_for_eegpt(raw)
@@ -232,9 +246,9 @@ class EEGPTModel:
             # Create a temporary streamer-compatible object
             # EDFStreamer expects file path, but we have raw data
             # So we'll process windows directly
-            sfreq = int(processed.info['sfreq'])
+            sfreq = int(processed.info["sfreq"])
             window_duration = 4.0  # 4 second windows
-            step_duration = 2.0    # 2 second step (50% overlap)
+            step_duration = 2.0  # 2 second step (50% overlap)
 
             window_samples = int(window_duration * sfreq)
             step_samples = int(step_duration * sfreq)
@@ -254,7 +268,9 @@ class EEGPTModel:
                 # Apply abnormality detection
                 if self.abnormality_head is not None:
                     with torch.no_grad():
-                        features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        features_flat = (
+                            torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        )
                         logits = self.abnormality_head(features_flat)
                         probs = torch.softmax(logits, dim=-1)
                         abnormal_prob = probs[0, 1].item()
@@ -267,33 +283,33 @@ class EEGPTModel:
             confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
 
             return {
-                'abnormal_probability': float(abnormality_score),
-                'confidence': float(confidence),
-                'window_scores': window_scores,
-                'n_windows': len(window_scores),
-                'mean_score': float(abnormality_score),
-                'std_score': float(np.std(window_scores)) if window_scores else 0.0,
-                'used_streaming': True,
-                'n_windows_processed': n_windows_processed,
-                'metadata': {
-                    'duration': duration,
-                    'n_channels': len(channel_names),
-                    'sampling_rate': sfreq
-                }
+                "abnormal_probability": float(abnormality_score),
+                "confidence": float(confidence),
+                "window_scores": window_scores,
+                "n_windows": len(window_scores),
+                "mean_score": float(abnormality_score),
+                "std_score": float(np.std(window_scores)) if window_scores else 0.0,
+                "used_streaming": True,
+                "n_windows_processed": n_windows_processed,
+                "metadata": {
+                    "duration": duration,
+                    "n_channels": len(channel_names),
+                    "sampling_rate": sfreq,
+                },
             }
         else:
             # Original non-streaming logic for small files
             data = processed.get_data()
-            windows = self.extract_windows(data, int(processed.info['sfreq']))
+            windows = self.extract_windows(data, int(processed.info["sfreq"]))
 
             if len(windows) == 0:
                 return {
-                    'abnormal_probability': 0.0,
-                    'confidence': 0.0,
-                    'window_scores': [],
-                    'n_windows': 0,
-                    'used_streaming': False,
-                    'error': 'No valid windows extracted'
+                    "abnormal_probability": 0.0,
+                    "confidence": 0.0,
+                    "window_scores": [],
+                    "n_windows": 0,
+                    "used_streaming": False,
+                    "error": "No valid windows extracted",
                 }
 
             # Extract features for all windows
@@ -309,7 +325,9 @@ class EEGPTModel:
             if self.abnormality_head is not None:
                 with torch.no_grad():
                     for features in window_features:
-                        features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        features_flat = (
+                            torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        )
                         logits = self.abnormality_head(features_flat)
                         probs = torch.softmax(logits, dim=-1)
                         abnormal_prob = probs[0, 1].item()
@@ -320,22 +338,22 @@ class EEGPTModel:
             confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
 
             return {
-                'abnormal_probability': float(abnormality_score),
-                'confidence': float(confidence),
-                'window_scores': window_scores,
-                'n_windows': len(windows),
-                'used_streaming': False,
-                'channels_used': channel_names,
-                'metadata': {
-                    'duration': processed.times[-1],
-                    'n_channels': len(channel_names),
-                    'sampling_rate': processed.info['sfreq']
-                }
+                "abnormal_probability": float(abnormality_score),
+                "confidence": float(confidence),
+                "window_scores": window_scores,
+                "n_windows": len(windows),
+                "used_streaming": False,
+                "channels_used": channel_names,
+                "metadata": {
+                    "duration": processed.times[-1],
+                    "n_channels": len(channel_names),
+                    "sampling_rate": processed.info["sfreq"],
+                },
             }
 
-    def process_recording(self,
-                         file_path: str | Path,
-                         analysis_type: str = "abnormality") -> dict[str, Any]:
+    def process_recording(
+        self, file_path: str | Path, analysis_type: str = "abnormality"
+    ) -> dict[str, Any]:
         """Process a complete EEG recording."""
         try:
             import mne  # type: ignore[import-untyped]
@@ -352,11 +370,7 @@ class EEGPTModel:
         else:
             raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
-    def extract_windows(
-        self,
-        data: np.ndarray,
-        sampling_rate: int
-    ) -> list[np.ndarray]:
+    def extract_windows(self, data: np.ndarray, sampling_rate: int) -> list[np.ndarray]:
         """Extract non-overlapping windows from continuous data.
 
         Args:
@@ -384,7 +398,9 @@ class EEGPTModel:
 
         return windows
 
-    def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
+    def extract_features_batch(
+        self, windows: np.ndarray, channel_names: list[str] | None = None
+    ) -> np.ndarray:
         """Extract features from batch of windows.
 
         Args:
@@ -395,26 +411,26 @@ class EEGPTModel:
             Features (batch, n_summary_tokens, feature_dim)
         """
         batch_size, n_channels, n_samples = windows.shape
-        
+
         # Process each window individually for now
         # TODO: Optimize for true batch processing
         batch_features = []
-        
+
         for i in range(batch_size):
             window = windows[i]
             if channel_names is None:
                 ch_names = [f"EEG{j:03d}" for j in range(n_channels)]
             else:
                 ch_names = channel_names
-            
+
             features = self.extract_features(window, ch_names)
             batch_features.append(features)
-        
+
         return np.stack(batch_features, axis=0)
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""
-        if self.device.type == 'cuda':
+        if self.device.type == "cuda":
             # Clear any cached allocations
             torch.cuda.empty_cache()
             logger.info("Cleared GPU memory cache")
@@ -425,20 +441,20 @@ def preprocess_for_eegpt(
     target_sfreq: int = 256,
     l_freq: float = 0.5,
     h_freq: float = 50.0,
-    notch_freq: float | list | None = None
+    notch_freq: float | list | None = None,
 ) -> "mne.io.Raw":  # Use string annotation
     """Preprocess EEG data for EEGPT model."""
     raw = raw.copy()
 
     # Resample to 256 Hz if needed
-    if raw.info['sfreq'] != target_sfreq:
+    if raw.info["sfreq"] != target_sfreq:
         raw.resample(target_sfreq)
 
     # Apply average reference
-    raw.set_eeg_reference('average', projection=False)
+    raw.set_eeg_reference("average", projection=False)
 
     # Ensure proper channel types
-    raw.pick_types(meg=False, eeg=True, eog=False, exclude='bads')
+    raw.pick_types(meg=False, eeg=True, eog=False, exclude="bads")
 
     # Limit to max channels if needed
     if len(raw.ch_names) > 58:
@@ -447,10 +463,7 @@ def preprocess_for_eegpt(
     return raw
 
 
-def extract_features_from_raw(
-    raw: mne.io.Raw,
-    model_path: str | Path
-) -> dict[str, Any]:
+def extract_features_from_raw(raw: mne.io.Raw, model_path: str | Path) -> dict[str, Any]:
     """High-level function to extract features from raw EEG.
 
     Args:
@@ -461,6 +474,7 @@ def extract_features_from_raw(
         Dictionary with features and metadata
     """
     import time
+
     start_time = time.time()
 
     # Initialize model
@@ -470,7 +484,7 @@ def extract_features_from_raw(
     result = model.predict_abnormality(raw)
 
     # Add timing
-    result['processing_time'] = time.time() - start_time
-    result['features'] = True  # Placeholder
+    result["processing_time"] = time.time() - start_time
+    result["features"] = True  # Placeholder
 
     return result

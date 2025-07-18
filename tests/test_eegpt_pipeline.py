@@ -31,10 +31,28 @@ class TestEEGPTPreprocessing:
         data = np.random.randn(n_channels, n_samples) * 50  # 50 µV
 
         # Standard 10-20 channel names
-        ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4',
-                   'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6',
-                   'Fz', 'Cz', 'Pz']
-        ch_types = ['eeg'] * n_channels
+        ch_names = [
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
+        ]
+        ch_types = ["eeg"] * n_channels
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
@@ -45,9 +63,9 @@ class TestEEGPTPreprocessing:
         """Test that preprocessing resamples to 256 Hz."""
         processed = preprocess_for_eegpt(sample_raw)
 
-        assert processed.info['sfreq'] == 256
+        assert processed.info["sfreq"] == 256
         # Check data shape changed appropriately
-        expected_samples = int(sample_raw.n_times * 256 / sample_raw.info['sfreq'])
+        expected_samples = int(sample_raw.n_times * 256 / sample_raw.info["sfreq"])
         assert abs(processed.n_times - expected_samples) < 10  # Allow small difference
 
     def test_preprocess_keeps_original_if_256hz(self):
@@ -55,12 +73,12 @@ class TestEEGPTPreprocessing:
         # Create data already at 256 Hz
         sfreq = 256
         data = np.random.randn(3, sfreq * 10) * 50
-        info = mne.create_info(['C3', 'C4', 'Cz'], sfreq=sfreq, ch_types=['eeg'] * 3)
+        info = mne.create_info(["C3", "C4", "Cz"], sfreq=sfreq, ch_types=["eeg"] * 3)
         raw = mne.io.RawArray(data, info)
 
         processed = preprocess_for_eegpt(raw)
 
-        assert processed.info['sfreq'] == 256
+        assert processed.info["sfreq"] == 256
         assert processed.n_times == raw.n_times
 
     def test_preprocess_preserves_data_continuity(self, sample_raw):
@@ -75,16 +93,16 @@ class TestEEGPTPreprocessing:
 
     def test_preprocess_handles_bad_channels(self, sample_raw):
         """Test preprocessing with bad channels marked."""
-        sample_raw.info['bads'] = ['T3', 'T4']
+        sample_raw.info["bads"] = ["T3", "T4"]
         n_channels_before = len(sample_raw.ch_names)
 
         processed = preprocess_for_eegpt(sample_raw)
 
         # Bad channels should be excluded
-        assert 'T3' not in processed.ch_names
-        assert 'T4' not in processed.ch_names
+        assert "T3" not in processed.ch_names
+        assert "T4" not in processed.ch_names
         assert len(processed.ch_names) == n_channels_before - 2
-        assert processed.info['sfreq'] == 256
+        assert processed.info["sfreq"] == 256
 
 
 class TestEEGPTWindowExtraction:
@@ -93,7 +111,7 @@ class TestEEGPTWindowExtraction:
     @pytest.fixture
     def eegpt_model(self):
         """Create EEGPTModel instance with mocked components."""
-        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
+        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
             # Mock the encoder
             mock_encoder = Mock()
             mock_encoder.prepare_chan_ids = Mock(return_value=torch.zeros(19))
@@ -166,7 +184,7 @@ class TestEEGPTFeatureExtraction:
     @pytest.fixture
     def mock_eegpt_model(self):
         """Create fully mocked EEGPT model."""
-        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model'):
+        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model"):
             model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock encoder to return features
@@ -196,7 +214,7 @@ class TestEEGPTFeatureExtraction:
 
             # Mock extract_features_batch
             def mock_extract_features_batch(windows, channel_names=None):
-                batch_size = windows.shape[0] if hasattr(windows, 'shape') else len(windows)
+                batch_size = windows.shape[0] if hasattr(windows, "shape") else len(windows)
                 return np.random.randn(batch_size, 8, 768)
 
             model.extract_features_batch = Mock(side_effect=mock_extract_features_batch)
@@ -228,9 +246,27 @@ class TestEEGPTFeatureExtraction:
     def test_extract_features_with_channel_names(self, mock_eegpt_model):
         """Test feature extraction with channel names."""
         window = np.random.randn(19, 1024)
-        ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4',
-                   'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6',
-                   'Fz', 'Cz', 'Pz']
+        ch_names = [
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
+        ]
 
         features = mock_eegpt_model.extract_features(window, channel_names=ch_names)
 
@@ -238,11 +274,11 @@ class TestEEGPTFeatureExtraction:
         mock_eegpt_model.encoder.prepare_chan_ids.assert_called_with(ch_names)
         assert features.shape == (8, 768)
 
-    @patch('torch.cuda.is_available', return_value=False)
+    @patch("torch.cuda.is_available", return_value=False)
     def test_extract_features_gpu(self, mock_cuda, mock_eegpt_model):
         """Test feature extraction on GPU (mocked)."""
         # Keep model on CPU for tests
-        mock_eegpt_model.device = torch.device('cpu')
+        mock_eegpt_model.device = torch.device("cpu")
 
         window = np.random.randn(19, 1024)
         features = mock_eegpt_model.extract_features(window)
@@ -265,10 +301,28 @@ class TestEEGPTPipeline:
 
         data = np.random.randn(n_channels, int(sfreq * duration)) * 50
 
-        ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4',
-                   'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6',
-                   'Fz', 'Cz', 'Pz']
-        ch_types = ['eeg'] * n_channels
+        ch_names = [
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
+        ]
+        ch_types = ["eeg"] * n_channels
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
@@ -279,7 +333,7 @@ class TestEEGPTPipeline:
 
         return fif_path
 
-    @patch('src.brain_go_brrr.models.eegpt_model.EEGPTModel')
+    @patch("src.brain_go_brrr.models.eegpt_model.EEGPTModel")
     def test_extract_features_from_raw(self, mock_model_class, sample_eeg_file):
         """Test the high-level feature extraction function."""
         # Setup mock model that returns a dict instead of Mock
@@ -290,14 +344,10 @@ class TestEEGPTPipeline:
         # Mock extract_features_from_raw to return a proper dict
         def mock_extract_features_from_raw(raw, checkpoint_path):
             return {
-                'features': np.random.randn(5, 8, 768),
-                'window_times': [(i*4, (i+1)*4) for i in range(5)],
-                'metadata': {
-                    'sampling_rate': 256,
-                    'n_channels': 19,
-                    'duration': 20.0
-                },
-                'processing_time': 0.5
+                "features": np.random.randn(5, 8, 768),
+                "window_times": [(i * 4, (i + 1) * 4) for i in range(5)],
+                "metadata": {"sampling_rate": 256, "n_channels": 19, "duration": 20.0},
+                "processing_time": 0.5,
             }
 
         # Load raw data
@@ -306,21 +356,21 @@ class TestEEGPTPipeline:
         # Extract features using the mock
         results = mock_extract_features_from_raw(raw, "dummy_model_path")
 
-        assert 'features' in results
-        assert 'window_times' in results
-        assert 'metadata' in results
+        assert "features" in results
+        assert "window_times" in results
+        assert "metadata" in results
 
         # Check shapes
-        assert len(results['features']) == 5  # 5 windows
-        assert len(results['window_times']) == 5
+        assert len(results["features"]) == 5  # 5 windows
+        assert len(results["window_times"]) == 5
 
         # Check metadata
-        assert results['metadata']['sampling_rate'] == 256  # After preprocessing
-        assert results['metadata']['n_channels'] == 19
+        assert results["metadata"]["sampling_rate"] == 256  # After preprocessing
+        assert results["metadata"]["n_channels"] == 19
 
     def test_abnormality_prediction_pipeline(self):
         """Test abnormality prediction with mocked model."""
-        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model'):
+        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model"):
             model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock the encoder and classifier
@@ -332,9 +382,13 @@ class TestEEGPTPipeline:
 
             # Mock abnormality classifier
             mock_classifier = Mock()
-            mock_classifier.forward = Mock(return_value=torch.tensor([[0.2, 0.8]]))  # Normal, Abnormal
-            mock_classifier.__call__ = Mock(return_value=torch.tensor([[0.2, 0.8]]))  # Normal, Abnormal
-            model.task_heads = {'abnormal': mock_classifier}
+            mock_classifier.forward = Mock(
+                return_value=torch.tensor([[0.2, 0.8]])
+            )  # Normal, Abnormal
+            mock_classifier.__call__ = Mock(
+                return_value=torch.tensor([[0.2, 0.8]])
+            )  # Normal, Abnormal
+            model.task_heads = {"abnormal": mock_classifier}
             model.abnormality_head = mock_classifier  # Add the expected attribute
 
             # Mock extract_windows method
@@ -349,17 +403,17 @@ class TestEEGPTPipeline:
             # Mock predict_abnormality to return expected results
             def mock_predict_abnormality(raw):
                 return {
-                    'abnormal_probability': 0.8,  # High probability (from mock)
-                    'confidence': 0.85,
-                    'n_windows': 5,
-                    'window_scores': [0.7, 0.8, 0.9, 0.75, 0.85],
-                    'mean_score': 0.8,
-                    'std_score': 0.075,
-                    'metadata': {
-                        'duration': raw.times[-1],
-                        'n_channels': len(raw.ch_names),
-                        'sampling_rate': raw.info['sfreq']
-                    }
+                    "abnormal_probability": 0.8,  # High probability (from mock)
+                    "confidence": 0.85,
+                    "n_windows": 5,
+                    "window_scores": [0.7, 0.8, 0.9, 0.75, 0.85],
+                    "mean_score": 0.8,
+                    "std_score": 0.075,
+                    "metadata": {
+                        "duration": raw.times[-1],
+                        "n_channels": len(raw.ch_names),
+                        "sampling_rate": raw.info["sfreq"],
+                    },
                 }
 
             model.predict_abnormality = Mock(side_effect=mock_predict_abnormality)
@@ -367,21 +421,21 @@ class TestEEGPTPipeline:
             # Create test data
             sfreq = 256
             data = np.random.randn(19, sfreq * 20) * 50
-            info = mne.create_info(['C3'] * 19, sfreq=sfreq, ch_types=['eeg'] * 19)
+            info = mne.create_info(["C3"] * 19, sfreq=sfreq, ch_types=["eeg"] * 19)
             raw = mne.io.RawArray(data, info)
 
             # Run prediction
             results = model.predict_abnormality(raw)
 
-            assert 'abnormal_probability' in results
-            assert 'confidence' in results
-            assert 'n_windows' in results
-            assert 0 <= results['abnormal_probability'] <= 1
-            assert results['confidence'] > 0
+            assert "abnormal_probability" in results
+            assert "confidence" in results
+            assert "n_windows" in results
+            assert 0 <= results["abnormal_probability"] <= 1
+            assert results["confidence"] > 0
 
     def test_pipeline_error_handling(self):
         """Test pipeline handles errors gracefully."""
-        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
+        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
             # Make encoder loading fail
             mock_create.side_effect = FileNotFoundError("Model not found")
 
@@ -392,12 +446,11 @@ class TestEEGPTPipeline:
             assert model.encoder is None
 
             # Create test data
-            raw = mne.io.RawArray(np.random.randn(1, 256),
-                                 mne.create_info(['C3'], 256, ['eeg']))
+            raw = mne.io.RawArray(np.random.randn(1, 256), mne.create_info(["C3"], 256, ["eeg"]))
 
             # Should return error result
             results = model.predict_abnormality(raw)
-            assert 'error' in results or results['abnormal_probability'] == 0.5
+            assert "error" in results or results["abnormal_probability"] == 0.5
 
 
 class TestEEGPTConfig:
@@ -417,11 +470,7 @@ class TestEEGPTConfig:
 
     def test_custom_config(self):
         """Test custom configuration."""
-        config = EEGPTConfig(
-            max_channels=32,
-            window_duration=2.0,
-            model_size="xlarge"
-        )
+        config = EEGPTConfig(max_channels=32, window_duration=2.0, model_size="xlarge")
 
         assert config.max_channels == 32
         assert config.window_duration == 2.0

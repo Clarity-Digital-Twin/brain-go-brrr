@@ -1,6 +1,5 @@
 """Tests for sleep analysis functionality."""
 
-
 import mne
 import numpy as np
 import pytest
@@ -41,30 +40,34 @@ class TestSleepAnalyzer:
         for ch in range(n_channels):
             # Base theta activity
             theta_freq = 6 + np.random.rand()
-            data[ch, n2_start:n2_end] = 0.5 * np.sin(2 * np.pi * theta_freq * times[:n2_end-n2_start])
+            data[ch, n2_start:n2_end] = 0.5 * np.sin(
+                2 * np.pi * theta_freq * times[: n2_end - n2_start]
+            )
 
             # Add sleep spindles (12-14 Hz bursts)
             for _ in range(5):  # 5 spindles
-                spindle_start = n2_start + np.random.randint(0, n2_end - n2_start - sfreq*2)
+                spindle_start = n2_start + np.random.randint(0, n2_end - n2_start - sfreq * 2)
                 spindle_duration = int(0.5 * sfreq + np.random.rand() * sfreq)  # 0.5-1.5 seconds
                 spindle_freq = 13 + np.random.rand()
                 spindle_envelope = np.hanning(spindle_duration)
-                spindle = spindle_envelope * np.sin(2 * np.pi * spindle_freq * times[:spindle_duration])
-                data[ch, spindle_start:spindle_start+spindle_duration] += spindle
+                spindle = spindle_envelope * np.sin(
+                    2 * np.pi * spindle_freq * times[:spindle_duration]
+                )
+                data[ch, spindle_start : spindle_start + spindle_duration] += spindle
 
         # Last 10 minutes: N3 (slow wave sleep)
         n3_start = n2_end
         for ch in range(n_channels):
             delta_freq = 1 + np.random.rand() * 2  # 1-3 Hz
-            data[ch, n3_start:] = 2 * np.sin(2 * np.pi * delta_freq * times[:n_samples-n3_start])
+            data[ch, n3_start:] = 2 * np.sin(2 * np.pi * delta_freq * times[: n_samples - n3_start])
             data[ch, n3_start:] += 0.3 * np.random.randn(n_samples - n3_start)
 
         # Scale to microvolts
         data *= 50  # ~50 µV amplitude
 
         # Create channel names
-        ch_names = ['C3', 'C4', 'F3', 'F4', 'O1', 'O2']
-        ch_types = ['eeg'] * n_channels
+        ch_names = ["C3", "C4", "F3", "F4", "O1", "O2"]
+        ch_types = ["eeg"] * n_channels
 
         # Create info
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
@@ -82,19 +85,19 @@ class TestSleepAnalyzer:
     def test_controller_initialization(self, sleep_controller):
         """Test that controller initializes properly."""
         assert sleep_controller is not None
-        assert hasattr(sleep_controller, 'run_full_sleep_analysis')
+        assert hasattr(sleep_controller, "run_full_sleep_analysis")
 
     def test_sleep_staging_returns_hypnogram(self, sleep_controller, mock_eeg_data):
         """Test that sleep staging returns a valid hypnogram."""
         results = sleep_controller.run_full_sleep_analysis(mock_eeg_data)
 
-        assert 'hypnogram' in results
-        assert 'sleep_statistics' in results
-        assert 'quality_metrics' in results
-        assert 'analysis_info' in results
+        assert "hypnogram" in results
+        assert "sleep_statistics" in results
+        assert "quality_metrics" in results
+        assert "analysis_info" in results
 
         # Check hypnogram properties
-        hypnogram = results['hypnogram']
+        hypnogram = results["hypnogram"]
         assert isinstance(hypnogram, list | np.ndarray)
         assert len(hypnogram) == 60  # 30 minutes = 60 epochs of 30 seconds
 
@@ -105,7 +108,7 @@ class TestSleepAnalyzer:
             assert all(isinstance(stage, int | float) for stage in hypnogram)
         else:
             # String stages like 'W', 'N1', 'N2', 'N3', 'R'
-            valid_stages = ['W', 'N1', 'N2', 'N3', 'R', 'REM', 'Wake']
+            valid_stages = ["W", "N1", "N2", "N3", "R", "REM", "Wake"]
             assert all(stage in valid_stages for stage in hypnogram)
 
     def test_sleep_metrics_calculation(self, sleep_controller, mock_eeg_data):
@@ -113,30 +116,30 @@ class TestSleepAnalyzer:
         results = sleep_controller.run_full_sleep_analysis(mock_eeg_data)
 
         # Check quality metrics
-        quality = results['quality_metrics']
-        assert 'sleep_efficiency' in quality
-        efficiency = quality['sleep_efficiency']
+        quality = results["quality_metrics"]
+        assert "sleep_efficiency" in quality
+        efficiency = quality["sleep_efficiency"]
         assert 0 <= efficiency <= 100
 
         # Check sleep statistics
-        stats = results['sleep_statistics']
-        assert 'TST' in stats  # Total Sleep Time in YASA format
-        tst = stats['TST']
+        stats = results["sleep_statistics"]
+        assert "TST" in stats  # Total Sleep Time in YASA format
+        tst = stats["TST"]
         assert tst >= 0
         assert tst <= 30  # Can't exceed recording duration
 
         # Check stage percentages (YASA format)
         # Wake may not be present if not detected
-        assert '%N1' in stats
-        assert '%N2' in stats
-        assert '%N3' in stats
-        assert '%REM' in stats
-        assert '%NREM' in stats  # Combined N1+N2+N3
+        assert "%N1" in stats
+        assert "%N2" in stats
+        assert "%N3" in stats
+        assert "%REM" in stats
+        assert "%NREM" in stats  # Combined N1+N2+N3
 
         # Custom stats should be added
-        assert 'total_epochs' in stats
-        assert 'total_recording_time' in stats
-        assert 'stage_percentages' in stats
+        assert "total_epochs" in stats
+        assert "total_recording_time" in stats
+        assert "stage_percentages" in stats
 
     def test_sleep_staging_detects_wake(self, sleep_controller):
         """Test that controller correctly identifies wake state."""
@@ -150,14 +153,14 @@ class TestSleepAnalyzer:
         data += 0.1 * np.random.randn(*data.shape)
         data *= 30  # 30 µV
 
-        info = mne.create_info(['C3'], sfreq=sfreq, ch_types=['eeg'])
+        info = mne.create_info(["C3"], sfreq=sfreq, ch_types=["eeg"])
         raw = mne.io.RawArray(data, info)
 
         results = sleep_controller.run_full_sleep_analysis(raw)
-        hypnogram = results['hypnogram']
+        hypnogram = results["hypnogram"]
 
         # Most epochs should be wake ('W')
-        wake_epochs = sum(1 for stage in hypnogram if stage == 'W')
+        wake_epochs = sum(1 for stage in hypnogram if stage == "W")
         # YASA may not perfectly detect wake from synthetic data, be more lenient
         assert wake_epochs >= 0  # At least some wake detected or none
 
@@ -173,14 +176,14 @@ class TestSleepAnalyzer:
         data += 0.05 * np.random.randn(*data.shape)
         data *= 75  # 75 µV (high amplitude)
 
-        info = mne.create_info(['C3'], sfreq=sfreq, ch_types=['eeg'])
+        info = mne.create_info(["C3"], sfreq=sfreq, ch_types=["eeg"])
         raw = mne.io.RawArray(data, info)
 
         results = sleep_controller.run_full_sleep_analysis(raw)
-        hypnogram = results['hypnogram']
+        hypnogram = results["hypnogram"]
 
         # Most epochs should be N3 ('N3')
-        n3_epochs = sum(1 for stage in hypnogram if stage == 'N3')
+        n3_epochs = sum(1 for stage in hypnogram if stage == "N3")
         # YASA may not perfectly detect N3 from synthetic data, be more lenient
         assert n3_epochs >= 0  # At least some N3 detected or none
 
@@ -191,15 +194,15 @@ class TestSleepAnalyzer:
         duration = 20
         data = np.random.randn(1, sfreq * duration) * 30
 
-        info = mne.create_info(['C3'], sfreq=sfreq, ch_types=['eeg'])
+        info = mne.create_info(["C3"], sfreq=sfreq, ch_types=["eeg"])
         raw = mne.io.RawArray(data, info)
 
         results = sleep_controller.run_full_sleep_analysis(raw)
 
         # Should handle gracefully - may return empty hypnogram
-        assert 'hypnogram' in results
+        assert "hypnogram" in results
         # Short recordings may not produce valid hypnogram
-        assert isinstance(results['hypnogram'], list)
+        assert isinstance(results["hypnogram"], list)
 
     def test_handles_missing_channels(self, sleep_controller):
         """Test that controller handles recordings without standard channels."""
@@ -208,20 +211,23 @@ class TestSleepAnalyzer:
         duration = 60
         data = np.random.randn(1, sfreq * duration) * 30
 
-        info = mne.create_info(['Fpz'], sfreq=sfreq, ch_types=['eeg'])
+        info = mne.create_info(["Fpz"], sfreq=sfreq, ch_types=["eeg"])
         raw = mne.io.RawArray(data, info)
 
         results = sleep_controller.run_full_sleep_analysis(raw)
 
         # Should still produce results
-        assert 'hypnogram' in results
-        assert results['hypnogram'] is not None
+        assert "hypnogram" in results
+        assert results["hypnogram"] is not None
 
-    @pytest.mark.parametrize("n_channels,expected_channels", [
-        (1, ['C3']),
-        (2, ['C3', 'C4']),
-        (6, ['C3', 'C4', 'F3', 'F4', 'O1', 'O2']),
-    ])
+    @pytest.mark.parametrize(
+        "n_channels,expected_channels",
+        [
+            (1, ["C3"]),
+            (2, ["C3", "C4"]),
+            (6, ["C3", "C4", "F3", "F4", "O1", "O2"]),
+        ],
+    )
     def test_channel_selection(self, sleep_controller, n_channels, expected_channels):
         """Test that controller selects appropriate channels."""
         # Create data with varying channel counts
@@ -230,15 +236,15 @@ class TestSleepAnalyzer:
         data = np.random.randn(n_channels, sfreq * duration) * 30
 
         ch_names = expected_channels[:n_channels]
-        info = mne.create_info(ch_names, sfreq=sfreq, ch_types=['eeg'] * n_channels)
+        info = mne.create_info(ch_names, sfreq=sfreq, ch_types=["eeg"] * n_channels)
         raw = mne.io.RawArray(data, info)
 
         # Process and check that it works
         results = sleep_controller.run_full_sleep_analysis(raw)
-        assert 'hypnogram' in results
+        assert "hypnogram" in results
         # Check analysis info instead of processing_info
-        assert 'analysis_info' in results
+        assert "analysis_info" in results
         # Channels used info is in staging_results
-        assert 'staging_results' in results
-        if 'channels_used' in results['staging_results']:
-            assert results['staging_results']['channels_used']['eeg'] in ch_names
+        assert "staging_results" in results
+        if "channels_used" in results["staging_results"]:
+            assert results["staging_results"]["channels_used"]["eeg"] in ch_names

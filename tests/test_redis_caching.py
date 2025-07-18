@@ -31,35 +31,47 @@ class TestRedisCaching:
         mock_client.info = Mock(return_value={})
         mock_client.dbsize = Mock(return_value=0)
         mock_client.connected = True
-        mock_client.get_stats = Mock(return_value={'connected': True, 'memory_usage': 'N/A', 'total_keys': 0, 'hit_rate': 0.0})
+        mock_client.get_stats = Mock(
+            return_value={
+                "connected": True,
+                "memory_usage": "N/A",
+                "total_keys": 0,
+                "hit_rate": 0.0,
+            }
+        )
         mock_client.clear_pattern = Mock(return_value=0)
 
         # Mock the generate_cache_key method
-        mock_client.generate_cache_key = Mock(side_effect=lambda content, analysis_type: f"eeg_analysis:{hashlib.sha256(content).hexdigest()}:{analysis_type}")
+        mock_client.generate_cache_key = Mock(
+            side_effect=lambda content,
+            analysis_type: f"eeg_analysis:{hashlib.sha256(content).hexdigest()}:{analysis_type}"
+        )
 
-        with patch('api.cache.get_cache', return_value=mock_client):
+        with patch("api.cache.get_cache", return_value=mock_client):
             yield mock_client
 
     @pytest.fixture
     def mock_qc_controller(self):
         """Mock the QC controller."""
-        with patch('api.main.EEGQualityController') as mock_class:
+        with patch("api.main.EEGQualityController") as mock_class:
             mock_controller = Mock()
             mock_controller.eegpt_model = Mock()
-            mock_controller.run_full_qc_pipeline = Mock(return_value={
-                'quality_metrics': {
-                    'bad_channels': ['T3'],
-                    'bad_channel_ratio': 0.05,
-                    'abnormality_score': 0.3,
-                    'quality_grade': 'GOOD',
-                },
-                'processing_info': {
-                    'confidence': 0.85,
-                    'channels_used': 19,
-                    'duration_seconds': 300
-                },
-                'processing_time': 2.5
-            })
+            mock_controller.run_full_qc_pipeline = Mock(
+                return_value={
+                    "quality_metrics": {
+                        "bad_channels": ["T3"],
+                        "bad_channel_ratio": 0.05,
+                        "abnormality_score": 0.3,
+                        "quality_grade": "GOOD",
+                    },
+                    "processing_info": {
+                        "confidence": 0.85,
+                        "channels_used": 19,
+                        "duration_seconds": 300,
+                    },
+                    "processing_time": 2.5,
+                }
+            )
             mock_class.return_value = mock_controller
             yield mock_controller
 
@@ -88,16 +100,16 @@ class TestRedisCaching:
         n_channels = 3
         data = np.random.randn(n_channels, sfreq * duration) * 10
 
-        ch_names = ['C3', 'C4', 'Cz']
-        ch_types = ['eeg'] * n_channels
+        ch_names = ["C3", "C4", "Cz"]
+        ch_types = ["eeg"] * n_channels
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
 
         # Export to temporary file then read bytes
-        with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
             tmp_path = tmp_file.name
             raw._data = raw._data / 1e6  # Scale data
-            raw.export(tmp_path, fmt='edf', physical_range=(-200, 200), overwrite=True)
+            raw.export(tmp_path, fmt="edf", physical_range=(-200, 200), overwrite=True)
 
             # Read the file content
             content = Path(tmp_path).read_bytes()
@@ -107,32 +119,34 @@ class TestRedisCaching:
 
         return content
 
-    def test_cache_hit_on_repeated_analysis(self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller):
+    def test_cache_hit_on_repeated_analysis(
+        self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller
+    ):
         """Test that repeated analysis uses cache instead of reprocessing."""
         # Setup cache to return cached result on second call
         cached_result = {
-            'status': 'success',
-            'bad_channels': ['T3'],
-            'bad_pct': 5.0,
-            'abnormal_prob': 0.3,
-            'flag': 'ROUTINE - Standard workflow',
-            'confidence': 0.85,
-            'processing_time': 0.01,  # Very fast from cache
-            'quality_grade': 'GOOD',
-            'timestamp': '2025-07-18T10:00:00Z',
-            'cached': True
+            "status": "success",
+            "bad_channels": ["T3"],
+            "bad_pct": 5.0,
+            "abnormal_prob": 0.3,
+            "flag": "ROUTINE - Standard workflow",
+            "confidence": 0.85,
+            "processing_time": 0.01,  # Very fast from cache
+            "quality_grade": "GOOD",
+            "timestamp": "2025-07-18T10:00:00Z",
+            "cached": True,
         }
 
         # First call: no cache
         mock_redis_client.get.return_value = None
 
         # Make first request
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response1.status_code == 200
         result1 = response1.json()
-        assert 'cached' not in result1 or result1.get('cached') is False
+        assert "cached" not in result1 or result1.get("cached") is False
 
         # Verify cache was set
         mock_redis_client.set.assert_called_once()
@@ -142,13 +156,13 @@ class TestRedisCaching:
         mock_qc_controller.run_full_qc_pipeline.reset_mock()
 
         # Make second request with same file
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response2.status_code == 200
         result2 = response2.json()
-        assert result2.get('cached') is True
-        assert result2['processing_time'] < 0.1  # Should be very fast
+        assert result2.get("cached") is True
+        assert result2["processing_time"] < 0.1  # Should be very fast
 
         # Verify QC controller was NOT called for cached result
         mock_qc_controller.run_full_qc_pipeline.assert_not_called()
@@ -160,7 +174,7 @@ class TestRedisCaching:
         expected_key_prefix = f"eeg_analysis:{file_hash}"
 
         # Make request
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -173,7 +187,7 @@ class TestRedisCaching:
     def test_cache_expiration(self, client_with_cache, sample_edf_content, mock_redis_client):
         """Test that cache entries expire after TTL."""
         # Make request
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -190,11 +204,11 @@ class TestRedisCaching:
         content2 = b"EDF file content 2"
 
         # Request 1
-        files1 = {'file': ('test1.edf', content1, 'application/octet-stream')}
+        files1 = {"file": ("test1.edf", content1, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files1)
 
         # Request 2
-        files2 = {'file': ('test2.edf', content2, 'application/octet-stream')}
+        files2 = {"file": ("test2.edf", content2, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files2)
 
         # Both should succeed
@@ -205,30 +219,34 @@ class TestRedisCaching:
         call_args = [call[0][0] for call in mock_redis_client.get.call_args_list]
         assert len(set(call_args)) >= 2  # At least 2 different keys
 
-    def test_cache_disabled_when_redis_unavailable(self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller):
+    def test_cache_disabled_when_redis_unavailable(
+        self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller
+    ):
         """Test graceful degradation when Redis is unavailable."""
         # Make Redis operations fail
         mock_redis_client.get.side_effect = redis.ConnectionError("Redis unavailable")
         mock_redis_client.set.side_effect = redis.ConnectionError("Redis unavailable")
 
         # Request should still work
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
         result = response.json()
-        assert result['status'] == 'success'
+        assert result["status"] == "success"
 
         # Verify QC controller was called (no cache)
         mock_qc_controller.run_full_qc_pipeline.assert_called_once()
 
-    def test_cache_performance_improvement(self, client_with_cache, sample_edf_content, mock_redis_client):
+    def test_cache_performance_improvement(
+        self, client_with_cache, sample_edf_content, mock_redis_client
+    ):
         """Test that cache significantly improves performance."""
         # First request (no cache)
         mock_redis_client.get.return_value = None
 
         start_time = time.time()
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
         uncached_time = time.time() - start_time
 
@@ -236,13 +254,13 @@ class TestRedisCaching:
 
         # Setup cache hit
         cached_result = response1.json()
-        cached_result['cached'] = True
-        cached_result['processing_time'] = 0.001
+        cached_result["cached"] = True
+        cached_result["processing_time"] = 0.001
         mock_redis_client.get.return_value = cached_result  # Return dict directly
 
         # Second request (with cache)
         start_time = time.time()
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
         cached_time = time.time() - start_time
 
@@ -256,12 +274,12 @@ class TestRedisCaching:
         # Setup mock statistics
         # Mock the get_stats method to return expected stats
         mock_redis_client.get_stats.return_value = {
-            'connected': True,
-            'memory_usage': '12.5M',
-            'total_keys': 25,
-            'hit_rate': 0.9,
-            'keyspace_hits': 450,
-            'keyspace_misses': 50
+            "connected": True,
+            "memory_usage": "12.5M",
+            "total_keys": 25,
+            "hit_rate": 0.9,
+            "keyspace_hits": 450,
+            "keyspace_misses": 50,
         }
 
         response = client_with_cache.get("/api/v1/cache/stats")
@@ -269,19 +287,23 @@ class TestRedisCaching:
         assert response.status_code == 200
         stats = response.json()
 
-        assert 'memory_usage' in stats
-        assert 'total_keys' in stats
-        assert 'hit_rate' in stats
-        assert stats['hit_rate'] == 0.9  # 450/(450+50)
+        assert "memory_usage" in stats
+        assert "total_keys" in stats
+        assert "hit_rate" in stats
+        assert stats["hit_rate"] == 0.9  # 450/(450+50)
 
     @pytest.mark.parametrize("analysis_type", ["standard", "detailed"])
-    def test_cache_works_for_different_endpoints(self, client_with_cache, sample_edf_content, mock_redis_client, analysis_type):
+    def test_cache_works_for_different_endpoints(
+        self, client_with_cache, sample_edf_content, mock_redis_client, analysis_type
+    ):
         """Test that caching works for both standard and detailed analysis endpoints."""
-        endpoint = "/api/v1/eeg/analyze" if analysis_type == "standard" else "/api/v1/eeg/analyze/detailed"
+        endpoint = (
+            "/api/v1/eeg/analyze" if analysis_type == "standard" else "/api/v1/eeg/analyze/detailed"
+        )
 
         # First request
         mock_redis_client.get.return_value = None
-        files = {'file': ('test.edf', sample_edf_content, 'application/octet-stream')}
+        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post(endpoint, files=files)
         assert response1.status_code == 200
 
@@ -295,15 +317,15 @@ class TestRedisCaching:
 
         # Import auth utils to generate valid token
         from api.auth import create_cache_clear_token
+
         token = create_cache_clear_token()
 
         # Clear cache with valid HMAC token
-        response = client_with_cache.delete("/api/v1/cache/clear",
-                                          headers={"Authorization": token})
+        response = client_with_cache.delete("/api/v1/cache/clear", headers={"Authorization": token})
 
         assert response.status_code == 200
         result = response.json()
-        assert result['keys_deleted'] == 2
+        assert result["keys_deleted"] == 2
 
         # Verify clear_pattern was called
         mock_redis_client.clear_pattern.assert_called_with("eeg_analysis:*")
@@ -311,10 +333,11 @@ class TestRedisCaching:
     def test_cache_warmup_from_common_files(self, client_with_cache, mock_redis_client):
         """Test cache warmup functionality for common test files."""
         # Endpoint to pre-warm cache with common test files
-        response = client_with_cache.post("/api/v1/cache/warmup",
-                                         json={"file_patterns": ["sleep-*.edf"]})
+        response = client_with_cache.post(
+            "/api/v1/cache/warmup", json={"file_patterns": ["sleep-*.edf"]}
+        )
 
         assert response.status_code == 200
         result = response.json()
-        assert 'files_cached' in result
-        assert result['files_cached'] >= 0  # May be 0 if no files match
+        assert "files_cached" in result
+        assert result["files_cached"] >= 0  # May be 0 if no files match

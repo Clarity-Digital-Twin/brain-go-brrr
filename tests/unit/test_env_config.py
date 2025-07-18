@@ -30,6 +30,7 @@ class TestEnvironmentConfig:
             import importlib
 
             import api.main
+
             importlib.reload(api.main)
 
             from api.main import EEGPT_MODEL_PATH
@@ -43,6 +44,7 @@ class TestEnvironmentConfig:
             import importlib
 
             import api.main
+
             importlib.reload(api.main)
 
             from api.main import EEGPT_MODEL_PATH

@@ -38,9 +38,10 @@ class TestEEGPTModelLoading:
         checkpoint_path = Path("mock_checkpoint.ckpt")
 
         # Mock the path exists check and create_eegpt_model function
-        with patch.object(Path, 'exists', return_value=True), \
-             patch('brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
-
+        with (
+            patch.object(Path, "exists", return_value=True),
+            patch("brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create,
+        ):
             mock_encoder = MagicMock()
             mock_create.return_value = mock_encoder
 
@@ -65,7 +66,7 @@ class TestEEGPTModelLoading:
         with pytest.raises(FileNotFoundError):
             model.load_model()
 
-    @patch('brain_go_brrr.models.eegpt_architecture.EEGTransformer')
+    @patch("brain_go_brrr.models.eegpt_architecture.EEGTransformer")
     def test_model_architecture_initialization(self, mock_transformer):
         """Test that the model architecture is initialized correctly."""
         # Given: A mock transformer
@@ -84,17 +85,21 @@ class TestEEGPTModelLoading:
 
         # When: We try to extract features
         import numpy as np
+
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
 
         # The model should auto-load if not loaded
-        with patch('brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
+        with patch("brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
             mock_encoder = MagicMock()
             mock_encoder.prepare_chan_ids.return_value = torch.tensor([0] * 19)
-            mock_encoder.return_value = torch.randn(1, 4, 512)  # Mock features
+            # Mock features for all patches (16 patches * 19 channels = 304 total)
+            mock_encoder.return_value = torch.randn(
+                1, 304, 512
+            )  # batch, patches*channels, embed_dim
             mock_create.return_value = mock_encoder
 
-            with patch.object(Path, 'exists', return_value=True):
+            with patch.object(Path, "exists", return_value=True):
                 features = model.extract_features(data, channel_names)
 
         # Then: Features should be extracted (model auto-loaded)
@@ -106,20 +111,21 @@ class TestEEGPTModelLoading:
         model = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
 
         # Mock the model loading
-        with patch('brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
+        with patch("brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
             mock_encoder = MagicMock()
             mock_encoder.prepare_chan_ids.return_value = torch.tensor([0] * 19)
-            # Return a tensor that can be squeezed and converted to numpy
-            mock_tensor = MagicMock()
-            mock_tensor.squeeze.return_value.cpu.return_value.numpy.return_value = np.random.randn(4, 512)
-            mock_encoder.return_value = mock_tensor
+            # Mock features for all patches (16 patches * 19 channels = 304 total)
+            mock_encoder.return_value = torch.randn(
+                1, 304, 512
+            )  # batch, patches*channels, embed_dim
             mock_create.return_value = mock_encoder
 
-            with patch.object(Path, 'exists', return_value=True):
+            with patch.object(Path, "exists", return_value=True):
                 model.load_model()
 
         # When: We extract features
         import numpy as np
+
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
         features = model.extract_features(data, channel_names)

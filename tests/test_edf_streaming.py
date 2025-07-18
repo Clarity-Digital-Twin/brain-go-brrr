@@ -1,6 +1,5 @@
 """Tests for EDF streaming utilities."""
 
-
 import mne
 import numpy as np
 import pytest
@@ -25,15 +24,15 @@ class TestEDFStreamer:
 
         data = np.random.randn(n_channels, sfreq * duration) * 50
 
-        ch_names = [f'EEG{i:03d}' for i in range(n_channels)]
-        ch_types = ['eeg'] * n_channels
+        ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
+        ch_types = ["eeg"] * n_channels
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
 
         edf_path = tmp_path / "test_small.edf"
         # Scale data for EDF export
         raw._data = raw._data / 1e6
-        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
+        raw.export(edf_path, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         return edf_path
 
@@ -46,8 +45,8 @@ class TestEDFStreamer:
 
         # Don't actually create all data at once to save test memory
         # Just create metadata
-        ch_names = [f'EEG{i:03d}' for i in range(n_channels)]
-        ch_types = ['eeg'] * n_channels
+        ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
+        ch_types = ["eeg"] * n_channels
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
         # Create file in chunks to avoid memory issues in tests
@@ -57,7 +56,7 @@ class TestEDFStreamer:
         chunk_data = np.random.randn(n_channels, sfreq * 60) * 50  # 1 minute
         raw = mne.io.RawArray(chunk_data, info)
         raw._data = raw._data / 1e6
-        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
+        raw.export(edf_path, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         return edf_path
 
@@ -111,10 +110,9 @@ class TestEDFStreamer:
         overlap = 0.5  # 50% overlap
 
         with EDFStreamer(small_edf_file, chunk_duration=30.0) as streamer:
-            windows = list(streamer.process_in_windows(
-                window_duration=window_duration,
-                overlap=overlap
-            ))
+            windows = list(
+                streamer.process_in_windows(window_duration=window_duration, overlap=overlap)
+            )
 
         # With 50% overlap and 2s steps: (59.996 - 4.0) / 2.0 + 1 ≈ 28 windows
         assert len(windows) >= 27
@@ -128,10 +126,10 @@ class TestEDFStreamer:
         """Test getting file info without loading data."""
         info = EDFStreamer(small_edf_file).get_info()
 
-        assert info['n_channels'] == 19
-        assert info['sampling_rate'] == 256
-        assert info['duration'] == pytest.approx(60.0, rel=0.1)
-        assert len(info['channel_names']) == 19
+        assert info["n_channels"] == 19
+        assert info["sampling_rate"] == 256
+        assert info["duration"] == pytest.approx(60.0, rel=0.1)
+        assert len(info["channel_names"]) == 19
 
     def test_invalid_overlap(self, small_edf_file):
         """Test error handling for invalid overlap."""
@@ -156,29 +154,29 @@ class TestMemoryEstimation:
 
         data = np.random.randn(n_channels, n_samples).astype(np.float64)
         info = mne.create_info(
-            ch_names=[f'CH{i}' for i in range(n_channels)],
+            ch_names=[f"CH{i}" for i in range(n_channels)],
             sfreq=sfreq,
-            ch_types=['eeg'] * n_channels
+            ch_types=["eeg"] * n_channels,
         )
         raw = mne.io.RawArray(data, info)
 
         edf_path = tmp_path / "test_memory.edf"
         raw._data = raw._data / 1e6
-        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
+        raw.export(edf_path, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         # Test estimation
         estimate = estimate_memory_usage(edf_path, preload=True)
 
         # Raw data size: 19 * 15360 * 8 bytes = 2.34 MB
         expected_raw_mb = (n_channels * n_samples * 8) / (1024 * 1024)
-        assert estimate['raw_data_mb'] == pytest.approx(expected_raw_mb, rel=0.01)
+        assert estimate["raw_data_mb"] == pytest.approx(expected_raw_mb, rel=0.01)
 
         # With overhead
-        assert estimate['estimated_total_mb'] > estimate['raw_data_mb']
+        assert estimate["estimated_total_mb"] > estimate["raw_data_mb"]
 
         # Without preload
         estimate_no_preload = estimate_memory_usage(edf_path, preload=False)
-        assert estimate_no_preload['estimated_total_mb'] < estimate['estimated_total_mb']
+        assert estimate_no_preload["estimated_total_mb"] < estimate["estimated_total_mb"]
 
     def test_process_large_edf_streaming_decision(self, tmp_path):
         """Test that large files trigger streaming mode."""
@@ -189,22 +187,22 @@ class TestMemoryEstimation:
 
         data = np.random.randn(n_channels, sfreq * duration) * 50
         info = mne.create_info(
-            ch_names=[f'CH{i}' for i in range(n_channels)],
+            ch_names=[f"CH{i}" for i in range(n_channels)],
             sfreq=sfreq,
-            ch_types=['eeg'] * n_channels
+            ch_types=["eeg"] * n_channels,
         )
         raw = mne.io.RawArray(data, info)
 
         edf_path = tmp_path / "test_large.edf"
         raw._data = raw._data / 1e6
-        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
+        raw.export(edf_path, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         # Process with low memory limit
         results = process_large_edf(edf_path, max_memory_mb=5.0)
 
         # Should use streaming for this "large" file
-        assert results['used_streaming'] is True
-        assert results['chunks_processed'] > 0
+        assert results["used_streaming"] is True
+        assert results["chunks_processed"] > 0
 
     def test_process_small_edf_no_streaming(self, tmp_path):
         """Test that small files don't trigger streaming."""
@@ -215,19 +213,19 @@ class TestMemoryEstimation:
 
         data = np.random.randn(n_channels, sfreq * duration) * 50
         info = mne.create_info(
-            ch_names=[f'CH{i}' for i in range(n_channels)],
+            ch_names=[f"CH{i}" for i in range(n_channels)],
             sfreq=sfreq,
-            ch_types=['eeg'] * n_channels
+            ch_types=["eeg"] * n_channels,
         )
         raw = mne.io.RawArray(data, info)
 
         edf_path = tmp_path / "test_tiny.edf"
         raw._data = raw._data / 1e6
-        raw.export(edf_path, fmt='edf', overwrite=True, physical_range=(-200, 200))
+        raw.export(edf_path, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         # Process with high memory limit
         results = process_large_edf(edf_path, max_memory_mb=1000.0)
 
         # Should not use streaming
-        assert results['used_streaming'] is False
-        assert results['chunks_processed'] == 1
+        assert results["used_streaming"] is False
+        assert results["chunks_processed"] == 1

@@ -23,12 +23,8 @@ def train(
     config_file: Path | None = typer.Option(
         None, "--config", "-c", help="Path to configuration file"
     ),
-    data_path: Path | None = typer.Option(
-        None, "--data", "-d", help="Path to training data"
-    ),
-    output_dir: Path | None = typer.Option(
-        None, "--output", "-o", help="Output directory"
-    ),
+    data_path: Path | None = typer.Option(None, "--data", "-d", help="Path to training data"),
+    output_dir: Path | None = typer.Option(None, "--output", "-o", help="Output directory"),
     debug: bool = typer.Option(False, "--debug", help="Enable debug mode"),
 ) -> None:
     """Train an EEGPT model."""
@@ -108,6 +104,7 @@ def serve(
 def version() -> None:
     """Show version information."""
     from brain_go_brrr import __version__
+
     console.print(f"Brain Go Brrr version: [bold blue]{__version__}[/bold blue]")
 
 

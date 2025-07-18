@@ -53,10 +53,29 @@ def mock_eeg_data():
     n_channels = 19
     n_times = int(sfreq * duration)
 
-    ch_names = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-                'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
+    ch_names = [
+        "Fp1",
+        "Fp2",
+        "F3",
+        "F4",
+        "C3",
+        "C4",
+        "P3",
+        "P4",
+        "O1",
+        "O2",
+        "F7",
+        "F8",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "Fz",
+        "Cz",
+        "Pz",
+    ]
 
     data = np.random.randn(n_channels, n_times) * 20e-6  # ~20 μV
 
-    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     return mne.io.RawArray(data, info)

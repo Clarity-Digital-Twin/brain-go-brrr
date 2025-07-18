@@ -12,8 +12,10 @@ class ModelConfig(BaseModel):
 
     # EEGPT Model
     model_path: Path = Field(
-        default_factory=lambda: Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"),
-        description="Path to EEGPT pretrained checkpoint"
+        default_factory=lambda: Path(
+            "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+        ),
+        description="Path to EEGPT pretrained checkpoint",
     )
     device: str = Field(default="auto", description="Device for model inference (auto, cpu, cuda)")
     batch_size: int = Field(default=8, description="Batch size for inference")
@@ -26,7 +28,9 @@ class ModelConfig(BaseModel):
     embed_dim: int = Field(default=512, description="Embedding dimension")
 
     # Streaming configuration
-    streaming_threshold: float = Field(default=120.0, description="Duration threshold for streaming (seconds)")
+    streaming_threshold: float = Field(
+        default=120.0, description="Duration threshold for streaming (seconds)"
+    )
     window_overlap: float = Field(default=0.5, description="Window overlap ratio for streaming")
 
     @property
@@ -127,6 +131,7 @@ class Config(BaseSettings):
 
     class Config:
         """Pydantic configuration class."""
+
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False

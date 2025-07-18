@@ -51,6 +51,7 @@ class TestLoggerSingleton:
         # Simulate repeated imports
         for _ in range(3):
             from src.brain_go_brrr.core.logger import get_logger as get_logger_again
+
             logger = get_logger_again("test_import_duplication")
 
         # Should still have only one set of handlers
@@ -78,10 +79,7 @@ class TestLoggerSingleton:
             log_file = Path(temp_dir) / "test_logs" / "test.log"
 
             logger = get_logger(
-                "test_file_handler",
-                level="INFO",
-                log_file=log_file,
-                rich_console=True
+                "test_file_handler", level="INFO", log_file=log_file, rich_console=True
             )
 
             # Should have 2 handlers: console + file
@@ -112,7 +110,7 @@ class TestLoggerSingleton:
                 "test_all_options",
                 level="WARNING",
                 log_file=log_file,
-                rich_console=False  # Use standard console
+                rich_console=False,  # Use standard console
             )
 
             # Should have 2 handlers
@@ -136,10 +134,7 @@ class TestLoggerSingleton:
             # Nested path that doesn't exist
             log_file = Path(temp_dir) / "deep" / "nested" / "path" / "test.log"
 
-            logger = get_logger(
-                "test_mkdir",
-                log_file=log_file
-            )
+            logger = get_logger("test_mkdir", log_file=log_file)
 
             # Parent directories should be created
             assert log_file.parent.exists()

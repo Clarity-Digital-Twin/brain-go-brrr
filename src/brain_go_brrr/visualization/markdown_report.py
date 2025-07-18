@@ -97,14 +97,14 @@ class MarkdownReportGenerator:
 
     def _create_warning_banner(self, results: dict[str, Any]) -> str | None:
         """Create warning banner for abnormal EEGs."""
-        quality_metrics = results.get('quality_metrics', {})
-        abnormality_score = quality_metrics.get('abnormality_score', 0)
-        quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+        quality_metrics = results.get("quality_metrics", {})
+        abnormality_score = quality_metrics.get("abnormality_score", 0)
+        quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
-        if abnormality_score > 0.8 or quality_grade == 'POOR':
+        if abnormality_score > 0.8 or quality_grade == "POOR":
             emoji = get_triage_emoji("URGENT")
             return f"> {emoji} **URGENT - Expedite read**\n> \n> This EEG shows significant abnormalities and requires immediate review."
-        elif abnormality_score > 0.6 or quality_grade == 'FAIR':
+        elif abnormality_score > 0.6 or quality_grade == "FAIR":
             emoji = get_triage_emoji("EXPEDITE")
             return f"> {emoji} **EXPEDITE - Priority review recommended**\n> \n> This EEG shows moderate abnormalities."
         elif abnormality_score > 0.4:
@@ -116,7 +116,7 @@ class MarkdownReportGenerator:
 
     def _create_file_info(self, results: dict[str, Any]) -> str:
         """Create file information section."""
-        processing_info = results.get('processing_info', {})
+        processing_info = results.get("processing_info", {})
 
         lines = ["## File Information"]
         lines.append("")
@@ -129,18 +129,18 @@ class MarkdownReportGenerator:
 
     def _create_summary_stats(self, results: dict[str, Any]) -> str:
         """Create summary statistics section."""
-        quality_metrics = results.get('quality_metrics', {})
+        quality_metrics = results.get("quality_metrics", {})
 
         lines = ["## Summary Statistics"]
         lines.append("")
 
-        bad_channels = quality_metrics.get('bad_channels', [])
-        bad_ratio = quality_metrics.get('bad_channel_ratio', 0)
-        abnormality = quality_metrics.get('abnormality_score', 0)
-        quality_grade = quality_metrics.get('quality_grade', 'UNKNOWN')
+        bad_channels = quality_metrics.get("bad_channels", [])
+        bad_ratio = quality_metrics.get("bad_channel_ratio", 0)
+        abnormality = quality_metrics.get("abnormality_score", 0)
+        quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
 
         lines.append(f"- **Quality Grade**: {quality_grade}")
-        lines.append(f"- **Bad Channels**: {len(bad_channels)} ({bad_ratio*100:.1f}%)")
+        lines.append(f"- **Bad Channels**: {len(bad_channels)} ({bad_ratio * 100:.1f}%)")
         lines.append(f"- **Abnormality Score**: {abnormality:.2f}")
 
         if bad_channels:
@@ -150,9 +150,9 @@ class MarkdownReportGenerator:
 
     def _create_channel_quality(self, results: dict[str, Any]) -> str:
         """Create channel quality table."""
-        quality_metrics = results.get('quality_metrics', {})
-        bad_channels = set(quality_metrics.get('bad_channels', []))
-        channel_positions = quality_metrics.get('channel_positions', {})
+        quality_metrics = results.get("quality_metrics", {})
+        bad_channels = set(quality_metrics.get("bad_channels", []))
+        channel_positions = quality_metrics.get("channel_positions", {})
 
         lines = ["## Channel Quality"]
         lines.append("")
@@ -164,8 +164,27 @@ class MarkdownReportGenerator:
             channels = sorted(channel_positions.keys())
         else:
             # Use a standard set of channels
-            channels = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4',
-                       'O1', 'O2', 'T3', 'T4', 'F7', 'F8', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
+            channels = [
+                "Fp1",
+                "Fp2",
+                "F3",
+                "F4",
+                "C3",
+                "C4",
+                "P3",
+                "P4",
+                "O1",
+                "O2",
+                "T3",
+                "T4",
+                "F7",
+                "F8",
+                "T5",
+                "T6",
+                "Fz",
+                "Cz",
+                "Pz",
+            ]
 
         for channel in channels:
             if channel in bad_channels:
@@ -177,8 +196,8 @@ class MarkdownReportGenerator:
 
     def _create_electrode_map(self, results: dict[str, Any]) -> str:
         """Create ASCII electrode map."""
-        quality_metrics = results.get('quality_metrics', {})
-        bad_channels = set(quality_metrics.get('bad_channels', []))
+        quality_metrics = results.get("quality_metrics", {})
+        bad_channels = set(quality_metrics.get("bad_channels", []))
 
         lines = ["## Electrode Map"]
         lines.append("")
@@ -197,7 +216,10 @@ class MarkdownReportGenerator:
 
         # Add bad channel indicators
         if bad_channels:
-            lines.append("Bad channels marked above: " + ", ".join(f"{ch}(❌)" for ch in sorted(bad_channels)))
+            lines.append(
+                "Bad channels marked above: "
+                + ", ".join(f"{ch}(❌)" for ch in sorted(bad_channels))
+            )
 
         lines.append("```")
 
@@ -205,8 +227,8 @@ class MarkdownReportGenerator:
 
     def _create_artifact_summary(self, results: dict[str, Any]) -> str:
         """Create artifact summary section."""
-        quality_metrics = results.get('quality_metrics', {})
-        artifacts = quality_metrics.get('artifact_segments', [])
+        quality_metrics = results.get("quality_metrics", {})
+        artifacts = quality_metrics.get("artifact_segments", [])
 
         lines = ["## Detected Artifacts"]
         lines.append("")
@@ -215,16 +237,16 @@ class MarkdownReportGenerator:
             lines.append("No significant artifacts detected.")
         else:
             # Sort by severity
-            sorted_artifacts = sorted(artifacts, key=lambda x: x['severity'], reverse=True)
+            sorted_artifacts = sorted(artifacts, key=lambda x: x["severity"], reverse=True)
 
             lines.append("| Time (s) | Type | Severity |")
             lines.append("|----------|------|----------|")
 
             for artifact in sorted_artifacts[:10]:  # Show top 10
-                start = artifact['start']
-                end = artifact['end']
-                artifact_type = artifact['type']
-                severity = artifact['severity']
+                start = artifact["start"]
+                end = artifact["end"]
+                artifact_type = artifact["type"]
+                severity = artifact["severity"]
 
                 lines.append(f"| {start:.1f}-{end:.1f} | {artifact_type} | {severity:.2f} |")
 
@@ -236,7 +258,9 @@ class MarkdownReportGenerator:
     def _create_footer(self) -> str:
         """Create report footer."""
         lines = ["---"]
-        lines.append(f"*Generated on {utc_now().strftime('%Y-%m-%d %H:%M:%S UTC')} by Brain-Go-Brrr*")
+        lines.append(
+            f"*Generated on {utc_now().strftime('%Y-%m-%d %H:%M:%S UTC')} by Brain-Go-Brrr*"
+        )
         return "\n".join(lines)
 
 
@@ -249,10 +273,5 @@ def get_triage_emoji(flag: str) -> str:
     Returns:
         Appropriate emoji
     """
-    emoji_map = {
-        'URGENT': '🚨',
-        'EXPEDITE': '⚠️',
-        'ROUTINE': '📋',
-        'NORMAL': '✅'
-    }
-    return emoji_map.get(flag.upper(), '📄')
+    emoji_map = {"URGENT": "🚨", "EXPEDITE": "⚠️", "ROUTINE": "📋", "NORMAL": "✅"}
+    return emoji_map.get(flag.upper(), "📄")

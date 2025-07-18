@@ -13,10 +13,10 @@ from api.cache import RedisCache
 class TestRedisReconnect:
     """Test Redis connection resilience."""
 
-    @patch('api.cache.redis.Redis')
+    @patch("api.cache.redis.Redis")
     def test_redis_auto_reconnect_on_connection_error(self, mock_redis_class):
         """Test that Redis cache auto-reconnects when connection fails.
-        
+
         Given: A Redis cache instance with working initial connection
         When: Connection is lost during operation (ConnectionError)
         Then: Cache should auto-reconnect and retry operation
@@ -26,7 +26,7 @@ class TestRedisReconnect:
         mock_client.ping.return_value = True  # Initial connection works
         mock_client.get.side_effect = [
             redis.ConnectionError("Connection lost"),  # First call fails
-            '{"test": "test_value"}'  # Second call succeeds after reconnect - returns JSON string
+            '{"test": "test_value"}',  # Second call succeeds after reconnect - returns JSON string
         ]
         mock_redis_class.return_value = mock_client
 
@@ -39,10 +39,10 @@ class TestRedisReconnect:
         assert result == {"test": "test_value"}
         assert mock_client.get.call_count == 2  # Failed once, retried once
 
-    @patch('api.cache.redis.Redis')
+    @patch("api.cache.redis.Redis")
     def test_redis_auto_reconnect_on_timeout(self, mock_redis_class):
         """Test that Redis cache handles timeout errors gracefully.
-        
+
         Given: A Redis cache instance with working connection
         When: Operation times out
         Then: Should retry the operation
@@ -52,7 +52,7 @@ class TestRedisReconnect:
         mock_client.ping.return_value = True  # Initial connection works
         mock_client.set.side_effect = [
             redis.TimeoutError("Operation timed out"),  # First call times out
-            True  # Second call succeeds
+            True,  # Second call succeeds
         ]
         mock_client.expire.return_value = True  # expire should also succeed
         mock_redis_class.return_value = mock_client
@@ -66,10 +66,10 @@ class TestRedisReconnect:
         assert result is True
         assert mock_client.set.call_count == 2  # Timed out once, retried once
 
-    @patch('api.cache.redis.Redis')
+    @patch("api.cache.redis.Redis")
     def test_redis_gives_up_after_max_retries(self, mock_redis_class):
         """Test that Redis cache eventually gives up after max retries.
-        
+
         Given: A Redis cache instance with persistent connection issues
         When: All retry attempts fail
         Then: Should raise the final exception
@@ -90,10 +90,10 @@ class TestRedisReconnect:
         # Should have tried multiple times before giving up
         assert mock_client.get.call_count >= 1
 
-    @patch('api.cache.redis.Redis')
+    @patch("api.cache.redis.Redis")
     def test_redis_successful_operation_no_retry(self, mock_redis_class):
         """Test that successful operations don't trigger retry logic.
-        
+
         Given: A Redis cache instance with working connection
         When: Operation succeeds on first try
         Then: Should not retry
