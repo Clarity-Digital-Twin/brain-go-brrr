@@ -315,10 +315,73 @@ class EEGPTModel:
 
         # Get channel names
         channel_names = processed.ch_names
-
-        # Extract windows
-        data = processed.get_data()
-        windows = self.extract_windows(data, int(processed.info['sfreq']))
+        
+        # Check duration to decide on streaming
+        duration = processed.times[-1]
+        use_streaming = duration > 120  # Stream if > 2 minutes
+        
+        if use_streaming:
+            # Use streaming for large files
+            from ..data.edf_streaming import EDFStreamer
+            
+            window_scores = []
+            n_windows_processed = 0
+            
+            # Create a temporary streamer-compatible object
+            # EDFStreamer expects file path, but we have raw data
+            # So we'll process windows directly
+            sfreq = int(processed.info['sfreq'])
+            window_duration = 4.0  # 4 second windows
+            step_duration = 2.0    # 2 second step (50% overlap)
+            
+            window_samples = int(window_duration * sfreq)
+            step_samples = int(step_duration * sfreq)
+            
+            # Get data once for streaming
+            data = processed.get_data()
+            n_samples = data.shape[1]
+            
+            # Process windows with overlap
+            for start_idx in range(0, n_samples - window_samples + 1, step_samples):
+                end_idx = start_idx + window_samples
+                window_data = data[:, start_idx:end_idx]
+                
+                # Extract features
+                features = self.extract_features(window_data, channel_names)
+                
+                # Apply abnormality detection
+                with torch.no_grad():
+                    features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                    logits = self.abnormality_head(features_flat)
+                    probs = torch.softmax(logits, dim=-1)
+                    abnormal_prob = probs[0, 1].item()
+                    window_scores.append(abnormal_prob)
+                
+                n_windows_processed += 1
+            
+            # Aggregate scores
+            abnormality_score = np.mean(window_scores) if window_scores else 0.0
+            confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
+            
+            return {
+                'abnormal_probability': float(abnormality_score),
+                'confidence': float(confidence),
+                'window_scores': window_scores,
+                'n_windows': len(window_scores),
+                'mean_score': float(abnormality_score),
+                'std_score': float(np.std(window_scores)) if window_scores else 0.0,
+                'used_streaming': True,
+                'n_windows_processed': n_windows_processed,
+                'metadata': {
+                    'duration': duration,
+                    'n_channels': len(channel_names),
+                    'sampling_rate': sfreq
+                }
+            }
+        else:
+            # Original non-streaming logic for small files
+            data = processed.get_data()
+            windows = self.extract_windows(data, int(processed.info['sfreq']))
 
         if len(windows) == 0:
             return {
