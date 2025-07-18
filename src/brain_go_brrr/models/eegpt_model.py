@@ -121,6 +121,11 @@ class EEGPTModel:
         return self.config.n_summary_tokens
 
     @property
+    def embedding_dim(self) -> int:
+        """Get embedding dimension from config."""
+        return self.config.embed_dim
+
+    @property
     def checkpoint_path(self) -> Path:
         """Backward compatibility property."""
         return self.config.model_path

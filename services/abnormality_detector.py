@@ -8,7 +8,7 @@ import time
 from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import mne
 import numpy as np
@@ -19,6 +19,23 @@ from brain_go_brrr.core.config import ModelConfig
 from brain_go_brrr.core.logger import get_logger
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+
+
+class EEGBackbone(Protocol):
+    """Protocol for EEG backbone models to help mypy with type checking."""
+
+    is_loaded: bool
+    config: Any  # ModelConfig, but avoiding circular import
+
+    @property
+    def n_summary_tokens(self) -> int:
+        """Number of summary tokens."""
+        ...
+
+    def extract_features(self, data: np.ndarray, channel_names: list[str]) -> np.ndarray:
+        """Extract features from EEG data."""
+        ...
+
 
 logger = get_logger(__name__)
 
@@ -81,6 +98,10 @@ class AbnormalityResult:
 
 class AbnormalityDetector:
     """Main service class for EEG abnormality detection."""
+
+    model: EEGBackbone
+    classifier: torch.nn.Sequential
+    device: str
 
     def __init__(
         self,
@@ -212,13 +233,15 @@ class AbnormalityDetector:
         # Check EEGPT embedding dimension if available
         if hasattr(self.model, "embedding_dim"):
             model_embedding_dim = self.model.embedding_dim
+            n_summary_tokens = getattr(self.model, "n_summary_tokens", 4)  # Default to 4 tokens
+            expected_flattened_dim = model_embedding_dim * n_summary_tokens
             config_feature_dim = self.config.model.feature_dim
 
-            if model_embedding_dim != config_feature_dim:
+            if expected_flattened_dim != config_feature_dim:
                 raise RuntimeError(
-                    f"Model dimension mismatch: EEGPT produces {model_embedding_dim}-dim "
-                    f"embeddings but config expects {config_feature_dim}-dim features. "
-                    f"Update config.model.feature_dim or use compatible model checkpoint."
+                    f"Model dimension mismatch: EEGPT produces {n_summary_tokens} x {model_embedding_dim} = "
+                    f"{expected_flattened_dim}-dim flattened features but config expects {config_feature_dim}-dim. "
+                    f"Update config.model.feature_dim to {expected_flattened_dim} or use compatible model checkpoint."
                 )
 
         # Check classifier input dimension
@@ -488,21 +511,30 @@ class AbnormalityDetector:
         with torch.no_grad():
             # Extract features using EEGPT
             try:
-                features = self.model.extract_features(window_tensor)
+                # Convert tensor to numpy for EEGPT model
+                window_np = window_tensor.cpu().numpy()
+                # Create default channel names for the window
+                n_channels = window_np.shape[0]
+                channel_names = [f"CH{i + 1}" for i in range(n_channels)]
+                features_np = self.model.extract_features(window_np, channel_names)
 
-                # Apply classification head
-                if isinstance(features, np.ndarray):
-                    features = torch.from_numpy(features).float().to(self.device)
+                # Convert features to tensor for classification
+                features = torch.from_numpy(features_np).float().to(self.device)
 
-                # Validate feature dimensions
-                if features.shape[-1] != self.config.model.feature_dim:
+                # Flatten EEGPT summary tokens: (4, 512) -> (2048,)
+                features_flat = features.flatten() if features.dim() > 1 else features
+
+                # Validate feature dimensions after flattening
+                if features_flat.shape[0] != self.config.model.feature_dim:
                     raise RuntimeError(
-                        f"Feature dimension mismatch: EEGPT returned {features.shape[-1]}-dim "
-                        f"features but classifier expects {self.config.model.feature_dim}-dim. "
+                        f"Feature dimension mismatch: EEGPT returned {features.shape} "
+                        f"({features_flat.shape[0]} flattened) but classifier expects {self.config.model.feature_dim}-dim. "
                         f"Check model configuration and checkpoints."
                     )
 
-                logits = self.classifier(features)
+                # Add batch dimension for classifier
+                features_batch = features_flat.unsqueeze(0)
+                logits = self.classifier(features_batch)
                 predictions = torch.softmax(logits, dim=1)
 
                 # Get abnormality probability

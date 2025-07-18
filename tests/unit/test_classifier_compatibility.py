@@ -81,19 +81,20 @@ class TestClassifierCompatibility:
             patch("services.abnormality_detector.EEGPTModel") as mock_model_class,
             patch("services.abnormality_detector.ModelConfig"),
         ):
-            # Mock EEGPT model
+            # Mock EEGPT model with correct dimensions
             mock_model = MagicMock()
-            mock_model.embedding_dim = 768
+            mock_model.embedding_dim = 512  # Correct embedding dim from checkpoint
+            mock_model.n_summary_tokens = 4  # 4 summary tokens
             mock_model_class.return_value = mock_model
 
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
             detector.model = mock_model
 
-            # Should not raise when dimensions match
+            # Should not raise when dimensions match (4 x 512 = 2048)
             detector.validate_model_compatibility()
 
             # Should raise when dimensions mismatch
-            mock_model.embedding_dim = 512
+            mock_model.embedding_dim = 256  # Wrong embedding dim: 4 x 256 = 1024 != 2048
             with pytest.raises(RuntimeError, match="dimension mismatch"):
                 detector.validate_model_compatibility()
 

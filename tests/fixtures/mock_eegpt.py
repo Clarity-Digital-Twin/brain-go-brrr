@@ -1,7 +1,7 @@
 """Mock EEGPT model for testing with realistic feature dimensions.
 
 This module provides deterministic mock implementations of EEGPT
-that return proper 768-dimensional embeddings for testing.
+that return proper 512-dimensional embeddings for testing.
 """
 
 from typing import Any
@@ -11,7 +11,7 @@ import torch
 
 
 class MockEEGPTModel:
-    """Mock EEGPT model that returns deterministic 768-dim embeddings."""
+    """Mock EEGPT model that returns deterministic 512-dim embeddings."""
 
     def __init__(self, seed: int = 42, device: str = "cpu"):
         """Initialize mock model with deterministic seed.
@@ -46,25 +46,26 @@ class MockEEGPTModel:
         self._call_count += 1
 
         # Generate realistic embeddings with structure
-        # EEGPT embeddings typically have some structure, not pure random
-        base_embedding = rng.randn(batch_size, 768).astype(np.float32)
+        # EEGPT returns (n_summary_tokens, embed_dim) = (4, 512)
+        base_embedding = rng.randn(batch_size, 4, 512).astype(np.float32)
 
         # Add some realistic structure:
         # - First 256 dims: lower variance (more stable features)
-        # - Middle 256 dims: medium variance
         # - Last 256 dims: higher variance (more task-specific)
-        base_embedding[:, :256] *= 0.5
-        base_embedding[:, 256:512] *= 0.8
-        base_embedding[:, 512:] *= 1.2
+        base_embedding[:, :, :256] *= 0.5
+        base_embedding[:, :, 256:] *= 1.2
 
         # Add some correlation structure within feature groups
-        for i in range(0, 768, 64):
-            group_factor = rng.randn(batch_size, 1)
-            base_embedding[:, i : i + 64] += group_factor * 0.3
+        for i in range(0, 512, 64):
+            group_factor = rng.randn(batch_size, 4, 1)
+            base_embedding[:, :, i : i + 64] += group_factor * 0.3
 
         # Convert to tensor
         features = torch.from_numpy(base_embedding).float().to(self.device)
 
+        # For single samples, return (4, 512) not (1, 4, 512) to match real EEGPT
+        if batch_size == 1:
+            return features.squeeze(0)  # (1, 4, 512) -> (4, 512)
         return features
 
 

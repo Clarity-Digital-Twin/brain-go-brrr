@@ -96,9 +96,10 @@ def apply_rotary_emb(
     rot_dim = freqs.shape[-1]
     end_index = start_index + rot_dim
 
-    assert rot_dim <= t.shape[-1], (
-        f"feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}"
-    )
+    if rot_dim > t.shape[-1]:
+        raise ValueError(
+            f"feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}"
+        )
 
     t_left, t_middle, t_right = (
         t[..., :start_index],
@@ -149,8 +150,8 @@ class RoPE(nn.Module):
         seq_pos = seq_pos + offset
 
         # Compute outer product of positions and frequencies, then expand along the last dimension
-        # Ensure self.freqs is a tensor (it's registered as a buffer)
-        freqs_tensor: torch.Tensor = self.freqs  # type: ignore[assignment]
+        # Cast self.freqs to Tensor (it's registered as a buffer, so it's always a tensor)
+        freqs_tensor = torch.as_tensor(self.freqs)
         freqs_scaled = torch.outer(seq_pos.to(freqs_tensor.dtype), freqs_tensor).repeat_interleave(
             repeats=2, dim=-1
         )
@@ -259,6 +260,7 @@ class MLP(nn.Module):
         self.drop = nn.Dropout(drop)
 
     def forward(self, x: Tensor) -> Tensor:
+        """Forward pass through MLP layer."""
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
@@ -294,6 +296,7 @@ class Block(nn.Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
+        """Forward pass through Transformer block with self-attention and MLP."""
         # Self-attention with residual connection
         x_norm = self.norm1(x)
         attn_out, _ = self.attn(x_norm, x_norm, x_norm)
@@ -334,6 +337,7 @@ class PatchEmbed(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Convert EEG signal to patch embeddings."""
         batch_size, channels, time_steps = x.shape
         x = x.unsqueeze(1)  # Add channel dimension for conv2d
         x = self.proj(x)  # batch_size, embed_dim, channels, time_steps//patch_size
@@ -397,6 +401,7 @@ class EEGTransformer(nn.Module):
         return torch.tensor(chan_ids, dtype=torch.long)
 
     def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:
+        """Forward pass through EEG Transformer encoder."""
         # Mark chan_ids as intentionally unused for now
         _ = chan_ids
         # Patch embedding
@@ -438,7 +443,9 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
 
     if checkpoint_path is not None:
         # Load pretrained weights
-        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        # NOTE: weights_only=False needed for EEGPT checkpoint format compatibility
+        # This is safe as we only load from trusted model checkpoints
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614
 
         # Extract encoder weights
         encoder_state = {}
