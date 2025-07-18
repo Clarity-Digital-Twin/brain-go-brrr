@@ -75,8 +75,8 @@ class TestRealisticEEGPTMock:
 
         # Check dimensions - should match real EEGPT: 4 summary tokens x 512 dims
         assert features.shape == (4, 512), f"Expected (4, 512), got {features.shape}"
-        assert isinstance(features, torch.Tensor)
-        assert features.dtype == torch.float32
+        assert isinstance(features, np.ndarray)
+        assert features.dtype == np.float32
 
     def test_embedding_determinism(self):
         """Test that embeddings are deterministic with same seed."""
@@ -90,11 +90,11 @@ class TestRealisticEEGPTMock:
         features2 = model2.extract_features(window.clone())
 
         # Should be identical
-        assert torch.allclose(features1, features2)
+        assert np.allclose(features1, features2)
 
         # Second call should be different (due to call count)
         features3 = model1.extract_features(window.clone())
-        assert not torch.allclose(features1, features3)
+        assert not np.allclose(features1, features3)
 
     def test_normal_vs_abnormal_embeddings(self):
         """Test that normal/abnormal models produce different embeddings."""
@@ -106,8 +106,8 @@ class TestRealisticEEGPTMock:
         normal_features = normal_model.extract_features(window.clone())
         abnormal_features = abnormal_model.extract_features(window.clone())
 
-        # Check specific dimensions that should differ
-        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+        # Check specific dimensions that should differ (within 512-dim bounds)
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Updated to stay within 512 bounds
 
         for dim in abnormal_dims:
             assert abnormal_features[0, dim] > normal_features[0, dim], (
@@ -115,7 +115,7 @@ class TestRealisticEEGPTMock:
             )
 
     def test_classifier_integration(self):
-        """Test that detector uses classifier with 768-dim embeddings."""
+        """Test that detector uses classifier with 2048-dim embeddings (4x512 flattened)."""
         # Create detector with mock model
         with (
             patch("services.abnormality_detector.EEGPTModel") as mock_model_class,
@@ -192,18 +192,20 @@ class TestRealisticEEGPTMock:
         abnormal_features = abnormal_model.extract_features(window.clone())
 
         # Check that embeddings are different
-        assert not torch.allclose(normal_features, abnormal_features)
+        assert not np.allclose(normal_features, abnormal_features)
 
-        # Check that specific dimensions differ as expected
-        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+        # Check that specific dimensions differ as expected (within 512-dim bounds)
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Updated to stay within 512 bounds
         for dim in abnormal_dims:
             assert abnormal_features[0, dim] > normal_features[0, dim], (
                 f"Abnormal embedding should have higher values in dimension {dim}"
             )
 
-        # Check that high-frequency components are enhanced in abnormal
-        high_freq_mean_normal = normal_features[0, 600:].mean()
-        high_freq_mean_abnormal = abnormal_features[0, 600:].mean()
+        # Check that high-frequency components are enhanced in abnormal (within 512-dim bounds)
+        high_freq_mean_normal = normal_features[0, 400:].mean()  # Updated to stay within 512 bounds
+        high_freq_mean_abnormal = abnormal_features[
+            0, 400:
+        ].mean()  # Updated to stay within 512 bounds
         assert high_freq_mean_abnormal > high_freq_mean_normal, (
             "Abnormal embeddings should have enhanced high-frequency components"
         )
@@ -253,10 +255,8 @@ class TestRealisticEEGPTMock:
             "2D probability short-circuit path should be removed in production"
         )
 
-        # Verify we always go through the classifier
-        assert "self.classifier(features)" in detector_code, (
-            "Should always use classifier for predictions"
-        )
+        # Verify we always go through the classifier (check for the pattern, not exact variable name)
+        assert ".classifier(" in detector_code, "Should always use classifier for predictions"
 
     def test_create_deterministic_embeddings_utility(self):
         """Test the utility function for creating test embeddings."""
@@ -265,7 +265,9 @@ class TestRealisticEEGPTMock:
 
         assert len(embeddings) == 5
         for emb in embeddings:
-            assert emb.shape == (768,)
+            assert emb.shape == (4, 512), (
+                f"Expected (4, 512), got {emb.shape}"
+            )  # Updated to match EEGPT format
             assert emb.dtype == np.float32
 
         # Test custom abnormality pattern
@@ -275,11 +277,12 @@ class TestRealisticEEGPTMock:
         )
 
         # Later embeddings should have higher average values in abnormal dims
-        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Updated to stay within 512 bounds
 
         # Calculate mean abnormal dimension values for first and last embeddings
-        first_abnormal_mean = np.mean([embeddings[0][dim] for dim in abnormal_dims])
-        last_abnormal_mean = np.mean([embeddings[4][dim] for dim in abnormal_dims])
+        # Since embeddings are (4, 512), we check the average across summary tokens for each dim
+        first_abnormal_mean = np.mean([embeddings[0][:, dim].mean() for dim in abnormal_dims])
+        last_abnormal_mean = np.mean([embeddings[4][:, dim].mean() for dim in abnormal_dims])
 
         assert last_abnormal_mean > first_abnormal_mean, (
             f"Last embedding should have higher abnormal dimension average ({last_abnormal_mean:.3f}) than first ({first_abnormal_mean:.3f})"

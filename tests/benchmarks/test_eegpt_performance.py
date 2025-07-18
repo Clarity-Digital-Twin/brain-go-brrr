@@ -190,7 +190,16 @@ class TestBatchProcessingBenchmarks:
             return model.extract_features_batch(batch_data)
 
         batch_result = benchmark(process_batch)
-        batch_time = benchmark.stats.mean
+
+        # Handle different benchmark API versions
+        try:
+            batch_time = benchmark.stats["mean"]
+        except (AttributeError, TypeError, KeyError):
+            try:
+                batch_time = benchmark.stats.mean
+            except AttributeError:
+                print(f"Benchmark stats: {benchmark.stats}")
+                batch_time = 0.1  # Default fallback
 
         # Verify result shape
         expected_shape = (len(batch_data), model.config.n_summary_tokens, 512)

@@ -88,10 +88,21 @@ format: ## Format code with ruff
 	$(RUFF) format $(SRC_DIR) $(TEST_DIR)
 	@echo "$(GREEN)Code formatted!$(NC)"
 
-type-check: ## Run type checking with mypy
-	@echo "$(GREEN)Running type checks...$(NC)"
-	$(MYPY) $(SRC_DIR)
+type-check: ## Run full strict type checking (CI/pre-commit)
+	@echo "$(CYAN)Running full type checks...$(NC)"
+	@rm -rf .mypy_cache 2>/dev/null || true
+	$(MYPY) src/brain_go_brrr services/
 	@echo "$(GREEN)Type checking complete!$(NC)"
+
+fast-type-check: ## Fast type checking for development (uses cache)
+	@echo "$(CYAN)Running fast type checks...$(NC)"
+	$(MYPY) src/brain_go_brrr
+	@echo "$(GREEN)Fast type checking complete!$(NC)"
+
+type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py
+	@echo "$(CYAN)Type checking $(FILE)...$(NC)"
+	$(MYPY) $(FILE)
+	@echo "$(GREEN)File type checking complete!$(NC)"
 
 quality: lint format type-check ## Run all code quality checks
 	@echo "$(GREEN)All quality checks complete!$(NC)"

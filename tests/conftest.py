@@ -6,6 +6,9 @@ import mne
 import pytest
 from fastapi.testclient import TestClient
 
+# Import benchmark fixtures to make them available
+pytest_plugins = ["tests.fixtures.benchmark_data"]
+
 
 @pytest.fixture(autouse=True)
 def fresh_app():

@@ -84,35 +84,38 @@ class TestCircuitBreaker:
         assert cb.failure_count == 0
 
 
+# Module-level fixtures available to all test classes
+@pytest.fixture
+def mock_redis():
+    """Mock Redis client."""
+    with patch("redis.Redis") as mock:
+        client = MagicMock()
+        client.ping.return_value = True
+        client.info.return_value = {
+            "redis_version": "7.0.0",
+            "connected_clients": 5,
+            "used_memory_human": "1.5M",
+        }
+        client.info.return_value = {"keyspace_hits": 100, "keyspace_misses": 20}
+        mock.return_value = client
+        yield mock
+
+
+@pytest.fixture
+def mock_connection_pool():
+    """Mock connection pool."""
+    with patch("redis.connection.ConnectionPool") as mock:
+        pool = MagicMock()
+        pool.max_connections = 50
+        pool.created_connections = 5
+        pool._available_connections = [1, 2, 3]
+        pool._in_use_connections = {4: True, 5: True}
+        mock.return_value = pool
+        yield mock
+
+
 class TestRedisConnectionPool:
     """Test Redis connection pool functionality."""
-
-    @pytest.fixture
-    def mock_redis(self):
-        """Mock Redis client."""
-        with patch("redis.Redis") as mock:
-            client = MagicMock()
-            client.ping.return_value = True
-            client.info.return_value = {
-                "redis_version": "7.0.0",
-                "connected_clients": 5,
-                "used_memory_human": "1.5M",
-            }
-            client.info.return_value = {"keyspace_hits": 100, "keyspace_misses": 20}
-            mock.return_value = client
-            yield mock
-
-    @pytest.fixture
-    def mock_connection_pool(self):
-        """Mock connection pool."""
-        with patch("redis.connection.ConnectionPool") as mock:
-            pool = MagicMock()
-            pool.max_connections = 50
-            pool.created_connections = 5
-            pool._available_connections = [1, 2, 3]
-            pool._in_use_connections = {4: True, 5: True}
-            mock.return_value = pool
-            yield mock
 
     def test_pool_initialization(self, mock_redis, mock_connection_pool):
         """Test connection pool initialization."""

@@ -23,6 +23,11 @@ dev-dependencies = [
     "dvc-s3>=3.0.0",
     "memory-profiler>=0.61.0",
     "psutil>=5.9.0",
+    "pandas-stubs>=2.3.0.250703",
+    "types-pyyaml>=6.0.12.20250516",
+    "types-pygments>=2.19.0.20250715",
+    "types-pexpect>=4.9.0.20250516",
+    "types-psutil>=7.0.0.20250601",
 ]
 
 [project]

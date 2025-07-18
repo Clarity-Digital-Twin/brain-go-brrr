@@ -9,6 +9,7 @@ This module provides a connection pool wrapper that:
 
 import logging
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum
 from typing import Any
@@ -35,7 +36,7 @@ class CircuitBreaker:
         self,
         failure_threshold: int = 5,
         recovery_timeout: int = 60,
-        expected_exception: type = RedisError,
+        expected_exception: type[BaseException] = RedisError,
     ):
         """Initialize circuit breaker.
 
@@ -48,8 +49,8 @@ class CircuitBreaker:
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
 
-        self.failure_count = 0
-        self.last_failure_time = None
+        self.failure_count: int = 0
+        self.last_failure_time: float | None = None
         self.state = CircuitState.CLOSED
 
     def call(self, func, *args, **kwargs):
@@ -70,9 +71,9 @@ class CircuitBreaker:
 
     def _should_attempt_reset(self) -> bool:
         """Check if enough time has passed to attempt reset."""
-        return (
-            self.last_failure_time and time.time() - self.last_failure_time >= self.recovery_timeout
-        )
+        if self.last_failure_time is None:
+            return False
+        return time.time() - self.last_failure_time >= self.recovery_timeout
 
     def _on_success(self):
         """Handle successful call."""
@@ -175,7 +176,7 @@ class RedisConnectionPool:
             raise
 
     @contextmanager
-    def get_client(self) -> redis.Redis:
+    def get_client(self) -> Generator[redis.Redis, None, None]:
         """Get Redis client from pool with automatic cleanup.
 
         Usage:
@@ -201,12 +202,12 @@ class RedisConnectionPool:
         Returns:
             Command result
         """
-        last_error = None
+        last_error: Exception | None = None
 
         for attempt in range(self.max_retries):
             try:
 
-                def _execute():
+                def _execute() -> Any:
                     with self.get_client() as client:
                         cmd = getattr(client, command)
                         return cmd(*args, **kwargs)
@@ -226,7 +227,9 @@ class RedisConnectionPool:
                     continue
 
         logger.error(f"Redis {command} failed after {self.max_retries} attempts")
-        raise last_error
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError(f"Redis {command} failed with unknown error")
 
     def health_check(self) -> dict[str, Any]:
         """Perform comprehensive health check.
@@ -243,12 +246,12 @@ class RedisConnectionPool:
                 ping_time = (time.time() - start_time) * 1000
 
                 # Get server info
-                info = client.info()
-                stats = client.info("stats")
+                info: dict[str, Any] = client.info()  # type: ignore
+                stats: dict[str, Any] = client.info("stats")  # type: ignore
 
                 # Get pool stats
                 pool_stats = {
-                    "created_connections": self.pool.created_connections,
+                    "created_connections": getattr(self.pool, "_created_connections", 0),
                     "available_connections": len(self.pool._available_connections),
                     "in_use_connections": len(self.pool._in_use_connections),
                 }
@@ -285,7 +288,7 @@ class RedisConnectionPool:
         """
         return {
             "max_connections": self.pool.max_connections,
-            "created_connections": self.pool.created_connections,
+            "created_connections": getattr(self.pool, "_created_connections", 0),
             "available_connections": len(self.pool._available_connections),
             "in_use_connections": len(self.pool._in_use_connections),
             "circuit_state": self.circuit_breaker.state.value,
