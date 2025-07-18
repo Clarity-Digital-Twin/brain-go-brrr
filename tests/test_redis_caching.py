@@ -293,9 +293,13 @@ class TestRedisCaching:
         # Setup clear_pattern to return number of keys deleted
         mock_redis_client.clear_pattern.return_value = 2
 
-        # Clear cache (requires authentication in production)
+        # Import auth utils to generate valid token
+        from api.auth import create_cache_clear_token
+        token = create_cache_clear_token()
+
+        # Clear cache with valid HMAC token
         response = client_with_cache.delete("/api/v1/cache/clear",
-                                          headers={"Authorization": "Bearer test-token"})
+                                          headers={"Authorization": token})
 
         assert response.status_code == 200
         result = response.json()
