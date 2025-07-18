@@ -1,0 +1,198 @@
+name: Performance Benchmarks
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'src/**'
+      - 'tests/benchmarks/**'
+      - 'pyproject.toml'
+  workflow_dispatch:
+    inputs:
+      comparison_branch:
+        description: 'Branch to compare against'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  benchmark:
+    name: Run Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+      
+      - name: Set up Python
+        run: uv python install 3.11
+      
+      - name: Install dependencies
+        run: uv sync
+      
+      - name: Download benchmark data (if available)
+        continue-on-error: true
+        run: |
+          # Download sample EEG data for benchmarks if configured
+          if [ -n "${{ secrets.BENCHMARK_DATA_URL }}" ]; then
+            wget -q "${{ secrets.BENCHMARK_DATA_URL }}" -O benchmark_data.tar.gz
+            tar -xzf benchmark_data.tar.gz -C data/
+          fi
+      
+      - name: Run benchmarks on PR branch
+        run: |
+          uv run pytest tests/benchmarks/test_eegpt_performance.py \
+            --benchmark-only \
+            --benchmark-json=pr_benchmarks.json \
+            --benchmark-autosave
+      
+      - name: Checkout base branch
+        run: |
+          git checkout ${{ github.event.pull_request.base.ref || inputs.comparison_branch }}
+      
+      - name: Install dependencies for base branch
+        run: uv sync
+      
+      - name: Run benchmarks on base branch
+        run: |
+          uv run pytest tests/benchmarks/test_eegpt_performance.py \
+            --benchmark-only \
+            --benchmark-json=base_benchmarks.json \
+            --benchmark-autosave
+      
+      - name: Compare benchmarks
+        id: compare
+        run: |
+          # Compare benchmark results
+          uv run pytest-benchmark compare base_benchmarks.json pr_benchmarks.json \
+            --csv=comparison.csv \
+            --histogram=comparison.png || true
+          
+          # Generate markdown report
+          python -c "
+          import csv
+          import json
+          
+          # Read benchmark JSONs
+          with open('base_benchmarks.json') as f:
+              base = json.load(f)
+          with open('pr_benchmarks.json') as f:
+              pr = json.load(f)
+          
+          # Generate comparison report
+          report = ['## Performance Benchmark Results\\n']
+          report.append('| Test | Base (ms) | PR (ms) | Change | Status |')
+          report.append('|------|-----------|---------|--------|--------|')
+          
+          # Compare benchmarks
+          pr_benchmarks = {b['name']: b for b in pr['benchmarks']}
+          
+          for base_bench in base['benchmarks']:
+              name = base_bench['name']
+              base_mean = base_bench['stats']['mean'] * 1000  # Convert to ms
+              
+              if name in pr_benchmarks:
+                  pr_mean = pr_benchmarks[name]['stats']['mean'] * 1000
+                  change = ((pr_mean - base_mean) / base_mean) * 100
+                  
+                  status = '✅' if abs(change) < 10 else '⚠️' if change < 20 else '❌'
+                  
+                  report.append(f'| {name} | {base_mean:.2f} | {pr_mean:.2f} | {change:+.1f}% | {status} |')
+          
+          # Write report
+          with open('benchmark_report.md', 'w') as f:
+              f.write('\\n'.join(report))
+          "
+      
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            *_benchmarks.json
+            comparison.csv
+            comparison.png
+            benchmark_report.md
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('benchmark_report.md', 'utf8');
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Performance Benchmark Results')
+            );
+            
+            const body = `${report}\n\n<details>\n<summary>Benchmark Details</summary>\n\n[View full results](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n</details>`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+      
+      - name: Fail if performance regression
+        run: |
+          # Check for significant regressions
+          python -c "
+          import json
+          import sys
+          
+          with open('base_benchmarks.json') as f:
+              base = json.load(f)
+          with open('pr_benchmarks.json') as f:
+              pr = json.load(f)
+          
+          # Check for regressions > 20%
+          pr_benchmarks = {b['name']: b for b in pr['benchmarks']}
+          
+          regressions = []
+          for base_bench in base['benchmarks']:
+              name = base_bench['name']
+              if name in pr_benchmarks:
+                  base_mean = base_bench['stats']['mean']
+                  pr_mean = pr_benchmarks[name]['stats']['mean']
+                  change = ((pr_mean - base_mean) / base_mean) * 100
+                  
+                  if change > 20:  # 20% regression threshold
+                      regressions.append(f'{name}: {change:+.1f}%')
+          
+          if regressions:
+              print('❌ Performance regressions detected:')
+              for r in regressions:
+                  print(f'  - {r}')
+              sys.exit(1)
+          else:
+              print('✅ No significant performance regressions')
+          "
