@@ -128,7 +128,7 @@ class TestSleepAnalyzer:
         # Check stage percentages (YASA format)
         # Wake may not be present if not detected
         assert '%N1' in stats
-        assert '%N2' in stats  
+        assert '%N2' in stats
         assert '%N3' in stats
         assert '%REM' in stats
         assert '%NREM' in stats  # Combined N1+N2+N3

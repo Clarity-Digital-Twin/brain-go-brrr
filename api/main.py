@@ -158,8 +158,12 @@ async def analyze_eeg(
 
     # Check cache if available
     if cache_client and cache_client.connected:
-        cache_key = cache_client.generate_cache_key(content, "standard")
-        cached_result = cache_client.get(cache_key)
+        try:
+            cache_key = cache_client.generate_cache_key(content, "standard")
+            cached_result = cache_client.get(cache_key)
+        except Exception as e:
+            logger.warning(f"Cache read failed: {e}")
+            cached_result = None
         
         if cached_result:
             logger.info(f"Returning cached result for {file.filename}")
@@ -570,8 +574,13 @@ async def clear_cache(
         }
 
 
+class CacheWarmupRequest(BaseModel):
+    """Request model for cache warmup."""
+    file_patterns: list[str] = Field(default=["sleep-*.edf"], description="File patterns to cache")
+
+
 @app.post("/api/v1/cache/warmup")
-async def warmup_cache(file_patterns: list[str] = ["sleep-*.edf"]):
+async def warmup_cache(request: CacheWarmupRequest):
     """Pre-warm cache with common test files."""
     # This is a placeholder - in production, would scan for files
     # matching patterns and pre-process them
@@ -579,7 +588,7 @@ async def warmup_cache(file_patterns: list[str] = ["sleep-*.edf"]):
         "status": "success",
         "message": "Cache warmup initiated",
         "files_cached": 0,
-        "patterns": file_patterns
+        "patterns": request.file_patterns
     }
 
 

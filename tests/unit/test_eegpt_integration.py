@@ -183,6 +183,7 @@ class TestEEGPTModel:
         assert features.shape[1] == 4  # Summary tokens
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_end_to_end_pipeline(self, model_path):
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
@@ -246,6 +247,7 @@ class TestPerformanceBenchmarks:
         assert processing_time < expected_time, f"Processing too slow: {processing_time:.2f}s > {expected_time}s"
         print(f"Processing time for 2-min recording: {processing_time:.2f}s")
 
+    @pytest.mark.slow
     def test_memory_usage(self, eegpt_model):
         """Test memory usage is reasonable."""
         import os
