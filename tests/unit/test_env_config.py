@@ -14,7 +14,7 @@ class TestEnvironmentConfig:
         # We can't easily test the actual env var loading since the module
         # is already imported. Instead test the logic would work.
         from pathlib import Path
-        
+
         # Test that Path conversion works correctly
         result = Path(test_path).absolute()
         assert result.is_absolute()

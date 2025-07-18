@@ -401,7 +401,7 @@ class EEGPTModel:
                 features_list.extend(batch_features.tolist())
 
         return results
-    
+
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""
         if self.device.type == 'cuda':
