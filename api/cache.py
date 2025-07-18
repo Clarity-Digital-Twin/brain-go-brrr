@@ -3,12 +3,17 @@
 import hashlib
 import json
 import logging
+import os
 import time
 from typing import Optional, Any
 import redis
 from redis.exceptions import ConnectionError, TimeoutError
 
 logger = logging.getLogger(__name__)
+
+# Cache versioning - bump when incompatible changes are made
+CACHE_VERSION = os.getenv("BRAIN_GO_BRRR_CACHE_VERSION", "v1.0.0")
+APP_VERSION = os.getenv("BRAIN_GO_BRRR_APP_VERSION", "0.1.0")
 
 
 class RedisCache:
@@ -93,9 +98,12 @@ class RedisCache:
             return {"healthy": False, "error": str(e)}
     
     def generate_cache_key(self, file_content: bytes, analysis_type: str = "standard") -> str:
-        """Generate cache key from file content hash."""
+        """Generate cache key from file content hash.
+        
+        Includes version info to prevent stale cache hits after updates.
+        """
         file_hash = hashlib.sha256(file_content).hexdigest()
-        return f"eeg_analysis:{file_hash}:{analysis_type}"
+        return f"eeg_analysis:{CACHE_VERSION}:{file_hash}:{analysis_type}"
     
     def get(self, key: str) -> Optional[dict]:
         """Get cached result."""
@@ -106,7 +114,11 @@ class RedisCache:
             cached = self.client.get(key)
             if cached:
                 logger.info(f"Cache hit for key: {key}")
-                return json.loads(cached)
+                data = json.loads(cached)
+                # Remove metadata before returning
+                if "_cache_meta" in data:
+                    del data["_cache_meta"]
+                return data
             return None
         except Exception as e:
             logger.error(f"Redis get error: {e}")
@@ -118,7 +130,16 @@ class RedisCache:
             return False
             
         try:
-            json_value = json.dumps(value)
+            # Add version metadata
+            value_with_meta = {
+                **value,
+                "_cache_meta": {
+                    "app_version": APP_VERSION,
+                    "cache_version": CACHE_VERSION,
+                    "cached_at": time.time()
+                }
+            }
+            json_value = json.dumps(value_with_meta)
             self.client.set(key, json_value)
             self.client.expire(key, ttl)
             logger.info(f"Cached result for key: {key} with TTL: {ttl}s")
