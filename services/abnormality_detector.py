@@ -310,6 +310,9 @@ class AbnormalityDetector:
             torch.nn.Linear(128, 2)
         ).to(self.device)
         
+        # Set to eval mode by default
+        self.classifier.eval()
+        
         # Load pretrained weights if available
         classifier_path = Path(str(self.model.config.model_path).replace('.ckpt', '_classifier.pth'))
         if classifier_path.exists():
@@ -422,7 +425,7 @@ class AbnormalityDetector:
         # Check duration
         duration = raw.times[-1]
         min_duration = 60  # 1 minute minimum
-        if duration < min_duration:
+        if duration < min_duration - 0.01:  # Allow small tolerance for floating point
             raise ValueError(f"Recording too short: {duration:.1f}s < {min_duration}s minimum")
             
         # Check channels
@@ -461,7 +464,11 @@ class AbnormalityDetector:
         
         # Z-score normalization per channel
         data = raw.get_data()
-        data = (data - data.mean(axis=1, keepdims=True)) / (data.std(axis=1, keepdims=True) + 1e-7)
+        channel_means = data.mean(axis=1, keepdims=True)
+        channel_stds = data.std(axis=1, keepdims=True)
+        # Avoid division by zero - mark channels with very low std as bad
+        mask = channel_stds > 1e-10
+        data = np.where(mask, (data - channel_means) / (channel_stds + 1e-7), 0.0)
         raw._data = data
         
         return raw
@@ -693,7 +700,11 @@ class AbnormalityDetector:
         
         # Z-score normalization
         data = raw.get_data()
-        data = (data - data.mean(axis=1, keepdims=True)) / (data.std(axis=1, keepdims=True) + 1e-8)
+        channel_means = data.mean(axis=1, keepdims=True)
+        channel_stds = data.std(axis=1, keepdims=True)
+        # Avoid division by zero - mark channels with very low std as bad
+        mask = channel_stds > 1e-10
+        data = np.where(mask, (data - channel_means) / (channel_stds + 1e-8), 0.0)
         raw._data = data
         
         return raw
