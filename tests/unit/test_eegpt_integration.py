@@ -113,7 +113,7 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 20
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # V scale (50 µV)
 
         # Extract windows
         windows = eegpt_model.extract_windows(data, sfreq)
@@ -125,7 +125,7 @@ class TestEEGPTModel:
     def test_feature_extraction(self, eegpt_model):
         """Test feature extraction from windows."""
         # Create single 4-second window
-        window = np.random.randn(19, 1024) * 50  # (channels, samples) in µV scale
+        window = np.random.randn(19, 1024) * 50e-6  # (channels, samples) in V scale (50 µV)
         channel_names = [f"EEG{i:03d}" for i in range(19)]
 
         # Extract features
@@ -142,7 +142,7 @@ class TestEEGPTModel:
         n_channels = 19
         duration = 20  # 20 seconds
 
-        data = np.random.randn(n_channels, int(sfreq * duration)) * 50  # µV scale
+        data = np.random.randn(n_channels, int(sfreq * duration)) * 50e-6  # V scale (50 µV)
         ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
         raw = mne.io.RawArray(data, info)

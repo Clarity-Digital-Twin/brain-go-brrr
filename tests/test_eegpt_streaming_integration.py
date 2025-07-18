@@ -1,6 +1,6 @@
 """Tests for EEGPT model with streaming integration."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import mne
 import numpy as np
@@ -13,7 +13,7 @@ from src.brain_go_brrr.models.eegpt_model import EEGPTModel
 class TestEEGPTStreamingIntegration:
     """Test EEGPT model handles large files with streaming."""
 
-    @pytest.fixture  
+    @pytest.fixture
     def mock_eegpt_model(self):
         """Create minimal mocked EEGPT model - clean and simple."""
         # Create model without loading real checkpoint
@@ -22,17 +22,17 @@ class TestEEGPTStreamingIntegration:
         # Simple feature extraction - returns numpy array directly
         def extract_features(window, channel_names=None):
             return np.random.randn(4, 512)  # 4 summary tokens, 512 embed_dim
-        
-        # Simple abnormality classifier - returns tensor directly  
+
+        # Simple abnormality classifier - returns tensor directly
         def abnormality_classifier(x):
             # x is features_flat with shape (1, 2048)
             return torch.tensor([[0.2, 0.8]])  # Binary classification logits
-        
+
         # Assign clean mocks
         model.extract_features = extract_features
         model.abnormality_head = abnormality_classifier
         model.is_loaded = True
-        
+
         return model
 
     def test_process_small_recording_no_streaming(self, mock_eegpt_model):

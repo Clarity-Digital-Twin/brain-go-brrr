@@ -5,7 +5,11 @@ import mne
 import numpy as np
 import pytest
 
-from src.brain_go_brrr.data.edf_streaming import EDFStreamer, estimate_memory_usage, process_large_edf
+from src.brain_go_brrr.data.edf_streaming import (
+    EDFStreamer,
+    estimate_memory_usage,
+    process_large_edf,
+)
 
 
 class TestEDFStreamer:

@@ -5,7 +5,6 @@ Vision Transformer architecture adapted for EEG signals.
 """
 
 
-import math
 from typing import Any
 
 import torch
@@ -41,26 +40,26 @@ def apply_rotary_emb(freqs, t, start_index=0, scale=1.):
     freqs = freqs.to(t.device)
     rot_dim = freqs.shape[-1]
     end_index = start_index + rot_dim
-    
+
     assert rot_dim <= t.shape[-1], f'feature dimension {t.shape[-1]} is not of sufficient size to rotate in all the positions {rot_dim}'
-    
+
     t_left, t_middle, t_right = t[..., :start_index], t[..., start_index:end_index], t[..., end_index:]
-    
+
     # Apply rotary embeddings to the middle segment
     t_rotated_middle = (t_middle * freqs.cos() * scale) + (rotate_half(t_middle) * freqs.sin() * scale)
-    
+
     return torch.cat((t_left, t_rotated_middle, t_right), dim=-1)
 
 
 class RoPE(nn.Module):
     """Rotary Position Embedding implementation based on original EEGPT."""
-    
+
     def __init__(self, dim: int, theta: float = 10000.0, max_seq_len: int = 1024) -> None:
         super().__init__()
         self.dim = dim
         self.theta = theta
         self.max_seq_len = max_seq_len
-        
+
         # Initialize frequency parameters (matching original EEGPT)
         freqs = 1. / (theta ** (torch.arange(0, dim, 2)[:(dim // 2)].float() / dim))
         self.register_buffer('freqs', freqs)
@@ -70,22 +69,22 @@ class RoPE(nn.Module):
         """Prepare frequency embeddings for given number of patches."""
         C, N = num_patches
         cache_key = f'freqs:{num_patches}'
-        
+
         # Return cached result if available
         if cache_key in self.cache:
             return self.cache[cache_key]
-        
+
         # Generate sequence positions and apply offset
         seq_pos = torch.arange(N, device=device, dtype=dtype).repeat_interleave(repeats=C)
         seq_pos = seq_pos + offset
-        
+
         # Compute outer product of positions and frequencies, then expand along the last dimension
         freqs_scaled = torch.outer(seq_pos.type(self.freqs.dtype), self.freqs).repeat_interleave(repeats=2, dim=-1)
-        
+
         # Cache and return the computed frequencies
         self.cache[cache_key] = freqs_scaled
         return freqs_scaled
-    
+
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass - prepare frequencies for the input."""
         batch_size, seq_len, embed_dim = x.shape
@@ -102,8 +101,8 @@ def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, si
 
 class Attention(nn.Module):
     """Multi-head attention with rotary position embeddings."""
-    
-    def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = False, 
+
+    def __init__(self, dim: int, num_heads: int = 8, qkv_bias: bool = False,
                  attn_drop: float = 0., proj_drop: float = 0., use_rope: bool = True) -> None:
         """Initialize attention module."""
         super().__init__()
@@ -136,7 +135,7 @@ class Attention(nn.Module):
         # Efficient attention using Flash Attention
         attn = torch.nn.functional.scaled_dot_product_attention(
             q, k, v, attn_mask=None, dropout_p=self.attn_drop.p if self.training else 0, is_causal=False)
-        
+
         x = attn.transpose(1, 2).contiguous().view(batch_size, seq_len, channels)
         x = self.proj(x)
         x = self.proj_drop(x)

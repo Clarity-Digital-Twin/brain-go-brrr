@@ -4,7 +4,6 @@ Generates markdown reports that are easy to read and version control friendly.
 """
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 

@@ -21,13 +21,13 @@ class TestAPIEndpoints:
         """Reset API state to ensure test isolation."""
         # Import here to get the module
         import api.main
-        
+
         # Store original values
         original_cache = getattr(api.main, 'cache_client', None)
         original_controller = getattr(api.main, 'qc_controller', None)
-        
+
         yield  # Run the test
-        
+
         # Reset state after test
         api.main.cache_client = original_cache
         api.main.qc_controller = original_controller

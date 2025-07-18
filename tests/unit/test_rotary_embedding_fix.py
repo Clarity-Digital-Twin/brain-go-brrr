@@ -29,7 +29,7 @@ class TestRotaryEmbeddingFix:
 
         # Then: The frequency embeddings should be generated successfully
         freqs = rotary_emb(x)
-        
+
         # Check that freqs has correct shape for apply_rotary_emb
         assert freqs is not None
         assert freqs.shape[0] == seq_len  # Should match sequence length
@@ -86,17 +86,17 @@ class TestRotaryEmbeddingFix:
             depth=2,  # Use fewer blocks for faster testing
             num_heads=8
         )
-        
+
         # Given: Sample EEG data (batch=1, patches=308, features=64)
         # This represents 19 channels x 16 patches per channel + 4 summary tokens = 308 total
         batch_size = 1
         patches = 308  # 19 * 16 + 4 summary tokens
         patch_size = 64
         x = torch.randn(batch_size, patches, patch_size)
-        
+
         # When: Forward pass through model
         output = model(x)
-        
+
         # Then: Output should have correct shape
         expected_shape = (batch_size, patches, 512)  # embed_dim=512
         assert output.shape == expected_shape, f"Expected {expected_shape}, got {output.shape}"

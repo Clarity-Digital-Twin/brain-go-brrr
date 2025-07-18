@@ -8,12 +8,11 @@ Generates professional PDF reports with:
 
 import io
 import logging
-from datetime import datetime
 from typing import Any
 
-from brain_go_brrr.utils import utc_now
-
 import matplotlib
+
+from brain_go_brrr.utils import utc_now
 
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.patches as patches
