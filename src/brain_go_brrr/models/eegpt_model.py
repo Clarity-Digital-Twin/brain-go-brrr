@@ -112,6 +112,21 @@ class EEGPTModel:
                 self.load_model()
             except Exception as e:
                 self.logger.warning(f"Auto-load failed: {e}")
+    
+    @property
+    def n_summary_tokens(self) -> int:
+        """Backward compatibility property."""
+        return self.config.n_summary_tokens
+    
+    @property
+    def checkpoint_path(self) -> Path:
+        """Backward compatibility property."""
+        return self.config.model_path
+    
+    @property
+    def window_samples(self) -> int:
+        """Backward compatibility property."""
+        return self.config.window_samples
 
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""
