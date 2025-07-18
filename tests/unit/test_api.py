@@ -17,8 +17,24 @@ class TestAPIEndpoints:
     """Test FastAPI endpoints according to specifications."""
 
     @pytest.fixture
-    def client(self):
-        """Create test client."""
+    def reset_api_state(self):
+        """Reset API state to ensure test isolation."""
+        # Import here to get the module
+        import api.main
+        
+        # Store original values
+        original_cache = getattr(api.main, 'cache_client', None)
+        original_controller = getattr(api.main, 'qc_controller', None)
+        
+        yield  # Run the test
+        
+        # Reset state after test
+        api.main.cache_client = original_cache
+        api.main.qc_controller = original_controller
+
+    @pytest.fixture
+    def client(self, reset_api_state):
+        """Create test client with state isolation."""
         # Import here to avoid circular imports
         from api.main import app
         return TestClient(app)
