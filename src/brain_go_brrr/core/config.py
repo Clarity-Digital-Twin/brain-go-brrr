@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -29,8 +29,9 @@ class ModelConfig(BaseModel):
     streaming_threshold: float = Field(default=120.0, description="Duration threshold for streaming (seconds)")
     window_overlap: float = Field(default=0.5, description="Window overlap ratio for streaming")
 
-    @validator("model_path")
-    def validate_model_path(self, v: Path) -> Path:
+    @field_validator("model_path")
+    @classmethod
+    def validate_model_path(cls, v: Path) -> Path:
         """Validate that model path exists."""
         if not v.exists():
             raise ValueError(f"EEGPT model checkpoint not found: {v}")
