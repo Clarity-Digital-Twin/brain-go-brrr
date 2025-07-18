@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import time
-from typing import Optional, Any
+
 import redis
 from redis.exceptions import ConnectionError, TimeoutError
 
@@ -18,10 +18,17 @@ APP_VERSION = os.getenv("BRAIN_GO_BRRR_APP_VERSION", "0.1.0")
 
 class RedisCache:
     """Redis cache wrapper for EEG analysis results."""
-    
-    def __init__(self, host: str = "localhost", port: int = 6379, db: int = 0, 
-                 decode_responses: bool = True, socket_timeout: int = 5,
-                 max_retries: int = 3, retry_on_timeout: bool = True):
+
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        decode_responses: bool = True,
+        socket_timeout: int = 5,
+        max_retries: int = 3,
+        retry_on_timeout: bool = True,
+    ):
         """Initialize Redis client with connection parameters."""
         self.host = host
         self.port = port
@@ -32,9 +39,9 @@ class RedisCache:
         self.retry_on_timeout = retry_on_timeout
         self._last_ping_time = 0
         self._ping_interval = 30  # seconds
-        
+
         self._connect()
-    
+
     def _connect(self):
         """Establish connection to Redis."""
         try:
@@ -47,7 +54,7 @@ class RedisCache:
                 socket_connect_timeout=self.socket_timeout,
                 retry_on_timeout=self.retry_on_timeout,
                 max_connections=50,
-                health_check_interval=30
+                health_check_interval=30,
             )
             # Test connection
             self.client.ping()
@@ -57,12 +64,12 @@ class RedisCache:
             logger.warning(f"Failed to connect to Redis: {e}. Cache disabled.")
             self.client = None
             self.connected = False
-    
+
     def _ensure_connected(self) -> bool:
         """Ensure Redis connection is active, reconnect if needed."""
         if not self.client:
             return False
-            
+
         # Periodic health check
         current_time = time.time()
         if current_time - self._last_ping_time > self._ping_interval:
@@ -73,43 +80,43 @@ class RedisCache:
             except (ConnectionError, TimeoutError):
                 logger.warning("Redis connection lost, attempting reconnect...")
                 self._connect()
-        
+
         return self.connected
-    
+
     def health_check(self) -> dict:
         """Perform health check on Redis connection."""
         if not self.client:
             return {"healthy": False, "error": "No client initialized"}
-        
+
         try:
             start_time = time.time()
             self.client.ping()
             ping_time = (time.time() - start_time) * 1000  # ms
-            
+
             info = self.client.info()
             return {
                 "healthy": True,
                 "ping_ms": round(ping_time, 2),
                 "version": info.get("redis_version", "unknown"),
                 "connected_clients": info.get("connected_clients", 0),
-                "used_memory_human": info.get("used_memory_human", "N/A")
+                "used_memory_human": info.get("used_memory_human", "N/A"),
             }
         except Exception as e:
             return {"healthy": False, "error": str(e)}
-    
+
     def generate_cache_key(self, file_content: bytes, analysis_type: str = "standard") -> str:
         """Generate cache key from file content hash.
-        
+
         Includes version info to prevent stale cache hits after updates.
         """
         file_hash = hashlib.sha256(file_content).hexdigest()
         return f"eeg_analysis:{CACHE_VERSION}:{file_hash}:{analysis_type}"
-    
-    def get(self, key: str) -> Optional[dict]:
+
+    def get(self, key: str) -> dict | None:
         """Get cached result with retry logic."""
         if not self._ensure_connected():
             return None
-            
+
         for attempt in range(self.max_retries):
             try:
                 cached = self.client.get(key)
@@ -133,12 +140,12 @@ class RedisCache:
             except Exception as e:
                 logger.error(f"Redis get error: {e}")
                 return None
-    
+
     def set(self, key: str, value: dict, ttl: int = 3600) -> bool:
         """Set cache entry with TTL and retry logic."""
         if not self._ensure_connected():
             return False
-            
+
         for attempt in range(self.max_retries):
             try:
                 # Add version metadata
@@ -147,8 +154,8 @@ class RedisCache:
                     "_cache_meta": {
                         "app_version": APP_VERSION,
                         "cache_version": CACHE_VERSION,
-                        "cached_at": time.time()
-                    }
+                        "cached_at": time.time(),
+                    },
                 }
                 json_value = json.dumps(value_with_meta)
                 self.client.set(key, json_value)
@@ -167,34 +174,34 @@ class RedisCache:
             except Exception as e:
                 logger.error(f"Redis set error: {e}")
                 return False
-    
+
     def exists(self, key: str) -> bool:
         """Check if key exists."""
         if not self._ensure_connected():
             return False
-            
+
         try:
             return bool(self.client.exists(key))
         except Exception as e:
             logger.error(f"Redis exists error: {e}")
             return False
-    
+
     def delete(self, key: str) -> bool:
         """Delete cache entry."""
         if not self._ensure_connected():
             return False
-            
+
         try:
             return bool(self.client.delete(key))
         except Exception as e:
             logger.error(f"Redis delete error: {e}")
             return False
-    
+
     def clear_pattern(self, pattern: str) -> int:
         """Clear all keys matching pattern."""
         if not self._ensure_connected():
             return 0
-            
+
         try:
             keys = self.client.keys(pattern)
             if keys:
@@ -203,48 +210,40 @@ class RedisCache:
         except Exception as e:
             logger.error(f"Redis clear pattern error: {e}")
             return 0
-    
+
     def get_stats(self) -> dict:
         """Get cache statistics."""
         if not self._ensure_connected():
-            return {
-                "connected": False,
-                "memory_usage": "N/A",
-                "total_keys": 0,
-                "hit_rate": 0.0
-            }
-            
+            return {"connected": False, "memory_usage": "N/A", "total_keys": 0, "hit_rate": 0.0}
+
         try:
             info = self.client.info()
             stats = self.client.info("stats")
-            
+
             # Calculate hit rate
             hits = stats.get("keyspace_hits", 0)
             misses = stats.get("keyspace_misses", 0)
             total_ops = hits + misses
             hit_rate = hits / total_ops if total_ops > 0 else 0.0
-            
+
             return {
                 "connected": True,
                 "memory_usage": info.get("used_memory_human", "N/A"),
                 "total_keys": self.client.dbsize(),
                 "hit_rate": round(hit_rate, 3),
                 "keyspace_hits": hits,
-                "keyspace_misses": misses
+                "keyspace_misses": misses,
             }
         except Exception as e:
             logger.error(f"Redis stats error: {e}")
-            return {
-                "connected": False,
-                "error": str(e)
-            }
+            return {"connected": False, "error": str(e)}
 
 
 # Global cache instance
 _cache_instance = None
 
 
-def get_cache() -> Optional[RedisCache]:
+def get_cache() -> RedisCache | None:
     """Get or create cache instance."""
     global _cache_instance
     if _cache_instance is None:

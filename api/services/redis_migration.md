@@ -1,9 +1,11 @@
 # Redis Connection Pool Migration Guide
 
 ## Overview
+
 This guide helps migrate from the existing `RedisCache` implementation to the new `RedisConnectionPool` for improved performance and reliability.
 
 ## Key Benefits
+
 1. **Connection Pooling**: Reuses connections instead of creating new ones
 2. **Circuit Breaker**: Prevents cascading failures when Redis is down
 3. **Better Monitoring**: Detailed pool and connection statistics
@@ -140,6 +142,7 @@ async def redis_health():
 ## Performance Tips
 
 1. **Use pipelines for batch operations**:
+
    ```python
    with pool.get_client() as client:
        pipe = client.pipeline()
@@ -149,19 +152,21 @@ async def redis_health():
    ```
 
 2. **Implement local caching for hot data**:
+
    ```python
    from functools import lru_cache
-   
+
    @lru_cache(maxsize=1000)
    def get_cached_value(key: str):
        return pool.execute("get", key)
    ```
 
 3. **Use appropriate TTLs**:
+
    ```python
    # Short TTL for frequently changing data
    pool.execute("setex", "user_session", 300, session_data)  # 5 minutes
-   
+
    # Longer TTL for stable data
    pool.execute("setex", "analysis_result", 3600, result)  # 1 hour
    ```
@@ -185,10 +190,10 @@ If issues arise, keep the old implementation available:
 class RedisCache:
     def __init__(self):
         self.pool = get_redis_pool()
-    
+
     def get(self, key):
         return self.pool.execute("get", key)
-    
+
     def set(self, key, value, ttl=3600):
         return self.pool.execute("setex", key, ttl, value)
 ```

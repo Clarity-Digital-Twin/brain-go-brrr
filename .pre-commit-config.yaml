@@ -24,6 +24,7 @@ repos:
         name: mypy (type check)
         additional_dependencies: [pydantic, types-requests]
         args: [--ignore-missing-imports, --scripts-are-modules]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # Notebook quality checks
   - repo: https://github.com/nbQA-dev/nbQA
@@ -32,8 +33,10 @@ repos:
       - id: nbqa-ruff
         name: nbqa-ruff (notebook lint)
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
       - id: nbqa-ruff-format
         name: nbqa-ruff-format (notebook format)
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -71,6 +74,7 @@ repos:
         name: bandit (security check)
         args: ["-c", "pyproject.toml", "-x", "tests/"]
         additional_dependencies: ["bandit[toml]"]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # Documentation checks
   - repo: https://github.com/pycqa/pydocstyle
@@ -80,6 +84,7 @@ repos:
         name: pydocstyle (docstring check)
         args: [--convention=google]
         additional_dependencies: [toml]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # Configuration file sorting
   - repo: https://github.com/pre-commit/mirrors-prettier
@@ -105,6 +110,7 @@ repos:
       - id: pyupgrade
         name: pyupgrade (modernize syntax)
         args: [--py311-plus]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # Machine Learning specific checks
   - repo: local

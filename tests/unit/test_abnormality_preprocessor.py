@@ -3,7 +3,6 @@
 TDD approach - these tests define the exact preprocessing requirements.
 """
 
-
 import mne
 import numpy as np
 import pytest
@@ -25,8 +24,25 @@ class TestEEGPreprocessor:
 
         # Standard 10-20 channel names
         ch_names = [
-            'Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-            'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz'
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
         ]
 
         # Generate realistic EEG data with mixed frequencies
@@ -47,7 +63,7 @@ class TestEEGPreprocessor:
             # Random noise
             data[i] += np.random.randn(n_samples) * 5e-6
 
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         return raw
@@ -59,8 +75,8 @@ class TestEEGPreprocessor:
             target_sfreq=128,  # BioSerenity-E1 spec
             lowpass_freq=45.0,  # BioSerenity-E1 spec
             highpass_freq=0.5,  # BioSerenity-E1 spec
-            notch_freq=50.0,    # European
-            channel_subset_size=16  # BioSerenity-E1 spec
+            notch_freq=50.0,  # European
+            channel_subset_size=16,  # BioSerenity-E1 spec
         )
 
     def test_preprocessor_initialization(self):
@@ -89,7 +105,7 @@ class TestEEGPreprocessor:
 
         # Check low frequencies attenuated
         for ch_data in filtered_data:
-            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info['sfreq'])
+            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info["sfreq"])
             low_freq_power = psd[freqs < 0.5].mean()
             mid_freq_power = psd[(freqs > 8) & (freqs < 12)].mean()
             assert low_freq_power < mid_freq_power * 0.01  # >40dB attenuation
@@ -98,7 +114,7 @@ class TestEEGPreprocessor:
         """Test 45 Hz low-pass filter removes high-frequency noise."""
         # Add high-frequency noise
         noise_data = raw_eeg.get_data().copy()
-        t = np.arange(noise_data.shape[1]) / raw_eeg.info['sfreq']
+        t = np.arange(noise_data.shape[1]) / raw_eeg.info["sfreq"]
 
         # Add 70 Hz and 100 Hz components
         for i in range(len(raw_eeg.ch_names)):
@@ -111,7 +127,7 @@ class TestEEGPreprocessor:
         # Check high frequencies removed
         filtered_data = filtered.get_data()
         for ch_data in filtered_data:
-            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info['sfreq'])
+            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info["sfreq"])
             high_freq_power = psd[freqs > 45].mean()
             mid_freq_power = psd[(freqs > 8) & (freqs < 12)].mean()
             assert high_freq_power < mid_freq_power * 0.01  # >40dB attenuation
@@ -123,7 +139,7 @@ class TestEEGPreprocessor:
         # Check 50 Hz component removed
         filtered_data = filtered.get_data()
         for ch_data in filtered_data:
-            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info['sfreq'])
+            freqs, psd = signal.welch(ch_data, fs=raw_eeg.info["sfreq"])
 
             # Find power at 50 Hz
             idx_50hz = np.argmin(np.abs(freqs - 50))
@@ -139,12 +155,12 @@ class TestEEGPreprocessor:
     def test_resampling_to_128hz(self, preprocessor, raw_eeg):
         """Test resampling to 128 Hz as per BioSerenity-E1 spec."""
         # Original is 500 Hz
-        assert raw_eeg.info['sfreq'] == 500
+        assert raw_eeg.info["sfreq"] == 500
 
         resampled = preprocessor._resample_to_target(raw_eeg)
 
         # Check new sampling rate
-        assert resampled.info['sfreq'] == 128
+        assert resampled.info["sfreq"] == 128
 
         # Check duration preserved
         original_duration = raw_eeg.times[-1]
@@ -152,7 +168,7 @@ class TestEEGPreprocessor:
         assert np.abs(original_duration - resampled_duration) < 0.1
 
         # Check data quality preserved (correlation with downsampled original)
-        original_data = raw_eeg.get_data()[:, ::int(500/128)][:, :resampled.get_data().shape[1]]
+        original_data = raw_eeg.get_data()[:, :: int(500 / 128)][:, : resampled.get_data().shape[1]]
         resampled_data = resampled.get_data()
 
         for i in range(len(raw_eeg.ch_names)):
@@ -163,18 +179,49 @@ class TestEEGPreprocessor:
         """Test selection of 16-channel subset as per BioSerenity-E1."""
         # Create 19-channel data
         ch_names = [
-            'Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-            'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz'
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
         ]
 
         # Expected 16-channel subset (excluding T5, T6, Pz based on common practice)
         expected_subset = [
-            'Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-            'F7', 'F8', 'T3', 'T4', 'Fz', 'Cz'
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "Fz",
+            "Cz",
         ]
 
         data = np.random.randn(len(ch_names), 1000) * 20e-6
-        info = mne.create_info(ch_names=ch_names, sfreq=128, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=128, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         subset_raw = preprocessor._select_channel_subset(raw)
@@ -187,14 +234,14 @@ class TestEEGPreprocessor:
     def test_average_referencing(self, preprocessor):
         """Test average re-referencing is applied."""
         # Create data with common offset
-        ch_names = ['Fp1', 'Fp2', 'F3', 'F4']
+        ch_names = ["Fp1", "Fp2", "F3", "F4"]
         data = np.ones((4, 1000)) * 50e-6  # All channels at 50 μV
 
         # Add different signals to each channel
         data[0] += 10e-6 * np.sin(2 * np.pi * 10 * np.arange(1000) / 128)
         data[1] += -10e-6 * np.sin(2 * np.pi * 10 * np.arange(1000) / 128)
 
-        info = mne.create_info(ch_names=ch_names, sfreq=128, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=128, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         referenced = preprocessor._apply_average_reference(raw)
@@ -209,7 +256,7 @@ class TestEEGPreprocessor:
         processed = preprocessor.preprocess(raw_eeg)
 
         # Check all specifications met
-        assert processed.info['sfreq'] == 128  # Correct sampling rate
+        assert processed.info["sfreq"] == 128  # Correct sampling rate
         assert len(processed.ch_names) == 16  # Correct channel count
 
         # Check frequency content
@@ -235,7 +282,7 @@ class TestEEGPreprocessor:
         duration = 10
         t = np.arange(int(sfreq * duration)) / sfreq
 
-        ch_names = [f'EEG{i:03d}' for i in range(19)]
+        ch_names = [f"EEG{i:03d}" for i in range(19)]
         data = np.zeros((19, len(t)))
 
         # Add different brain rhythms
@@ -251,7 +298,7 @@ class TestEEGPreprocessor:
         # Add noise
         data += np.random.randn(*data.shape) * 5e-6
 
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Process
@@ -274,9 +321,9 @@ class TestEEGPreprocessor:
     def test_preprocessing_handles_different_montages(self, preprocessor):
         """Test preprocessing works with different channel montages."""
         # Test with fewer channels (e.g., 10-channel setup)
-        ch_names = ['Fp1', 'Fp2', 'C3', 'C4', 'O1', 'O2', 'F3', 'F4', 'P3', 'P4']
+        ch_names = ["Fp1", "Fp2", "C3", "C4", "O1", "O2", "F3", "F4", "P3", "P4"]
         data = np.random.randn(len(ch_names), 5000) * 20e-6
-        info = mne.create_info(ch_names=ch_names, sfreq=500, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=500, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Should handle gracefully
@@ -284,7 +331,7 @@ class TestEEGPreprocessor:
 
         # Should keep all 10 channels since we have less than 16
         assert len(processed.ch_names) == 10
-        assert processed.info['sfreq'] == 128
+        assert processed.info["sfreq"] == 128
 
     def test_preprocessing_performance(self, preprocessor, raw_eeg):
         """Test preprocessing completes in reasonable time."""
@@ -311,8 +358,8 @@ class TestEEGPreprocessor:
             data[i] = 20e-6 * np.sin(2 * np.pi * 10 * t)  # EEG signal
             data[i] += 10e-6 * np.sin(2 * np.pi * notch_freq * t)  # Powerline
 
-        ch_names = ['Fp1', 'Fp2', 'C3', 'C4']
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        ch_names = ["Fp1", "Fp2", "C3", "C4"]
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         filtered = preprocessor._apply_notch_filter(raw)
@@ -341,12 +388,12 @@ class TestBioSerenityE1Compliance:
 
         # Components at filter edges
         data = np.zeros((1, len(t)))
-        data[0] += 10e-6 * np.sin(2 * np.pi * 0.4 * t)   # Below HPF
-        data[0] += 10e-6 * np.sin(2 * np.pi * 0.6 * t)   # Above HPF
-        data[0] += 10e-6 * np.sin(2 * np.pi * 44 * t)    # Below LPF
-        data[0] += 10e-6 * np.sin(2 * np.pi * 46 * t)    # Above LPF
+        data[0] += 10e-6 * np.sin(2 * np.pi * 0.4 * t)  # Below HPF
+        data[0] += 10e-6 * np.sin(2 * np.pi * 0.6 * t)  # Above HPF
+        data[0] += 10e-6 * np.sin(2 * np.pi * 44 * t)  # Below LPF
+        data[0] += 10e-6 * np.sin(2 * np.pi * 46 * t)  # Above LPF
 
-        info = mne.create_info(['Test'], sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(["Test"], sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Apply filters
@@ -365,7 +412,7 @@ class TestBioSerenityE1Compliance:
 
         # Check attenuation at filter edges
         assert psd[idx_0_4] < psd[idx_0_6] * 0.1  # 0.4 Hz heavily attenuated
-        assert psd[idx_46] < psd[idx_44] * 0.1    # 46 Hz heavily attenuated
+        assert psd[idx_46] < psd[idx_44] * 0.1  # 46 Hz heavily attenuated
 
     def test_window_size_for_128hz(self):
         """Test window extraction for 16s windows at 128 Hz."""
@@ -376,9 +423,9 @@ class TestBioSerenityE1Compliance:
         duration = 60
         n_samples = int(sfreq * duration)
 
-        ch_names = ['Fp1', 'Fp2', 'C3', 'C4']
+        ch_names = ["Fp1", "Fp2", "C3", "C4"]
         data = np.random.randn(len(ch_names), n_samples) * 20e-6
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Extract 16s windows with no overlap (as per paper)

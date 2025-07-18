@@ -42,12 +42,12 @@ graph TB
     B --> C[EEGPT Model]
     C --> D[Feature Extraction]
     D --> E[Downstream Tasks]
-    
+
     E --> F[Motor Imagery]
     E --> G[ERP Detection]
     E --> H[Sleep Classification]
     E --> I[BCI Control]
-    
+
     J[Configuration] --> B
     J --> C
     K[Experiment Tracking] --> C
@@ -66,7 +66,7 @@ Based on the paper "EEGPT: Pretrained Transformer for Universal and Reliable Rep
 ## 📊 Applications
 
 - **Motor Imagery Classification**: Decode intended movements from EEG
-- **Event-Related Potentials**: Identify neural responses to stimuli  
+- **Event-Related Potentials**: Identify neural responses to stimuli
 - **Sleep Stage Classification**: Automated sleep pattern analysis
 - **Brain-Computer Interface**: Real-time neural control systems
 - **Neurofeedback**: Closed-loop brain training applications

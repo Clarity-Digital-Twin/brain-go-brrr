@@ -345,4 +345,4 @@ services/*.log
 # Example outputs
 examples/outputs/
 examples/logs/
-examples/*.log 
+examples/*.log

@@ -9,20 +9,20 @@ import pytest
 
 # Performance targets from requirements
 PERFORMANCE_TARGETS = {
-    "single_window_ms": 50,          # Single 4-second window: < 50ms
-    "twenty_min_recording_s": 120,   # 20-minute recording: < 2 minutes
-    "memory_usage_gb": 2.0,          # Memory usage: < 2GB
-    "gpu_speedup_min": 2.0,          # GPU should be at least 2x faster than CPU
-    "throughput_ratio_min": 10.0,    # Should process 10x faster than real-time
+    "single_window_ms": 50,  # Single 4-second window: < 50ms
+    "twenty_min_recording_s": 120,  # 20-minute recording: < 2 minutes
+    "memory_usage_gb": 2.0,  # Memory usage: < 2GB
+    "gpu_speedup_min": 2.0,  # GPU should be at least 2x faster than CPU
+    "throughput_ratio_min": 10.0,  # Should process 10x faster than real-time
 }
 
 # Default benchmark configuration
 DEFAULT_BENCHMARK_CONFIG = {
     "min_rounds": 5,
-    "max_time": 10.0,        # Maximum time per benchmark in seconds
+    "max_time": 10.0,  # Maximum time per benchmark in seconds
     "warmup": True,
     "warmup_iterations": 1,
-    "disable_gc": True,      # Disable garbage collection during timing
+    "disable_gc": True,  # Disable garbage collection during timing
     "sort": "mean",
 }
 
@@ -30,17 +30,17 @@ DEFAULT_BENCHMARK_CONFIG = {
 TEST_DATA_CONFIGS = {
     "single_window": {
         "channels": 19,
-        "samples": 1024,        # 4 seconds at 256 Hz
+        "samples": 1024,  # 4 seconds at 256 Hz
         "dtype": "float32",
     },
     "max_channels_window": {
-        "channels": 58,         # Maximum supported channels
+        "channels": 58,  # Maximum supported channels
         "samples": 1024,
         "dtype": "float32",
     },
     "twenty_min_recording": {
         "channels": 19,
-        "samples": 307200,      # 20 minutes at 256 Hz
+        "samples": 307200,  # 20 minutes at 256 Hz
         "dtype": "float32",
     },
     "batch_sizes": [1, 4, 8, 16, 32, 64],
@@ -61,7 +61,9 @@ class BenchmarkReporter:
         self.results_dir.mkdir(exist_ok=True)
         self.results: dict[str, Any] = {}
 
-    def add_result(self, test_name: str, benchmark_result: Any, metadata: dict[str, Any] | None = None) -> None:
+    def add_result(
+        self, test_name: str, benchmark_result: Any, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Add benchmark result for reporting.
 
         Args:
@@ -139,10 +141,12 @@ class BenchmarkReporter:
         ]
 
         # Add targets table
-        lines.extend([
-            "| Metric | Target | Description |",
-            "|--------|--------|-------------|",
-        ])
+        lines.extend(
+            [
+                "| Metric | Target | Description |",
+                "|--------|--------|-------------|",
+            ]
+        )
 
         target_descriptions = {
             "single_window_ms": "Single 4-second window inference time",
@@ -161,10 +165,12 @@ class BenchmarkReporter:
 
         # Add results table
         if self.results:
-            lines.extend([
-                "| Test | Mean Time | Target | Status |",
-                "|------|-----------|--------|--------|",
-            ])
+            lines.extend(
+                [
+                    "| Test | Mean Time | Target | Status |",
+                    "|------|-----------|--------|--------|",
+                ]
+            )
 
             for test_name, result in self.results.items():
                 mean_time = result.get("mean_time_ms", 0)
@@ -237,12 +243,14 @@ def pytest_benchmark_update_machine_info(config, machine_info):
 
     import torch
 
-    machine_info.update({
-        "python_version": platform.python_version(),
-        "pytorch_version": torch.__version__,
-        "cuda_available": torch.cuda.is_available(),
-        "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
-    })
+    machine_info.update(
+        {
+            "python_version": platform.python_version(),
+            "pytorch_version": torch.__version__,
+            "cuda_available": torch.cuda.is_available(),
+            "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+        }
+    )
 
     if torch.cuda.is_available():
         machine_info["cuda_device_name"] = torch.cuda.get_device_name(0)
@@ -268,6 +276,7 @@ def benchmark_eegpt_inference(benchmark, model, data, expected_shape=None, targe
     Returns:
         Benchmark result and extracted features
     """
+
     def extract_features():
         return model.extract_features(data)
 
@@ -283,14 +292,14 @@ def benchmark_eegpt_inference(benchmark, model, data, expected_shape=None, targe
     # Validate performance target
     if target_ms:
         actual_ms = benchmark.stats.mean * 1000
-        assert actual_ms < target_ms, (
-            f"Inference took {actual_ms:.1f}ms, target was {target_ms}ms"
-        )
+        assert actual_ms < target_ms, f"Inference took {actual_ms:.1f}ms, target was {target_ms}ms"
 
     return features
 
 
-def benchmark_eegpt_batch(benchmark, model, batch_data, expected_shape=None, target_ms_per_item=None):
+def benchmark_eegpt_batch(
+    benchmark, model, batch_data, expected_shape=None, target_ms_per_item=None
+):
     """Standard benchmark wrapper for EEGPT batch processing.
 
     Args:
@@ -303,6 +312,7 @@ def benchmark_eegpt_batch(benchmark, model, batch_data, expected_shape=None, tar
     Returns:
         Benchmark result and extracted features
     """
+
     def extract_features_batch():
         return model.extract_features_batch(batch_data)
 

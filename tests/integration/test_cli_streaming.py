@@ -43,18 +43,19 @@ class TestCLIStreamingIntegration:
             cmd,
             capture_output=True,
             text=True,
-            timeout=60  # 60 second timeout
+            timeout=60,  # 60 second timeout
         )
         return result
 
     def parse_json_output(self, output: str) -> list[dict[str, Any]]:
         """Parse JSON lines from CLI output."""
-        lines = output.strip().split('\n')
+        lines = output.strip().split("\n")
         results = []
 
         for line in lines:
-            if line.strip() and line.startswith('{'):
+            if line.strip() and line.startswith("{"):
                 import contextlib
+
                 with contextlib.suppress(json.JSONDecodeError):
                     results.append(json.loads(line))
 
@@ -64,12 +65,16 @@ class TestCLIStreamingIntegration:
     def test_stream_basic_functionality(self, short_edf_path):
         """Test basic streaming with default parameters."""
         # Run streaming command with limited windows for speed
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--format", "json",
-            "--max-windows", "5"  # Only process 5 windows for testing
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--format",
+                "json",
+                "--max-windows",
+                "5",  # Only process 5 windows for testing
+            ]
+        )
 
         # Check command succeeded
         assert result.returncode == 0, f"CLI failed: {result.stderr}"
@@ -95,20 +100,25 @@ class TestCLIStreamingIntegration:
 
         # Verify time progression
         for i in range(1, len(windows)):
-            assert windows[i]["start_time"] >= windows[i-1]["end_time"]
+            assert windows[i]["start_time"] >= windows[i - 1]["end_time"]
 
     @pytest.mark.integration
     def test_stream_with_custom_window_size(self, short_edf_path):
         """Test streaming with custom window size."""
         window_size = 2.0  # 2 second windows
 
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--window-size", str(window_size),
-            "--format", "json",
-            "--max-windows", "10"
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                str(window_size),
+                "--format",
+                "json",
+                "--max-windows",
+                "10",
+            ]
+        )
 
         assert result.returncode == 0
         windows = self.parse_json_output(result.stdout)
@@ -124,14 +134,20 @@ class TestCLIStreamingIntegration:
         window_size = 4.0
         overlap = 0.5  # 50% overlap
 
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--window-size", str(window_size),
-            "--overlap", str(overlap),
-            "--format", "json",
-            "--max-windows", "10"
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                str(window_size),
+                "--overlap",
+                str(overlap),
+                "--format",
+                "json",
+                "--max-windows",
+                "10",
+            ]
+        )
 
         assert result.returncode == 0
         windows = self.parse_json_output(result.stdout)
@@ -140,19 +156,24 @@ class TestCLIStreamingIntegration:
         if len(windows) > 1:
             expected_step = window_size * (1 - overlap)
             for i in range(1, len(windows)):
-                actual_step = windows[i]["start_time"] - windows[i-1]["start_time"]
+                actual_step = windows[i]["start_time"] - windows[i - 1]["start_time"]
                 assert abs(actual_step - expected_step) < 0.01
 
     @pytest.mark.integration
     def test_stream_feature_extraction(self, short_edf_path):
         """Test that features are actually extracted."""
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--window-size", "4.0",
-            "--format", "json",
-            "--max-windows", "5"
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                "4.0",
+                "--format",
+                "json",
+                "--max-windows",
+                "5",
+            ]
+        )
 
         assert result.returncode == 0
         windows = self.parse_json_output(result.stdout)
@@ -174,10 +195,7 @@ class TestCLIStreamingIntegration:
         """Test error handling for invalid file."""
         invalid_path = tmp_path / "nonexistent.edf"
 
-        result = self.run_cli_command([
-            "stream",
-            str(invalid_path)
-        ])
+        result = self.run_cli_command(["stream", str(invalid_path)])
 
         # Should fail with non-zero exit code
         assert result.returncode != 0
@@ -186,11 +204,14 @@ class TestCLIStreamingIntegration:
     @pytest.mark.integration
     def test_stream_invalid_overlap(self, short_edf_path):
         """Test error handling for invalid overlap values."""
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--overlap", "1.5"  # Invalid: > 1.0
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--overlap",
+                "1.5",  # Invalid: > 1.0
+            ]
+        )
 
         # Should fail
         assert result.returncode != 0
@@ -205,12 +226,20 @@ class TestCLIStreamingIntegration:
 
         # Stream first 10 windows only
         result = subprocess.run(
-            [sys.executable, "-m", "brain_go_brrr.cli",
-             "stream", str(sample_edf_path), "--format", "json",
-             "--max-windows", "10"],
+            [
+                sys.executable,
+                "-m",
+                "brain_go_brrr.cli",
+                "stream",
+                str(sample_edf_path),
+                "--format",
+                "json",
+                "--max-windows",
+                "10",
+            ],
             capture_output=True,
             text=True,
-            timeout=30  # Should complete quickly with streaming
+            timeout=30,  # Should complete quickly with streaming
         )
 
         elapsed = time.time() - start_time
@@ -218,10 +247,10 @@ class TestCLIStreamingIntegration:
         assert result.returncode == 0
 
         # Parse at least first few windows
-        lines = result.stdout.strip().split('\n')[:10]  # First 10 windows
+        lines = result.stdout.strip().split("\n")[:10]  # First 10 windows
         windows = []
         for line in lines:
-            if line.strip() and line.startswith('{'):
+            if line.strip() and line.startswith("{"):
                 with contextlib.suppress(json.JSONDecodeError):
                     windows.append(json.loads(line))
 
@@ -233,37 +262,47 @@ class TestCLIStreamingIntegration:
     @pytest.mark.integration
     def test_stream_output_ordering(self, short_edf_path):
         """Test that output windows are in correct temporal order."""
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--window-size", "2.0",
-            "--format", "json",
-            "--max-windows", "10"
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                "2.0",
+                "--format",
+                "json",
+                "--max-windows",
+                "10",
+            ]
+        )
 
         assert result.returncode == 0
         windows = self.parse_json_output(result.stdout)
 
         # Verify temporal ordering
         for i in range(1, len(windows)):
-            assert windows[i]["start_time"] > windows[i-1]["start_time"]
-            assert windows[i]["window"] == windows[i-1]["window"] + 1
+            assert windows[i]["start_time"] > windows[i - 1]["start_time"]
+            assert windows[i]["window"] == windows[i - 1]["window"] + 1
 
     @pytest.mark.integration
     def test_stream_csv_format(self, short_edf_path):
         """Test non-JSON output format."""
-        result = self.run_cli_command([
-            "stream",
-            str(short_edf_path),
-            "--window-size", "4.0",
-            "--format", "csv",
-            "--max-windows", "5"
-        ])
+        result = self.run_cli_command(
+            [
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                "4.0",
+                "--format",
+                "csv",
+                "--max-windows",
+                "5",
+            ]
+        )
 
         assert result.returncode == 0
 
         # Should have human-readable output
-        output_lines = result.stdout.strip().split('\n')
+        output_lines = result.stdout.strip().split("\n")
         window_lines = [line for line in output_lines if line.startswith("Window")]
 
         assert len(window_lines) > 0
@@ -285,11 +324,10 @@ class TestCLIStreamingEdgeCases:
         empty_edf.write_text("")
 
         result = subprocess.run(
-            [sys.executable, "-m", "brain_go_brrr.cli",
-             "stream", str(empty_edf)],
+            [sys.executable, "-m", "brain_go_brrr.cli", "stream", str(empty_edf)],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
         )
 
         # Should fail gracefully
@@ -301,16 +339,25 @@ class TestCLIStreamingEdgeCases:
         # This is hard to test automatically, but we can at least
         # verify the command starts successfully
         proc = subprocess.Popen(
-            [sys.executable, "-m", "brain_go_brrr.cli",
-             "stream", str(short_edf_path), "--format", "json",
-             "--max-windows", "2"],
+            [
+                sys.executable,
+                "-m",
+                "brain_go_brrr.cli",
+                "stream",
+                str(short_edf_path),
+                "--format",
+                "json",
+                "--max-windows",
+                "2",
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
 
         # Let it run briefly
         import time
+
         time.sleep(0.5)
 
         # Terminate it
@@ -339,22 +386,30 @@ class TestCLIStreamingIntegrationWithModel:
         monkeypatch.setenv("EEGPT_CHECKPOINT_PATH", str(model_checkpoint_path))
 
         result = subprocess.run(
-            [sys.executable, "-m", "brain_go_brrr.cli",
-             "stream", str(short_edf_path),
-             "--window-size", "4.0",
-             "--format", "json",
-             "--max-windows", "5"],
+            [
+                sys.executable,
+                "-m",
+                "brain_go_brrr.cli",
+                "stream",
+                str(short_edf_path),
+                "--window-size",
+                "4.0",
+                "--format",
+                "json",
+                "--max-windows",
+                "5",
+            ],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         assert result.returncode == 0
 
         # Parse output
         windows = []
-        for line in result.stdout.strip().split('\n'):
-            if line.strip() and line.startswith('{'):
+        for line in result.stdout.strip().split("\n"):
+            if line.strip() and line.startswith("{"):
                 with contextlib.suppress(json.JSONDecodeError):
                     windows.append(json.loads(line))
 

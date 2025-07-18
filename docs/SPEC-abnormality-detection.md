@@ -261,7 +261,7 @@ Request:
     "confidence_threshold": 0.7
   }
 
-Response: 
+Response:
 {
     "status": "success",
     "results": { ... },  # As specified above
@@ -341,24 +341,24 @@ abnormality_detection:
     checkpoint_path: "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
     device: "auto"  # auto, cuda, cpu
     batch_size: 16
-    
+
   preprocessing:
     target_sampling_rate: 256
     bandpass_low: 0.5
     bandpass_high: 50.0
     notch_freq: 50  # or 60 for US
-    
+
   windowing:
     window_duration: 4.0  # seconds
     overlap_ratio: 0.5
     min_windows: 10  # minimum for valid prediction
-    
+
   thresholds:
     abnormal_threshold: 0.5
     urgent_threshold: 0.8
     expedite_threshold: 0.6
     routine_threshold: 0.4
-    
+
   performance:
     max_processing_time: 30  # seconds
     max_concurrent: 50

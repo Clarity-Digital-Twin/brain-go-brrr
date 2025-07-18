@@ -96,7 +96,7 @@ paths:
       responses:
         200:
           description: JWT token
-          
+
   /api/v1/eeg/upload:
     post:
       summary: Upload EEG file for analysis
@@ -120,7 +120,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobResponse'
-                
+
   /api/v1/eeg/analyze/{job_id}:
     get:
       summary: Get analysis results
@@ -190,8 +190,8 @@ CREATE TABLE audit_log (
 ```python
 class EEGAnalysisPipeline:
     """Main processing pipeline adhering to SOLID principles"""
-    
-    def __init__(self, 
+
+    def __init__(self,
                  qc_analyzer: IQualityAnalyzer,
                  abnormal_detector: IAbnormalDetector,
                  event_detector: IEventDetector,
@@ -200,23 +200,23 @@ class EEGAnalysisPipeline:
         self.abnormal = abnormal_detector
         self.events = event_detector
         self.sleep = sleep_analyzer
-    
+
     async def process(self, eeg_file_path: Path) -> AnalysisResult:
         # 1. Load and validate
         raw = await self.load_eeg(eeg_file_path)
-        
+
         # 2. Quality control
         qc_result = await self.qc.analyze(raw)
         if qc_result.unusable:
             return AnalysisResult(status="failed", reason="poor_quality")
-        
+
         # 3. Parallel analysis
         results = await asyncio.gather(
             self.abnormal.detect(raw),
             self.events.detect(raw),
             self.sleep.analyze(raw) if raw.duration > 600 else None
         )
-        
+
         return AnalysisResult(
             qc=qc_result,
             abnormal=results[0],
@@ -280,7 +280,7 @@ services:
         reservations:
           cpus: '1'
           memory: 2G
-          
+
   worker:
     image: eegpt/worker:latest
     deploy:
@@ -331,11 +331,11 @@ class TestEEGPipeline:
     @pytest.fixture
     def mock_eeg_data(self):
         return create_mock_eeg(duration=600, channels=19)
-    
+
     async def test_abnormal_detection_accuracy(self, mock_eeg_data):
         pipeline = EEGAnalysisPipeline()
         result = await pipeline.process(mock_eeg_data)
-        
+
         assert result.abnormal.confidence > 0.8
         assert result.processing_time < 120  # seconds
 ```
@@ -348,10 +348,10 @@ class TestEEGPipeline:
 Module: eeg_analysis_pipeline.py
 Purpose: Core EEG analysis pipeline implementing EEGPT-based clinical decision support
 Requirements: FR1, FR2, FR3 from PRD-product-requirements.md
-Dependencies: 
+Dependencies:
   - EEGPT model weights: /data/models/eegpt/pretrained/eegpt_large.pt
   - Config: /config/pipeline_config.yaml
-  
+
 AI Agent Instructions:
 - This module follows SOLID principles with dependency injection
 - All analyzers implement their respective interfaces (IQualityAnalyzer, etc.)

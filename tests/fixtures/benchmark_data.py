@@ -37,11 +37,11 @@ def benchmark_raw_data(benchmark_edf_path) -> mne.io.Raw | None:
     raw = mne.io.read_raw_edf(benchmark_edf_path, preload=True)
 
     # Standardize to common sampling rate
-    if raw.info['sfreq'] != 256:
+    if raw.info["sfreq"] != 256:
         raw.resample(256)
 
     # Apply standard preprocessing
-    raw.filter(0.5, 50, fir_design='firwin')
+    raw.filter(0.5, 50, fir_design="firwin")
 
     return raw
 
@@ -64,8 +64,25 @@ def realistic_single_window(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
         if len(ch_names) > 19:
             # Select common 10-20 channels
             standard_channels = [
-                "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-                "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+                "Fp1",
+                "Fp2",
+                "F3",
+                "F4",
+                "C3",
+                "C4",
+                "P3",
+                "P4",
+                "O1",
+                "O2",
+                "F7",
+                "F8",
+                "T3",
+                "T4",
+                "T5",
+                "T6",
+                "Fz",
+                "Cz",
+                "Pz",
             ]
             picks = []
             selected_names = []
@@ -91,8 +108,25 @@ def realistic_single_window(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
         data = np.random.randn(19, 1024).astype(np.float32) * 20e-6
 
         ch_names = [
-            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
         ]
 
         return data, ch_names
@@ -116,10 +150,7 @@ def realistic_batch_windows(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
                 # Not enough data, use synthetic
                 break
 
-            raw_segment = benchmark_raw_data.copy().crop(
-                tmin=start_time,
-                tmax=start_time + 4.0
-            )
+            raw_segment = benchmark_raw_data.copy().crop(tmin=start_time, tmax=start_time + 4.0)
 
             data = raw_segment.get_data()
 
@@ -128,8 +159,25 @@ def realistic_batch_windows(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
                 # Handle channel selection like in single window
                 if len(ch_names) > 19:
                     standard_channels = [
-                        "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-                        "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+                        "Fp1",
+                        "Fp2",
+                        "F3",
+                        "F4",
+                        "C3",
+                        "C4",
+                        "P3",
+                        "P4",
+                        "O1",
+                        "O2",
+                        "F7",
+                        "F8",
+                        "T3",
+                        "T4",
+                        "T5",
+                        "T6",
+                        "Fz",
+                        "Cz",
+                        "Pz",
                     ]
                     picks = []
                     selected_names = []
@@ -155,10 +203,7 @@ def realistic_batch_windows(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
             if window_data.shape[0] < 19:
                 # Pad with zeros
                 n_pad = 19 - window_data.shape[0]
-                window_data = np.vstack([
-                    window_data,
-                    np.zeros((n_pad, window_data.shape[1]))
-                ])
+                window_data = np.vstack([window_data, np.zeros((n_pad, window_data.shape[1]))])
 
             windows.append(window_data[:19, :1024])
 
@@ -170,8 +215,25 @@ def realistic_batch_windows(benchmark_raw_data) -> tuple[npt.NDArray[np.float32]
     data = np.random.randn(batch_size, 19, 1024).astype(np.float32) * 20e-6
 
     ch_names = [
-        "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-        "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+        "Fp1",
+        "Fp2",
+        "F3",
+        "F4",
+        "C3",
+        "C4",
+        "P3",
+        "P4",
+        "O1",
+        "O2",
+        "F7",
+        "F8",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "Fz",
+        "Cz",
+        "Pz",
     ]
 
     return data, ch_names
@@ -200,8 +262,25 @@ def realistic_twenty_min_recording(benchmark_raw_data) -> tuple[npt.NDArray[np.f
         # Handle channel selection
         if len(ch_names) > 19:
             standard_channels = [
-                "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-                "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+                "Fp1",
+                "Fp2",
+                "F3",
+                "F4",
+                "C3",
+                "C4",
+                "P3",
+                "P4",
+                "O1",
+                "O2",
+                "F7",
+                "F8",
+                "T3",
+                "T4",
+                "T5",
+                "T6",
+                "Fz",
+                "Cz",
+                "Pz",
             ]
             picks = []
             selected_names = []
@@ -236,8 +315,25 @@ def realistic_twenty_min_recording(benchmark_raw_data) -> tuple[npt.NDArray[np.f
         data = np.random.randn(19, target_samples).astype(np.float32) * 20e-6
 
         ch_names = [
-            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
         ]
 
         return data, ch_names

@@ -20,7 +20,7 @@
 
 ## ✅ Documentation
 - [x] PRD - Product Requirements Document
-- [x] TRD - Technical Requirements Document  
+- [x] TRD - Technical Requirements Document
 - [x] BDD - Behavior Specifications
 - [x] Literature Master Reference
 - [x] AI Agent Guidelines
@@ -69,7 +69,7 @@ ls -la data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
 # Run linting
 uv run ruff check src/
 
-# Run type checking  
+# Run type checking
 uv run mypy src/
 
 # Run tests

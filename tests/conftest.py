@@ -18,10 +18,11 @@ def fresh_app():
     """
     # First, clear any existing api.main from sys.modules
     import sys
-    if 'api.main' in sys.modules:
-        del sys.modules['api.main']
-    if 'api' in sys.modules:
-        del sys.modules['api']
+
+    if "api.main" in sys.modules:
+        del sys.modules["api.main"]
+    if "api" in sys.modules:
+        del sys.modules["api"]
 
     # Import fresh
 
@@ -29,16 +30,17 @@ def fresh_app():
     yield
 
     # Cleanup after test
-    if 'api.main' in sys.modules:
-        del sys.modules['api.main']
-    if 'api' in sys.modules:
-        del sys.modules['api']
+    if "api.main" in sys.modules:
+        del sys.modules["api.main"]
+    if "api" in sys.modules:
+        del sys.modules["api"]
 
 
 @pytest.fixture
 def client():
     """Create a fresh test client with isolated app instance."""
     import api.main
+
     return TestClient(api.main.app)
 
 

@@ -90,25 +90,22 @@ class TestRedisConnectionPool:
     @pytest.fixture
     def mock_redis(self):
         """Mock Redis client."""
-        with patch('redis.Redis') as mock:
+        with patch("redis.Redis") as mock:
             client = MagicMock()
             client.ping.return_value = True
             client.info.return_value = {
                 "redis_version": "7.0.0",
                 "connected_clients": 5,
-                "used_memory_human": "1.5M"
+                "used_memory_human": "1.5M",
             }
-            client.info.return_value = {
-                "keyspace_hits": 100,
-                "keyspace_misses": 20
-            }
+            client.info.return_value = {"keyspace_hits": 100, "keyspace_misses": 20}
             mock.return_value = client
             yield mock
 
     @pytest.fixture
     def mock_connection_pool(self):
         """Mock connection pool."""
-        with patch('redis.connection.ConnectionPool') as mock:
+        with patch("redis.connection.ConnectionPool") as mock:
             pool = MagicMock()
             pool.max_connections = 50
             pool.created_connections = 5
@@ -119,11 +116,7 @@ class TestRedisConnectionPool:
 
     def test_pool_initialization(self, mock_redis, mock_connection_pool):
         """Test connection pool initialization."""
-        RedisConnectionPool(
-            host="localhost",
-            port=6379,
-            max_connections=100
-        )
+        RedisConnectionPool(host="localhost", port=6379, max_connections=100)
 
         # Verify pool was created with correct parameters
         mock_connection_pool.assert_called_once()
@@ -150,7 +143,7 @@ class TestRedisConnectionPool:
         client.get.side_effect = [
             ConnectionError("Test error 1"),
             ConnectionError("Test error 2"),
-            "success"
+            "success",
         ]
         mock_redis.return_value = client
 
@@ -182,15 +175,8 @@ class TestRedisConnectionPool:
         client = MagicMock()
         client.ping.return_value = True
         client.info.side_effect = [
-            {
-                "redis_version": "7.0.0",
-                "connected_clients": 10,
-                "used_memory_human": "2.5M"
-            },
-            {
-                "keyspace_hits": 1000,
-                "keyspace_misses": 100
-            }
+            {"redis_version": "7.0.0", "connected_clients": 10, "used_memory_human": "2.5M"},
+            {"keyspace_hits": 1000, "keyspace_misses": 100},
         ]
         mock_redis.return_value = client
 
@@ -291,10 +277,7 @@ class TestIntegration:
         """Create real Redis pool for integration tests."""
         try:
             pool = RedisConnectionPool(
-                host="localhost",
-                port=6379,
-                max_connections=10,
-                socket_timeout=1
+                host="localhost", port=6379, max_connections=10, socket_timeout=1
             )
             # Test connection
             with pool.get_client() as client:

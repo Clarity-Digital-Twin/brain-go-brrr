@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "yasa"
 
 try:
     import yasa
+
     YASA_AVAILABLE = True
 except ImportError:
     logging.warning("YASA not available. Install with: pip install yasa")
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 class SleepAnalyzer:
     """Comprehensive sleep analysis using YASA and additional metrics.
-    
+
     This class provides:
     1. Automatic sleep staging
     2. Sleep architecture analysis
@@ -41,10 +42,10 @@ class SleepAnalyzer:
         staging_model: str = "auto",
         epoch_length: float = 30.0,
         include_art: bool = True,
-        verbose: bool = False
+        verbose: bool = False,
     ):
         """Initialize the Sleep Analyzer.
-        
+
         Args:
             staging_model: YASA staging model ('auto', 'Vallat2021', etc.)
             epoch_length: Length of each sleep epoch in seconds
@@ -66,40 +67,46 @@ class SleepAnalyzer:
         eeg_channels: list[str] | None = None,
         eog_channels: list[str] | None = None,
         emg_channels: list[str] | None = None,
-        resample_freq: float = 100.0
+        resample_freq: float = 100.0,
     ) -> mne.io.Raw:
         """Preprocess EEG data for sleep staging.
-        
+
         Args:
             raw: Raw EEG data
             eeg_channels: List of EEG channel names
             eog_channels: List of EOG channel names
             emg_channels: List of EMG channel names
             resample_freq: Target sampling frequency
-            
+
         Returns:
             Preprocessed raw data
         """
         raw_copy = raw.copy()
 
         # Resample to standard sleep staging frequency
-        if raw_copy.info['sfreq'] != resample_freq:
+        if raw_copy.info["sfreq"] != resample_freq:
             raw_copy.resample(resample_freq)
 
         # Apply appropriate filters for sleep staging
         raw_copy.filter(
             l_freq=0.3,  # High-pass for sleep staging
             h_freq=35.0,  # Low-pass for sleep staging
-            fir_design='firwin'
+            fir_design="firwin",
         )
 
         # Set channel types if specified
         if eeg_channels:
-            raw_copy.set_channel_types({ch: 'eeg' for ch in eeg_channels if ch in raw_copy.ch_names})
+            raw_copy.set_channel_types(
+                {ch: "eeg" for ch in eeg_channels if ch in raw_copy.ch_names}
+            )
         if eog_channels:
-            raw_copy.set_channel_types({ch: 'eog' for ch in eog_channels if ch in raw_copy.ch_names})
+            raw_copy.set_channel_types(
+                {ch: "eog" for ch in eog_channels if ch in raw_copy.ch_names}
+            )
         if emg_channels:
-            raw_copy.set_channel_types({ch: 'emg' for ch in emg_channels if ch in raw_copy.ch_names})
+            raw_copy.set_channel_types(
+                {ch: "emg" for ch in emg_channels if ch in raw_copy.ch_names}
+            )
 
         return raw_copy
 
@@ -109,17 +116,17 @@ class SleepAnalyzer:
         eeg_name: str = "C3-A2",
         eog_name: str = "EOG",
         emg_name: str = "EMG",
-        metadata: dict | None = None
+        metadata: dict | None = None,
     ) -> tuple[np.ndarray, dict]:
         """Perform automatic sleep staging.
-        
+
         Args:
             raw: Preprocessed raw EEG data
             eeg_name: Name of EEG channel for staging
             eog_name: Name of EOG channel
             emg_name: Name of EMG channel
             metadata: Additional metadata
-            
+
         Returns:
             Sleep stages array and staging results
         """
@@ -138,7 +145,7 @@ class SleepAnalyzer:
 
         if eeg_ch is None:
             # Use first EEG channel as fallback
-            eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == 'eeg']
+            eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"]
             if eeg_channels:
                 eeg_ch = eeg_channels[0]
                 logger.warning(f"EEG channel {eeg_name} not found, using {eeg_ch}")
@@ -148,11 +155,7 @@ class SleepAnalyzer:
         try:
             # Perform sleep staging using YASA
             sls = yasa.SleepStaging(
-                raw,
-                eeg_name=eeg_ch,
-                eog_name=eog_ch,
-                emg_name=emg_ch,
-                metadata=metadata
+                raw, eeg_name=eeg_ch, eog_name=eog_ch, emg_name=emg_ch, metadata=metadata
             )
 
             # Predict sleep stages
@@ -163,57 +166,48 @@ class SleepAnalyzer:
 
             # Create results dictionary
             results = {
-                'stages': y_pred,
-                'probabilities': y_proba,
-                'channels_used': {
-                    'eeg': eeg_ch,
-                    'eog': eog_ch,
-                    'emg': emg_ch
-                },
-                'model_info': {
-                    'name': self.staging_model,
-                    'version': yasa.__version__
-                }
+                "stages": y_pred,
+                "probabilities": y_proba,
+                "channels_used": {"eeg": eeg_ch, "eog": eog_ch, "emg": emg_ch},
+                "model_info": {"name": self.staging_model, "version": yasa.__version__},
             }
 
-            logger.info(f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}")
+            logger.info(
+                f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
+            )
             return y_pred, results
 
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback
             n_epochs = int(raw.times[-1] / self.epoch_length)
-            dummy_stages = np.random.choice(['N1', 'N2', 'N3', 'REM', 'W'], n_epochs)
-            return dummy_stages, {'error': str(e)}
+            dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
+            return dummy_stages, {"error": str(e)}
 
-    def compute_sleep_statistics(
-        self,
-        hypnogram: np.ndarray,
-        epoch_length: float = 30.0
-    ) -> dict:
+    def compute_sleep_statistics(self, hypnogram: np.ndarray, epoch_length: float = 30.0) -> dict:
         """Compute comprehensive sleep statistics.
-        
+
         Args:
             hypnogram: Array of sleep stages
             epoch_length: Length of each epoch in seconds
-            
+
         Returns:
             Dictionary of sleep statistics
         """
         # Handle empty hypnogram
         if len(hypnogram) == 0:
             return {
-                'total_epochs': 0,
-                'total_recording_time': 0.0,
-                'stage_percentages': {},
-                'stage_durations': {},
-                'TST': 0.0,
-                'SE': 0.0,
-                '%N1': 0.0,
-                '%N2': 0.0,
-                '%N3': 0.0,
-                '%REM': 0.0,
-                '%NREM': 0.0
+                "total_epochs": 0,
+                "total_recording_time": 0.0,
+                "stage_percentages": {},
+                "stage_durations": {},
+                "TST": 0.0,
+                "SE": 0.0,
+                "%N1": 0.0,
+                "%N2": 0.0,
+                "%N3": 0.0,
+                "%REM": 0.0,
+                "%NREM": 0.0,
             }
 
         # Convert to YASA hypnogram format if needed
@@ -223,23 +217,22 @@ class SleepAnalyzer:
             hypno_int = hypnogram
 
         # Compute sleep statistics
-        stats = yasa.sleep_statistics(hypno_int, sf_hyp=1/epoch_length)
+        stats = yasa.sleep_statistics(hypno_int, sf_hyp=1 / epoch_length)
 
         # Add custom metrics
         total_epochs = len(hypnogram)
         stage_counts = pd.Series(hypnogram).value_counts()
 
         custom_stats = {
-            'total_epochs': total_epochs,
-            'total_recording_time': total_epochs * epoch_length / 3600,  # hours
-            'stage_percentages': {
-                stage: (count / total_epochs) * 100
-                for stage, count in stage_counts.items()
+            "total_epochs": total_epochs,
+            "total_recording_time": total_epochs * epoch_length / 3600,  # hours
+            "stage_percentages": {
+                stage: (count / total_epochs) * 100 for stage, count in stage_counts.items()
             },
-            'stage_durations': {
+            "stage_durations": {
                 stage: (count * epoch_length) / 3600  # hours
                 for stage, count in stage_counts.items()
-            }
+            },
         }
 
         # Merge with YASA statistics
@@ -253,17 +246,17 @@ class SleepAnalyzer:
         hypnogram: np.ndarray,
         include_spindles: bool = True,
         include_so: bool = True,
-        include_rem: bool = True
+        include_rem: bool = True,
     ) -> dict:
         """Detect sleep-specific events.
-        
+
         Args:
             raw: Raw EEG data
             hypnogram: Sleep stage hypnogram
             include_spindles: Whether to detect sleep spindles
             include_so: Whether to detect slow oscillations
             include_rem: Whether to detect REM events
-            
+
         Returns:
             Dictionary of detected sleep events
         """
@@ -277,51 +270,51 @@ class SleepAnalyzer:
             if include_spindles:
                 sp = yasa.spindles_detect(raw, hypno=hypno_int)
                 if sp is not None:
-                    events['spindles'] = {
-                        'count': len(sp),
-                        'density': len(sp) / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        'summary': sp.summary() if hasattr(sp, 'summary') else None
+                    events["spindles"] = {
+                        "count": len(sp),
+                        "density": len(sp)
+                        / (len(hypnogram) * self.epoch_length / 3600),  # per hour
+                        "summary": sp.summary() if hasattr(sp, "summary") else None,
                     }
 
             # Detect slow oscillations
             if include_so:
                 so = yasa.sw_detect(raw, hypno=hypno_int)
                 if so is not None:
-                    events['slow_oscillations'] = {
-                        'count': len(so),
-                        'density': len(so) / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        'summary': so.summary() if hasattr(so, 'summary') else None
+                    events["slow_oscillations"] = {
+                        "count": len(so),
+                        "density": len(so)
+                        / (len(hypnogram) * self.epoch_length / 3600),  # per hour
+                        "summary": so.summary() if hasattr(so, "summary") else None,
                     }
 
             # Detect REM events
             if include_rem:
                 rem = yasa.rem_detect(raw, hypno=hypno_int)
                 if rem is not None:
-                    events['rem_events'] = {
-                        'count': len(rem),
-                        'density': len(rem) / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        'summary': rem.summary() if hasattr(rem, 'summary') else None
+                    events["rem_events"] = {
+                        "count": len(rem),
+                        "density": len(rem)
+                        / (len(hypnogram) * self.epoch_length / 3600),  # per hour
+                        "summary": rem.summary() if hasattr(rem, "summary") else None,
                     }
 
         except Exception as e:
             logger.error(f"Sleep event detection failed: {e}")
-            events['error'] = str(e)
+            events["error"] = str(e)
 
         return events
 
     def generate_hypnogram(
-        self,
-        hypnogram: np.ndarray,
-        epoch_length: float = 30.0,
-        save_path: Path | None = None
+        self, hypnogram: np.ndarray, epoch_length: float = 30.0, save_path: Path | None = None
     ) -> dict:
         """Generate and optionally save hypnogram visualization.
-        
+
         Args:
             hypnogram: Array of sleep stages
             epoch_length: Length of each epoch in seconds
             save_path: Path to save hypnogram image
-            
+
         Returns:
             Hypnogram information
         """
@@ -333,72 +326,69 @@ class SleepAnalyzer:
             times = np.arange(len(hypnogram)) * epoch_length / 3600  # hours
 
             # Plot hypnogram
-            fig, ax = yasa.plot_hypnogram(hypno_int, sf_hyp=1/epoch_length)
+            fig, ax = yasa.plot_hypnogram(hypno_int, sf_hyp=1 / epoch_length)
 
             if save_path:
-                fig.savefig(save_path, dpi=300, bbox_inches='tight')
+                fig.savefig(save_path, dpi=300, bbox_inches="tight")
                 logger.info(f"Hypnogram saved to {save_path}")
 
             hypno_info = {
-                'duration_hours': times[-1],
-                'n_epochs': len(hypnogram),
-                'epoch_length': epoch_length,
-                'stages_present': list(np.unique(hypnogram)),
-                'plot_created': True,
-                'save_path': str(save_path) if save_path else None
+                "duration_hours": times[-1],
+                "n_epochs": len(hypnogram),
+                "epoch_length": epoch_length,
+                "stages_present": list(np.unique(hypnogram)),
+                "plot_created": True,
+                "save_path": str(save_path) if save_path else None,
             }
 
             return hypno_info
 
         except Exception as e:
             logger.error(f"Hypnogram generation failed: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}
 
-    def analyze_sleep_quality(
-        self,
-        hypnogram: np.ndarray,
-        sleep_stats: dict,
-        events: dict
-    ) -> dict:
+    def analyze_sleep_quality(self, hypnogram: np.ndarray, sleep_stats: dict, events: dict) -> dict:
         """Analyze overall sleep quality.
-        
+
         Args:
             hypnogram: Sleep stage hypnogram
             sleep_stats: Sleep statistics
             events: Sleep events
-            
+
         Returns:
             Sleep quality assessment
         """
         quality_metrics = {}
 
         # Sleep efficiency
-        if 'SE' in sleep_stats:
-            quality_metrics['sleep_efficiency'] = sleep_stats['SE']
+        if "SE" in sleep_stats:
+            quality_metrics["sleep_efficiency"] = sleep_stats["SE"]
 
         # Sleep fragmentation
         # Convert string hypnogram to numeric for diff calculation
-        stage_map = {'W': 0, 'N1': 1, 'N2': 2, 'N3': 3, 'REM': 4, 'ART': -1}
+        stage_map = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "ART": -1}
         hypnogram_numeric = np.array([stage_map.get(stage, -1) for stage in hypnogram])
         stage_changes = np.sum(np.diff(hypnogram_numeric) != 0)
-        quality_metrics['fragmentation_index'] = stage_changes / len(hypnogram) if len(hypnogram) > 0 else 0
+        quality_metrics["fragmentation_index"] = (
+            stage_changes / len(hypnogram) if len(hypnogram) > 0 else 0
+        )
 
         # REM percentage
-        if 'REM' in sleep_stats.get('stage_percentages', {}):
-            quality_metrics['rem_percentage'] = sleep_stats['stage_percentages']['REM']
+        if "REM" in sleep_stats.get("stage_percentages", {}):
+            quality_metrics["rem_percentage"] = sleep_stats["stage_percentages"]["REM"]
 
         # Deep sleep percentage
-        if 'N3' in sleep_stats.get('stage_percentages', {}):
-            quality_metrics['deep_sleep_percentage'] = sleep_stats['stage_percentages']['N3']
+        if "N3" in sleep_stats.get("stage_percentages", {}):
+            quality_metrics["deep_sleep_percentage"] = sleep_stats["stage_percentages"]["N3"]
 
         # Sleep spindle density
-        if 'spindles' in events:
-            quality_metrics['spindle_density'] = events['spindles']['density']
+        if "spindles" in events:
+            quality_metrics["spindle_density"] = events["spindles"]["density"]
 
         # Overall quality score (0-100)
         quality_score = self._compute_quality_score(quality_metrics)
-        quality_metrics['overall_score'] = quality_score
-        quality_metrics['quality_grade'] = self._score_to_grade(quality_score)
+        quality_metrics["overall_score"] = quality_score
+        quality_metrics["quality_grade"] = self._score_to_grade(quality_score)
 
         return quality_metrics
 
@@ -408,8 +398,8 @@ class SleepAnalyzer:
         factors = 0
 
         # Sleep efficiency (25 points)
-        if 'sleep_efficiency' in metrics:
-            se = metrics['sleep_efficiency']
+        if "sleep_efficiency" in metrics:
+            se = metrics["sleep_efficiency"]
             if se >= 85:
                 score += 25
             elif se >= 75:
@@ -421,8 +411,8 @@ class SleepAnalyzer:
             factors += 1
 
         # Fragmentation (20 points - lower is better)
-        if 'fragmentation_index' in metrics:
-            fi = metrics['fragmentation_index']
+        if "fragmentation_index" in metrics:
+            fi = metrics["fragmentation_index"]
             if fi <= 0.1:
                 score += 20
             elif fi <= 0.2:
@@ -434,8 +424,8 @@ class SleepAnalyzer:
             factors += 1
 
         # REM percentage (20 points)
-        if 'rem_percentage' in metrics:
-            rem = metrics['rem_percentage']
+        if "rem_percentage" in metrics:
+            rem = metrics["rem_percentage"]
             if 18 <= rem <= 25:
                 score += 20
             elif 15 <= rem <= 30:
@@ -447,8 +437,8 @@ class SleepAnalyzer:
             factors += 1
 
         # Deep sleep percentage (20 points)
-        if 'deep_sleep_percentage' in metrics:
-            deep = metrics['deep_sleep_percentage']
+        if "deep_sleep_percentage" in metrics:
+            deep = metrics["deep_sleep_percentage"]
             if deep >= 15:
                 score += 20
             elif deep >= 10:
@@ -460,8 +450,8 @@ class SleepAnalyzer:
             factors += 1
 
         # Sleep spindle density (15 points)
-        if 'spindle_density' in metrics:
-            sd = metrics['spindle_density']
+        if "spindle_density" in metrics:
+            sd = metrics["spindle_density"]
             if sd >= 2:
                 score += 15
             elif sd >= 1:
@@ -488,17 +478,13 @@ class SleepAnalyzer:
         else:
             return "F"
 
-    def run_full_sleep_analysis(
-        self,
-        raw: mne.io.Raw,
-        **kwargs
-    ) -> dict:
+    def run_full_sleep_analysis(self, raw: mne.io.Raw, **kwargs) -> dict:
         """Run complete sleep analysis pipeline.
-        
+
         Args:
             raw: Raw EEG data
             **kwargs: Additional arguments
-            
+
         Returns:
             Complete sleep analysis report
         """
@@ -524,21 +510,23 @@ class SleepAnalyzer:
 
         # Compile complete report
         report = {
-            'hypnogram': hypnogram.tolist(),
-            'staging_results': staging_results,
-            'sleep_statistics': sleep_stats,
-            'sleep_events': events,
-            'hypnogram_info': hypno_info,
-            'quality_metrics': quality_metrics,
-            'analysis_info': {
-                'yasa_version': yasa.__version__ if YASA_AVAILABLE else 'N/A',
-                'epoch_length': self.epoch_length,
-                'total_epochs': len(hypnogram),
-                'total_duration_hours': len(hypnogram) * self.epoch_length / 3600
-            }
+            "hypnogram": hypnogram.tolist(),
+            "staging_results": staging_results,
+            "sleep_statistics": sleep_stats,
+            "sleep_events": events,
+            "hypnogram_info": hypno_info,
+            "quality_metrics": quality_metrics,
+            "analysis_info": {
+                "yasa_version": yasa.__version__ if YASA_AVAILABLE else "N/A",
+                "epoch_length": self.epoch_length,
+                "total_epochs": len(hypnogram),
+                "total_duration_hours": len(hypnogram) * self.epoch_length / 3600,
+            },
         }
 
-        logger.info(f"Sleep analysis completed. Quality grade: {quality_metrics.get('quality_grade', 'N/A')}")
+        logger.info(
+            f"Sleep analysis completed. Quality grade: {quality_metrics.get('quality_grade', 'N/A')}"
+        )
         return report
 
 

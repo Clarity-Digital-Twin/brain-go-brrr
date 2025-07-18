@@ -34,7 +34,7 @@ EEGPT is a 10-million-parameter pretrained transformer model designed for univer
 - **Scaling Law**: ACC = (33.6 × N)^0.029 where N is parameter count
 
 ### Implementation Requirements
-- **Preprocessing**: 
+- **Preprocessing**:
   - Bandpass filter: 0-38 Hz for motor imagery tasks
   - Resampling: 256 Hz
   - Channels: 58 electrodes (M=58)
@@ -64,7 +64,7 @@ Autoreject provides automated, data-driven detection and repair of bad segments 
    ```
    A_ij = max(X_it) - min(X_it)
    ```
-   
+
 2. **Good trials selection**:
    ```
    G_k = {i ∈ T_k | max(A_ij) ≤ τ}
@@ -87,7 +87,7 @@ Autoreject provides automated, data-driven detection and repair of bad segments 
 
 ### Implementation Details
 - **Optimization**: Bayesian optimization for threshold selection
-- **Interpolation**: 
+- **Interpolation**:
   - EEG: Spherical splines
   - MEG: Minimum Norm Estimates with spherical harmonics
 - **Code**: Available at https://autoreject.github.io
@@ -128,7 +128,7 @@ YASA is a free, open-source automated sleep staging tool trained on 30,000+ hour
 - **Language**: Python
 - **Processing speed**: < 5 seconds for full night
 - **Installation**: `pip install yasa`
-- **Input requirements**: 
+- **Input requirements**:
   - Minimum: 1 EEG channel
   - Optimal: 1 EEG + 1 EOG + 1 EMG
 - **Sampling rate**: Flexible (automatically handled)

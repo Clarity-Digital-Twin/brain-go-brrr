@@ -26,7 +26,7 @@ This triggers deeper analysis before coding begins.
 
 #### Step 1: Define the Test
 ```
-"Write a test for a function that takes raw EEG data and returns sleep stages. 
+"Write a test for a function that takes raw EEG data and returns sleep stages.
 The test should verify:
 - Correct input validation
 - Proper output format
@@ -52,10 +52,10 @@ Ensure all tests still pass."
 
 ```markdown
 1. "think about adding [FEATURE] to our EEG pipeline"
-   
+
 2. "Create comprehensive tests for [FEATURE] including:
     - Normal operation tests
-    - Edge cases  
+    - Edge cases
     - Error handling
     - Performance benchmarks"
 
@@ -67,7 +67,7 @@ Ensure all tests still pass."
     - Usage examples
     - Update README"
 
-5. "Create an integration test that uses [FEATURE] 
+5. "Create an integration test that uses [FEATURE]
     with actual Sleep-EDF data"
 ```
 
@@ -160,7 +160,7 @@ Provide specific improvement suggestions"
 
 ### 3. Research Integration
 ```
-"Compare our implementation with the approach in 
+"Compare our implementation with the approach in
 /reference_repos/EEGPT/downstream/finetune_EEGPT_SleepEDF.py
 Identify:
 - Key differences

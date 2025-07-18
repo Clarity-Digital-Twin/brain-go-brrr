@@ -166,4 +166,3 @@ Ship only after the flagger proves itself and the lab trusts your false-negative
 
 Sound like the right first domino?
 If yes, I’ll draft the FastAPI route + a stub PDF-builder function in the next reply.
-

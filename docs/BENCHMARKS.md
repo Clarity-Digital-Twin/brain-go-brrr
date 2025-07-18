@@ -55,7 +55,7 @@ uv run pytest tests/benchmarks/ --benchmark-only --benchmark-json=results.json
 Tests inference speed for individual 4-second EEG windows:
 
 - **CPU inference speed**: Validates < 50ms target on CPU
-- **GPU inference speed**: Validates < 25ms target on GPU  
+- **GPU inference speed**: Validates < 25ms target on GPU
 - **Different input sizes**: Tests various channel counts and window lengths
 - **Shape validation**: Ensures correct output dimensions
 
@@ -130,7 +130,7 @@ Benchmarks display real-time performance metrics:
 tests/benchmarks/test_eegpt_performance.py::TestSingleWindowBenchmarks::test_single_window_cpu_inference_speed
 Mean: 32.45ms, Min: 31.2ms, Max: 35.1ms ✅ PASS (< 50ms target)
 
-tests/benchmarks/test_eegpt_performance.py::TestBatchProcessingBenchmarks::test_batch_processing_efficiency  
+tests/benchmarks/test_eegpt_performance.py::TestBatchProcessingBenchmarks::test_batch_processing_efficiency
 Batch processing: 8.2ms per window ✅ PASS (efficient)
 ```
 
@@ -142,7 +142,7 @@ Detailed results saved to `benchmark_results/benchmark_results.json`:
 {
   "machine_info": {
     "python_version": "3.11.0",
-    "pytorch_version": "2.2.0", 
+    "pytorch_version": "2.2.0",
     "cuda_available": true,
     "cuda_device_name": "NVIDIA GeForce RTX 4090"
   },
@@ -178,7 +178,7 @@ The benchmark suite requires these additional dependencies:
 ```toml
 # Added to dev-dependencies in pyproject.toml
 "pytest-benchmark>=4.0.0",
-"memory-profiler>=0.61.0", 
+"memory-profiler>=0.61.0",
 "psutil>=5.9.0",
 ```
 
@@ -198,7 +198,7 @@ Add to CI workflow:
 - name: Run Performance Benchmarks
   run: |
     uv run pytest tests/benchmarks/ --benchmark-only --benchmark-json=benchmark_results.json
-    
+
 - name: Upload Benchmark Results
   uses: actions/upload-artifact@v3
   with:

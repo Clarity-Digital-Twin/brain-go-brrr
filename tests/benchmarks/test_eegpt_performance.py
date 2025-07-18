@@ -18,18 +18,22 @@ import torch
 # Optional imports for memory monitoring
 try:
     import psutil
+
     PSUTIL_AVAILABLE = True
 except ImportError:
     PSUTIL_AVAILABLE = False
 
 try:
     from memory_profiler import profile
+
     MEMORY_PROFILER_AVAILABLE = True
 except ImportError:
     MEMORY_PROFILER_AVAILABLE = False
+
     # Create dummy decorator
     def profile(func):
         return func
+
 
 from brain_go_brrr.core.config import ModelConfig
 from brain_go_brrr.models.eegpt_model import EEGPTModel
@@ -83,7 +87,9 @@ class TestSingleWindowBenchmarks:
     """Benchmark single 4-second window inference performance."""
 
     @pytest.mark.benchmark
-    def test_single_window_cpu_inference_speed(self, benchmark, eegpt_model_cpu, realistic_single_window):
+    def test_single_window_cpu_inference_speed(
+        self, benchmark, eegpt_model_cpu, realistic_single_window
+    ):
         """Benchmark single window inference speed on CPU with realistic data."""
         model = eegpt_model_cpu
         data, ch_names = realistic_single_window
@@ -100,7 +106,7 @@ class TestSingleWindowBenchmarks:
         # The benchmark fixture has changed - access the stats differently
         try:
             # Try the current way first
-            inference_time_ms = benchmark.stats['mean'] * 1000
+            inference_time_ms = benchmark.stats["mean"] * 1000
         except (AttributeError, TypeError, KeyError):
             try:
                 # Try as attribute
@@ -118,7 +124,9 @@ class TestSingleWindowBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_single_window_gpu_inference_speed(self, benchmark, eegpt_model_gpu, realistic_single_window):
+    def test_single_window_gpu_inference_speed(
+        self, benchmark, eegpt_model_gpu, realistic_single_window
+    ):
         """Benchmark single window inference speed on GPU with realistic data."""
         model = eegpt_model_gpu
         data, ch_names = realistic_single_window
@@ -135,17 +143,17 @@ class TestSingleWindowBenchmarks:
         inference_time_ms = benchmark.stats.mean * 1000
         assert inference_time_ms < SINGLE_WINDOW_TARGET_MS / 2, (
             f"GPU single window inference took {inference_time_ms:.1f}ms, "
-            f"should be <{SINGLE_WINDOW_TARGET_MS/2}ms"
+            f"should be <{SINGLE_WINDOW_TARGET_MS / 2}ms"
         )
 
     @pytest.mark.benchmark
     def test_single_window_different_sizes(self, benchmark, eegpt_model_cpu):
         """Benchmark inference with different input sizes."""
         sizes = [
-            (19, 1024),   # Standard 4s window
-            (32, 1024),   # More channels
-            (58, 1024),   # Maximum channels
-            (19, 512),    # Shorter window (will be padded)
+            (19, 1024),  # Standard 4s window
+            (32, 1024),  # More channels
+            (58, 1024),  # Maximum channels
+            (19, 512),  # Shorter window (will be padded)
         ]
 
         results = {}
@@ -163,7 +171,9 @@ class TestSingleWindowBenchmarks:
             results[f"{n_channels}x{n_samples}"] = benchmark.stats.mean * 1000
 
             # All should be under target
-            assert benchmark.stats.mean * 1000 < SINGLE_WINDOW_TARGET_MS * 2  # More lenient for different sizes
+            assert (
+                benchmark.stats.mean * 1000 < SINGLE_WINDOW_TARGET_MS * 2
+            )  # More lenient for different sizes
 
 
 class TestBatchProcessingBenchmarks:
@@ -189,7 +199,7 @@ class TestBatchProcessingBenchmarks:
         # Compare with individual processing (rough estimate)
         per_window_time = batch_time / len(batch_data)
         assert per_window_time * 1000 < SINGLE_WINDOW_TARGET_MS, (
-            f"Batch processing per window took {per_window_time*1000:.1f}ms, "
+            f"Batch processing per window took {per_window_time * 1000:.1f}ms, "
             f"target is {SINGLE_WINDOW_TARGET_MS}ms"
         )
 
@@ -219,7 +229,9 @@ class TestFullRecordingBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.slow
-    def test_twenty_minute_recording_processing(self, benchmark, eegpt_model_cpu, realistic_twenty_min_recording):
+    def test_twenty_minute_recording_processing(
+        self, benchmark, eegpt_model_cpu, realistic_twenty_min_recording
+    ):
         """Test processing full 20-minute recording meets time target."""
         model = eegpt_model_cpu
         data, ch_names = realistic_twenty_min_recording
@@ -228,15 +240,15 @@ class TestFullRecordingBenchmarks:
             return model.process_recording(
                 data=data,
                 sampling_rate=256,
-                batch_size=32  # Process in batches for efficiency
+                batch_size=32,  # Process in batches for efficiency
             )
 
         result = benchmark(process_recording)
         processing_time = benchmark.stats.mean
 
         # Verify processing completed
-        assert result['processing_complete'] is True
-        assert result['n_windows'] > 0
+        assert result["processing_complete"] is True
+        assert result["n_windows"] > 0
 
         # Check time target
         assert processing_time < TWENTY_MIN_RECORDING_TARGET_S, (
@@ -267,22 +279,20 @@ class TestFullRecordingBenchmarks:
 
             def process_recording(recording=recording):
                 return eegpt_model_cpu.process_recording(
-                    data=recording,
-                    sampling_rate=256,
-                    batch_size=16
+                    data=recording, sampling_rate=256, batch_size=16
                 )
 
             result = benchmark(process_recording)
             processing_time = benchmark.stats.mean
 
             # Verify processing completed
-            assert result['processing_complete'] is True
+            assert result["processing_complete"] is True
 
             # Processing time should scale roughly linearly
             expected_max_time = duration_min * (TWENTY_MIN_RECORDING_TARGET_S / 20)
             assert processing_time < expected_max_time * 1.5, (
                 f"{duration_min}-minute recording took {processing_time:.1f}s, "
-                f"expected <{expected_max_time*1.5:.1f}s"
+                f"expected <{expected_max_time * 1.5:.1f}s"
             )
 
 
@@ -310,8 +320,7 @@ class TestMemoryBenchmarks:
 
         # Single window should use minimal memory
         assert memory_used_mb < 100, (
-            f"Single window processing used {memory_used_mb:.1f}MB, "
-            f"should be <100MB"
+            f"Single window processing used {memory_used_mb:.1f}MB, should be <100MB"
         )
 
         # Verify features were extracted
@@ -321,7 +330,9 @@ class TestMemoryBenchmarks:
     @pytest.mark.benchmark
     @pytest.mark.slow
     @pytest.mark.skipif(not PSUTIL_AVAILABLE, reason="psutil not available for memory monitoring")
-    def test_twenty_minute_recording_memory_usage(self, eegpt_model_cpu, realistic_twenty_min_recording):
+    def test_twenty_minute_recording_memory_usage(
+        self, eegpt_model_cpu, realistic_twenty_min_recording
+    ):
         """Test memory usage for full 20-minute recording processing."""
         model = eegpt_model_cpu
         data, ch_names = realistic_twenty_min_recording
@@ -335,11 +346,7 @@ class TestMemoryBenchmarks:
         memory_before_mb = process.memory_info().rss / 1024 / 1024
 
         # Process recording
-        result = model.process_recording(
-            data=data,
-            sampling_rate=256,
-            batch_size=32
-        )
+        result = model.process_recording(data=data, sampling_rate=256, batch_size=32)
 
         # Measure memory after
         memory_after_mb = process.memory_info().rss / 1024 / 1024
@@ -353,7 +360,7 @@ class TestMemoryBenchmarks:
         )
 
         # Verify processing completed
-        assert result['processing_complete'] is True
+        assert result["processing_complete"] is True
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
@@ -374,8 +381,7 @@ class TestMemoryBenchmarks:
 
         # GPU memory should be reasonable for batch processing
         assert gpu_memory_used < 1024, (  # 1GB
-            f"GPU batch processing used {gpu_memory_used:.1f}MB, "
-            f"should be <1024MB"
+            f"GPU batch processing used {gpu_memory_used:.1f}MB, should be <1024MB"
         )
 
         # Verify features were extracted
@@ -389,7 +395,9 @@ class TestPerformanceComparison:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_cpu_vs_gpu_single_window(self, benchmark, eegpt_model_cpu, eegpt_model_gpu, realistic_single_window):
+    def test_cpu_vs_gpu_single_window(
+        self, benchmark, eegpt_model_cpu, eegpt_model_gpu, realistic_single_window
+    ):
         """Compare CPU vs GPU performance for single window."""
         data, ch_names = realistic_single_window
 
@@ -405,8 +413,8 @@ class TestPerformanceComparison:
         speedup = benchmark.stats.mean / gpu_time
 
         # Document the comparison
-        print(f"\nCPU time: {benchmark.stats.mean*1000:.1f}ms")
-        print(f"GPU time: {gpu_time*1000:.1f}ms")
+        print(f"\nCPU time: {benchmark.stats.mean * 1000:.1f}ms")
+        print(f"GPU time: {gpu_time * 1000:.1f}ms")
         print(f"GPU speedup: {speedup:.1f}x")
 
         # Both should produce same results (within floating point precision)
@@ -415,7 +423,9 @@ class TestPerformanceComparison:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_cpu_vs_gpu_batch_processing(self, eegpt_model_cpu, eegpt_model_gpu, realistic_batch_windows):
+    def test_cpu_vs_gpu_batch_processing(
+        self, eegpt_model_cpu, eegpt_model_gpu, realistic_batch_windows
+    ):
         """Compare CPU vs GPU performance for batch processing."""
         batch_data, ch_names = realistic_batch_windows
 
@@ -432,8 +442,8 @@ class TestPerformanceComparison:
         # Calculate speedup
         speedup = cpu_time / gpu_time
 
-        print(f"\nBatch CPU time: {cpu_time*1000:.1f}ms")
-        print(f"Batch GPU time: {gpu_time*1000:.1f}ms")
+        print(f"\nBatch CPU time: {cpu_time * 1000:.1f}ms")
+        print(f"Batch GPU time: {gpu_time * 1000:.1f}ms")
         print(f"GPU speedup: {speedup:.1f}x")
 
         # GPU should be significantly faster for batch processing
@@ -460,7 +470,7 @@ def generate_benchmark_report(benchmark_results: dict[str, Any]) -> str:
     # Add benchmark results
     for test_name, result in benchmark_results.items():
         report.append(f"## {test_name}")
-        if hasattr(result, 'stats'):
+        if hasattr(result, "stats"):
             mean_ms = result.stats.mean * 1000
             report.append(f"- Mean time: {mean_ms:.1f}ms")
             report.append(f"- Min time: {result.stats.min * 1000:.1f}ms")

@@ -88,7 +88,9 @@ def rotate_half(x: torch.Tensor) -> torch.Tensor:
     return x.flatten(-2)
 
 
-def apply_rotary_emb(freqs: torch.Tensor, t: torch.Tensor, start_index: int = 0, scale: float = 1.0) -> torch.Tensor:
+def apply_rotary_emb(
+    freqs: torch.Tensor, t: torch.Tensor, start_index: int = 0, scale: float = 1.0
+) -> torch.Tensor:
     """Apply rotary positional embeddings to a tensor."""
     freqs = freqs.to(t.device)
     rot_dim = freqs.shape[-1]
@@ -128,7 +130,11 @@ class RoPE(nn.Module):
         self.cache: dict[str, torch.Tensor] = {}
 
     def prepare_freqs(
-        self, num_patches: tuple[int, int], device: str = "cuda", dtype: torch.dtype = torch.float32, offset: int = 0
+        self,
+        num_patches: tuple[int, int],
+        device: str = "cuda",
+        dtype: torch.dtype = torch.float32,
+        offset: int = 0,
     ) -> torch.Tensor:
         """Prepare frequency embeddings for given number of patches."""
         c, n = num_patches

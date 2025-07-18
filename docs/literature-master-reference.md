@@ -254,7 +254,7 @@ For abnormal detection, prioritize foundation models (EEGPT or BioSerenity-E1) o
 ### API Endpoints to Implement
 Based on literature capabilities:
 - `/api/v1/preprocess` - Autoreject cleaning
-- `/api/v1/analyze/abnormal` - Binary classification  
+- `/api/v1/analyze/abnormal` - Binary classification
 - `/api/v1/analyze/sleep` - Sleep staging
 - `/api/v1/analyze/events` - IED detection
 - `/api/v1/extract/features` - EEGPT embeddings

@@ -2,7 +2,7 @@
 
 ## ✅ What We Accomplished
 
-### 1. **EEGPT Integration** 
+### 1. **EEGPT Integration**
 - ✅ Successfully loaded pretrained EEGPT model (1GB checkpoint)
 - ✅ Implemented proper Vision Transformer architecture
 - ✅ Created feature extraction pipeline
@@ -94,7 +94,7 @@ uv run python api/test_api.py
 
 ### Production Readiness
 1. **Docker containerization**
-2. **PostgreSQL integration** 
+2. **PostgreSQL integration**
 3. **S3 file storage**
 4. **Kubernetes deployment**
 5. **Monitoring with Prometheus**

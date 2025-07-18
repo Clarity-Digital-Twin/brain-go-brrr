@@ -24,9 +24,9 @@ class TestAbnormalityAccuracy:
         np.random.shuffle(labels)
 
         return {
-            'file_paths': [f'tuab_{i:03d}.edf' for i in range(276)],
-            'labels': labels,
-            'n_samples': 276
+            "file_paths": [f"tuab_{i:03d}.edf" for i in range(276)],
+            "labels": labels,
+            "n_samples": 276,
         }
 
     @pytest.fixture
@@ -61,28 +61,30 @@ class TestAbnormalityAccuracy:
                     probabilities.append(np.random.uniform(0.6, 0.95))
 
         return {
-            'true_labels': true_labels,
-            'predictions': predictions,
-            'probabilities': probabilities
+            "true_labels": true_labels,
+            "predictions": predictions,
+            "probabilities": probabilities,
         }
 
     def test_balanced_accuracy_requirement(self, mock_predictions):
         """Test that model achieves >80% balanced accuracy as specified."""
-        true_labels = mock_predictions['true_labels']
-        predictions = mock_predictions['predictions']
+        true_labels = mock_predictions["true_labels"]
+        predictions = mock_predictions["predictions"]
 
         balanced_acc = balanced_accuracy_score(true_labels, predictions)
 
         # Requirement from spec: >80% balanced accuracy
-        assert balanced_acc > 0.80, f"Balanced accuracy {balanced_acc:.2%} does not meet >80% requirement"
+        assert balanced_acc > 0.80, (
+            f"Balanced accuracy {balanced_acc:.2%} does not meet >80% requirement"
+        )
 
         # Target from BioSerenity-E1: 82% on TUAB
         assert balanced_acc > 0.82, f"Balanced accuracy {balanced_acc:.2%} below target 82%"
 
     def test_sensitivity_requirement(self, mock_predictions):
         """Test that model achieves >85% sensitivity (minimize false negatives)."""
-        true_labels = np.array(mock_predictions['true_labels'])
-        predictions = np.array(mock_predictions['predictions'])
+        true_labels = np.array(mock_predictions["true_labels"])
+        predictions = np.array(mock_predictions["predictions"])
 
         # Calculate sensitivity (true positive rate)
         abnormal_mask = true_labels == 1
@@ -93,8 +95,8 @@ class TestAbnormalityAccuracy:
 
     def test_specificity_requirement(self, mock_predictions):
         """Test that model achieves >75% specificity (acceptable false positive rate)."""
-        true_labels = np.array(mock_predictions['true_labels'])
-        predictions = np.array(mock_predictions['predictions'])
+        true_labels = np.array(mock_predictions["true_labels"])
+        predictions = np.array(mock_predictions["predictions"])
 
         # Calculate specificity (true negative rate)
         normal_mask = true_labels == 0
@@ -105,8 +107,8 @@ class TestAbnormalityAccuracy:
 
     def test_auroc_requirement(self, mock_predictions):
         """Test that model achieves >0.85 AUROC."""
-        true_labels = mock_predictions['true_labels']
-        probabilities = mock_predictions['probabilities']
+        true_labels = mock_predictions["true_labels"]
+        probabilities = mock_predictions["probabilities"]
 
         auroc = roc_auc_score(true_labels, probabilities)
 
@@ -115,8 +117,8 @@ class TestAbnormalityAccuracy:
 
     def test_confusion_matrix_analysis(self, mock_predictions):
         """Test confusion matrix shows acceptable performance."""
-        true_labels = mock_predictions['true_labels']
-        predictions = mock_predictions['predictions']
+        true_labels = mock_predictions["true_labels"]
+        predictions = mock_predictions["predictions"]
 
         tn, fp, fn, tp = confusion_matrix(true_labels, predictions).ravel()
 
@@ -144,17 +146,17 @@ class TestAbnormalityAccuracy:
         """Test performance targets for different datasets from spec."""
         # Performance targets from literature/spec:
         targets = {
-            'bioserenity_e1_consensus': 0.946,  # 94.6% on 3-expert consensus
-            'bioserenity_e1_large': 0.892,      # 89.2% on large private dataset
-            'tuab_evaluation': 0.822,            # 82.2% on TUAB eval
-            'our_target': 0.80                   # >80% PRD requirement
+            "bioserenity_e1_consensus": 0.946,  # 94.6% on 3-expert consensus
+            "bioserenity_e1_large": 0.892,  # 89.2% on large private dataset
+            "tuab_evaluation": 0.822,  # 82.2% on TUAB eval
+            "our_target": 0.80,  # >80% PRD requirement
         }
 
         # These would be actual model evaluations in production
         # For now, we assert the requirements exist
-        assert targets['our_target'] > 0.80
-        assert targets['tuab_evaluation'] > targets['our_target']
-        assert targets['bioserenity_e1_consensus'] > targets['bioserenity_e1_large']
+        assert targets["our_target"] > 0.80
+        assert targets["tuab_evaluation"] > targets["our_target"]
+        assert targets["bioserenity_e1_consensus"] > targets["bioserenity_e1_large"]
 
     @pytest.mark.slow
     def test_model_evaluation_on_fixtures(self, tmp_path):
@@ -217,8 +219,8 @@ class TestAbnormalityAccuracy:
 
     def test_confidence_calibration(self, mock_predictions):
         """Test that model confidence scores are well-calibrated."""
-        probabilities = np.array(mock_predictions['probabilities'])
-        true_labels = np.array(mock_predictions['true_labels'])
+        probabilities = np.array(mock_predictions["probabilities"])
+        true_labels = np.array(mock_predictions["true_labels"])
 
         # Bin probabilities
         bins = np.linspace(0, 1, 11)
@@ -261,8 +263,8 @@ class TestAbnormalityAccuracy:
     @pytest.mark.parametrize("threshold", [0.3, 0.4, 0.5, 0.6, 0.7])
     def test_threshold_sensitivity_analysis(self, mock_predictions, threshold):
         """Test model performance at different decision thresholds."""
-        probabilities = np.array(mock_predictions['probabilities'])
-        true_labels = np.array(mock_predictions['true_labels'])
+        probabilities = np.array(mock_predictions["probabilities"])
+        true_labels = np.array(mock_predictions["true_labels"])
 
         # Apply threshold
         predictions = (probabilities > threshold).astype(int)
@@ -289,21 +291,21 @@ class TestModelBenchmarks:
         """Compare performance to models from literature."""
         # From BioSerenity-E1 paper Table 2
         benchmarks = {
-            'cnn_lstm_scratch': 0.8634,      # 86.34% balanced accuracy
-            'transformer_scratch': 0.8872,    # 88.72% balanced accuracy
-            'bioserenity_e1_finetuned': 0.8919,  # 89.19% balanced accuracy
-            'eegpt_original': 0.7983,         # 79.83% from EEGPT paper
+            "cnn_lstm_scratch": 0.8634,  # 86.34% balanced accuracy
+            "transformer_scratch": 0.8872,  # 88.72% balanced accuracy
+            "bioserenity_e1_finetuned": 0.8919,  # 89.19% balanced accuracy
+            "eegpt_original": 0.7983,  # 79.83% from EEGPT paper
         }
 
         # Our target should be competitive
         our_target = 0.82  # >80% requirement, targeting 82%
 
         # Should outperform original EEGPT
-        assert our_target > benchmarks['eegpt_original']
+        assert our_target > benchmarks["eegpt_original"]
 
         # Should be competitive with from-scratch models
-        assert our_target > benchmarks['eegpt_original']
+        assert our_target > benchmarks["eegpt_original"]
 
         # Document performance gap to best-in-class
-        gap_to_best = benchmarks['bioserenity_e1_finetuned'] - our_target
+        gap_to_best = benchmarks["bioserenity_e1_finetuned"] - our_target
         assert gap_to_best < 0.10, "Should be within 10% of best model"

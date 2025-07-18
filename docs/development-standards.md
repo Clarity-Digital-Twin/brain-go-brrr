@@ -58,7 +58,7 @@ brain-go-brrr/
 # core/analyzers/qc_analyzer.py
 class QualityAnalyzer:
     """Responsible ONLY for quality analysis logic."""
-    
+
 # infrastructure/storage/s3_adapter.py
 class S3StorageAdapter:
     """Responsible ONLY for S3 operations."""
@@ -89,7 +89,7 @@ Requirements:
 
 Usage:
     from brain_go_brrr.module import MainClass
-    
+
     instance = MainClass(config)
     result = await instance.process(data)
 """
@@ -130,7 +130,7 @@ DEFAULT_SAMPLING_RATE = 256
 class Service:
     def __init__(self):
         self._internal_state = {}
-    
+
     def _private_method(self):
         pass
 
@@ -186,9 +186,9 @@ export const EEGViewer: React.FC<EEGViewerProps> = ({
 }) => {
   const [selectedChannel, setSelectedChannel] = useState<number>(0);
   const dispatch = useAppDispatch();
-  
+
   // Component implementation
-  
+
   return (
     <Box data-testid="eeg-viewer">
       {/* Component JSX */}
@@ -217,12 +217,12 @@ from brain_go_brrr.core.analyzers import QualityAnalyzer
 
 class TestQualityAnalyzer:
     """Test suite for QualityAnalyzer."""
-    
+
     @pytest.fixture
     def analyzer(self):
         """Create analyzer instance for testing."""
         return QualityAnalyzer(config=test_config)
-    
+
     @pytest.mark.parametrize("n_channels,expected", [
         (19, True),   # Standard 10-20 system
         (32, True),   # Extended montage
@@ -232,7 +232,7 @@ class TestQualityAnalyzer:
         """Test channel count validation."""
         result = analyzer.validate_channels(n_channels)
         assert result == expected
-    
+
     @given(
         bad_ratio=st.floats(min_value=0, max_value=1),
         threshold=st.floats(min_value=0, max_value=1)
@@ -240,7 +240,7 @@ class TestQualityAnalyzer:
     def test_quality_threshold(self, analyzer, bad_ratio, threshold):
         """Property-based test for quality thresholds."""
         result = analyzer.assess_quality(bad_ratio, threshold)
-        
+
         # Properties that must always hold
         assert 0 <= result.score <= 1
         assert result.passed == (bad_ratio <= threshold)
@@ -342,15 +342,15 @@ async def process_batch(file_ids: List[str]) -> List[Result]:
     """Process multiple files concurrently."""
     tasks = [process_file(fid) for fid in file_ids]
     results = await asyncio.gather(*tasks, return_exceptions=True)
-    
+
     # Handle partial failures
     successful = [r for r in results if not isinstance(r, Exception)]
-    failed = [(fid, r) for fid, r in zip(file_ids, results) 
+    failed = [(fid, r) for fid, r in zip(file_ids, results)
               if isinstance(r, Exception)]
-    
+
     if failed:
         logger.warning(f"Failed to process {len(failed)} files")
-    
+
     return successful
 
 # Bad: Sequential processing
@@ -367,23 +367,23 @@ async def process_batch_bad(file_ids: List[str]) -> List[Result]:
 # Stream large files instead of loading entirely
 async def process_large_eeg(file_path: Path) -> None:
     """Process large EEG files in chunks."""
-    
+
     CHUNK_DURATION = 60  # seconds
-    
+
     with mne.io.read_raw_edf(file_path, preload=False) as raw:
         sfreq = raw.info['sfreq']
         n_samples = len(raw.times)
         chunk_samples = int(CHUNK_DURATION * sfreq)
-        
+
         for start_idx in range(0, n_samples, chunk_samples):
             end_idx = min(start_idx + chunk_samples, n_samples)
-            
+
             # Load only current chunk
             chunk = raw[:, start_idx:end_idx][0]
-            
+
             # Process chunk
             await process_chunk(chunk)
-            
+
             # Explicit cleanup
             del chunk
 ```
@@ -404,13 +404,13 @@ router = APIRouter()
     summary="Analyze EEG Recording",
     description="""
     Performs comprehensive analysis of uploaded EEG file.
-    
+
     The analysis includes:
     - Quality control assessment
     - Abnormality detection
     - Event identification
     - Sleep staging (if applicable)
-    
+
     Processing is asynchronous - returns job_id for status polling.
     """,
     response_model=AnalysisResponse,
@@ -435,14 +435,14 @@ async def analyze_eeg(
 ) -> AnalysisResponse:
     """
     Analyze uploaded EEG file.
-    
+
     Args:
         file: EEG recording file (EDF/BDF format)
         priority: Processing priority level
-        
+
     Returns:
         AnalysisResponse with job_id and initial status
-        
+
     Raises:
         HTTPException: If file validation fails
     """
@@ -463,10 +463,10 @@ ABNORMAL_THRESHOLD = 0.75
 def optimize_threshold(data: np.ndarray) -> float:
     """
     Optimize detection threshold using Youden's J statistic.
-    
+
     This maximizes sensitivity + specificity - 1, providing
     optimal balance for clinical screening. See Youden 1950.
-    
+
     Clinical validation showed J=0.82 at threshold=0.75.
     """
     # Implementation
