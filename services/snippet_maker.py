@@ -15,6 +15,8 @@ import logging
 from datetime import datetime, timedelta
 import json
 
+from brain_go_brrr.utils import utc_now
+
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "tsfresh"))
@@ -131,7 +133,7 @@ class EEGSnippetMaker:
                 'n_samples': snippet_data.shape[1],
                 'n_channels': snippet_data.shape[0],
                 'extraction_method': 'fixed_length',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': utc_now().isoformat()
             }
             
             snippets.append(snippet)
@@ -208,7 +210,7 @@ class EEGSnippetMaker:
                 'n_samples': epoch.shape[1],
                 'n_channels': epoch.shape[0],
                 'extraction_method': 'event_based',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': utc_now().isoformat()
             }
             
             snippets.append(snippet)
@@ -281,7 +283,7 @@ class EEGSnippetMaker:
                 'n_samples': snippet_data.shape[1],
                 'n_channels': snippet_data.shape[0],
                 'extraction_method': 'anomaly_based',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': utc_now().isoformat()
             }
             
             snippets.append(snippet)
@@ -517,7 +519,7 @@ class EEGSnippetMaker:
                 'features_extracted': include_features and self.feature_extraction,
                 'eegpt_analysis': include_eegpt,
                 'tsfresh_available': TSFRESH_AVAILABLE,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': utc_now().isoformat()
             }
         }
         

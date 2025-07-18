@@ -11,6 +11,8 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from brain_go_brrr.utils import utc_now
+
 import matplotlib
 
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -66,7 +68,7 @@ class PDFReportGenerator:
             'Author': 'Brain-Go-Brrr',
             'Subject': 'EEG Analysis Results',
             'Creator': 'Brain-Go-Brrr v0.1.0',
-            'CreationDate': datetime.now()
+            'CreationDate': utc_now()
         }) as pdf:
             # Create main report page
             fig = self._create_main_page(results)
@@ -178,7 +180,7 @@ class PDFReportGenerator:
 
         # File info
         filename = processing_info.get('file_name', 'Unknown')
-        timestamp = processing_info.get('timestamp', datetime.now().isoformat())
+        timestamp = processing_info.get('timestamp', utc_now().isoformat())
 
         ax.text(0.5, 0.3, f'File: {filename}', ha='center', fontsize=10)
         ax.text(0.5, 0.1, f'Generated: {timestamp}', ha='center', fontsize=8)

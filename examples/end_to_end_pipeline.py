@@ -21,6 +21,8 @@ import mne
 import json
 from datetime import datetime
 
+from brain_go_brrr.utils import utc_now
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -292,7 +294,7 @@ class EEGPipeline:
         # Create comprehensive report
         report = {
             'metadata': {
-                'analysis_timestamp': datetime.now().isoformat(),
+                'analysis_timestamp': utc_now().isoformat(),
                 'pipeline_version': '1.0.0',
                 'data_info': {
                     'n_channels': raw.info['nchan'],
@@ -337,7 +339,7 @@ class EEGPipeline:
             Complete processing report
         """
         if session_id is None:
-            session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            session_id = f"session_{utc_now().strftime('%Y%m%d_%H%M%S')}"
         
         logger.info(f"Starting EEG processing for {file_path}")
         logger.info(f"Session ID: {session_id}")
@@ -383,7 +385,7 @@ class EEGPipeline:
                 'error': str(e),
                 'session_id': session_id,
                 'file_path': str(file_path),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': utc_now().isoformat()
             }
             
             # Save error report

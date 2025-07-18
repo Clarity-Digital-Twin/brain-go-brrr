@@ -9,6 +9,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+from src.brain_go_brrr.utils import utc_now
 
 
 def main():
@@ -38,7 +39,7 @@ def main():
             'file_name': 'sample_eeg.edf',
             'duration_seconds': 600,
             'sampling_rate': 256,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': utc_now().isoformat()
         }
     }
     

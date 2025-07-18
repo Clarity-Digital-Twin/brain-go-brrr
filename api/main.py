@@ -132,6 +132,7 @@ async def health_check():
     
     return {
         "status": "healthy",
+        "version": app.version,
         "eegpt_loaded": qc_controller is not None and qc_controller.eegpt_model is not None,
         "redis": redis_health,
         "timestamp": utc_now().isoformat()
