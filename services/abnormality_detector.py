@@ -494,17 +494,18 @@ class AbnormalityDetector:
         # Check for flat channels
         flat_channels = np.sum(np.std(window, axis=1) < 1e-10)
         
-        # Check for high amplitude artifacts
+        # Check for high amplitude artifacts (normalized data)
+        # After z-score normalization, typical values are -3 to +3
         max_amp = np.max(np.abs(window))
-        artifact_channels = np.sum(np.max(np.abs(window), axis=1) > 100e-6)
+        artifact_channels = np.sum(np.max(np.abs(window), axis=1) > 5.0)
         
         # Calculate quality score
         quality = 1.0
         quality -= (flat_channels / window.shape[0]) * 0.5
         quality -= (artifact_channels / window.shape[0]) * 0.3
         
-        # Check for excessive noise
-        if max_amp > 200e-6:
+        # Check for excessive noise (adjusted for normalized data)
+        if max_amp > 10.0:
             quality *= 0.5
             
         return max(0.0, min(1.0, quality))
@@ -606,11 +607,11 @@ class AbnormalityDetector:
         
         for i, ch_name in enumerate(raw.ch_names):
             ch_data = data[i]
-            # Check for flat channel
-            if np.std(ch_data) < 1e-10:
+            # Check for flat channel (normalized data)
+            if np.std(ch_data) < 0.1:
                 bad_channels.append(ch_name)
-            # Check for excessive noise
-            elif np.max(np.abs(ch_data)) > 200e-6:
+            # Check for excessive noise (normalized data)
+            elif np.std(ch_data) > 10.0:
                 bad_channels.append(ch_name)
                 
         # Calculate overall quality grade
@@ -717,12 +718,14 @@ class AbnormalityDetector:
         # Check for flat channels
         flat_channels = np.sum(np.std(window, axis=1) < 1e-8)
         
-        # Check for high amplitude artifacts
+        # Check for high amplitude artifacts (normalized data)
+        # After z-score normalization, data is in standard deviations
+        # Typical EEG is ~20-50 μV, so 100 μV is about 3-5 standard deviations
         max_amplitude = np.max(np.abs(window))
-        artifact_threshold = 100e-6  # 100 μV
+        artifact_threshold = 5.0  # 5 standard deviations for normalized data
         
-        # Check for saturation
-        saturation = np.sum(np.abs(window) > 500e-6) / window.size
+        # Check for saturation (also adjusted for normalized data)
+        saturation = np.sum(np.abs(window) > 10.0) / window.size
         
         # Combine into quality score
         quality = 1.0
@@ -810,7 +813,8 @@ class AbnormalityDetector:
         channel_stds = np.std(data, axis=1)
         bad_channels = [
             raw.ch_names[i] for i, std in enumerate(channel_stds)
-            if std < 1e-8 or std > 100e-6
+            # For normalized data, typical std is ~1.0
+            if std < 0.1 or std > 10.0
         ]
         
         # Compute quality grade
