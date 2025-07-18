@@ -27,6 +27,7 @@ from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenera
 from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 from api.cache import get_cache, RedisCache
 from api.auth import verify_cache_clear_permission
+from src.brain_go_brrr.data.edf_streaming import estimate_memory_usage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
