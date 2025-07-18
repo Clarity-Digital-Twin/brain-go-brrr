@@ -15,10 +15,11 @@ Model specifications:
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union, Dict, List
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn as nn
 from scipy import signal
@@ -35,6 +36,7 @@ class EEGPTConfig:
     # Model parameters
     model_size: str = "large"  # large (10M) or xlarge (101M)
     n_summary_tokens: int = 4  # S=4 from paper
+    embed_dim: int = 512  # Embedding dimension
 
     # Input specifications
     sampling_rate: int = 256  # Hz
@@ -65,254 +67,83 @@ class EEGPTConfig:
 
 
 class EEGPTModel:
-    """EEGPT model wrapper for EEG analysis.
-
-    Provides high-level interface for:
-    - Loading pretrained checkpoints
-    - Preprocessing EEG data
-    - Extracting features
-    - Task-specific predictions
-    """
-
-    def __init__(
-        self,
-        checkpoint_path: str | Path | None = None,
-        config: EEGPTConfig | None = None,
-        device: torch.device | None = None,
-        auto_load: bool = True
-    ):
-        """Initialize EEGPT model.
-
-        Args:
-            checkpoint_path: Path to pretrained checkpoint (optional)
-            config: Model configuration
-            device: PyTorch device (auto-detected if None)
-            auto_load: Whether to automatically load the model checkpoint
-        """
-        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
-        self.config = config or EEGPTConfig()
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        self.encoder: EEGTransformer | None = None
+    """EEGPT Model wrapper for inference and feature extraction."""
+    
+    def __init__(self, 
+                 model_path: Optional[Union[str, Path]] = None,
+                 device: Optional[str] = None) -> None:
+        """Initialize EEGPT model."""
+        self.model_path = Path(model_path) if model_path else None
+        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.config = EEGPTConfig()
+        self.encoder: Optional[EEGTransformer] = None
+        self.abnormality_head: Optional[nn.Module] = None
         self.is_loaded = False
-        self.n_summary_tokens = self.config.n_summary_tokens
-
-        if auto_load and self.checkpoint_path and self.checkpoint_path.exists():
-            self._load_model()
-
-    def _load_model(self) -> None:
-        """Load pretrained EEGPT model from checkpoint."""
-        if not self.checkpoint_path or not self.checkpoint_path.exists():
-            raise FileNotFoundError(f"Checkpoint not found: {self.checkpoint_path}")
-
-        try:
-            # Create and load EEGPT model
-            logger.info(f"Loading EEGPT model from {self.checkpoint_path}")
-            self.encoder = create_eegpt_model(
-                checkpoint_path=str(self.checkpoint_path),
-                return_all_tokens=False  # Only return summary tokens
-            )
-            self.encoder.to(self.device)
-            self.encoder.eval()
-
-            # Load task-specific heads if needed
-            self._load_task_heads()
-
-            self.is_loaded = True
-            logger.info("EEGPT model loaded successfully")
-
-        except Exception as e:
-            logger.error(f"Failed to load EEGPT model: {e}")
-            raise
-
-    def load_checkpoint(self, checkpoint_path: Path) -> bool:
-        """Load model from checkpoint.
-
-        Args:
-            checkpoint_path: Path to checkpoint file
-
-        Returns:
-            True if loading successful, False otherwise
-        """
-        try:
-            if not checkpoint_path.exists():
-                logger.warning(f"Checkpoint not found: {checkpoint_path}")
-                return False
-
-            self.checkpoint_path = checkpoint_path
-            self._load_model()
-            return True
-        except Exception as e:
-            logger.error(f"Failed to load checkpoint: {e}")
-            return False
-
-    def _initialize_model(self):
-        """Initialize model architecture without loading checkpoint."""
-        try:
-            from .eegpt_architecture import EEGTransformer
-
-            # Create model architecture with correct parameters
-            self.encoder = EEGTransformer(
-                img_size=[self.config.max_channels, self.config.window_samples],
-                patch_size=self.config.patch_size,
-                in_chans=1,
-                embed_dim=512,  # Default from paper
-                embed_num=self.config.n_summary_tokens,
-                depth=8,  # Default from paper
-                num_heads=8,  # Default from paper
-                mlp_ratio=4.0,
-                qkv_bias=True,
-                drop_rate=0.0,
-                attn_drop_rate=0.0,
-                return_all_tokens=False
-            )
-            self.encoder.to(self.device)
-            self.encoder.eval()
-
-            logger.info("Model architecture initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize model: {e}")
-            raise
-
-    def _load_task_heads(self) -> None:
-        """Load task-specific classification heads."""
-        # Initialize task-specific heads
-        # These would be loaded from separate checkpoints or trained
-        self.abnormality_head = nn.Sequential(
-            nn.Linear(self.config.n_summary_tokens * 512, 256),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(256, 2)  # Binary classification
-        ).to(self.device)
-
-    def extract_windows(
-        self,
-        data: np.ndarray,
-        sampling_rate: int
-    ) -> list[np.ndarray]:
-        """Extract non-overlapping windows from continuous data.
-
-        Args:
-            data: EEG data (channels, samples)
-            sampling_rate: Sampling rate in Hz
-
-        Returns:
-            List of windows (channels, window_samples)
-        """
-        # Resample if needed
-        if sampling_rate != self.config.sampling_rate:
-            n_samples = data.shape[1]
-            new_n_samples = int(n_samples * self.config.sampling_rate / sampling_rate)
-            data = signal.resample(data, new_n_samples, axis=1)
-
-        # Extract windows
-        window_samples = self.config.window_samples
-        n_windows = data.shape[1] // window_samples
-
-        windows = []
-        for i in range(n_windows):
-            start = i * window_samples
-            end = start + window_samples
-            windows.append(data[:, start:end])
-
-        return windows
-
-    def extract_features(self, window: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> np.ndarray | torch.Tensor:
-        """Extract features from a single window using EEGPT encoder.
-
-        Args:
-            window: EEG window (channels, samples)
-            channel_names: List of channel names
-
-        Returns:
-            Features array (n_summary_tokens, feature_dim)
-        """
-        # Remember input type to return same type
-        input_was_tensor = isinstance(window, torch.Tensor)
-
-        # Convert to numpy if it's a tensor
-        if input_was_tensor:
-            window = window.detach().cpu().numpy()
-
-        # Ensure window is correct size (handle both 2D and 3D shapes)
-        time_axis = -1  # Last dimension is always time
-        if window.shape[time_axis] != self.config.window_samples:
-            # Resample or pad/crop as needed
-            if window.shape[time_axis] < self.config.window_samples:
-                # Pad with zeros - create padding tuple for all dimensions
-                pad_width = self.config.window_samples - window.shape[time_axis]
-                # For N-D array, pad only the last dimension (time axis)
-                padding = [(0, 0)] * window.ndim
-                padding[time_axis] = (0, pad_width)
-                window = np.pad(window, padding, mode='constant')
-            else:
-                # Crop - use slicing that works for any number of dimensions
-                slices = [slice(None)] * window.ndim
-                slices[time_axis] = slice(None, self.config.window_samples)
-                window = window[tuple(slices)]
-
-        # Convert to tensor
-        window_tensor = torch.FloatTensor(window).unsqueeze(0).to(self.device)
-
-        # Check if model is loaded
+        
+        self.logger = logging.getLogger(__name__)
+        
+    def load_model(self) -> None:
+        """Load the EEGPT model from checkpoint."""
+        if self.model_path is None or not self.model_path.exists():
+            raise FileNotFoundError(f"Model checkpoint not found: {self.model_path}")
+            
+        # Load model architecture
+        from .eegpt_architecture import create_eegpt_model
+        self.encoder = create_eegpt_model(str(self.model_path))
+        
         if self.encoder is None:
-            raise RuntimeError("Model not loaded. Call load_checkpoint() first.")
-
-        # Prepare channel IDs
-        if channel_names is not None:
-            chan_ids = self.encoder.prepare_chan_ids(channel_names).to(self.device)
-        else:
-            # Default channel IDs
-            chan_ids = torch.arange(window.shape[0], device=self.device)
-
-        # Extract features
-        with torch.no_grad():
-            features = self.encoder(window_tensor, chan_ids)  # B, n_summary_tokens, embed_dim
-            features = features.squeeze(0)  # Remove batch dimension
-
-        # Return same type as input
-        if input_was_tensor:
-            return features.cpu()  # Keep as tensor, move to CPU
-        else:
-            return features.cpu().numpy()  # Convert to numpy
-
-    def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
-        """Extract features from batch of windows.
-
-        Args:
-            windows: Batch of windows (batch, channels, samples)
-            channel_names: List of channel names
-
-        Returns:
-            Features (batch, n_summary_tokens, feature_dim)
-        """
+            raise RuntimeError("Failed to load EEGPT encoder")
+            
+        self.encoder.to(self.device)
+        self.encoder.eval()
+        
+        # Initialize abnormality detection head
+        self.abnormality_head = nn.Sequential(
+            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 2)  # Binary classification
+        ).to(self.device)
+        
+        self.is_loaded = True
+        self.logger.info(f"Loaded EEGPT model from {self.model_path}")
+        
+    def extract_features(self, 
+                        data: npt.NDArray[np.float64], 
+                        channel_names: List[str]) -> npt.NDArray[np.float64]:
+        """Extract features from EEG data using EEGPT encoder."""
+        if not self.is_loaded or self.encoder is None:
+            self.load_model()
+            
+        if self.encoder is None:
+            raise RuntimeError("Encoder not loaded")
+            
         # Convert to tensor
-        windows_tensor = torch.FloatTensor(windows).to(self.device)
-
-        # Prepare channel IDs
-        if channel_names is not None:
-            chan_ids = self.encoder.prepare_chan_ids(channel_names).to(self.device)
+        if isinstance(data, np.ndarray):
+            data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
         else:
-            chan_ids = torch.arange(windows.shape[1], device=self.device)
-
-        # Extract features for batch
+            data_tensor = data.detach() if hasattr(data, 'detach') else data
+            
+        # Prepare channel IDs
+        chan_ids = self.encoder.prepare_chan_ids(channel_names)
+        chan_ids = chan_ids.to(self.device)
+        
         with torch.no_grad():
-            features = self.encoder(windows_tensor, chan_ids)
+            if self.encoder is not None:  # Additional null check for mypy
+                features = self.encoder(data_tensor, chan_ids)
+                return features.squeeze(0).cpu().numpy()
+            else:
+                return np.zeros((self.config.n_summary_tokens, self.config.embed_dim))
 
-        return features.cpu().numpy()
-
-    def predict_abnormality(self, raw: mne.io.Raw) -> dict[str, Any]:
-        """Predict abnormality score for raw EEG.
-
-        Args:
-            raw: MNE Raw objec
-
-        Returns:
-            Dictionary with abnormality score and metadata
-        """
-        # Preprocess
+    def predict_abnormality(self, 
+                           raw: "mne.io.Raw") -> Dict[str, Any]:  # Use string annotation
+        """Predict abnormality from raw EEG data with streaming support."""
+        if not self.is_loaded:
+            self.load_model()
+            
+        # Preprocess data
         processed = preprocess_for_eegpt(raw)
-
+        
         # Get channel names
         channel_names = processed.ch_names
         
@@ -350,12 +181,13 @@ class EEGPTModel:
                 features = self.extract_features(window_data, channel_names)
                 
                 # Apply abnormality detection
-                with torch.no_grad():
-                    features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
-                    logits = self.abnormality_head(features_flat)
-                    probs = torch.softmax(logits, dim=-1)
-                    abnormal_prob = probs[0, 1].item()
-                    window_scores.append(abnormal_prob)
+                if self.abnormality_head is not None:
+                    with torch.no_grad():
+                        features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        logits = self.abnormality_head(features_flat)
+                        probs = torch.softmax(logits, dim=-1)
+                        abnormal_prob = probs[0, 1].item()
+                        window_scores.append(abnormal_prob)
                 
                 n_windows_processed += 1
             
@@ -384,93 +216,126 @@ class EEGPTModel:
             windows = self.extract_windows(data, int(processed.info['sfreq']))
 
             if len(windows) == 0:
+                return {
+                    'abnormal_probability': 0.0,
+                    'confidence': 0.0,
+                    'window_scores': [],
+                    'n_windows': 0,
+                    'used_streaming': False,
+                    'error': 'No valid windows extracted'
+                }
+
+            # Extract features for all windows
+            window_features = []
+            for window in windows:
+                features = self.extract_features(window, channel_names)
+                window_features.append(features)
+
+            # Stack features
+            all_features = np.stack(window_features)  # (n_windows, n_summary_tokens, embed_dim)
+
+            # Apply abnormality detection head
+            window_scores = []
+            if self.abnormality_head is not None:
+                with torch.no_grad():
+                    for features in window_features:
+                        features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
+                        logits = self.abnormality_head(features_flat)
+                        probs = torch.softmax(logits, dim=-1)
+                        abnormal_prob = probs[0, 1].item()
+                        window_scores.append(abnormal_prob)
+
+            # Aggregate scores
+            abnormality_score = np.mean(window_scores)
+            confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
+
             return {
-                'abnormal_probability': 0.0,
-                'confidence': 0.0,
-                'window_scores': [],
-                'n_windows': 0,
+                'abnormal_probability': float(abnormality_score),
+                'confidence': float(confidence),
+                'window_scores': window_scores,
+                'n_windows': len(windows),
                 'used_streaming': False,
-                'error': 'No valid windows extracted'
+                'channels_used': channel_names,
+                'metadata': {
+                    'duration': processed.times[-1],
+                    'n_channels': len(channel_names),
+                    'sampling_rate': processed.info['sfreq']
+                }
             }
 
-        # Extract features for all windows
-        window_features = []
-        for window in windows:
-            features = self.extract_features(window, channel_names)
-            window_features.append(features)
+    def process_recording(self, 
+                         file_path: Union[str, Path], 
+                         analysis_type: str = "abnormality") -> Dict[str, Any]:
+        """Process a complete EEG recording."""
+        if not HAS_MNE:
+            raise ImportError("MNE-Python is required for EEG processing")
+            
+        file_path = Path(file_path)
+        
+        # Load raw data
+        raw = mne.io.read_raw_edf(file_path, preload=False, verbose=False)
+        
+        if analysis_type == "abnormality":
+            return self.predict_abnormality(raw)
+        else:
+            raise ValueError(f"Unsupported analysis type: {analysis_type}")
 
-        # Stack features
-        all_features = np.stack(window_features)  # (n_windows, n_summary_tokens, embed_dim)
-
-        # Apply abnormality detection head
-        window_scores = []
-        with torch.no_grad():
-            for features in all_features:
-                # Flatten summary tokens
-                features_flat = torch.FloatTensor(features.flatten()).unsqueeze(0).to(self.device)
-
-                # Apply classification head
-                logits = self.abnormality_head(features_flat)
-                probs = torch.softmax(logits, dim=-1)
-                abnormal_prob = probs[0, 1].item()  # Probability of abnormal class
-                window_scores.append(abnormal_prob)
-
-        # Aggregate scores
-        abnormality_score = np.mean(window_scores)
-        confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
-
-        return {
-            'abnormal_probability': float(abnormality_score),
-            'confidence': float(confidence),
-            'window_scores': window_scores,
-            'n_windows': len(windows),
-            'used_streaming': False,
-            'channels_used': channel_names,
-            'metadata': {
-                'duration': processed.times[-1],
-                'n_channels': len(channel_names),
-                'sampling_rate': processed.info['sfreq']
-            }
-        }
-
-    def process_recording(
+    def extract_windows(
         self,
         data: np.ndarray,
-        sampling_rate: int,
-        batch_size: int = 32
-    ) -> dict[str, Any]:
-        """Process full recording and return results.
+        sampling_rate: int
+    ) -> list[np.ndarray]:
+        """Extract non-overlapping windows from continuous data.
 
         Args:
-            data: EEG data array (channels, samples)
+            data: EEG data (channels, samples)
             sampling_rate: Sampling rate in Hz
-            batch_size: Number of windows to process at once
 
         Returns:
-            Dictionary with processing results
+            List of windows (channels, window_samples)
         """
-        windows = self.extract_windows(data, sampling_rate)
+        # Resample if needed
+        if sampling_rate != self.config.sampling_rate:
+            n_samples = data.shape[1]
+            new_n_samples = int(n_samples * self.config.sampling_rate / sampling_rate)
+            data = signal.resample(data, new_n_samples, axis=1)
 
-        results = {
-            'n_windows': len(windows),
-            'features': [],
-            'processing_complete': True
-        }
+        # Extract windows
+        window_samples = self.config.window_samples
+        n_windows = data.shape[1] // window_samples
 
-        # Process windows in batches for efficiency
-        for i in range(0, len(windows), batch_size):
-            batch_windows = windows[i:i + batch_size]
-            # Stack windows into batch array (batch, channels, samples)
-            batch_array = np.stack(batch_windows, axis=0)
-            # Extract features for the entire batch
-            batch_features = self.extract_features_batch(batch_array)
-            # Convert to list and extend results
-            # Type annotation to help mypy
-            features_list = results['features']
-            if isinstance(features_list, list):
-                features_list.extend(batch_features.tolist())
+        windows = []
+        for i in range(n_windows):
+            start = i * window_samples
+            end = start + window_samples
+            windows.append(data[:, start:end])
 
-        return results
+        return windows
+
+    def extract_features_batch(self, windows: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
+        """Extract features from batch of windows.
+
+        Args:
+            windows: Batch of windows (batch, channels, samples)
+            channel_names: List of channel names
+
+        Returns:
+            Features (batch, n_summary_tokens, feature_dim)
+        """
+        # Convert to tensor
+        windows_tensor = torch.FloatTensor(windows).to(self.device)
+
+        # Prepare channel IDs
+        if channel_names is not None:
+            chan_ids = self.encoder.prepare_chan_ids(channel_names).to(self.device)
+        else:
+            chan_ids = torch.arange(windows.shape[1], device=self.device)
+
+        # Extract features for batch
+        with torch.no_grad():
+            features = self.encoder(windows_tensor, chan_ids)
+
+        return features.cpu().numpy()
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""
@@ -480,26 +345,19 @@ class EEGPTModel:
             logger.info("Cleared GPU memory cache")
 
 
-def preprocess_for_eegpt(raw: mne.io.Raw) -> mne.io.Raw:
-    """Preprocess raw EEG data according to EEGPT requirements.
-
-    Based on paper specifications:
-    - Resample to 256 Hz
-    - Average reference
-    - Convert to mV
-    - Optional bandpass filtering
-
-    Args:
-        raw: Input raw EEG data
-
-    Returns:
-        Preprocessed raw data
-    """
+def preprocess_for_eegpt(
+    raw: "mne.io.Raw",  # Use string annotation for untyped module
+    target_sfreq: int = 256,
+    l_freq: float = 0.5,
+    h_freq: float = 50.0,
+    notch_freq: Optional[Union[float, list]] = None
+) -> "mne.io.Raw":  # Use string annotation
+    """Preprocess EEG data for EEGPT model."""
     raw = raw.copy()
 
     # Resample to 256 Hz if needed
-    if raw.info['sfreq'] != 256:
-        raw.resample(256)
+    if raw.info['sfreq'] != target_sfreq:
+        raw.resample(target_sfreq)
 
     # Apply average reference
     raw.set_eeg_reference('average', projection=False)

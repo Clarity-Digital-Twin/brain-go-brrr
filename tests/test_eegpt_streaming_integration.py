@@ -1,27 +1,27 @@
 """Tests for EEGPT model with streaming integration."""
 
+from unittest.mock import Mock, patch
+
+import mne
 import numpy as np
 import pytest
-import mne
-from unittest.mock import Mock, patch
-from pathlib import Path
 
 from src.brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
 class TestEEGPTStreamingIntegration:
     """Test EEGPT model handles large files with streaming."""
-    
+
     @pytest.fixture
     def mock_eegpt_model(self):
         """Create mocked EEGPT model."""
         with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model'):
             model = EEGPTModel(checkpoint_path=None, auto_load=False)
-            
+
             # Mock encoder
             mock_encoder = Mock()
             mock_encoder.prepare_chan_ids = Mock(return_value=Mock())
-            
+
             # Mock forward pass to return proper tensor-like object
             def mock_forward(x, chan_ids):
                 batch_size = x.shape[0]
@@ -32,11 +32,11 @@ class TestEEGPTStreamingIntegration:
                 mock_tensor.cpu = Mock(return_value=mock_tensor)
                 mock_tensor.numpy = Mock(return_value=features.squeeze(0))
                 return mock_tensor
-            
+
             mock_encoder.__call__ = Mock(side_effect=mock_forward)
             mock_encoder.to = Mock(return_value=mock_encoder)
             model.encoder = mock_encoder
-            
+
             # Mock abnormality head with proper tensor behavior
             def mock_classifier_forward(x):
                 # Return mock tensor with proper softmax behavior
@@ -45,24 +45,24 @@ class TestEEGPTStreamingIntegration:
                 probs.__getitem__ = Mock(side_effect=lambda idx: Mock(item=Mock(return_value=0.75)))
                 logits.softmax = Mock(return_value=probs)
                 return logits
-            
+
             mock_classifier = Mock()
             mock_classifier.__call__ = Mock(side_effect=mock_classifier_forward)
             mock_classifier.to = Mock(return_value=mock_classifier)
             model.abnormality_head = mock_classifier
-            
+
             # Set config for consistency
             model.config.n_summary_tokens = 4
-            
+
             return model
-    
+
     def test_process_small_recording_no_streaming(self, mock_eegpt_model):
         """Test that small recordings don't use streaming."""
         # Create 60 seconds of data (under 120s threshold)
         sfreq = 256
         duration = 60
         n_channels = 19
-        
+
         data = np.random.randn(n_channels, sfreq * duration) * 50
         info = mne.create_info(
             ch_names=[f'CH{i}' for i in range(n_channels)],
@@ -70,23 +70,23 @@ class TestEEGPTStreamingIntegration:
             ch_types=['eeg'] * n_channels
         )
         raw = mne.io.RawArray(data, info)
-        
+
         # Process recording
         results = mock_eegpt_model.predict_abnormality(raw)
-        
+
         # Should return valid results without streaming
         assert 'abnormal_probability' in results
         assert 0 <= results['abnormal_probability'] <= 1
         assert 'used_streaming' in results
         assert results['used_streaming'] is False
-    
+
     def test_process_large_recording_with_streaming(self, mock_eegpt_model):
         """Test that large recordings use streaming."""
         # Create 180 seconds of data (over 120s threshold)
         sfreq = 256
         duration = 180
         n_channels = 19
-        
+
         data = np.random.randn(n_channels, sfreq * duration) * 50
         info = mne.create_info(
             ch_names=[f'CH{i}' for i in range(n_channels)],
@@ -94,10 +94,10 @@ class TestEEGPTStreamingIntegration:
             ch_types=['eeg'] * n_channels
         )
         raw = mne.io.RawArray(data, info)
-        
+
         # Process recording
         results = mock_eegpt_model.predict_abnormality(raw)
-        
+
         # Should return valid results with streaming
         assert 'abnormal_probability' in results
         assert 0 <= results['abnormal_probability'] <= 1
@@ -105,14 +105,14 @@ class TestEEGPTStreamingIntegration:
         assert results['used_streaming'] is True
         assert 'n_windows_processed' in results
         assert results['n_windows_processed'] > 1
-    
+
     def test_streaming_results_consistent(self, mock_eegpt_model):
         """Test that streaming produces reasonable results."""
         # Create data with known pattern
         sfreq = 256
         duration = 150
         n_channels = 19
-        
+
         # Create data with increasing abnormality
         data = np.zeros((n_channels, sfreq * duration))
         for i in range(n_channels):
@@ -120,21 +120,21 @@ class TestEEGPTStreamingIntegration:
             data[i, :sfreq*75] = np.random.randn(sfreq*75) * 20
             # Second half: abnormal (high amplitude)
             data[i, sfreq*75:] = np.random.randn(sfreq*75) * 100
-        
+
         info = mne.create_info(
             ch_names=[f'CH{i}' for i in range(n_channels)],
             sfreq=sfreq,
             ch_types=['eeg'] * n_channels
         )
         raw = mne.io.RawArray(data, info)
-        
+
         # Process recording
         results = mock_eegpt_model.predict_abnormality(raw)
-        
+
         # Should detect some abnormality
         assert results['abnormal_probability'] > 0.3
         assert results['used_streaming'] is True
-    
+
     @pytest.mark.parametrize("duration,expected_streaming", [
         (30, False),   # 30s - no streaming
         (60, False),   # 60s - no streaming
@@ -146,7 +146,7 @@ class TestEEGPTStreamingIntegration:
         """Test streaming is triggered at correct threshold."""
         sfreq = 256
         n_channels = 19
-        
+
         data = np.random.randn(n_channels, sfreq * duration) * 50
         info = mne.create_info(
             ch_names=[f'CH{i}' for i in range(n_channels)],
@@ -154,18 +154,18 @@ class TestEEGPTStreamingIntegration:
             ch_types=['eeg'] * n_channels
         )
         raw = mne.io.RawArray(data, info)
-        
+
         results = mock_eegpt_model.predict_abnormality(raw)
-        
+
         assert results.get('used_streaming', False) == expected_streaming
-    
+
     def test_streaming_memory_efficiency(self, mock_eegpt_model):
         """Test that streaming doesn't load full data into memory."""
         # Create very large recording (10 minutes)
         sfreq = 256
         duration = 600
         n_channels = 19
-        
+
         # Don't actually create the full array to save test memory
         # Just create info and mock raw
         info = mne.create_info(
@@ -173,7 +173,7 @@ class TestEEGPTStreamingIntegration:
             sfreq=sfreq,
             ch_types=['eeg'] * n_channels
         )
-        
+
         # Mock raw object
         mock_raw = Mock()
         mock_raw.info = info
@@ -181,10 +181,8 @@ class TestEEGPTStreamingIntegration:
         mock_raw.times = np.array([0, duration])
         mock_raw.ch_names = info['ch_names']
         mock_raw.get_data = Mock(return_value=np.random.randn(n_channels, sfreq * 4))  # Only return window
-        
+
         # Override the model's predict method to use our mock
-        original_predict = mock_eegpt_model.predict_abnormality
-        
         def mock_predict(raw):
             # Simulate streaming behavior
             return {
@@ -198,11 +196,11 @@ class TestEEGPTStreamingIntegration:
                     'sampling_rate': raw.info['sfreq']
                 }
             }
-        
+
         mock_eegpt_model.predict_abnormality = mock_predict
-        
+
         # Process should complete without loading full data
         results = mock_eegpt_model.predict_abnormality(mock_raw)
-        
+
         assert results['used_streaming'] is True
         assert results['n_windows_processed'] == 150  # 600s / 4s
