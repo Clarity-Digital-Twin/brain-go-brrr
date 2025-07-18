@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 import torch
 
-from src.brain_go_brrr.models.eegpt_architecture import EEGPTConfig
 from src.brain_go_brrr.models.eegpt_model import (
+    EEGPTConfig,
     EEGPTModel,
     extract_features_from_raw,
     preprocess_for_eegpt,
