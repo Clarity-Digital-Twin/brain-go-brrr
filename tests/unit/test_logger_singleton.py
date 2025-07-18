@@ -60,92 +60,91 @@ class TestLoggerSingleton:
     def test_logger_without_rich_console(self):
         """Test logger with standard console handler."""
         logger = get_logger("test_no_rich", level="DEBUG", rich_console=False)
-        
+
         # Should have standard stream handler
         assert len(logger.handlers) == 1
         handler = logger.handlers[0]
         assert isinstance(handler, logging.StreamHandler)
-        
+
         # Check formatter is standard format
         formatter = handler.formatter
         assert formatter is not None
         assert "asctime" in formatter._fmt
         assert "levelname" in formatter._fmt
-        
+
     def test_logger_with_file_handler(self):
         """Test logger with file handler."""
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = Path(temp_dir) / "test_logs" / "test.log"
-            
+
             logger = get_logger(
                 "test_file_handler",
                 level="INFO",
                 log_file=log_file,
                 rich_console=True
             )
-            
+
             # Should have 2 handlers: console + file
             assert len(logger.handlers) == 2
-            
+
             # Find file handler
             file_handlers = [h for h in logger.handlers if isinstance(h, logging.FileHandler)]
             assert len(file_handlers) == 1
-            file_handler = file_handlers[0]
-            
+
             # Check file was created
             assert log_file.exists()
-            
+
             # Test logging to file
             logger.info("Test message to file")
-            
+
             # Verify content was written
-            with open(log_file, 'r') as f:
+            with log_file.open() as f:
                 content = f.read()
                 assert "Test message to file" in content
                 assert "INFO" in content
-                
+
     def test_logger_with_all_options(self):
         """Test logger with all options enabled."""
         with tempfile.TemporaryDirectory() as temp_dir:
             log_file = Path(temp_dir) / "all_options.log"
-            
+
             logger = get_logger(
                 "test_all_options",
                 level="WARNING",
                 log_file=log_file,
                 rich_console=False  # Use standard console
             )
-            
+
             # Should have 2 handlers
             assert len(logger.handlers) == 2
-            
+
             # Check level
             assert logger.level == logging.WARNING
-            
+
             # Log a warning
             logger.warning("Test warning message")
-            
+
             # Check file content
-            with open(log_file, 'r') as f:
+            with log_file.open() as f:
                 content = f.read()
                 assert "Test warning message" in content
                 assert "WARNING" in content
-                
+
     def test_logger_creates_parent_directories(self):
         """Test that logger creates parent directories for log file."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Nested path that doesn't exist
             log_file = Path(temp_dir) / "deep" / "nested" / "path" / "test.log"
-            
+
             logger = get_logger(
                 "test_mkdir",
                 log_file=log_file
             )
-            
+
             # Parent directories should be created
             assert log_file.parent.exists()
             assert log_file.exists()
-            
+
             # Test writing
             logger.info("Directory creation test")
             assert log_file.stat().st_size > 0

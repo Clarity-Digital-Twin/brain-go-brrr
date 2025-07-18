@@ -69,6 +69,7 @@ class TestAPIEndpoints:
         assert data["status"] == "healthy"
         assert "eegpt_loaded" in data
         assert "timestamp" in data
+        assert "redis" in data  # Redis health check added
 
     def test_analyze_endpoint_requires_file(self, client):
         """Test that analyze endpoint requires a file upload."""
@@ -89,9 +90,11 @@ class TestAPIEndpoints:
     def test_analyze_endpoint_successful_response_format(self, client, mock_qc_controller):
         """Test successful analysis returns correct JSON format (ROUGH_DRAFT.md specs)."""
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf') as mock_read:
+             patch('mne.io.read_raw_edf') as mock_read, \
+             patch('api.main.estimate_memory_usage') as mock_estimate:
             mock_raw = MagicMock()
             mock_read.return_value = mock_raw
+            mock_estimate.return_value = {'estimated_total_mb': 10.0}
 
             files = {"file": ("test.edf", b"mock edf content", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -126,7 +129,8 @@ class TestAPIEndpoints:
         }
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -147,7 +151,8 @@ class TestAPIEndpoints:
         }
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -168,7 +173,8 @@ class TestAPIEndpoints:
         }
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -189,7 +195,8 @@ class TestAPIEndpoints:
         }
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -199,7 +206,8 @@ class TestAPIEndpoints:
     def test_processing_time_requirement(self, client, mock_qc_controller):
         """Test that processing time is tracked and reasonable (NFR1.1: <2 minutes for 20-min EEG)."""
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -212,7 +220,8 @@ class TestAPIEndpoints:
         """Test bad channel detection meets accuracy requirement (FR1.1: >95% accuracy)."""
         # This is more of an integration test, but we verify the format
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -225,7 +234,8 @@ class TestAPIEndpoints:
     def test_abnormality_detection_confidence(self, client, mock_qc_controller):
         """Test abnormality detection includes confidence score (FR2.2)."""
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -253,7 +263,8 @@ class TestAPIEndpoints:
         """Test API can handle concurrent requests (NFR1.2: Support 50 concurrent analyses)."""
         # This is a simple test - real concurrency testing would use asyncio
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             # Send multiple requests
             for _ in range(3):
                 files = {"file": ("test.edf", b"mock", "application/octet-stream")}
@@ -280,7 +291,8 @@ class TestAPIEndpoints:
         }
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -344,7 +356,8 @@ class TestAPIPerformance:
         large_content = b"0       " + b" " * 1024 * 1024  # 1MB mock file
 
         with patch('api.main.qc_controller', mock_qc_controller), \
-             patch('mne.io.read_raw_edf'):
+             patch('mne.io.read_raw_edf'), \
+             patch('api.main.estimate_memory_usage', return_value={'estimated_total_mb': 10.0}):
             files = {"file": ("large.edf", large_content, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
