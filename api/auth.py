@@ -5,12 +5,15 @@ import hmac
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
+from src.brain_go_brrr.utils import utc_now
 from typing import Optional
 from fastapi import HTTPException, Header
 from pydantic import BaseModel
 import logging
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["create_cache_clear_token", "verify_cache_clear_permission"]
 
 # Configuration
 ADMIN_TOKEN_ENV = "BRAIN_GO_BRRR_ADMIN_TOKEN"
@@ -106,7 +109,7 @@ def verify_cache_clear_permission(authorization: Optional[str] = Header(None)) -
 
 def create_cache_clear_token() -> str:
     """Create a time-limited token for cache clearing."""
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = utc_now().isoformat()
     secret = get_cache_clear_secret()
     signature = create_hmac_signature(f"cache_clear:{timestamp}", secret)
     return f"HMAC {signature}"

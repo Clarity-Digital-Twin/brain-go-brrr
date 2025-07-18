@@ -3,20 +3,38 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from pydantic_settings import BaseSettings
 
 
 class ModelConfig(BaseModel):
     """Configuration for EEGPT model."""
 
-    name: str = "eegpt"
-    embed_dim: int = 128
-    num_heads: int = 8
-    num_layers: int = 6
-    patch_size: int = 64
-    mask_ratio: float = 0.75
-    dropout: float = 0.1
+    # EEGPT Model
+    model_path: Path = Field(
+        default_factory=lambda: Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"),
+        description="Path to EEGPT pretrained checkpoint"
+    )
+    device: str = Field(default="auto", description="Device for model inference (auto, cpu, cuda)")
+    batch_size: int = Field(default=8, description="Batch size for inference")
+
+    # Model parameters (from EEGPT paper)
+    sampling_rate: int = Field(default=256, description="Target sampling rate in Hz")
+    window_duration: float = Field(default=4.0, description="Window duration in seconds")
+    patch_size: int = Field(default=64, description="Patch size in samples")
+    n_summary_tokens: int = Field(default=4, description="Number of summary tokens (S=4)")
+    embed_dim: int = Field(default=512, description="Embedding dimension")
+
+    # Streaming configuration
+    streaming_threshold: float = Field(default=120.0, description="Duration threshold for streaming (seconds)")
+    window_overlap: float = Field(default=0.5, description="Window overlap ratio for streaming")
+
+    @validator("model_path")
+    def validate_model_path(self, v: Path) -> Path:
+        """Validate that model path exists."""
+        if not v.exists():
+            raise ValueError(f"EEGPT model checkpoint not found: {v}")
+        return v
 
 
 class TrainingConfig(BaseModel):

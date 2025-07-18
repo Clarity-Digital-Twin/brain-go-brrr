@@ -43,7 +43,7 @@ def train(
     if output_dir:
         config.output_dir = output_dir
 
-    logger.info(f"Training configuration loaded: {config.model.name}")
+    logger.info("Training configuration loaded: EEGPT")
     logger.info(f"Data directory: {config.data_dir}")
     logger.info(f"Output directory: {config.output_dir}")
 

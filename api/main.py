@@ -12,6 +12,7 @@ import sys
 import tempfile
 import traceback
 from datetime import datetime, timezone
+from src.brain_go_brrr.utils import utc_now
 from pathlib import Path
 from typing import Any, Optional
 
@@ -133,7 +134,7 @@ async def health_check():
         "status": "healthy",
         "eegpt_loaded": qc_controller is not None and qc_controller.eegpt_model is not None,
         "redis": redis_health,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": utc_now().isoformat()
     }
 
 
@@ -246,7 +247,7 @@ async def analyze_eeg(
                 "confidence": round(confidence, 3),
                 "processing_time": round(processing_time, 2),
                 "quality_grade": quality_grade,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": utc_now().isoformat()
             }
 
             # Cache the result if cache is available
@@ -276,7 +277,7 @@ async def analyze_eeg(
                 confidence=0,
                 processing_time=0,
                 quality_grade="ERROR",
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=utc_now().isoformat(),
                 error=str(e)
             )
 
@@ -389,7 +390,7 @@ async def analyze_eeg_detailed(
                         },
                         'processing_info': {
                             'file_name': file.filename,
-                            'timestamp': datetime.now(timezone.utc).isoformat(),
+                            'timestamp': utc_now().isoformat(),
                             'duration_seconds': raw.times[-1],
                             'sampling_rate': raw.info['sfreq'],
                             'confidence': confidence,
@@ -418,7 +419,7 @@ async def analyze_eeg_detailed(
                     output_dir.mkdir(parents=True, exist_ok=True)
 
                     # Create filename with timestamp
-                    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+                    timestamp_str = utc_now().strftime("%Y%m%d_%H%M%S")
                     markdown_path = output_dir / f"eeg_report_{timestamp_str}.md"
                     markdown_generator.save_report(report_results, markdown_path)
                     logger.info(f"Markdown report saved to {markdown_path}")
@@ -440,7 +441,7 @@ async def analyze_eeg_detailed(
                 confidence=round(confidence, 3),
                 processing_time=round(processing_time, 2),
                 quality_grade=quality_grade,
-                timestamp=datetime.now(timezone.utc).isoformat()
+                timestamp=utc_now().isoformat()
             )
 
             # Prepare response
@@ -486,7 +487,7 @@ async def analyze_eeg_detailed(
                     confidence=0,
                     processing_time=0,
                     quality_grade="ERROR",
-                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    timestamp=utc_now().isoformat(),
                     error=str(e)
                 ),
                 "detailed": {

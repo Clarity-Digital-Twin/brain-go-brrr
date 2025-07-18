@@ -5,12 +5,12 @@ Vision Transformer architecture adapted for EEG signals.
 """
 
 
-from typing import Optional, Callable, Union, Type
 import math
+from typing import Any
+
 import torch
 import torch.nn as nn
 from torch import Tensor
-import torch.nn.functional as F
 
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
@@ -29,34 +29,32 @@ CHANNEL_DICT = {
 
 class RoPE(nn.Module):
     """Rotary Position Embedding implementation."""
-    
+
+    position: Tensor
+    div_term: Tensor
+
     def __init__(self, embed_dim: int, max_seq_len: int = 1024) -> None:
         super().__init__()
         self.embed_dim = embed_dim
         self.max_seq_len = max_seq_len
-        
+
         # Create frequency matrix
         position = torch.arange(max_seq_len).unsqueeze(1).float()
-        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * 
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() *
                            -(math.log(10000.0) / embed_dim))
-        
+
         # Register as buffer (non-parameter)
         self.register_buffer('position', position)
         self.register_buffer('div_term', div_term)
-        
+
     def forward(self, x: Tensor) -> Tensor:
         seq_len = x.size(1)
         position = self.position[:seq_len]
-        
-        # Apply rotary embedding
-        if hasattr(x, 'type_as'):
-            sin_pos = torch.sin(position * self.div_term).type_as(x)
-            cos_pos = torch.cos(position * self.div_term).type_as(x)
-        else:
-            # Fallback if x doesn't have type_as method
-            sin_pos = torch.sin(position * self.div_term).to(x.device, x.dtype)
-            cos_pos = torch.cos(position * self.div_term).to(x.device, x.dtype)
-        
+
+        # Apply rotary embedding - use direct tensor operations
+        sin_pos = torch.sin(position * self.div_term).to(x.device, x.dtype)
+        cos_pos = torch.cos(position * self.div_term).to(x.device, x.dtype)
+
         # Apply rotation (simplified implementation)
         return x + sin_pos.unsqueeze(0) * 0.1 + cos_pos.unsqueeze(0) * 0.1
 
@@ -127,24 +125,24 @@ class Attention(nn.Module):
 
 class MLP(nn.Module):
     """Multi-Layer Perceptron block."""
-    
+
     def __init__(
-        self, 
-        in_features: int, 
-        hidden_features: Optional[int] = None, 
-        out_features: Optional[int] = None, 
-        act_layer: Type[nn.Module] = nn.GELU,  # Fixed type annotation
+        self,
+        in_features: int,
+        hidden_features: int | None = None,
+        out_features: int | None = None,
+        act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
         drop: float = 0.0
     ) -> None:
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
-        
+
         self.fc1 = nn.Linear(in_features, hidden_features)
         self.act = act_layer()
         self.fc2 = nn.Linear(hidden_features, out_features)
         self.drop = nn.Dropout(drop)
-        
+
     def forward(self, x: Tensor) -> Tensor:
         x = self.fc1(x)
         x = self.act(x)
@@ -155,17 +153,17 @@ class MLP(nn.Module):
 
 class Block(nn.Module):
     """Transformer block with attention and MLP."""
-    
+
     def __init__(
-        self, 
-        dim: int, 
-        num_heads: int, 
-        mlp_ratio: float = 4.0, 
-        qkv_bias: bool = False, 
-        drop: float = 0.0, 
-        attn_drop: float = 0.0, 
-        act_layer: Type[nn.Module] = nn.GELU,  # Fixed type annotation
-        norm_layer: Type[nn.Module] = nn.LayerNorm  # Fixed type annotation
+        self,
+        dim: int,
+        num_heads: int,
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = False,
+        drop: float = 0.0,
+        attn_drop: float = 0.0,
+        act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
+        norm_layer: type[nn.Module] = nn.LayerNorm  # Fixed type annotation
     ) -> None:
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -179,18 +177,18 @@ class Block(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = MLP(
-            in_features=dim, 
-            hidden_features=mlp_hidden_dim, 
-            act_layer=act_layer, 
+            in_features=dim,
+            hidden_features=mlp_hidden_dim,
+            act_layer=act_layer,
             drop=drop
         )
-        
+
     def forward(self, x: Tensor) -> Tensor:
         # Self-attention with residual connection
         x_norm = self.norm1(x)
         attn_out, _ = self.attn(x_norm, x_norm, x_norm)
         x = x + attn_out
-        
+
         # MLP with residual connection
         x = x + self.mlp(self.norm2(x))
         return x
@@ -228,10 +226,10 @@ class PatchEmbed(nn.Module):
 
 class EEGTransformer(nn.Module):
     """EEG Transformer model."""
-    
+
     def __init__(
         self,
-        n_channels: Optional[list] = None,
+        n_channels: list | None = None,
         patch_size: int = 64,
         embed_dim: int = 768,
         depth: int = 12,
@@ -240,16 +238,16 @@ class EEGTransformer(nn.Module):
         qkv_bias: bool = True,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
-        norm_layer: Type[nn.Module] = nn.LayerNorm  # Fixed type annotation
+        norm_layer: type[nn.Module] = nn.LayerNorm  # Fixed type annotation
     ) -> None:
         super().__init__()
         self.n_channels = n_channels or list(range(58))  # Default to 58 channels
         self.patch_size = patch_size
         self.embed_dim = embed_dim
-        
+
         # Patch embedding
         self.patch_embed = nn.Linear(patch_size, embed_dim)
-        
+
         # Transformer blocks
         self.blocks = nn.ModuleList([
             Block(
@@ -263,9 +261,9 @@ class EEGTransformer(nn.Module):
             )
             for _ in range(depth)
         ])
-        
+
         self.norm = norm_layer(embed_dim)
-        
+
     def prepare_chan_ids(self, channel_names: list) -> Tensor:
         """Prepare channel IDs for the model."""
         # Map channel names to indices
@@ -276,22 +274,22 @@ class EEGTransformer(nn.Module):
             else:
                 chan_ids.append(0)  # Default channel
         return torch.tensor(chan_ids, dtype=torch.long)
-        
-    def forward(self, x: Tensor, chan_ids: Optional[Tensor] = None) -> Tensor:
+
+    def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:
         # Patch embedding
         x = self.patch_embed(x)
-        
+
         # Apply transformer blocks
         for block in self.blocks:
             x = block(x)
-            
+
         # Final normalization
         x = self.norm(x)
-        
+
         return x
 
 
-def create_eegpt_model(checkpoint_path: str | None = None, **kwargs) -> EEGTransformer:
+def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEGTransformer:
     """Create EEGPT model and optionally load pretrained weights.
 
     Args:
@@ -333,7 +331,7 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs) -> EEGTrans
     return model
 
 
-def _init_eeg_transformer(**kwargs) -> EEGTransformer:
+def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
     """Initialize EEG Transformer with proper argument handling."""
     # Extract known arguments
     known_args = {
@@ -348,8 +346,8 @@ def _init_eeg_transformer(**kwargs) -> EEGTransformer:
         'attn_drop_rate': kwargs.get('attn_drop_rate', 0.0),
         'norm_layer': kwargs.get('norm_layer', nn.LayerNorm)
     }
-    
+
     # Filter out None values
     filtered_args = {k: v for k, v in known_args.items() if v is not None}
-    
+
     return EEGTransformer(**filtered_args)

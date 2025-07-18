@@ -15,7 +15,7 @@ Model specifications:
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union, Dict, List
+from typing import Any
 
 import mne
 import numpy as np
@@ -24,6 +24,7 @@ import torch
 import torch.nn as nn
 from scipy import signal
 
+from ..core.config import ModelConfig
 from .eegpt_architecture import EEGTransformer, create_eegpt_model
 
 logger = logging.getLogger(__name__)
@@ -68,66 +69,69 @@ class EEGPTConfig:
 
 class EEGPTModel:
     """EEGPT Model wrapper for inference and feature extraction."""
-    
-    def __init__(self, 
-                 model_path: Optional[Union[str, Path]] = None,
-                 device: Optional[str] = None) -> None:
+
+    def __init__(self,
+                 config: ModelConfig | None = None) -> None:
         """Initialize EEGPT model."""
-        self.model_path = Path(model_path) if model_path else None
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        self.config = EEGPTConfig()
-        self.encoder: Optional[EEGTransformer] = None
-        self.abnormality_head: Optional[nn.Module] = None
+        self.config = config or ModelConfig()
+
+        # Set device
+        if self.config.device == "auto":
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = self.config.device
+
+        self.encoder: EEGTransformer | None = None
+        self.abnormality_head: nn.Module | None = None
         self.is_loaded = False
-        
+
         self.logger = logging.getLogger(__name__)
-        
+
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""
-        if self.model_path is None or not self.model_path.exists():
-            raise FileNotFoundError(f"Model checkpoint not found: {self.model_path}")
-            
-        # Load model architecture
-        from .eegpt_architecture import create_eegpt_model
-        self.encoder = create_eegpt_model(str(self.model_path))
-        
+        if not self.config.model_path.exists():
+            raise FileNotFoundError(f"Model checkpoint not found: {self.config.model_path}")
+
+        # Load model architecture with real checkpoint
+        self.encoder = create_eegpt_model(str(self.config.model_path))
+
         if self.encoder is None:
             raise RuntimeError("Failed to load EEGPT encoder")
-            
+
         self.encoder.to(self.device)
         self.encoder.eval()
-        
-        # Initialize abnormality detection head
+
+        # Initialize abnormality detection head (trainable on top of frozen EEGPT)
         self.abnormality_head = nn.Sequential(
             nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(512, 2)  # Binary classification
         ).to(self.device)
-        
+
         self.is_loaded = True
-        self.logger.info(f"Loaded EEGPT model from {self.model_path}")
-        
-    def extract_features(self, 
-                        data: npt.NDArray[np.float64], 
-                        channel_names: List[str]) -> npt.NDArray[np.float64]:
+        self.logger.info(f"✅ Loaded real EEGPT model from {self.config.model_path}")
+
+    def extract_features(self,
+                        data: npt.NDArray[np.float64],
+                        channel_names: list[str]) -> npt.NDArray[np.float64]:
         """Extract features from EEG data using EEGPT encoder."""
         if not self.is_loaded or self.encoder is None:
             self.load_model()
-            
+
         if self.encoder is None:
             raise RuntimeError("Encoder not loaded")
-            
+
         # Convert to tensor
         if isinstance(data, np.ndarray):
             data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
         else:
             data_tensor = data.detach() if hasattr(data, 'detach') else data
-            
+
         # Prepare channel IDs
         chan_ids = self.encoder.prepare_chan_ids(channel_names)
         chan_ids = chan_ids.to(self.device)
-        
+
         with torch.no_grad():
             if self.encoder is not None:  # Additional null check for mypy
                 features = self.encoder(data_tensor, chan_ids)
@@ -135,51 +139,50 @@ class EEGPTModel:
             else:
                 return np.zeros((self.config.n_summary_tokens, self.config.embed_dim))
 
-    def predict_abnormality(self, 
-                           raw: "mne.io.Raw") -> Dict[str, Any]:  # Use string annotation
+    def predict_abnormality(self,
+                           raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
         """Predict abnormality from raw EEG data with streaming support."""
         if not self.is_loaded:
             self.load_model()
-            
+
         # Preprocess data
         processed = preprocess_for_eegpt(raw)
-        
+
         # Get channel names
         channel_names = processed.ch_names
-        
-        # Check duration to decide on streaming
+
+        # Check duration to decide on streaming (configurable threshold)
         duration = processed.times[-1]
-        use_streaming = duration > 120  # Stream if > 2 minutes
-        
+        use_streaming = duration > self.config.streaming_threshold
+
         if use_streaming:
             # Use streaming for large files
-            from ..data.edf_streaming import EDFStreamer
-            
+
             window_scores = []
             n_windows_processed = 0
-            
+
             # Create a temporary streamer-compatible object
             # EDFStreamer expects file path, but we have raw data
             # So we'll process windows directly
             sfreq = int(processed.info['sfreq'])
             window_duration = 4.0  # 4 second windows
             step_duration = 2.0    # 2 second step (50% overlap)
-            
+
             window_samples = int(window_duration * sfreq)
             step_samples = int(step_duration * sfreq)
-            
+
             # Get data once for streaming
             data = processed.get_data()
             n_samples = data.shape[1]
-            
+
             # Process windows with overlap
             for start_idx in range(0, n_samples - window_samples + 1, step_samples):
                 end_idx = start_idx + window_samples
                 window_data = data[:, start_idx:end_idx]
-                
+
                 # Extract features
                 features = self.extract_features(window_data, channel_names)
-                
+
                 # Apply abnormality detection
                 if self.abnormality_head is not None:
                     with torch.no_grad():
@@ -188,13 +191,13 @@ class EEGPTModel:
                         probs = torch.softmax(logits, dim=-1)
                         abnormal_prob = probs[0, 1].item()
                         window_scores.append(abnormal_prob)
-                
+
                 n_windows_processed += 1
-            
+
             # Aggregate scores
             abnormality_score = np.mean(window_scores) if window_scores else 0.0
             confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
-            
+
             return {
                 'abnormal_probability': float(abnormality_score),
                 'confidence': float(confidence),
@@ -231,8 +234,7 @@ class EEGPTModel:
                 features = self.extract_features(window, channel_names)
                 window_features.append(features)
 
-            # Stack features
-            all_features = np.stack(window_features)  # (n_windows, n_summary_tokens, embed_dim)
+            # Features extracted for all windows
 
             # Apply abnormality detection head
             window_scores = []
@@ -263,18 +265,20 @@ class EEGPTModel:
                 }
             }
 
-    def process_recording(self, 
-                         file_path: Union[str, Path], 
-                         analysis_type: str = "abnormality") -> Dict[str, Any]:
+    def process_recording(self,
+                         file_path: str | Path,
+                         analysis_type: str = "abnormality") -> dict[str, Any]:
         """Process a complete EEG recording."""
-        if not HAS_MNE:
+        try:
+            import mne  # type: ignore[import-untyped]
+        except ImportError:
             raise ImportError("MNE-Python is required for EEG processing")
-            
+
         file_path = Path(file_path)
-        
+
         # Load raw data
         raw = mne.io.read_raw_edf(file_path, preload=False, verbose=False)
-        
+
         if analysis_type == "abnormality":
             return self.predict_abnormality(raw)
         else:
@@ -350,7 +354,7 @@ def preprocess_for_eegpt(
     target_sfreq: int = 256,
     l_freq: float = 0.5,
     h_freq: float = 50.0,
-    notch_freq: Optional[Union[float, list]] = None
+    notch_freq: float | list | None = None
 ) -> "mne.io.Raw":  # Use string annotation
     """Preprocess EEG data for EEGPT model."""
     raw = raw.copy()
