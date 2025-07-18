@@ -4,8 +4,6 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  id-token: write
-  actions: read  # Required for CI/CD integration
 
 on:
   issue_comment:
@@ -13,40 +11,19 @@ on:
   pull_request_review_comment:
     types: [created]
   issues:
-    types: [opened, assigned]
+    types: [opened]
 
 jobs:
   claude-pr:
-    # Only run when @claude is mentioned
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
-    
+    if: contains(github.event.comment.body, '@claude') || contains(github.event.issue.body, '@claude')
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          
       - name: Run Claude Code Action
         uses: anthropics/claude-code-action@latest
         with:
-          github_token: ${{ steps.app-token.outputs.token }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: "claude-opus-4-20250514"  # Latest Claude 4 Opus model for best quality
-          allowed_tools: "Bash(git:*),View,GlobTool,GrepTool,BatchTool,FileEditTool,CreateFileTool"
-          settings: |
-            {
-              "model": "claude-opus-4-20250514",
-              "env": {
-                "DEBUG": "false"
-              }
-            }
+          model: "claude-opus-4-20250514"
