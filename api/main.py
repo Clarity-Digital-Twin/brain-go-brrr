@@ -13,10 +13,10 @@ import tempfile
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import mne
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, Header
 from pydantic import BaseModel, Field
 
 project_root = Path(__file__).parent.parent
@@ -25,6 +25,7 @@ sys.path.insert(0, str(project_root))
 from services.qc_flagger import EEGQualityController
 from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
 from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+from api.cache import get_cache, RedisCache
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,7 @@ app = FastAPI(
 default_model_path = project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
 EEGPT_MODEL_PATH = Path(os.getenv("EEGPT_MODEL_PATH", str(default_model_path))).absolute()
 qc_controller = None
+cache_client: Optional[RedisCache] = None
 
 
 class AnalysisRequest(BaseModel):
@@ -62,12 +64,13 @@ class QCResponse(BaseModel):
     quality_grade: str
     timestamp: str
     error: str | None = None
+    cached: bool = False
 
 
 @app.on_event("startup")
 async def startup_event():
     """Load models on startup."""
-    global qc_controller
+    global qc_controller, cache_client
     try:
         logger.info("Loading EEGPT model...")
         qc_controller = EEGQualityController(eegpt_model_path=EEGPT_MODEL_PATH)
@@ -81,6 +84,17 @@ async def startup_event():
         except Exception as e2:
             logger.error(f"Failed to initialize QC controller: {e2}")
             qc_controller = None
+    
+    # Initialize cache
+    try:
+        cache_client = get_cache()
+        if cache_client:
+            logger.info("Redis cache initialized successfully")
+        else:
+            logger.info("Running without cache")
+    except Exception as e:
+        logger.error(f"Failed to initialize cache: {e}")
+        cache_client = None
 
 
 @app.on_event("shutdown")
@@ -138,13 +152,26 @@ async def analyze_eeg(
     if not file.filename.lower().endswith('.edf'):
         raise HTTPException(status_code=400, detail="Only EDF files are supported")
 
+    # Read file content for caching
+    content = await file.read()
+    await file.seek(0)  # Reset file pointer
+
+    # Check cache if available
+    if cache_client and cache_client.connected:
+        cache_key = cache_client.generate_cache_key(content, "standard")
+        cached_result = cache_client.get(cache_key)
+        
+        if cached_result:
+            logger.info(f"Returning cached result for {file.filename}")
+            cached_result['cached'] = True
+            return QCResponse(**cached_result)
+
     # Create temporary file
     with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
 
         try:
             # Save uploaded file
-            content = await file.read()
             tmp_file.write(content)
             tmp_file.flush()
 
@@ -189,17 +216,28 @@ async def analyze_eeg(
             # Schedule cleanup
             background_tasks.add_task(cleanup_temp_file, tmp_path)
 
-            return QCResponse(
-                status="success",
-                bad_channels=bad_channels,
-                bad_pct=round(bad_pct, 1),
-                abnormal_prob=round(abnormal_prob, 3),
-                flag=flag,
-                confidence=round(confidence, 3),
-                processing_time=round(processing_time, 2),
-                quality_grade=quality_grade,
-                timestamp=datetime.now(timezone.utc).isoformat()
-            )
+            # Prepare response
+            response_data = {
+                "status": "success",
+                "bad_channels": bad_channels,
+                "bad_pct": round(bad_pct, 1),
+                "abnormal_prob": round(abnormal_prob, 3),
+                "flag": flag,
+                "confidence": round(confidence, 3),
+                "processing_time": round(processing_time, 2),
+                "quality_grade": quality_grade,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+
+            # Cache the result if cache is available
+            if cache_client and cache_client.connected:
+                try:
+                    cache_key = cache_client.generate_cache_key(content, "standard")
+                    cache_client.set(cache_key, response_data, ttl=3600)  # 1 hour TTL
+                except Exception as e:
+                    logger.error(f"Failed to cache result: {e}")
+
+            return QCResponse(**response_data)
 
         except Exception as e:
             logger.error(f"Error processing file: {e}")
@@ -233,13 +271,26 @@ async def analyze_eeg_detailed(
 
     Returns comprehensive analysis results with PDF report.
     """
+    # Read file content for caching
+    content = await file.read()
+    await file.seek(0)  # Reset file pointer
+
+    # Check cache if available
+    if cache_client and cache_client.connected:
+        cache_key = cache_client.generate_cache_key(content, "detailed")
+        cached_result = cache_client.get(cache_key)
+        
+        if cached_result:
+            logger.info(f"Returning cached detailed result for {file.filename}")
+            cached_result['basic']['cached'] = True
+            return cached_result
+
     # Create temporary file
     with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
 
         try:
             # Save uploaded file
-            content = await file.read()
             tmp_file.write(content)
             tmp_file.flush()
 
@@ -363,8 +414,9 @@ async def analyze_eeg_detailed(
                 timestamp=datetime.now(timezone.utc).isoformat()
             )
 
-            return {
-                "basic": basic_result,
+            # Prepare response
+            response_data = {
+                "basic": basic_result.model_dump(),
                 "detailed": {
                     "message": "Detailed analysis complete",
                     "pdf_available": pdf_base64 is not None,
@@ -376,6 +428,16 @@ async def analyze_eeg_detailed(
                     "duration_seconds": raw.times[-1]
                 }
             }
+
+            # Cache the result if cache is available
+            if cache_client and cache_client.connected:
+                try:
+                    cache_key = cache_client.generate_cache_key(content, "detailed")
+                    cache_client.set(cache_key, response_data, ttl=3600)  # 1 hour TTL
+                except Exception as e:
+                    logger.error(f"Failed to cache detailed result: {e}")
+
+            return response_data
 
         except Exception as e:
             logger.error(f"Error in detailed analysis: {e}")
@@ -455,6 +517,70 @@ def cleanup_temp_file(file_path: Path):
             logger.info(f"Cleaned up temp file: {file_path}")
     except Exception as e:
         logger.error(f"Failed to cleanup temp file: {e}")
+
+
+@app.get("/api/v1/cache/stats")
+async def get_cache_stats():
+    """Get Redis cache statistics."""
+    if not cache_client or not cache_client.connected:
+        return {
+            "status": "unavailable",
+            "message": "Cache not available"
+        }
+    
+    try:
+        stats = cache_client.get_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
+@app.delete("/api/v1/cache/clear")
+async def clear_cache(
+    authorization: Optional[str] = Header(None),
+    pattern: str = "eeg_analysis:*"
+):
+    """Clear cache entries matching pattern."""
+    # In production, verify authorization token
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization required")
+    
+    if not cache_client or not cache_client.connected:
+        return {
+            "status": "unavailable",
+            "message": "Cache not available"
+        }
+    
+    try:
+        keys_deleted = cache_client.clear_pattern(pattern)
+        return {
+            "status": "success",
+            "keys_deleted": keys_deleted,
+            "pattern": pattern
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear cache: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
+
+@app.post("/api/v1/cache/warmup")
+async def warmup_cache(file_patterns: list[str] = ["sleep-*.edf"]):
+    """Pre-warm cache with common test files."""
+    # This is a placeholder - in production, would scan for files
+    # matching patterns and pre-process them
+    return {
+        "status": "success",
+        "message": "Cache warmup initiated",
+        "files_cached": 0,
+        "patterns": file_patterns
+    }
 
 
 if __name__ == "__main__":

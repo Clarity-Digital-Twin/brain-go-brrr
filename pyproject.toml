@@ -73,6 +73,7 @@ dependencies = [
     "matplotlib>=3.8.0",
     "PyPDF2>=3.0.0",
     "edfio>=0.4.9",
+    "redis>=6.2.0",
 ]
 
 [project.optional-dependencies]
