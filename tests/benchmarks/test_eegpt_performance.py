@@ -34,6 +34,15 @@ except ImportError:
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.core.config import ModelConfig
 
+# Import realistic benchmark data fixtures
+from tests.fixtures.benchmark_data import (
+    realistic_single_window,
+    realistic_batch_windows,
+    realistic_twenty_min_recording,
+    benchmark_edf_path,
+    benchmark_raw_data
+)
+
 # Performance targets from requirements
 SINGLE_WINDOW_TARGET_MS = 50  # milliseconds
 TWENTY_MIN_RECORDING_TARGET_S = 120  # seconds (2 minutes)
@@ -72,49 +81,22 @@ def eegpt_model_gpu():
     return model
 
 
-@pytest.fixture
-def channel_names():
-    """Standard 10-20 channel names for 19 channels."""
-    return [
-        "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-        "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
-    ]
-
-
-@pytest.fixture
-def single_eeg_window():
-    """Generate a single 4-second EEG window for benchmarking."""
-    # 19 channels, 4 seconds at 256 Hz = 1024 samples
-    np.random.seed(42)  # Reproducible data
-    return np.random.randn(19, 1024).astype(np.float32)
-
-
-@pytest.fixture
-def batch_eeg_windows():
-    """Generate batch of EEG windows for batch processing benchmarks."""
-    np.random.seed(42)
-    batch_size = 32
-    return np.random.randn(batch_size, 19, 1024).astype(np.float32)
-
-
-@pytest.fixture
-def twenty_min_recording():
-    """Generate 20-minute EEG recording for full recording benchmarks."""
-    # 19 channels, 20 minutes at 256 Hz = 307,200 samples
-    np.random.seed(42)
-    return np.random.randn(19, 307200).astype(np.float32)
+# Note: We now use realistic data fixtures from tests.fixtures.benchmark_data
+# These provide actual EEG data from Sleep-EDF dataset when available,
+# falling back to synthetic data with realistic properties otherwise
 
 
 class TestSingleWindowBenchmarks:
     """Benchmark single 4-second window inference performance."""
 
     @pytest.mark.benchmark
-    def test_single_window_cpu_inference_speed(self, benchmark, eegpt_model_cpu, single_eeg_window, channel_names):
-        """Benchmark single window inference speed on CPU."""
+    def test_single_window_cpu_inference_speed(self, benchmark, eegpt_model_cpu, realistic_single_window):
+        """Benchmark single window inference speed on CPU with realistic data."""
         model = eegpt_model_cpu
+        data, ch_names = realistic_single_window
 
         def extract_features():
-            return model.extract_features(single_eeg_window, channel_names)
+            return model.extract_features(data, ch_names)
 
         result = benchmark(extract_features)
 
@@ -143,12 +125,13 @@ class TestSingleWindowBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_single_window_gpu_inference_speed(self, benchmark, eegpt_model_gpu, single_eeg_window, channel_names):
-        """Benchmark single window inference speed on GPU."""
+    def test_single_window_gpu_inference_speed(self, benchmark, eegpt_model_gpu, realistic_single_window):
+        """Benchmark single window inference speed on GPU with realistic data."""
         model = eegpt_model_gpu
+        data, ch_names = realistic_single_window
 
         def extract_features():
-            return model.extract_features(single_eeg_window, channel_names)
+            return model.extract_features(data, ch_names)
 
         result = benchmark(extract_features)
 
@@ -194,10 +177,10 @@ class TestBatchProcessingBenchmarks:
     """Benchmark batch processing performance."""
 
     @pytest.mark.benchmark
-    def test_batch_processing_efficiency(self, benchmark, eegpt_model_cpu, batch_eeg_windows):
+    def test_batch_processing_efficiency(self, benchmark, eegpt_model_cpu, realistic_batch_windows):
         """Test batch processing is more efficient than individual windows."""
         model = eegpt_model_cpu
-        batch_data = batch_eeg_windows
+        batch_data, ch_names = realistic_batch_windows
 
         # Benchmark batch processing
         def process_batch():
@@ -243,13 +226,14 @@ class TestFullRecordingBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.slow
-    def test_twenty_minute_recording_processing(self, benchmark, eegpt_model_cpu, twenty_min_recording):
+    def test_twenty_minute_recording_processing(self, benchmark, eegpt_model_cpu, realistic_twenty_min_recording):
         """Test processing full 20-minute recording meets time target."""
         model = eegpt_model_cpu
+        data, ch_names = realistic_twenty_min_recording
 
         def process_recording():
             return model.process_recording(
-                data=twenty_min_recording,
+                data=data,
                 sampling_rate=256,
                 batch_size=32  # Process in batches for efficiency
             )
@@ -268,7 +252,7 @@ class TestFullRecordingBenchmarks:
         )
 
         # Calculate throughput
-        recording_duration_minutes = twenty_min_recording.shape[1] / 256 / 60
+        recording_duration_minutes = data.shape[1] / 256 / 60
         throughput_ratio = recording_duration_minutes / (processing_time / 60)
 
         # Should process faster than real-time
@@ -314,9 +298,10 @@ class TestMemoryBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not PSUTIL_AVAILABLE, reason="psutil not available for memory monitoring")
-    def test_single_window_memory_usage(self, eegpt_model_cpu, single_eeg_window):
+    def test_single_window_memory_usage(self, eegpt_model_cpu, realistic_single_window):
         """Test memory usage for single window processing."""
         model = eegpt_model_cpu
+        data, ch_names = realistic_single_window
 
         # Measure memory before
         gc.collect()
@@ -324,12 +309,7 @@ class TestMemoryBenchmarks:
         memory_before_mb = process.memory_info().rss / 1024 / 1024
 
         # Process window
-        # Need channel names for this model
-        ch_names = [
-            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
-        ]
-        features = model.extract_features(single_eeg_window, ch_names)
+        features = model.extract_features(data, ch_names)
 
         # Measure memory after
         memory_after_mb = process.memory_info().rss / 1024 / 1024
@@ -348,9 +328,10 @@ class TestMemoryBenchmarks:
     @pytest.mark.benchmark
     @pytest.mark.slow
     @pytest.mark.skipif(not PSUTIL_AVAILABLE, reason="psutil not available for memory monitoring")
-    def test_twenty_minute_recording_memory_usage(self, eegpt_model_cpu, twenty_min_recording):
+    def test_twenty_minute_recording_memory_usage(self, eegpt_model_cpu, realistic_twenty_min_recording):
         """Test memory usage for full 20-minute recording processing."""
         model = eegpt_model_cpu
+        data, ch_names = realistic_twenty_min_recording
 
         # Measure memory before
         gc.collect()
@@ -362,7 +343,7 @@ class TestMemoryBenchmarks:
 
         # Process recording
         result = model.process_recording(
-            data=twenty_min_recording,
+            data=data,
             sampling_rate=256,
             batch_size=32
         )
@@ -383,16 +364,17 @@ class TestMemoryBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_gpu_memory_usage(self, eegpt_model_gpu, batch_eeg_windows):
+    def test_gpu_memory_usage(self, eegpt_model_gpu, realistic_batch_windows):
         """Test GPU memory usage during batch processing."""
         model = eegpt_model_gpu
+        batch_data, ch_names = realistic_batch_windows
 
         # Clear GPU memory
         torch.cuda.empty_cache()
         gpu_memory_before = torch.cuda.memory_allocated() / 1024 / 1024  # MB
 
         # Process batch
-        features = model.extract_features_batch(batch_eeg_windows)
+        features = model.extract_features_batch(batch_data)
 
         gpu_memory_after = torch.cuda.memory_allocated() / 1024 / 1024  # MB
         gpu_memory_used = gpu_memory_after - gpu_memory_before
@@ -405,7 +387,7 @@ class TestMemoryBenchmarks:
 
         # Verify features were extracted
         assert features is not None
-        expected_shape = (len(batch_eeg_windows), model.config.n_summary_tokens, 512)
+        expected_shape = (len(batch_data), model.config.n_summary_tokens, 512)
         assert features.shape == expected_shape
 
 
@@ -414,18 +396,16 @@ class TestPerformanceComparison:
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_cpu_vs_gpu_single_window(self, benchmark, eegpt_model_cpu, eegpt_model_gpu, single_eeg_window):
+    def test_cpu_vs_gpu_single_window(self, benchmark, eegpt_model_cpu, eegpt_model_gpu, realistic_single_window):
         """Compare CPU vs GPU performance for single window."""
+        data, ch_names = realistic_single_window
+        
         # Benchmark CPU
-        ch_names = [
-            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
-        ]
-        benchmark(lambda: eegpt_model_cpu.extract_features(single_eeg_window, ch_names))
+        benchmark(lambda: eegpt_model_cpu.extract_features(data, ch_names))
 
         # Benchmark GPU (need separate benchmark for timing)
         start_time = time.perf_counter()
-        gpu_result = eegpt_model_gpu.extract_features(single_eeg_window, ch_names)
+        gpu_result = eegpt_model_gpu.extract_features(data, ch_names)
         gpu_time = time.perf_counter() - start_time
 
         # GPU should be faster for large models
@@ -437,21 +417,23 @@ class TestPerformanceComparison:
         print(f"GPU speedup: {speedup:.1f}x")
 
         # Both should produce same results (within floating point precision)
-        cpu_result = eegpt_model_cpu.extract_features(single_eeg_window, ch_names)
+        cpu_result = eegpt_model_cpu.extract_features(data, ch_names)
         assert np.allclose(cpu_result.numpy(), gpu_result.cpu().numpy(), rtol=1e-5)
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
-    def test_cpu_vs_gpu_batch_processing(self, eegpt_model_cpu, eegpt_model_gpu, batch_eeg_windows):
+    def test_cpu_vs_gpu_batch_processing(self, eegpt_model_cpu, eegpt_model_gpu, realistic_batch_windows):
         """Compare CPU vs GPU performance for batch processing."""
+        batch_data, ch_names = realistic_batch_windows
+        
         # Time CPU batch processing
         start_time = time.perf_counter()
-        cpu_result = eegpt_model_cpu.extract_features_batch(batch_eeg_windows)
+        cpu_result = eegpt_model_cpu.extract_features_batch(batch_data)
         cpu_time = time.perf_counter() - start_time
 
         # Time GPU batch processing
         start_time = time.perf_counter()
-        gpu_result = eegpt_model_gpu.extract_features_batch(batch_eeg_windows)
+        gpu_result = eegpt_model_gpu.extract_features_batch(batch_data)
         gpu_time = time.perf_counter() - start_time
 
         # Calculate speedup
