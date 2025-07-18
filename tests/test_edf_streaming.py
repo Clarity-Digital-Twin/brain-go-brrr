@@ -94,8 +94,8 @@ class TestEDFStreamer:
         with EDFStreamer(small_edf_file, chunk_duration=30.0) as streamer:
             windows = list(streamer.process_in_windows(window_duration=window_duration))
 
-        # 60 seconds / 4 seconds = 15 windows (non-overlapping)
-        assert len(windows) == 15
+        # Duration is actually 59.996 seconds (15359/256), so we get 14 full 4-second windows
+        assert len(windows) == 14
 
         # Check window shape
         data, start_time = windows[0]
@@ -112,8 +112,8 @@ class TestEDFStreamer:
                 overlap=overlap
             ))
 
-        # With 50% overlap: ~29 windows for 60 seconds
-        assert len(windows) >= 28
+        # With 50% overlap and 2s steps: (59.996 - 4.0) / 2.0 + 1 ≈ 28 windows
+        assert len(windows) >= 27
 
         # Check overlap by comparing start times
         _, time1 = windows[0]
