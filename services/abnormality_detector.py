@@ -743,7 +743,7 @@ class AbnormalityDetector:
             
             # If features is 2D (already predictions), use directly
             if features.shape[-1] == 2:
-                abnormal_prob = float(features[0, 0])
+                abnormal_prob = float(features[0, 1])  # Fixed: use index 1 for abnormal
             else:
                 # Otherwise, pass through classifier
                 features_tensor = torch.from_numpy(features).to(self.device)
