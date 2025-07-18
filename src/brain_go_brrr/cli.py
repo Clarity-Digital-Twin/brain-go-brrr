@@ -101,6 +101,68 @@ def serve(
 
 
 @app.command()
+def stream(
+    edf_path: Path = typer.Argument(..., help="Path to EDF file to stream"),
+    window_size: float = typer.Option(4.0, "--window-size", "-w", help="Window size in seconds"),
+    overlap: float = typer.Option(0.0, "--overlap", "-o", help="Overlap fraction (0.0 to 1.0)"),
+    output_format: str = typer.Option("json", "--format", "-f", help="Output format (json, csv)"),
+    max_windows: int = typer.Option(0, "--max-windows", "-n", help="Maximum windows to process (0=all)"),
+) -> None:
+    """Stream EDF file and extract features in real-time."""
+    import json
+    from brain_go_brrr.data.edf_streaming import EDFStreamer
+    from brain_go_brrr.models.eegpt_model import EEGPTModel
+    from brain_go_brrr.core.config import ModelConfig
+    
+    console.print(f"[green]Starting EDF streaming from {edf_path}[/green]")
+    
+    if not edf_path.exists():
+        console.print(f"[red]Error: File not found: {edf_path}[/red]")
+        raise typer.Exit(1)
+    
+    # Initialize model
+    model_config = ModelConfig(device="cpu")
+    model = EEGPTModel(config=model_config, auto_load=False)
+    
+    # Use mock model for now
+    from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+    model.encoder = create_eegpt_model(checkpoint_path=None)
+    model.encoder.to(model.device)
+    model.is_loaded = True
+    
+    # Stream and process
+    with EDFStreamer(edf_path) as streamer:
+        info = streamer.get_info()
+        console.print(f"Duration: {info['duration']:.1f}s, Channels: {info['n_channels']}, SR: {info['sampling_rate']}Hz")
+        
+        window_count = 0
+        for data_window, start_time in streamer.process_in_windows(window_size, overlap):
+            window_count += 1
+            
+            # Extract features
+            features = model.extract_features(data_window, streamer._raw.ch_names)
+            
+            # Output result
+            result = {
+                "window": window_count,
+                "start_time": float(start_time),
+                "end_time": float(start_time + window_size),
+                "feature_shape": list(features.shape),
+                "feature_mean": float(features.mean()),
+                "feature_std": float(features.std())
+            }
+            
+            if output_format == "json":
+                print(json.dumps(result))
+            else:
+                console.print(f"Window {window_count}: {start_time:.1f}s - {start_time + window_size:.1f}s")
+            
+            # Check if we've reached the limit
+            if max_windows > 0 and window_count >= max_windows:
+                break
+
+
+@app.command()
 def version() -> None:
     """Show version information."""
     from brain_go_brrr import __version__
