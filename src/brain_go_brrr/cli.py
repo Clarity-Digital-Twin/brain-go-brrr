@@ -135,7 +135,7 @@ def stream(
     with EDFStreamer(edf_path) as streamer:
         info = streamer.get_info()
         console.print(f"Duration: {info['duration']:.1f}s, Channels: {info['n_channels']}, SR: {info['sampling_rate']}Hz")
-        
+
         # Get channel names once
         ch_names = list(streamer._raw.ch_names) if streamer._raw else []
 
