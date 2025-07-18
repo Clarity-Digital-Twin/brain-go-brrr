@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import mne
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -292,7 +292,7 @@ class EEGPipeline:
         # Create comprehensive report
         report = {
             'metadata': {
-                'analysis_timestamp': datetime.now().isoformat(),
+                'analysis_timestamp': datetime.now(timezone.utc).isoformat(),
                 'pipeline_version': '1.0.0',
                 'data_info': {
                     'n_channels': raw.info['nchan'],
@@ -337,7 +337,7 @@ class EEGPipeline:
             Complete processing report
         """
         if session_id is None:
-            session_id = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            session_id = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
         
         logger.info(f"Starting EEG processing for {file_path}")
         logger.info(f"Session ID: {session_id}")
@@ -383,7 +383,7 @@ class EEGPipeline:
                 'error': str(e),
                 'session_id': session_id,
                 'file_path': str(file_path),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             # Save error report

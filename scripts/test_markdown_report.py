@@ -3,7 +3,7 @@
 
 import sys
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -38,7 +38,7 @@ def main():
             'file_name': 'sample_eeg.edf',
             'duration_seconds': 600,
             'sampling_rate': 256,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
     }
     

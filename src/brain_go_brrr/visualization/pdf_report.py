@@ -8,7 +8,7 @@ Generates professional PDF reports with:
 
 import io
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import matplotlib
@@ -66,7 +66,7 @@ class PDFReportGenerator:
             'Author': 'Brain-Go-Brrr',
             'Subject': 'EEG Analysis Results',
             'Creator': 'Brain-Go-Brrr v0.1.0',
-            'CreationDate': datetime.now()
+            'CreationDate': datetime.now(timezone.utc)
         }) as pdf:
             # Create main report page
             fig = self._create_main_page(results)
@@ -178,7 +178,7 @@ class PDFReportGenerator:
 
         # File info
         filename = processing_info.get('file_name', 'Unknown')
-        timestamp = processing_info.get('timestamp', datetime.now().isoformat())
+        timestamp = processing_info.get('timestamp', datetime.now(timezone.utc).isoformat())
 
         ax.text(0.5, 0.3, f'File: {filename}', ha='center', fontsize=10)
         ax.text(0.5, 0.1, f'Generated: {timestamp}', ha='center', fontsize=8)

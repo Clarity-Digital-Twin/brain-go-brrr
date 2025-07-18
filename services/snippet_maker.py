@@ -12,7 +12,7 @@ import mne
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 # Add reference repos to path
@@ -131,7 +131,7 @@ class EEGSnippetMaker:
                 'n_samples': snippet_data.shape[1],
                 'n_channels': snippet_data.shape[0],
                 'extraction_method': 'fixed_length',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             snippets.append(snippet)
@@ -208,7 +208,7 @@ class EEGSnippetMaker:
                 'n_samples': epoch.shape[1],
                 'n_channels': epoch.shape[0],
                 'extraction_method': 'event_based',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             snippets.append(snippet)
@@ -281,7 +281,7 @@ class EEGSnippetMaker:
                 'n_samples': snippet_data.shape[1],
                 'n_channels': snippet_data.shape[0],
                 'extraction_method': 'anomaly_based',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             snippets.append(snippet)
@@ -517,7 +517,7 @@ class EEGSnippetMaker:
                 'features_extracted': include_features and self.feature_extraction,
                 'eegpt_analysis': include_eegpt,
                 'tsfresh_available': TSFRESH_AVAILABLE,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         }
         

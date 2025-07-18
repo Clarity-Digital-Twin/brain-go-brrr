@@ -4,7 +4,7 @@ Generates markdown reports that are easy to read and version control friendly.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -122,7 +122,7 @@ class MarkdownReportGenerator:
         lines.append(f"- **File**: {processing_info.get('file_name', 'Unknown')}")
         lines.append(f"- **Duration**: {processing_info.get('duration_seconds', 0):.1f} seconds")
         lines.append(f"- **Sampling Rate**: {processing_info.get('sampling_rate', 0)} Hz")
-        lines.append(f"- **Timestamp**: {processing_info.get('timestamp', datetime.now().isoformat())}")
+        lines.append(f"- **Timestamp**: {processing_info.get('timestamp', datetime.now(timezone.utc).isoformat())}")
 
         return "\n".join(lines)
 
@@ -235,7 +235,7 @@ class MarkdownReportGenerator:
     def _create_footer(self) -> str:
         """Create report footer."""
         lines = ["---"]
-        lines.append(f"*Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} by Brain-Go-Brrr*")
+        lines.append(f"*Generated on {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} by Brain-Go-Brrr*")
         return "\n".join(lines)
 
 
