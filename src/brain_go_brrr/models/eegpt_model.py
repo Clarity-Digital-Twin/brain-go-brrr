@@ -385,10 +385,11 @@ class EEGPTModel:
 
         if len(windows) == 0:
             return {
-                'abnormality_score': 0.0,
+                'abnormal_probability': 0.0,
                 'confidence': 0.0,
                 'window_scores': [],
                 'n_windows': 0,
+                'used_streaming': False,
                 'error': 'No valid windows extracted'
             }
 
@@ -419,11 +420,17 @@ class EEGPTModel:
         confidence = 1.0 - np.std(window_scores) if len(window_scores) > 1 else 0.8
 
         return {
-            'abnormality_score': float(abnormality_score),
+            'abnormal_probability': float(abnormality_score),
             'confidence': float(confidence),
             'window_scores': window_scores,
             'n_windows': len(windows),
-            'channels_used': channel_names
+            'used_streaming': False,
+            'channels_used': channel_names,
+            'metadata': {
+                'duration': processed.times[-1],
+                'n_channels': len(channel_names),
+                'sampling_rate': processed.info['sfreq']
+            }
         }
 
     def process_recording(
