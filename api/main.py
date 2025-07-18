@@ -124,9 +124,14 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
+    redis_health = {}
+    if cache_client:
+        redis_health = cache_client.health_check()
+    
     return {
         "status": "healthy",
         "eegpt_loaded": qc_controller is not None and qc_controller.eegpt_model is not None,
+        "redis": redis_health,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 

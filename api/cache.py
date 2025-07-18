@@ -129,7 +129,7 @@ class RedisCache:
     
     def exists(self, key: str) -> bool:
         """Check if key exists."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return False
             
         try:
@@ -140,7 +140,7 @@ class RedisCache:
     
     def delete(self, key: str) -> bool:
         """Delete cache entry."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return False
             
         try:
@@ -151,7 +151,7 @@ class RedisCache:
     
     def clear_pattern(self, pattern: str) -> int:
         """Clear all keys matching pattern."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return 0
             
         try:
@@ -165,7 +165,7 @@ class RedisCache:
     
     def get_stats(self) -> dict:
         """Get cache statistics."""
-        if not self.connected or self.client is None:
+        if not self._ensure_connected():
             return {
                 "connected": False,
                 "memory_usage": "N/A",
