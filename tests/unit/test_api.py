@@ -79,14 +79,28 @@ class TestAPIEndpoints:
 
     def test_health_check_endpoint(self, client):
         """Test health check endpoint."""
-        response = client.get("/health")
+        # Mock the qc_controller to have a loaded model
+        import api.main
+        
+        mock_controller = MagicMock()
+        mock_controller.eegpt_model = MagicMock()  # Model is loaded
+        original_controller = api.main.qc_controller
+        api.main.qc_controller = mock_controller
+        
+        try:
+            response = client.get("/health")
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "healthy"
-        assert "eegpt_loaded" in data
-        assert "timestamp" in data
-        assert "redis" in data  # Redis health check added
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "healthy"
+            assert "eegpt_loaded" in data
+            assert data["eegpt_loaded"] is True  # Should be True with mocked model
+            assert "timestamp" in data
+            assert "redis" in data  # Redis health check added
+            assert "version" in data
+        finally:
+            # Restore original controller
+            api.main.qc_controller = original_controller
 
     def test_analyze_endpoint_requires_file(self, client):
         """Test that analyze endpoint requires a file upload."""
@@ -381,18 +395,27 @@ class TestAPIPerformance:
         )
         return controller
 
-    def test_api_response_time(self, client):
+    def test_api_response_time(self, client, mock_qc_controller):
         """Test API response time requirement (NFR1.4: <100ms response time)."""
         # Note: This tests the endpoint itself, not the processing
         import time
+        import api.main
+        
+        # Mock the controller to ensure consistent state
+        original_controller = api.main.qc_controller
+        api.main.qc_controller = mock_qc_controller
 
-        start = time.time()
-        response = client.get("/health")
-        duration = time.time() - start
+        try:
+            start = time.time()
+            response = client.get("/health")
+            duration = time.time() - start
 
-        assert response.status_code == 200
-        # Allow some buffer for test environment
-        assert duration < 0.5  # 500ms in test environment
+            assert response.status_code == 200
+            # Allow some buffer for test environment
+            assert duration < 0.5  # 500ms in test environment
+        finally:
+            # Restore original controller
+            api.main.qc_controller = original_controller
 
     @pytest.mark.slow
     def test_large_file_handling(self, client, mock_qc_controller):

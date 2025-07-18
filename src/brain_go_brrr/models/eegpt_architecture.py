@@ -80,7 +80,7 @@ CHANNEL_DICT = {
 
 
 # rotary embedding helper functions
-def rotate_half(x):
+def rotate_half(x: torch.Tensor) -> torch.Tensor:
     """Rotate half the hidden dims of the input."""
     x = x.reshape((*x.shape[:-1], x.shape[-1] // 2, 2))
     x1, x2 = x.unbind(dim=-1)
@@ -88,7 +88,7 @@ def rotate_half(x):
     return x.flatten(-2)
 
 
-def apply_rotary_emb(freqs, t, start_index=0, scale=1.0):
+def apply_rotary_emb(freqs: torch.Tensor, t: torch.Tensor, start_index: int = 0, scale: float = 1.0) -> torch.Tensor:
     """Apply rotary positional embeddings to a tensor."""
     freqs = freqs.to(t.device)
     rot_dim = freqs.shape[-1]
@@ -116,6 +116,7 @@ class RoPE(nn.Module):
     """Rotary Position Embedding implementation based on original EEGPT."""
 
     def __init__(self, dim: int, theta: float = 10000.0, max_seq_len: int = 1024) -> None:
+        """Initialize rotary position embeddings."""
         super().__init__()
         self.dim = dim
         self.theta = theta
@@ -124,13 +125,13 @@ class RoPE(nn.Module):
         # Initialize frequency parameters (matching original EEGPT)
         freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
         self.register_buffer("freqs", freqs)
-        self.cache = {}
+        self.cache: dict[str, torch.Tensor] = {}
 
     def prepare_freqs(
-        self, num_patches: tuple[int, int], device="cuda", dtype=torch.float32, offset=0
-    ):
+        self, num_patches: tuple[int, int], device: str = "cuda", dtype: torch.dtype = torch.float32, offset: int = 0
+    ) -> torch.Tensor:
         """Prepare frequency embeddings for given number of patches."""
-        C, N = num_patches
+        c, n = num_patches
         cache_key = f"freqs:{num_patches}"
 
         # Return cached result if available
@@ -138,11 +139,13 @@ class RoPE(nn.Module):
             return self.cache[cache_key]
 
         # Generate sequence positions and apply offset
-        seq_pos = torch.arange(N, device=device, dtype=dtype).repeat_interleave(repeats=C)
+        seq_pos = torch.arange(n, device=device, dtype=dtype).repeat_interleave(repeats=c)
         seq_pos = seq_pos + offset
 
         # Compute outer product of positions and frequencies, then expand along the last dimension
-        freqs_scaled = torch.outer(seq_pos.type(self.freqs.dtype), self.freqs).repeat_interleave(
+        # Ensure self.freqs is a tensor (it's registered as a buffer)
+        freqs_tensor: torch.Tensor = self.freqs  # type: ignore[assignment]
+        freqs_scaled = torch.outer(seq_pos.to(freqs_tensor.dtype), freqs_tensor).repeat_interleave(
             repeats=2, dim=-1
         )
 
@@ -155,7 +158,7 @@ class RoPE(nn.Module):
         batch_size, seq_len, embed_dim = x.shape
         # For EEGPT, we assume patches are arranged as (channels, patches_per_channel)
         # Simplified: treat seq_len as total patches
-        return self.prepare_freqs((1, seq_len), device=x.device, dtype=x.dtype)
+        return self.prepare_freqs((1, seq_len), device=str(x.device), dtype=x.dtype)
 
 
 def apply_rotary_pos_emb(
@@ -163,6 +166,8 @@ def apply_rotary_pos_emb(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Apply rotary position embeddings to queries and keys - deprecated, use apply_rotary_emb instead."""
     # This is kept for backward compatibility but not used in the main implementation
+    _ = cos  # Mark as intentionally unused
+    _ = sin  # Mark as intentionally unused
     return q, k
 
 
@@ -237,6 +242,7 @@ class MLP(nn.Module):
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
         drop: float = 0.0,
     ) -> None:
+        """Initialize MLP block."""
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -269,6 +275,7 @@ class Block(nn.Module):
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
+        """Initialize transformer block."""
         super().__init__()
         self.norm1 = norm_layer(dim)
         self.attn = nn.MultiheadAttention(
@@ -345,6 +352,7 @@ class EEGTransformer(nn.Module):
         attn_drop_rate: float = 0.0,
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
+        """Initialize EEG Transformer model."""
         super().__init__()
         self.n_channels = n_channels or list(range(58))  # Default to 58 channels
         self.patch_size = patch_size
@@ -383,6 +391,8 @@ class EEGTransformer(nn.Module):
         return torch.tensor(chan_ids, dtype=torch.long)
 
     def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:
+        # Mark chan_ids as intentionally unused for now
+        _ = chan_ids
         # Patch embedding
         x = self.patch_embed(x)
 

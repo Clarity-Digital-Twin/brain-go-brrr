@@ -73,7 +73,7 @@ class TestEEGPTModelLoading:
         mock_transformer_instance = MagicMock()
         mock_transformer.return_value = mock_transformer_instance
 
-        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
+        _ = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
 
         # Model architecture is initialized during load_model()
         # so we skip this test as it's covered by other tests
