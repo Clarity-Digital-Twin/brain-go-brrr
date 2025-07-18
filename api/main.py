@@ -83,6 +83,16 @@ async def startup_event():
             qc_controller = None
 
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on shutdown."""
+    global qc_controller
+    if qc_controller is not None and hasattr(qc_controller, 'cleanup'):
+        logger.info("Cleaning up resources...")
+        qc_controller.cleanup()
+        logger.info("Cleanup completed")
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""

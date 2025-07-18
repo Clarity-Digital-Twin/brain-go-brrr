@@ -401,6 +401,13 @@ class EEGPTModel:
                 features_list.extend(batch_features.tolist())
 
         return results
+    
+    def cleanup(self) -> None:
+        """Clean up GPU memory if using CUDA."""
+        if self.device.type == 'cuda':
+            # Clear any cached allocations
+            torch.cuda.empty_cache()
+            logger.info("Cleared GPU memory cache")
 
 
 def preprocess_for_eegpt(raw: mne.io.Raw) -> mne.io.Raw:

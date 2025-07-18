@@ -518,6 +518,12 @@ class EEGQualityController:
         
         logger.info(f"QC pipeline completed. Quality grade: {report['quality_metrics']['quality_grade']}")
         return report
+    
+    def cleanup(self) -> None:
+        """Clean up resources, especially GPU memory."""
+        if self.eegpt_model is not None and hasattr(self.eegpt_model, 'cleanup'):
+            self.eegpt_model.cleanup()
+            logger.info("Cleaned up EEGPT model resources")
 
 
 def main():
