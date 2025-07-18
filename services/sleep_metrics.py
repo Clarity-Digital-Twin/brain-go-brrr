@@ -206,6 +206,22 @@ class SleepAnalyzer:
         Returns:
             Dictionary of sleep statistics
         """
+        # Handle empty hypnogram
+        if len(hypnogram) == 0:
+            return {
+                'total_epochs': 0,
+                'total_recording_time': 0.0,
+                'stage_percentages': {},
+                'stage_durations': {},
+                'TST': 0.0,
+                'SE': 0.0,
+                '%N1': 0.0,
+                '%N2': 0.0,
+                '%N3': 0.0,
+                '%REM': 0.0,
+                '%NREM': 0.0
+            }
+        
         # Convert to YASA hypnogram format if needed
         if isinstance(hypnogram, np.ndarray):
             hypno_int = yasa.hypno_str_to_int(hypnogram)

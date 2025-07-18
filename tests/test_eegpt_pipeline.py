@@ -77,11 +77,14 @@ class TestEEGPTPreprocessing:
     def test_preprocess_handles_bad_channels(self, sample_raw):
         """Test preprocessing with bad channels marked."""
         sample_raw.info['bads'] = ['T3', 'T4']
+        n_channels_before = len(sample_raw.ch_names)
 
         processed = preprocess_for_eegpt(sample_raw)
 
-        # Bad channels should be preserved
-        assert processed.info['bads'] == ['T3', 'T4']
+        # Bad channels should be excluded
+        assert 'T3' not in processed.ch_names
+        assert 'T4' not in processed.ch_names
+        assert len(processed.ch_names) == n_channels_before - 2
         assert processed.info['sfreq'] == 256
 
 
@@ -91,15 +94,15 @@ class TestEEGPTWindowExtraction:
     @pytest.fixture
     def eegpt_model(self):
         """Create EEGPTModel instance with mocked components."""
-        with patch('src.brain_go_brrr.models.eegpt_model.load_eegpt_encoder') as mock_load:
+        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
             # Mock the encoder
             mock_encoder = Mock()
             mock_encoder.prepare_chan_ids = Mock(return_value=torch.zeros(19))
-            mock_load.return_value = mock_encoder
+            mock_create.return_value = mock_encoder
 
             # Create model without loading checkpoint
-            model = EEGPTModel(checkpoint_path=None)
-            model.encoder = mock_encoder
+            model = EEGPTModel(checkpoint_path="dummy.ckpt", auto_load=True)
+            # Model should have extract_windows method from the actual class
 
             return model
 
@@ -113,27 +116,25 @@ class TestEEGPTWindowExtraction:
 
         windows = eegpt_model.extract_windows(data, sfreq)
 
-        # Should have 7 windows (4-second windows with 2-second overlap)
-        # Windows at: 0-4, 2-6, 4-8, 6-10 (last window may be partial)
-        assert len(windows) >= 3
-        assert len(windows) <= 4
+        # Should have 2 windows (4-second non-overlapping windows)
+        # Windows at: 0-4, 4-8 (remaining 2 seconds discarded)
+        assert len(windows) == 2
 
         # Each window should be (channels, samples)
         assert windows[0].shape == (n_channels, 4 * sfreq)
 
-    def test_extract_windows_overlap(self, eegpt_model):
-        """Test window extraction with custom overlap."""
+    def test_extract_windows_no_partial(self, eegpt_model):
+        """Test window extraction doesn't include partial windows."""
         sfreq = 256
-        duration = 10
+        duration = 9  # Not evenly divisible by 4
         n_channels = 19
         data = np.random.randn(n_channels, sfreq * duration)
 
-        # No overlap
-        windows = eegpt_model.extract_windows(data, sfreq, overlap=0.0)
+        windows = eegpt_model.extract_windows(data, sfreq)
 
-        # Should have exactly 2 full windows (0-4, 4-8) plus maybe partial
-        assert len(windows) >= 2
-        assert len(windows) <= 3
+        # Should have exactly 2 full windows (0-4, 4-8)
+        # Last 1 second is discarded
+        assert len(windows) == 2
 
     def test_extract_windows_short_data(self, eegpt_model):
         """Test window extraction with data shorter than window."""
@@ -144,9 +145,8 @@ class TestEEGPTWindowExtraction:
 
         windows = eegpt_model.extract_windows(data, sfreq)
 
-        # Should pad and return 1 window
-        assert len(windows) == 1
-        assert windows[0].shape == (n_channels, 4 * sfreq)
+        # Should return no windows if data is shorter than window size
+        assert len(windows) == 0
 
     def test_extract_windows_different_sampling_rate(self, eegpt_model):
         """Test window extraction handles resampling."""
@@ -167,8 +167,8 @@ class TestEEGPTFeatureExtraction:
     @pytest.fixture
     def mock_eegpt_model(self):
         """Create fully mocked EEGPT model."""
-        with patch('src.brain_go_brrr.models.eegpt_model.load_eegpt_encoder'):
-            model = EEGPTModel(checkpoint_path=None)
+        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model'):
+            model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock encoder to return features
             mock_encoder = Mock()
@@ -292,8 +292,8 @@ class TestEEGPTPipeline:
 
     def test_abnormality_prediction_pipeline(self):
         """Test abnormality prediction with mocked model."""
-        with patch('src.brain_go_brrr.models.eegpt_model.load_eegpt_encoder'):
-            model = EEGPTModel(checkpoint_path=None)
+        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model'):
+            model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock the encoder and classifier
             model.encoder = Mock()
@@ -322,9 +322,9 @@ class TestEEGPTPipeline:
 
     def test_pipeline_error_handling(self):
         """Test pipeline handles errors gracefully."""
-        with patch('src.brain_go_brrr.models.eegpt_model.load_eegpt_encoder') as mock_load:
+        with patch('src.brain_go_brrr.models.eegpt_model.create_eegpt_model') as mock_create:
             # Make encoder loading fail
-            mock_load.side_effect = FileNotFoundError("Model not found")
+            mock_create.side_effect = FileNotFoundError("Model not found")
 
             # Should handle error gracefully
             model = EEGPTModel(checkpoint_path=Path("nonexistent.ckpt"))
@@ -348,30 +348,35 @@ class TestEEGPTConfig:
         """Test default configuration values."""
         config = EEGPTConfig()
 
-        assert config.n_channels == 58
-        assert config.n_samples == 1024
+        assert config.max_channels == 58
+        assert config.window_samples == 1024  # 4 seconds * 256 Hz
         assert config.patch_size == 64
-        assert config.d_model == 768
-        assert config.n_layers == 12
-        assert config.n_heads == 12
+        assert config.model_size == "large"
+        assert config.n_summary_tokens == 4
+        assert config.sampling_rate == 256
+        assert config.window_duration == 4.0
 
     def test_custom_config(self):
         """Test custom configuration."""
         config = EEGPTConfig(
-            n_channels=32,
-            n_samples=512,
-            d_model=512
+            max_channels=32,
+            window_duration=2.0,
+            model_size="xlarge"
         )
 
-        assert config.n_channels == 32
-        assert config.n_samples == 512
-        assert config.d_model == 512
+        assert config.max_channels == 32
+        assert config.window_duration == 2.0
+        assert config.window_samples == 512  # 2 seconds * 256 Hz
+        assert config.model_size == "xlarge"
 
         # Other values should be default
-        assert config.n_layers == 12
+        assert config.patch_size == 64
+        assert config.sampling_rate == 256
 
     def test_config_validation(self):
         """Test configuration validation."""
-        # Window size must be divisible by patch size
-        with pytest.raises(AssertionError):
-            EEGPTConfig(n_samples=1000, patch_size=64)  # 1000 not divisible by 64
+        # Window samples must be divisible by patch size
+        # 3.9 seconds * 256 Hz = 998.4 samples (not integer)
+        with pytest.raises(ValueError):
+            config = EEGPTConfig(window_duration=3.9)
+            _ = config.window_samples  # This should raise ValueError
