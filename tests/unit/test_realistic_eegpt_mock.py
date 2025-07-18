@@ -64,7 +64,7 @@ class TestRealisticEEGPTMock:
         return raw
 
     def test_mock_eegpt_dimensions(self):
-        """Test that mock EEGPT returns correct 768-dim embeddings."""
+        """Test that mock EEGPT returns correct (4, 512) summary token embeddings."""
         mock_model = MockEEGPTModel(seed=42)
 
         # Create test input
@@ -73,8 +73,8 @@ class TestRealisticEEGPTMock:
         # Extract features
         features = mock_model.extract_features(window_tensor)
 
-        # Check dimensions
-        assert features.shape == (1, 768), f"Expected (1, 768), got {features.shape}"
+        # Check dimensions - should match real EEGPT: 4 summary tokens x 512 dims
+        assert features.shape == (4, 512), f"Expected (4, 512), got {features.shape}"
         assert isinstance(features, torch.Tensor)
         assert features.dtype == torch.float32
 
@@ -139,8 +139,8 @@ class TestRealisticEEGPTMock:
             # Get first layer
             first_layer = detector.classifier[0]
             assert isinstance(first_layer, torch.nn.Linear)
-            assert first_layer.in_features == 768, (
-                f"Classifier should accept 768-dim input, got {first_layer.in_features}"
+            assert first_layer.in_features == 2048, (
+                f"Classifier should accept 2048-dim input (4x512 flattened), got {first_layer.in_features}"
             )
 
     def test_prediction_flow_with_classifier(self):

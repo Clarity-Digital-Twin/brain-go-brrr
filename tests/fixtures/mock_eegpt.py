@@ -31,13 +31,13 @@ class MockEEGPTModel:
         self.config = SimpleNamespace(model_path="fake/path.ckpt")
 
     def extract_features(self, window_tensor: torch.Tensor) -> torch.Tensor:
-        """Extract 768-dimensional features from EEG window.
+        """Extract 4x512 summary token features from EEG window (flattens to 2048).
 
         Args:
             window_tensor: Input tensor of shape (batch, channels, samples)
 
         Returns:
-            Feature tensor of shape (batch, 768)
+            Feature tensor of shape (4, 512) for single batch or (batch, 4, 512)
         """
         batch_size = window_tensor.shape[0]
 
@@ -94,13 +94,13 @@ class MockAbnormalEEGPTModel(MockEEGPTModel):
         # Shift certain dimensions that correlate with abnormality
         # In real EEGPT, certain embedding dimensions correlate with
         # epileptiform activity, slowing, etc.
-        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Stay within 512 bounds
 
         for dim in abnormal_dims:
             features[:, dim] += 2.0 * self.abnormality_strength
 
         # Add some high-frequency components (often abnormal)
-        high_freq_dims = range(600, 768)
+        high_freq_dims = range(400, 512)  # Within 512-dim bounds
         features[:, high_freq_dims] *= 1 + self.abnormality_strength
 
         return features
@@ -128,13 +128,13 @@ class MockNormalEEGPTModel(MockEEGPTModel):
         features = super().extract_features(window_tensor)
 
         # Reduce variance in dimensions associated with abnormality
-        abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+        abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Stay within 512 bounds
 
         for dim in abnormal_dims:
             features[:, dim] *= 1 - self.normality_strength
 
         # Reduce high-frequency components
-        high_freq_dims = range(600, 768)
+        high_freq_dims = range(400, 512)  # Within 512-dim bounds
         features[:, high_freq_dims] *= 0.5
 
         # Enhance alpha rhythm components (normal EEG)
@@ -155,7 +155,7 @@ def create_deterministic_embeddings(
         seed: Random seed for reproducibility
 
     Returns:
-        List of 768-dimensional embedding arrays
+        List of (4, 512) embedding arrays matching EEGPT format
     """
     rng = np.random.RandomState(seed)
     embeddings = []
@@ -164,26 +164,25 @@ def create_deterministic_embeddings(
         abnormality_pattern = [0.5] * num_windows
 
     for _i, abnorm_level in enumerate(abnormality_pattern):
-        # Base embedding
-        embedding = rng.randn(768).astype(np.float32)
+        # Base embedding: (4, 512) to match EEGPT
+        embedding = rng.randn(4, 512).astype(np.float32)
 
         # Apply structure similar to MockEEGPTModel
-        embedding[:256] *= 0.5
-        embedding[256:512] *= 0.8
-        embedding[512:] *= 1.2
+        embedding[:, :256] *= 0.5  # Lower variance for stable features
+        embedding[:, 256:] *= 1.2  # Higher variance for task-specific
 
         # Shift based on abnormality level
         if abnorm_level > 0.5:
             # Make more abnormal
             strength = (abnorm_level - 0.5) * 2
-            abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
+            abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Within 512 bounds
             for dim in abnormal_dims:
-                embedding[dim] += 2.0 * strength
+                embedding[:, dim] += 2.0 * strength
         else:
             # Make more normal
             strength = (0.5 - abnorm_level) * 2
-            embedding[100:150] *= 1 + strength  # Enhance alpha
-            embedding[600:] *= 1 - strength * 0.5  # Reduce high freq
+            embedding[:, 100:150] *= 1 + strength  # Enhance alpha
+            embedding[:, 400:] *= 1 - strength * 0.5  # Reduce high freq
 
         embeddings.append(embedding)
 
@@ -210,7 +209,7 @@ def create_mock_detector_with_realistic_model(seed: int = 42, normal_bias: bool 
         mock_model = MockNormalEEGPTModel(normality_strength=0.7, seed=seed, device="cpu")
     else:
         mock_model = MockEEGPTModel(seed=seed, device="cpu")
-    mock_model.embedding_dim = 768  # Add this attribute for compatibility checks
+    mock_model.embedding_dim = 512  # Match real EEGPT checkpoint: (4, 512) = 2048 flattened
 
     # Mock the model initialization
     with (
@@ -232,8 +231,8 @@ def create_mock_detector_with_realistic_model(seed: int = 42, normal_bias: bool 
             # This mimics what a trained classifier would do
 
             # Check specific dimensions that our mock models modify
-            abnormal_dims = [10, 25, 67, 128, 256, 384, 512, 640]
-            high_freq_dims = list(range(600, 768))
+            abnormal_dims = [10, 25, 67, 128, 256, 384, 450, 480]  # Within 512 bounds
+            high_freq_dims = list(range(400, 512))  # Within 512 bounds
             alpha_dims = list(range(100, 150))
 
             batch_size = features.shape[0]
