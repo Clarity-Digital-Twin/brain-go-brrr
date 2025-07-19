@@ -15,10 +15,14 @@ def main():
     """Run EEGPT benchmarks with various options."""
     parser = argparse.ArgumentParser(description="Run EEGPT performance benchmarks")
     parser.add_argument(
-        "--cpu-only", action="store_true", help="Run only CPU benchmarks (skip GPU tests)"
+        "--cpu-only",
+        action="store_true",
+        help="Run only CPU benchmarks (skip GPU tests)",
     )
     parser.add_argument(
-        "--quick", action="store_true", help="Run quick benchmarks only (skip slow tests)"
+        "--quick",
+        action="store_true",
+        help="Run quick benchmarks only (skip slow tests)",
     )
     parser.add_argument(
         "--report-format",

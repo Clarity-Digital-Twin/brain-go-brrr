@@ -129,7 +129,10 @@ def create_synthetic_eeg(
 
 
 def create_fixture(
-    output_path: Path, duration: float = 30.0, is_abnormal: bool = False, seed: int = None
+    output_path: Path,
+    duration: float = 30.0,
+    is_abnormal: bool = False,
+    seed: int = None,
 ):
     """Create and save a synthetic EEG fixture.
 
@@ -246,7 +249,7 @@ def main():
     # Save labels file
     labels_path = Path("tests/fixtures/eeg/labels.json")
     labels_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(labels_path, "w") as f:
+    with labels_path.open("w") as f:
         json.dump(labels, f, indent=2)
 
     print(f"\nCreated labels file: {labels_path}")
@@ -271,7 +274,7 @@ These are synthetic fixtures for testing only. Use real TUAB data for validation
 """
 
     readme_path = labels_path.parent / "README.md"
-    with open(readme_path, "w") as f:
+    with readme_path.open("w") as f:
         f.write(readme_content)
 
     print(f"Created README: {readme_path}")

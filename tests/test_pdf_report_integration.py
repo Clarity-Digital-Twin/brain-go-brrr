@@ -25,7 +25,10 @@ class TestPDFReportIntegration:
                         "bad_channel_ratio": 0.15,
                         "abnormality_score": 0.65,
                         "quality_grade": "FAIR",
-                        "impedance_warnings": ["High impedance on F3", "Poor contact on T3"],
+                        "impedance_warnings": [
+                            "High impedance on F3",
+                            "Poor contact on T3",
+                        ],
                         "artifact_summary": {
                             "eye_blinks": 25,
                             "muscle": 10,

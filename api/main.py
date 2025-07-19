@@ -19,14 +19,23 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 import mne  # noqa: E402
-from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from fastapi import (  # noqa: E402
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    UploadFile,
+)
 from pydantic import BaseModel, Field  # noqa: E402
 
 from api.auth import verify_cache_clear_permission  # noqa: E402
 from api.cache import RedisCache, get_cache  # noqa: E402
 from brain_go_brrr.data.edf_streaming import estimate_memory_usage  # noqa: E402
 from brain_go_brrr.utils import utc_now  # noqa: E402
-from brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator  # noqa: E402
+from brain_go_brrr.visualization.markdown_report import (  # noqa: E402
+    MarkdownReportGenerator,
+)
 from brain_go_brrr.visualization.pdf_report import PDFReportGenerator  # noqa: E402
 from services.qc_flagger import EEGQualityController  # noqa: E402
 
@@ -591,7 +600,8 @@ async def get_cache_stats():
 
 @app.delete("/api/v1/cache/clear")
 async def clear_cache(
-    pattern: str = "eeg_analysis:*", _authorized: bool = Depends(verify_cache_clear_permission)
+    pattern: str = "eeg_analysis:*",
+    _authorized: bool = Depends(verify_cache_clear_permission),
 ):
     """Clear cache entries matching pattern.
 
@@ -630,4 +640,4 @@ async def warmup_cache(request: CacheWarmupRequest):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

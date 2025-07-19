@@ -27,8 +27,18 @@ class TestPDFReportGeneration:
                 "artifact_segments": [
                     {"start": 10.5, "end": 12.3, "type": "muscle", "severity": 0.9},
                     {"start": 45.2, "end": 47.8, "type": "eye_blink", "severity": 0.8},
-                    {"start": 120.0, "end": 125.5, "type": "electrode_pop", "severity": 1.0},
-                    {"start": 200.1, "end": 203.4, "type": "movement", "severity": 0.85},
+                    {
+                        "start": 120.0,
+                        "end": 125.5,
+                        "type": "electrode_pop",
+                        "severity": 1.0,
+                    },
+                    {
+                        "start": 200.1,
+                        "end": 203.4,
+                        "type": "movement",
+                        "severity": 0.85,
+                    },
                     {"start": 310.0, "end": 315.0, "type": "muscle", "severity": 0.95},
                 ],
                 "channel_positions": {
@@ -151,7 +161,10 @@ class TestPDFReportGeneration:
                 "quality_grade": "EXCELLENT",
                 "artifact_segments": [],
             },
-            "processing_info": {"file_name": "normal_eeg.edf", "timestamp": "2025-01-17T10:30:00"},
+            "processing_info": {
+                "file_name": "normal_eeg.edf",
+                "timestamp": "2025-01-17T10:30:00",
+            },
         }
 
         generator = PDFReportGenerator()
@@ -295,7 +308,9 @@ class TestPDFReportIntegration:
         with patch("mne.io.read_raw_edf"):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post(
-                "/api/v1/eeg/analyze/detailed", files=files, params={"include_report": True}
+                "/api/v1/eeg/analyze/detailed",
+                files=files,
+                params={"include_report": True},
             )
 
         assert response.status_code == 200
@@ -317,7 +332,9 @@ class TestPDFVisualizationHelpers:
 
     def test_coordinate_normalization(self):
         """Test electrode coordinates are normalized properly."""
-        from src.brain_go_brrr.visualization.pdf_report import normalize_electrode_positions
+        from src.brain_go_brrr.visualization.pdf_report import (
+            normalize_electrode_positions,
+        )
 
         positions = {"Fp1": (-30, 80), "O1": (-30, -80), "T3": (-80, 0), "Cz": (0, 0)}
 

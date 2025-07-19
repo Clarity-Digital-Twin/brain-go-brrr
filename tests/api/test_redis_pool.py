@@ -213,7 +213,11 @@ class TestRedisConnectionPool:
         client = MagicMock()
         client.ping.return_value = True
         client.info.side_effect = [
-            {"redis_version": "7.0.0", "connected_clients": 10, "used_memory_human": "2.5M"},
+            {
+                "redis_version": "7.0.0",
+                "connected_clients": 10,
+                "used_memory_human": "2.5M",
+            },
             {"keyspace_hits": 1000, "keyspace_misses": 100},
         ]
         mock_redis.return_value = client

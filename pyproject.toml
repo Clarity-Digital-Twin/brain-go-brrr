@@ -257,4 +257,21 @@ packages = ["src/brain_go_brrr"]
 
 
 [tool.bandit]
-exclude = ["/tests/", "/scripts/"]
+exclude = ["/tests/", "/scripts/", "/reference_repos/"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | \.venv
+  | build
+  | dist
+  | reference_repos
+  | data
+)/
+'''

@@ -21,8 +21,18 @@ class TestMarkdownReportGeneration:
                 "artifact_segments": [
                     {"start": 10.5, "end": 12.3, "type": "muscle", "severity": 0.9},
                     {"start": 45.2, "end": 47.8, "type": "eye_blink", "severity": 0.8},
-                    {"start": 120.0, "end": 125.5, "type": "electrode_pop", "severity": 1.0},
-                    {"start": 200.1, "end": 203.4, "type": "movement", "severity": 0.85},
+                    {
+                        "start": 120.0,
+                        "end": 125.5,
+                        "type": "electrode_pop",
+                        "severity": 1.0,
+                    },
+                    {
+                        "start": 200.1,
+                        "end": 203.4,
+                        "type": "movement",
+                        "severity": 0.85,
+                    },
                     {"start": 310.0, "end": 315.0, "type": "muscle", "severity": 0.95},
                 ],
                 "channel_positions": {
@@ -50,14 +60,18 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_report_structure(self):
         """Test that markdown report has required structure."""
-        from src.brain_go_brrr.visualization.markdown_report import generate_markdown_report
+        from src.brain_go_brrr.visualization.markdown_report import (
+            generate_markdown_report,
+        )
 
         # Test function exists
         assert callable(generate_markdown_report)
 
     def test_markdown_contains_warning_section(self, qc_results):
         """Test markdown contains warning section for abnormal EEGs."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -73,7 +87,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_summary_statistics(self, qc_results):
         """Test markdown includes summary statistics section."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -86,7 +102,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_channel_quality_table(self, qc_results):
         """Test markdown includes channel quality table."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -99,7 +117,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_artifact_summary(self, qc_results):
         """Test markdown includes artifact summary."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -112,7 +132,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_for_normal_eeg(self):
         """Test markdown report for normal EEG (no warning)."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         # Create normal results
         normal_results = {
@@ -123,7 +145,10 @@ class TestMarkdownReportGeneration:
                 "quality_grade": "EXCELLENT",
                 "artifact_segments": [],
             },
-            "processing_info": {"file_name": "normal_eeg.edf", "timestamp": "2025-01-17T10:30:00"},
+            "processing_info": {
+                "file_name": "normal_eeg.edf",
+                "timestamp": "2025-01-17T10:30:00",
+            },
         }
 
         generator = MarkdownReportGenerator()
@@ -137,7 +162,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_file_save(self, qc_results, tmp_path):
         """Test saving markdown report to file."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         output_path = tmp_path / "test_report.md"
@@ -153,7 +180,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_metadata_section(self, qc_results):
         """Test markdown includes metadata section."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -177,7 +206,9 @@ class TestMarkdownReportGeneration:
         """Test markdown generation is fast (<1 second)."""
         import time
 
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
 
@@ -190,7 +221,9 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_ascii_electrode_map(self, qc_results):
         """Test markdown includes ASCII representation of electrode map."""
-        from src.brain_go_brrr.visualization.markdown_report import MarkdownReportGenerator
+        from src.brain_go_brrr.visualization.markdown_report import (
+            MarkdownReportGenerator,
+        )
 
         generator = MarkdownReportGenerator()
         markdown = generator.generate_report(qc_results)
@@ -201,7 +234,9 @@ class TestMarkdownReportGeneration:
 
     def test_convert_pdf_results_to_markdown(self, qc_results):
         """Test converting existing PDF results to markdown."""
-        from src.brain_go_brrr.visualization.markdown_report import convert_results_to_markdown
+        from src.brain_go_brrr.visualization.markdown_report import (
+            convert_results_to_markdown,
+        )
 
         # This should work with the same results used for PDF
         markdown = convert_results_to_markdown(qc_results)
@@ -230,7 +265,9 @@ class TestMarkdownIntegration:
         with patch("mne.io.read_raw_edf"):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post(
-                "/api/v1/eeg/analyze/detailed", files=files, params={"include_report": True}
+                "/api/v1/eeg/analyze/detailed",
+                files=files,
+                params={"include_report": True},
             )
 
         assert response.status_code == 200

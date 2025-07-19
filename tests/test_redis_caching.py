@@ -120,7 +120,11 @@ class TestRedisCaching:
         return content
 
     def test_cache_hit_on_repeated_analysis(
-        self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller
+        self,
+        client_with_cache,
+        sample_edf_content,
+        mock_redis_client,
+        mock_qc_controller,
     ):
         """Test that repeated analysis uses cache instead of reprocessing."""
         # Setup cache to return cached result on second call
@@ -220,7 +224,11 @@ class TestRedisCaching:
         assert len(set(call_args)) >= 2  # At least 2 different keys
 
     def test_cache_disabled_when_redis_unavailable(
-        self, client_with_cache, sample_edf_content, mock_redis_client, mock_qc_controller
+        self,
+        client_with_cache,
+        sample_edf_content,
+        mock_redis_client,
+        mock_qc_controller,
     ):
         """Test graceful degradation when Redis is unavailable."""
         # Make Redis operations fail

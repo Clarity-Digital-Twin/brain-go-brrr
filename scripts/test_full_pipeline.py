@@ -26,7 +26,7 @@ def test_pipeline_with_real_data():
 
     start_time = time.time()
 
-    with open(edf_path, "rb") as f:
+    with edf_path.open("rb") as f:
         files = {"file": (edf_path.name, f, "application/octet-stream")}
         response = requests.post(
             "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10
@@ -52,7 +52,7 @@ def test_pipeline_with_real_data():
         output_dir.mkdir(parents=True, exist_ok=True)
 
         results_file = output_dir / f"analyze_{edf_path.stem}_{int(time.time())}.json"
-        with open(results_file, "w") as f:
+        with results_file.open("w") as f:
             json.dump(data, f, indent=2)
         print(f"\n💾 Results saved to: {results_file}")
 
@@ -65,7 +65,7 @@ def test_pipeline_with_real_data():
 
     start_time = time.time()
 
-    with open(edf_path, "rb") as f:
+    with edf_path.open("rb") as f:
         files = {"file": (edf_path.name, f, "application/octet-stream")}
         response = requests.post(
             "http://localhost:8000/api/v1/eeg/analyze/detailed",
@@ -90,7 +90,7 @@ def test_pipeline_with_real_data():
 
             # Save detailed results
             results_file = output_dir / f"detailed_{edf_path.stem}_{int(time.time())}.json"
-            with open(results_file, "w") as f:
+            with results_file.open("w") as f:
                 json.dump(data, f, indent=2)
             print(f"💾 Detailed results saved to: {results_file}")
     else:

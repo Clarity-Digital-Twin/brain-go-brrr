@@ -66,10 +66,6 @@ class TestEEGPreprocessor:
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
-        # Set standard montage for Autoreject
-        montage = mne.channels.make_standard_montage("standard_1020")
-        raw.set_montage(montage, match_case=False)
 
         # Set standard 10-20 montage for channel positions (required by Autoreject)
         montage = mne.channels.make_standard_montage("standard_1020")
@@ -353,8 +349,25 @@ class TestEEGPreprocessor:
 
         # Use standard 10-20 channel names that match the montage
         ch_names = [
-            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
         ]
         data = np.zeros((19, len(t)))
 
@@ -373,11 +386,7 @@ class TestEEGPreprocessor:
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
-        # Set standard montage for Autoreject
-        montage = mne.channels.make_standard_montage("standard_1020")
-        raw.set_montage(montage, match_case=False)
-        
+
         # Set standard montage for Autoreject
         montage = mne.channels.make_standard_montage("standard_1020")
         raw.set_montage(montage, match_case=False)
@@ -442,7 +451,7 @@ class TestEEGPreprocessor:
         ch_names = ["Fp1", "Fp2", "C3", "C4"]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Set standard montage for Autoreject
         montage = mne.channels.make_standard_montage("standard_1020")
         raw.set_montage(montage, match_case=False)
@@ -516,7 +525,7 @@ class TestBioSerenityE1Compliance:
         data = np.random.randn(len(ch_names), n_samples) * 20e-6
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Set standard montage for Autoreject
         montage = mne.channels.make_standard_montage("standard_1020")
         raw.set_montage(montage, match_case=False)

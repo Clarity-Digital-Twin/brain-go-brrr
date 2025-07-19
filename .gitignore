@@ -270,8 +270,8 @@ literature/raw/
 literature/downloads/
 
 # Reference repositories - already have their own git history
-# Uncomment if you want to track specific files from reference repos
-# reference_repos/*/
+# These should NEVER be modified by our linting/formatting tools
+reference_repos/
 
 # Modern development tools
 # UV (uv.lock is kept for reproducibility)

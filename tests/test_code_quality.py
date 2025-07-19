@@ -105,6 +105,10 @@ class TestCodeQuality:
                     ):
                         continue
 
+                    # Allow Rich console.print() calls
+                    if "console.print(" in line:
+                        continue
+
                     pytest.fail(
                         f"print() statement found in {py_file}:{i}\n"
                         "Use logging module instead:\n"
@@ -140,5 +144,10 @@ class TestCodeQuality:
                     and i < len(lines)
                     and "->" not in lines[i]
                 ):
-                    print(f"Warning: Function without return type in {module_path}:{i}")
-                    print(f"  {line.strip()}")
+                    # Use pytest warnings instead of print
+                    import warnings
+
+                    warnings.warn(
+                        f"Function without return type in {module_path}:{i}: {line.strip()}",
+                        stacklevel=2,
+                    )

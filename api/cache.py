@@ -214,7 +214,12 @@ class RedisCache:
     def get_stats(self) -> dict:
         """Get cache statistics."""
         if not self._ensure_connected():
-            return {"connected": False, "memory_usage": "N/A", "total_keys": 0, "hit_rate": 0.0}
+            return {
+                "connected": False,
+                "memory_usage": "N/A",
+                "total_keys": 0,
+                "hit_rate": 0.0,
+            }
 
         try:
             info = self.client.info()

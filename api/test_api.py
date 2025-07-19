@@ -41,7 +41,7 @@ def test_qc_analysis():
         return
 
     # Upload and analyze
-    with open(edf_path, "rb") as f:
+    with edf_path.open("rb") as f:
         files = {"file": ("test.edf", f, "application/octet-stream")}
         response = requests.post(
             "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10

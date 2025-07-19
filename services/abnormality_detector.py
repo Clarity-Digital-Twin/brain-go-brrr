@@ -176,7 +176,8 @@ class AbnormalityDetector:
             torch.nn.ReLU(),
             torch.nn.Dropout(self.config.model.classifier_dropout),
             torch.nn.Linear(
-                self.config.model.classifier_hidden_1, self.config.model.classifier_hidden_2
+                self.config.model.classifier_hidden_1,
+                self.config.model.classifier_hidden_2,
             ),
             torch.nn.BatchNorm1d(self.config.model.classifier_hidden_2),
             torch.nn.ReLU(),
@@ -609,7 +610,10 @@ class AbnormalityDetector:
         return float(max(0.0, min(1.0, confidence)))
 
     def _compute_quality_metrics(
-        self, raw: mne.io.Raw, window_qualities: list[float], bad_channels_pre: list[str]
+        self,
+        raw: mne.io.Raw,
+        window_qualities: list[float],
+        bad_channels_pre: list[str],
     ) -> dict[str, Any]:
         """Compute overall quality metrics for the recording."""
         # Use pre-processing bad channel detection

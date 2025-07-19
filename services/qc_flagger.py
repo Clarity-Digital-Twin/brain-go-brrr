@@ -1,4 +1,4 @@
-"""EEG Quality Control Flagger Service
+"""EEG Quality Control Flagger Service.
 
 Integrates autoreject for automatic artifact detection and EEGPT for abnormality scoring.
 This service provides a comprehensive QC pipeline for EEG data.
@@ -16,8 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autor
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT"))
 
 try:
-    from autoreject import AutoReject, get_rejection_threshold
-    from autoreject.utils import interpolate_bads
+    from autoreject import AutoReject
 except ImportError:
     logging.warning("autoreject not available. Install with: pip install autoreject")
     AutoReject = None
@@ -57,7 +56,10 @@ class EEGQualityController:
         # Initialize AutoReject if available
         if AutoReject is not None:
             self.autoreject = AutoReject(
-                n_interpolate=[1, 4, 8, 16], n_jobs=1, random_state=random_state, verbose=False
+                n_interpolate=[1, 4, 8, 16],
+                n_jobs=1,
+                random_state=random_state,
+                verbose=False,
             )
         else:
             self.autoreject = None
@@ -117,10 +119,7 @@ class EEGQualityController:
 
         # Notch filter for line noise - only if below Nyquist
         if notch_freq:
-            if isinstance(notch_freq, (int, float)):
-                notch_freqs = [notch_freq]
-            else:
-                notch_freqs = notch_freq
+            notch_freqs = [notch_freq] if isinstance(notch_freq, int | float) else notch_freq
 
             # Filter out frequencies at or above Nyquist
             valid_notch_freqs = [f for f in notch_freqs if f < nyquist - 1]
@@ -164,7 +163,13 @@ class EEGQualityController:
                 # Create epochs for autoreject
                 events = mne.make_fixed_length_events(raw, duration=2.0)
                 epochs = mne.Epochs(
-                    raw, events, tmin=0, tmax=2.0, baseline=None, preload=True, verbose=False
+                    raw,
+                    events,
+                    tmin=0,
+                    tmax=2.0,
+                    baseline=None,
+                    preload=True,
+                    verbose=False,
                 )
 
                 # Fit autoreject to detect bad channels
@@ -202,9 +207,8 @@ class EEGQualityController:
 
                 # Check for channels with too many extreme values
                 extreme_ratio = np.sum(np.abs(ch_data) > 100e-6) / len(ch_data)
-                if extreme_ratio > 0.1:  # More than 10% extreme values
-                    if ch_name not in bad_channels:
-                        bad_channels.append(ch_name)
+                if extreme_ratio > 0.1 and ch_name not in bad_channels:  # More than 10% extreme values
+                    bad_channels.append(ch_name)
 
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
         return bad_channels

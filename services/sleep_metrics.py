@@ -172,7 +172,11 @@ class SleepAnalyzer:
         try:
             # Perform sleep staging using YASA
             sls = yasa.SleepStaging(
-                raw, eeg_name=eeg_ch, eog_name=eog_ch, emg_name=emg_ch, metadata=metadata
+                raw,
+                eeg_name=eeg_ch,
+                eog_name=eog_ch,
+                emg_name=emg_ch,
+                metadata=metadata,
             )
 
             # Predict sleep stages
@@ -337,7 +341,10 @@ class SleepAnalyzer:
         return events
 
     def generate_hypnogram(
-        self, hypnogram: np.ndarray, epoch_length: float = 30.0, save_path: Path | None = None
+        self,
+        hypnogram: np.ndarray,
+        epoch_length: float = 30.0,
+        save_path: Path | None = None,
     ) -> dict:
         """Generate and optionally save hypnogram visualization.
 

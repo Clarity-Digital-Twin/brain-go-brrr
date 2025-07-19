@@ -306,7 +306,9 @@ class TestAPIEndpoints:
         # Create minimal EDF then simulate large size
         data = np.random.randn(n_channels, sfreq * 10) * 10  # 10 seconds, smaller amplitude
         info = mne.create_info(
-            ["C" + str(i) for i in range(n_channels)], sfreq=sfreq, ch_types=["eeg"] * n_channels
+            ["C" + str(i) for i in range(n_channels)],
+            sfreq=sfreq,
+            ch_types=["eeg"] * n_channels,
         )
         raw = mne.io.RawArray(data, info)
         # Scale down for EDF export to avoid physical range issues

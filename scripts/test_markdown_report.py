@@ -23,7 +23,12 @@ def main():
             "artifact_segments": [
                 {"start": 10.5, "end": 12.3, "type": "muscle", "severity": 0.85},
                 {"start": 45.2, "end": 47.8, "type": "eye_blink", "severity": 0.7},
-                {"start": 120.0, "end": 125.5, "type": "electrode_pop", "severity": 0.95},
+                {
+                    "start": 120.0,
+                    "end": 125.5,
+                    "type": "electrode_pop",
+                    "severity": 0.95,
+                },
             ],
             "channel_positions": {
                 "Fp1": (-0.3, 0.8),

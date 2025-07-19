@@ -73,7 +73,7 @@ def test_api_with_mock_data():
     print("\n🔍 Testing /api/v1/eeg/analyze endpoint...")
     start_time = time.time()
 
-    with open(edf_path, "rb") as f:
+    with edf_path.open("rb") as f:
         files = {"file": (edf_path.name, f, "application/octet-stream")}
         response = requests.post(
             "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10
@@ -104,7 +104,9 @@ def main():
     import subprocess
 
     proc = subprocess.Popen(
-        ["uv", "run", "uvicorn", "api.main:app"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        ["uv", "run", "uvicorn", "api.main:app"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
     # Register cleanup

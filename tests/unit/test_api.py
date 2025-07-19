@@ -143,7 +143,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -167,7 +170,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -191,7 +197,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -215,7 +224,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -228,7 +240,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -244,7 +259,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -260,7 +278,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -291,7 +312,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             # Send multiple requests
             for _ in range(3):
@@ -326,7 +350,10 @@ class TestAPIEndpoints:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
@@ -394,7 +421,10 @@ class TestAPIPerformance:
         with (
             patch("api.main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
-            patch("api.main.estimate_memory_usage", return_value={"estimated_total_mb": 10.0}),
+            patch(
+                "api.main.estimate_memory_usage",
+                return_value={"estimated_total_mb": 10.0},
+            ),
         ):
             files = {"file": ("large.edf", large_content, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)

@@ -62,7 +62,10 @@ class BenchmarkReporter:
         self.results: dict[str, Any] = {}
 
     def add_result(
-        self, test_name: str, benchmark_result: Any, metadata: dict[str, Any] | None = None
+        self,
+        test_name: str,
+        benchmark_result: Any,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Add benchmark result for reporting.
 
@@ -248,7 +251,7 @@ def pytest_benchmark_update_machine_info(config, machine_info):
             "python_version": platform.python_version(),
             "pytorch_version": torch.__version__,
             "cuda_available": torch.cuda.is_available(),
-            "cuda_device_count": torch.cuda.device_count() if torch.cuda.is_available() else 0,
+            "cuda_device_count": (torch.cuda.device_count() if torch.cuda.is_available() else 0),
         }
     )
 

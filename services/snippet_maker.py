@@ -1,4 +1,4 @@
-"""EEG Snippet Maker Service
+"""EEG Snippet Maker Service.
 
 Creates and manages EEG snippets for analysis, featuring extraction, processing,
 and integration with EEGPT for comprehensive snippet analysis.
@@ -441,7 +441,10 @@ class EEGSnippetMaker:
         return classification
 
     def create_snippet_report(
-        self, snippets: list[dict], include_features: bool = True, include_eegpt: bool = True
+        self,
+        snippets: list[dict],
+        include_features: bool = True,
+        include_eegpt: bool = True,
     ) -> dict:
         """Create comprehensive report for all snippets.
 
