@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Main API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - EEGPT_MODEL_PATH=/app/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker service (for future Celery implementation)
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379
+  #     - EEGPT_MODEL_PATH=/app/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+  #     - PYTHONUNBUFFERED=1
+  #   volumes:
+  #     - ./data:/app/data
+  #     - ./logs:/app/logs
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   command: celery -A brain_go_brrr.worker worker --loglevel=info
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: brain-go-brrr-network

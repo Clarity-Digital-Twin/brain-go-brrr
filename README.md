@@ -44,6 +44,7 @@ brain-go-brrr/
 ├── examples/                   # Example scripts and notebooks
 ├── tests/                      # Comprehensive test suite
 ├── docs/                       # Documentation
+│   └── pipeline_overview.md   # Comprehensive pipeline architecture
 ├── .github/workflows/          # CI/CD pipelines
 ├── pyproject.toml             # Modern Python project configuration
 ├── Makefile                   # Development commands

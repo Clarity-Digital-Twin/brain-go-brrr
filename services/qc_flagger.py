@@ -20,9 +20,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT
 
 try:
     from autoreject import AutoReject
+
+    HAS_AUTOREJECT = True
 except ImportError:
     logging.warning("autoreject not available. Install with: pip install autoreject")
-    AutoReject = None
+    HAS_AUTOREJECT = False
 
 logger = logging.getLogger(__name__)
 

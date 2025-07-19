@@ -232,23 +232,28 @@ class SleepAnalyzer:
             y_pred = sls.predict()
 
             # Apply temporal smoothing if requested
-            if apply_smoothing:
-                y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
-                logger.info(f"Applied temporal smoothing with {smoothing_window_min} min window")
-
             # Get prediction probabilities if requested
             if return_proba:
                 proba = sls.predict_proba()
+                if apply_smoothing:
+                    y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
+                    logger.info(
+                        f"Applied temporal smoothing with {smoothing_window_min} min window"
+                    )
                 logger.info(
                     f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
                 )
                 return y_pred, proba
 
+            if apply_smoothing:
+                y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
+                logger.info(f"Applied temporal smoothing with {smoothing_window_min} min window")
+
             logger.info(
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
             # Return just the array for simple interface
-            return y_pred  # type: ignore[no-any-return]
+            return y_pred
 
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
@@ -331,7 +336,7 @@ class SleepAnalyzer:
         # Merge with YASA statistics
         stats.update(custom_stats)
 
-        return stats  # type: ignore[no-any-return]
+        return stats
 
     def detect_sleep_events(
         self,
