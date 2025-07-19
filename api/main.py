@@ -81,6 +81,20 @@ class QCResponse(BaseModel):
     cached: bool = False
 
 
+class SleepAnalysisResponse(BaseModel):
+    """Response model for sleep analysis."""
+
+    status: str
+    sleep_stages: dict[str, float]
+    sleep_metrics: dict[str, float]
+    hypnogram: list[dict[str, Any]]
+    metadata: dict[str, Any]
+    processing_time: float
+    timestamp: str
+    error: str | None = None
+    cached: bool = False
+
+
 @app.on_event("startup")
 async def startup_event():
     """Load models on startup."""
