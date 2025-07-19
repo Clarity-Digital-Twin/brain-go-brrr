@@ -207,7 +207,9 @@ class EEGQualityController:
 
                 # Check for channels with too many extreme values
                 extreme_ratio = np.sum(np.abs(ch_data) > 100e-6) / len(ch_data)
-                if extreme_ratio > 0.1 and ch_name not in bad_channels:  # More than 10% extreme values
+                if (
+                    extreme_ratio > 0.1 and ch_name not in bad_channels
+                ):  # More than 10% extreme values
                     bad_channels.append(ch_name)
 
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
