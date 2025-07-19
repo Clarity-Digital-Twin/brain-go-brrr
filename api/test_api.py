@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 def test_health_check():
     """Test health check endpoint."""
     print("Testing health check...")
-    response = requests.get("http://localhost:8000/health")
+    response = requests.get("http://localhost:8000/health", timeout=5)
 
     if response.status_code == 200:
         data = response.json()
@@ -43,7 +43,9 @@ def test_qc_analysis():
     # Upload and analyze
     with open(edf_path, "rb") as f:
         files = {"file": ("test.edf", f, "application/octet-stream")}
-        response = requests.post("http://localhost:8000/api/v1/eeg/analyze", files=files)
+        response = requests.post(
+            "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10
+        )
 
     if response.status_code == 200:
         data = response.json()
@@ -69,7 +71,7 @@ def test_qc_analysis():
 def test_root_endpoint():
     """Test root endpoint."""
     print("\nTesting root endpoint...")
-    response = requests.get("http://localhost:8000/")
+    response = requests.get("http://localhost:8000/", timeout=5)
 
     if response.status_code == 200:
         data = response.json()

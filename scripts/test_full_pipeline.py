@@ -28,7 +28,9 @@ def test_pipeline_with_real_data():
 
     with open(edf_path, "rb") as f:
         files = {"file": (edf_path.name, f, "application/octet-stream")}
-        response = requests.post("http://localhost:8000/api/v1/eeg/analyze", files=files)
+        response = requests.post(
+            "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10
+        )
 
     elapsed = time.time() - start_time
 
@@ -69,6 +71,7 @@ def test_pipeline_with_real_data():
             "http://localhost:8000/api/v1/eeg/analyze/detailed",
             files=files,
             params={"include_report": True},
+            timeout=10,
         )
 
     elapsed = time.time() - start_time
@@ -116,7 +119,7 @@ def main():
 
     # Check if API is running
     try:
-        response = requests.get("http://localhost:8000/health")
+        response = requests.get("http://localhost:8000/health", timeout=5)
         if response.status_code != 200:
             print("❌ API is not responding at http://localhost:8000")
             print("   Please start the API with: uv run uvicorn api.main:app")

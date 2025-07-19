@@ -206,8 +206,8 @@ class EEGPreprocessor:
         )
 
         # Apply Autoreject with automatic threshold detection
-        # Using n_jobs='auto' for better resource management
-        ar = AutoReject(n_jobs="auto", verbose=False)
+        # Using n_jobs=-1 to use all available cores
+        ar = AutoReject(n_jobs=-1, verbose=False)
         ar.fit(epochs)  # Learn thresholds via cross-validation
         epochs_clean = ar.transform(epochs)  # Apply learned thresholds
 
@@ -223,7 +223,10 @@ class EEGPreprocessor:
             raw_clean.set_annotations(raw.annotations.copy())
 
         # Preserve other important info fields
-        for key in ["meas_date", "line_freq", "dig", "device_info", "subject_info"]:
+        if "meas_date" in raw.info and raw.info["meas_date"] is not None:
+            raw_clean.set_meas_date(raw.info["meas_date"])
+        # Note: dig (digitization) info is preserved automatically through epochs
+        for key in ["line_freq", "device_info", "subject_info"]:
             if key in raw.info:
                 raw_clean.info[key] = raw.info[key]
 

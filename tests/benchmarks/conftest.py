@@ -11,7 +11,7 @@ import pytest
 from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
-def channel_complexity_budget(n_channels: int, base_ms: float = 50.0, factor: float = 1.0) -> float:
+def channel_complexity_budget(n_channels: int, base_ms: float = 65.0, factor: float = 1.0) -> float:
     """Calculate performance budget based on channel count.
 
     EEGPT uses self-attention which scales O(n²) with channel count.

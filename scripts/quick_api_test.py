@@ -75,7 +75,9 @@ def test_api_with_mock_data():
 
     with open(edf_path, "rb") as f:
         files = {"file": (edf_path.name, f, "application/octet-stream")}
-        response = requests.post("http://localhost:8000/api/v1/eeg/analyze", files=files)
+        response = requests.post(
+            "http://localhost:8000/api/v1/eeg/analyze", files=files, timeout=10
+        )
 
     elapsed = time.time() - start_time
 
@@ -120,7 +122,7 @@ def main():
     import requests
 
     try:
-        response = requests.get("http://localhost:8000/health")
+        response = requests.get("http://localhost:8000/health", timeout=5)
         if response.status_code == 200:
             print("✅ Server is ready!")
         else:
