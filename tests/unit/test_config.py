@@ -59,3 +59,21 @@ class TestConfig:
         assert config.data_dir.exists()
         assert config.output_dir.exists()
         assert config.log_dir.exists()
+
+    def test_model_config_invalid_window_duration(self):
+        """Test that invalid window duration raises error."""
+        import pytest
+
+        # Window duration that doesn't result in integer samples at 256 Hz
+        config = ModelConfig(window_duration=3.7)  # 3.7 * 256 = 947.2 (not integer)
+        # The error happens when accessing the property
+        with pytest.raises(ValueError, match="Window duration must result in integer samples"):
+            _ = config.window_samples
+
+    def test_model_config_missing_model_path(self, tmp_path):
+        """Test that missing model path raises error."""
+        import pytest
+
+        nonexistent_path = tmp_path / "nonexistent_model.ckpt"
+        with pytest.raises(ValueError, match="EEGPT model checkpoint not found"):
+            ModelConfig(model_path=nonexistent_path)

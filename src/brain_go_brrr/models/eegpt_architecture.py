@@ -4,11 +4,14 @@ Based on the official EEGPT paper and reference implementation.
 Vision Transformer architecture adapted for EEG signals.
 """
 
+import logging
 from typing import Any
 
 import torch
 import torch.nn as nn
 from torch import Tensor
+
+logger = logging.getLogger(__name__)
 
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
@@ -463,7 +466,7 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
                 encoder_state[k[15:]] = v  # Remove 'target_encoder.' prefix
 
         model.load_state_dict(encoder_state, strict=False)
-        print(f"Loaded pretrained weights from {checkpoint_path}")
+        logger.info(f"Loaded pretrained weights from {checkpoint_path}")
 
     return model
 

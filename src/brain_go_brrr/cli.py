@@ -162,7 +162,7 @@ def stream(
                 }
 
                 if output_format == "json":
-                    print(json.dumps(result))
+                    console.print(json.dumps(result))
                 else:
                     console.print(
                         f"Window {window_count}: {start_time:.1f}s - {start_time + window_size:.1f}s"

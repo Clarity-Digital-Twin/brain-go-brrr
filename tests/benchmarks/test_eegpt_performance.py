@@ -11,6 +11,7 @@ import gc
 import time
 from typing import Any
 
+import mne
 import numpy as np
 import pytest
 import torch
@@ -322,16 +323,20 @@ class TestFullRecordingBenchmarks:
             np.random.seed(42)
             recording = np.random.randn(19, n_samples).astype(np.float32)
 
-            def process_recording(recording=recording):
-                return eegpt_model_cpu.process_recording(
-                    data=recording, sampling_rate=256, batch_size=16
-                )
+            # Create MNE Raw object for this test
+            ch_names = [f"EEG{i:03d}" for i in range(19)]
+            info = mne.create_info(ch_names, sfreq=256, ch_types="eeg")
+            raw = mne.io.RawArray(recording, info)
 
-            result = benchmark(process_recording)
+            def process_recording_memory(raw=raw):
+                return eegpt_model_cpu.predict_abnormality(raw)
+
+            result = benchmark(process_recording_memory)
             processing_time = benchmark.stats.mean
 
-            # Verify processing completed
-            assert result["processing_complete"] is True
+            # Verify processing completed - check for expected result structure
+            assert "abnormal_probability" in result
+            assert "confidence" in result
 
             # Processing time should scale roughly linearly
             expected_max_time = duration_min * (TWENTY_MIN_RECORDING_TARGET_S / 20)
