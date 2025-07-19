@@ -1,0 +1,58 @@
+"""Application factory for Brain-Go-Brrr API."""
+
+import logging
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from api.routers import cache, health, jobs, qc, queue, resources, sleep
+from brain_go_brrr.core.logger import setup_logger
+
+logger = logging.getLogger(__name__)
+
+
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    # Setup logging
+    setup_logger()
+
+    # Create FastAPI app
+    app = FastAPI(
+        title="Brain-Go-Brrr EEG Analysis API",
+        description="Production-ready API for EEG analysis using EEGPT and YASA",
+        version="0.1.0",
+        docs_url="/api/docs",
+        redoc_url="/api/redoc",
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # TODO: Configure for production
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Include routers
+    app.include_router(health.router, prefix="/api/v1")
+    app.include_router(jobs.router, prefix="/api/v1")
+    app.include_router(queue.router, prefix="/api/v1")
+    app.include_router(resources.router, prefix="/api/v1")
+    app.include_router(sleep.router, prefix="/api/v1")
+    app.include_router(qc.router, prefix="/api/v1")
+    app.include_router(cache.router, prefix="/api/v1")
+
+    # Startup event
+    @app.on_event("startup")
+    async def startup_event():
+        logger.info("Starting Brain-Go-Brrr API...")
+        # TODO: Initialize services (Redis, model loading, etc.)
+
+    # Shutdown event
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        logger.info("Shutting down Brain-Go-Brrr API...")
+        # TODO: Cleanup (close connections, etc.)
+
+    return app

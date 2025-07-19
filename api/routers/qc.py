@@ -1,0 +1,303 @@
+"""Quality control and EEG analysis endpoints."""
+
+import base64
+import contextlib
+import logging
+import tempfile
+import time
+import traceback
+from pathlib import Path
+
+import mne
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+
+from api.cache import get_cache
+from api.schemas import QCResponse
+from brain_go_brrr.utils.time import utc_now
+from services.qc_flagger import EEGQualityController
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/eeg", tags=["qc", "analysis"])
+
+# Initialize QC controller
+qc_controller = None
+try:
+    qc_controller = EEGQualityController()
+    logger.info("QC controller initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize QC controller: {e}")
+
+
+def cleanup_temp_file(file_path: Path) -> None:
+    """Clean up temporary file."""
+    try:
+        if file_path.exists():
+            file_path.unlink()
+            logger.info(f"Cleaned up temp file: {file_path}")
+    except Exception as e:
+        logger.error(f"Failed to cleanup temp file: {e}")
+
+
+@router.post("/analyze", response_model=QCResponse)
+async def analyze_eeg(
+    edf_file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    cache_client=None,  # Dependency injection
+):
+    """Analyze uploaded EEG file for quality control and abnormality detection.
+
+    This endpoint performs comprehensive EEG analysis including:
+    - Quality control checks (bad channels, artifacts)
+    - Abnormality detection using EEGPT
+    - Triage recommendations
+
+    Args:
+        edf_file: Uploaded EDF file containing EEG data
+        background_tasks: FastAPI background tasks (for cleanup)
+        cache_client: Redis cache client (optional)
+
+    Returns:
+        QCResponse with quality metrics and recommendations
+    """
+    # Validate file type
+    if not edf_file.filename.lower().endswith(".edf"):
+        raise HTTPException(status_code=400, detail="Only EDF files are supported")
+
+    # Read file content for caching
+    content = await edf_file.read()
+    await edf_file.seek(0)  # Reset file pointer
+
+    # Check cache if available
+    if cache_client and cache_client.connected:
+        cache_key = cache_client.generate_cache_key(content, "basic")
+        cached_result = cache_client.get(cache_key)
+
+        if cached_result:
+            logger.info(f"Returning cached result for {edf_file.filename}")
+            # Convert cached dict back to QCResponse
+            cached_result["cached"] = True
+            return QCResponse(**cached_result)
+
+    # Create temporary file to load EDF
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
+        tmp_path = Path(tmp_file.name)
+
+        try:
+            # Save uploaded content
+            tmp_file.write(content)
+            tmp_file.flush()
+
+            # Start timing
+            start_time = time.time()
+
+            # Load EDF data
+            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+
+            # Check if QC controller is available
+            if qc_controller is None:
+                raise RuntimeError("QC controller not initialized. Please check logs.")
+
+            # Run QC analysis
+            logger.info("Running QC analysis...")
+            results = qc_controller.run_full_qc_pipeline(raw)
+
+            # Extract key metrics
+            quality_metrics = results.get("quality_metrics", {})
+            bad_channels = quality_metrics.get("bad_channels", [])
+            bad_pct = quality_metrics.get("bad_channel_ratio", 0) * 100
+            abnormal_prob = quality_metrics.get("abnormality_score", 0)
+            quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
+
+            # Determine triage flag
+            if abnormal_prob > 0.8 or quality_grade == "POOR":
+                flag = "URGENT"
+                recommendation = "Immediate clinical review required"
+            elif abnormal_prob > 0.5 or quality_grade == "FAIR":
+                flag = "EXPEDITE"
+                recommendation = "Priority clinical review recommended"
+            else:
+                flag = "ROUTINE"
+                recommendation = "Standard clinical workflow"
+
+            # Calculate processing time
+            processing_time = time.time() - start_time
+
+            # Schedule cleanup
+            background_tasks.add_task(cleanup_temp_file, tmp_path)
+
+            # Prepare response
+            response_data = {
+                "flag": flag,
+                "confidence": 1.0 - abnormal_prob,  # Convert to normalcy confidence
+                "bad_channels": bad_channels,
+                "quality_metrics": {
+                    "bad_channel_percentage": bad_pct,
+                    "abnormality_score": abnormal_prob,
+                    "quality_grade": quality_grade,
+                    "total_channels": quality_metrics.get("total_channels", 0),
+                    "artifact_percentage": quality_metrics.get("artifact_ratio", 0) * 100,
+                },
+                "recommendation": recommendation,
+                "processing_time": round(processing_time, 2),
+                "quality_grade": quality_grade,
+                "timestamp": utc_now().isoformat(),
+            }
+
+            # Cache the result if cache is available
+            if cache_client and cache_client.connected:
+                cache_client.set(cache_key, response_data, expiry=3600)  # 1 hour cache
+
+            return QCResponse(**response_data)
+
+        except Exception as e:
+            logger.error(f"Error processing EEG file: {e}")
+            logger.error(traceback.format_exc())
+
+            # Cleanup on error
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+            # Return error response
+            return QCResponse(
+                flag="ERROR",
+                confidence=0,
+                bad_channels=[],
+                quality_metrics={},
+                recommendation="Analysis failed. Please check file format and try again.",
+                processing_time=0,
+                quality_grade="ERROR",
+                timestamp=utc_now().isoformat(),
+                error=str(e),
+            )
+
+
+@router.post("/analyze/detailed")
+async def analyze_eeg_detailed(
+    file: UploadFile = File(...),
+    include_report: bool = True,
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+):
+    """Detailed EEG analysis with optional PDF report.
+
+    Returns comprehensive analysis results with PDF report.
+    """
+    # Read file content for caching
+    content = await file.read()
+    await file.seek(0)  # Reset file pointer
+
+    cache_client = await get_cache()  # Get cache through dependency
+
+    # Check cache if available
+    if cache_client and cache_client.connected:
+        cache_key = cache_client.generate_cache_key(content, "detailed")
+        cached_result = cache_client.get(cache_key)
+
+        if cached_result:
+            logger.info(f"Returning cached detailed result for {file.filename}")
+            cached_result["basic"]["cached"] = True
+            return cached_result
+
+    # Create temporary file
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
+        tmp_path = Path(tmp_file.name)
+
+        try:
+            # Save uploaded file
+            tmp_file.write(content)
+            tmp_file.flush()
+
+            # Check memory requirements
+            import psutil
+
+            available_memory = psutil.virtual_memory().available
+            required_memory = len(content) * 10  # Rough estimate
+
+            if required_memory > available_memory:
+                raise HTTPException(
+                    status_code=507,
+                    detail="Insufficient memory for analysis. Try a smaller file.",
+                )
+
+            # Load EDF data
+            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+
+            # Check if QC controller is available
+            if qc_controller is None:
+                raise RuntimeError("QC controller not initialized. Please check logs.")
+
+            # Run QC analysis
+            logger.info("Running detailed QC analysis...")
+            results = qc_controller.run_full_qc_pipeline(raw)
+
+            # Extract key metrics for basic response
+            quality_metrics = results.get("quality_metrics", {})
+            bad_channels = quality_metrics.get("bad_channels", [])
+            bad_pct = quality_metrics.get("bad_channel_ratio", 0) * 100
+            abnormal_prob = quality_metrics.get("abnormality_score", 0)
+            quality_grade = quality_metrics.get("quality_grade", "UNKNOWN")
+
+            # Determine triage flag
+            if abnormal_prob > 0.8 or quality_grade == "POOR":
+                flag = "URGENT"
+                recommendation = "Immediate clinical review required"
+            elif abnormal_prob > 0.5 or quality_grade == "FAIR":
+                flag = "EXPEDITE"
+                recommendation = "Priority clinical review recommended"
+            else:
+                flag = "ROUTINE"
+                recommendation = "Standard clinical workflow"
+
+            # Generate report if requested
+            report_base64 = None
+            if include_report:
+                from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+
+                report_gen = PDFReportGenerator()
+                report_path = report_gen.generate_report(results, output_dir=Path("/tmp"))
+
+                # Read and encode report
+                with open(report_path, "rb") as f:
+                    report_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+                # Clean up report file
+                with contextlib.suppress(Exception):
+                    report_path.unlink()
+
+            # Schedule cleanup
+            background_tasks.add_task(cleanup_temp_file, tmp_path)
+
+            # Prepare detailed response
+            detailed_response = {
+                "basic": {
+                    "flag": flag,
+                    "confidence": 1.0 - abnormal_prob,
+                    "bad_channels": bad_channels,
+                    "quality_metrics": {
+                        "bad_channel_percentage": bad_pct,
+                        "abnormality_score": abnormal_prob,
+                        "quality_grade": quality_grade,
+                        "total_channels": quality_metrics.get("total_channels", 0),
+                        "artifact_percentage": quality_metrics.get("artifact_ratio", 0) * 100,
+                    },
+                    "recommendation": recommendation,
+                    "processing_time": quality_metrics.get("processing_time", 0),
+                    "quality_grade": quality_grade,
+                    "timestamp": utc_now().isoformat(),
+                },
+                "detailed_metrics": results,
+                "report": report_base64,
+            }
+
+            # Cache the result
+            if cache_client and cache_client.connected:
+                cache_client.set(cache_key, detailed_response, expiry=3600)
+
+            return detailed_response
+
+        except Exception as e:
+            logger.error(f"Error in detailed analysis: {e}")
+            # Cleanup
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise HTTPException(status_code=500, detail=str(e))
