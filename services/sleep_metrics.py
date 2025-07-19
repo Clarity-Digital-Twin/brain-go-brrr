@@ -1,4 +1,4 @@
-"""Sleep Metrics Service
+"""Sleep Metrics Service.
 
 Integrates YASA for automatic sleep staging and comprehensive sleep analysis.
 This service provides sleep stage classification and detailed sleep metrics.
@@ -117,7 +117,8 @@ class SleepAnalyzer:
         eog_name: str = "EOG",
         emg_name: str = "EMG",
         metadata: dict | None = None,
-    ) -> tuple[np.ndarray, dict]:
+        picks: str | list[str] | None = None,
+    ) -> tuple[np.ndarray, dict] | np.ndarray:
         """Perform automatic sleep staging.
 
         Args:
@@ -126,31 +127,47 @@ class SleepAnalyzer:
             eog_name: Name of EOG channel
             emg_name: Name of EMG channel
             metadata: Additional metadata
+            picks: Channel(s) to use for staging. If 'eeg', use all EEG channels.
 
         Returns:
-            Sleep stages array and staging results
+            Sleep stages array and staging results (or just array if simplified)
         """
-        # Find available channels
-        eeg_ch = None
-        eog_ch = None
-        emg_ch = None
-
-        for ch_name in raw.ch_names:
-            if eeg_name.lower() in ch_name.lower() and eeg_ch is None:
-                eeg_ch = ch_name
-            elif eog_name.lower() in ch_name.lower() and eog_ch is None:
-                eog_ch = ch_name
-            elif emg_name.lower() in ch_name.lower() and emg_ch is None:
-                emg_ch = ch_name
-
-        if eeg_ch is None:
-            # Use first EEG channel as fallback
+        # Handle picks parameter
+        if picks == "eeg":
+            # Get all EEG channels
             eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"]
-            if eeg_channels:
-                eeg_ch = eeg_channels[0]
-                logger.warning(f"EEG channel {eeg_name} not found, using {eeg_ch}")
-            else:
+            if not eeg_channels:
                 raise ValueError("No EEG channels found for sleep staging")
+            eeg_ch = eeg_channels[0]  # Use first EEG channel
+        elif isinstance(picks, list) and picks:
+            # Use specified channels
+            eeg_ch = picks[0] if picks[0] in raw.ch_names else None
+            if eeg_ch is None:
+                raise ValueError(f"Channel {picks[0]} not found in raw data")
+        else:
+            # Original channel finding logic
+            eeg_ch = None
+            eog_ch = None
+            emg_ch = None
+
+            for ch_name in raw.ch_names:
+                if eeg_name.lower() in ch_name.lower() and eeg_ch is None:
+                    eeg_ch = ch_name
+                elif eog_name.lower() in ch_name.lower() and eog_ch is None:
+                    eog_ch = ch_name
+                elif emg_name.lower() in ch_name.lower() and emg_ch is None:
+                    emg_ch = ch_name
+
+            if eeg_ch is None:
+                # Use first EEG channel as fallback
+                eeg_channels = [
+                    ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
+                ]
+                if eeg_channels:
+                    eeg_ch = eeg_channels[0]
+                    logger.warning(f"EEG channel {eeg_name} not found, using {eeg_ch}")
+                else:
+                    raise ValueError("No EEG channels found for sleep staging")
 
         try:
             # Perform sleep staging using YASA
@@ -162,20 +179,15 @@ class SleepAnalyzer:
             y_pred = sls.predict()
 
             # Get prediction probabilities
-            y_proba = sls.predict_proba()
+            sls.predict_proba()
 
             # Create results dictionary
-            results = {
-                "stages": y_pred,
-                "probabilities": y_proba,
-                "channels_used": {"eeg": eeg_ch, "eog": eog_ch, "emg": emg_ch},
-                "model_info": {"name": self.staging_model, "version": yasa.__version__},
-            }
 
             logger.info(
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
-            return y_pred, results
+            # Return just the array for simple interface
+            return y_pred
 
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
@@ -183,6 +195,13 @@ class SleepAnalyzer:
             n_epochs = int(raw.times[-1] / self.epoch_length)
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages, {"error": str(e)}
+
+    def calculate_sleep_metrics(self, hypnogram: np.ndarray, epoch_length: float = 30.0) -> dict:
+        """Calculate sleep metrics (alias for compute_sleep_statistics).
+
+        This method provides compatibility with tests expecting calculate_sleep_metrics.
+        """
+        return self.compute_sleep_statistics(hypnogram, epoch_length)
 
     def compute_sleep_statistics(self, hypnogram: np.ndarray, epoch_length: float = 30.0) -> dict:
         """Compute comprehensive sleep statistics.

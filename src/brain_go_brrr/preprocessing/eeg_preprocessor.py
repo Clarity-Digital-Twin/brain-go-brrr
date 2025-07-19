@@ -7,6 +7,13 @@ that prepares recordings for abnormality detection using EEGPT.
 import mne
 import numpy as np
 
+try:
+    from autoreject import AutoReject
+
+    AUTOREJECT_AVAILABLE = True
+except ImportError:
+    AUTOREJECT_AVAILABLE = False
+
 # Standard 10-20 channel mapping from EEGPT
 # Maps various channel naming conventions to standard indices
 CHANNEL_MAPPING = {
@@ -131,6 +138,7 @@ class EEGPreprocessor:
         notch_freq: float = 50.0,
         channel_subset_size: int = 16,
         use_standard_montage: bool = True,
+        use_autoreject: bool = True,
     ):
         """Initialize preprocessor with filtering parameters.
 
@@ -141,6 +149,7 @@ class EEGPreprocessor:
             notch_freq: Notch filter frequency (50/60 Hz)
             channel_subset_size: Number of channels to select (16)
             use_standard_montage: Use BioSerenity-E1 16-channel montage
+            use_autoreject: Use Autoreject for artifact rejection (recommended)
         """
         self.target_sfreq = target_sfreq
         self.lowpass_freq = lowpass_freq
@@ -148,6 +157,7 @@ class EEGPreprocessor:
         self.notch_freq = notch_freq
         self.channel_subset_size = channel_subset_size
         self.use_standard_montage = use_standard_montage
+        self.use_autoreject = use_autoreject and AUTOREJECT_AVAILABLE
 
     def preprocess(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply full preprocessing pipeline.
@@ -161,6 +171,10 @@ class EEGPreprocessor:
         # Make a copy to avoid modifying original
         raw = raw.copy()
 
+        # Apply Autoreject first if available - it handles artifacts before filtering
+        if self.use_autoreject:
+            raw = self._apply_autoreject(raw)
+
         # Apply filters in order
         raw = self._apply_highpass_filter(raw)
         raw = self._apply_lowpass_filter(raw)
@@ -171,26 +185,72 @@ class EEGPreprocessor:
 
         return raw
 
+    def _apply_autoreject(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+        """Apply Autoreject for artifact rejection.
+
+        This uses local+global thresholding to detect bad segments via K-fold CV,
+        drastically reducing artifacts before filtering.
+
+        References:
+        ----------
+        Jas et al. (2017). Autoreject: Automated artifact rejection for MEG and EEG data.
+        NeuroImage, 159, 417-429.
+        """
+        if not AUTOREJECT_AVAILABLE:
+            return raw
+
+        # Create fixed-length epochs for Autoreject (4s windows matching EEGPT)
+        # This preserves the temporal structure for artifact detection
+        epochs = mne.make_fixed_length_epochs(
+            raw, duration=4.0, preload=True, proj=False, verbose=False
+        )
+
+        # Apply Autoreject with automatic threshold detection
+        # Using n_jobs='auto' for better resource management
+        ar = AutoReject(n_jobs="auto", verbose=False)
+        ar.fit(epochs)  # Learn thresholds via cross-validation
+        epochs_clean = ar.transform(epochs)  # Apply learned thresholds
+
+        # Convert back to continuous Raw format while preserving metadata
+        # Using concatenate_raws with proper Raw conversion
+        raw_clean = mne.concatenate_raws(
+            [mne.io.RawArray(epoch, epochs.info, verbose=False) for epoch in epochs_clean],
+            verbose=False,
+        )
+
+        # Preserve all critical metadata from original
+        if raw.annotations is not None:
+            raw_clean.set_annotations(raw.annotations.copy())
+
+        # Preserve other important info fields
+        for key in ["meas_date", "line_freq", "dig", "device_info", "subject_info"]:
+            if key in raw.info:
+                raw_clean.info[key] = raw.info[key]
+
+        return raw_clean
+
     def _apply_highpass_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply 0.5 Hz high-pass filter to remove DC and drift."""
+        # Use higher order filter for better attenuation (>40dB requirement)
         raw.filter(
             l_freq=self.highpass_freq,
             h_freq=None,
             picks="eeg",
             method="iir",
-            iir_params={"order": 5, "ftype": "butter"},
+            iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,
         )
         return raw
 
     def _apply_lowpass_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply 45 Hz low-pass filter to remove high-frequency noise."""
+        # Use higher order filter for better attenuation
         raw.filter(
             l_freq=None,
             h_freq=self.lowpass_freq,
             picks="eeg",
             method="iir",
-            iir_params={"order": 5, "ftype": "butter"},
+            iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,
         )
         return raw

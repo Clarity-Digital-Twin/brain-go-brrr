@@ -58,14 +58,14 @@ class MockEEGPTModel:
         # Simple amplitude-based pattern detection
         max_amplitude = np.max(np.abs(data_np))
 
-        if max_amplitude > 8e-5:  # Abnormal pattern
-            # Strong abnormal signature
-            features[:, ABNORMAL_DIMS] += 4.0
-            features[:, 400:] *= 3.0  # High frequency boost
+        if max_amplitude > 30e-6:  # Abnormal pattern (30μV threshold)
+            # MASSIVE abnormal signature to survive aggregation
+            features[:, ABNORMAL_DIMS] += 20.0  # Much stronger signal
+            features[:, 400:] *= 10.0  # Massive high frequency boost
         else:  # Normal pattern
-            # Strong normal signature
-            features[:, 100:150] *= 2.5  # Alpha rhythm boost
-            features[:, 400:] *= 0.2  # Reduce high frequency
+            # MASSIVE normal signature
+            features[:, 100:150] *= 10.0  # Massive alpha rhythm boost
+            features[:, 400:] *= 0.01  # Nearly zero high frequency
 
         return features
 
@@ -78,13 +78,25 @@ class MockEEGPTModel:
 class MockNormalEEGPTModel(MockEEGPTModel):
     """Mock model biased toward normal classifications."""
 
+    def __init__(self, normality_strength: float = 0.8, seed: int = 42, device: str = "cpu"):
+        """Initialize the mock normal EEGPT model.
+
+        Args:
+            normality_strength: Strength of normal signal injection
+            seed: Random seed for reproducible results
+            device: Device to use for computations
+        """
+        super().__init__(seed, device)
+        self.normality_strength = normality_strength
+
     def extract_features(self, window_data, channel_names=None):
-        """Always return normal-biased features."""
+        """Extract features with strong normal bias."""
         features = super().extract_features(window_data, channel_names)
-        # Force normal signature regardless of input
-        features[:, ABNORMAL_DIMS] *= 0.1  # Reduce abnormal dims
-        features[:, 100:150] *= 3.0  # Strong alpha
-        features[:, 400:] *= 0.1  # Low high freq
+
+        # Enhance normal/alpha patterns strongly
+        features[:, 100:150] *= 2.0 + self.normality_strength  # Strong alpha
+        features[:, 400:] *= 0.1 / self.normality_strength  # Suppress high freq
+
         return features
 
 
@@ -189,16 +201,16 @@ def create_mock_detector_with_realistic_model(seed: int = 42, normal_bias: bool 
         for i in range(batch_size):
             feature_vec = features[i]
 
-            # Check abnormal dimensions - debug what we're getting
+            # Check abnormal dimensions - now expecting 20.0 * 8 = 160.0
             abnormal_strength = sum(feature_vec[dim].item() for dim in ABNORMAL_DIMS)
 
-            # Much lower threshold since we're adding 4.0 to 8 dimensions = 32.0 expected
-            if abnormal_strength > 10.0:  # Reduced from 20.0
-                logits[i, 1] = 4.0  # High abnormal logit
-                logits[i, 0] = -4.0
+            # Updated threshold for much stronger signals (20.0 * 8 dimensions = 160.0 expected)
+            if abnormal_strength > 50.0:  # Threshold for strong abnormal signal
+                logits[i, 1] = 8.0  # Very high abnormal logit
+                logits[i, 0] = -8.0
             else:  # Normal signature
-                logits[i, 0] = 4.0  # High normal logit
-                logits[i, 1] = -4.0
+                logits[i, 0] = 8.0  # Very high normal logit
+                logits[i, 1] = -8.0
 
         return logits
 

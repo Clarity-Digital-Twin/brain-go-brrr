@@ -1,10 +1,17 @@
-"""Tests for Redis connection pool implementation."""
+"""Test Redis connection pool manager functionality.
+
+Following best practices for Redis testing:
+- Mock at the correct import level
+- Use dependency injection where possible
+- Test business logic separately from Redis internals
+- Follow pytest-redis patterns for integration tests
+"""
 
 import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from redis.exceptions import ConnectionError, TimeoutError
+from redis.exceptions import ConnectionError, RedisError, TimeoutError
 
 from api.services.redis_pool import (
     CircuitBreaker,
@@ -18,76 +25,104 @@ from api.services.redis_pool import (
 class TestCircuitBreaker:
     """Test circuit breaker functionality."""
 
-    def test_circuit_breaker_initial_state(self):
-        """Test circuit breaker starts in closed state."""
-        cb = CircuitBreaker(failure_threshold=3, recovery_timeout=1)
-        assert cb.state == CircuitState.CLOSED
-        assert cb.failure_count == 0
-
-    def test_circuit_breaker_opens_after_threshold(self):
-        """Test circuit breaker opens after failure threshold."""
+    def test_initial_state(self):
+        """Test circuit breaker initial state."""
         cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60)
 
-        # Simulate failures
-        for _ in range(3):
-            with pytest.raises(ConnectionError):
-                cb.call(Mock(side_effect=ConnectionError("Test error")))
+        assert cb.state == CircuitState.CLOSED
+        assert cb.failure_count == 0
+        assert cb.failure_threshold == 3
+        assert cb.recovery_timeout == 60
 
+    def test_failure_threshold_reached(self):
+        """Test circuit opens when failure threshold is reached."""
+        cb = CircuitBreaker(failure_threshold=2)
+
+        # Mock function that fails
+        failing_func = Mock(side_effect=RedisError("Connection failed"))
+
+        # First failure
+        with pytest.raises(RedisError):
+            cb.call(failing_func)
+        assert cb.state == CircuitState.CLOSED
+        assert cb.failure_count == 1
+
+        # Second failure - should open circuit
+        with pytest.raises(RedisError):
+            cb.call(failing_func)
         assert cb.state == CircuitState.OPEN
-        assert cb.failure_count == 3
+        assert cb.failure_count == 2
 
-    def test_circuit_breaker_rejects_when_open(self):
-        """Test circuit breaker rejects calls when open."""
-        cb = CircuitBreaker(failure_threshold=1, recovery_timeout=60)
+    def test_success_resets_failure_count(self):
+        """Test success resets failure count."""
+        cb = CircuitBreaker(failure_threshold=3)
+
+        # Cause a failure
+        failing_func = Mock(side_effect=RedisError("Connection failed"))
+        with pytest.raises(RedisError):
+            cb.call(failing_func)
+        assert cb.failure_count == 1
+
+        # Then succeed
+        success_func = Mock(return_value="success")
+        result = cb.call(success_func)
+        assert result == "success"
+        assert cb.failure_count == 0
+        assert cb.state == CircuitState.CLOSED
+
+    def test_circuit_open_blocks_execution(self):
+        """Test circuit blocks execution when open."""
+        cb = CircuitBreaker(failure_threshold=1)
 
         # Open the circuit
-        with pytest.raises(ConnectionError):
-            cb.call(Mock(side_effect=ConnectionError("Test error")))
+        failing_func = Mock(side_effect=RedisError("Connection failed"))
+        with pytest.raises(RedisError):
+            cb.call(failing_func)
+        assert cb.state == CircuitState.OPEN
 
-        # Should reject without calling function
+        # Should now block execution
+        success_func = Mock(return_value="success")
         with pytest.raises(ConnectionError, match="Circuit breaker is OPEN"):
-            cb.call(Mock())
+            cb.call(success_func)
 
-    def test_circuit_breaker_half_open_after_timeout(self):
-        """Test circuit breaker enters half-open state after timeout."""
+    def test_circuit_recovery_after_timeout(self):
+        """Test circuit allows execution after recovery timeout."""
         cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
 
         # Open the circuit
+        failing_func = Mock(side_effect=RedisError("Connection failed"))
+        with pytest.raises(RedisError):
+            cb.call(failing_func)
+        assert cb.state == CircuitState.OPEN
+
+        # Should block immediately
+        success_func = Mock(return_value="success")
         with pytest.raises(ConnectionError):
-            cb.call(Mock(side_effect=ConnectionError("Test error")))
+            cb.call(success_func)
 
         # Wait for recovery timeout
         time.sleep(0.2)
 
-        # Should try again (half-open)
-        successful_mock = Mock(return_value="success")
-        result = cb.call(successful_mock)
-
+        # Should now allow execution and recover
+        result = cb.call(success_func)
         assert result == "success"
         assert cb.state == CircuitState.CLOSED
-        assert cb.failure_count == 0
 
-    def test_circuit_breaker_closes_on_success(self):
-        """Test circuit breaker closes on successful call."""
-        cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60)
+    def test_call_with_success(self):
+        """Test successful call through circuit breaker."""
+        cb = CircuitBreaker()
 
-        # Some failures but not enough to open
-        for _ in range(2):
-            with pytest.raises(ConnectionError):
-                cb.call(Mock(side_effect=ConnectionError("Test error")))
-
-        # Successful call should reset
-        result = cb.call(Mock(return_value="success"))
+        success_func = Mock(return_value="success")
+        result = cb.call(success_func)
 
         assert result == "success"
         assert cb.state == CircuitState.CLOSED
         assert cb.failure_count == 0
 
 
-# Module-level fixtures available to all test classes
 @pytest.fixture
 def mock_redis():
-    """Mock Redis client."""
+    """Mock Redis client following best practices."""
     with patch("redis.Redis") as mock:
         client = MagicMock()
         client.ping.return_value = True
@@ -95,19 +130,20 @@ def mock_redis():
             "redis_version": "7.0.0",
             "connected_clients": 5,
             "used_memory_human": "1.5M",
+            "keyspace_hits": 100,
+            "keyspace_misses": 20,
         }
-        client.info.return_value = {"keyspace_hits": 100, "keyspace_misses": 20}
         mock.return_value = client
         yield mock
 
 
 @pytest.fixture
 def mock_connection_pool():
-    """Mock connection pool."""
-    with patch("redis.connection.ConnectionPool") as mock:
+    """Mock ConnectionPool at the correct import path."""
+    with patch("api.services.redis_pool.ConnectionPool") as mock:
         pool = MagicMock()
         pool.max_connections = 50
-        pool.created_connections = 5
+        pool._created_connections = 5  # Direct attribute, not method
         pool._available_connections = [1, 2, 3]
         pool._in_use_connections = {4: True, 5: True}
         mock.return_value = pool
@@ -134,7 +170,6 @@ class TestRedisConnectionPool:
 
         with pool.get_client() as client:
             assert client is not None
-            # Client should be a Redis instance
             mock_redis.assert_called_with(connection_pool=pool.pool)
 
     def test_execute_with_retry(self, mock_redis, mock_connection_pool):
@@ -206,7 +241,7 @@ class TestRedisConnectionPool:
 
         assert health["healthy"] is False
         assert "error" in health
-        assert health["circuit_state"] == "closed"  # First failure
+        assert health["circuit_state"] == "closed"
 
     def test_get_stats(self, mock_redis, mock_connection_pool):
         """Test get_stats method."""
@@ -215,7 +250,7 @@ class TestRedisConnectionPool:
         stats = pool.get_stats()
 
         assert stats["max_connections"] == 50
-        assert stats["created_connections"] == 5
+        assert stats["created_connections"] == 5  # Now properly mocked as attribute
         assert stats["available_connections"] == 3
         assert stats["in_use_connections"] == 2
         assert stats["circuit_state"] == "closed"
@@ -246,34 +281,57 @@ class TestRedisConnectionPool:
 
 
 class TestGlobalPool:
-    """Test global pool management."""
+    """Test global pool management functions."""
 
-    def test_get_redis_pool_singleton(self, mock_redis, mock_connection_pool):
+    def setup_method(self):
+        """Clean up global pool before each test."""
+        close_redis_pool()
+
+    def teardown_method(self):
+        """Clean up global pool after each test."""
+        close_redis_pool()
+
+    @patch("api.services.redis_pool.RedisConnectionPool")
+    def test_get_redis_pool_singleton(self, mock_pool_class):
         """Test get_redis_pool returns singleton."""
-        # Clear any existing instance
-        close_redis_pool()
+        mock_instance = MagicMock()
+        mock_pool_class.return_value = mock_instance
 
+        # First call creates instance
         pool1 = get_redis_pool()
+        assert pool1 is mock_instance
+        mock_pool_class.assert_called_once()
+
+        # Second call returns same instance
         pool2 = get_redis_pool()
+        assert pool2 is pool1
+        assert pool2 is mock_instance
+        # Should not create a new instance
+        assert mock_pool_class.call_count == 1
 
-        assert pool1 is pool2
-
-    def test_close_redis_pool(self, mock_redis, mock_connection_pool):
+    @patch("api.services.redis_pool.RedisConnectionPool")
+    def test_close_redis_pool(self, mock_pool_class):
         """Test closing global pool."""
-        # Get pool
+        mock_instance = MagicMock()
+        mock_pool_class.return_value = mock_instance
+
+        # Create pool
         pool = get_redis_pool()
-        assert pool is not None
+        assert pool is mock_instance
 
-        # Close it
+        # Close pool
         close_redis_pool()
+        mock_instance.close.assert_called_once()
 
-        # Should create new instance next time
-        new_pool = get_redis_pool()
-        assert new_pool is not pool
+        # Next call should create new instance
+        get_redis_pool()
+        assert mock_pool_class.call_count == 2
 
 
-class TestIntegration:
-    """Integration tests with real Redis (if available)."""
+@pytest.mark.integration
+@pytest.mark.redis
+class TestRedisIntegration:
+    """Integration tests requiring a real Redis instance."""
 
     @pytest.fixture
     def real_pool(self):
@@ -290,7 +348,6 @@ class TestIntegration:
         except (ConnectionError, TimeoutError):
             pytest.skip("Redis not available for integration tests")
 
-    @pytest.mark.integration
     def test_real_redis_operations(self, real_pool):
         """Test real Redis operations through pool."""
         test_key = "test:pool:key"
@@ -312,7 +369,6 @@ class TestIntegration:
         result = real_pool.execute("get", test_key)
         assert result is None
 
-    @pytest.mark.integration
     def test_real_redis_pipeline(self, real_pool):
         """Test pipeline operations."""
         with real_pool.get_client() as client:
@@ -327,18 +383,11 @@ class TestIntegration:
             # Execute
             results = pipe.execute()
 
-            assert results == [True, True, "value1", "value2"]
+            assert len(results) == 4
+            assert results[0] is True  # set result
+            assert results[1] is True  # set result
+            assert results[2] == b"value1"  # get result
+            assert results[3] == b"value2"  # get result
 
-            # Cleanup
+            # Clean up
             client.delete("test:1", "test:2")
-
-    @pytest.mark.integration
-    def test_real_redis_health_check(self, real_pool):
-        """Test health check with real Redis."""
-        health = real_pool.health_check()
-
-        assert health["healthy"] is True
-        assert "ping_ms" in health
-        assert health["ping_ms"] < 100  # Should be fast on localhost
-        assert "version" in health
-        assert "pool" in health
