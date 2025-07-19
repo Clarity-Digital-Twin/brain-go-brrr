@@ -96,7 +96,7 @@ type-check: ## Run full strict type checking (CI/pre-commit)
 
 fast-type-check: ## Fast type checking for development (uses cache)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
-	$(MYPY) src/brain_go_brrr
+	$(MYPY) --ignore-missing-imports src/brain_go_brrr
 	@echo "$(GREEN)Fast type checking complete!$(NC)"
 
 type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py
