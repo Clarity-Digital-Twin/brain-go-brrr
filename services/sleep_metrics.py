@@ -356,7 +356,7 @@ class SleepAnalyzer:
         Returns:
             Dictionary of detected sleep events
         """
-        events = {}
+        events: dict[str, Any] = {}
 
         try:
             # Convert hypnogram to integer format
@@ -595,6 +595,7 @@ class SleepAnalyzer:
         # Perform sleep staging
         staging_result = self.stage_sleep(raw_sleep, **kwargs)
         # Handle both tuple and array return types
+        hypnogram: np.ndarray
         staging_results: dict[str, Any]
         if isinstance(staging_result, tuple):
             hypnogram, staging_info = staging_result

@@ -13,8 +13,8 @@ import mne
 import numpy as np
 import torch
 
-from src.brain_go_brrr.models.eegpt_model import EEGPTModel
-from src.brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
 logger = logging.getLogger(__name__)
 
