@@ -4,6 +4,7 @@ MVP: Auto-QC + Risk Flagger endpoint
 """
 
 import base64
+import contextlib
 import logging
 
 # Add project to path
@@ -18,7 +19,6 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-import time  # noqa: E402
 import uuid  # noqa: E402
 from enum import Enum  # noqa: E402
 
@@ -386,21 +386,21 @@ async def analyze_eeg(
             )
 
 
-@app.post("/api/v1/eeg/sleep/analyze", response_model=SleepAnalysisResponse)
+@app.post("/api/v1/eeg/sleep/analyze", response_model=JobResponse, status_code=202)
 async def analyze_sleep_eeg(
-    edf_file: UploadFile = File(...), _background_tasks: BackgroundTasks = BackgroundTasks()
+    edf_file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Analyze uploaded EEG file for sleep staging.
+    """Queue sleep analysis job for uploaded EEG file.
 
     Performs automatic sleep staging using YASA and EEGPT features.
-    Returns hypnogram, sleep metrics, and stage percentages.
+    Returns job ID for async processing.
 
     Args:
         edf_file: Uploaded EDF file containing sleep EEG data
-        _background_tasks: FastAPI background tasks (unused in minimal implementation)
+        background_tasks: FastAPI background tasks for async processing
 
     Returns:
-        Sleep analysis results including hypnogram and metrics
+        Job response with job_id for tracking
     """
     # Validate file type
     if not edf_file.filename.lower().endswith(".edf"):
@@ -427,110 +427,105 @@ async def analyze_sleep_eeg(
     if content.startswith(b"NOT_AN_EDF") or content == b"NOT_AN_EDF_FILE":
         raise HTTPException(status_code=400, detail="Invalid EDF file format")
 
-    # Create temporary file to load EDF
+    # Create a job for sleep analysis
+    job_id = str(uuid.uuid4())
+
+    # Save file content temporarily for the job
     with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
         tmp_path = Path(tmp_file.name)
+        tmp_file.write(content)
+        tmp_file.flush()
 
-        try:
-            # Save uploaded content
-            tmp_file.write(content)
-            tmp_file.flush()
+    # Create job entry
+    job = {
+        "job_id": job_id,
+        "analysis_type": "sleep",
+        "file_path": str(tmp_path),
+        "options": {
+            "file_size": len(content),
+            "filename": edf_file.filename,
+        },
+        "status": JobStatus.PENDING,
+        "priority": JobPriority.NORMAL,
+        "progress": 0.0,
+        "result": None,
+        "error": None,
+        "created_at": utc_now().isoformat(),
+        "updated_at": utc_now().isoformat(),
+        "started_at": None,
+        "completed_at": None,
+    }
 
-            # Start timing
-            start_time = time.time()
+    # Store job
+    job_store[job_id] = job
 
-            # Load EDF data
-            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+    # Schedule the actual sleep analysis as a background task
+    background_tasks.add_task(
+        process_sleep_analysis_job,
+        job_id,
+        tmp_path,
+    )
 
-            # Run YASA sleep analysis
-            sleep_analyzer = SleepAnalyzer()
-            results = sleep_analyzer.run_full_sleep_analysis(raw)
+    # Return job response
+    return JobResponse(
+        job_id=job_id,
+        analysis_type="sleep",
+        status=JobStatus.PENDING,
+        priority=JobPriority.NORMAL,
+        progress=0.0,
+        result=None,
+        error=None,
+        created_at=job["created_at"],
+        updated_at=job["updated_at"],
+    )
 
-            # Calculate processing time
-            processing_time = time.time() - start_time
 
-            # Extract sleep stages (convert to percentages)
-            stage_counts = results.get("sleep_stages", {})
-            total_epochs = sum(stage_counts.values())
-            sleep_stages = {}
-            if total_epochs > 0:
-                for stage, count in stage_counts.items():
-                    # Map R to REM for consistency
-                    stage_name = "REM" if stage == "R" else stage
-                    sleep_stages[stage_name] = round(count / total_epochs, 3)
-            else:
-                # Default if no stages found
-                sleep_stages = {"W": 1.0, "N1": 0.0, "N2": 0.0, "N3": 0.0, "REM": 0.0}
+@app.get("/api/v1/eeg/sleep/jobs/{job_id}/status")
+async def get_sleep_job_status(job_id: str):
+    """Get status of a sleep analysis job."""
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-            # Extract sleep metrics
-            sleep_metrics = results.get("sleep_metrics", {})
+    return {
+        "job_id": job_id,
+        "status": job["status"],
+        "progress": job.get("progress", 0.0),
+        "created_at": job["created_at"],
+        "started_at": job.get("started_at"),
+        "completed_at": job.get("completed_at"),
+        "error": job.get("error"),
+    }
 
-            # Convert hypnogram to required format
-            hypnogram_stages = results.get("hypnogram", [])
-            hypnogram = []
-            for i, stage in enumerate(hypnogram_stages):
-                # Map R to REM
-                stage_name = "REM" if stage == "R" else stage
-                hypnogram.append(
-                    {
-                        "epoch": i + 1,
-                        "stage": stage_name,
-                        "confidence": 0.85,  # Default confidence since YASA doesn't provide per-epoch
-                    }
-                )
 
-            # Schedule cleanup
-            _background_tasks.add_task(cleanup_temp_file, tmp_path)
+@app.get("/api/v1/eeg/sleep/jobs/{job_id}/results")
+async def get_sleep_job_results(job_id: str):
+    """Get results of a completed sleep analysis job."""
+    job = job_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-            return SleepAnalysisResponse(
-                status="success",
-                sleep_stages=sleep_stages,
-                sleep_metrics={
-                    "total_sleep_time": sleep_metrics.get("total_sleep_time", 0.0),
-                    "sleep_efficiency": sleep_metrics.get("sleep_efficiency", 0.0),
-                    "sleep_onset_latency": sleep_metrics.get("sleep_onset_latency", 0.0),
-                    "rem_latency": sleep_metrics.get("rem_latency", 0.0),
-                    "wake_after_sleep_onset": sleep_metrics.get("wake_after_sleep_onset", 0.0),
-                },
-                hypnogram=hypnogram[:100],  # Limit to first 100 epochs for response size
-                metadata={
-                    "total_epochs": len(hypnogram_stages),
-                    "analysis_duration": round(processing_time, 2),
-                    "model_version": "yasa_v0.6.4",
-                    "confidence_threshold": 0.0,  # YASA doesn't use threshold
-                    "sampling_rate": int(raw.info["sfreq"]),
-                    "n_channels": len(raw.ch_names),
-                },
-                processing_time=round(processing_time, 2),
-                timestamp=utc_now().isoformat(),
-            )
+    if job["status"] == JobStatus.PENDING:
+        raise HTTPException(status_code=202, detail="Job is still pending")
+    elif job["status"] == JobStatus.PROCESSING:
+        raise HTTPException(status_code=202, detail="Job is still processing")
+    elif job["status"] == JobStatus.FAILED:
+        raise HTTPException(
+            status_code=500, detail=f"Job failed: {job.get('error', 'Unknown error')}"
+        )
 
-        except Exception as e:
-            logger.error(f"Error processing sleep analysis: {e}")
-            logger.error(traceback.format_exc())
-
-            # Cleanup on error
-            if tmp_path.exists():
-                with contextlib.suppress(Exception):
-                    tmp_path.unlink()
-
-            # Return error response
-            return SleepAnalysisResponse(
-                status="error",
-                sleep_stages={"W": 0.0, "N1": 0.0, "N2": 0.0, "N3": 0.0, "REM": 0.0},
-                sleep_metrics={
-                    "total_sleep_time": 0.0,
-                    "sleep_efficiency": 0.0,
-                    "sleep_onset_latency": 0.0,
-                    "rem_latency": 0.0,
-                    "wake_after_sleep_onset": 0.0,
-                },
-                hypnogram=[],
-                metadata={"error": str(e)},
-                processing_time=0.0,
-                timestamp=utc_now().isoformat(),
-                error=str(e),
-            )
+    # Job is completed, return results
+    result = job.get("result", {})
+    return SleepAnalysisResponse(
+        status="success",
+        sleep_stages=result.get("sleep_stages", {}),
+        sleep_metrics=result.get("sleep_metrics", {}),
+        hypnogram=result.get("hypnogram", []),
+        metadata=result.get("metadata", {}),
+        processing_time=0.0,  # Could calculate from timestamps
+        timestamp=job.get("completed_at", utc_now().isoformat()),
+        cached=False,
+    )
 
 
 @app.post("/api/v1/eeg/analyze/detailed")
@@ -816,6 +811,68 @@ def cleanup_temp_file(file_path: Path) -> None:
             logger.info(f"Cleaned up temp file: {file_path}")
     except Exception as e:
         logger.error(f"Failed to cleanup temp file: {e}")
+
+
+async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
+    """Process sleep analysis job in background."""
+    job = job_store.get(job_id)
+    if not job:
+        logger.error(f"Job {job_id} not found")
+        return
+
+    try:
+        # Update job status
+        job["status"] = JobStatus.PROCESSING
+        job["started_at"] = utc_now().isoformat()
+        job["updated_at"] = utc_now().isoformat()
+
+        # Load EDF data
+        raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
+
+        # Run YASA sleep analysis
+        sleep_analyzer = SleepAnalyzer()
+        results = sleep_analyzer.run_full_sleep_analysis(raw)
+
+        # Extract and format results
+        stage_counts = results.get("sleep_stages", {})
+        total_epochs = sum(stage_counts.values())
+        sleep_stages = {}
+        if total_epochs > 0:
+            for stage, count in stage_counts.items():
+                stage_name = "REM" if stage == "R" else stage
+                sleep_stages[stage_name] = round(count / total_epochs, 3)
+        else:
+            sleep_stages = {"W": 1.0, "N1": 0.0, "N2": 0.0, "N3": 0.0, "REM": 0.0}
+
+        # Store results
+        job["result"] = {
+            "sleep_stages": sleep_stages,
+            "sleep_metrics": results.get("sleep_metrics", {}),
+            "hypnogram": results.get("hypnogram", [])[:100],  # Limit size
+            "metadata": {
+                "total_epochs": len(results.get("hypnogram", [])),
+                "model_version": "yasa_v0.6.4",
+                "sampling_rate": int(raw.info["sfreq"]),
+                "n_channels": len(raw.ch_names),
+            },
+        }
+        job["status"] = JobStatus.COMPLETED
+        job["progress"] = 1.0
+        job["completed_at"] = utc_now().isoformat()
+        job["updated_at"] = utc_now().isoformat()
+
+    except Exception as e:
+        logger.error(f"Sleep analysis job {job_id} failed: {e}")
+        job["status"] = JobStatus.FAILED
+        job["error"] = str(e)
+        job["updated_at"] = utc_now().isoformat()
+        job["completed_at"] = utc_now().isoformat()
+
+    finally:
+        # Cleanup temp file
+        with contextlib.suppress(Exception):
+            if file_path.exists():
+                file_path.unlink()
 
 
 @app.get("/api/v1/cache/stats")
