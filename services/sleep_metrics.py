@@ -307,10 +307,7 @@ class SleepAnalyzer:
             }
 
         # Convert to YASA hypnogram format if needed
-        if isinstance(hypnogram, np.ndarray):
-            hypno_int = yasa.hypno_str_to_int(hypnogram)
-        else:
-            hypno_int = hypnogram
+        hypno_int = yasa.hypno_str_to_int(hypnogram)
 
         # Compute sleep statistics
         stats = yasa.sleep_statistics(hypno_int, sf_hyp=1 / epoch_length)
@@ -598,8 +595,12 @@ class SleepAnalyzer:
         hypnogram: np.ndarray
         staging_results: dict[str, Any]
         if isinstance(staging_result, tuple):
-            hypnogram, staging_info = staging_result
-            staging_results = staging_info
+            hypnogram, proba_matrix = staging_result
+            staging_results = {
+                "method": "yasa",
+                "model": self.staging_model,
+                "probabilities": proba_matrix,
+            }
         else:
             hypnogram = staging_result
             staging_results = {"method": "yasa", "model": self.staging_model}

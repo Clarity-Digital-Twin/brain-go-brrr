@@ -41,6 +41,7 @@ class EEGPTFeatureExtractor:
         self.enable_cache = enable_cache
         self.cache_size = cache_size
         self._cache: dict[str, np.ndarray] = {}
+        self.model: EEGPTModel | None
 
         # Initialize model
         if model_path is None:
@@ -48,7 +49,7 @@ class EEGPTFeatureExtractor:
 
         try:
             self.model = EEGPTModel(checkpoint_path=model_path, device=device)
-            self.model.load_checkpoint()
+            self.model.load_model()
             logger.info(f"Loaded EEGPT model from {model_path}")
         except Exception as e:
             logger.warning(f"Failed to load EEGPT model: {e}")
@@ -188,17 +189,21 @@ class EEGPTFeatureExtractor:
         # Stack windows into batch
         batch = np.stack(windows)  # (n_windows, n_channels, n_samples)
 
-        # Convert to torch tensor
-        batch_tensor = torch.from_numpy(batch).float().to(self.device)
+        # Process each window individually
+        embeddings_list = []
 
-        # Run model
+        if self.model is None:
+            raise RuntimeError("Model not loaded - cannot extract features")
+
         with torch.no_grad():
-            # EEGPT expects (batch, channels, time)
-            embeddings = self.model.extract_features(batch_tensor, channel_names)
+            for window in batch:
+                # EEGPT expects numpy array (channels, time)
+                window_np = window.astype(np.float64)
+                embedding = self.model.extract_features(window_np, channel_names)
+                embeddings_list.append(embedding)
 
-        # Convert back to numpy
-        if isinstance(embeddings, torch.Tensor):
-            embeddings = embeddings.cpu().numpy()
+        # Stack all embeddings
+        embeddings = np.stack(embeddings_list)
 
         # Ensure correct shape: (n_windows, embedding_dim)
         if embeddings.ndim == 3:
@@ -210,7 +215,7 @@ class EEGPTFeatureExtractor:
                 # If (batch, n_windows, dim) with batch > 1, reshape
                 embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
 
-        return embeddings.astype(np.float32)  # type: ignore[no-any-return]
+        return embeddings.astype(np.float32)
 
     def _compute_cache_key(self, raw: mne.io.Raw) -> str:
         """Compute cache key for raw data.
