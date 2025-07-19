@@ -27,17 +27,17 @@ repos:
         files: ^src/brain_go_brrr/
         exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/|api/|services/|tests/)
 
-  # Notebook quality checks
-  - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.9.1
-    hooks:
-      - id: nbqa-ruff
-        name: nbqa-ruff (notebook lint)
-        args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
-      - id: nbqa-ruff-format
-        name: nbqa-ruff-format (notebook format)
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
+  # Notebook quality checks (disabled - no notebooks in project yet)
+  # - repo: https://github.com/nbQA-dev/nbQA
+  #   rev: 1.9.1
+  #   hooks:
+  #     - id: nbqa-ruff
+  #       name: nbqa-ruff (notebook lint)
+  #       args: [--fix, --exit-non-zero-on-fix]
+  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
+  #     - id: nbqa-ruff-format
+  #       name: nbqa-ruff-format (notebook format)
+  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks

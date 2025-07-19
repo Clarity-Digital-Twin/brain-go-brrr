@@ -215,6 +215,17 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Additional module-specific overrides for stubborn import errors
+[[tool.mypy.overrides]]
+module = "autoreject"
+ignore_missing_imports = true
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "autoreject.*"
+ignore_missing_imports = true
+ignore_errors = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
