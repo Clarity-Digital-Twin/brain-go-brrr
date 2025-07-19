@@ -66,6 +66,10 @@ class TestEEGPreprocessor:
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        
+        # Set standard montage for Autoreject
+        montage = mne.channels.make_standard_montage("standard_1020")
+        raw.set_montage(montage, match_case=False)
 
         # Set standard 10-20 montage for channel positions (required by Autoreject)
         montage = mne.channels.make_standard_montage("standard_1020")
@@ -364,6 +368,14 @@ class TestEEGPreprocessor:
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        
+        # Set standard montage for Autoreject
+        montage = mne.channels.make_standard_montage("standard_1020")
+        raw.set_montage(montage, match_case=False)
+        
+        # Set standard montage for Autoreject
+        montage = mne.channels.make_standard_montage("standard_1020")
+        raw.set_montage(montage, match_case=False)
 
         # Process
         processed = preprocessor.preprocess(raw)
@@ -425,6 +437,10 @@ class TestEEGPreprocessor:
         ch_names = ["Fp1", "Fp2", "C3", "C4"]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        
+        # Set standard montage for Autoreject
+        montage = mne.channels.make_standard_montage("standard_1020")
+        raw.set_montage(montage, match_case=False)
 
         filtered = preprocessor._apply_notch_filter(raw)
 
@@ -495,6 +511,10 @@ class TestBioSerenityE1Compliance:
         data = np.random.randn(len(ch_names), n_samples) * 20e-6
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        
+        # Set standard montage for Autoreject
+        montage = mne.channels.make_standard_montage("standard_1020")
+        raw.set_montage(montage, match_case=False)
 
         # Extract 16s windows with no overlap (as per paper)
         window_duration = 16.0
