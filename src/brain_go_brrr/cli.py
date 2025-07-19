@@ -89,7 +89,7 @@ def evaluate(
 @app.command()
 def serve(
     model_path: Path = typer.Argument(..., help="Path to trained model"),
-    host: str = typer.Option("0.0.0.0", help="Host address"),
+    host: str = typer.Option("127.0.0.1", help="Host address"),
     port: int = typer.Option(8000, help="Port number"),
 ) -> None:
     """Serve a trained model via REST API."""
@@ -135,41 +135,46 @@ def stream(
     model.is_loaded = True
 
     # Stream and process
-    with EDFStreamer(edf_path) as streamer:
-        info = streamer.get_info()
-        console.print(
-            f"Duration: {info['duration']:.1f}s, Channels: {info['n_channels']}, SR: {info['sampling_rate']}Hz"
-        )
+    try:
+        with EDFStreamer(edf_path) as streamer:
+            info = streamer.get_info()
+            console.print(
+                f"Duration: {info['duration']:.1f}s, Channels: {info['n_channels']}, SR: {info['sampling_rate']}Hz"
+            )
 
-        # Get channel names once
-        ch_names = list(streamer._raw.ch_names) if streamer._raw else []
+            # Get channel names once
+            ch_names = list(streamer._raw.ch_names) if streamer._raw else []
 
-        for window_count, (data_window, start_time) in enumerate(
-            streamer.process_in_windows(window_size, overlap), 1
-        ):
-            # Extract features
-            features = model.extract_features(data_window, ch_names)
+            for window_count, (data_window, start_time) in enumerate(
+                streamer.process_in_windows(window_size, overlap), 1
+            ):
+                # Extract features
+                features = model.extract_features(data_window, ch_names)
 
-            # Output result
-            result = {
-                "window": window_count,
-                "start_time": float(start_time),
-                "end_time": float(start_time + window_size),
-                "feature_shape": list(features.shape),
-                "feature_mean": float(features.mean()),
-                "feature_std": float(features.std()),
-            }
+                # Output result
+                result = {
+                    "window": window_count,
+                    "start_time": float(start_time),
+                    "end_time": float(start_time + window_size),
+                    "feature_shape": list(features.shape),
+                    "feature_mean": float(features.mean()),
+                    "feature_std": float(features.std()),
+                }
 
-            if output_format == "json":
-                print(json.dumps(result))
-            else:
-                console.print(
-                    f"Window {window_count}: {start_time:.1f}s - {start_time + window_size:.1f}s"
-                )
+                if output_format == "json":
+                    print(json.dumps(result))
+                else:
+                    console.print(
+                        f"Window {window_count}: {start_time:.1f}s - {start_time + window_size:.1f}s"
+                    )
 
-            # Check if we've reached the limit
-            if max_windows > 0 and window_count >= max_windows:
-                break
+                # Check if we've reached the limit
+                if max_windows > 0 and window_count >= max_windows:
+                    break
+    except KeyboardInterrupt:
+        # Re-raise to ensure test sees the exception
+        logger.info("Streaming interrupted by user")
+        raise
 
 
 @app.command()
