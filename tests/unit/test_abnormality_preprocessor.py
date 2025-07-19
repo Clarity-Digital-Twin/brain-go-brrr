@@ -483,16 +483,18 @@ class TestBioSerenityE1Compliance:
 
         # Generate test signal with components at edge frequencies
         sfreq = 500
-        t = np.arange(10 * sfreq) / sfreq
+        duration = 20  # Longer duration for better frequency resolution
+        t = np.arange(duration * sfreq) / sfreq
 
-        # Components at filter edges with stronger amplitudes
+        # Create test signal with known frequency components
         data = np.zeros((1, len(t)))
-        data[0] += 50e-6 * np.sin(2 * np.pi * 0.4 * t)  # Below HPF
-        data[0] += 50e-6 * np.sin(2 * np.pi * 0.6 * t)  # Above HPF
-        data[0] += 50e-6 * np.sin(2 * np.pi * 44 * t)  # Below LPF
-        data[0] += 50e-6 * np.sin(2 * np.pi * 46 * t)  # Above LPF
-        # Add some mid-frequency content for reference
-        data[0] += 30e-6 * np.sin(2 * np.pi * 10 * t)  # Alpha band
+        # Below HPF cutoff (should be attenuated)
+        data[0] += 100e-6 * np.sin(2 * np.pi * 0.3 * t)
+        # In passband (should pass through)
+        data[0] += 100e-6 * np.sin(2 * np.pi * 10 * t)  # Alpha
+        data[0] += 100e-6 * np.sin(2 * np.pi * 20 * t)  # Beta
+        # Above LPF cutoff (should be attenuated)
+        data[0] += 100e-6 * np.sin(2 * np.pi * 50 * t)
 
         info = mne.create_info(["Test"], sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
@@ -501,39 +503,39 @@ class TestBioSerenityE1Compliance:
         filtered = preprocessor._apply_highpass_filter(raw)
         filtered = preprocessor._apply_lowpass_filter(filtered)
 
-        # Check frequency response
+        # Analyze frequency response using FFT for more precise measurement
         filtered_data = filtered.get_data()[0]
-        freqs, psd = signal.welch(filtered_data, fs=sfreq, nperseg=2048)
+        freqs = np.fft.rfftfreq(len(filtered_data), 1 / sfreq)
+        fft = np.abs(np.fft.rfft(filtered_data))
 
-        # Find indices (commented out as they're not used in current test logic)
-        # idx_0_4 = np.argmin(np.abs(freqs - 0.4))
-        # idx_0_6 = np.argmin(np.abs(freqs - 0.6))
-        # idx_44 = np.argmin(np.abs(freqs - 44))
-        # idx_46 = np.argmin(np.abs(freqs - 46))
+        # Normalize FFT by max value in passband
+        passband_mask = (freqs >= 1) & (freqs <= 40)
+        fft_normalized = fft / np.max(fft[passband_mask])
 
-        # Check attenuation at filter edges
-        # BioSerenity-E1 paper specifies 0.5-45 Hz bandpass
-        # With 8th order Butterworth filters:
-        # - Rolloff rate: ~48 dB/octave
-        # - At filter edges we expect >6dB attenuation
+        # Find specific frequency indices
+        idx_0_3 = np.argmin(np.abs(freqs - 0.3))
+        idx_10 = np.argmin(np.abs(freqs - 10))
+        idx_20 = np.argmin(np.abs(freqs - 20))
+        idx_50 = np.argmin(np.abs(freqs - 50))
 
-        # Check if we have meaningful power levels and different values
-        # In some cases, MNE's filters might not show expected attenuation at exact edge frequencies
-        # This is a known limitation of digital filter design
+        # Check attenuation
+        # 8th order Butterworth has ~48 dB/octave rolloff
+        # At 50 Hz (5 Hz above 45 Hz cutoff), we expect ~10-15 dB attenuation
+        # -10 dB = factor of 0.316, -15 dB = factor of 0.178
+        assert fft_normalized[idx_0_3] < 0.1, (
+            f"0.3 Hz not sufficiently attenuated: {fft_normalized[idx_0_3]:.3f}"
+        )
+        assert fft_normalized[idx_50] < 0.32, (
+            f"50 Hz not sufficiently attenuated: {fft_normalized[idx_50]:.3f}"
+        )
 
-        # Verify filters are working by checking broader frequency ranges
-        low_band_power = psd[freqs < 0.5].mean()
-        mid_band_power = psd[(freqs > 1) & (freqs < 40)].mean()
-        high_band_power = psd[freqs > 45].mean()
-
-        # Basic sanity checks - filters should reduce out-of-band power
-        if mid_band_power > 1e-15:  # Only test if we have signal
-            # Low frequencies should be attenuated (allow small tolerance for numerical precision)
-            if low_band_power > 1e-15:  # Only test if measurable
-                assert low_band_power < mid_band_power * 1.1  # Allow 10% tolerance
-            # High frequencies should be attenuated
-            if high_band_power > 1e-15:  # Only test if measurable
-                assert high_band_power < mid_band_power * 1.1  # Allow 10% tolerance
+        # Components in passband should be preserved (allow some filter ripple)
+        assert fft_normalized[idx_10] > 0.7, (
+            f"10 Hz signal attenuated too much: {fft_normalized[idx_10]:.3f}"
+        )
+        assert fft_normalized[idx_20] > 0.7, (
+            f"20 Hz signal attenuated too much: {fft_normalized[idx_20]:.3f}"
+        )
 
     def test_window_size_for_128hz(self):
         """Test window extraction for 16s windows at 128 Hz."""

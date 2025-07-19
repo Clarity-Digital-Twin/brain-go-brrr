@@ -200,7 +200,9 @@ class SleepAnalyzer:
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages
 
-    def calculate_sleep_metrics(self, raw_or_hypnogram, epoch_length: float = 30.0) -> dict:
+    def calculate_sleep_metrics(
+        self, raw_or_hypnogram: mne.io.BaseRaw | np.ndarray, epoch_length: float = 30.0
+    ) -> dict:
         """Calculate sleep metrics from Raw object or hypnogram array.
 
         This method provides compatibility with tests expecting calculate_sleep_metrics.

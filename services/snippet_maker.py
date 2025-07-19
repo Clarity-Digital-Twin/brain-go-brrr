@@ -8,6 +8,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import mne
 import numpy as np
@@ -20,7 +21,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "tsfresh"))
 
 try:
-    import tsfresh
     from tsfresh import extract_features
     from tsfresh.utilities.dataframe_functions import impute
 
@@ -106,7 +106,7 @@ class EEGSnippetMaker:
         else:
             picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
 
-        snippets = []
+        snippets: list[dict[str, Any]] = []
         current_time = start_time
         snippet_id = 0
 
@@ -182,7 +182,7 @@ class EEGSnippetMaker:
         if channel_selection:
             epochs.pick_channels(channel_selection)
 
-        snippets = []
+        snippets: list[dict[str, Any]] = []
         for i, epoch in enumerate(epochs):
             if len(snippets) >= self.max_snippets_per_file:
                 break
@@ -254,7 +254,7 @@ class EEGSnippetMaker:
         else:
             picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
 
-        snippets = []
+        snippets: list[dict[str, Any]] = []
         snippet_id = 0
 
         for idx in anomaly_indices:
@@ -289,7 +289,6 @@ class EEGSnippetMaker:
             }
 
             snippets.append(snippet)
-            snippet_id += 1
 
         logger.info(f"Extracted {len(snippets)} anomaly-based snippets")
         return snippets
@@ -362,7 +361,7 @@ class EEGSnippetMaker:
             logger.error(f"Feature extraction failed: {e}")
             return {}
 
-    def analyze_snippet_with_eegpt(self, snippet: dict, model_path: Path | None = None) -> dict:
+    def analyze_snippet_with_eegpt(self, snippet: dict, model_path: Path | None = None) -> dict:  # noqa: ARG002
         """Analyze snippet using EEGPT model.
 
         Args:
@@ -459,7 +458,7 @@ class EEGSnippetMaker:
         logger.info(f"Creating report for {len(snippets)} snippets")
 
         processed_snippets = []
-        feature_summary = {}
+        # feature_summary: dict[str, Any] = {}  # TODO: Implement feature summary
         classification_summary = {}
 
         for snippet in snippets:
@@ -548,7 +547,7 @@ class EEGSnippetMaker:
                 snippet_copy = snippet.copy()
                 snippet_copy["data"] = snippet_copy["data"].tolist()
 
-                with open(filepath, "w") as f:
+                with filepath.open("w") as f:
                     json.dump(snippet_copy, f, indent=2)
 
             elif format == "npz":
@@ -567,7 +566,7 @@ class EEGSnippetMaker:
         return saved_files
 
 
-def main():
+def main() -> None:
     """Example usage of the snippet maker."""
     logger.info("Snippet Maker service is ready")
     logger.info("Use EEGSnippetMaker class to create and analyze EEG snippets")

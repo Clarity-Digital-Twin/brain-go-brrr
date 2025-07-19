@@ -299,12 +299,8 @@ class EEGQualityController:
             epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
 
             # Create a simple reject log for compatibility
-            class SimpleRejectLog:
-                def __init__(self, n_epochs, n_rejected):
-                    self.labels = np.zeros(n_epochs)
-                    self.labels[:n_rejected] = 2  # Mark as rejected
-
-            reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
+            reject_log = type("SimpleRejectLog", (), {"labels": np.zeros(len(epochs))})()
+            reject_log.labels[: len(epochs) - len(epochs_clean)] = 2  # Mark as rejected
 
             logger.info("Amplitude-based rejection results:")
             logger.info(f"  Original epochs: {len(epochs)}")
@@ -330,12 +326,8 @@ class EEGQualityController:
                 reject_dict = {"eeg": 150e-6}
                 epochs_clean = epochs.copy().drop_bad(reject=reject_dict)
 
-                class SimpleRejectLog:
-                    def __init__(self, n_epochs, n_rejected):
-                        self.labels = np.zeros(n_epochs)
-                        self.labels[:n_rejected] = 2
-
-                reject_log = SimpleRejectLog(len(epochs), len(epochs) - len(epochs_clean))
+                reject_log = type("SimpleRejectLog", (), {"labels": np.zeros(len(epochs))})()
+                reject_log.labels[: len(epochs) - len(epochs_clean)] = 2
                 return epochs_clean if not return_log else (epochs_clean, reject_log)
             else:
                 raise
@@ -463,7 +455,7 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs) -> dict:
+    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs) -> dict:  # noqa: ARG002
         """Run the complete QC pipeline.
 
         Args:
@@ -510,7 +502,7 @@ class EEGQualityController:
             logger.info("Cleaned up EEGPT model resources")
 
 
-def main():
+def main() -> None:
     """Example usage of the QC flagger."""
     # This would be replaced with actual EEG data loading
     logger.info("QC Flagger service is ready")
