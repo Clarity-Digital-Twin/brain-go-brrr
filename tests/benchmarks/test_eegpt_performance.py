@@ -42,6 +42,9 @@ from brain_go_brrr.models.eegpt_model import EEGPTModel
 # Import complexity budget calculator
 from .conftest import channel_complexity_budget
 
+# Mark all tests in this module as slow
+pytestmark = pytest.mark.slow
+
 # Import realistic benchmark data fixtures
 
 # Performance targets from requirements

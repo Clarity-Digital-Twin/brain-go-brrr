@@ -163,6 +163,7 @@ class TestSleepEDFIntegration:
 
     @pytest.mark.integration
     @pytest.mark.slow
+    @pytest.mark.slow
     def test_multiple_sleep_edf_files(self, client):
         """Test processing multiple Sleep-EDF files to check consistency."""
         project_root = Path(__file__).parent.parent.parent
@@ -271,6 +272,7 @@ class TestAPIRobustness:
         assert data["flag"] == "ERROR"
 
     @pytest.mark.integration
+    @pytest.mark.slow
     @pytest.mark.slow
     def test_concurrent_sleep_edf_processing(self, client):
         """Test concurrent processing of Sleep-EDF files."""
