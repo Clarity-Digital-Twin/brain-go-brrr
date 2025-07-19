@@ -231,6 +231,10 @@ class SleepAnalyzer:
             # Predict sleep stages
             y_pred = sls.predict()
 
+            # Ensure y_pred is an array, not a tuple
+            if isinstance(y_pred, tuple):
+                y_pred = y_pred[0]
+
             # Apply temporal smoothing if requested
             # Get prediction probabilities if requested
             if return_proba:
@@ -334,9 +338,12 @@ class SleepAnalyzer:
         }
 
         # Merge with YASA statistics
-        stats.update(custom_stats)
+        # Create new dict to avoid type conflicts
+        result: dict[str, Any] = {}
+        result.update(stats)  # Add YASA stats first
+        result.update(custom_stats)  # Then add custom stats
 
-        return stats
+        return result
 
     def detect_sleep_events(
         self,
@@ -366,36 +373,51 @@ class SleepAnalyzer:
 
             # Detect sleep spindles
             if include_spindles:
-                sp = yasa.spindles_detect(raw, hypno=hypno_int)
+                # Extract data from Raw object
+                data = raw.get_data()
+                sp = yasa.spindles_detect(
+                    data, sf=raw.info["sfreq"], hypno=hypno_int, ch_names=raw.ch_names
+                )
                 if sp is not None:
                     events["spindles"] = {
                         "count": len(sp),
                         "density": len(sp)
                         / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        "summary": sp.summary() if hasattr(sp, "summary") else None,
+                        "summary": sp.to_dict() if hasattr(sp, "to_dict") else None,
                     }
 
             # Detect slow oscillations
             if include_so:
-                so = yasa.sw_detect(raw, hypno=hypno_int)
+                # Extract data from Raw object if not already done
+                if "data" not in locals():
+                    data = raw.get_data()
+                so = yasa.sw_detect(
+                    data, sf=raw.info["sfreq"], hypno=hypno_int, ch_names=raw.ch_names
+                )
                 if so is not None:
                     events["slow_oscillations"] = {
                         "count": len(so),
                         "density": len(so)
                         / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        "summary": so.summary() if hasattr(so, "summary") else None,
+                        "summary": so.to_dict() if hasattr(so, "to_dict") else None,
                     }
 
             # Detect REM events
             if include_rem:
-                rem = yasa.rem_detect(raw, hypno=hypno_int)
-                if rem is not None:
-                    events["rem_events"] = {
-                        "count": len(rem),
-                        "density": len(rem)
-                        / (len(hypnogram) * self.epoch_length / 3600),  # per hour
-                        "summary": rem.summary() if hasattr(rem, "summary") else None,
-                    }
+                # REM detection requires EOG channels
+                eog_channels = [ch for ch in raw.ch_names if "eog" in ch.lower()]
+                if eog_channels:
+                    eog_data = raw.get_data(picks=eog_channels)
+                    rem = yasa.rem_detect(eog_data, sf=raw.info["sfreq"], hypno=hypno_int)
+                    if rem is not None:
+                        events["rem_events"] = {
+                            "count": len(rem),
+                            "density": len(rem)
+                            / (len(hypnogram) * self.epoch_length / 3600),  # per hour
+                            "summary": rem.to_dict() if hasattr(rem, "to_dict") else None,
+                        }
+                else:
+                    logger.warning("No EOG channels found for REM detection")
 
         except Exception as e:
             logger.error(f"Sleep event detection failed: {e}")
@@ -427,7 +449,7 @@ class SleepAnalyzer:
             times = np.arange(len(hypnogram)) * epoch_length / 3600  # hours
 
             # Plot hypnogram
-            fig, ax = yasa.plot_hypnogram(hypno_int, sf_hyp=1 / epoch_length)
+            fig, ax = yasa.plot_hypnogram(hypno_int, sf_hypno=1 / epoch_length)
 
             if save_path:
                 fig.savefig(save_path, dpi=300, bbox_inches="tight")

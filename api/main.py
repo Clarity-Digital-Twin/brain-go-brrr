@@ -18,9 +18,9 @@ from typing import Any
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-import time
-import uuid
-from enum import Enum
+import time  # noqa: E402
+import uuid  # noqa: E402
+from enum import Enum  # noqa: E402
 
 import mne  # noqa: E402
 from fastapi import (  # noqa: E402
@@ -411,11 +411,11 @@ async def analyze_sleep_eeg(
     await edf_file.seek(0)  # Reset file pointer
 
     # Check file size limits (max 50MB for API)
-    MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
-    if len(content) > MAX_FILE_SIZE:
+    max_file_size = 50 * 1024 * 1024  # 50MB
+    if len(content) > max_file_size:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)}MB",
+            detail=f"File too large. Maximum size is {max_file_size // (1024 * 1024)}MB",
         )
 
     # Basic EDF format validation - reject obviously invalid files
@@ -511,10 +511,8 @@ async def analyze_sleep_eeg(
 
             # Cleanup on error
             if tmp_path.exists():
-                try:
+                with contextlib.suppress(Exception):
                     tmp_path.unlink()
-                except Exception:
-                    pass
 
             # Return error response
             return SleepAnalysisResponse(
@@ -1058,6 +1056,136 @@ async def pause_queue():
 async def resume_queue():
     """Resume job processing."""
     return {"status": "success", "message": "Queue resumed", "queue_state": "active"}
+
+
+# Resource Monitoring Endpoints
+
+
+@app.get("/api/v1/resources/gpu")
+async def get_gpu_resources():
+    """Get GPU resource utilization."""
+    try:
+        import GPUtil
+
+        gpus = GPUtil.getGPUs()
+        return {
+            "gpus": [
+                {
+                    "id": gpu.id,
+                    "name": gpu.name,
+                    "memory_used": gpu.memoryUsed,
+                    "memory_total": gpu.memoryTotal,
+                    "memory_free": gpu.memoryFree,
+                    "gpu_load": gpu.load * 100,
+                    "temperature": gpu.temperature,
+                }
+                for gpu in gpus
+            ]
+        }
+    except ImportError:
+        return {"gpus": [], "message": "GPUtil not installed"}
+    except Exception as e:
+        return {"gpus": [], "error": str(e)}
+
+
+@app.get("/api/v1/resources/memory")
+async def get_memory_resources():
+    """Get system memory utilization."""
+    import psutil
+
+    memory = psutil.virtual_memory()
+    return {
+        "used": memory.used,
+        "available": memory.available,
+        "percent": memory.percent,
+        "total": memory.total,
+        "free": memory.free,
+    }
+
+
+@app.get("/api/v1/queue/failed")
+async def get_failed_jobs():
+    """Get failed jobs (dead letter queue)."""
+    failed_jobs = [job for job in job_store.values() if job["status"] == JobStatus.FAILED]
+
+    return {"failed_jobs": [JobResponse(**job) for job in failed_jobs], "total": len(failed_jobs)}
+
+
+@app.get("/api/v1/jobs/{job_id}/progress")
+async def get_job_progress(job_id: str):
+    """Get detailed progress for a specific job."""
+    if job_id not in job_store:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    job = job_store[job_id]
+    return {
+        "job_id": job_id,
+        "percent_complete": job.get("progress", 0.0) * 100,
+        "current_step": job.get("current_step", "Unknown"),
+        "estimated_remaining": job.get("estimated_remaining", None),
+        "status": job["status"],
+    }
+
+
+@app.get("/api/v1/jobs/{job_id}/logs")
+async def get_job_logs(job_id: str):
+    """Get execution logs for a specific job."""
+    if job_id not in job_store:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    # In production, this would fetch from a logging service
+    return {"job_id": job_id, "logs": job_store[job_id].get("logs", [])}
+
+
+@app.get("/api/v1/jobs/{job_id}/stream")
+async def stream_job_updates(job_id: str):
+    """Stream real-time job updates (placeholder)."""
+    if job_id not in job_store:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    # Placeholder - in production would use WebSocket or SSE
+    raise HTTPException(
+        status_code=501,
+        detail="Real-time streaming not implemented. Use polling on /status endpoint.",
+    )
+
+
+@app.get("/api/v1/jobs/history")
+async def get_job_history(limit: int = 100, offset: int = 0):
+    """Get historical job data."""
+    all_jobs = list(job_store.values())
+
+    # Sort by creation time (newest first)
+    all_jobs.sort(key=lambda x: x["created_at"], reverse=True)
+
+    # Apply pagination
+    paginated_jobs = all_jobs[offset : offset + limit]
+
+    return {
+        "jobs": [JobResponse(**job) for job in paginated_jobs],
+        "total": len(all_jobs),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@app.post("/api/v1/queue/recover")
+async def recover_jobs():
+    """Recover in-progress jobs after system restart."""
+    # Find all jobs that were processing
+    recovered = 0
+    for _job_id, job in job_store.items():
+        if job["status"] == JobStatus.PROCESSING:
+            # Reset to pending for reprocessing
+            job["status"] = JobStatus.PENDING
+            job["updated_at"] = utc_now().isoformat()
+            recovered += 1
+
+    return {
+        "status": "success",
+        "recovered_jobs": recovered,
+        "message": f"Recovered {recovered} jobs for reprocessing",
+    }
 
 
 if __name__ == "__main__":

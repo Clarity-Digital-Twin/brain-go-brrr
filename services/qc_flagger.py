@@ -25,6 +25,7 @@ try:
 except ImportError:
     logging.warning("autoreject not available. Install with: pip install autoreject")
     HAS_AUTOREJECT = False
+    AutoReject = None  # type: ignore[assignment, misc]
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class EEGQualityController:
         self.random_state = random_state
 
         # Initialize AutoReject if available
-        if AutoReject is not None:
+        if HAS_AUTOREJECT and AutoReject is not None:
             self.autoreject = AutoReject(
                 n_interpolate=[1, 4, 8, 16],
                 n_jobs=1,
