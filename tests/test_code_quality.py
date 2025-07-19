@@ -140,5 +140,5 @@ class TestCodeQuality:
                     and i < len(lines)
                     and "->" not in lines[i]
                 ):
-                            print(f"Warning: Function without return type in {module_path}:{i}")
-                            print(f"  {line.strip()}")
+                    print(f"Warning: Function without return type in {module_path}:{i}")
+                    print(f"  {line.strip()}")

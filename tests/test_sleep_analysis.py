@@ -15,12 +15,12 @@ import mne
 import numpy as np
 import pytest
 
+from services.sleep_metrics import SleepAnalyzer
+
 # Gracefully handle missing dependencies
 yasa = pytest.importorskip(
     "yasa", reason="YASA required for sleep analysis - install with: pip install yasa"
 )
-
-from services.sleep_metrics import SleepAnalyzer
 
 
 class TestSleepAnalyzer:
@@ -80,13 +80,14 @@ class TestSleepAnalyzer:
         """Test sleep metrics calculation."""
         metrics = sleep_controller.calculate_sleep_metrics(sample_sleep_eeg)
 
-        assert "sleep_efficiency" in metrics
-        assert "total_sleep_time" in metrics
-        assert "wake_percentage" in metrics
+        # YASA returns "SE" for sleep efficiency, not "sleep_efficiency"
+        assert "SE" in metrics
+        assert "TST" in metrics  # Total Sleep Time
+        assert "%N1" in metrics or "%N2" in metrics  # At least some sleep stages
 
         # Sleep efficiency should be between 0 and 100
-        assert 0 <= metrics["sleep_efficiency"] <= 100
-        assert metrics["total_sleep_time"] >= 0
+        assert 0 <= metrics["SE"] <= 100
+        assert metrics["TST"] >= 0
 
     @pytest.mark.integration
     def test_sleep_staging_detects_wake(self, sleep_controller):
@@ -231,10 +232,7 @@ def test_full_sleep_analysis_pipeline():
 
     # Validate results
     assert len(hypnogram) > 0
-    assert "sleep_efficiency" in metrics
-    assert 0 <= metrics["sleep_efficiency"] <= 100
+    assert "SE" in metrics  # YASA uses "SE" for sleep efficiency
+    assert 0 <= metrics["SE"] <= 100
 
-    print(
-        f"✅ Sleep analysis completed: {len(hypnogram)} epochs, "
-        f"{metrics['sleep_efficiency']:.1f}% efficiency"
-    )
+    print(f"✅ Sleep analysis completed: {len(hypnogram)} epochs, {metrics['SE']:.1f}% efficiency")
