@@ -350,7 +350,11 @@ class TestEEGPreprocessor:
         duration = 10
         t = np.arange(int(sfreq * duration)) / sfreq
 
-        ch_names = [f"EEG{i:03d}" for i in range(19)]
+        # Use standard 10-20 channel names that match the montage
+        ch_names = [
+            "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
+            "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz"
+        ]
         data = np.zeros((19, len(t)))
 
         # Add different brain rhythms
