@@ -346,3 +346,7 @@ services/*.log
 examples/outputs/
 examples/logs/
 examples/*.log
+
+# Test reports
+pipeline_test_report.txt
+*_test_report.txt

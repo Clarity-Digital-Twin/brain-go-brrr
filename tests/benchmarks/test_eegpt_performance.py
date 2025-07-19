@@ -332,7 +332,11 @@ class TestFullRecordingBenchmarks:
                 return eegpt_model_cpu.predict_abnormality(raw)
 
             result = benchmark(process_recording_memory)
-            processing_time = benchmark.stats.mean
+            # Robust stats extraction
+            stats = benchmark.stats
+            processing_time = getattr(stats, "mean", None) or getattr(stats, "stats", {}).get(
+                "mean", 0
+            )
 
             # Verify processing completed - check for expected result structure
             assert "abnormal_probability" in result

@@ -106,6 +106,9 @@ class EEGPTModel:
         self.abnormality_head: nn.Module | None = None
         self.is_loaded = False
 
+        # Performance optimization: cache channel index mappings
+        self._ch_idx_cache: dict[tuple[str, ...], torch.Tensor] = {}
+
         self.logger = logging.getLogger(__name__)
 
         # Auto-load for backward compatibility
@@ -114,6 +117,17 @@ class EEGPTModel:
                 self.load_model()
             except Exception as e:
                 self.logger.warning(f"Auto-load failed: {e}")
+
+    def _get_cached_channel_ids(self, channel_names: list[str]) -> torch.Tensor:
+        """Get channel IDs with caching for performance."""
+        key = tuple(channel_names)
+        if key not in self._ch_idx_cache:
+            if self.encoder is None:
+                raise RuntimeError("Encoder not loaded")
+            # Create and cache the channel IDs
+            chan_ids = self.encoder.prepare_chan_ids(channel_names)
+            self._ch_idx_cache[key] = chan_ids.to(self.device)
+        return self._ch_idx_cache[key]
 
     @property
     def n_summary_tokens(self) -> int:
@@ -194,9 +208,8 @@ class EEGPTModel:
         # Convert to tensor and add batch dimension
         data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(self.device)
 
-        # Prepare channel IDs
-        chan_ids = self.encoder.prepare_chan_ids(channel_names)
-        chan_ids = chan_ids.to(self.device)
+        # Prepare channel IDs with caching for performance
+        chan_ids = self._get_cached_channel_ids(channel_names)
 
         with torch.no_grad():
             if self.encoder is not None:  # Additional null check for mypy

@@ -4,8 +4,12 @@ This module provides a standardized preprocessing pipeline for EEG data
 that prepares recordings for abnormality detection using EEGPT.
 """
 
+import logging
+
 import mne
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 try:
     from autoreject import AutoReject
@@ -175,11 +179,13 @@ class EEGPreprocessor:
         if self.use_autoreject:
             raw = self._apply_autoreject(raw)
 
+        # Resample first if needed to avoid Nyquist issues
+        raw = self._resample_to_target(raw)
+
         # Apply filters in order
         raw = self._apply_highpass_filter(raw)
         raw = self._apply_lowpass_filter(raw)
         raw = self._apply_notch_filter(raw)
-        raw = self._resample_to_target(raw)
         raw = self._apply_average_reference(raw)
         raw = self._select_channel_subset(raw)
 
@@ -198,6 +204,36 @@ class EEGPreprocessor:
         """
         if not AUTOREJECT_AVAILABLE:
             return raw
+
+        # Check if we have valid channel positions
+        montage = raw.get_montage()
+        if montage is None:
+            logger.warning(
+                "No channel positions found - using amplitude-based rejection instead of AutoReject"
+            )
+            return self._amplitude_based_rejection(raw)
+
+        # Check if positions are valid (not all zeros)
+        positions = np.array(
+            [
+                ch["loc"][:3]
+                for ch in raw.info["chs"]
+                if ch["kind"] == mne.io.constants.FIFF.FIFFV_EEG_CH
+            ]
+        )
+        if len(positions) == 0 or np.allclose(positions, 0):
+            logger.warning(
+                "Channel positions are invalid - using amplitude-based rejection instead of AutoReject"
+            )
+            return self._amplitude_based_rejection(raw)
+
+        # Check if we have enough EEG channels for AutoReject
+        eeg_picks = mne.pick_types(raw.info, eeg=True, exclude=[])
+        if len(eeg_picks) < 5:  # AutoReject needs at least 5 channels
+            logger.warning(
+                f"Only {len(eeg_picks)} EEG channels found - using amplitude-based rejection instead of AutoReject"
+            )
+            return self._amplitude_based_rejection(raw)
 
         # Create fixed-length epochs for Autoreject (4s windows matching EEGPT)
         # This preserves the temporal structure for artifact detection
@@ -231,6 +267,60 @@ class EEGPreprocessor:
                 raw_clean.info[key] = raw.info[key]
 
         return raw_clean
+
+    def _amplitude_based_rejection(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+        """Simple amplitude-based artifact rejection when positions are not available.
+
+        This fallback method uses amplitude thresholds to detect and mark bad channels
+        and segments when AutoReject cannot be used due to missing channel positions.
+        """
+        # Get EEG channels
+        picks = mne.pick_types(raw.info, eeg=True, exclude=[])
+        if len(picks) == 0:
+            return raw
+
+        data = raw.get_data(picks=picks)
+
+        # Detect high amplitude artifacts (>150 µV)
+        threshold = 150e-6
+        bad_mask = np.abs(data) > threshold
+
+        # Mark channels as bad if >10% of samples exceed threshold
+        bad_channels = []
+        for i, ch_idx in enumerate(picks):
+            if np.sum(bad_mask[i]) > 0.1 * data.shape[1]:
+                bad_channels.append(raw.ch_names[ch_idx])
+
+        if bad_channels:
+            raw.info["bads"].extend(bad_channels)
+            logger.info(f"Marked {len(bad_channels)} bad channels using amplitude criteria")
+
+        # Also detect and annotate bad segments
+        # Find segments where multiple channels exceed threshold
+        n_bad_per_sample = np.sum(bad_mask, axis=0)
+        bad_segments = n_bad_per_sample > (0.5 * len(picks))  # >50% channels bad
+
+        # Convert to annotations
+        sfreq = raw.info["sfreq"]
+        bad_starts = np.where(np.diff(np.concatenate([[False], bad_segments, [False]])) == 1)[0]
+        bad_ends = np.where(np.diff(np.concatenate([[False], bad_segments, [False]])) == -1)[0]
+
+        if len(bad_starts) > 0 and len(bad_starts) == len(bad_ends):
+            onsets = bad_starts / sfreq
+            durations = (bad_ends - bad_starts) / sfreq
+            descriptions = ["BAD_amplitude"] * len(onsets)
+
+            annotations = mne.Annotations(
+                onsets, durations, descriptions, orig_time=raw.info["meas_date"]
+            )
+            raw.set_annotations(raw.annotations + annotations)
+            logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
+        elif len(bad_starts) != len(bad_ends):
+            logger.warning(
+                f"Mismatch in bad segment boundaries: {len(bad_starts)} starts, {len(bad_ends)} ends"
+            )
+
+        return raw
 
     def _apply_highpass_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
         """Apply 0.5 Hz high-pass filter to remove DC and drift."""

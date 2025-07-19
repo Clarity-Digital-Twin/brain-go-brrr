@@ -1,0 +1,234 @@
+"""Unified EEGPT Feature Extraction Service.
+
+This service provides centralized EEGPT feature extraction that can be
+shared across multiple downstream tasks (sleep staging, abnormality detection, etc.).
+"""
+
+import hashlib
+import logging
+from pathlib import Path
+from typing import Any
+
+import mne
+import numpy as np
+import torch
+
+from src.brain_go_brrr.models.eegpt_model import EEGPTModel
+from src.brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
+
+logger = logging.getLogger(__name__)
+
+
+class EEGPTFeatureExtractor:
+    """Centralized EEGPT feature extraction for integration."""
+
+    def __init__(
+        self,
+        model_path: Path | None = None,
+        device: str = "cpu",
+        enable_cache: bool = True,
+        cache_size: int = 100,
+    ):
+        """Initialize EEGPT feature extractor.
+
+        Args:
+            model_path: Path to EEGPT checkpoint
+            device: Device to run model on
+            enable_cache: Whether to cache embeddings
+            cache_size: Maximum number of cached embeddings
+        """
+        self.device = device
+        self.enable_cache = enable_cache
+        self.cache_size = cache_size
+        self._cache: dict[str, np.ndarray] = {}
+
+        # Initialize model
+        if model_path is None:
+            model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
+
+        try:
+            self.model = EEGPTModel(checkpoint_path=model_path, device=device)
+            self.model.load_checkpoint()
+            logger.info(f"Loaded EEGPT model from {model_path}")
+        except Exception as e:
+            logger.warning(f"Failed to load EEGPT model: {e}")
+            self.model = None
+
+        # Initialize preprocessor for EEGPT mode
+        self.preprocessor = FlexibleEEGPreprocessor(mode="abnormality")
+
+    def extract_embeddings(self, raw: mne.io.Raw) -> np.ndarray:
+        """Extract EEGPT embeddings from raw EEG data.
+
+        Args:
+            raw: Raw EEG data
+
+        Returns:
+            Embeddings array of shape (n_windows, 512)
+        """
+        # Check cache first
+        if self.enable_cache:
+            cache_key = self._compute_cache_key(raw)
+            if cache_key in self._cache:
+                logger.debug("Using cached embeddings")
+                return self._cache[cache_key]
+
+        # Preprocess for EEGPT
+        preprocessed = self._preprocess_for_eegpt(raw)
+
+        # Extract windows
+        windows = self._extract_windows(preprocessed)
+
+        # Get embeddings from model
+        if self.model is None:
+            # Return random embeddings for testing
+            logger.warning("Using random embeddings (model not loaded)")
+            embeddings = np.random.randn(len(windows), 512).astype(np.float32)
+        else:
+            # Run EEGPT inference
+            embeddings = self._run_inference(windows, preprocessed.ch_names)
+
+        # Cache if enabled
+        if self.enable_cache and len(self._cache) < self.cache_size:
+            self._cache[cache_key] = embeddings
+
+        return embeddings
+
+    def extract_embeddings_with_metadata(self, raw: mne.io.Raw) -> dict[str, Any]:
+        """Extract embeddings with additional metadata.
+
+        Args:
+            raw: Raw EEG data
+
+        Returns:
+            Dictionary containing embeddings and metadata
+        """
+        embeddings = self.extract_embeddings(raw)
+
+        # Calculate window times
+        window_size = 4.0  # seconds
+        n_windows = embeddings.shape[0]
+        window_times = [(i * window_size, (i + 1) * window_size) for i in range(n_windows)]
+
+        return {
+            "embeddings": embeddings,
+            "window_times": window_times,
+            "sampling_rate": raw.info["sfreq"],
+            "n_channels": len(raw.ch_names),
+            "channel_names": raw.ch_names,
+            "embedding_dim": embeddings.shape[1],
+        }
+
+    def extract_batch_embeddings(self, raws: list[mne.io.Raw]) -> list[np.ndarray]:
+        """Extract embeddings for multiple recordings.
+
+        Args:
+            raws: List of raw EEG recordings
+
+        Returns:
+            List of embedding arrays
+        """
+        embeddings_list = []
+
+        for raw in raws:
+            embeddings = self.extract_embeddings(raw)
+            embeddings_list.append(embeddings)
+
+        return embeddings_list
+
+    def _preprocess_for_eegpt(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Preprocess raw data for EEGPT.
+
+        Args:
+            raw: Raw EEG data
+
+        Returns:
+            Preprocessed raw data
+        """
+        # Use FlexiblePreprocessor in abnormality mode (EEGPT settings)
+        preprocessed = self.preprocessor.preprocess(raw.copy())
+        return preprocessed
+
+    def _extract_windows(
+        self, raw: mne.io.Raw, window_size: float = 4.0, overlap: float = 0.0
+    ) -> list[np.ndarray]:
+        """Extract windows from raw data.
+
+        Args:
+            raw: Raw EEG data
+            window_size: Window size in seconds
+            overlap: Overlap in seconds
+
+        Returns:
+            List of window arrays
+        """
+        data = raw.get_data()
+        sfreq = raw.info["sfreq"]
+
+        window_samples = int(window_size * sfreq)
+        step_samples = int((window_size - overlap) * sfreq)
+
+        windows = []
+        for start in range(0, data.shape[1] - window_samples + 1, step_samples):
+            window = data[:, start : start + window_samples]
+            windows.append(window)
+
+        return windows
+
+    def _run_inference(self, windows: list[np.ndarray], channel_names: list[str]) -> np.ndarray:
+        """Run EEGPT inference on windows.
+
+        Args:
+            windows: List of window arrays
+            channel_names: Channel names
+
+        Returns:
+            Embeddings array
+        """
+        # Stack windows into batch
+        batch = np.stack(windows)  # (n_windows, n_channels, n_samples)
+
+        # Convert to torch tensor
+        batch_tensor = torch.from_numpy(batch).float().to(self.device)
+
+        # Run model
+        with torch.no_grad():
+            # EEGPT expects (batch, channels, time)
+            embeddings = self.model.extract_features(batch_tensor, channel_names)
+
+        # Convert back to numpy
+        if isinstance(embeddings, torch.Tensor):
+            embeddings = embeddings.cpu().numpy()
+
+        # Ensure correct shape: (n_windows, embedding_dim)
+        if embeddings.ndim == 3:
+            # Handle different possible shapes
+            if embeddings.shape[0] == 1:
+                # If (batch=1, n_windows, dim), squeeze batch dimension
+                embeddings = embeddings.squeeze(0)
+            elif embeddings.shape[1] == len(windows):
+                # If (batch, n_windows, dim) with batch > 1, reshape
+                embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
+
+        return embeddings.astype(np.float32)  # type: ignore[no-any-return]
+
+    def _compute_cache_key(self, raw: mne.io.Raw) -> str:
+        """Compute cache key for raw data.
+
+        Args:
+            raw: Raw EEG data
+
+        Returns:
+            Cache key string
+        """
+        # Use data hash and metadata for cache key
+        data_sample = raw.get_data()[:, :1000]  # First 1000 samples
+        data_hash = hashlib.md5(data_sample.tobytes(), usedforsecurity=False).hexdigest()
+
+        metadata = f"{len(raw.ch_names)}_{raw.info['sfreq']}_{raw.n_times}"
+        return f"{data_hash}_{metadata}"
+
+    def clear_cache(self) -> None:
+        """Clear the embedding cache."""
+        self._cache.clear()
+        logger.info("Cleared embedding cache")

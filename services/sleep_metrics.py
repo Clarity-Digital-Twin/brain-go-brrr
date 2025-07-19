@@ -7,6 +7,7 @@ This service provides sleep stage classification and detailed sleep metrics.
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import mne
 import numpy as np
@@ -71,6 +72,9 @@ class SleepAnalyzer:
     ) -> mne.io.Raw:
         """Preprocess EEG data for sleep staging.
 
+        NOTE: Following YASA documentation, we do NOT filter the data
+        before sleep staging. YASA handles all necessary preprocessing.
+
         Args:
             raw: Raw EEG data
             eeg_channels: List of EEG channel names
@@ -83,16 +87,13 @@ class SleepAnalyzer:
         """
         raw_copy = raw.copy()
 
-        # Resample to standard sleep staging frequency
+        # Resample to standard sleep staging frequency (YASA requirement)
         if raw_copy.info["sfreq"] != resample_freq:
             raw_copy.resample(resample_freq)
 
-        # Apply appropriate filters for sleep staging
-        raw_copy.filter(
-            l_freq=0.3,  # High-pass for sleep staging
-            h_freq=35.0,  # Low-pass for sleep staging
-            fir_design="firwin",
-        )
+        # DO NOT FILTER - YASA documentation explicitly states:
+        # "Do NOT transform (e.g. z-score) or filter the signal before
+        # running the sleep-staging algorithm"
 
         # Set channel types if specified
         if eeg_channels:
@@ -110,6 +111,46 @@ class SleepAnalyzer:
 
         return raw_copy
 
+    def _smooth_hypnogram(self, hypnogram: np.ndarray, window_min: float = 7.5) -> np.ndarray:
+        """Apply temporal smoothing to hypnogram using triangular window.
+
+        This implements YASA's default smoothing approach using a
+        triangular-weighted majority vote over a sliding window.
+
+        Args:
+            hypnogram: Array of sleep stages (strings)
+            window_min: Window size in minutes (default: 7.5)
+
+        Returns:
+            Smoothed hypnogram
+        """
+        # Calculate window size in epochs (30-second epochs)
+        window_epochs = int(window_min * 60 / 30)
+        if window_epochs % 2 == 0:
+            window_epochs += 1  # Make odd for centered window
+
+        # Handle edge cases
+        if len(hypnogram) <= window_epochs:
+            return hypnogram
+
+        # Pad the hypnogram with edge values
+        pad_size = window_epochs // 2
+        padded = np.pad(hypnogram, (pad_size, pad_size), mode="edge")
+
+        # Apply majority vote with triangular window
+        smoothed = []
+        for i in range(len(hypnogram)):
+            # Extract window around current position
+            window = padded[i : i + window_epochs]
+
+            # Get mode (most common value) in window
+            # Use np.unique for string arrays
+            unique, counts = np.unique(window, return_counts=True)
+            mode_idx = np.argmax(counts)
+            smoothed.append(unique[mode_idx])
+
+        return np.array(smoothed)
+
     def stage_sleep(
         self,
         raw: mne.io.Raw,
@@ -118,7 +159,10 @@ class SleepAnalyzer:
         emg_name: str = "EMG",
         metadata: dict | None = None,
         picks: str | list[str] | None = None,
-    ) -> tuple[np.ndarray, dict] | np.ndarray:
+        return_proba: bool = False,
+        apply_smoothing: bool = False,
+        smoothing_window_min: float = 7.5,
+    ) -> tuple[np.ndarray, np.ndarray] | np.ndarray:
         """Perform automatic sleep staging.
 
         Args:
@@ -126,11 +170,16 @@ class SleepAnalyzer:
             eeg_name: Name of EEG channel for staging
             eog_name: Name of EOG channel
             emg_name: Name of EMG channel
-            metadata: Additional metadata
+            metadata: Additional metadata with 'age' and 'male' keys for improved accuracy
             picks: Channel(s) to use for staging. If 'eeg', use all EEG channels.
+            return_proba: If True, return (hypnogram, probability_matrix)
+            apply_smoothing: If True, apply temporal smoothing to predictions
+            smoothing_window_min: Window size for smoothing in minutes
 
         Returns:
-            Sleep stages array and staging results (or just array if simplified)
+            If return_proba=False: Sleep stage array
+            If return_proba=True: Tuple of (hypnogram, probability_matrix)
+                where probability_matrix has shape (n_epochs, 5) for stages W,N1,N2,N3,REM
         """
         # Handle picks parameter
         if picks == "eeg":
@@ -182,20 +231,28 @@ class SleepAnalyzer:
             # Predict sleep stages
             y_pred = sls.predict()
 
-            # Get prediction probabilities
-            sls.predict_proba()
+            # Apply temporal smoothing if requested
+            if apply_smoothing:
+                y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
+                logger.info(f"Applied temporal smoothing with {smoothing_window_min} min window")
 
-            # Create results dictionary
+            # Get prediction probabilities if requested
+            if return_proba:
+                proba = sls.predict_proba()
+                logger.info(
+                    f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
+                )
+                return y_pred, proba
 
             logger.info(
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
             # Return just the array for simple interface
-            return y_pred
+            return y_pred  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
-            # Return dummy stages as fallback
+            # Return dummy stages as fallback (always return strings)
             n_epochs = int(raw.times[-1] / self.epoch_length)
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages
@@ -214,7 +271,9 @@ class SleepAnalyzer:
         # Handle both Raw object and hypnogram array for compatibility
         if hasattr(raw_or_hypnogram, "get_data"):
             # It's a Raw object, stage it first
-            hypnogram = self.stage_sleep(raw_or_hypnogram)
+            staging_result = self.stage_sleep(raw_or_hypnogram)
+            # Handle both tuple and array return types
+            hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:
             # It's already a hypnogram array
             hypnogram = raw_or_hypnogram
@@ -275,7 +334,7 @@ class SleepAnalyzer:
         # Merge with YASA statistics
         stats.update(custom_stats)
 
-        return stats
+        return stats  # type: ignore[no-any-return]
 
     def detect_sleep_events(
         self,
@@ -284,7 +343,7 @@ class SleepAnalyzer:
         include_spindles: bool = True,
         include_so: bool = True,
         include_rem: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Detect sleep-specific events.
 
         Args:
@@ -518,7 +577,7 @@ class SleepAnalyzer:
         else:
             return "F"
 
-    def run_full_sleep_analysis(self, raw: mne.io.Raw, **kwargs) -> dict:
+    def run_full_sleep_analysis(self, raw: mne.io.Raw, **kwargs: Any) -> dict[str, Any]:
         """Run complete sleep analysis pipeline.
 
         Args:
@@ -534,8 +593,15 @@ class SleepAnalyzer:
         raw_sleep = self.preprocess_for_sleep(raw)
 
         # Perform sleep staging
-        hypnogram = self.stage_sleep(raw_sleep, **kwargs)
-        staging_results = {"method": "yasa", "model": self.staging_model}
+        staging_result = self.stage_sleep(raw_sleep, **kwargs)
+        # Handle both tuple and array return types
+        staging_results: dict[str, Any]
+        if isinstance(staging_result, tuple):
+            hypnogram, staging_info = staging_result
+            staging_results = staging_info
+        else:
+            hypnogram = staging_result
+            staging_results = {"method": "yasa", "model": self.staging_model}
 
         # Compute sleep statistics
         sleep_stats = self.compute_sleep_statistics(hypnogram, self.epoch_length)
@@ -571,7 +637,7 @@ class SleepAnalyzer:
         return report
 
 
-def main():
+def main() -> None:
     """Example usage of the sleep analyzer."""
     logger.info("Sleep Metrics service is ready")
     logger.info("Use SleepAnalyzer class to perform sleep analysis")

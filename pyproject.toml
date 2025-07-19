@@ -187,6 +187,7 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
+ignore_missing_imports = true
 warn_unreachable = true
 strict_equality = true
 
@@ -209,6 +210,8 @@ module = [
     "reportlab.*",
     "tsfresh",
     "tsfresh.*",
+    "src.brain_go_brrr.models.eegpt_model",
+    "src.brain_go_brrr.preprocessing.flexible_preprocessor",
 ]
 ignore_missing_imports = true
 

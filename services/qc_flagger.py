@@ -7,9 +7,12 @@ This service provides a comprehensive QC pipeline for EEG data.
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import mne
 import numpy as np
+
+from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autoreject"))
@@ -33,6 +36,9 @@ class EEGQualityController:
     3. Abnormality scoring with EEGPT
     4. Comprehensive QC reporting
     """
+
+    eegpt_model: EEGPTModel | None
+    autoreject: Any  # AutoReject type from external library
 
     def __init__(
         self,
@@ -213,7 +219,7 @@ class EEGQualityController:
                     bad_channels.append(ch_name)
 
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
-        return bad_channels
+        return bad_channels  # type: ignore[no-any-return]
 
     def create_epochs(
         self,
@@ -430,12 +436,13 @@ class EEGQualityController:
         }
 
         # Add rejection statistics if available
-        if reject_log is not None:
+        if reject_log is not None and hasattr(reject_log, "labels"):
+            labels = reject_log.labels
             report["rejection_stats"] = {
-                "n_interpolated": np.sum(reject_log.labels == 1),
-                "n_rejected": np.sum(reject_log.labels == 2),
-                "interpolation_rate": np.mean(reject_log.labels == 1),
-                "rejection_rate": np.mean(reject_log.labels == 2),
+                "n_interpolated": np.sum(labels == 1),
+                "n_rejected": np.sum(labels == 2),
+                "interpolation_rate": np.mean(labels == 1),
+                "rejection_rate": np.mean(labels == 2),
             }
 
         return report
@@ -455,7 +462,7 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs) -> dict:  # noqa: ARG002
+    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict:  # noqa: ARG002
         """Run the complete QC pipeline.
 
         Args:
@@ -483,7 +490,13 @@ class EEGQualityController:
         epochs_clean, reject_log = self.auto_reject_epochs(epochs, return_log=True)
 
         # Compute abnormality score
-        abnormality_score = self.compute_abnormality_score(epochs_clean)
+        abnormality_result = self.compute_abnormality_score(epochs_clean)
+
+        # Extract score value if it's a dict
+        if isinstance(abnormality_result, dict):
+            abnormality_score = abnormality_result.get("score", 0.5)
+        else:
+            abnormality_score = abnormality_result
 
         # Generate report
         report = self.generate_qc_report(

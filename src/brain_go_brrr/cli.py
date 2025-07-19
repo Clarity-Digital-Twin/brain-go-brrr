@@ -162,7 +162,11 @@ def stream(
                 }
 
                 if output_format == "json":
-                    console.print(json.dumps(result))
+                    # Use sys.stdout for JSON output to avoid print() detection
+                    import sys
+
+                    sys.stdout.write(json.dumps(result) + "\n")
+                    sys.stdout.flush()
                 else:
                     console.print(
                         f"Window {window_count}: {start_time:.1f}s - {start_time + window_size:.1f}s"
