@@ -7,7 +7,7 @@ import os
 import time
 from typing import Any, cast
 
-from infra.cache import get_cache as get_infra_cache
+from brain_go_brrr.infra.cache import get_cache as get_infra_cache
 
 logger = logging.getLogger(__name__)
 

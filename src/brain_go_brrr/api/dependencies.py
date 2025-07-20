@@ -1,6 +1,6 @@
 """Shared dependencies for API endpoints."""
 
-from api.cache import RedisCache
+from brain_go_brrr.api.cache import RedisCache
 
 # Global instances (to be replaced with proper DI)
 cache_client: RedisCache | None = None

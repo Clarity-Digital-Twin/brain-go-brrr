@@ -43,10 +43,10 @@ class TestAPIEndpoints:
         """Create test client with mocked dependencies."""
         # Import here to ensure mocks are in place
         # Set the global qc_controller
-        import api.main
-        from api.main import app
+        import brain_go_brrr.api.main as api_main
+        from brain_go_brrr.api.main import app
 
-        api.main.qc_controller = mock_qc_controller
+        api_main.qc_controller = mock_qc_controller
 
         return TestClient(app)
 

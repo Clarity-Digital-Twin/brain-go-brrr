@@ -9,12 +9,12 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
-from api.routers.jobs import job_store  # TODO: Move to core
-from api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
+from brain_go_brrr.api.routers.jobs import job_store  # TODO: Move to core
+from brain_go_brrr.api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
 from brain_go_brrr.utils.time import utc_now
-from core.edf_loader import load_edf_safe
-from core.exceptions import EdfLoadError, SleepAnalysisError
-from core.sleep import SleepAnalyzer
+from brain_go_brrr.core.edf_loader import load_edf_safe
+from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError
+from brain_go_brrr.core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)
 

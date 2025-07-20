@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from api.schemas import JobPriority, JobStatus
+from brain_go_brrr.api.schemas import JobPriority, JobStatus
 
 
 @dataclass(frozen=True)

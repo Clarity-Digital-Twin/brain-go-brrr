@@ -28,7 +28,7 @@ import torch
 import mne
 from unittest.mock import patch
 
-from core.abnormal.detector import AbnormalityDetector, AbnormalityResult
+from brain_go_brrr.core.abnormal.detector import AbnormalityDetector, AbnormalityResult
 from tests.fixtures.mock_eegpt import create_mock_detector_with_realistic_model
 
 

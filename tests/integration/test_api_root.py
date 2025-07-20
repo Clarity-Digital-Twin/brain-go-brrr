@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from api.main import app
+from brain_go_brrr.api.main import app
 
 
 class TestAPIRoot:

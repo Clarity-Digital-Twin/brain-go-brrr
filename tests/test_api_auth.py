@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from api.auth import (
+from brain_go_brrr.api.auth import (
     create_cache_clear_token,
     create_hmac_signature,
     generate_admin_token,
@@ -156,7 +156,7 @@ class TestAPIAuthentication:
     @pytest.fixture
     def client(self):
         """Create test client."""
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 

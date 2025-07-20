@@ -6,7 +6,7 @@ from typing import Any
 
 import mne
 
-from core.exceptions import EdfLoadError
+from brain_go_brrr.core.exceptions import EdfLoadError
 
 logger = logging.getLogger(__name__)
 

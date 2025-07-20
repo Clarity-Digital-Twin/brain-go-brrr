@@ -13,8 +13,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from redis.exceptions import ConnectionError, RedisError, TimeoutError
 
-from infra.redis import RedisConnectionPool, close_redis_pool, get_redis_pool
-from infra.redis.pool import CircuitBreaker, CircuitState
+from brain_go_brrr.infra.redis import RedisConnectionPool, close_redis_pool, get_redis_pool
+from brain_go_brrr.infra.redis.pool import CircuitBreaker, CircuitState
 
 
 class TestCircuitBreaker:

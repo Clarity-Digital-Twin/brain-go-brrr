@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Protocol, runtime_checkable
 
-from infra.redis import RedisConnectionPool, get_redis_pool
+from brain_go_brrr.infra.redis import RedisConnectionPool, get_redis_pool
 
 logger = logging.getLogger(__name__)
 

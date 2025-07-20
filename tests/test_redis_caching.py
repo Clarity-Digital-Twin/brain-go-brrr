@@ -47,7 +47,7 @@ class TestRedisCaching:
             analysis_type: f"eeg_analysis:{hashlib.sha256(content).hexdigest()}:{analysis_type}"
         )
 
-        with patch("api.cache.get_cache", return_value=mock_client):
+        with patch("brain_go_brrr.api.cache.get_cache", return_value=mock_client):
             yield mock_client
 
     @pytest.fixture
@@ -78,12 +78,12 @@ class TestRedisCaching:
     @pytest.fixture
     def client_with_cache(self, mock_qc_controller, mock_redis_client):
         """Create test client with caching enabled."""
-        import api.main
-        from api.main import app
+        import brain_go_brrr.api.main as api_main
+        from brain_go_brrr.api.main import app
 
         # Inject mocked dependencies
-        api.main.qc_controller = mock_qc_controller
-        api.main.cache_client = mock_redis_client
+        api_main.qc_controller = mock_qc_controller
+        api_main.cache_client = mock_redis_client
 
         # Also make app.state have the cache_client for tests that check it
         app.state.cache_client = mock_redis_client

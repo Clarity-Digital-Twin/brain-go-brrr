@@ -29,7 +29,7 @@ pytestmark = pytest.mark.skip(reason="Over-engineered mock system - use real dat
 import numpy as np
 import pytest
 
-from core.abnormal.detector import TriageLevel
+from brain_go_brrr.core.abnormal.detector import TriageLevel
 from tests.fixtures.mock_eegpt import create_mock_detector_with_realistic_model
 
 

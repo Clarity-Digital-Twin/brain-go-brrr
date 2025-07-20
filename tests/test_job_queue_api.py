@@ -43,10 +43,10 @@ def client(mock_redis_cache):
     """FastAPI test client with mocked dependencies."""
     # Mock the cache before importing the API
     with (
-        patch("api.cache.RedisCache", return_value=mock_redis_cache),
-        patch("api.cache.get_cache", return_value=mock_redis_cache),
+        patch("brain_go_brrr.api.cache.RedisCache", return_value=mock_redis_cache),
+        patch("brain_go_brrr.api.cache.get_cache", return_value=mock_redis_cache),
     ):
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 

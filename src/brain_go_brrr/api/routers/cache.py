@@ -5,8 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.cache import get_cache
-from api.schemas import CacheWarmupRequest
+from brain_go_brrr.api.cache import get_cache
+from brain_go_brrr.api.schemas import CacheWarmupRequest
 
 logger = logging.getLogger(__name__)
 

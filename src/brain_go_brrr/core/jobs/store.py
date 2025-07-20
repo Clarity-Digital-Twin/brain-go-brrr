@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 from typing import Any
 
-from api.schemas import JobData, JobPriority, JobStatus
+from brain_go_brrr.api.schemas import JobData, JobPriority, JobStatus
 
 logger = logging.getLogger(__name__)
 

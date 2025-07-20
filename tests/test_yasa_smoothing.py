@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from core.sleep import SleepAnalyzer
+from brain_go_brrr.core.sleep import SleepAnalyzer
 
 
 class TestYASASmoothing:

@@ -42,9 +42,9 @@ def fresh_app():
 @pytest.fixture
 def client():
     """Create a fresh test client with isolated app instance."""
-    import api.main
+    import brain_go_brrr.api.main as api_main
 
-    return TestClient(api.main.app)
+    return TestClient(api_main.app)
 
 
 @pytest.fixture

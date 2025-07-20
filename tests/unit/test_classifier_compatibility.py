@@ -11,7 +11,7 @@ import pytest
 import torch
 
 from brain_go_brrr.core.abnormality_config import AbnormalityConfig
-from core.abnormal import AbnormalityDetector
+from brain_go_brrr.core.abnormal import AbnormalityDetector
 
 
 class TestClassifierCompatibility:

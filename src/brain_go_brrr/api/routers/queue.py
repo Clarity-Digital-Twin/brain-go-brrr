@@ -6,8 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from api.routers.jobs import job_store  # TODO: Move to core
-from api.schemas import JobResponse, JobStatus, QueueStatusResponse
+from brain_go_brrr.api.routers.jobs import job_store  # TODO: Move to core
+from brain_go_brrr.api.schemas import JobResponse, JobStatus, QueueStatusResponse
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)

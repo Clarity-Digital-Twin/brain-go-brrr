@@ -23,9 +23,9 @@ from brain_go_brrr.data.edf_streaming import decide_streaming, estimate_memory_u
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
-from core.quality import EEGQualityController
-from core.sleep import SleepAnalyzer
-from core.snippets import EEGSnippetMaker
+from brain_go_brrr.core.quality import EEGQualityController
+from brain_go_brrr.core.sleep import SleepAnalyzer
+from brain_go_brrr.core.snippets import EEGSnippetMaker
 
 # Set up logging
 logger = get_logger(__name__)

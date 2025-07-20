@@ -15,7 +15,7 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.quality import (  # noqa: E402 - Import after sys.path modification for script execution
+from brain_go_brrr.core.quality import (  # noqa: E402 - Import after sys.path modification for script execution
     EEGQualityController,
 )
 

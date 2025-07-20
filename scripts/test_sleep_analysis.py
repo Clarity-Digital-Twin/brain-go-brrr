@@ -14,7 +14,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from brain_go_brrr.core.logger import get_logger
-from core.sleep import SleepAnalyzer
+from brain_go_brrr.core.sleep import SleepAnalyzer
 
 logger = get_logger(__name__)
 

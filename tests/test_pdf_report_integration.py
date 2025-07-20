@@ -69,10 +69,10 @@ class TestPDFReportIntegration:
     @pytest.fixture
     def client(self, mock_qc_controller):
         """Create test client with mocked dependencies."""
-        import api.main
-        from api.main import app
+        import brain_go_brrr.api.main as api_main
+        from brain_go_brrr.api.main import app
 
-        api.main.qc_controller = mock_qc_controller
+        api_main.qc_controller = mock_qc_controller
         return TestClient(app)
 
     @pytest.fixture

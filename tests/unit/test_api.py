@@ -10,7 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # We'll import the app after it's implemented
-# from api.main import app
+# from brain_go_brrr.api.main import app
 
 
 class TestAPIEndpoints:
@@ -20,7 +20,7 @@ class TestAPIEndpoints:
     def client(self):
         """Create test client - relies on conftest.py fresh_app for isolation."""
         # Import here to avoid circular imports
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 
@@ -64,11 +64,11 @@ class TestAPIEndpoints:
     def test_health_check_endpoint(self, client, monkeypatch):
         """Test health check endpoint."""
         # Mock the qc_controller to have a loaded model
-        import api.main
+        import brain_go_brrr.api.main as api_main
 
         mock_controller = MagicMock()
         mock_controller.eegpt_model = MagicMock()  # Model is loaded
-        monkeypatch.setattr(api.main, "qc_controller", mock_controller)
+        monkeypatch.setattr(api_main, "qc_controller", mock_controller)
 
         response = client.get("/api/v1/health")
 
@@ -100,9 +100,9 @@ class TestAPIEndpoints:
     def test_analyze_endpoint_successful_response_format(self, client, mock_qc_controller):
         """Test successful analysis returns correct JSON format (ROUGH_DRAFT.md specs)."""
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf") as mock_read,
-            patch("api.main.estimate_memory_usage") as mock_estimate,
+            patch("api_main.estimate_memory_usage") as mock_estimate,
         ):
             mock_raw = MagicMock()
             mock_read.return_value = mock_raw
@@ -141,10 +141,10 @@ class TestAPIEndpoints:
         }
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -168,10 +168,10 @@ class TestAPIEndpoints:
         }
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -195,10 +195,10 @@ class TestAPIEndpoints:
         }
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -222,10 +222,10 @@ class TestAPIEndpoints:
         }
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -238,10 +238,10 @@ class TestAPIEndpoints:
     def test_processing_time_requirement(self, client, mock_qc_controller):
         """Test that processing time is tracked and reasonable (NFR1.1: <2 minutes for 20-min EEG)."""
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -257,10 +257,10 @@ class TestAPIEndpoints:
         """Test bad channel detection meets accuracy requirement (FR1.1: >95% accuracy)."""
         # This is more of an integration test, but we verify the format
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -276,10 +276,10 @@ class TestAPIEndpoints:
     def test_abnormality_detection_confidence(self, client, mock_qc_controller):
         """Test abnormality detection includes confidence score (FR2.2)."""
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -310,10 +310,10 @@ class TestAPIEndpoints:
         """Test API can handle concurrent requests (NFR1.2: Support 50 concurrent analyses)."""
         # This is a simple test - real concurrency testing would use asyncio
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -348,10 +348,10 @@ class TestAPIEndpoints:
         }
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):
@@ -399,10 +399,10 @@ class TestAPIPerformance:
         # Note: This tests the endpoint itself, not the processing
         import time
 
-        import api.main
+        import brain_go_brrr.api.main as api_main
 
         # Mock the controller to ensure consistent state
-        monkeypatch.setattr(api.main, "qc_controller", mock_qc_controller)
+        monkeypatch.setattr(api_main, "qc_controller", mock_qc_controller)
 
         start = time.time()
         response = client.get("/api/v1/health")
@@ -419,10 +419,10 @@ class TestAPIPerformance:
         large_content = b"0       " + b" " * 1024 * 1024  # 1MB mock file
 
         with (
-            patch("api.main.qc_controller", mock_qc_controller),
+            patch("api_main.qc_controller", mock_qc_controller),
             patch("mne.io.read_raw_edf"),
             patch(
-                "api.main.estimate_memory_usage",
+                "api_main.estimate_memory_usage",
                 return_value={"estimated_total_mb": 10.0},
             ),
         ):

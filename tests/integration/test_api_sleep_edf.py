@@ -17,7 +17,7 @@ class TestSleepEDFIntegration:
     @pytest.fixture
     def client(self):
         """Create test client with proper startup."""
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 
@@ -245,7 +245,7 @@ class TestAPIRobustness:
     @pytest.fixture
     def client(self):
         """Create test client with proper startup."""
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 

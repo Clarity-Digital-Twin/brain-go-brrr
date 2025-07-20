@@ -11,8 +11,8 @@ from typing import Any
 import mne
 import numpy as np
 
-from core.features import EEGPTFeatureExtractor
-from core.sleep import SleepAnalyzer
+from brain_go_brrr.core.features import EEGPTFeatureExtractor
+from brain_go_brrr.core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)
 

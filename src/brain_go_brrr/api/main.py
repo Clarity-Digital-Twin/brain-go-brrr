@@ -2,7 +2,7 @@
 
 import uvicorn
 
-from api.app import create_app
+from brain_go_brrr.api.app import create_app
 
 # Create the application
 app = create_app()

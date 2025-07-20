@@ -298,7 +298,7 @@ class TestPDFReportIntegration:
     @pytest.fixture
     def client(self):
         """Create test client."""
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 

@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import cache, health, jobs, qc, queue, resources, sleep
+from brain_go_brrr.api.routers import cache, health, jobs, qc, queue, resources, sleep
 from brain_go_brrr.core.logger import get_logger
 
 logger = get_logger(__name__)

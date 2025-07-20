@@ -254,7 +254,7 @@ class TestMarkdownIntegration:
         """Create test client."""
         from fastapi.testclient import TestClient
 
-        from api.main import app
+        from brain_go_brrr.api.main import app
 
         return TestClient(app)
 
