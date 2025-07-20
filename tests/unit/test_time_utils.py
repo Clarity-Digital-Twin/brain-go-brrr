@@ -2,9 +2,12 @@
 
 from datetime import UTC, datetime
 
+import pytest
+
 from brain_go_brrr.utils.time import format_timestamp, timestamp_for_logging, utc_now
 
 
+@pytest.mark.unit
 class TestTimeUtils:
     """Test time utility functions."""
 

@@ -112,21 +112,38 @@ check: test quality ## Run all tests and quality checks
 
 ##@ Testing
 
-test: ## Run all tests
+test: ## Run all tests (including slow ones)
 	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v
+	$(PYTEST) $(TEST_DIR) -v -m ""
 
-test-fast: ## Run tests in parallel
-	@echo "$(GREEN)Running tests in parallel...$(NC)"
-	$(PYTEST) $(TEST_DIR) -n auto
+test-fast: ## Run only fast unit tests (default)
+	@echo "$(GREEN)Running fast unit tests...$(NC)"
+	$(PYTEST) $(TEST_DIR) -v -m "not slow and not integration and not external"
 
-test-cov: ## Run tests with coverage
+test-cov: ## Run fast tests with coverage (80% minimum)
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	$(PYTEST) $(TEST_DIR) --cov=$(SRC_DIR) --cov-report=html --cov-report=term-missing
+	$(PYTEST) $(TEST_DIR) \
+		--cov=api --cov=core --cov=infra \
+		--cov-report=term-missing \
+		--cov-report=html \
+		--cov-fail-under=80 \
+		-m "not slow and not integration and not external"
+
+test-integration: ## Run integration tests
+	@echo "$(GREEN)Running integration tests...$(NC)"
+	$(PYTEST) $(TEST_DIR) -v -m "integration"
+
+test-all-cov: ## Run ALL tests with coverage report
+	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
+	$(PYTEST) $(TEST_DIR) \
+		--cov=api --cov=core --cov=infra --cov=src/brain_go_brrr \
+		--cov-report=term-missing \
+		--cov-report=html \
+		-m ""
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"
-	$(PYTEST) $(TEST_DIR) -f
+	$(PYTEST) $(TEST_DIR) -f -m "not slow"
 
 benchmark: ## Run performance benchmarks
 	@echo "$(GREEN)Running benchmarks...$(NC)"
