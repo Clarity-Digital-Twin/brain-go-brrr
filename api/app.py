@@ -1,21 +1,16 @@
 """Application factory for Brain-Go-Brrr API."""
 
-import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import cache, health, jobs, qc, queue, resources, sleep
-from brain_go_brrr.core.logger import setup_logger
+from brain_go_brrr.core.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    # Setup logging
-    setup_logger()
-
     # Create FastAPI app
     app = FastAPI(
         title="Brain-Go-Brrr EEG Analysis API",

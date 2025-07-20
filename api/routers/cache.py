@@ -1,6 +1,7 @@
 """Cache management endpoints."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -13,14 +14,14 @@ router = APIRouter(prefix="/cache", tags=["cache"])
 
 
 @router.get("/stats")
-async def get_cache_stats(cache_client=Depends(get_cache)):
+async def get_cache_stats(cache_client: Any = Depends(get_cache)) -> dict[str, Any]:
     """Get Redis cache statistics."""
     if not cache_client or not cache_client.connected:
         return {"status": "unavailable", "message": "Cache not available"}
 
     try:
         stats = cache_client.get_stats()
-        return stats
+        return dict(stats)
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")
         return {"status": "error", "error": str(e)}
@@ -29,8 +30,8 @@ async def get_cache_stats(cache_client=Depends(get_cache)):
 @router.delete("/clear")
 async def clear_cache(
     pattern: str = "eeg_analysis:*",
-    cache_client=Depends(get_cache),
-):
+    cache_client: Any = Depends(get_cache),
+) -> dict[str, Any]:
     """Clear cache entries matching pattern.
 
     Args:
@@ -52,14 +53,14 @@ async def clear_cache(
         }
     except Exception as e:
         logger.error(f"Failed to clear cache: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/warmup")
 async def warmup_cache(
-    request: CacheWarmupRequest,
-    cache_client=Depends(get_cache),
-):
+    request: CacheWarmupRequest,  # noqa: ARG001
+    cache_client: Any = Depends(get_cache),
+) -> dict[str, Any]:
     """Pre-warm cache with analysis results.
 
     Useful for demo/testing to ensure fast responses.

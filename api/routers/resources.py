@@ -1,8 +1,15 @@
 """Resource monitoring endpoints."""
 
+import importlib
 import logging
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter
+
+if TYPE_CHECKING:
+    import GPUtil  # type: ignore[import-not-found]
+else:
+    GPUtil = None
 
 logger = logging.getLogger(__name__)
 
@@ -10,11 +17,18 @@ router = APIRouter(prefix="/resources", tags=["resources"])
 
 
 @router.get("/gpu")
-async def get_gpu_resources():
+async def get_gpu_resources() -> dict[str, Any]:
     """Get GPU resource utilization."""
-    try:
-        import GPUtil
+    global GPUtil
 
+    # Try to import GPUtil dynamically if not already loaded
+    if GPUtil is None:
+        try:
+            GPUtil = importlib.import_module("GPUtil")
+        except ImportError:
+            return {"gpus": [], "message": "GPUtil not installed"}
+
+    try:
         gpus = GPUtil.getGPUs()
         return {
             "gpus": [
@@ -30,8 +44,6 @@ async def get_gpu_resources():
                 for gpu in gpus
             ]
         }
-    except ImportError:
-        return {"gpus": [], "message": "GPUtil not installed"}
     except Exception as e:
         return {"gpus": [], "error": str(e)}
 

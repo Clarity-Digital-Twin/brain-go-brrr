@@ -18,10 +18,10 @@ def inspect_checkpoint():
     print(f"File size: {checkpoint_path.stat().st_size / 1e6:.1f} MB")
 
     # Load checkpoint
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614
 
     print("\n=== Checkpoint Keys ===")
-    for key in checkpoint.keys():
+    for key in checkpoint:
         if isinstance(checkpoint[key], dict):
             print(f"{key}: dict with {len(checkpoint[key])} items")
         elif isinstance(checkpoint[key], torch.Tensor):

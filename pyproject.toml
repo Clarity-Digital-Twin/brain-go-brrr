@@ -28,6 +28,7 @@ dev-dependencies = [
     "types-pygments>=2.19.0.20250715",
     "types-pexpect>=4.9.0.20250516",
     "types-psutil>=7.0.0.20250601",
+    "types-requests>=2.32.4.20250611",
 ]
 
 [project]
@@ -262,13 +263,16 @@ path = "src/brain_go_brrr/__init__.py"
 [tool.hatch.build.targets.sdist]
 include = [
     "/src",
+    "/core",
+    "/api",
+    "/infra",
     "/tests",
     "/README.md",
     "/LICENSE",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/brain_go_brrr"]
+packages = ["src/brain_go_brrr", "core", "api", "infra"]
 
 
 [tool.bandit]

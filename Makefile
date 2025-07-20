@@ -80,23 +80,23 @@ notebook: ## Start Jupyter Lab
 
 lint: ## Run linting with ruff
 	@echo "$(GREEN)Running linting checks...$(NC)"
-	$(RUFF) check $(SRC_DIR) $(TEST_DIR) --fix
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR) core/ api/ infra/ --fix
 	@echo "$(GREEN)Linting complete!$(NC)"
 
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
-	$(RUFF) format $(SRC_DIR) $(TEST_DIR)
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR) core/ api/ infra/
 	@echo "$(GREEN)Code formatted!$(NC)"
 
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
 	@rm -rf .mypy_cache 2>/dev/null || true
-	$(MYPY) src/brain_go_brrr services/
+	$(MYPY) src/brain_go_brrr core/ api/ infra/
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
 fast-type-check: ## Fast type checking for development (uses cache)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
-	$(MYPY) --ignore-missing-imports src/brain_go_brrr
+	$(MYPY) --ignore-missing-imports src/brain_go_brrr core/ api/
 	@echo "$(GREEN)Fast type checking complete!$(NC)"
 
 type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py

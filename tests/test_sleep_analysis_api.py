@@ -47,7 +47,7 @@ def client(mock_redis_cache):
     # Mock the cache before importing the API
     with (
         patch("api.cache.RedisCache", return_value=mock_redis_cache),
-        patch("api.main.get_cache", return_value=mock_redis_cache),
+        patch("api.cache.get_cache", return_value=mock_redis_cache),
     ):
         from api.main import app
 

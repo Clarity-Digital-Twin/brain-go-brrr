@@ -13,13 +13,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from redis.exceptions import ConnectionError, RedisError, TimeoutError
 
-from api.services.redis_pool import (
-    CircuitBreaker,
-    CircuitState,
-    RedisConnectionPool,
-    close_redis_pool,
-    get_redis_pool,
-)
+from infra.redis import RedisConnectionPool, close_redis_pool, get_redis_pool
+from infra.redis.pool import CircuitBreaker, CircuitState
 
 
 class TestCircuitBreaker:
@@ -140,7 +135,7 @@ def mock_redis():
 @pytest.fixture
 def mock_connection_pool():
     """Mock ConnectionPool at the correct import path."""
-    with patch("api.services.redis_pool.ConnectionPool") as mock:
+    with patch("infra.redis.pool.ConnectionPool") as mock:
         pool = MagicMock()
         pool.max_connections = 50
         pool._created_connections = 5  # Direct attribute, not method
@@ -295,7 +290,7 @@ class TestGlobalPool:
         """Clean up global pool after each test."""
         close_redis_pool()
 
-    @patch("api.services.redis_pool.RedisConnectionPool")
+    @patch("infra.redis.pool.RedisConnectionPool")
     def test_get_redis_pool_singleton(self, mock_pool_class):
         """Test get_redis_pool returns singleton."""
         mock_instance = MagicMock()
@@ -313,7 +308,7 @@ class TestGlobalPool:
         # Should not create a new instance
         assert mock_pool_class.call_count == 1
 
-    @patch("api.services.redis_pool.RedisConnectionPool")
+    @patch("infra.redis.pool.RedisConnectionPool")
     def test_close_redis_pool(self, mock_pool_class):
         """Test closing global pool."""
         mock_instance = MagicMock()

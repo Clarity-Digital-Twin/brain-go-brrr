@@ -19,7 +19,7 @@ def create_synthetic_eeg(
     sfreq: int = 256,
     n_channels: int = 19,
     is_abnormal: bool = False,
-    seed: int = None,
+    seed: int | None = None,
 ) -> mne.io.RawArray:
     """Create realistic synthetic EEG data.
 
@@ -76,10 +76,7 @@ def create_synthetic_eeg(
         data[ch_idx] += alpha_amp * np.sin(2 * np.pi * 10 * t + np.random.rand() * 2 * np.pi)
 
         # Beta (12-30 Hz) - frontal
-        if ch_names[ch_idx] in ["Fp1", "Fp2", "F3", "F4"]:
-            beta_amp = 8e-6
-        else:
-            beta_amp = 5e-6
+        beta_amp = 8e-06 if ch_names[ch_idx] in ["Fp1", "Fp2", "F3", "F4"] else 5e-06
         data[ch_idx] += beta_amp * np.sin(2 * np.pi * 20 * t + np.random.rand() * 2 * np.pi)
 
         # Theta (4-8 Hz)
@@ -132,7 +129,7 @@ def create_fixture(
     output_path: Path,
     duration: float = 30.0,
     is_abnormal: bool = False,
-    seed: int = None,
+    seed: int | None = None,
 ):
     """Create and save a synthetic EEG fixture.
 

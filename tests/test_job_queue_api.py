@@ -44,7 +44,7 @@ def client(mock_redis_cache):
     # Mock the cache before importing the API
     with (
         patch("api.cache.RedisCache", return_value=mock_redis_cache),
-        patch("api.main.get_cache", return_value=mock_redis_cache),
+        patch("api.cache.get_cache", return_value=mock_redis_cache),
     ):
         from api.main import app
 
@@ -156,16 +156,15 @@ class TestAsyncProcessing:
 
     def test_background_task_execution(self, client, mock_background_tasks):
         """Test that jobs are processed in background."""
-        with patch("api.main.BackgroundTasks", return_value=mock_background_tasks):
-            response = client.post(
-                "/api/v1/eeg/sleep/analyze",
-                files={"edf_file": ("test.edf", b"mock_edf_content", "application/octet-stream")},
-            )
+        response = client.post(
+            "/api/v1/eeg/sleep/analyze",
+            files={"edf_file": ("test.edf", b"mock_edf_content", "application/octet-stream")},
+        )
 
-            # Should accept job for background processing
-            if response.status_code == 202:
-                # Background task should have been added
-                mock_background_tasks.add_task.assert_called()
+        # Should accept job for background processing
+        assert response.status_code == 202
+        data = response.json()
+        assert "job_id" in data
 
     def test_concurrent_job_limits(self, client):
         """Test that system handles concurrent job limits appropriately."""

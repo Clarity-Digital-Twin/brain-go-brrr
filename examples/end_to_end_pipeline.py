@@ -1,4 +1,4 @@
-"""End-to-End EEG Processing Pipeline
+"""End-to-End EEG Processing Pipeline.
 
 This example demonstrates how to use all the services together:
 1. Load EEG data using pyEDFlib and MNE
@@ -30,9 +30,9 @@ sys.path.insert(0, str(project_root / "reference_repos" / "pyEDFlib"))
 sys.path.insert(0, str(project_root / "reference_repos" / "mne-python"))
 
 # Import our services
-from services.qc_flagger import EEGQualityController
-from services.sleep_metrics import SleepAnalyzer
-from services.snippet_maker import EEGSnippetMaker
+from core.quality import EEGQualityController  # noqa: E402
+from core.sleep import SleepAnalyzer  # noqa: E402
+from core.snippets import EEGSnippetMaker  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -157,7 +157,7 @@ class EEGPipeline:
         # Save QC report
         if self.save_reports:
             qc_path = self.output_dir / "qc_report.json"
-            with open(qc_path, "w") as f:
+            with qc_path.open("w") as f:
                 json.dump(qc_report, f, indent=2, default=str)
             logger.info(f"QC report saved to {qc_path}")
 
@@ -184,7 +184,7 @@ class EEGPipeline:
         # Save sleep report
         if self.save_reports:
             sleep_path = self.output_dir / "sleep_report.json"
-            with open(sleep_path, "w") as f:
+            with sleep_path.open("w") as f:
                 json.dump(sleep_report, f, indent=2, default=str)
             logger.info(f"Sleep report saved to {sleep_path}")
 
@@ -225,7 +225,7 @@ class EEGPipeline:
         # Save snippets
         if self.save_reports:
             snippet_path = self.output_dir / "snippet_report.json"
-            with open(snippet_path, "w") as f:
+            with snippet_path.open("w") as f:
                 # Remove data arrays for JSON serialization
                 report_copy = snippet_report.copy()
                 for snippet in report_copy["snippets"]:
@@ -283,13 +283,13 @@ class EEGPipeline:
         # Save comprehensive report
         if self.save_reports:
             report_path = self.output_dir / "comprehensive_report.json"
-            with open(report_path, "w") as f:
+            with report_path.open("w") as f:
                 json.dump(report, f, indent=2, default=str)
             logger.info(f"Comprehensive report saved to {report_path}")
 
         return report
 
-    def process_eeg_file(self, file_path: Path, session_id: str = None) -> dict:
+    def process_eeg_file(self, file_path: Path, session_id: str | None = None) -> dict:
         """Process a single EEG file through the complete pipeline.
 
         Args:
@@ -351,7 +351,7 @@ class EEGPipeline:
 
             # Save error report
             error_path = session_dir / "error_report.json"
-            with open(error_path, "w") as f:
+            with error_path.open("w") as f:
                 json.dump(error_report, f, indent=2)
 
             return error_report
@@ -416,13 +416,13 @@ def main():
 
         # Run individual components
         logger.info("Running quality control...")
-        qc_report = pipeline.run_quality_control(raw)
+        pipeline.run_quality_control(raw)
 
         logger.info("Running sleep analysis...")
-        sleep_report = pipeline.run_sleep_analysis(raw)
+        pipeline.run_sleep_analysis(raw)
 
         logger.info("Running snippet extraction...")
-        snippet_report = pipeline.run_snippet_extraction(raw)
+        pipeline.run_snippet_extraction(raw)
 
         logger.info("Demo completed successfully!")
 

@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from brain_go_brrr.core.logger import get_logger
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
-from services.qc_flagger import EEGQualityController
-from services.sleep_metrics import SleepAnalyzer
+from core.quality import EEGQualityController
+from core.sleep import SleepAnalyzer
 
 # Set up logging
 logger = get_logger(__name__)

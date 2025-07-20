@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import torch
 
-from services.abnormality_detector import AbnormalityDetector
+from core.abnormal import AbnormalityDetector
 
 
 class TestImprovedMocking:

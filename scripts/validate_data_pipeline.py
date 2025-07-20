@@ -283,7 +283,7 @@ def test_qc_pipeline(edf_file: Path) -> dict[str, Any]:
     try:
         import mne
 
-        from services.qc_flagger import EEGQualityController
+        from core.quality import EEGQualityController
 
         start_time = time.time()
 

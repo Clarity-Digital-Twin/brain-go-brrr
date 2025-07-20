@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from services.sleep_metrics import SleepAnalyzer
+from core.sleep import SleepAnalyzer
 
 
 class TestYASASmoothing:

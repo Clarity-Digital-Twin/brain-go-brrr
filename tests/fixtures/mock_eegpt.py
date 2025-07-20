@@ -182,7 +182,7 @@ def create_mock_detector_with_realistic_model(seed: int = 42, normal_bias: bool 
     from pathlib import Path
     from unittest.mock import patch
 
-    from services.abnormality_detector import AbnormalityDetector
+    from core.abnormal import AbnormalityDetector
 
     # Create the appropriate mock model based on bias
     if normal_bias:

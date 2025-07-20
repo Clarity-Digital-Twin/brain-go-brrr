@@ -28,7 +28,7 @@ import torch
 import mne
 from unittest.mock import patch
 
-from services.abnormality_detector import AbnormalityDetector, AbnormalityResult
+from core.abnormal.detector import AbnormalityDetector, AbnormalityResult
 from tests.fixtures.mock_eegpt import create_mock_detector_with_realistic_model
 
 

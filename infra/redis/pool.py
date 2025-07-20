@@ -9,7 +9,7 @@ This module provides a connection pool wrapper that:
 
 import logging
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from enum import Enum
 from typing import Any
@@ -53,7 +53,7 @@ class CircuitBreaker:
         self.last_failure_time: float | None = None
         self.state = CircuitState.CLOSED
 
-    def call(self, func, *args, **kwargs):
+    def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute function with circuit breaker protection."""
         if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
@@ -75,12 +75,12 @@ class CircuitBreaker:
             return False
         return time.time() - self.last_failure_time >= self.recovery_timeout
 
-    def _on_success(self):
+    def _on_success(self) -> None:
         """Handle successful call."""
         self.failure_count = 0
         self.state = CircuitState.CLOSED
 
-    def _on_failure(self):
+    def _on_failure(self) -> None:
         """Handle failed call."""
         self.failure_count += 1
         self.last_failure_time = time.time()
@@ -165,7 +165,7 @@ class RedisConnectionPool:
         # Test initial connection
         self._test_connection()
 
-    def _test_connection(self):
+    def _test_connection(self) -> None:
         """Test connection to Redis."""
         try:
             client = redis.Redis(connection_pool=self.pool)
@@ -191,7 +191,7 @@ class RedisConnectionPool:
             # Connection automatically returned to pool when client is garbage collected
             pass
 
-    def execute(self, command: str, *args, **kwargs) -> Any:
+    def execute(self, command: str, *args: Any, **kwargs: Any) -> Any:
         """Execute Redis command with circuit breaker and retry logic.
 
         Args:
@@ -295,13 +295,13 @@ class RedisConnectionPool:
             "circuit_failures": self.circuit_breaker.failure_count,
         }
 
-    def reset_circuit_breaker(self):
+    def reset_circuit_breaker(self) -> None:
         """Manually reset circuit breaker."""
         self.circuit_breaker.state = CircuitState.CLOSED
         self.circuit_breaker.failure_count = 0
         logger.info("Circuit breaker manually reset")
 
-    def close(self):
+    def close(self) -> None:
         """Close all connections in the pool."""
         self.pool.disconnect()
         logger.info("Redis connection pool closed")
@@ -325,7 +325,7 @@ def get_redis_pool() -> RedisConnectionPool:
     return _pool_instance
 
 
-def close_redis_pool():
+def close_redis_pool() -> None:
     """Close the global Redis pool."""
     global _pool_instance
 

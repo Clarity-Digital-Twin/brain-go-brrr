@@ -11,8 +11,8 @@ from typing import Any
 import mne
 import numpy as np
 
-from services.eegpt_feature_extractor import EEGPTFeatureExtractor
-from services.sleep_metrics import SleepAnalyzer
+from core.features import EEGPTFeatureExtractor
+from core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)
 

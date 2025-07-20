@@ -1,12 +1,11 @@
 """Quality control and EEG analysis endpoints."""
 
 import base64
-import contextlib
 import logging
 import tempfile
 import time
-import traceback
 from pathlib import Path
+from typing import Any
 
 import mne
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
@@ -14,7 +13,7 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from api.cache import get_cache
 from api.schemas import QCResponse
 from brain_go_brrr.utils.time import utc_now
-from services.qc_flagger import EEGQualityController
+from core.quality import EEGQualityController
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +42,8 @@ def cleanup_temp_file(file_path: Path) -> None:
 async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    cache_client=None,  # Dependency injection
-):
+    cache_client: Any = None,  # Dependency injection
+) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
     This endpoint performs comprehensive EEG analysis including:
@@ -61,7 +60,7 @@ async def analyze_eeg(
         QCResponse with quality metrics and recommendations
     """
     # Validate file type
-    if not edf_file.filename.lower().endswith(".edf"):
+    if not edf_file.filename or not edf_file.filename.lower().endswith(".edf"):
         raise HTTPException(status_code=400, detail="Only EDF files are supported")
 
     # Read file content for caching
@@ -152,7 +151,7 @@ async def analyze_eeg(
 
         except Exception as e:
             logger.error(f"Error processing EEG file: {e}")
-            logger.error(traceback.format_exc())
+            logger.debug("Full traceback:", exc_info=True)
 
             # Cleanup on error
             if tmp_path.exists():
@@ -177,7 +176,7 @@ async def analyze_eeg_detailed(
     file: UploadFile = File(...),
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-):
+) -> dict[str, Any]:
     """Detailed EEG analysis with optional PDF report.
 
     Returns comprehensive analysis results with PDF report.
@@ -186,7 +185,7 @@ async def analyze_eeg_detailed(
     content = await file.read()
     await file.seek(0)  # Reset file pointer
 
-    cache_client = await get_cache()  # Get cache through dependency
+    cache_client = get_cache()  # Get cache through dependency
 
     # Check cache if available
     if cache_client and cache_client.connected:
@@ -254,15 +253,8 @@ async def analyze_eeg_detailed(
                 from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
                 report_gen = PDFReportGenerator()
-                report_path = report_gen.generate_report(results, output_dir=Path("/tmp"))
-
-                # Read and encode report
-                with open(report_path, "rb") as f:
-                    report_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-                # Clean up report file
-                with contextlib.suppress(Exception):
-                    report_path.unlink()
+                report_bytes = report_gen.generate_report(results)
+                report_base64 = base64.b64encode(report_bytes).decode("utf-8")
 
             # Schedule cleanup
             background_tasks.add_task(cleanup_temp_file, tmp_path)
@@ -291,7 +283,7 @@ async def analyze_eeg_detailed(
 
             # Cache the result
             if cache_client and cache_client.connected:
-                cache_client.set(cache_key, detailed_response, expiry=3600)
+                cache_client.set(cache_key, detailed_response, ttl=3600)
 
             return detailed_response
 
@@ -300,4 +292,4 @@ async def analyze_eeg_detailed(
             # Cleanup
             if tmp_path.exists():
                 tmp_path.unlink()
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
