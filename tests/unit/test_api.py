@@ -70,7 +70,7 @@ class TestAPIEndpoints:
         mock_controller.eegpt_model = MagicMock()  # Model is loaded
         monkeypatch.setattr(api.main, "qc_controller", mock_controller)
 
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
 
         assert response.status_code == 200
         data = response.json()
@@ -405,7 +405,7 @@ class TestAPIPerformance:
         monkeypatch.setattr(api.main, "qc_controller", mock_qc_controller)
 
         start = time.time()
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
         duration = time.time() - start
 
         assert response.status_code == 200
