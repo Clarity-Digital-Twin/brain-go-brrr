@@ -1,7 +1,7 @@
 """Pydantic models for Brain-Go-Brrr API."""
 
 from enum import Enum
-from typing import Any
+from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,24 @@ class JobPriority(str, Enum):
     HIGH = "high"
     NORMAL = "normal"
     LOW = "low"
+
+
+class JobData(TypedDict):
+    """Job data structure for internal storage."""
+
+    job_id: str
+    analysis_type: str
+    file_path: str
+    options: dict[str, Any]
+    status: JobStatus
+    priority: JobPriority
+    progress: float | None
+    result: dict[str, Any] | None
+    error: str | None
+    created_at: str
+    updated_at: str
+    started_at: str | None
+    completed_at: str | None
 
 
 class AnalysisRequest(BaseModel):

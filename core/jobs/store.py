@@ -4,8 +4,7 @@ import logging
 import threading
 from typing import Any
 
-from api.routers.jobs import JobData
-from api.schemas import JobStatus
+from api.schemas import JobData, JobStatus
 
 logger = logging.getLogger(__name__)
 

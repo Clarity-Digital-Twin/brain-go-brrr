@@ -10,8 +10,8 @@ from typing import Any
 import mne
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
-from api.routers.jobs import JobData, job_store  # TODO: Move to core
-from api.schemas import JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
+from api.routers.jobs import job_store  # TODO: Move to core
+from api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
 from brain_go_brrr.utils.time import utc_now
 from core.sleep import SleepAnalyzer
 

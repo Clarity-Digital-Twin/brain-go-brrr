@@ -2,14 +2,14 @@
 
 import logging
 import uuid
-from typing import Any, TypedDict
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from api.schemas import (
     JobCreateRequest,
+    JobData,
     JobListResponse,
-    JobPriority,
     JobResponse,
     JobStatus,
 )
@@ -22,24 +22,6 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 # Get thread-safe job store instance
 job_store_instance = get_job_store()
-
-
-class JobData(TypedDict):
-    """Job data structure."""
-
-    job_id: str
-    analysis_type: str
-    file_path: str
-    options: dict[str, Any]
-    status: JobStatus
-    priority: JobPriority
-    progress: float | None
-    result: dict[str, Any] | None
-    error: str | None
-    created_at: str
-    updated_at: str
-    started_at: str | None
-    completed_at: str | None
 
 
 # Compatibility wrapper for gradual migration
