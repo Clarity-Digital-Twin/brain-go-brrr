@@ -15,7 +15,7 @@ class TestAPIEndpoints:
     @pytest.fixture
     def mock_qc_controller(self):
         """Mock the QC controller."""
-        with patch("api.main.EEGQualityController") as mock_class:
+        with patch("api.routers.qc.EEGQualityController") as mock_class:
             mock_controller = Mock()
             mock_controller.eegpt_model = Mock()
             mock_controller.run_full_qc_pipeline = Mock(
