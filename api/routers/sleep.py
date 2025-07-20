@@ -13,7 +13,7 @@ from api.routers.jobs import job_store  # TODO: Move to core
 from api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
 from brain_go_brrr.utils.time import utc_now
 from core.edf_loader import load_edf_safe
-from core.exceptions import EdfLoadError
+from core.exceptions import EdfLoadError, SleepAnalysisError
 from core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -30,9 +30,14 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
 
     try:
         # Update job status
-        job["status"] = JobStatus.PROCESSING
-        job["started_at"] = utc_now().isoformat()
-        job["updated_at"] = utc_now().isoformat()
+        job_store.update(
+            job_id,
+            {
+                "status": JobStatus.PROCESSING,
+                "started_at": utc_now().isoformat(),
+                "updated_at": utc_now().isoformat(),
+            },
+        )
 
         # Load EDF data
         try:
@@ -40,10 +45,15 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
         except EdfLoadError as e:
             # Expected EDF loading errors
             logger.error(f"Failed to load EDF file: {e}")
-            job["status"] = JobStatus.FAILED
-            job["error"] = str(e)
-            job["updated_at"] = utc_now().isoformat()
-            job["completed_at"] = utc_now().isoformat()
+            job_store.update(
+                job_id,
+                {
+                    "status": JobStatus.FAILED,
+                    "error": str(e),
+                    "updated_at": utc_now().isoformat(),
+                    "completed_at": utc_now().isoformat(),
+                },
+            )
             return
 
         # Run YASA sleep analysis
@@ -77,44 +87,64 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
             with contextlib.suppress(TypeError, AttributeError):
                 n_channels = len(raw.ch_names)
 
-        job["result"] = {
-            "sleep_stages": sleep_stages,
-            "sleep_metrics": results.get("sleep_metrics", {}),
-            "hypnogram": results.get("hypnogram", [])[:100],  # Limit size
-            "metadata": {
-                "total_epochs": len(results.get("hypnogram", [])),
-                "model_version": "yasa_v0.6.4",
-                "sampling_rate": sampling_rate,
-                "n_channels": n_channels,
+        job_store.update(
+            job_id,
+            {
+                "result": {
+                    "sleep_stages": sleep_stages,
+                    "sleep_metrics": results.get("sleep_metrics", {}),
+                    "hypnogram": results.get("hypnogram", [])[:100],  # Limit size
+                    "metadata": {
+                        "total_epochs": len(results.get("hypnogram", [])),
+                        "model_version": "yasa_v0.6.4",
+                        "sampling_rate": sampling_rate,
+                        "n_channels": n_channels,
+                    },
+                },
+                "status": JobStatus.COMPLETED,
+                "progress": 1.0,
+                "completed_at": utc_now().isoformat(),
+                "updated_at": utc_now().isoformat(),
             },
-        }
-        job["status"] = JobStatus.COMPLETED
-        job["progress"] = 1.0
-        job["completed_at"] = utc_now().isoformat()
-        job["updated_at"] = utc_now().isoformat()
+        )
 
-    except (ValueError, RuntimeError, MemoryError) as e:
-        # Expected analysis errors
+    except SleepAnalysisError as e:
+        # Expected sleep analysis errors
         logger.error(f"Sleep analysis job {job_id} failed: {e}")
-        logger.debug("Full traceback:", exc_info=True)
-        job["status"] = JobStatus.FAILED
-        job["error"] = f"Analysis error: {e!s}"
-        job["updated_at"] = utc_now().isoformat()
-        job["completed_at"] = utc_now().isoformat()
+        job_store.update(
+            job_id,
+            {
+                "status": JobStatus.FAILED,
+                "error": str(e),
+                "updated_at": utc_now().isoformat(),
+                "completed_at": utc_now().isoformat(),
+            },
+        )
     except ImportError as e:
         # Missing dependencies
         logger.error(f"Missing dependency for sleep analysis: {e}")
-        job["status"] = JobStatus.FAILED
-        job["error"] = "Sleep analysis dependencies not installed"
-        job["updated_at"] = utc_now().isoformat()
-        job["completed_at"] = utc_now().isoformat()
-    except AttributeError as e:
-        # Sleep analyzer method issues
-        logger.error(f"Sleep analyzer API error: {e}")
-        job["status"] = JobStatus.FAILED
-        job["error"] = "Internal sleep analyzer error"
-        job["updated_at"] = utc_now().isoformat()
-        job["completed_at"] = utc_now().isoformat()
+        job_store.update(
+            job_id,
+            {
+                "status": JobStatus.FAILED,
+                "error": "Sleep analysis dependencies not installed",
+                "updated_at": utc_now().isoformat(),
+                "completed_at": utc_now().isoformat(),
+            },
+        )
+    except Exception as e:
+        # Unexpected errors - log and fail job
+        logger.critical(f"Unexpected error in sleep analysis job {job_id}: {e}")
+        logger.debug("Full traceback:", exc_info=True)
+        job_store.update(
+            job_id,
+            {
+                "status": JobStatus.FAILED,
+                "error": "Internal server error",
+                "updated_at": utc_now().isoformat(),
+                "completed_at": utc_now().isoformat(),
+            },
+        )
 
     finally:
         # Cleanup temp file
@@ -194,7 +224,7 @@ async def analyze_sleep_eeg(
     }
 
     # Store job
-    job_store[job_id] = job
+    job_store.create(job_id, job)
 
     # Schedule the actual sleep analysis as a background task
     background_tasks.add_task(

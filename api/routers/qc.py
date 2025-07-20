@@ -13,7 +13,7 @@ from api.cache import get_cache
 from api.schemas import QCResponse
 from brain_go_brrr.utils.time import utc_now
 from core.edf_loader import load_edf_safe
-from core.exceptions import EdfLoadError
+from core.exceptions import EdfLoadError, QualityCheckError
 from core.quality import EEGQualityController
 
 logger = logging.getLogger(__name__)
@@ -158,11 +158,10 @@ async def analyze_eeg(
             logger.error(f"Failed to load EDF file: {e}")
             logger.debug("Full traceback:", exc_info=True)
             error_msg = str(e)
-        except (ValueError, RuntimeError, MemoryError) as e:
-            # Known errors during EEG processing
-            logger.error(f"Error processing EEG file: {e}")
-            logger.debug("Full traceback:", exc_info=True)
-            error_msg = f"Processing error: {e}"
+        except QualityCheckError as e:
+            # Expected QC processing errors
+            logger.error(f"Quality check failed: {e}")
+            error_msg = str(e)
         except Exception as e:
             # Unexpected error - re-raise after logging
             logger.critical(f"Unexpected error processing EEG file: {e}")
@@ -309,7 +308,7 @@ async def analyze_eeg_detailed(
             if tmp_path.exists():
                 tmp_path.unlink()
             raise HTTPException(status_code=400, detail=str(e)) from e
-        except (ValueError, RuntimeError, MemoryError) as e:
+        except QualityCheckError as e:
             logger.error(f"Error in detailed analysis: {e}")
             # Cleanup
             if tmp_path.exists():

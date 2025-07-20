@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import cache, health, jobs, qc, queue, resources, sleep
+from api.routes import routes
 from brain_go_brrr.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -37,12 +38,12 @@ def create_app() -> FastAPI:
             "message": "Welcome to Brain-Go-Brrr API",
             "version": "0.1.0",
             "endpoints": {
-                "docs": app.docs_url,
-                "redoc": app.redoc_url,
-                "health": "/api/v1/health",
-                "qc_analyze": "/api/v1/eeg/analyze",
-                "sleep_analyze": "/api/v1/eeg/sleep/analyze",
-                "jobs": "/api/v1/jobs",
+                "docs": routes.DOCS,
+                "redoc": routes.REDOC,
+                "health": routes.HEALTH,
+                "qc_analyze": routes.QC_ANALYZE,
+                "sleep_analyze": routes.SLEEP_ANALYZE,
+                "jobs": routes.JOBS_LIST,
             },
         }
 

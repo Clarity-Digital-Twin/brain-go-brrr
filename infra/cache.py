@@ -124,7 +124,10 @@ class RedisCache:
                 except (ConnectionError, TimeoutError) as e:
                     # Log and re-raise so caller knows the operation failed
                     logger.error(f"Failed to delete {len(key_list)} keys: {e}")
-                    raise
+                    raise  # Re-raise to outer handler
+        except (ConnectionError, TimeoutError):
+            # Re-raise connection errors so caller can handle
+            raise
         except Exception as e:
             logger.warning(f"Error clearing pattern '{pattern}': {e}")
             return 0

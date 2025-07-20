@@ -21,11 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 # Get thread-safe job store instance
-job_store_instance = get_job_store()
-
-
-# Direct access to thread-safe job store - no dict-like wrapper
-job_store = job_store_instance
+job_store = get_job_store()
 
 
 @router.post("/create", response_model=JobResponse, status_code=201)
@@ -49,7 +45,7 @@ async def create_job(request: JobCreateRequest) -> JobResponse:
         "completed_at": None,
     }
 
-    job_store[job_id] = job
+    job_store.create(job_id, job)
 
     return JobResponse(
         job_id=job["job_id"],
@@ -69,10 +65,10 @@ async def create_job(request: JobCreateRequest) -> JobResponse:
 @router.get("/{job_id}/status", response_model=JobResponse)
 async def get_job_status(job_id: str) -> JobResponse:
     """Get the status of a specific job."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    job = job_store[job_id]
     return JobResponse(
         job_id=job["job_id"],
         analysis_type=job["analysis_type"],
@@ -91,10 +87,9 @@ async def get_job_status(job_id: str) -> JobResponse:
 @router.get("/{job_id}/results")
 async def get_job_results(job_id: str) -> dict[str, Any]:
     """Get the results of a completed job."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-
-    job = job_store[job_id]
 
     if job["status"] != JobStatus.COMPLETED:
         return {
@@ -116,16 +111,20 @@ async def get_job_results(job_id: str) -> dict[str, Any]:
 @router.delete("/{job_id}")
 async def cancel_job(job_id: str) -> dict[str, str]:
     """Cancel a running job."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
-
-    job = job_store[job_id]
 
     if job["status"] in [JobStatus.COMPLETED, JobStatus.FAILED]:
         raise HTTPException(status_code=409, detail="Cannot cancel completed job")
 
-    job["status"] = JobStatus.CANCELLED
-    job["updated_at"] = utc_now().isoformat()
+    # Update job status
+    success = job_store.update(
+        job_id, {"status": JobStatus.CANCELLED, "updated_at": utc_now().isoformat()}
+    )
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update job status")
 
     return {"message": f"Job {job_id} cancelled"}
 
@@ -137,7 +136,7 @@ async def list_jobs(
     offset: int = 0,
 ) -> JobListResponse:
     """List all jobs with optional filtering."""
-    all_jobs = list(job_store.values())
+    all_jobs = job_store.list_all()
 
     # Filter by status if provided
     if status:
@@ -178,10 +177,10 @@ async def list_jobs(
 @router.get("/{job_id}/progress")
 async def get_job_progress(job_id: str) -> dict[str, Any]:
     """Get detailed progress for a specific job."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    job = job_store[job_id]
     return {
         "job_id": job_id,
         "percent_complete": (job.get("progress") or 0.0) * 100,
@@ -194,17 +193,19 @@ async def get_job_progress(job_id: str) -> dict[str, Any]:
 @router.get("/{job_id}/logs")
 async def get_job_logs(job_id: str) -> dict[str, Any]:
     """Get execution logs for a specific job."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     # In production, this would fetch from a logging service
-    return {"job_id": job_id, "logs": job_store[job_id].get("logs", [])}
+    return {"job_id": job_id, "logs": job.get("logs", [])}
 
 
 @router.get("/{job_id}/stream")
 async def stream_job_updates(job_id: str) -> None:
     """Stream real-time job updates (placeholder)."""
-    if job_id not in job_store:
+    job = job_store.get(job_id)
+    if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     # Placeholder - in production would use WebSocket or SSE
@@ -217,7 +218,7 @@ async def stream_job_updates(job_id: str) -> None:
 @router.get("/history")
 async def get_job_history(limit: int = 100, offset: int = 0) -> dict[str, Any]:
     """Get historical job data."""
-    all_jobs = list(job_store.values())
+    all_jobs = job_store.list_all()
 
     # Sort by creation time (newest first)
     all_jobs.sort(key=lambda x: x["created_at"], reverse=True)
