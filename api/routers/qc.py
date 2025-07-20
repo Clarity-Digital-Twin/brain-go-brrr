@@ -7,12 +7,13 @@ import time
 from pathlib import Path
 from typing import Any
 
-import mne
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from api.cache import get_cache
 from api.schemas import QCResponse
 from brain_go_brrr.utils.time import utc_now
+from core.edf_loader import load_edf_safe
+from core.exceptions import EdfLoadError
 from core.quality import EEGQualityController
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ async def analyze_eeg(
             start_time = time.time()
 
             # Load EDF data
-            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+            raw = load_edf_safe(tmp_path, preload=True, verbose=False)
 
             # Check if QC controller is available
             if qc_controller is None:
@@ -152,41 +153,38 @@ async def analyze_eeg(
 
             return QCResponse(**response_data)
 
+        except EdfLoadError as e:
+            # EDF loading errors
+            logger.error(f"Failed to load EDF file: {e}")
+            logger.debug("Full traceback:", exc_info=True)
+            error_msg = str(e)
         except (ValueError, RuntimeError, MemoryError) as e:
             # Known errors during EEG processing
             logger.error(f"Error processing EEG file: {e}")
             logger.debug("Full traceback:", exc_info=True)
-        except FileNotFoundError as e:
-            # EDF file issues
-            logger.error(f"EDF file not found or corrupted: {e}")
-            logger.debug("Full traceback:", exc_info=True)
+            error_msg = f"Processing error: {e}"
         except Exception as e:
-            # Catch MNE-specific errors that don't inherit from standard exceptions
-            if "edf" in str(type(e)).lower() or "mne" in str(type(e)).lower():
-                logger.error(f"MNE/EDF error processing file: {e}")
-                logger.debug("Full traceback:", exc_info=True)
-            else:
-                # Unexpected error - re-raise after logging
-                logger.critical(f"Unexpected error processing EEG file: {e}")
-                logger.debug("Full traceback:", exc_info=True)
-                raise
+            # Unexpected error - re-raise after logging
+            logger.critical(f"Unexpected error processing EEG file: {e}")
+            logger.debug("Full traceback:", exc_info=True)
+            raise
 
-            # Cleanup on error
-            if tmp_path.exists():
-                tmp_path.unlink()
+        # Cleanup on error
+        if tmp_path.exists():
+            tmp_path.unlink()
 
-            # Return error response
-            return QCResponse(
-                flag="ERROR",
-                confidence=0,
-                bad_channels=[],
-                quality_metrics={},
-                recommendation="Analysis failed. Please check file format and try again.",
-                processing_time=0,
-                quality_grade="ERROR",
-                timestamp=utc_now().isoformat(),
-                error=str(e),
-            )
+        # Return error response
+        return QCResponse(
+            flag="ERROR",
+            confidence=0,
+            bad_channels=[],
+            quality_metrics={},
+            recommendation="Analysis failed. Please check file format and try again.",
+            processing_time=0,
+            quality_grade="ERROR",
+            timestamp=utc_now().isoformat(),
+            error=error_msg,
+        )
 
 
 @router.post("/analyze/detailed")
@@ -237,7 +235,7 @@ async def analyze_eeg_detailed(
                 )
 
             # Load EDF data
-            raw = mne.io.read_raw_edf(tmp_path, preload=True, verbose=False)
+            raw = load_edf_safe(tmp_path, preload=True, verbose=False)
 
             # Check if QC controller is available
             if qc_controller is None:
@@ -305,6 +303,12 @@ async def analyze_eeg_detailed(
 
             return detailed_response
 
+        except EdfLoadError as e:
+            logger.error(f"Failed to load EDF file: {e}")
+            # Cleanup
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise HTTPException(status_code=400, detail=str(e)) from e
         except (ValueError, RuntimeError, MemoryError) as e:
             logger.error(f"Error in detailed analysis: {e}")
             # Cleanup
@@ -318,15 +322,8 @@ async def analyze_eeg_detailed(
                 tmp_path.unlink()
             raise HTTPException(status_code=501, detail="PDF generation not available") from e
         except Exception as e:
-            # Handle MNE-specific errors
-            if "edf" in str(type(e)).lower() or "mne" in str(type(e)).lower():
-                logger.error(f"MNE/EDF error in detailed analysis: {e}")
-                if tmp_path.exists():
-                    tmp_path.unlink()
-                raise HTTPException(status_code=400, detail="Invalid EDF file") from e
-            else:
-                # Unexpected error - re-raise
-                logger.critical(f"Unexpected error in detailed analysis: {e}")
-                if tmp_path.exists():
-                    tmp_path.unlink()
-                raise
+            # Unexpected error - re-raise
+            logger.critical(f"Unexpected error in detailed analysis: {e}")
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise

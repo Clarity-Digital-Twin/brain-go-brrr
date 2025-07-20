@@ -29,20 +29,20 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Root endpoint
-    @app.get("/")
+    # Root endpoint - defined before routers are included
+    @app.get("/", tags=["root"])
     async def root():
         """Root endpoint with API information."""
         return {
             "message": "Welcome to Brain-Go-Brrr API",
             "version": "0.1.0",
             "endpoints": {
-                "docs": "/api/docs",
-                "redoc": "/api/redoc",
+                "docs": app.docs_url,
+                "redoc": app.redoc_url,
                 "health": "/api/v1/health",
-                "analyze": "/api/v1/eeg/analyze",
-                "sleep": "/api/v1/eeg/sleep",
-                "qc": "/api/v1/eeg/qc",
+                "qc_analyze": "/api/v1/eeg/analyze",
+                "sleep_analyze": "/api/v1/eeg/sleep/analyze",
+                "jobs": "/api/v1/jobs",
             },
         }
 

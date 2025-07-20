@@ -1,8 +1,11 @@
 """Cache protocol and Redis implementation."""
 
+import logging
 from typing import Any, Protocol, runtime_checkable
 
 from infra.redis import RedisConnectionPool, get_redis_pool
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -113,11 +116,17 @@ class RedisCache:
                 if not key_list:
                     return 0
 
-                # Delete all matching keys
-                delete_count = client.delete(*key_list)
-                # Redis delete returns int of deleted keys
-                return int(delete_count) if delete_count is not None else 0
-        except Exception:
+                # Delete all matching keys with separate error handling
+                try:
+                    delete_count = client.delete(*key_list)
+                    # Redis delete returns int of deleted keys
+                    return int(delete_count) if delete_count is not None else 0
+                except (ConnectionError, TimeoutError) as e:
+                    # Log and re-raise so caller knows the operation failed
+                    logger.error(f"Failed to delete {len(key_list)} keys: {e}")
+                    raise
+        except Exception as e:
+            logger.warning(f"Error clearing pattern '{pattern}': {e}")
             return 0
 
     def get_stats(self) -> dict[str, Any]:

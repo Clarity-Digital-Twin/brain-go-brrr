@@ -66,7 +66,7 @@ class TestSleepEDFIntegration:
         # Read just first 1MB of file for speed
         with sleep_edf_file.open("rb") as f:
             file_data = f.read(1024 * 1024)
-            files = {"file": ("test.edf", file_data, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", file_data, "application/octet-stream")}
 
             # Time the request
             start_time = time.time()
@@ -77,14 +77,15 @@ class TestSleepEDFIntegration:
         assert response.status_code == 200
         data = response.json()
 
-        # Check response structure
-        assert data["status"] == "success"
-        assert "bad_channels" in data
-        assert "bad_pct" in data
-        assert "abnormal_prob" in data
+        # Check response structure matches QCResponse
         assert "flag" in data
         assert "confidence" in data
+        assert "bad_channels" in data
+        assert "quality_metrics" in data
+        assert "recommendation" in data
+        assert "processing_time" in data
         assert "quality_grade" in data
+        assert "timestamp" in data
 
         # Performance check - cropped file should process quickly
         assert processing_time < 10, f"Processing took too long: {processing_time:.2f}s"
@@ -94,10 +95,10 @@ class TestSleepEDFIntegration:
         print("   File: test_cropped.edf (60s sample)")
         print(f"   Processing time: {processing_time:.2f}s")
         print(f"   Bad channels: {data['bad_channels']}")
-        print(f"   Bad channel %: {data['bad_pct']}%")
-        print(f"   Abnormality: {data['abnormal_prob']}")
-        print(f"   Triage: {data['flag']}")
+        print(f"   Triage flag: {data['flag']}")
         print(f"   Quality: {data['quality_grade']}")
+        print(f"   Confidence: {data['confidence']}")
+        print(f"   Recommendation: {data['recommendation']}")
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -105,7 +106,7 @@ class TestSleepEDFIntegration:
         """Test processing full Sleep-EDF file through API (slow)."""
         # Read the actual full EDF file
         with sleep_edf_file.open("rb") as f:
-            files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
+            files = {"edf_file": (sleep_edf_file.name, f, "application/octet-stream")}
 
             # Time the request
             start_time = time.time()
@@ -116,8 +117,8 @@ class TestSleepEDFIntegration:
         assert response.status_code == 200
         data = response.json()
 
-        # Check response structure
-        assert data["status"] == "success"
+        # Check response structure matches QCResponse
+        assert "flag" in data
         assert "bad_channels" in data
 
         # Full file can take longer
@@ -132,7 +133,7 @@ class TestSleepEDFIntegration:
     def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
         """Test that Sleep-EDF files are properly analyzed for quality issues."""
         with sleep_edf_file.open("rb") as f:
-            files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
+            files = {"edf_file": (sleep_edf_file.name, f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -176,7 +177,7 @@ class TestSleepEDFIntegration:
         results = []
         for edf_file in edf_files:
             with edf_file.open("rb") as f:
-                files = {"file": (edf_file.name, f, "application/octet-stream")}
+                files = {"edf_file": (edf_file.name, f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
             assert response.status_code == 200
@@ -186,12 +187,12 @@ class TestSleepEDFIntegration:
         print(f"\n📈 Multiple File Analysis ({len(results)} files):")
         for i, (file, result) in enumerate(zip(edf_files, results, strict=False)):
             print(f"\n   File {i + 1}: {file.name}")
-            print(f"   - Abnormality: {result['abnormal_prob']:.3f}")
+            print(f"   - Confidence: {result['confidence']:.3f}")
             print(f"   - Quality: {result['quality_grade']}")
             print(f"   - Flag: {result['flag']}")
 
         # All should process successfully
-        assert all(r["status"] == "success" for r in results)
+        assert all(r["flag"] in ["ROUTINE", "EXPEDITE", "URGENT"] for r in results)
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -220,7 +221,7 @@ class TestSleepEDFIntegration:
 
         for _ in range(2):
             with sleep_edf_file.open("rb") as f:
-                files = {"file": (sleep_edf_file.name, f, "application/octet-stream")}
+                files = {"edf_file": (sleep_edf_file.name, f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
             data = response.json()
@@ -230,7 +231,7 @@ class TestSleepEDFIntegration:
         assert all(0 <= score <= 1 for score in confidence_scores)
 
         # If model is loaded, confidence should be relatively high
-        if data.get("abnormal_prob", 0) > 0:  # Model made a prediction
+        if data.get("confidence", 0) < 1.0:  # Model made an abnormality prediction
             assert min(confidence_scores) > 0.5, "Confidence too low for loaded model"
 
         print("\n🎯 Confidence Analysis:")
@@ -258,7 +259,7 @@ class TestAPIRobustness:
         # Should handle gracefully
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "error"
+        assert data["flag"] == "ERROR"
         assert data["flag"] == "ERROR"
 
     @pytest.mark.integration

@@ -7,12 +7,13 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import mne
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from api.routers.jobs import job_store  # TODO: Move to core
 from api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
 from brain_go_brrr.utils.time import utc_now
+from core.edf_loader import load_edf_safe
+from core.exceptions import EdfLoadError
 from core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -35,28 +36,15 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
 
         # Load EDF data
         try:
-            raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
-        except (FileNotFoundError, ValueError, MemoryError) as e:
+            raw = load_edf_safe(file_path, preload=True, verbose=False)
+        except EdfLoadError as e:
             # Expected EDF loading errors
             logger.error(f"Failed to load EDF file: {e}")
             job["status"] = JobStatus.FAILED
-            job["error"] = f"Invalid EDF file: {e!s}"
+            job["error"] = str(e)
             job["updated_at"] = utc_now().isoformat()
             job["completed_at"] = utc_now().isoformat()
             return
-        except Exception as e:
-            # Handle MNE-specific EDF errors
-            if "edf" in str(type(e)).lower() or "mne" in str(type(e)).lower():
-                logger.error(f"MNE/EDF specific error: {e}")
-                job["status"] = JobStatus.FAILED
-                job["error"] = f"EDF format error: {e!s}"
-                job["updated_at"] = utc_now().isoformat()
-                job["completed_at"] = utc_now().isoformat()
-                return
-            else:
-                # Unexpected error - re-raise
-                logger.critical(f"Unexpected error loading EDF: {e}")
-                raise
 
         # Run YASA sleep analysis
         sleep_analyzer = SleepAnalyzer()
