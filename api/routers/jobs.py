@@ -29,36 +29,36 @@ async def create_job(request: JobCreateRequest) -> JobResponse:
     """Create a new analysis job."""
     job_id = str(uuid.uuid4())
 
-    job: JobData = {
-        "job_id": job_id,
-        "analysis_type": request.analysis_type,
-        "file_path": request.file_path,
-        "options": request.options,
-        "status": JobStatus.PENDING,
-        "priority": request.priority,
-        "progress": 0.0,
-        "result": None,
-        "error": None,
-        "created_at": utc_now().isoformat(),
-        "updated_at": utc_now().isoformat(),
-        "started_at": None,
-        "completed_at": None,
-    }
+    job = JobData(
+        job_id=job_id,
+        analysis_type=request.analysis_type,
+        file_path=request.file_path,
+        options=request.options,
+        status=JobStatus.PENDING,
+        priority=request.priority,
+        progress=0.0,
+        result=None,
+        error=None,
+        created_at=utc_now(),
+        updated_at=utc_now(),
+        started_at=None,
+        completed_at=None,
+    )
 
     job_store.create(job_id, job)
 
     return JobResponse(
-        job_id=job["job_id"],
-        analysis_type=job["analysis_type"],
-        status=job["status"],
-        priority=job["priority"],
-        progress=job["progress"],
-        result=job["result"],
-        error=job["error"],
-        created_at=str(job["created_at"]),
-        updated_at=str(job["updated_at"]),
-        started_at=str(job["started_at"]) if job["started_at"] else None,
-        completed_at=str(job["completed_at"]) if job["completed_at"] else None,
+        job_id=job.job_id,
+        analysis_type=job.analysis_type,
+        status=job.status,
+        priority=job.priority,
+        progress=job.progress,
+        result=job.result,
+        error=job.error,
+        created_at=job.created_at.isoformat(),
+        updated_at=job.updated_at.isoformat(),
+        started_at=job.started_at.isoformat() if job.started_at else None,
+        completed_at=job.completed_at.isoformat() if job.completed_at else None,
     )
 
 
@@ -70,17 +70,17 @@ async def get_job_status(job_id: str) -> JobResponse:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     return JobResponse(
-        job_id=job["job_id"],
-        analysis_type=job["analysis_type"],
-        status=job["status"],
-        priority=job["priority"],
-        progress=job["progress"],
-        result=job["result"],
-        error=job["error"],
-        created_at=str(job["created_at"]),
-        updated_at=str(job["updated_at"]),
-        started_at=str(job["started_at"]) if job["started_at"] else None,
-        completed_at=str(job["completed_at"]) if job["completed_at"] else None,
+        job_id=job.job_id,
+        analysis_type=job.analysis_type,
+        status=job.status,
+        priority=job.priority,
+        progress=job.progress,
+        result=job.result,
+        error=job.error,
+        created_at=job.created_at.isoformat(),
+        updated_at=job.updated_at.isoformat(),
+        started_at=job.started_at.isoformat() if job.started_at else None,
+        completed_at=job.completed_at.isoformat() if job.completed_at else None,
     )
 
 
@@ -91,19 +91,19 @@ async def get_job_results(job_id: str) -> dict[str, Any]:
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if job["status"] != JobStatus.COMPLETED:
+    if job.status != JobStatus.COMPLETED:
         return {
-            "status": job["status"],
+            "status": job.status,
             "message": "Job not yet completed",
         }
 
     return {
         "job_id": job_id,
         "status": "completed",
-        "result": job.get("result", {}),
+        "result": job.result or {},
         "metadata": {
-            "created_at": job["created_at"],
-            "completed_at": job["completed_at"],
+            "created_at": job.created_at.isoformat(),
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
         },
     }
 
@@ -115,7 +115,7 @@ async def cancel_job(job_id: str) -> dict[str, str]:
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if job["status"] in [JobStatus.COMPLETED, JobStatus.FAILED]:
+    if job.status in [JobStatus.COMPLETED, JobStatus.FAILED]:
         raise HTTPException(status_code=409, detail="Cannot cancel completed job")
 
     # Update job status
@@ -140,10 +140,10 @@ async def list_jobs(
 
     # Filter by status if provided
     if status:
-        all_jobs = [job for job in all_jobs if job["status"] == status]
+        all_jobs = [job for job in all_jobs if job.status == status]
 
     # Sort by creation time (newest first)
-    all_jobs.sort(key=lambda x: x["created_at"], reverse=True)
+    all_jobs.sort(key=lambda x: x.created_at, reverse=True)
 
     # Apply pagination
     total = len(all_jobs)
@@ -153,17 +153,17 @@ async def list_jobs(
     return JobListResponse(
         jobs=[
             JobResponse(
-                job_id=job["job_id"],
-                analysis_type=job["analysis_type"],
-                status=job["status"],
-                priority=job["priority"],
-                progress=job["progress"],
-                result=job["result"],
-                error=job["error"],
-                created_at=job["created_at"],
-                updated_at=job["updated_at"],
-                started_at=job["started_at"],
-                completed_at=job["completed_at"],
+                job_id=job.job_id,
+                analysis_type=job.analysis_type,
+                status=job.status,
+                priority=job.priority,
+                progress=job.progress,
+                result=job.result,
+                error=job.error,
+                created_at=job.created_at.isoformat(),
+                updated_at=job.updated_at.isoformat(),
+                started_at=job.started_at.isoformat() if job.started_at else None,
+                completed_at=job.completed_at.isoformat() if job.completed_at else None,
             )
             for job in paginated_jobs
         ],
@@ -183,10 +183,10 @@ async def get_job_progress(job_id: str) -> dict[str, Any]:
 
     return {
         "job_id": job_id,
-        "percent_complete": (job.get("progress") or 0.0) * 100,
-        "current_step": job.get("current_step", "Unknown"),
-        "estimated_remaining": job.get("estimated_remaining", None),
-        "status": job["status"],
+        "percent_complete": (job.progress or 0.0) * 100,
+        "current_step": getattr(job, 'current_step', "Unknown"),
+        "estimated_remaining": getattr(job, 'estimated_remaining', None),
+        "status": job.status,
     }
 
 
@@ -198,7 +198,7 @@ async def get_job_logs(job_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     # In production, this would fetch from a logging service
-    return {"job_id": job_id, "logs": job.get("logs", [])}
+    return {"job_id": job_id, "logs": getattr(job, 'logs', [])}
 
 
 @router.get("/{job_id}/stream")
@@ -221,7 +221,7 @@ async def get_job_history(limit: int = 100, offset: int = 0) -> dict[str, Any]:
     all_jobs = job_store.list_all()
 
     # Sort by creation time (newest first)
-    all_jobs.sort(key=lambda x: x["created_at"], reverse=True)
+    all_jobs.sort(key=lambda x: x.created_at, reverse=True)
 
     # Apply pagination
     paginated_jobs = all_jobs[offset : offset + limit]
@@ -229,17 +229,17 @@ async def get_job_history(limit: int = 100, offset: int = 0) -> dict[str, Any]:
     return {
         "jobs": [
             JobResponse(
-                job_id=job["job_id"],
-                analysis_type=job["analysis_type"],
-                status=job["status"],
-                priority=job["priority"],
-                progress=job["progress"],
-                result=job["result"],
-                error=job["error"],
-                created_at=job["created_at"],
-                updated_at=job["updated_at"],
-                started_at=job["started_at"],
-                completed_at=job["completed_at"],
+                job_id=job.job_id,
+                analysis_type=job.analysis_type,
+                status=job.status,
+                priority=job.priority,
+                progress=job.progress,
+                result=job.result,
+                error=job.error,
+                created_at=job.created_at.isoformat(),
+                updated_at=job.updated_at.isoformat(),
+                started_at=job.started_at.isoformat() if job.started_at else None,
+                completed_at=job.completed_at.isoformat() if job.completed_at else None,
             )
             for job in paginated_jobs
         ],

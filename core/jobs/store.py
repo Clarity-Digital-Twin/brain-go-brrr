@@ -2,9 +2,10 @@
 
 import logging
 import threading
+from datetime import datetime
 from typing import Any
 
-from api.schemas import JobData, JobStatus
+from api.schemas import JobData, JobPriority, JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class ThreadSafeJobStore:
     deployments. For production with multiple workers, use Redis or a database.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the job store with thread safety."""
         self._jobs: dict[str, JobData] = {}
         self._lock = threading.RLock()  # Reentrant lock for nested access
@@ -51,7 +52,7 @@ class ThreadSafeJobStore:
             return self._jobs.get(job_id)
 
     def update(self, job_id: str, updates: dict[str, Any]) -> bool:
-        """Update job fields.
+        """Update job fields by creating a new immutable JobData.
 
         Args:
             job_id: Job identifier
@@ -64,12 +65,25 @@ class ThreadSafeJobStore:
             if job_id not in self._jobs:
                 return False
 
-            # Type-safe update
-            job = self._jobs[job_id]
-            for key, value in updates.items():
-                if key in job:
-                    job[key] = value  # type: ignore[literal-required]
+            # Get current job and convert to dict
+            current_job = self._jobs[job_id]
+            job_dict = current_job.to_dict()
 
+            # Apply updates
+            job_dict.update(updates)
+
+            # Handle datetime updates
+            if "updated_at" in updates and isinstance(updates["updated_at"], str):
+                job_dict["updated_at"] = updates["updated_at"]
+
+            # Create new immutable JobData
+            if hasattr(JobData, "from_dict"):
+                new_job = JobData.from_dict(job_dict)
+            else:
+                # Fallback for dict-based storage
+                new_job = job_dict  # type: ignore
+
+            self._jobs[job_id] = new_job
             logger.debug(f"Updated job {job_id}: {list(updates.keys())}")
             return True
 
@@ -90,16 +104,55 @@ class ThreadSafeJobStore:
             if job_id not in self._jobs:
                 return False
 
-            job = self._jobs[job_id]
+            # Get current job
+            current_job = self._jobs[job_id]
 
-            # Validate fields exist in schema
-            invalid_fields = [k for k in fields if k not in job]
+            # Get valid field names from JobData class
+            valid_fields = {
+                "job_id",
+                "analysis_type",
+                "file_path",
+                "status",
+                "priority",
+                "created_at",
+                "updated_at",
+                "options",
+                "progress",
+                "result",
+                "error",
+                "started_at",
+                "completed_at",
+            }
+
+            # Validate fields exist in JobData schema
+            invalid_fields = [k for k in fields if k not in valid_fields]
             if invalid_fields:
                 raise ValueError(f"Cannot patch non-existent fields: {invalid_fields}")
 
-            # Apply patches
+            # Convert current job to dict
+            job_dict = current_job.to_dict()
+
+            # Apply patches to the dict
             for key, value in fields.items():
-                job[key] = value  # type: ignore[literal-required]
+                # Handle special cases for enums
+                if (key == "status" and isinstance(value, JobStatus)) or (
+                    key == "priority" and isinstance(value, JobPriority)
+                ):
+                    job_dict[key] = value.value
+                # Handle datetime objects
+                elif key in ("created_at", "updated_at", "started_at", "completed_at"):
+                    if isinstance(value, datetime):
+                        job_dict[key] = value.isoformat()
+                    else:
+                        job_dict[key] = value
+                else:
+                    job_dict[key] = value
+
+            # Create new immutable JobData instance
+            new_job = JobData.from_dict(job_dict)
+
+            # Replace the old instance in the store
+            self._jobs[job_id] = new_job
 
             logger.debug(f"Patched job {job_id}: {list(fields.keys())}")
             return True
@@ -139,7 +192,7 @@ class ThreadSafeJobStore:
             List of jobs with matching status
         """
         with self._lock:
-            return [job for job in self._jobs.values() if job["status"] == status]
+            return [job for job in self._jobs.values() if job.status == status]
 
     def count_by_status(self) -> dict[str, int]:
         """Count jobs by status.
@@ -157,7 +210,7 @@ class ThreadSafeJobStore:
             }
 
             for job in self._jobs.values():
-                status = job["status"].value
+                status = job.status.value
                 if status in counts:
                     counts[status] += 1
 
@@ -175,16 +228,14 @@ class ThreadSafeJobStore:
         """
         with self._lock:
             # Sort jobs by updated_at timestamp
-            sorted_jobs = sorted(
-                self._jobs.items(), key=lambda x: x[1].get("updated_at", ""), reverse=True
-            )
+            sorted_jobs = sorted(self._jobs.items(), key=lambda x: x[1].updated_at, reverse=True)
 
             completed_count = 0
             failed_count = 0
             to_delete = []
 
             for job_id, job in sorted_jobs:
-                status = job["status"]
+                status = job.status
 
                 if status == JobStatus.COMPLETED:
                     completed_count += 1
