@@ -29,6 +29,8 @@ dev-dependencies = [
     "types-pexpect>=4.9.0.20250516",
     "types-psutil>=7.0.0.20250601",
     "types-requests>=2.32.4.20250611",
+    "pyedflib>=0.1.42",
+    "fakeredis>=2.30.1",
 ]
 
 [project]

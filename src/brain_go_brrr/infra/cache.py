@@ -129,7 +129,7 @@ class RedisCache:
                     return 0
 
                 # Ensure we have a list of keys
-                key_list = list(keys_result) if keys_result else []
+                key_list = keys_result if isinstance(keys_result, list) else []
 
                 if not key_list:
                     return 0
@@ -138,7 +138,7 @@ class RedisCache:
                 try:
                     delete_count = client.delete(*key_list)
                     # Redis delete returns int of deleted keys
-                    return int(delete_count) if delete_count is not None else 0
+                    return delete_count if isinstance(delete_count, int) else 0
                 except ConnectionError as e:
                     # Log and translate to cache-specific error
                     logger.error(f"Failed to delete {len(key_list)} keys: {e}")

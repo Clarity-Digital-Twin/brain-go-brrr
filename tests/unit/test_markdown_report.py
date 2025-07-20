@@ -260,10 +260,22 @@ class TestMarkdownIntegration:
 
     def test_api_detailed_includes_markdown(self, client):
         """Test API detailed endpoint can include markdown."""
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        with patch("mne.io.read_raw_edf"):
-            files = {"file": ("test.edf", b"mock", "application/octet-stream")}
+        # Mock Redis
+        mock_cache = MagicMock()
+        mock_cache.connected = False  # Simulate Redis not being available
+
+        with (
+            patch("mne.io.read_raw_edf"),
+            patch("brain_go_brrr.api.cache.get_cache", return_value=mock_cache),
+            patch("brain_go_brrr.api.routers.qc.get_cache", return_value=mock_cache),
+        ):
+            # Create a valid EDF header
+            from tests.conftest import valid_edf_content
+
+            edf_content = valid_edf_content()
+            files = {"file": ("test.edf", edf_content, "application/octet-stream")}
             response = client.post(
                 "/api/v1/eeg/analyze/detailed",
                 files=files,

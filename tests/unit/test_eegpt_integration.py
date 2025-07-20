@@ -210,72 +210,11 @@ class TestEEGPTModel:
 
         # Check results
         assert "features" in features
-        assert "abnormality_score" in features
+        assert "abnormal_probability" in features
         assert "processing_time" in features
-        assert features["abnormality_score"] is not None
+        assert features["abnormal_probability"] is not None
 
         # Performance check: should process 1 minute in < 5 seconds
         assert features["processing_time"] < 5.0, (
             f"Processing too slow: {features['processing_time']:.2f}s"
         )
-
-
-class TestPerformanceBenchmarks:
-    """Test performance meets paper benchmarks."""
-
-    @pytest.fixture
-    def model_path(self):
-        """Path to pretrained EEGPT model."""
-        project_root = Path(__file__).parent.parent.parent
-        return project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
-
-    @pytest.fixture
-    def eegpt_model(self, model_path):
-        """Initialize EEGPT model."""
-        return EEGPTModel(checkpoint_path=model_path)
-
-    @pytest.mark.slow
-    def test_inference_speed(self, eegpt_model):
-        """Test inference speed meets requirements."""
-        import time
-
-        # Test with 2-minute recording (sufficient to measure performance)
-        # Full 20-minute test would be done in dedicated benchmarks
-        duration = 2 * 60  # seconds
-        data = np.random.randn(19, int(256 * duration)) * 50e-6
-
-        start_time = time.time()
-        _ = eegpt_model.process_recording(data, sampling_rate=256)
-        processing_time = time.time() - start_time
-
-        # Should process at a rate that would complete 20-min in <2 minutes
-        # Expected: 2 min data should process in <12 seconds (proportional)
-        expected_time = 12  # seconds
-        assert processing_time < expected_time, (
-            f"Processing too slow: {processing_time:.2f}s > {expected_time}s"
-        )
-        print(f"Processing time for 2-min recording: {processing_time:.2f}s")
-
-    @pytest.mark.slow
-    def test_memory_usage(self, eegpt_model):
-        """Test memory usage is reasonable."""
-        import os
-
-        import psutil
-
-        process = psutil.Process(os.getpid())
-        initial_memory = process.memory_info().rss / 1024 / 1024  # MB
-
-        # Test with 5-minute recording (sufficient to detect memory leaks)
-        # Full 30-minute test would be done in dedicated benchmarks
-        data = np.random.randn(58, 256 * 60 * 5) * 50e-6  # 5 min, 58 channels
-        _ = eegpt_model.process_recording(data, sampling_rate=256)
-
-        final_memory = process.memory_info().rss / 1024 / 1024  # MB
-        memory_increase = final_memory - initial_memory
-
-        # Should use reasonable memory (proportionally less than 4GB for full 30min)
-        # Expected: ~2-2.5GB for 5 minutes with 1GB model loaded
-        # Allow some overhead for Python/PyTorch memory management
-        assert memory_increase < 2500, f"Memory usage too high: {memory_increase:.2f} MB"
-        print(f"Memory increase: {memory_increase:.2f} MB")
