@@ -22,9 +22,14 @@ async def get_cache_stats(cache_client: Any = Depends(get_cache)) -> dict[str, A
     try:
         stats = cache_client.get_stats()
         return dict(stats)
-    except Exception as e:
-        logger.error(f"Failed to get cache stats: {e}")
-        return {"status": "error", "error": str(e)}
+    except (ConnectionError, TimeoutError) as e:
+        # Redis connection issues - expected and recoverable
+        logger.warning(f"Redis connection issue getting stats: {e}")
+        return {"status": "disconnected", "error": str(e)}
+    except AttributeError as e:
+        # Cache client method missing
+        logger.error(f"Cache client missing get_stats method: {e}")
+        return {"status": "error", "error": "Invalid cache client"}
 
 
 @router.delete("/clear")
@@ -51,9 +56,14 @@ async def clear_cache(
             "deleted_count": deleted_count,
             "pattern": pattern,
         }
-    except Exception as e:
-        logger.error(f"Failed to clear cache: {e}")
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ConnectionError, TimeoutError) as e:
+        # Redis connection issues
+        logger.error(f"Redis connection error clearing cache: {e}")
+        raise HTTPException(status_code=503, detail="Cache temporarily unavailable") from e
+    except ValueError as e:
+        # Invalid pattern
+        logger.error(f"Invalid cache pattern: {e}")
+        raise HTTPException(status_code=400, detail="Invalid cache pattern") from e
 
 
 @router.post("/warmup")

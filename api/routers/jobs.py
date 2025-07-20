@@ -14,12 +14,14 @@ from api.schemas import (
     JobStatus,
 )
 from brain_go_brrr.utils.time import utc_now
+from core.jobs import get_job_store
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-# TODO: Move this to core/jobs/store.py
+# Get thread-safe job store instance
+job_store_instance = get_job_store()
 
 
 class JobData(TypedDict):
@@ -40,7 +42,43 @@ class JobData(TypedDict):
     completed_at: str | None
 
 
-job_store: dict[str, JobData] = {}
+# Compatibility wrapper for gradual migration
+class JobStoreWrapper:
+    """Wrapper to maintain dict-like interface during migration."""
+
+    def __getitem__(self, key: str) -> JobData:
+        """Get job by ID, raising KeyError if not found."""
+        job = job_store_instance.get(key)
+        if job is None:
+            raise KeyError(key)
+        return job
+
+    def __setitem__(self, key: str, value: JobData) -> None:
+        """Create or update a job."""
+        try:
+            job_store_instance.create(key, value)
+        except ValueError:
+            # Job exists, update it
+            job_store_instance.update(key, value)
+
+    def __contains__(self, key: str) -> bool:
+        """Check if job exists."""
+        return job_store_instance.get(key) is not None
+
+    def get(self, key: str, default: Any = None) -> JobData | None:
+        """Get job by ID with default."""
+        return job_store_instance.get(key) or default
+
+    def values(self) -> list[JobData]:
+        """Get all job values."""
+        return job_store_instance.list_all()
+
+    def __delitem__(self, key: str) -> None:
+        """Delete a job."""
+        job_store_instance.delete(key)
+
+
+job_store = JobStoreWrapper()
 
 
 @router.post("/create", response_model=JobResponse, status_code=201)

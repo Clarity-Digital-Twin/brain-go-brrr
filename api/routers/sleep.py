@@ -36,20 +36,26 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
         # Load EDF data
         try:
             raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
+        except (FileNotFoundError, ValueError, MemoryError) as e:
+            # Expected EDF loading errors
+            logger.error(f"Failed to load EDF file: {e}")
+            job["status"] = JobStatus.FAILED
+            job["error"] = f"Invalid EDF file: {e!s}"
+            job["updated_at"] = utc_now().isoformat()
+            job["completed_at"] = utc_now().isoformat()
+            return
         except Exception as e:
-            # Only use mock data in testing mode
-            import os
-
-            if os.environ.get("BRAIN_GO_BRRR_TESTING", "").lower() == "true":
-                logger.warning(f"Failed to load EDF file in testing mode, using mock data: {e}")
-                # Create minimal mock for testing
-                import numpy as np
-
-                info = mne.create_info(ch_names=["Fp1", "Fp2"], sfreq=256, ch_types="eeg")
-                raw = mne.io.RawArray(np.random.randn(2, 256 * 10), info)
+            # Handle MNE-specific EDF errors
+            if "edf" in str(type(e)).lower() or "mne" in str(type(e)).lower():
+                logger.error(f"MNE/EDF specific error: {e}")
+                job["status"] = JobStatus.FAILED
+                job["error"] = f"EDF format error: {e!s}"
+                job["updated_at"] = utc_now().isoformat()
+                job["completed_at"] = utc_now().isoformat()
+                return
             else:
-                # In production, fail loudly on corrupt EDFs
-                logger.error(f"Failed to load EDF file: {e}")
+                # Unexpected error - re-raise
+                logger.critical(f"Unexpected error loading EDF: {e}")
                 raise
 
         # Run YASA sleep analysis
@@ -99,11 +105,26 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
         job["completed_at"] = utc_now().isoformat()
         job["updated_at"] = utc_now().isoformat()
 
-    except Exception as e:
+    except (ValueError, RuntimeError, MemoryError) as e:
+        # Expected analysis errors
         logger.error(f"Sleep analysis job {job_id} failed: {e}")
         logger.debug("Full traceback:", exc_info=True)
         job["status"] = JobStatus.FAILED
-        job["error"] = str(e)
+        job["error"] = f"Analysis error: {e!s}"
+        job["updated_at"] = utc_now().isoformat()
+        job["completed_at"] = utc_now().isoformat()
+    except ImportError as e:
+        # Missing dependencies
+        logger.error(f"Missing dependency for sleep analysis: {e}")
+        job["status"] = JobStatus.FAILED
+        job["error"] = "Sleep analysis dependencies not installed"
+        job["updated_at"] = utc_now().isoformat()
+        job["completed_at"] = utc_now().isoformat()
+    except AttributeError as e:
+        # Sleep analyzer method issues
+        logger.error(f"Sleep analyzer API error: {e}")
+        job["status"] = JobStatus.FAILED
+        job["error"] = "Internal sleep analyzer error"
         job["updated_at"] = utc_now().isoformat()
         job["completed_at"] = utc_now().isoformat()
 

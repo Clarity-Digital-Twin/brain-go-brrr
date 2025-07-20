@@ -44,8 +44,10 @@ async def get_gpu_resources() -> dict[str, Any]:
                 for gpu in gpus
             ]
         }
-    except Exception as e:
-        return {"gpus": [], "error": str(e)}
+    except (AttributeError, RuntimeError) as e:
+        # GPUtil access errors - expected when no GPU or drivers missing
+        logger.warning(f"GPU access error (likely no GPU available): {e}")
+        return {"gpus": [], "error": f"GPU not available: {e!s}"}
 
 
 @router.get("/memory")

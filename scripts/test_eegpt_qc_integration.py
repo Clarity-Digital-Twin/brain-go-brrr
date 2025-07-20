@@ -15,7 +15,9 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.quality import EEGQualityController  # noqa: E402
+from core.quality import (  # noqa: E402 - Import after sys.path modification for script execution
+    EEGQualityController,
+)
 
 
 def test_eegpt_qc_integration():

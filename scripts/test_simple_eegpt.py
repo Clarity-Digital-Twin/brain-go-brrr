@@ -11,7 +11,9 @@ import torch
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from brain_go_brrr.models.eegpt_model import EEGPTModel  # noqa: E402
+from brain_go_brrr.models.eegpt_model import (  # noqa: E402 - Import after sys.path modification for script execution
+    EEGPTModel,
+)
 
 
 def test_simple_eegpt():

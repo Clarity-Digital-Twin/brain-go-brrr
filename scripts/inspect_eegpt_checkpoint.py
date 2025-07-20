@@ -18,7 +18,7 @@ def inspect_checkpoint():
     print(f"File size: {checkpoint_path.stat().st_size / 1e6:.1f} MB")
 
     # Load checkpoint
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614 - Loading trusted model checkpoints, not user data
 
     print("\n=== Checkpoint Keys ===")
     for key in checkpoint:

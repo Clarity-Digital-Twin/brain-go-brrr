@@ -102,14 +102,21 @@ class RedisCache:
 
         try:
             with self.pool.get_client() as client:
-                keys = client.keys(pattern)
-                if keys:
-                    # Type assertion: redis.keys() returns list[bytes]
-                    key_list: list[bytes] = list(keys)  # type: ignore[arg-type]
-                    if key_list:
-                        delete_result = client.delete(*key_list)
-                        return int(delete_result)  # type: ignore[arg-type]
-                return 0
+                # Redis keys() returns List[bytes] but typing is inconsistent
+                keys_result = client.keys(pattern)
+                if not keys_result:
+                    return 0
+
+                # Ensure we have a list of keys
+                key_list = keys_result if isinstance(keys_result, list) else list(keys_result)
+
+                if not key_list:
+                    return 0
+
+                # Delete all matching keys
+                delete_count = client.delete(*key_list)
+                # Redis delete returns int of deleted keys
+                return int(delete_count) if delete_count is not None else 0
         except Exception:
             return 0
 
