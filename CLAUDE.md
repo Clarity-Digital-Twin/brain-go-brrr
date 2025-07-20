@@ -45,6 +45,36 @@ make coverage             # Test coverage report
 make docs                 # Build documentation
 ```
 
+## 🤖 GitHub Actions & Claude Bot
+
+### Automated Development with Claude
+
+This repository has Claude bot integration for autonomous development:
+
+1. **Create issues with @claude tag** to trigger automatic implementation
+2. **Comment @claude on PRs** for code reviews and improvements
+3. **Claude creates PRs** with full implementations based on issue descriptions
+
+### Usage Examples
+
+```bash
+# In a GitHub issue:
+@claude implement this feature based on the issue description
+
+# In a PR comment:
+@claude review this code for security vulnerabilities
+
+# For bug fixes:
+@claude fix the TypeError in the payment processing module
+```
+
+### Requirements for Claude Bot
+
+- Issues must have clear acceptance criteria
+- Tag @claude in issue body or comments
+- Claude follows all guidelines in this CLAUDE.md file
+- PRs are created against the branch where issue was commented
+
 ## 🏗️ Architecture & Tech Stack
 
 ### Backend Stack
