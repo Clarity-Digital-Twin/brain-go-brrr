@@ -1,13 +1,33 @@
 """Shared test fixtures and configuration."""
 
+import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import mne
+import numpy as np
 import pytest
+import redis
 from fastapi.testclient import TestClient
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data"]
+
+
+@pytest.fixture(autouse=True)
+def redis_disabled(monkeypatch):
+    """Replace Redis with FakeRedis for all unit tests."""
+    import fakeredis
+
+    # Create a module mock that acts like redis module
+    mock_redis_module = MagicMock()
+    mock_redis_module.Redis = fakeredis.FakeRedis
+    mock_redis_module.StrictRedis = fakeredis.FakeStrictRedis
+    mock_redis_module.ConnectionError = redis.ConnectionError
+    mock_redis_module.TimeoutError = redis.TimeoutError
+
+    # Patch the redis module imports
+    monkeypatch.setattr("brain_go_brrr.infra.redis.pool.redis", mock_redis_module)
 
 
 @pytest.fixture(autouse=True)
@@ -86,8 +106,6 @@ def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
 @pytest.fixture
 def mock_eeg_data():
     """Create mock EEG data for unit tests."""
-    import numpy as np
-
     # 19 channels, 30 seconds at 256 Hz
     sfreq = 256
     duration = 30
@@ -120,3 +138,112 @@ def mock_eeg_data():
 
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     return mne.io.RawArray(data, info)
+
+
+@pytest.fixture
+def mock_qc_controller():
+    """Mock QC controller with proper spec and expected behavior."""
+    from brain_go_brrr.core.quality import EEGQualityController
+
+    controller = MagicMock(spec=EEGQualityController)
+    controller.eegpt_model = MagicMock()  # Model is loaded
+    controller.run_full_qc_pipeline = MagicMock(
+        return_value={
+            "quality_metrics": {
+                "bad_channels": ["T3", "O2"],
+                "bad_channel_ratio": 0.21,
+                "abnormality_score": 0.82,
+                "quality_grade": "POOR",
+                "total_channels": 19,
+                "artifact_ratio": 0.15,
+            },
+            "processing_info": {"confidence": 0.85},
+            "processing_time": 1.5,
+        }
+    )
+    return controller
+
+
+@pytest.fixture(scope="session")
+def tiny_edf(tmp_path_factory):
+    """Create a tiny, valid EDF file using pyEDFlib."""
+    import numpy as np
+    from pyedflib import EdfWriter
+
+    # Create a temporary path for the EDF file
+    path = tmp_path_factory.mktemp("edf") / "tiny.edf"
+
+    # Create the EDF writer with 1 channel
+    writer = EdfWriter(str(path), n_channels=1)
+
+    # Set signal header for one EEG channel
+    writer.setSignalHeader(
+        0,
+        {
+            "label": "EEG Fpz-Cz",
+            "dimension": "uV",
+            "sample_frequency": 256,
+            "physical_max": 250,
+            "physical_min": -250,
+            "digital_max": 2047,
+            "digital_min": -2048,
+            "prefilter": "HP:0.1Hz LP:75Hz",
+            "transducer": "AgAgCl electrode",
+        },
+    )
+
+    # Write 1 second of zero data (256 samples at 256 Hz)
+    data = np.zeros(256, dtype=np.int32)
+    writer.writeDigitalSamples(data)
+
+    # Close the writer to finalize the file
+    writer.close()
+
+    # Return the file contents as bytes
+    return path.read_bytes()
+
+
+@pytest.fixture
+def valid_edf_content(tiny_edf):
+    """Alias for tiny_edf for backward compatibility."""
+    return tiny_edf
+
+
+@pytest.fixture
+def valid_edf_file(valid_edf_content):
+    """Create a temporary valid EDF file."""
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as f:
+        f.write(valid_edf_content)
+        f.flush()
+        yield Path(f.name)
+    # Cleanup
+    if Path(f.name).exists():
+        Path(f.name).unlink()
+
+
+@pytest.fixture
+def patched_qc_endpoint(mock_qc_controller):
+    """Provide a context manager for patching QC endpoint dependencies."""
+
+    def _patch():
+        return [
+            patch("brain_go_brrr.api.routers.qc.qc_controller", mock_qc_controller),
+        ]
+
+    return _patch
+
+
+@pytest.fixture
+def mock_abnormality_detector():
+    """Mock abnormality detector with proper spec."""
+    from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
+
+    detector = MagicMock(spec=AbnormalityDetector)
+    detector.detect_abnormality = MagicMock(
+        return_value={
+            "abnormal": False,
+            "confidence": 0.85,
+            "probabilities": {"normal": 0.85, "abnormal": 0.15},
+        }
+    )
+    return detector

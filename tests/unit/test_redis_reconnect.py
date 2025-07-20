@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import redis
 
-from brain_go_brrr.api.cache import RedisCache
+from brain_go_brrr.infra.cache import RedisCache
 
 
 class TestRedisReconnect:
     """Test Redis connection resilience."""
 
-    @patch("brain_go_brrr.api.cache.redis.Redis")
+    @patch("brain_go_brrr.infra.redis.pool.redis.Redis")
     def test_redis_auto_reconnect_on_connection_error(self, mock_redis_class):
         """Test that Redis cache auto-reconnects when connection fails.
 
@@ -39,7 +39,7 @@ class TestRedisReconnect:
         assert result == {"test": "test_value"}
         assert mock_client.get.call_count == 2  # Failed once, retried once
 
-    @patch("brain_go_brrr.api.cache.redis.Redis")
+    @patch("brain_go_brrr.infra.redis.pool.redis.Redis")
     def test_redis_auto_reconnect_on_timeout(self, mock_redis_class):
         """Test that Redis cache handles timeout errors gracefully.
 
@@ -60,13 +60,13 @@ class TestRedisReconnect:
         cache = RedisCache()
 
         # When: We attempt a set operation that initially times out
-        result = cache.set("test_key", {"value": "test_value"}, ttl=300)
+        result = cache.set("test_key", {"value": "test_value"}, expiry=300)
 
         # Then: Should have retried and succeeded
         assert result is True
         assert mock_client.set.call_count == 2  # Timed out once, retried once
 
-    @patch("brain_go_brrr.api.cache.redis.Redis")
+    @patch("brain_go_brrr.infra.redis.pool.redis.Redis")
     def test_redis_gives_up_after_max_retries(self, mock_redis_class):
         """Test that Redis cache eventually gives up after max retries.
 
@@ -90,7 +90,7 @@ class TestRedisReconnect:
         # Should have tried multiple times before giving up
         assert mock_client.get.call_count >= 1
 
-    @patch("brain_go_brrr.api.cache.redis.Redis")
+    @patch("brain_go_brrr.infra.redis.pool.redis.Redis")
     def test_redis_successful_operation_no_retry(self, mock_redis_class):
         """Test that successful operations don't trigger retry logic.
 

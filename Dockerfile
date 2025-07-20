@@ -41,8 +41,6 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
 COPY src/ ./src/
-COPY services/ ./services/
-COPY api/ ./api/
 COPY stubs/ ./stubs/
 COPY mypy.ini ./
 
@@ -65,4 +63,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
 # Default command
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "brain_go_brrr.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
