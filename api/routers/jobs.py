@@ -24,43 +24,8 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 job_store_instance = get_job_store()
 
 
-# Compatibility wrapper for gradual migration
-class JobStoreWrapper:
-    """Wrapper to maintain dict-like interface during migration."""
-
-    def __getitem__(self, key: str) -> JobData:
-        """Get job by ID, raising KeyError if not found."""
-        job = job_store_instance.get(key)
-        if job is None:
-            raise KeyError(key)
-        return job
-
-    def __setitem__(self, key: str, value: JobData) -> None:
-        """Create or update a job."""
-        try:
-            job_store_instance.create(key, value)
-        except ValueError:
-            # Job exists, update it
-            job_store_instance.update(key, value)
-
-    def __contains__(self, key: str) -> bool:
-        """Check if job exists."""
-        return job_store_instance.get(key) is not None
-
-    def get(self, key: str, default: Any = None) -> JobData | None:
-        """Get job by ID with default."""
-        return job_store_instance.get(key) or default
-
-    def values(self) -> list[JobData]:
-        """Get all job values."""
-        return job_store_instance.list_all()
-
-    def __delitem__(self, key: str) -> None:
-        """Delete a job."""
-        job_store_instance.delete(key)
-
-
-job_store = JobStoreWrapper()
+# Direct access to thread-safe job store - no dict-like wrapper
+job_store = job_store_instance
 
 
 @router.post("/create", response_model=JobResponse, status_code=201)
