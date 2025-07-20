@@ -1,10 +1,9 @@
 """Application factory for Brain-Go-Brrr API."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import cache, health, jobs, qc, queue, resources, sleep
-from api.routes import routes
 from brain_go_brrr.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -31,19 +30,19 @@ def create_app() -> FastAPI:
     )
 
     # Root endpoint - defined before routers are included
-    @app.get("/", tags=["root"])
-    async def root():
+    @app.get("/", tags=["root"], name="root")
+    async def root(request: Request):
         """Root endpoint with API information."""
         return {
             "message": "Welcome to Brain-Go-Brrr API",
             "version": "0.1.0",
             "endpoints": {
-                "docs": routes.DOCS,
-                "redoc": routes.REDOC,
-                "health": routes.HEALTH,
-                "qc_analyze": routes.QC_ANALYZE,
-                "sleep_analyze": routes.SLEEP_ANALYZE,
-                "jobs": routes.JOBS_LIST,
+                "docs": str(request.app.docs_url),
+                "redoc": str(request.app.redoc_url),
+                "health": request.app.url_path_for("health_check"),
+                "ready": request.app.url_path_for("readiness_check"),
+                "queue_status": request.app.url_path_for("get_queue_status"),
+                "jobs": request.app.url_path_for("list_jobs"),
             },
         }
 

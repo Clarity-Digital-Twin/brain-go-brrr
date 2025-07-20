@@ -1,6 +1,7 @@
 """Queue management endpoints."""
 
 import logging
+from collections import Counter
 from typing import Any
 
 from fastapi import APIRouter
@@ -17,25 +18,17 @@ router = APIRouter(prefix="/queue", tags=["queue"])
 @router.get("/status", response_model=QueueStatusResponse)
 async def get_queue_status():
     """Get current queue status and statistics."""
-    # Count jobs by status
-    status_counts = {
-        "pending": 0,
-        "processing": 0,
-        "completed": 0,
-        "failed": 0,
-    }
+    # Use Counter for efficient status counting
+    all_jobs = job_store.list_all()
+    status_counter = Counter(job["status"] for job in all_jobs)
 
-    # Use list_all() method to get all jobs
-    for job in job_store.list_all():
-        status = job["status"]
-        if status == JobStatus.PENDING:
-            status_counts["pending"] += 1
-        elif status == JobStatus.PROCESSING:
-            status_counts["processing"] += 1
-        elif status == JobStatus.COMPLETED:
-            status_counts["completed"] += 1
-        elif status == JobStatus.FAILED:
-            status_counts["failed"] += 1
+    # Map to response format
+    status_counts = {
+        "pending": status_counter.get(JobStatus.PENDING, 0),
+        "processing": status_counter.get(JobStatus.PROCESSING, 0),
+        "completed": status_counter.get(JobStatus.COMPLETED, 0),
+        "failed": status_counter.get(JobStatus.FAILED, 0),
+    }
 
     # Determine health based on queue size
     total_active = status_counts["pending"] + status_counts["processing"]
@@ -139,9 +132,9 @@ async def recover_jobs() -> dict[str, Any]:
     recovered = 0
     for job in job_store.list_all():
         if job["status"] == JobStatus.PROCESSING:
-            # Reset to pending for reprocessing
-            job_store.update(
-                job["job_id"], {"status": JobStatus.PENDING, "updated_at": utc_now().isoformat()}
+            # Reset to pending for reprocessing using patch
+            job_store.patch(
+                job["job_id"], status=JobStatus.PENDING, updated_at=utc_now().isoformat()
             )
             recovered += 1
 

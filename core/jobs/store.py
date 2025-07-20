@@ -73,6 +73,37 @@ class ThreadSafeJobStore:
             logger.debug(f"Updated job {job_id}: {list(updates.keys())}")
             return True
 
+    def patch(self, job_id: str, **fields: Any) -> bool:
+        """Patch specific job fields without replacing the entire record.
+
+        Args:
+            job_id: Job identifier
+            **fields: Specific fields to update
+
+        Returns:
+            True if patched, False if job not found
+
+        Raises:
+            ValueError: If trying to patch non-existent fields
+        """
+        with self._lock:
+            if job_id not in self._jobs:
+                return False
+
+            job = self._jobs[job_id]
+
+            # Validate fields exist in schema
+            invalid_fields = [k for k in fields if k not in job]
+            if invalid_fields:
+                raise ValueError(f"Cannot patch non-existent fields: {invalid_fields}")
+
+            # Apply patches
+            for key, value in fields.items():
+                job[key] = value  # type: ignore[literal-required]
+
+            logger.debug(f"Patched job {job_id}: {list(fields.keys())}")
+            return True
+
     def delete(self, job_id: str) -> bool:
         """Delete a job.
 

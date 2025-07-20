@@ -8,6 +8,24 @@ from infra.redis import RedisConnectionPool, get_redis_pool
 logger = logging.getLogger(__name__)
 
 
+class CacheBackendError(Exception):
+    """Base exception for cache backend errors."""
+
+    pass
+
+
+class CacheConnectionError(CacheBackendError):
+    """Raised when cache backend connection fails."""
+
+    pass
+
+
+class CacheTimeoutError(CacheBackendError):
+    """Raised when cache operation times out."""
+
+    pass
+
+
 @runtime_checkable
 class RedisCacheProtocol(Protocol):
     """Protocol for Redis cache operations."""
@@ -121,16 +139,22 @@ class RedisCache:
                     delete_count = client.delete(*key_list)
                     # Redis delete returns int of deleted keys
                     return int(delete_count) if delete_count is not None else 0
-                except (ConnectionError, TimeoutError) as e:
-                    # Log and re-raise so caller knows the operation failed
+                except ConnectionError as e:
+                    # Log and translate to cache-specific error
                     logger.error(f"Failed to delete {len(key_list)} keys: {e}")
-                    raise  # Re-raise to outer handler
-        except (ConnectionError, TimeoutError):
-            # Re-raise connection errors so caller can handle
-            raise
+                    raise CacheConnectionError(f"Connection failed while deleting keys: {e}") from e
+                except TimeoutError as e:
+                    logger.error(f"Timeout deleting {len(key_list)} keys: {e}")
+                    raise CacheTimeoutError(f"Operation timed out: {e}") from e
+        except ConnectionError as e:
+            # Translate to cache-specific error
+            raise CacheConnectionError(f"Cache connection failed: {e}") from e
+        except TimeoutError as e:
+            raise CacheTimeoutError(f"Cache operation timed out: {e}") from e
         except Exception as e:
-            logger.warning(f"Error clearing pattern '{pattern}': {e}")
-            return 0
+            # For other unexpected errors, log and re-raise
+            logger.error(f"Unexpected error clearing pattern '{pattern}': {e}")
+            raise
 
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
