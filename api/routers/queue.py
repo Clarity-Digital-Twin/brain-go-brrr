@@ -25,7 +25,8 @@ async def get_queue_status():
         "failed": 0,
     }
 
-    for job in job_store.values():
+    # Use list_all() method to get all jobs
+    for job in job_store.list_all():
         status = job["status"]
         if status == JobStatus.PENDING:
             status_counts["pending"] += 1
@@ -108,7 +109,7 @@ async def resume_queue() -> dict[str, str]:
 @router.get("/failed")
 async def get_failed_jobs() -> dict[str, Any]:
     """Get failed jobs (dead letter queue)."""
-    failed_jobs = [job for job in job_store.values() if job["status"] == JobStatus.FAILED]
+    failed_jobs = [job for job in job_store.list_all() if job["status"] == JobStatus.FAILED]
 
     return {
         "failed_jobs": [
@@ -136,11 +137,12 @@ async def recover_jobs() -> dict[str, Any]:
     """Recover in-progress jobs after system restart."""
     # Find all jobs that were processing
     recovered = 0
-    for job in job_store.values():
+    for job in job_store.list_all():
         if job["status"] == JobStatus.PROCESSING:
             # Reset to pending for reprocessing
-            job["status"] = JobStatus.PENDING
-            job["updated_at"] = utc_now().isoformat()
+            job_store.update(
+                job["job_id"], {"status": JobStatus.PENDING, "updated_at": utc_now().isoformat()}
+            )
             recovered += 1
 
     return {

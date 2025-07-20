@@ -15,7 +15,7 @@ class TestPDFReportIntegration:
     @pytest.fixture
     def mock_qc_controller(self):
         """Mock the QC controller with comprehensive results."""
-        with patch("api.main.EEGQualityController") as mock_class:
+        with patch("core.quality.controller.EEGQualityController") as mock_class:
             mock_controller = Mock()
             mock_controller.eegpt_model = Mock()
             mock_controller.run_full_qc_pipeline = Mock(
@@ -138,7 +138,7 @@ class TestPDFReportIntegration:
 
     def test_pdf_contains_all_required_sections(self, client, sample_edf_file):
         """Test that generated PDF contains all required sections."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf_class:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf_class:
             # Mock the PDF generator to track calls
             mock_instance = Mock()
             mock_pdf_class.return_value = mock_instance
@@ -161,7 +161,7 @@ class TestPDFReportIntegration:
 
     def test_pdf_report_error_handling(self, client, sample_edf_file, mock_qc_controller):
         """Test that API handles PDF generation errors gracefully."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf_class:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf_class:
             mock_instance = Mock()
             mock_instance.generate_report.side_effect = Exception("PDF generation failed")
             mock_pdf_class.return_value = mock_instance
@@ -179,7 +179,7 @@ class TestPDFReportIntegration:
 
     def test_pdf_report_with_artifact_visualizations(self, client, sample_edf_file):
         """Test that PDF includes artifact visualizations when available."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf_class:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf_class:
             mock_instance = Mock()
 
             # Track visualization calls
@@ -204,7 +204,7 @@ class TestPDFReportIntegration:
 
     def test_pdf_report_size_limits(self, client, sample_edf_file):
         """Test that PDF reports have reasonable size limits."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf_class:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf_class:
             mock_instance = Mock()
             # Create a large fake PDF (5MB)
             large_pdf = b"%PDF-1.4\n" + b"x" * (5 * 1024 * 1024)
@@ -227,7 +227,7 @@ class TestPDFReportIntegration:
 
     def test_pdf_metadata_inclusion(self, client, sample_edf_file):
         """Test that PDF includes proper metadata."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf_class:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf_class:
             mock_instance = Mock()
 
             # Capture metadata passed to PDF generator

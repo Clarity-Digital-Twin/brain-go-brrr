@@ -45,7 +45,7 @@ class TestSleepEDFIntegration:
             return f.read(1024 * 1024)  # 1MB should be enough for testing
 
     @pytest.mark.integration
-    @patch("core.quality.EEGQualityController.run_full_qc_pipeline")
+    @patch("core.quality.controller.EEGQualityController.run_full_qc_pipeline")
     def test_real_edf_processing_fast(self, mock_qc_pipeline, client, sleep_edf_file):
         """Test API endpoint with mocked processing (fast)."""
         # Mock the heavy processing to return quickly

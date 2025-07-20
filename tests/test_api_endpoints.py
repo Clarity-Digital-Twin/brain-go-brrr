@@ -15,7 +15,7 @@ class TestAPIEndpoints:
     @pytest.fixture
     def mock_qc_controller(self):
         """Mock the QC controller."""
-        with patch("api.routers.qc.EEGQualityController") as mock_class:
+        with patch("core.quality.controller.EEGQualityController") as mock_class:
             mock_controller = Mock()
             mock_controller.eegpt_model = Mock()
             mock_controller.run_full_qc_pipeline = Mock(
@@ -82,18 +82,19 @@ class TestAPIEndpoints:
         assert "message" in data
         assert "version" in data
         assert "endpoints" in data
-        assert data["message"] == "Brain-Go-Brrr API"
+        assert data["message"] == "Welcome to Brain-Go-Brrr API"
 
     def test_health_endpoint(self, client, mock_qc_controller):
         """Test health check endpoint."""
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
 
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-        assert "eegpt_loaded" in data
         assert "timestamp" in data
-        assert data["eegpt_loaded"] is True  # Mock has eegpt_model
+        assert "service" in data
+        assert data["service"] == "brain-go-brrr-api"
+        assert "version" in data
 
     def test_analyze_eeg_success(self, client, sample_edf_file, mock_qc_controller):
         """Test successful EEG analysis."""
@@ -254,7 +255,7 @@ class TestAPIEndpoints:
 
     def test_analyze_detailed_pdf_generation(self, client, sample_edf_file, mock_qc_controller):
         """Test PDF report generation."""
-        with patch("api.main.PDFReportGenerator") as mock_pdf:
+        with patch("brain_go_brrr.visualization.pdf_report.PDFReportGenerator") as mock_pdf:
             mock_pdf_instance = Mock()
             mock_pdf_instance.generate_report.return_value = b"PDF content"
             mock_pdf.return_value = mock_pdf_instance
@@ -276,7 +277,9 @@ class TestAPIEndpoints:
 
     def test_analyze_detailed_markdown_report(self, client, sample_edf_file, mock_qc_controller):
         """Test Markdown report generation."""
-        with patch("api.main.MarkdownReportGenerator") as mock_md:
+        with patch(
+            "brain_go_brrr.visualization.markdown_report.MarkdownReportGenerator"
+        ) as mock_md:
             mock_md_instance = Mock()
             mock_md_instance.generate_report.return_value = "# EEG Report\n\nTest content"
             mock_md.return_value = mock_md_instance
@@ -354,7 +357,7 @@ class TestAPIEndpoints:
         "endpoint,method",
         [
             ("/", "GET"),
-            ("/health", "GET"),
+            ("/api/v1/health", "GET"),
             ("/api/v1/eeg/analyze", "POST"),
             ("/api/v1/eeg/analyze/detailed", "POST"),
         ],
