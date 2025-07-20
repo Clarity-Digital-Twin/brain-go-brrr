@@ -1,5 +1,7 @@
 """Application factory for Brain-Go-Brrr API."""
 
+from typing import Any
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -31,7 +33,7 @@ def create_app() -> FastAPI:
 
     # Root endpoint - defined before routers are included
     @app.get("/", tags=["root"], name="root")
-    async def root(request: Request):
+    async def root(request: Request) -> dict[str, Any]:
         """Root endpoint with API information."""
         return {
             "message": "Welcome to Brain-Go-Brrr API",
@@ -57,13 +59,13 @@ def create_app() -> FastAPI:
 
     # Startup event
     @app.on_event("startup")
-    async def startup_event():
+    async def startup_event() -> None:
         logger.info("Starting Brain-Go-Brrr API...")
         # TODO: Initialize services (Redis, model loading, etc.)
 
     # Shutdown event
     @app.on_event("shutdown")
-    async def shutdown_event():
+    async def shutdown_event() -> None:
         logger.info("Shutting down Brain-Go-Brrr API...")
         # TODO: Cleanup (close connections, etc.)
 

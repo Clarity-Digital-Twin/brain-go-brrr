@@ -13,8 +13,8 @@ from brain_go_brrr.api.schemas import (
     JobResponse,
     JobStatus,
 )
-from brain_go_brrr.utils.time import utc_now
 from brain_go_brrr.core.jobs import get_job_store
+from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -184,8 +184,8 @@ async def get_job_progress(job_id: str) -> dict[str, Any]:
     return {
         "job_id": job_id,
         "percent_complete": (job.progress or 0.0) * 100,
-        "current_step": getattr(job, 'current_step', "Unknown"),
-        "estimated_remaining": getattr(job, 'estimated_remaining', None),
+        "current_step": getattr(job, "current_step", "Unknown"),
+        "estimated_remaining": getattr(job, "estimated_remaining", None),
         "status": job.status,
     }
 
@@ -198,7 +198,7 @@ async def get_job_logs(job_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     # In production, this would fetch from a logging service
-    return {"job_id": job_id, "logs": getattr(job, 'logs', [])}
+    return {"job_id": job_id, "logs": getattr(job, "logs", [])}
 
 
 @router.get("/{job_id}/stream")

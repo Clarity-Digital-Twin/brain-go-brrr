@@ -129,7 +129,7 @@ class RedisCache:
                     return 0
 
                 # Ensure we have a list of keys
-                key_list = keys_result if isinstance(keys_result, list) else list(keys_result)
+                key_list = list(keys_result) if keys_result else []
 
                 if not key_list:
                     return 0

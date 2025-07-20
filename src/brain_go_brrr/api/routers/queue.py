@@ -16,11 +16,11 @@ router = APIRouter(prefix="/queue", tags=["queue"])
 
 
 @router.get("/status", response_model=QueueStatusResponse)
-async def get_queue_status():
+async def get_queue_status() -> QueueStatusResponse:
     """Get current queue status and statistics."""
     # Use Counter for efficient status counting
     all_jobs = job_store.list_all()
-    status_counter = Counter(job["status"] for job in all_jobs)
+    status_counter = Counter(job.status for job in all_jobs)
 
     # Map to response format
     status_counts = {
@@ -102,22 +102,22 @@ async def resume_queue() -> dict[str, str]:
 @router.get("/failed")
 async def get_failed_jobs() -> dict[str, Any]:
     """Get failed jobs (dead letter queue)."""
-    failed_jobs = [job for job in job_store.list_all() if job["status"] == JobStatus.FAILED]
+    failed_jobs = [job for job in job_store.list_all() if job.status == JobStatus.FAILED]
 
     return {
         "failed_jobs": [
             JobResponse(
-                job_id=job["job_id"],
-                analysis_type=job["analysis_type"],
-                status=job["status"],
-                priority=job["priority"],
-                progress=job["progress"],
-                result=job["result"],
-                error=job["error"],
-                created_at=job["created_at"],
-                updated_at=job["updated_at"],
-                started_at=job["started_at"],
-                completed_at=job["completed_at"],
+                job_id=job.job_id,
+                analysis_type=job.analysis_type,
+                status=job.status,
+                priority=job.priority,
+                progress=job.progress,
+                result=job.result,
+                error=job.error,
+                created_at=job.created_at.isoformat(),
+                updated_at=job.updated_at.isoformat(),
+                started_at=job.started_at.isoformat() if job.started_at else None,
+                completed_at=job.completed_at.isoformat() if job.completed_at else None,
             )
             for job in failed_jobs
         ],
@@ -131,11 +131,9 @@ async def recover_jobs() -> dict[str, Any]:
     # Find all jobs that were processing
     recovered = 0
     for job in job_store.list_all():
-        if job["status"] == JobStatus.PROCESSING:
+        if job.status == JobStatus.PROCESSING:
             # Reset to pending for reprocessing using patch
-            job_store.patch(
-                job["job_id"], status=JobStatus.PENDING, updated_at=utc_now().isoformat()
-            )
+            job_store.patch(job.job_id, status=JobStatus.PENDING, updated_at=utc_now().isoformat())
             recovered += 1
 
     return {

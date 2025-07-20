@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter
 
 if TYPE_CHECKING:
-    import GPUtil  # type: ignore[import-not-found]
+    import GPUtil
 else:
     GPUtil = None
 
@@ -51,7 +51,7 @@ async def get_gpu_resources() -> dict[str, Any]:
 
 
 @router.get("/memory")
-async def get_memory_resources():
+async def get_memory_resources() -> dict[str, Any]:
     """Get system memory utilization."""
     import psutil
 

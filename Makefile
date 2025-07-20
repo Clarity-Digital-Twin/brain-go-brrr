@@ -80,23 +80,23 @@ notebook: ## Start Jupyter Lab
 
 lint: ## Run linting with ruff
 	@echo "$(GREEN)Running linting checks...$(NC)"
-	$(RUFF) check $(SRC_DIR) $(TEST_DIR) core/ api/ infra/ --fix
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR) --fix
 	@echo "$(GREEN)Linting complete!$(NC)"
 
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
-	$(RUFF) format $(SRC_DIR) $(TEST_DIR) core/ api/ infra/
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR)
 	@echo "$(GREEN)Code formatted!$(NC)"
 
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
 	@rm -rf .mypy_cache 2>/dev/null || true
-	$(MYPY) src/brain_go_brrr core/ api/ infra/
+	$(MYPY) src/brain_go_brrr
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
 fast-type-check: ## Fast type checking for development (uses cache)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
-	$(MYPY) --ignore-missing-imports src/brain_go_brrr core/ api/
+	$(MYPY) --ignore-missing-imports src/brain_go_brrr
 	@echo "$(GREEN)Fast type checking complete!$(NC)"
 
 type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py
@@ -123,7 +123,7 @@ test-fast: ## Run only fast unit tests (default)
 test-cov: ## Run fast tests with coverage (80% minimum)
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
-		--cov=api --cov=core --cov=infra \
+		--cov=src/brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report=html \
 		--cov-fail-under=80 \
@@ -136,7 +136,7 @@ test-integration: ## Run integration tests
 test-all-cov: ## Run ALL tests with coverage report
 	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
-		--cov=api --cov=core --cov=infra --cov=src/brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report=html \
 		-m ""

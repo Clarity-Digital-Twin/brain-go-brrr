@@ -80,8 +80,8 @@ class ThreadSafeJobStore:
             if hasattr(JobData, "from_dict"):
                 new_job = JobData.from_dict(job_dict)
             else:
-                # Fallback for dict-based storage
-                new_job = job_dict  # type: ignore
+                # This shouldn't happen with dataclass, but kept for safety
+                raise RuntimeError("JobData.from_dict method not found")
 
             self._jobs[job_id] = new_job
             logger.debug(f"Updated job {job_id}: {list(updates.keys())}")

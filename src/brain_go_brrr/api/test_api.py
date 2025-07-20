@@ -15,7 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-def test_health_check():
+def test_health_check() -> None:
     """Test health check endpoint."""
     print("Testing health check...")
     response = requests.get("http://localhost:8000/health", timeout=5)
@@ -29,7 +29,7 @@ def test_health_check():
         print(f"❌ Health check failed: {response.status_code}")
 
 
-def test_qc_analysis():
+def test_qc_analysis() -> None:
     """Test QC analysis endpoint."""
     print("\nTesting QC analysis...")
 
@@ -68,7 +68,7 @@ def test_qc_analysis():
         print(f"   Error: {response.text}")
 
 
-def test_root_endpoint():
+def test_root_endpoint() -> None:
     """Test root endpoint."""
     print("\nTesting root endpoint...")
     response = requests.get("http://localhost:8000/", timeout=5)

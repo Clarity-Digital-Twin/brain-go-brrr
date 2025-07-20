@@ -50,7 +50,7 @@ class JobData:
     started_at: datetime | None = None
     completed_at: datetime | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate data after initialization."""
         if not self.job_id:
             raise ValueError("job_id cannot be empty")

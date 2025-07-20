@@ -10,11 +10,17 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from brain_go_brrr.api.routers.jobs import job_store  # TODO: Move to core
-from brain_go_brrr.api.schemas import JobData, JobPriority, JobResponse, JobStatus, SleepAnalysisResponse
-from brain_go_brrr.utils.time import utc_now
+from brain_go_brrr.api.schemas import (
+    JobData,
+    JobPriority,
+    JobResponse,
+    JobStatus,
+    SleepAnalysisResponse,
+)
 from brain_go_brrr.core.edf_loader import load_edf_safe
 from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError
 from brain_go_brrr.core.sleep import SleepAnalyzer
+from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -204,24 +210,24 @@ async def analyze_sleep_eeg(
         tmp_file.flush()
 
     # Create job entry
-    job: JobData = {
-        "job_id": job_id,
-        "analysis_type": "sleep",
-        "file_path": str(tmp_path),
-        "options": {
+    job = JobData(
+        job_id=job_id,
+        analysis_type="sleep",
+        file_path=str(tmp_path),
+        options={
             "file_size": len(content),
             "filename": edf_file.filename,
         },
-        "status": JobStatus.PENDING,
-        "priority": JobPriority.NORMAL,
-        "progress": 0.0,
-        "result": None,
-        "error": None,
-        "created_at": utc_now().isoformat(),
-        "updated_at": utc_now().isoformat(),
-        "started_at": None,
-        "completed_at": None,
-    }
+        status=JobStatus.PENDING,
+        priority=JobPriority.NORMAL,
+        progress=0.0,
+        result=None,
+        error=None,
+        created_at=utc_now(),
+        updated_at=utc_now(),
+        started_at=None,
+        completed_at=None,
+    )
 
     # Store job
     job_store.create(job_id, job)
@@ -242,8 +248,8 @@ async def analyze_sleep_eeg(
         progress=0.0,
         result=None,
         error=None,
-        created_at=str(job["created_at"]),
-        updated_at=str(job["updated_at"]),
+        created_at=job.created_at.isoformat(),
+        updated_at=job.updated_at.isoformat(),
         started_at=None,
         completed_at=None,
     )
@@ -258,12 +264,12 @@ async def get_sleep_job_status(job_id: str) -> dict[str, Any]:
 
     return {
         "job_id": job_id,
-        "status": job["status"],
-        "progress": job.get("progress", 0.0),
-        "created_at": job["created_at"],
-        "started_at": job.get("started_at"),
-        "completed_at": job.get("completed_at"),
-        "error": job.get("error"),
+        "status": job.status,
+        "progress": job.progress or 0.0,
+        "created_at": job.created_at.isoformat(),
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        "error": job.error,
     }
 
 
@@ -274,19 +280,15 @@ async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-    if job["status"] == JobStatus.PENDING:
+    if job.status == JobStatus.PENDING:
         raise HTTPException(status_code=202, detail="Job is still pending")
-    elif job["status"] == JobStatus.PROCESSING:
+    elif job.status == JobStatus.PROCESSING:
         raise HTTPException(status_code=202, detail="Job is still processing")
-    elif job["status"] == JobStatus.FAILED:
-        raise HTTPException(
-            status_code=500, detail=f"Job failed: {job.get('error', 'Unknown error')}"
-        )
+    elif job.status == JobStatus.FAILED:
+        raise HTTPException(status_code=500, detail=f"Job failed: {job.error or 'Unknown error'}")
 
     # Job is completed, return results
-    result = job.get("result", {})
-    if result is None:
-        result = {}
+    result = job.result or {}
 
     return SleepAnalysisResponse(
         status="success",
@@ -295,6 +297,6 @@ async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
         hypnogram=result.get("hypnogram", []),
         metadata=result.get("metadata", {}),
         processing_time=0.0,  # Could calculate from timestamps
-        timestamp=job.get("completed_at") or utc_now().isoformat(),
+        timestamp=job.completed_at.isoformat() if job.completed_at else utc_now().isoformat(),
         cached=False,
     )

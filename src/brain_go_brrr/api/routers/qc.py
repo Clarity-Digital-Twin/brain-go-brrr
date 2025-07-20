@@ -11,10 +11,10 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.schemas import QCResponse
-from brain_go_brrr.utils.time import utc_now
 from brain_go_brrr.core.edf_loader import load_edf_safe
 from brain_go_brrr.core.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.core.quality import EEGQualityController
+from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 
