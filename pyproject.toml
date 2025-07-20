@@ -120,7 +120,7 @@ Repository = "https://github.com/Clarity-Digital-Twin/brain-go-brrr"
 Issues = "https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues"
 
 [project.scripts]
-brain-go-brrr = "src.brain_go_brrr.cli:app"
+brain-go-brrr = "brain_go_brrr.cli:app"
 
 [tool.ruff]
 line-length = 100
@@ -211,8 +211,8 @@ module = [
     "reportlab.*",
     "tsfresh",
     "tsfresh.*",
-    "src.brain_go_brrr.models.eegpt_model",
-    "src.brain_go_brrr.preprocessing.flexible_preprocessor",
+    "brain_go_brrr.models.eegpt_model",
+    "brain_go_brrr.preprocessing.flexible_preprocessor",
 ]
 ignore_missing_imports = true
 
@@ -240,7 +240,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=brain_go_brrr",
+    "--cov=src/brain_go_brrr",
     "-m", "not slow",
     "--cov-report=term-missing",
     "--cov-report=html",
@@ -263,16 +263,13 @@ path = "src/brain_go_brrr/__init__.py"
 [tool.hatch.build.targets.sdist]
 include = [
     "/src",
-    "/core",
-    "/api",
-    "/infra",
     "/tests",
     "/README.md",
     "/LICENSE",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/brain_go_brrr", "core", "api", "infra"]
+packages = ["src/brain_go_brrr"]
 
 
 [tool.bandit]
