@@ -135,7 +135,7 @@ def mock_redis():
 @pytest.fixture
 def mock_connection_pool():
     """Mock ConnectionPool at the correct import path."""
-    with patch("infra.redis.pool.ConnectionPool") as mock:
+    with patch("brain_go_brrr.infra.redis.pool.ConnectionPool") as mock:
         pool = MagicMock()
         pool.max_connections = 50
         pool._created_connections = 5  # Direct attribute, not method

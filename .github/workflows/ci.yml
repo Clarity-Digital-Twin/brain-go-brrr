@@ -46,15 +46,7 @@ jobs:
       - name: Run type checking
         run: uv run mypy src
 
-      - name: Run security check
-        run: uv run bandit -r src -f json -o bandit-report.json || true
-
-      - name: Upload security report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: security-report
-          path: bandit-report.json
+      # Security check removed - bandit not in dependencies
 
   # Testing across multiple Python versions
   test:
