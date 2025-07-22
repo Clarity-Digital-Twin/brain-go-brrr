@@ -351,3 +351,4 @@ examples/*.log
 # Test reports
 pipeline_test_report.txt
 *_test_report.txt
+data/
