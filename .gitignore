@@ -177,8 +177,9 @@ cython_debug/
 *.ckpt
 *.safetensors
 
-# Data files (only ignore root /data/, not src/brain_go_brrr/data/)
-/data/
+# Data files - keep the code package, ignore payload
+/data/                       # root-level datasets, checkpoints, outputs
+!src/brain_go_brrr/data/**   # allow the Python package
 datasets/*/raw/
 datasets/*/processed/
 *.csv
