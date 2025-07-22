@@ -149,6 +149,19 @@ class TestSerializationRegistry:
         assert deserialized["name"] == "unregistered"
         assert deserialized["value"] == 99
 
+    def test_deserialize_unregistered_class_passthrough(self) -> None:
+        """Test deserializing data for unregistered class passes through unchanged."""
+        # Given: JSON data with our format but unregistered class
+        unregistered_json = '{"_dataclass_type": "UnregisteredClass", "data": {"field": "value"}}'
+
+        # When: Deserializing
+        result = deserialize_value(unregistered_json)
+
+        # Then: Should return parsed dict unchanged (no error, no instance creation)
+        assert isinstance(result, dict)
+        assert result["_dataclass_type"] == "UnregisteredClass"
+        assert result["data"]["field"] == "value"
+
     def test_serialize_regular_types(self) -> None:
         """Test serialization of non-dataclass types."""
         # Test various types
