@@ -29,7 +29,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python install ${{ env.PYTHON_VERSION }}
+        run: uv python pin ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: uv sync
@@ -138,7 +138,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python install ${{ env.PYTHON_VERSION }}
+        run: uv python pin ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: uv sync
@@ -193,7 +193,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python install ${{ env.PYTHON_VERSION }}
+        run: uv python pin ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: uv sync
@@ -224,7 +224,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python install ${{ env.PYTHON_VERSION }}
+        run: uv python pin ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: uv sync
@@ -265,7 +265,7 @@ jobs:
           version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python install ${{ env.PYTHON_VERSION }}
+        run: uv python pin ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: uv sync
