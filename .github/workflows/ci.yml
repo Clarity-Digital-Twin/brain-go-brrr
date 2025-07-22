@@ -12,7 +12,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  UV_VERSION: "0.1.0"
+  UV_VERSION: "0.2.0"
 
 jobs:
   # Code quality and linting
@@ -25,11 +25,9 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        with:
-          version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python pin ${{ env.PYTHON_VERSION }}
+        run: echo "${{ env.PYTHON_VERSION }}" > .python-version
 
       - name: Install dependencies
         run: uv sync
@@ -134,11 +132,9 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        with:
-          version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python pin ${{ env.PYTHON_VERSION }}
+        run: echo "${{ env.PYTHON_VERSION }}" > .python-version
 
       - name: Install dependencies
         run: uv sync
@@ -189,11 +185,9 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        with:
-          version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python pin ${{ env.PYTHON_VERSION }}
+        run: echo "${{ env.PYTHON_VERSION }}" > .python-version
 
       - name: Install dependencies
         run: uv sync
@@ -220,11 +214,9 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        with:
-          version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python pin ${{ env.PYTHON_VERSION }}
+        run: echo "${{ env.PYTHON_VERSION }}" > .python-version
 
       - name: Install dependencies
         run: uv sync
@@ -261,11 +253,9 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v2
-        with:
-          version: ${{ env.UV_VERSION }}
 
       - name: Set up Python
-        run: uv python pin ${{ env.PYTHON_VERSION }}
+        run: echo "${{ env.PYTHON_VERSION }}" > .python-version
 
       - name: Install dependencies
         run: uv sync
