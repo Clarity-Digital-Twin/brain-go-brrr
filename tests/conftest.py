@@ -7,27 +7,54 @@ from unittest.mock import MagicMock, patch
 import mne
 import numpy as np
 import pytest
-import redis
 from fastapi.testclient import TestClient
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data"]
 
 
-@pytest.fixture(autouse=True)
-def redis_disabled(monkeypatch):
-    """Replace Redis with FakeRedis for all unit tests."""
+@pytest.fixture(scope="session", autouse=True)
+def redis_disabled_session():
+    """Replace Redis with FakeRedis for all unit tests - session scoped for performance."""
+    import sys
+    import types
+
     import fakeredis
+    import redis as _real_redis
 
-    # Create a module mock that acts like redis module
-    mock_redis_module = MagicMock()
-    mock_redis_module.Redis = fakeredis.FakeRedis
-    mock_redis_module.StrictRedis = fakeredis.FakeStrictRedis
-    mock_redis_module.ConnectionError = redis.ConnectionError
-    mock_redis_module.TimeoutError = redis.TimeoutError
+    # Create a fake redis module
+    fake_redis_module = types.ModuleType("redis")
+    fake_redis_module.Redis = fakeredis.FakeStrictRedis
+    fake_redis_module.StrictRedis = fakeredis.FakeStrictRedis
+    fake_redis_module.ConnectionError = _real_redis.ConnectionError
+    fake_redis_module.TimeoutError = _real_redis.TimeoutError
+    fake_redis_module.RedisError = _real_redis.RedisError
 
-    # Patch the redis module imports
-    monkeypatch.setattr("brain_go_brrr.infra.redis.pool.redis", mock_redis_module)
+    # Store original modules
+    original_redis = sys.modules.get("redis")
+    original_pool_redis = None
+
+    try:
+        # Patch sys.modules
+        sys.modules["redis"] = fake_redis_module
+
+        # Patch the specific import in our pool module
+        import brain_go_brrr.infra.redis.pool
+
+        original_pool_redis = getattr(brain_go_brrr.infra.redis.pool, "redis", None)
+        brain_go_brrr.infra.redis.pool.redis = fake_redis_module
+
+        yield
+
+    finally:
+        # Restore original modules
+        if original_redis is not None:
+            sys.modules["redis"] = original_redis
+        else:
+            sys.modules.pop("redis", None)
+
+        if original_pool_redis is not None:
+            brain_go_brrr.infra.redis.pool.redis = original_pool_redis
 
 
 @pytest.fixture(autouse=True)

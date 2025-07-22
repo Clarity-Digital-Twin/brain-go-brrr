@@ -1,5 +1,7 @@
 """Cache protocol and Redis implementation."""
 
+import dataclasses
+import json
 import logging
 from typing import Any, Protocol, runtime_checkable
 
@@ -89,8 +91,28 @@ class RedisCache:
             return None
 
         try:
-            return self.pool.execute("get", key)
-        except Exception:
+            value = self.pool.execute("get", key)
+            if value is None:
+                return None
+
+            # Try to decode JSON if it's a string
+            if isinstance(value, str | bytes):
+                try:
+                    decoded = json.loads(value)
+                    # Check if it's a serialized dataclass
+                    if isinstance(decoded, dict) and "_dataclass_type" in decoded:
+                        # Import and reconstruct the dataclass
+                        from brain_go_brrr.api.schemas import JobData
+
+                        if decoded["_dataclass_type"] == "JobData":
+                            return JobData.from_dict(decoded["data"])
+                    return decoded
+                except (json.JSONDecodeError, KeyError):
+                    # Not JSON or not our format, return as-is
+                    return value
+            return value
+        except Exception as e:
+            logger.error(f"Cache get error for key {key}: {e}")
             return None
 
     def set(self, key: str, value: Any, expiry: int | None = None) -> bool:
@@ -99,11 +121,21 @@ class RedisCache:
             return False
 
         try:
+            # Handle dataclass serialization
+            if dataclasses.is_dataclass(value) and hasattr(value, "to_dict"):
+                # Special handling for JobData and similar dataclasses
+                serialized = {"_dataclass_type": value.__class__.__name__, "data": value.to_dict()}
+                value = json.dumps(serialized)
+            elif isinstance(value, dict):
+                # Regular dict, just JSON encode
+                value = json.dumps(value)
+
             if expiry:
                 return bool(self.pool.execute("setex", key, expiry, value))
             else:
                 return bool(self.pool.execute("set", key, value))
-        except Exception:
+        except Exception as e:
+            logger.error(f"Cache set error for key {key}: {e}")
             return False
 
     def delete(self, key: str) -> int:

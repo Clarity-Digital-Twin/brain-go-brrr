@@ -112,11 +112,23 @@ check: test quality ## Run all tests and quality checks
 
 ##@ Testing
 
-test: ## Run all tests (including slow ones)
+test: ## Run all tests (default - excludes benchmarks)
 	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -m ""
+	$(PYTEST) $(TEST_DIR) -v --ignore=tests/benchmarks
 
-test-fast: ## Run only fast unit tests (default)
+test-unit: ## Run unit tests only (fast)
+	@echo "$(GREEN)Running unit tests...$(NC)"
+	$(PYTEST) tests/unit -v -q
+
+test-perf: ## Run performance benchmarks
+	@echo "$(GREEN)Running performance benchmarks...$(NC)"
+	$(PYTEST) tests/benchmarks -v -m perf -p pytest_benchmark
+
+test-parallel: ## Run tests in parallel (with xdist)
+	@echo "$(GREEN)Running tests in parallel...$(NC)"
+	$(PYTEST) $(TEST_DIR) -v -p xdist -n auto --ignore=tests/benchmarks
+
+test-fast: ## Run only fast unit tests (deprecated - use test-unit)
 	@echo "$(GREEN)Running fast unit tests...$(NC)"
 	$(PYTEST) $(TEST_DIR) -v -m "not slow and not integration and not external"
 
