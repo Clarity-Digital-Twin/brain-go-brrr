@@ -114,11 +114,11 @@ check: test quality ## Run all tests and quality checks
 
 test: ## Run all tests (default - excludes benchmarks)
 	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v --ignore=tests/benchmarks
+	$(PYTEST) $(TEST_DIR) -v --ignore=tests/benchmarks -p no:pytest_benchmark -p no:xdist
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
-	$(PYTEST) tests/unit -v -q
+	$(PYTEST) tests/unit -v -q -p no:pytest_benchmark -p no:xdist
 
 test-perf: ## Run performance benchmarks
 	@echo "$(GREEN)Running performance benchmarks...$(NC)"
@@ -128,9 +128,7 @@ test-parallel: ## Run tests in parallel (with xdist)
 	@echo "$(GREEN)Running tests in parallel...$(NC)"
 	$(PYTEST) $(TEST_DIR) -v -p xdist -n auto --ignore=tests/benchmarks
 
-test-fast: ## Run only fast unit tests (deprecated - use test-unit)
-	@echo "$(GREEN)Running fast unit tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -m "not slow and not integration and not external"
+test-fast: test-unit  ## Legacy alias for test-unit
 
 test-cov: ## Run fast tests with coverage (80% minimum)
 	@echo "$(GREEN)Running tests with coverage...$(NC)"

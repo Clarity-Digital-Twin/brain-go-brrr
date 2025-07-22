@@ -47,13 +47,19 @@ def redis_disabled_session():
         yield
 
     finally:
-        # Restore original modules
-        if original_redis is not None:
-            sys.modules["redis"] = original_redis
-        else:
-            sys.modules.pop("redis", None)
+        # Restore original modules only if they were replaced by our fake
+        if sys.modules.get("redis") is fake_redis_module:
+            if original_redis is not None:
+                sys.modules["redis"] = original_redis
+            else:
+                sys.modules.pop("redis", None)
 
-        if original_pool_redis is not None:
+        # Restore pool redis only if it's still our fake
+        if (
+            hasattr(brain_go_brrr.infra.redis.pool, "redis")
+            and brain_go_brrr.infra.redis.pool.redis is fake_redis_module
+            and original_pool_redis is not None
+        ):
             brain_go_brrr.infra.redis.pool.redis = original_pool_redis
 
 

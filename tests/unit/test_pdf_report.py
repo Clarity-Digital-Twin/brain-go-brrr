@@ -302,7 +302,7 @@ class TestPDFReportIntegration:
 
         return TestClient(app)
 
-    @pytest.mark.skip(reason="Integration test needs complex mocking - skipping for now")
+    @pytest.mark.xfail(reason="Integration test needs complex mocking", strict=True)
     def test_api_pdf_endpoint(self, client):
         """Test API endpoint returns PDF."""
         # Test the detailed endpoint that should include PDF

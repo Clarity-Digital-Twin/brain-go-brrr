@@ -40,7 +40,9 @@ class TestRedisReconnect:
         assert result == {"test": "test_value"}
         assert mock_client.get.call_count == 2  # Failed once, retried once
 
-    @pytest.mark.skip(reason="Session-scoped fixture conflicts with mocking - needs refactoring")
+    @pytest.mark.xfail(
+        reason="Session-scoped fixture conflicts with mocking - needs refactoring", strict=True
+    )
     @patch("brain_go_brrr.infra.redis.pool.redis.Redis")
     def test_redis_auto_reconnect_on_timeout(self, mock_redis_class):
         """Test that Redis cache handles timeout errors gracefully.

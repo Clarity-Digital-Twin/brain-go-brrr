@@ -1,11 +1,10 @@
 """Cache protocol and Redis implementation."""
 
-import dataclasses
-import json
 import logging
 from typing import Any, Protocol, runtime_checkable
 
 from brain_go_brrr.infra.redis import RedisConnectionPool, get_redis_pool
+from brain_go_brrr.infra.serialization import deserialize_value, serialize_value
 
 logger = logging.getLogger(__name__)
 
@@ -95,22 +94,8 @@ class RedisCache:
             if value is None:
                 return None
 
-            # Try to decode JSON if it's a string
-            if isinstance(value, str | bytes):
-                try:
-                    decoded = json.loads(value)
-                    # Check if it's a serialized dataclass
-                    if isinstance(decoded, dict) and "_dataclass_type" in decoded:
-                        # Import and reconstruct the dataclass
-                        from brain_go_brrr.api.schemas import JobData
-
-                        if decoded["_dataclass_type"] == "JobData":
-                            return JobData.from_dict(decoded["data"])
-                    return decoded
-                except (json.JSONDecodeError, KeyError):
-                    # Not JSON or not our format, return as-is
-                    return value
-            return value
+            # Use the serialization registry to deserialize
+            return deserialize_value(value)
         except Exception as e:
             logger.error(f"Cache get error for key {key}: {e}")
             return None
@@ -121,19 +106,13 @@ class RedisCache:
             return False
 
         try:
-            # Handle dataclass serialization
-            if dataclasses.is_dataclass(value) and hasattr(value, "to_dict"):
-                # Special handling for JobData and similar dataclasses
-                serialized = {"_dataclass_type": value.__class__.__name__, "data": value.to_dict()}
-                value = json.dumps(serialized)
-            elif isinstance(value, dict):
-                # Regular dict, just JSON encode
-                value = json.dumps(value)
+            # Use the serialization registry to serialize
+            serialized = serialize_value(value)
 
             if expiry:
-                return bool(self.pool.execute("setex", key, expiry, value))
+                return bool(self.pool.execute("setex", key, expiry, serialized))
             else:
-                return bool(self.pool.execute("set", key, value))
+                return bool(self.pool.execute("set", key, serialized))
         except Exception as e:
             logger.error(f"Cache set error for key {key}: {e}")
             return False

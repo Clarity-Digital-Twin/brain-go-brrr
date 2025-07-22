@@ -258,7 +258,7 @@ class TestMarkdownIntegration:
 
         return TestClient(app)
 
-    @pytest.mark.skip(reason="Integration test needs complex mocking - skipping for now")
+    @pytest.mark.xfail(reason="Integration test needs complex mocking", strict=True)
     def test_api_detailed_includes_markdown(self, client, valid_edf_content):
         """Test API detailed endpoint can include markdown."""
         from unittest.mock import MagicMock, patch
