@@ -7,6 +7,8 @@ from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field
 
+from brain_go_brrr.infra.serialization import register_serializable
+
 
 class JobStatus(str, Enum):
     """Job status enumeration."""
@@ -218,6 +220,10 @@ class QueueStatusResponse(BaseModel):
     failed_jobs: int
     workers_active: int
     queue_health: str
+
+
+# Register JobData for automatic Redis serialization
+register_serializable(JobData)
 
 
 class CacheWarmupRequest(BaseModel):

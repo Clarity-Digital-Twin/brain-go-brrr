@@ -1,0 +1,74 @@
+name: Nightly Integration Tests
+
+on:
+  schedule:
+    # Run at 2 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  integration-tests:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60  # Kill job if it runs too long
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run integration tests with extended timeout
+        run: |
+          uv run pytest tests/integration \
+            -v \
+            -m integration \
+            --timeout=900 \
+            --reruns=2 \
+            --reruns-delay=5 \
+            --tb=short
+        continue-on-error: true
+
+      - name: Run slow tests
+        run: |
+          uv run pytest tests \
+            -v \
+            -m slow \
+            --timeout=1200 \
+            --tb=short
+        continue-on-error: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: |
+            .pytest_cache/
+            htmlcov/
+            *.log
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Nightly Integration Tests Failed',
+              body: `Integration tests failed in workflow run ${context.runId}. [View logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              labels: ['integration-test', 'automated']
+            })

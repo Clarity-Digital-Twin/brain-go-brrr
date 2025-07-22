@@ -6,15 +6,30 @@ in a scalable way, avoiding hard-coded imports in the cache layer.
 
 import dataclasses
 import json
-from typing import Any, TypeVar
+from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 T = TypeVar("T")
 
+
+@runtime_checkable
+class SerializableDataclass(Protocol):
+    """Protocol for dataclasses that can be serialized."""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert dataclass to dictionary."""
+        ...
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Any:
+        """Create instance from dictionary."""
+        ...
+
+
 # Global registry of serializable dataclasses
-_SERIALIZATION_REGISTRY: dict[str, type[Any]] = {}
+_SERIALIZATION_REGISTRY: dict[str, type[SerializableDataclass]] = {}
 
 
-def register_serializable(cls: Any) -> Any:
+def register_serializable(cls: type[T]) -> type[T]:
     """Decorator to register a dataclass for automatic serialization.
 
     Usage:
@@ -31,8 +46,9 @@ def register_serializable(cls: Any) -> Any:
     if not hasattr(cls, "to_dict") or not hasattr(cls, "from_dict"):
         raise TypeError(f"{cls.__name__} must have to_dict() and from_dict() methods")
 
-    _SERIALIZATION_REGISTRY[cls.__name__] = cls
-    return cls
+    # Use cast to satisfy type checker while maintaining runtime safety
+    _SERIALIZATION_REGISTRY[cls.__name__] = cast("type[SerializableDataclass]", cls)
+    return cast("type[T]", cls)
 
 
 def serialize_value(value: Any) -> str:
@@ -62,13 +78,14 @@ def serialize_value(value: Any) -> str:
         return json.dumps(value)
 
 
-def deserialize_value(value: str | bytes) -> Any:
+def deserialize_value(value: Any) -> Any:
     """Deserialize a value from Redis storage.
 
     Returns the original Python object if possible.
     """
+    # Type guard - if not str or bytes, should not happen but return as-is
     if not isinstance(value, str | bytes):
-        return value
+        return value  # pragma: no cover
 
     try:
         decoded = json.loads(value)
@@ -87,16 +104,11 @@ def deserialize_value(value: str | bytes) -> Any:
         return value
 
 
-# Import and register known dataclasses
-def _register_known_dataclasses() -> None:
-    """Register dataclasses that should be auto-serialized."""
-    try:
-        from brain_go_brrr.api.schemas import JobData
-
-        register_serializable(JobData)
-    except ImportError:
-        pass  # Not available in this context
+def get_registry() -> dict[str, type[SerializableDataclass]]:
+    """Get the current serialization registry."""
+    return _SERIALIZATION_REGISTRY.copy()
 
 
-# Auto-register on import
-_register_known_dataclasses()
+def clear_registry() -> None:
+    """Clear the serialization registry (for testing)."""
+    _SERIALIZATION_REGISTRY.clear()

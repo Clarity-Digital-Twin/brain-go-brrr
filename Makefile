@@ -28,6 +28,11 @@ PYTHON := $(UV) run python
 PIP := $(UV) pip
 PYTEST := $(UV) run pytest
 RUFF := $(UV) run ruff
+
+# Pytest options - can be overridden via environment
+PYTEST_BASE_OPTS ?= -v
+PYTEST_NO_PLUGINS ?= -p no:pytest_benchmark -p no:xdist
+PYTEST_PARALLEL ?= -p xdist -n auto
 MYPY := $(UV) run mypy
 JUPYTER := $(UV) run jupyter
 PRE_COMMIT := $(UV) run pre-commit
@@ -114,19 +119,19 @@ check: test quality ## Run all tests and quality checks
 
 test: ## Run all tests (default - excludes benchmarks)
 	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v --ignore=tests/benchmarks -p no:pytest_benchmark -p no:xdist
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) --ignore=tests/benchmarks $(PYTEST_NO_PLUGINS)
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
-	$(PYTEST) tests/unit -v -q -p no:pytest_benchmark -p no:xdist
+	$(PYTEST) tests/unit $(PYTEST_BASE_OPTS) -q $(PYTEST_NO_PLUGINS)
 
 test-perf: ## Run performance benchmarks
 	@echo "$(GREEN)Running performance benchmarks...$(NC)"
-	$(PYTEST) tests/benchmarks -v -m perf -p pytest_benchmark
+	$(PYTEST) tests/benchmarks $(PYTEST_BASE_OPTS) -m perf -p pytest_benchmark
 
 test-parallel: ## Run tests in parallel (with xdist)
 	@echo "$(GREEN)Running tests in parallel...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -p xdist -n auto --ignore=tests/benchmarks
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) $(PYTEST_PARALLEL) --ignore=tests/benchmarks
 
 test-fast: test-unit  ## Legacy alias for test-unit
 
@@ -139,9 +144,9 @@ test-cov: ## Run fast tests with coverage (80% minimum)
 		--cov-fail-under=80 \
 		-m "not slow and not integration and not external"
 
-test-integration: ## Run integration tests
+test-integration: ## Run integration tests with timeout
 	@echo "$(GREEN)Running integration tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -m "integration"
+	$(PYTEST) $(TEST_DIR) -v -m "integration" --timeout=900 --tb=short
 
 test-all-cov: ## Run ALL tests with coverage report
 	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
