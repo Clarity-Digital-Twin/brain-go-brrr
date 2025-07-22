@@ -87,6 +87,9 @@ class TestCodeQuality:
         src_dir = Path(__file__).parent.parent / "src"
 
         for py_file in src_dir.rglob("*.py"):
+            # Skip test files and CLI utilities
+            if "test_" in py_file.name or py_file.name == "cli.py":
+                continue
             content = py_file.read_text()
 
             # Simple check for print statements

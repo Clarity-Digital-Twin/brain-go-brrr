@@ -290,7 +290,7 @@ class TestGlobalPool:
         """Clean up global pool after each test."""
         close_redis_pool()
 
-    @patch("infra.redis.pool.RedisConnectionPool")
+    @patch("brain_go_brrr.infra.redis.pool.RedisConnectionPool")
     def test_get_redis_pool_singleton(self, mock_pool_class):
         """Test get_redis_pool returns singleton."""
         mock_instance = MagicMock()
@@ -308,7 +308,7 @@ class TestGlobalPool:
         # Should not create a new instance
         assert mock_pool_class.call_count == 1
 
-    @patch("infra.redis.pool.RedisConnectionPool")
+    @patch("brain_go_brrr.infra.redis.pool.RedisConnectionPool")
     def test_close_redis_pool(self, mock_pool_class):
         """Test closing global pool."""
         mock_instance = MagicMock()

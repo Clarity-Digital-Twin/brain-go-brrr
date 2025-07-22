@@ -128,26 +128,26 @@ def main() -> None:
     results = pipeline.process_file(edf_path)
 
     # Print summary
-    print("\n=== PARALLEL PIPELINE RESULTS ===")
+    logger.info("\n=== PARALLEL PIPELINE RESULTS ===")
 
     if results["eegpt"]["status"] == "success":
-        print("\nEEGPT Features:")
-        print(f"  - Embeddings shape: {results['eegpt']['embedding_shape']}")
-        print(f"  - Number of windows: {len(results['eegpt']['window_times'])}")
+        logger.info("\nEEGPT Features:")
+        logger.info(f"  - Embeddings shape: {results['eegpt']['embedding_shape']}")
+        logger.info(f"  - Number of windows: {len(results['eegpt']['window_times'])}")
     else:
-        print(f"\nEEGPT Failed: {results['eegpt']['error']}")
+        logger.error(f"\nEEGPT Failed: {results['eegpt']['error']}")
 
     if results["yasa"]["status"] == "success":
-        print("\nYASA Sleep Analysis:")
-        print(f"  - Number of epochs: {results['yasa']['n_epochs']}")
-        print(f"  - Sleep efficiency: {results['yasa']['sleep_stats'].get('SE', 'N/A')}%")
-        print(f"  - Sleep stages present: {set(results['yasa']['hypnogram'])}")
+        logger.info("\nYASA Sleep Analysis:")
+        logger.info(f"  - Number of epochs: {results['yasa']['n_epochs']}")
+        logger.info(f"  - Sleep efficiency: {results['yasa']['sleep_stats'].get('SE', 'N/A')}%")
+        logger.info(f"  - Sleep stages present: {set(results['yasa']['hypnogram'])}")
     else:
-        print(f"\nYASA Failed: {results['yasa']['error']}")
+        logger.error(f"\nYASA Failed: {results['yasa']['error']}")
 
-    print("\nMetadata:")
-    print(f"  - Duration: {results['metadata']['duration_seconds']:.1f} seconds")
-    print(f"  - Channels: {results['metadata']['n_channels']}")
+    logger.info("\nMetadata:")
+    logger.info(f"  - Duration: {results['metadata']['duration_seconds']:.1f} seconds")
+    logger.info(f"  - Channels: {results['metadata']['n_channels']}")
 
     # Save results
     output_path = Path("parallel_pipeline_results.json")
@@ -166,7 +166,7 @@ def main() -> None:
         }
         json.dump(json_results, f, indent=2)
 
-    print(f"\nResults saved to: {output_path}")
+    logger.info(f"\nResults saved to: {output_path}")
 
 
 if __name__ == "__main__":
