@@ -177,8 +177,8 @@ cython_debug/
 *.ckpt
 *.safetensors
 
-# Data files
-data/
+# Data files (only ignore root /data/, not src/brain_go_brrr/data/)
+/data/
 datasets/*/raw/
 datasets/*/processed/
 *.csv
