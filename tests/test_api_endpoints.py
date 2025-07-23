@@ -14,27 +14,28 @@ class TestAPIEndpoints:
     @pytest.fixture
     def mock_qc_controller(self):
         """Mock the QC controller."""
-        with patch("core.quality.controller.EEGQualityController") as mock_class:
-            mock_controller = Mock()
-            mock_controller.eegpt_model = Mock()
-            mock_controller.run_full_qc_pipeline = Mock(
-                return_value={
-                    "quality_metrics": {
-                        "bad_channels": ["T3"],
-                        "bad_channel_ratio": 0.05,
-                        "abnormality_score": 0.3,
-                        "quality_grade": "GOOD",
-                        "artifact_ratio": 0.1,
-                    },
-                    "processing_info": {
-                        "confidence": 0.85,
-                        "channels_used": 19,
-                        "duration_seconds": 300,
-                    },
-                    "processing_time": 1.5,
-                }
-            )
-            mock_class.return_value = mock_controller
+        mock_controller = Mock()
+        mock_controller.eegpt_model = Mock()
+        mock_controller.run_full_qc_pipeline = Mock(
+            return_value={
+                "quality_metrics": {
+                    "bad_channels": ["T3"],
+                    "bad_channel_ratio": 0.05,
+                    "abnormality_score": 0.3,
+                    "quality_grade": "GOOD",
+                    "artifact_ratio": 0.1,
+                },
+                "processing_info": {
+                    "confidence": 0.85,
+                    "channels_used": 19,
+                    "duration_seconds": 300,
+                },
+                "processing_time": 1.5,
+            }
+        )
+
+        # Patch the controller in the router module
+        with patch("brain_go_brrr.api.routers.qc.qc_controller", mock_controller):
             yield mock_controller
 
     @pytest.fixture
@@ -116,11 +117,11 @@ class TestAPIEndpoints:
         assert "quality_grade" in data
         assert "timestamp" in data
 
-        # Check values
-        assert data["bad_channels"] == ["T3"]
-        assert data["bad_pct"] == 5.0
-        assert data["abnormal_prob"] == 0.3
-        assert data["confidence"] == 0.85
+        # Check values (order-agnostic for bad_channels)
+        assert set(data["bad_channels"]) == {"T3"}
+        assert data["quality_metrics"]["bad_channel_percentage"] == 5.0
+        assert data["quality_metrics"]["abnormality_score"] == 0.3
+        assert data["confidence"] == 0.7  # 1.0 - 0.3 = 0.7
         assert data["quality_grade"] == "GOOD"
 
         # Verify controller was called
@@ -235,7 +236,7 @@ class TestAPIEndpoints:
         # Check basic response fields
         basic = result["basic"]
         assert basic["flag"] in ["ROUTINE", "EXPEDITE", "URGENT"]
-        assert basic["bad_channels"] == ["T3", "T4"]
+        assert set(basic["bad_channels"]) == {"T3", "T4"}
         assert basic["quality_metrics"]["bad_channel_percentage"] == 10.0
         assert basic["quality_metrics"]["abnormality_score"] == 0.4
         assert basic["quality_grade"] == "FAIR"

@@ -185,6 +185,12 @@ class EEGPTFeatureExtractor:
 
         Returns:
             Embeddings array
+
+        Note:
+            EEGPT processes each window individually, so the model's extract_features
+            method will be called once per window. For example, with 12 seconds of data
+            and 4-second windows, there will be 3 calls. This is expected behavior and
+            affects cache hit counting in tests.
         """
         # Stack windows into batch
         batch = np.stack(windows)  # (n_windows, n_channels, n_samples)

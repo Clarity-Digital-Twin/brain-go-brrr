@@ -130,6 +130,14 @@ repos:
         files: \.(csv|parquet|feather)$
         stages: [pre-commit]
 
+      - id: pytest-unit
+        name: unit tests
+        entry: pytest -q -m "unit"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
 # Configuration for specific tools
 default_language_version:
   python: python3.11

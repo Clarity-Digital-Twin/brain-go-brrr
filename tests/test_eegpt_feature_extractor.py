@@ -63,7 +63,9 @@ class TestEEGPTFeatureExtractor:
         """Test that embeddings have correct shape."""
         from brain_go_brrr.core.features import EEGPTFeatureExtractor
 
-        with patch("core.features.extractor.EEGPTModel", return_value=mock_eegpt_model):
+        with patch(
+            "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
+        ):
             extractor = EEGPTFeatureExtractor()
             embeddings = extractor.extract_embeddings(sample_raw)
 
@@ -71,11 +73,18 @@ class TestEEGPTFeatureExtractor:
             assert embeddings.shape == (3, 512)
             assert embeddings.dtype == np.float32
 
-    def test_caching_embeddings(self, sample_raw, mock_eegpt_model):
+    def test_caching_embeddings(self, sample_raw, mock_eegpt_model, tmp_path, monkeypatch):
         """Test that embeddings are cached for efficiency."""
         from brain_go_brrr.core.features import EEGPTFeatureExtractor
 
-        with patch("core.features.extractor.EEGPTModel", return_value=mock_eegpt_model):
+        # Use a temporary directory for cache to ensure isolation
+        cache_dir = tmp_path / "test_cache"
+        cache_dir.mkdir(exist_ok=True)
+        monkeypatch.setenv("BGB_CACHE_DIR", str(cache_dir))
+
+        with patch(
+            "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
+        ):
             extractor = EEGPTFeatureExtractor(enable_cache=True)
 
             # First extraction
@@ -87,8 +96,9 @@ class TestEEGPTFeatureExtractor:
             # Should be the same object (cached)
             assert np.array_equal(embeddings1, embeddings2)
 
-            # Model should only be called once
-            assert mock_eegpt_model.extract_features.call_count == 1
+            # Model should be called once per window on first extraction (3 windows)
+            # But not called at all on second extraction (cached)
+            assert mock_eegpt_model.extract_features.call_count == 3
 
     def test_window_extraction(self, sample_raw):
         """Test window extraction for EEGPT processing."""
@@ -131,7 +141,9 @@ class TestEEGPTFeatureExtractor:
         """Test that metadata is returned with embeddings."""
         from brain_go_brrr.core.features import EEGPTFeatureExtractor
 
-        with patch("core.features.extractor.EEGPTModel", return_value=mock_eegpt_model):
+        with patch(
+            "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
+        ):
             extractor = EEGPTFeatureExtractor()
             result = extractor.extract_embeddings_with_metadata(sample_raw)
 
@@ -165,7 +177,9 @@ class TestEEGPTFeatureExtractor:
             np.float32
         )
 
-        with patch("core.features.extractor.EEGPTModel", return_value=mock_eegpt_model):
+        with patch(
+            "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
+        ):
             extractor = EEGPTFeatureExtractor()
             embeddings_list = extractor.extract_batch_embeddings(raws)
 

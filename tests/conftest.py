@@ -1,5 +1,6 @@
 """Shared test fixtures and configuration."""
 
+import random
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -11,6 +12,10 @@ from fastapi.testclient import TestClient
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data"]
+
+# Set deterministic random seeds for reproducible tests
+random.seed(1337)
+np.random.seed(1337)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -279,3 +284,37 @@ def mock_abnormality_detector():
         }
     )
     return detector
+
+
+@pytest.fixture
+def channel_shuffled_raw(mock_eeg_data):
+    """Create mock EEG data with shuffled channel order.
+
+    This fixture creates EEG data with channels in a randomized order
+    to test robustness of algorithms to different channel arrangements.
+    """
+    # Set seed for reproducible shuffling
+    np.random.seed(42)
+
+    # Get the original data
+    raw = mock_eeg_data.copy()
+
+    # Get channel names and indices
+    ch_names = raw.ch_names.copy()
+    n_channels = len(ch_names)
+
+    # Create a shuffled order
+    shuffled_indices = np.random.permutation(n_channels)
+    shuffled_ch_names = [ch_names[i] for i in shuffled_indices]
+
+    # Get the data and shuffle it
+    data = raw.get_data()
+    shuffled_data = data[shuffled_indices, :]
+
+    # Create new info with shuffled channel order
+    info = mne.create_info(ch_names=shuffled_ch_names, sfreq=raw.info["sfreq"], ch_types="eeg")
+
+    # Create new Raw object with shuffled data
+    shuffled_raw = mne.io.RawArray(shuffled_data, info)
+
+    return shuffled_raw
