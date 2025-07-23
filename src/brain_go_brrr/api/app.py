@@ -1,7 +1,9 @@
 """Application factory for Brain-Go-Brrr API."""
 
+import json
 from typing import Any
 
+import numpy as np
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,15 +13,34 @@ from brain_go_brrr.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+class NumpyEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy types."""
+
+    def default(self, obj: Any) -> Any:
+        """Encode numpy types to JSON-serializable types."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    # Create FastAPI app
+    # Create FastAPI app with custom JSON encoder
     app = FastAPI(
         title="Brain-Go-Brrr EEG Analysis API",
         description="Production-ready API for EEG analysis using EEGPT and YASA",
         version="0.1.0",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
+        json_encoders={
+            np.integer: int,
+            np.floating: float,
+            np.ndarray: lambda x: x.tolist(),
+        },
     )
 
     # Add CORS middleware

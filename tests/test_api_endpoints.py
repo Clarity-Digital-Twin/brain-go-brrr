@@ -103,7 +103,7 @@ class TestAPIEndpoints:
             file_content = f.read()
 
         # Create file upload
-        files = {"file": ("test.edf", io.BytesIO(file_content), "application/octet-stream")}
+        files = {"edf_file": ("test.edf", io.BytesIO(file_content), "application/octet-stream")}
 
         response = client.post("/api/v1/eeg/analyze", files=files)
 
@@ -111,10 +111,10 @@ class TestAPIEndpoints:
         data = response.json()
 
         # Check response structure
-        assert data["status"] == "success"
+        assert "flag" in data
         assert "bad_channels" in data
-        assert "bad_pct" in data
-        assert "abnormal_prob" in data
+        assert "confidence" in data
+        assert "quality_metrics" in data
         assert "flag" in data
         assert "confidence" in data
         assert "processing_time" in data
@@ -144,7 +144,7 @@ class TestAPIEndpoints:
         invalid_file.write_text("This is not an EDF file")
 
         with invalid_file.open("rb") as f:
-            files = {"file": ("invalid.txt", f, "text/plain")}
+            files = {"edf_file": ("invalid.txt", f, "text/plain")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 400
@@ -158,7 +158,7 @@ class TestAPIEndpoints:
         mock_qc_controller.run_full_qc_pipeline.side_effect = Exception("Processing failed")
 
         with sample_edf_file.open("rb") as f:
-            files = {"file": ("test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -226,7 +226,7 @@ class TestAPIEndpoints:
 
         with sample_edf_file.open("rb") as f:
             files = {"file": ("test.edf", f, "application/octet-stream")}
-            data = {"generate_report": "true"}
+            data = {"include_report": "true"}
             response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
         assert response.status_code == 200
@@ -238,20 +238,15 @@ class TestAPIEndpoints:
 
         # Check basic response fields
         basic = result["basic"]
-        assert basic["status"] == "success"
+        assert basic["flag"] in ["ROUTINE", "EXPEDITE", "URGENT"]
         assert basic["bad_channels"] == ["T3", "T4"]
-        assert basic["bad_pct"] == 10.0
-        assert basic["abnormal_prob"] == 0.4
+        assert basic["quality_metrics"]["bad_channel_percentage"] == 10.0
+        assert basic["quality_metrics"]["abnormality_score"] == 0.4
         assert basic["quality_grade"] == "FAIR"
 
         # Check detailed response fields
-        detailed = result["detailed"]
-        assert "message" in detailed
-        assert "pdf_available" in detailed
-        assert "markdown_available" in detailed
-        assert "artifact_count" in detailed
-        assert "channel_count" in detailed
-        assert "duration_seconds" in detailed
+        assert "detailed_metrics" in result
+        assert "report" in result  # Base64 encoded PDF if include_report=true
 
     def test_analyze_detailed_pdf_generation(self, client, sample_edf_file, mock_qc_controller):
         """Test PDF report generation."""
@@ -262,15 +257,14 @@ class TestAPIEndpoints:
 
             with sample_edf_file.open("rb") as f:
                 files = {"file": ("test.edf", f, "application/octet-stream")}
-                data = {"generate_report": "true", "report_format": "pdf"}
+                data = {"include_report": "true"}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
             assert response.status_code == 200
             result = response.json()
 
             # Check PDF was generated and included
-            assert result["detailed"]["pdf_available"] is True
-            assert result["detailed"]["pdf_base64"] is not None
+            assert result["report"] is not None  # Base64 encoded PDF
 
             # Verify PDF generator was called
             mock_pdf_instance.generate_report.assert_called_once()
@@ -286,14 +280,13 @@ class TestAPIEndpoints:
 
             with sample_edf_file.open("rb") as f:
                 files = {"file": ("test.edf", f, "application/octet-stream")}
-                data = {"generate_report": "true", "report_format": "markdown"}
+                data = {"include_report": "true"}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
             assert response.status_code == 200
             result = response.json()
-            assert result["detailed"]["markdown_available"] is True
-            assert result["detailed"]["markdown_report"] is not None
-            assert result["detailed"]["markdown_report"].startswith("# EEG Report")
+            # The API currently only supports PDF reports, not markdown
+            assert result["report"] is not None  # Base64 encoded report
 
     def test_large_file_handling(self, client, tmp_path, mock_qc_controller):
         """Test handling of large EDF files."""
@@ -319,12 +312,12 @@ class TestAPIEndpoints:
         raw.export(large_file, fmt="edf", overwrite=True, physical_range=(-200, 200))
 
         with large_file.open("rb") as f:
-            files = {"file": ("large.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("large.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         # Should still process successfully
         assert response.status_code == 200
-        assert response.json()["status"] in ["success", "error"]
+        assert response.json()["flag"] in ["ROUTINE", "EXPEDITE", "URGENT", "ERROR"]
 
     def test_concurrent_requests(self, client, sample_edf_file, mock_qc_controller):
         """Test handling of concurrent analysis requests."""
@@ -334,7 +327,7 @@ class TestAPIEndpoints:
 
         def make_request():
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
                 results.append(response.status_code)
 

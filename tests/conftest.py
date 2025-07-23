@@ -14,6 +14,20 @@ pytest_plugins = ["tests.fixtures.benchmark_data"]
 
 
 @pytest.fixture(scope="session", autouse=True)
+def test_environment_setup():
+    """Set up test environment - silence MNE logging and replace Redis."""
+    # Silence MNE filter design messages
+    import mne
+
+    mne.set_log_level("WARNING")
+
+    # Also set environment variable for any subprocesses
+    import os
+
+    os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
+
+
+@pytest.fixture(scope="session", autouse=True)
 def redis_disabled_session():
     """Replace Redis with FakeRedis for all unit tests - session scoped for performance.
 
