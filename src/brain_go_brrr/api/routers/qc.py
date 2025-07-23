@@ -1,13 +1,16 @@
 """Quality control and EEG analysis endpoints."""
 
 import base64
+import json
 import logging
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.schemas import QCResponse
@@ -17,6 +20,21 @@ from brain_go_brrr.core.quality import EEGQualityController
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy types."""
+
+    def default(self, obj: Any) -> Any:
+        """Encode numpy types to JSON-serializable types."""
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super().default(obj)
+
 
 router = APIRouter(prefix="/eeg", tags=["qc", "analysis"])
 
@@ -186,12 +204,12 @@ async def analyze_eeg(
         )
 
 
-@router.post("/analyze/detailed")
+@router.post("/analyze/detailed", response_class=JSONResponse)
 async def analyze_eeg_detailed(
     file: UploadFile = File(...),
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-) -> dict[str, Any]:
+) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
     Returns comprehensive analysis results with PDF report.
@@ -210,7 +228,7 @@ async def analyze_eeg_detailed(
         if cached_result:
             logger.info(f"Returning cached detailed result for {file.filename}")
             cached_result["basic"]["cached"] = True
-            return cached_result
+            return JSONResponse(content=json.loads(json.dumps(cached_result, cls=NumpyEncoder)))
 
     # Create temporary file
     with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
@@ -300,7 +318,8 @@ async def analyze_eeg_detailed(
             if cache_client and cache_client.connected:
                 cache_client.set(cache_key, detailed_response, ttl=3600)
 
-            return detailed_response
+            # Return with custom encoder to handle numpy types
+            return JSONResponse(content=json.loads(json.dumps(detailed_response, cls=NumpyEncoder)))
 
         except EdfLoadError as e:
             logger.error(f"Failed to load EDF file: {e}")

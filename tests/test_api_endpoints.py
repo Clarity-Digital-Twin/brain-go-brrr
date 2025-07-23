@@ -1,6 +1,5 @@
 """Tests for FastAPI endpoints."""
 
-import io
 from unittest.mock import Mock, patch
 
 import mne
@@ -98,14 +97,10 @@ class TestAPIEndpoints:
 
     def test_analyze_eeg_success(self, client, sample_edf_file, mock_qc_controller):
         """Test successful EEG analysis."""
-        # Read file content
-        with sample_edf_file.open("rb") as f:
-            file_content = f.read()
-
         # Create file upload
-        files = {"edf_file": ("test.edf", io.BytesIO(file_content), "application/octet-stream")}
-
-        response = client.post("/api/v1/eeg/analyze", files=files)
+        with sample_edf_file.open("rb") as f:
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
+            response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
         data = response.json()
@@ -234,7 +229,8 @@ class TestAPIEndpoints:
 
         # Check response structure
         assert "basic" in result
-        assert "detailed" in result
+        assert "detailed_metrics" in result
+        assert "report" in result
 
         # Check basic response fields
         basic = result["basic"]
