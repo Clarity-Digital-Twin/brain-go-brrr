@@ -58,7 +58,14 @@ def serialize_value(value: Any) -> str:
     - Registered dataclasses (via to_dict)
     - Regular dicts
     - JSON-serializable values
+
+    Raises:
+        TypeError: If value cannot be serialized
     """
+    # Early validation - only handle str, bytes, or JSON-serializable types
+    if isinstance(value, bytes):
+        raise TypeError("Cannot serialize bytes directly - encode to base64 string first")
+
     if dataclasses.is_dataclass(value) and hasattr(value, "to_dict"):
         # Serialize registered dataclass
         class_name = value.__class__.__name__
@@ -82,12 +89,19 @@ def deserialize_value(value: Any) -> Any:
     """Deserialize a value from Redis storage.
 
     Returns the original Python object if possible.
+
+    Raises:
+        UnicodeDecodeError: If bytes contain non-UTF8 data
     """
     # Type guard - if not str or bytes, should not happen but return as-is
     if not isinstance(value, str | bytes):
         return value  # pragma: no cover
 
     try:
+        # Handle bytes explicitly
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+
         decoded = json.loads(value)
 
         # Check if it's a registered dataclass
@@ -96,11 +110,22 @@ def deserialize_value(value: Any) -> Any:
             if class_name in _SERIALIZATION_REGISTRY:
                 cls = _SERIALIZATION_REGISTRY[class_name]
                 return cls.from_dict(decoded["data"])
+            else:
+                # Unknown dataclass type - return the raw dict
+                return decoded["data"]
 
         return decoded
 
-    except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
-        # Not JSON or not our format, return as-is
+    except json.JSONDecodeError:
+        # Not JSON, return as-is
+        return value
+    except UnicodeDecodeError as e:
+        # Non-UTF8 bytes - re-raise with clear message
+        raise UnicodeDecodeError(
+            e.encoding, e.object, e.start, e.end, f"Cannot decode bytes as UTF-8: {e.reason}"
+        ) from e
+    except KeyError:
+        # Missing expected keys in dataclass format
         return value
 
 

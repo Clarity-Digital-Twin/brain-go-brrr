@@ -129,7 +129,7 @@ async def cancel_job(job_id: str) -> dict[str, str]:
     return {"message": f"Job {job_id} cancelled"}
 
 
-@router.get("", response_model=JobListResponse)
+@router.get("", response_model=JobListResponse, name="list_jobs")
 async def list_jobs(
     status: JobStatus | None = None,
     limit: int = 100,

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
+@router.get("/health", name="health_check")
 async def health_check() -> dict[str, str]:
     """Health check endpoint."""
     return {
@@ -22,7 +22,7 @@ async def health_check() -> dict[str, str]:
     }
 
 
-@router.get("/ready")
+@router.get("/ready", name="readiness_check")
 async def readiness_check() -> dict[str, str]:
     """Readiness check for Kubernetes."""
     # TODO: Check dependencies (Redis, model loading, etc.)

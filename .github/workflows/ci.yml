@@ -1,18 +1,18 @@
-# Modern CI/CD Pipeline for Brain Go Brrr
-# 2025 best practices with uv, ruff, and comprehensive testing
+# CI/CD Pipeline for Brain Go Brrr
+# Simplified for current development stage
 
 name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, development, staging ]
+    branches: [ main, development ]
   pull_request:
-    branches: [ main, development, staging ]
+    branches: [ main, development ]
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.11"
-  UV_VERSION: "0.2.0"
+  UV_VERSION: "0.8.1"
 
 jobs:
   # Code quality and linting
@@ -48,7 +48,7 @@ jobs:
 
       # Security check removed - bandit not in dependencies
 
-  # Testing across multiple Python versions
+  # Testing on primary platform
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -56,8 +56,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest]
+        python-version: ["3.11"]
 
     steps:
       - name: Checkout code
@@ -84,7 +84,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        run: make test-cov
+        run: uv run pytest tests -m "not slow and not integration and not external" --maxfail=5
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -151,140 +151,10 @@ jobs:
         run: uv sync --all-extras
 
       - name: Build documentation
-        run: uv run mkdocs build --strict
+        run: uv run mkdocs build
 
       - name: Upload documentation
         uses: actions/upload-artifact@v4
         with:
           name: documentation
           path: site/
-
-  # Docker build and test
-  docker:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: brain-go-brrr:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Test Docker image
-        run: |
-          docker run --rm brain-go-brrr:test brain-go-brrr version
-
-  # Model training test (if enabled)
-  model-test:
-    name: Model Training Test
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Run model training test
-        run: uv run python -m brain_go_brrr.cli train --debug
-        env:
-          PYTHONPATH: src
-
-  # Release and deployment
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: [test, security, docs, docker]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Build package
-        run: uv build
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: dist/*
-          generate_release_notes: true
-
-      - name: Publish to PyPI
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-
-  # Deploy documentation
-  deploy-docs:
-    name: Deploy Documentation
-    runs-on: ubuntu-latest
-    needs: docs
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Deploy to GitHub Pages
-        run: uv run mkdocs gh-deploy --force

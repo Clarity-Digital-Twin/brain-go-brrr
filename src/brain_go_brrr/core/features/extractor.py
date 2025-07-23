@@ -45,7 +45,7 @@ class EEGPTFeatureExtractor:
 
         # Initialize model
         if model_path is None:
-            model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
+            model_path = Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
 
         try:
             self.model = EEGPTModel(checkpoint_path=model_path, device=device)

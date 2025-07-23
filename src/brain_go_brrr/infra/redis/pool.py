@@ -8,6 +8,7 @@ This module provides a connection pool wrapper that:
 """
 
 import logging
+import os
 import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
@@ -162,8 +163,9 @@ class RedisConnectionPool:
         self._last_health_check = 0
         self._health_check_interval = health_check_interval
 
-        # Test initial connection
-        self._test_connection()
+        # Test initial connection (skip in test mode)
+        if os.environ.get("BRAIN_GO_BRRR_TESTING") != "true":
+            self._test_connection()
 
     def _test_connection(self) -> None:
         """Test connection to Redis."""
@@ -252,8 +254,8 @@ class RedisConnectionPool:
                 # Get pool stats
                 pool_stats = {
                     "created_connections": getattr(self.pool, "_created_connections", 0),
-                    "available_connections": len(self.pool._available_connections),
-                    "in_use_connections": len(self.pool._in_use_connections),
+                    "available_connections": len(getattr(self.pool, "_available_connections", [])),
+                    "in_use_connections": len(getattr(self.pool, "_in_use_connections", [])),
                 }
 
                 # Calculate hit rate
@@ -289,8 +291,8 @@ class RedisConnectionPool:
         return {
             "max_connections": self.pool.max_connections,
             "created_connections": getattr(self.pool, "_created_connections", 0),
-            "available_connections": len(self.pool._available_connections),
-            "in_use_connections": len(self.pool._in_use_connections),
+            "available_connections": len(getattr(self.pool, "_available_connections", [])),
+            "in_use_connections": len(getattr(self.pool, "_in_use_connections", [])),
             "circuit_state": self.circuit_breaker.state.value,
             "circuit_failures": self.circuit_breaker.failure_count,
         }

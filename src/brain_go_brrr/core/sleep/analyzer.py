@@ -13,6 +13,8 @@ import mne
 import numpy as np
 import pandas as pd
 
+from brain_go_brrr.core.exceptions import UnsupportedMontageError
+
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "yasa"))
 
@@ -199,6 +201,7 @@ class SleepAnalyzer:
             eog_ch = None
             emg_ch = None
 
+            # First try exact match for channels
             for ch_name in raw.ch_names:
                 if eeg_name.lower() in ch_name.lower() and eeg_ch is None:
                     eeg_ch = ch_name
@@ -208,15 +211,24 @@ class SleepAnalyzer:
                     emg_ch = ch_name
 
             if eeg_ch is None:
-                # Use first EEG channel as fallback
-                eeg_channels = [
-                    ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
-                ]
-                if eeg_channels:
-                    eeg_ch = eeg_channels[0]
-                    logger.warning(f"EEG channel {eeg_name} not found, using {eeg_ch}")
-                else:
-                    raise ValueError("No EEG channels found for sleep staging")
+                # Try common sleep EEG channels in order of preference
+                sleep_channels = ["C3", "C4", "Cz", "Fp1", "Fp2", "F3", "F4", "O1", "O2"]
+                for ch in sleep_channels:
+                    if ch in raw.ch_names:
+                        eeg_ch = ch
+                        logger.warning(f"EEG channel {eeg_name} not found, using {eeg_ch}")
+                        break
+
+                if eeg_ch is None:
+                    # No acceptable channels found - raise error
+                    available_channels = [
+                        ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
+                    ]
+                    raise UnsupportedMontageError(
+                        f"Unsupported EEG montage for sleep staging. "
+                        f"Required channels {sleep_channels} not found. "
+                        f"Available EEG channels: {available_channels}"
+                    )
 
         try:
             # Perform sleep staging using YASA

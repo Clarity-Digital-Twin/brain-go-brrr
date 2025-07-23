@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/queue", tags=["queue"])
 
 
-@router.get("/status", response_model=QueueStatusResponse)
+@router.get("/status", response_model=QueueStatusResponse, name="get_queue_status")
 async def get_queue_status() -> QueueStatusResponse:
     """Get current queue status and statistics."""
     # Use Counter for efficient status counting

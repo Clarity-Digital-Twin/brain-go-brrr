@@ -15,52 +15,37 @@ pytest_plugins = ["tests.fixtures.benchmark_data"]
 
 @pytest.fixture(scope="session", autouse=True)
 def redis_disabled_session():
-    """Replace Redis with FakeRedis for all unit tests - session scoped for performance."""
+    """Replace Redis with FakeRedis for all unit tests - session scoped for performance.
+
+    Per senior review: Keep the fake in sys.modules for the whole pytest run
+    to avoid restoration issues with background tasks.
+    """
     import sys
     import types
 
     import fakeredis
     import redis as _real_redis
 
-    # Create a fake redis module
+    # Create a fake redis module with only needed attributes
     fake_redis_module = types.ModuleType("redis")
     fake_redis_module.Redis = fakeredis.FakeStrictRedis
     fake_redis_module.StrictRedis = fakeredis.FakeStrictRedis
+    # Import real exceptions that fakeredis can actually raise
     fake_redis_module.ConnectionError = _real_redis.ConnectionError
     fake_redis_module.TimeoutError = _real_redis.TimeoutError
     fake_redis_module.RedisError = _real_redis.RedisError
 
-    # Store original modules
-    original_redis = sys.modules.get("redis")
-    original_pool_redis = None
+    # Replace in sys.modules - no restoration (keep for whole pytest run)
+    sys.modules["redis"] = fake_redis_module
 
-    try:
-        # Patch sys.modules
-        sys.modules["redis"] = fake_redis_module
+    # Patch the specific import in our pool module
+    import brain_go_brrr.infra.redis.pool
 
-        # Patch the specific import in our pool module
-        import brain_go_brrr.infra.redis.pool
+    brain_go_brrr.infra.redis.pool.redis = fake_redis_module
 
-        original_pool_redis = getattr(brain_go_brrr.infra.redis.pool, "redis", None)
-        brain_go_brrr.infra.redis.pool.redis = fake_redis_module
+    yield
 
-        yield
-
-    finally:
-        # Restore original modules only if they were replaced by our fake
-        if sys.modules.get("redis") is fake_redis_module:
-            if original_redis is not None:
-                sys.modules["redis"] = original_redis
-            else:
-                sys.modules.pop("redis", None)
-
-        # Restore pool redis only if it's still our fake
-        if (
-            hasattr(brain_go_brrr.infra.redis.pool, "redis")
-            and brain_go_brrr.infra.redis.pool.redis is fake_redis_module
-            and original_pool_redis is not None
-        ):
-            brain_go_brrr.infra.redis.pool.redis = original_pool_redis
+    # No restoration - keep fake module for entire test session
 
 
 @pytest.fixture(autouse=True)

@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from brain_go_brrr.api.auth import verify_cache_clear_permission
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.schemas import CacheWarmupRequest
 
@@ -36,6 +37,7 @@ async def get_cache_stats(cache_client: Any = Depends(get_cache)) -> dict[str, A
 async def clear_cache(
     pattern: str = "eeg_analysis:*",
     cache_client: Any = Depends(get_cache),
+    _authorized: bool = Depends(verify_cache_clear_permission),
 ) -> dict[str, Any]:
     """Clear cache entries matching pattern.
 
@@ -47,7 +49,7 @@ async def clear_cache(
         Number of keys deleted
     """
     if not cache_client or not cache_client.connected:
-        raise HTTPException(status_code=503, detail="Cache not available")
+        return {"status": "unavailable", "message": "Cache not available", "deleted": 0}
 
     try:
         deleted_count = cache_client.clear_pattern(pattern)
@@ -59,7 +61,7 @@ async def clear_cache(
     except (ConnectionError, TimeoutError) as e:
         # Redis connection issues
         logger.error(f"Redis connection error clearing cache: {e}")
-        raise HTTPException(status_code=503, detail="Cache temporarily unavailable") from e
+        return {"status": "unavailable", "message": "Cache temporarily unavailable", "deleted": 0}
     except ValueError as e:
         # Invalid pattern
         logger.error(f"Invalid cache pattern: {e}")
@@ -76,7 +78,7 @@ async def warmup_cache(
     Useful for demo/testing to ensure fast responses.
     """
     if not cache_client or not cache_client.connected:
-        raise HTTPException(status_code=503, detail="Cache not available")
+        return {"status": "unavailable", "message": "Cache not available", "warmed": 0}
 
     # TODO: Implement cache warmup logic
     return {

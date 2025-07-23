@@ -176,7 +176,10 @@ def stream(
                 if max_windows > 0 and window_count >= max_windows:
                     break
     except KeyboardInterrupt:
-        # Re-raise to ensure test sees the exception
+        # Print message to stderr for test visibility
+        import sys
+
+        sys.stderr.write("Interrupted by user\n")
         logger.info("Streaming interrupted by user")
         raise
 

@@ -30,10 +30,9 @@ class TestAPIRoot:
         # Check endpoints are listed
         endpoints = data["endpoints"]
         assert "docs" in endpoints
-        assert "redoc" in endpoints
         assert "health" in endpoints
-        assert "qc_analyze" in endpoints
-        assert "sleep_analyze" in endpoints
+        assert "ready" in endpoints
+        assert "queue_status" in endpoints
         assert "jobs" in endpoints
 
     def test_health_endpoint(self, client):

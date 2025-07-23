@@ -49,6 +49,12 @@ class SleepAnalysisError(ProcessingError):
     pass
 
 
+class UnsupportedMontageError(SleepAnalysisError):
+    """Raised when EEG montage is not supported for sleep staging."""
+
+    pass
+
+
 class FeatureExtractionError(ProcessingError):
     """Raised when feature extraction fails."""
 

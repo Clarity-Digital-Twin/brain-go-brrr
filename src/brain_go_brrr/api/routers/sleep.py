@@ -18,7 +18,7 @@ from brain_go_brrr.api.schemas import (
     SleepAnalysisResponse,
 )
 from brain_go_brrr.core.edf_loader import load_edf_safe
-from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError
+from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError, UnsupportedMontageError
 from brain_go_brrr.core.sleep import SleepAnalyzer
 from brain_go_brrr.utils.time import utc_now
 
@@ -114,6 +114,18 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
             },
         )
 
+    except UnsupportedMontageError as e:
+        # Unsupported montage - client error
+        logger.warning(f"Sleep analysis job {job_id} failed due to unsupported montage: {e}")
+        job_store.update(
+            job_id,
+            {
+                "status": JobStatus.FAILED,
+                "error": f"422: {e!s}",
+                "updated_at": utc_now().isoformat(),
+                "completed_at": utc_now().isoformat(),
+            },
+        )
     except SleepAnalysisError as e:
         # Expected sleep analysis errors
         logger.error(f"Sleep analysis job {job_id} failed: {e}")
@@ -204,10 +216,14 @@ async def analyze_sleep_eeg(
     job_id = str(uuid.uuid4())
 
     # Save file content temporarily for the job
-    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
-        tmp_path = Path(tmp_file.name)
-        tmp_file.write(content)
-        tmp_file.flush()
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
+            tmp_path = Path(tmp_file.name)
+            tmp_file.write(content)
+            tmp_file.flush()
+    except OSError as e:
+        logger.error(f"Failed to save temporary EDF file: {e}")
+        raise HTTPException(status_code=507, detail="Insufficient storage for file upload") from e
 
     # Create job entry
     job = JobData(
