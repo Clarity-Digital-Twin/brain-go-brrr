@@ -79,11 +79,15 @@ class TestRedisCaching:
     def client_with_cache(self, mock_qc_controller, mock_redis_client):
         """Create test client with caching enabled."""
         import brain_go_brrr.api.main as api_main
+        import brain_go_brrr.api.routers.qc as qc_router
         from brain_go_brrr.api.main import app
 
         # Inject mocked dependencies
         api_main.qc_controller = mock_qc_controller
         api_main.cache_client = mock_redis_client
+
+        # Also set in the router module
+        qc_router.qc_controller = mock_qc_controller
 
         # Also make app.state have the cache_client for tests that check it
         app.state.cache_client = mock_redis_client
@@ -145,9 +149,11 @@ class TestRedisCaching:
         mock_redis_client.get.return_value = None
 
         # Make first request
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
+        if response1.status_code != 200:
+            print(f"Error response: {response1.json()}")
         assert response1.status_code == 200
         result1 = response1.json()
         assert "cached" not in result1 or result1.get("cached") is False
@@ -160,7 +166,7 @@ class TestRedisCaching:
         mock_qc_controller.run_full_qc_pipeline.reset_mock()
 
         # Make second request with same file
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response2.status_code == 200
@@ -178,7 +184,7 @@ class TestRedisCaching:
         expected_key_prefix = f"eeg_analysis:{file_hash}"
 
         # Make request
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -191,7 +197,7 @@ class TestRedisCaching:
     def test_cache_expiration(self, client_with_cache, sample_edf_content, mock_redis_client):
         """Test that cache entries expire after TTL."""
         # Make request
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -208,11 +214,11 @@ class TestRedisCaching:
         content2 = b"EDF file content 2"
 
         # Request 1
-        files1 = {"file": ("test1.edf", content1, "application/octet-stream")}
+        files1 = {"edf_file": ("test1.edf", content1, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files1)
 
         # Request 2
-        files2 = {"file": ("test2.edf", content2, "application/octet-stream")}
+        files2 = {"edf_file": ("test2.edf", content2, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files2)
 
         # Both should succeed
@@ -236,7 +242,7 @@ class TestRedisCaching:
         mock_redis_client.set.side_effect = redis.ConnectionError("Redis unavailable")
 
         # Request should still work
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response = client_with_cache.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
@@ -254,7 +260,7 @@ class TestRedisCaching:
         mock_redis_client.get.return_value = None
 
         start_time = time.time()
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
         uncached_time = time.time() - start_time
 
@@ -268,7 +274,7 @@ class TestRedisCaching:
 
         # Second request (with cache)
         start_time = time.time()
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        files = {"edf_file": ("test.edf", sample_edf_content, "application/octet-stream")}
         response2 = client_with_cache.post("/api/v1/eeg/analyze", files=files)
         cached_time = time.time() - start_time
 
@@ -311,7 +317,9 @@ class TestRedisCaching:
 
         # First request
         mock_redis_client.get.return_value = None
-        files = {"file": ("test.edf", sample_edf_content, "application/octet-stream")}
+        # Use correct field name based on endpoint
+        field_name = "edf_file" if analysis_type == "standard" else "file"
+        files = {field_name: ("test.edf", sample_edf_content, "application/octet-stream")}
         response1 = client_with_cache.post(endpoint, files=files)
         assert response1.status_code == 200
 
