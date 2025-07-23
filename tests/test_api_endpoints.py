@@ -150,8 +150,11 @@ class TestAPIEndpoints:
 
     def test_analyze_eeg_controller_error(self, client, sample_edf_file, mock_qc_controller):
         """Test handling of controller errors."""
-        # Make controller raise an exception
-        mock_qc_controller.run_full_qc_pipeline.side_effect = Exception("Processing failed")
+        # Import the expected exception type
+        from brain_go_brrr.core.exceptions import QualityCheckError
+
+        # Make controller raise a QualityCheckError which will be caught and handled
+        mock_qc_controller.run_full_qc_pipeline.side_effect = QualityCheckError("Processing failed")
 
         with sample_edf_file.open("rb") as f:
             files = {"edf_file": ("test.edf", f, "application/octet-stream")}
@@ -159,7 +162,7 @@ class TestAPIEndpoints:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "error"
+        assert data["flag"] == "ERROR"
         assert data["error"] == "Processing failed"
         assert data["quality_grade"] == "ERROR"
 
@@ -167,10 +170,10 @@ class TestAPIEndpoints:
         """Test different triage flag scenarios."""
         test_cases = [
             # (abnormality_score, quality_grade, expected_flag)
-            (0.9, "POOR", "URGENT - Expedite read"),
-            (0.7, "FAIR", "EXPEDITE - Priority review"),
-            (0.5, "GOOD", "ROUTINE - Standard workflow"),
-            (0.1, "EXCELLENT", "NORMAL - Low priority"),
+            (0.9, "POOR", "URGENT"),
+            (0.7, "FAIR", "EXPEDITE"),
+            (0.3, "GOOD", "ROUTINE"),
+            (0.1, "EXCELLENT", "ROUTINE"),
         ]
 
         for abnormal_score, grade, expected_flag in test_cases:
@@ -187,7 +190,7 @@ class TestAPIEndpoints:
             }
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze", files=files)
 
             assert response.status_code == 200

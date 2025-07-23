@@ -47,8 +47,8 @@ class TestEEGPTFeatureExtractor:
     def mock_eegpt_model(self):
         """Mock EEGPT model for testing."""
         mock_model = Mock()
-        # EEGPT returns (batch_size, n_windows, 512) embeddings
-        mock_model.extract_features.return_value = np.random.randn(1, 3, 512).astype(np.float32)
+        # EEGPT returns a single embedding vector per window when called on individual windows
+        mock_model.extract_features.return_value = np.random.randn(512).astype(np.float32)
         return mock_model
 
     def test_feature_extractor_initialization(self):
@@ -172,10 +172,7 @@ class TestEEGPTFeatureExtractor:
             )
             raws.append(mne.io.RawArray(data, info))
 
-        # Mock batch output
-        mock_eegpt_model.extract_features.return_value = np.random.randn(3, 2, 512).astype(
-            np.float32
-        )
+        # The mock will return single embeddings per window call
 
         with patch(
             "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
