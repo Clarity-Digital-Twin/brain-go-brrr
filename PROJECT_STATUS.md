@@ -1,162 +1,170 @@
 # PROJECT STATUS - Brain-Go-Brrr
 
-_Last Updated: July 22, 2024 - End of Day_
+_Last Updated: July 23, 2025 - 5:00 PM_
 
 ## 🎯 Where We Are Today
 
 ### ✅ Major Wins Today
 
-1. **Fixed Redis Serialization Issue (#29)**
-   - JobData objects now properly serialize/deserialize
-   - Added automatic dataclass handling in cache layer
-   - All Redis-related tests now passing
+1. **Fixed CI/CD Pipeline Test Failures**
+   - Resolved all PDF report integration test failures (11/11 passing)
+   - Fixed API endpoint test failures (16/16 passing)
+   - Fixed EEGPT feature extractor tests (8/9 passing)
+   - Partially fixed Redis caching tests (field name issues resolved)
+   - Root cause: Inconsistent field naming between API endpoints
 
-2. **Recovered Critical EEG Datasets**
-   - Restored 58GB TUAB (Abnormal) dataset
-   - Restored 12GB TUEV (Events) dataset
-   - Maintained 8.1GB Sleep-EDF dataset
-   - Total: 78GB of EEG data properly organized
+2. **Discovered and Fixed API Inconsistency**
+   - `/api/v1/eeg/analyze` expects `edf_file` parameter
+   - `/api/v1/eeg/analyze/detailed` expects `file` parameter
+   - Fixed all tests to use correct field names
 
-3. **Synchronized All Branches**
-   - development, staging, and main all at commit `51a30cc`
-   - Fixed .gitignore to properly exclude /data/ directory
-   - Clean git status with no artifacts
+3. **Improved Test Reliability**
+   - Added deterministic RNG seeding in conftest.py
+   - Fixed mock injection issues (need to inject in multiple modules)
+   - Made tests more robust with order-agnostic assertions
 
-4. **Clean Codebase Status**
-   - ✅ All linting passing (ruff)
-   - ✅ All type checking passing (mypy)
-   - ✅ All tests passing (including Redis tests)
-   - ✅ Pre-commit hooks working perfectly
+4. **Clean Git Status**
+   - Successfully pushed all fixes to development branch
+   - No uncommitted changes
+   - CI/CD pipeline partially green
 
 ### 📊 Current Test Status
 
 ```
-Total Tests: ~423
-Passing: All (except performance benchmarks)
-Failing: 0 critical failures
+Total Tests: ~437
+Passing: ~420+
+Failing: <20 (mostly Redis caching and some integration tests)
+Fixed Today: 36+ tests
 ```
+
+### 🔧 Key Fixes Applied
+
+1. **Mock Injection Pattern**:
+
+   ```python
+   # Need to inject in both places for FastAPI apps
+   import brain_go_brrr.api.main as api_main
+   import brain_go_brrr.api.routers.qc as qc_router
+   api_main.qc_controller = mock_controller
+   qc_router.qc_controller = mock_controller
+   ```
+
+2. **Field Name Handling**:
+   ```python
+   # For /analyze endpoint
+   files = {"edf_file": ("test.edf", f, "application/octet-stream")}
+   # For /analyze/detailed endpoint
+   files = {"file": ("test.edf", f, "application/octet-stream")}
+   ```
 
 ## 🚧 What Needs to Be Done Next
 
-### High Priority (Block Other Work)
+### High Priority (CI/CD Health)
 
-1. **Fix GitHub Actions Claude Bot Permissions**
-   - Issue: Bot can't create PRs due to missing permissions
-   - Solution: Grant "Contents: Read/Write" in repo settings
-   - GitHub Issue: #34
+1. **Complete Redis Caching Test Fixes**
+   - Fix mock behavior for cache operations
+   - Resolve missing module imports
+   - Update test logic for proper Redis simulation
 
-2. **Review Claude Bot's Code**
-   - Event Detection implementation (Issue #32)
-   - Health Endpoint enhancement (Issue #33)
-   - Both have code written, need review and merge
+2. **Fix Remaining Integration Tests**
+   - EDF file handling issues
+   - Multiple file upload test
 
-### Medium Priority (Core Features)
+3. **Standardize API Field Names**
+   - Consider making both endpoints use same field name
+   - Update OpenAPI schema accordingly
 
-1. **Update Dockerfile**
-   - Update paths for new src/ structure
-   - Remove references to old services/ directory
-   - Test container builds and runs
+### Medium Priority (Code Quality)
 
-2. **Implement Event Detection**
-   - After reviewing Claude bot's PR
-   - Core feature for EEGPT downstream tasks
-   - Uses TUEV dataset we just restored
+1. **Performance Benchmarks**
+   - Update expectations for batch processing
+   - Consider environment-specific thresholds
 
-3. **Enhanced Health Check Endpoint**
-   - After reviewing Claude bot's PR
-   - Add system metrics and model status
+2. **Parallel Pipeline Test**
+   - Fix embedding shape mismatch (expecting 512, getting 4)
+   - Review EEGPT integration
+
+3. **Documentation Updates**
+   - Document API field name requirements
+   - Update test writing guidelines
 
 ### Low Priority (Cleanup)
 
-1. **Clean up .github/issues/\*.md files**
-   - These don't create real GitHub issues
-   - Move to docs/backlog/ or delete
+1. **Remove Old Checkpoints**
+   - Keep only recent checkpoints
+   - Archive to docs/checkpoints/
 
-2. **Update documentation**
-   - Reflect new project structure
-   - Update API documentation
-   - Add deployment guides
+2. **Branch Cleanup**
+   - Review and remove merged feature branches
+   - Keep only active branches
 
-## 📁 Project Structure
+## 📁 Current Issues Status
 
-```
-brain-go-brrr/
-├── src/brain_go_brrr/      # Main package ✅
-├── tests/                  # All tests ✅
-├── data/                   # EEG datasets (gitignored) ✅
-│   └── datasets/external/
-│       ├── sleep-edf/      # 8.1GB
-│       ├── tuh_eeg_abnormal/ # 58GB
-│       └── tuh_eeg_events/   # 12GB
-├── reference_repos/        # Research references ✅
-├── literature/            # Papers and notes ✅
-└── docs/                  # Documentation ✅
-```
+### Can Be Closed
 
-## 🔄 Development Workflow
+- CI/CD test failures on Ubuntu (fixed)
+- PDF report generation errors (fixed)
+- API 422 errors (fixed)
+- Test determinism issues (fixed)
+
+### Still Open
+
+- Redis caching implementation (partial)
+- Performance optimization needed
+- API field name standardization
+
+## 🔄 Git Status
 
 ```bash
-# Daily workflow
-git checkout development
-make test
-# ... make changes ...
-make check-all  # Runs lint, typecheck, test
-git commit -m "feat: description"
+# Current branch
+development (up to date with origin)
 
-# Integration testing
-git checkout staging
-git merge development
-# Run full test suite
-
-# Release
-git checkout main
-git merge staging
-git tag v0.2.0
+# Recent commits
+866b04c fix: Redis caching test field name errors (partial fix)
+03f5e5f fix: remaining PDF report integration test failures
+83725fe fix: resolve CI/CD test failures on Ubuntu Python 3.11
+682b9bb chore(ci): update CI workflow and testing environment
+c379890 fix: remaining CI/CD test failures
 ```
 
 ## 📈 Progress Metrics
 
-- **Code Quality**: 100% (all checks passing)
+- **CI/CD Health**: 85% (major issues fixed, Redis tests remain)
 - **Test Coverage**: ~80% (good coverage)
-- **Core Features**: 60% (QC and Sleep done, Events next)
-- **Documentation**: 70% (needs API docs)
-- **Deployment Ready**: 40% (Dockerfile needs update)
+- **Code Quality**: 95% (all linting/typing passing)
+- **API Stability**: 90% (working but needs standardization)
+- **Documentation**: 75% (needs API updates)
 
-## 🎯 Next Milestone: v0.2.0-alpha
+## 🎯 Next Session Goals
 
-Target: End of July 2024
+1. Complete Redis caching test fixes
+2. Resolve remaining integration test failures
+3. Close completed GitHub issues
+4. Clean up old branches
+5. Consider API field name standardization
 
-Required:
+## 💡 Key Learnings
 
-- [x] Redis serialization fix
-- [ ] Event detection implementation
-- [ ] Enhanced health checks
-- [ ] Updated Dockerfile
-- [ ] Basic API documentation
-- [ ] GitHub Actions CI/CD working
-
-## 💡 Key Decisions Made
-
-1. Using development branch as primary work branch
-2. Keeping all EEG data in /data/ (gitignored)
-3. Following src/ package structure
-4. Using pytest for all testing
-5. Enforcing type hints everywhere
+1. **FastAPI Testing**: Mocks may need injection in multiple modules
+2. **Field Names**: Consistency across endpoints is important
+3. **Test Isolation**: Proper cache and temp directory isolation critical
+4. **Error Details**: FastAPI 422 errors provide excellent debugging info
 
 ## 🚨 Known Issues
 
-1. **GitHub Actions Bot** - Missing repo permissions
-2. **Performance tests** - Need pytest-benchmark in CI
-3. **Dockerfile** - Outdated paths
-4. **Remote branches** - May have stale feature branches
+1. **Redis Caching Tests** - Mock behavior needs fixing
+2. **API Inconsistency** - Different field names between endpoints
+3. **Performance Tests** - Some benchmarks failing
+4. **Integration Tests** - EDF handling issues
 
-## 📞 Team Notes
+## 📞 Session Summary
 
-- Redis serialization is FIXED - can close Issue #29
-- Claude bot has written code for Issues #32 and #33
-- All branches are synchronized - no merge conflicts
-- Data is properly gitignored - no more 27k file issues
+- Fixed 36+ failing tests in CI/CD pipeline
+- Discovered root cause: API field name inconsistency
+- Improved test reliability and determinism
+- Partially fixed Redis tests (field names done, logic remains)
+- Ready for final cleanup and issue closure
 
 ---
 
-**Summary**: Solid progress today despite the data deletion incident. All critical issues resolved, branches synchronized, and ready for feature development tomorrow.
+**Summary**: Major progress on CI/CD stability. Primary blocking issues resolved. Redis caching tests need completion, then ready for full green CI/CD.
