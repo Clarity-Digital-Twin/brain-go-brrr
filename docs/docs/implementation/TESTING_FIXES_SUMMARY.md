@@ -38,7 +38,7 @@ yasa = pytest.importorskip("yasa", reason="YASA required - install with: pip ins
 - **Synthetic data generation** for edge case testing
 
 ### 4. **✅ CREATED: Testing Best Practices Guide**
-**New Documentation**: `docs/TESTING_BEST_PRACTICES.md`
+**New Documentation**: `TESTING_BEST_PRACTICES.md`
 - Comprehensive ML testing guidelines
 - Clear DO/DON'T examples
 - Test hierarchy and markers
@@ -201,8 +201,8 @@ pytest tests/ --tb=short
 ## 📖 **Reference Materials**
 
 - **[Eugene Yan - Don't Mock ML Models](https://eugeneyan.com/writing/unit-testing-ml/)**
-- **[Testing Best Practices Guide](docs/TESTING_BEST_PRACTICES.md)**
-- **[Real EEG Fixtures](tests/fixtures/eeg/README.md)**
+- **[Testing Best Practices Guide](TESTING_BEST_PRACTICES.md)**
+- **Real EEG Fixtures** in `tests/fixtures/eeg/`
 
 ---
 

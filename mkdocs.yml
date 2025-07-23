@@ -62,29 +62,22 @@ extra_javascript:
 
 # Navigation
 nav:
-  - Home: index.md
-  - Getting Started:
-      - Installation: getting-started/installation.md
-      - Quick Start: getting-started/quickstart.md
-      - Configuration: getting-started/configuration.md
-  - User Guide:
-      - EEG Processing: user-guide/eeg-processing.md
-      - Model Training: user-guide/training.md
-      - Evaluation: user-guide/evaluation.md
-      - Inference: user-guide/inference.md
-  - API Reference:
-      - Core: api/core.md
-      - Models: api/models.md
-      - Data: api/data.md
-      - Training: api/training.md
-      - CLI: api/cli.md
-  - Research:
-      - EEGPT Paper: research/eegpt.md
-      - Literature: research/literature.md
-  - Development:
-      - Contributing: development/contributing.md
-      - Architecture: development/architecture.md
-      - Testing: development/testing.md
+  - Home: PROJECT_STATUS.md
+  - Requirements:
+      - Product Requirements: requirements/PRD-product-requirements.md
+      - Technical Requirements: requirements/TRD-technical-requirements.md
+      - Behavior Specifications: requirements/BDD-behavior-specifications.md
+  - Technical Documentation:
+      - Literature Reference: docs/technical/literature-master-reference.md
+      - Technical Stack: docs/technical/tech-stack.md
+      - Pipeline Overview: docs/technical/pipeline_overview.md
+      - Development Standards: docs/technical/development-standards.md
+      - Agentic Workflow: docs/technical/agentic-workflow.md
+  - Implementation:
+      - Implementation Plan: docs/implementation/IMPLEMENTATION_PLAN.md
+      - MVP Summary: docs/implementation/MVP_SUMMARY.md
+      - Configuration Checklist: docs/implementation/CONFIGURATION_CHECKLIST.md
+      - Testing Best Practices: docs/implementation/TESTING_BEST_PRACTICES.md
 
 # Plugins
 plugins:
@@ -97,9 +90,6 @@ plugins:
             docstring_style: google
             show_source: true
             show_if_no_docstring: false
-  - mkdocs-jupyter:
-      execute: false
-      allow_errors: false
 
 # Extra
 extra:

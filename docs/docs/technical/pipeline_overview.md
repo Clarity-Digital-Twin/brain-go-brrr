@@ -5,7 +5,7 @@ This document consolidates the implementation details and architecture decisions
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
-2. [EEGPT + YASA Integration](#eegpt--yasa-integration)
+2. [EEGPT + YASA Integration](#eegpt-yasa-integration)
 3. [Sleep Preprocessing](#sleep-preprocessing)
 4. [Channel Position Handling](#channel-position-handling)
 5. [YASA Implementation](#yasa-implementation)

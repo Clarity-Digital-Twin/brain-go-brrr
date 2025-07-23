@@ -18,7 +18,7 @@ EEG abnormality detection is critical for:
 
 Based on literature review, foundation models significantly outperform models trained from scratch:
 
-![Model Performance Comparison](../img/abnormality/_page_12_Figure_1.jpeg)
+![Model Performance Comparison](../../img/abnormality/_page_12_Figure_1.jpeg)
 
 Performance targets by dataset:
 - **BioSerenity-E1**: 94.63% balanced accuracy (3-expert consensus, best in class)
@@ -39,7 +39,7 @@ We will use EEGPT as our foundation model with the following advantages:
 
 ### Model Architecture
 
-![BioSerenity-E1 Architecture](../img/abnormality/_page_6_Figure_2.jpeg)
+![BioSerenity-E1 Architecture](../../img/abnormality/_page_6_Figure_2.jpeg)
 
 The architecture consists of:
 1. **Preprocessing Pipeline**: 0.5 Hz HPF → 45 Hz LPF → notch filter → resample to 128 Hz
