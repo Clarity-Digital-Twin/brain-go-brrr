@@ -307,7 +307,7 @@ class TestPDFReportIntegration:
         """Test API endpoint returns PDF."""
         # Test the detailed endpoint that should include PDF
         with patch("mne.io.read_raw_edf"):
-            files = {"file": ("test.edf", b"mock", "application/octet-stream")}
+            files = {"edf_file": ("test.edf", b"mock", "application/octet-stream")}
             response = client.post(
                 "/api/v1/eeg/analyze/detailed",
                 files=files,

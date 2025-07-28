@@ -281,12 +281,15 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         assert expected_in_flag in response.json()["flag"]
 
-    def test_detailed_endpoint_exists(self, client, valid_edf_content):
+    def test_detailed_endpoint_exists(self, client, valid_edf_content, mock_qc_controller):
         """Test that detailed analysis endpoint exists for future expansion."""
-        # Just verify it exists - implementation is TODO
-        with patch("brain_go_brrr.core.edf_loader.load_edf_safe"):
-            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-            response = client.post("/api/v1/eeg/analyze/detailed", files=files)
+        # Import the router module to inject the mock
+        import brain_go_brrr.api.routers.qc as qc_router
+
+        qc_router.qc_controller = mock_qc_controller
+
+        files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+        response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
         # Should not 404
         assert response.status_code != 404

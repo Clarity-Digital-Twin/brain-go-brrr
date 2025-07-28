@@ -272,7 +272,7 @@ class TestMarkdownIntegration:
             patch("brain_go_brrr.api.cache.get_cache", return_value=mock_cache),
             patch("brain_go_brrr.api.routers.qc.get_cache", return_value=mock_cache),
         ):
-            files = {"file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
             response = client.post(
                 "/api/v1/eeg/analyze/detailed",
                 files=files,

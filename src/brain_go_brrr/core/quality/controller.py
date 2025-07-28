@@ -13,6 +13,7 @@ from typing import Any
 import mne
 import numpy as np
 
+from brain_go_brrr.core.exceptions import QualityCheckError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 # Add reference repos to path
@@ -139,7 +140,44 @@ class EEGQualityController:
                 f"High-pass filter adjusted to {l_freq}Hz for {raw_copy.info['sfreq']}Hz sampling"
             )
 
-        raw_copy.filter(l_freq=l_freq, h_freq=h_freq, fir_design="firwin")
+        # Explicitly pick data channels for filtering
+        data_picks = mne.pick_types(
+            raw_copy.info, meg=False, eeg=True, stim=False, eog=False, exclude=[]
+        )
+        if len(data_picks) == 0:
+            # If no EEG channels found, check for any data channels
+            logger.warning("No EEG channels found, checking for any valid data channels")
+            all_data_picks = mne.pick_types(raw_copy.info, meg=False, stim=False, exclude=[])
+
+            if len(all_data_picks) == 0:
+                raise QualityCheckError(
+                    "No valid data channels found in EDF file. "
+                    "File must contain at least one EEG or compatible data channel."
+                )
+
+            # Filter to only keep channels that are likely EEG
+            # (exclude EMG, ECG, EOG unless explicitly marked as EEG)
+            valid_picks = []
+            for pick in all_data_picks:
+                ch_type = raw_copy.info["chs"][pick]["kind"]
+                ch_name = raw_copy.info["ch_names"][pick].upper()
+
+                # Accept EEG channels or channels with EEG-like names
+                if ch_type == mne.io.constants.FIFF.FIFFV_EEG_CH or any(
+                    pattern in ch_name for pattern in ["FP", "F", "C", "P", "O", "T"]
+                ):
+                    valid_picks.append(pick)
+
+            if len(valid_picks) == 0:
+                raise QualityCheckError(
+                    "No EEG-compatible channels found. "
+                    "Detected channel types may be incompatible (e.g., EMG, ECG only)."
+                )
+
+            data_picks = valid_picks
+            logger.info(f"Using {len(data_picks)} EEG-compatible channels for filtering")
+
+        raw_copy.filter(l_freq=l_freq, h_freq=h_freq, fir_design="firwin", picks=data_picks)
 
         # Notch filter for line noise - only if below Nyquist
         if notch_freq:
@@ -149,7 +187,9 @@ class EEGQualityController:
             valid_notch_freqs = [f for f in notch_freqs if f < nyquist - 1]
 
             if valid_notch_freqs:
-                raw_copy.notch_filter(freqs=valid_notch_freqs, fir_design="firwin")
+                raw_copy.notch_filter(
+                    freqs=valid_notch_freqs, fir_design="firwin", picks=data_picks
+                )
             else:
                 logger.warning(f"Notch filter skipped - all frequencies >= Nyquist ({nyquist}Hz)")
 

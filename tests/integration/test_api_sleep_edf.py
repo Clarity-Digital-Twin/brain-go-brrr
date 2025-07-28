@@ -168,8 +168,8 @@ class TestSleepEDFIntegration:
         if not sleep_dir.exists():
             pytest.skip("Sleep-EDF directory not found")
 
-        # Get first 3 EDF files
-        edf_files = list(sleep_dir.glob("*.edf"))[:3]
+        # Get first 3 PSG EDF files (not hypnogram files)
+        edf_files = list(sleep_dir.glob("*PSG.edf"))[:3]
 
         if not edf_files:
             pytest.skip("No EDF files found in Sleep-EDF directory")
@@ -202,14 +202,16 @@ class TestSleepEDFIntegration:
         # We can't actually crop here, but we verify the API handles it
 
         with sleep_edf_file.open("rb") as f:
-            files = {"file": ("cropped_test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("cropped_test.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
 
         assert response.status_code == 200
         data = response.json()
 
         # Even large files should be processed successfully
-        assert data["status"] == "success"
+        assert "confidence" in data
+        assert "flag" in data
+        assert data["flag"] in ["ROUTINE", "EXPEDITE", "URGENT"]
         assert data["processing_time"] < 120  # Under 2 minutes as per requirements
 
     @pytest.mark.integration
@@ -253,7 +255,7 @@ class TestAPIRobustness:
     def test_empty_file_handling(self, client):
         """Test handling of empty or very small files."""
         # Create a minimal invalid EDF
-        files = {"file": ("empty.edf", b"", "application/octet-stream")}
+        files = {"edf_file": ("empty.edf", b"", "application/octet-stream")}
         response = client.post("/api/v1/eeg/analyze", files=files)
 
         # Should handle gracefully
@@ -278,7 +280,7 @@ class TestAPIRobustness:
 
         def process_file():
             with edf_path.open("rb") as f:
-                files = {"file": (edf_path.name, f, "application/octet-stream")}
+                files = {"edf_file": (edf_path.name, f, "application/octet-stream")}
                 return client.post("/api/v1/eeg/analyze", files=files)
 
         # Process 3 requests concurrently
@@ -288,4 +290,4 @@ class TestAPIRobustness:
 
         # All should succeed
         assert all(r.status_code == 200 for r in responses)
-        assert all(r.json()["status"] in ["success", "error"] for r in responses)
+        assert all(r.json()["flag"] in ["ROUTINE", "EXPEDITE", "URGENT"] for r in responses)

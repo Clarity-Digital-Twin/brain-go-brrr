@@ -120,7 +120,7 @@ class TestPDFReportIntegration:
     def test_pdf_report_generation_in_detailed_endpoint(self, client, sample_edf_file):
         """Test that detailed endpoint generates PDF reports."""
         with sample_edf_file.open("rb") as f:
-            files = {"file": ("test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
             data = {"include_report": True}
             response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
@@ -156,7 +156,7 @@ class TestPDFReportIntegration:
             mock_instance.generate_report = Mock(side_effect=track_section)
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 client.post("/api/v1/eeg/analyze/detailed", files=files)
 
             # Verify PDF generator was called
@@ -174,7 +174,7 @@ class TestPDFReportIntegration:
                 pytest.raises(Exception, match="PDF generation failed"),
                 sample_edf_file.open("rb") as f,
             ):
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 client.post("/api/v1/eeg/analyze/detailed", files=files)
 
     def test_pdf_report_with_artifact_visualizations(self, client, sample_edf_file):
@@ -197,7 +197,7 @@ class TestPDFReportIntegration:
             mock_pdf_class.return_value = mock_instance
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
             assert response.status_code == 200
@@ -212,7 +212,7 @@ class TestPDFReportIntegration:
             mock_pdf_class.return_value = mock_instance
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
             assert response.status_code == 200
@@ -241,7 +241,7 @@ class TestPDFReportIntegration:
             mock_pdf_class.return_value = mock_instance
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
             assert response.status_code == 200
@@ -322,7 +322,7 @@ class TestPDFReportIntegration:
         }
 
         with sample_edf_file.open("rb") as f:
-            files = {"file": ("test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
         assert response.status_code == 200
@@ -338,7 +338,7 @@ class TestPDFReportIntegration:
 
         def make_request():
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files)
                 results.append((response.status_code, response.json()))
 
@@ -364,7 +364,7 @@ class TestPDFReportIntegration:
         start_time = time.time()
 
         with sample_edf_file.open("rb") as f:
-            files = {"file": ("test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze/detailed", files=files)
 
         end_time = time.time()

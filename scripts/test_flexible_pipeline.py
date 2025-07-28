@@ -15,10 +15,10 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from brain_go_brrr.core.logger import get_logger
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 from brain_go_brrr.core.quality import EEGQualityController
 from brain_go_brrr.core.sleep import SleepAnalyzer
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
 # Set up logging
 logger = get_logger(__name__)

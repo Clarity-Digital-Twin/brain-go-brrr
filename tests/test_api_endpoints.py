@@ -224,7 +224,7 @@ class TestAPIEndpoints:
         }
 
         with sample_edf_file.open("rb") as f:
-            files = {"file": ("test.edf", f, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", f, "application/octet-stream")}
             data = {"include_report": "true"}
             response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
@@ -256,7 +256,7 @@ class TestAPIEndpoints:
             mock_pdf.return_value = mock_pdf_instance
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 data = {"include_report": "true"}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 
@@ -279,7 +279,7 @@ class TestAPIEndpoints:
             mock_md.return_value = mock_md_instance
 
             with sample_edf_file.open("rb") as f:
-                files = {"file": ("test.edf", f, "application/octet-stream")}
+                files = {"edf_file": ("test.edf", f, "application/octet-stream")}
                 data = {"include_report": "true"}
                 response = client.post("/api/v1/eeg/analyze/detailed", files=files, data=data)
 

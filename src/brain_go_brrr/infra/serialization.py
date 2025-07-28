@@ -97,6 +97,9 @@ def deserialize_value(value: Any) -> Any:
     if not isinstance(value, str | bytes):
         return value  # pragma: no cover
 
+    # Store original value for fallback
+    original_value = value
+
     try:
         # Handle bytes explicitly
         if isinstance(value, bytes):
@@ -117,8 +120,8 @@ def deserialize_value(value: Any) -> Any:
         return decoded
 
     except json.JSONDecodeError:
-        # Not JSON, return as-is
-        return value
+        # Not JSON, return original value as-is
+        return original_value
     except UnicodeDecodeError as e:
         # Non-UTF8 bytes - re-raise with clear message
         raise UnicodeDecodeError(
@@ -126,7 +129,7 @@ def deserialize_value(value: Any) -> Any:
         ) from e
     except KeyError:
         # Missing expected keys in dataclass format
-        return value
+        return original_value
 
 
 def get_registry() -> dict[str, type[SerializableDataclass]]:

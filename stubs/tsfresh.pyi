@@ -4,8 +4,8 @@ from typing import Any
 
 import pandas as pd
 
-class utilities:
-    class dataframe_functions:
+class Utilities:
+    class DataframeFunctions:
         @staticmethod
         def impute(
             df: pd.DataFrame,
@@ -33,7 +33,7 @@ def extract_features(
     distributor: Any | None = None,
 ) -> pd.DataFrame: ...
 def select_features(
-    X: pd.DataFrame,
+    x: pd.DataFrame,
     y: pd.Series,
     test_for_binary_target_binary_feature: str = "fisher",
     test_for_binary_target_real_feature: str = "mann",

@@ -206,7 +206,7 @@ async def analyze_eeg(
 
 @router.post("/analyze/detailed", response_class=JSONResponse)
 async def analyze_eeg_detailed(
-    file: UploadFile = File(...),
+    edf_file: UploadFile = File(...),
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
 ) -> JSONResponse:
@@ -215,8 +215,8 @@ async def analyze_eeg_detailed(
     Returns comprehensive analysis results with PDF report.
     """
     # Read file content for caching
-    content = await file.read()
-    await file.seek(0)  # Reset file pointer
+    content = await edf_file.read()
+    await edf_file.seek(0)  # Reset file pointer
 
     cache_client = get_cache()  # Get cache through dependency
 
@@ -226,7 +226,7 @@ async def analyze_eeg_detailed(
         cached_result = cache_client.get(cache_key)
 
         if cached_result:
-            logger.info(f"Returning cached detailed result for {file.filename}")
+            logger.info(f"Returning cached detailed result for {edf_file.filename}")
             cached_result["basic"]["cached"] = True
             return JSONResponse(content=json.loads(json.dumps(cached_result, cls=NumpyEncoder)))
 
