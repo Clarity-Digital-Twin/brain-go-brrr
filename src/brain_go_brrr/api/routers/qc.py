@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
@@ -64,7 +64,7 @@ def cleanup_temp_file(file_path: Path) -> None:
 async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    cache_client: Any = None,  # Dependency injection
+    cache_client: Any = Depends(get_cache),
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -209,6 +209,7 @@ async def analyze_eeg_detailed(
     edf_file: UploadFile = File(...),
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
+    cache_client: Any = Depends(get_cache),
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
@@ -217,8 +218,6 @@ async def analyze_eeg_detailed(
     # Read file content for caching
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
-
-    cache_client = get_cache()  # Get cache through dependency
 
     # Check cache if available
     if cache_client and cache_client.connected:
