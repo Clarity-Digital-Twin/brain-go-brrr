@@ -111,8 +111,8 @@ def deserialize_value(value: Any) -> Any:
                 cls = _SERIALIZATION_REGISTRY[class_name]
                 return cls.from_dict(decoded["data"])
             else:
-                # Unknown dataclass type - return the raw dict
-                return decoded["data"]
+                # Unknown dataclass type - return the full dict
+                return decoded
 
         return decoded
 
