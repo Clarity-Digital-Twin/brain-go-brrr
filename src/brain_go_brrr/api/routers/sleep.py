@@ -7,7 +7,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import torch
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from brain_go_brrr.api.routers.jobs import job_store  # TODO: Move to core
 from brain_go_brrr.api.schemas import (
@@ -20,11 +23,43 @@ from brain_go_brrr.api.schemas import (
 from brain_go_brrr.core.edf_loader import load_edf_safe
 from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError, UnsupportedMontageError
 from brain_go_brrr.core.sleep import SleepAnalyzer
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.models.linear_probe import SleepStageProbe
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/eeg/sleep", tags=["sleep"])
+
+
+class SleepStageResponse(BaseModel):
+    """Response for EEGPT-based sleep staging."""
+
+    stages: list[str]
+    confidence_scores: list[float]
+    hypnogram: list[str]
+    summary: dict[str, Any]
+
+
+# Global instances for model and probe (would be dependency injected in production)
+_eegpt_model: EEGPTModel | None = None
+_sleep_probe: SleepStageProbe | None = None
+
+
+def get_eegpt_model() -> EEGPTModel:
+    """Get or initialize EEGPT model."""
+    global _eegpt_model
+    if _eegpt_model is None:
+        _eegpt_model = EEGPTModel()
+    return _eegpt_model
+
+
+def get_sleep_probe() -> SleepStageProbe:
+    """Get or initialize sleep stage probe."""
+    global _sleep_probe
+    if _sleep_probe is None:
+        _sleep_probe = SleepStageProbe()
+    return _sleep_probe
 
 
 async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
@@ -316,3 +351,133 @@ async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
         timestamp=job.completed_at.isoformat() if job.completed_at else utc_now().isoformat(),
         cached=False,
     )
+
+
+@router.post("/stages", response_model=SleepStageResponse)
+async def analyze_sleep_stages_eegpt(
+    edf_file: UploadFile = File(...),
+) -> SleepStageResponse:
+    """Analyze sleep stages using EEGPT with linear probe.
+
+    This endpoint uses the pretrained EEGPT model with a linear probe
+    for sleep stage classification. It processes the EEG data in 4-second
+    windows and returns stage predictions.
+
+    Args:
+        edf_file: Uploaded EDF file containing sleep EEG data
+
+    Returns:
+        Sleep stage predictions with confidence scores
+    """
+    # Validate file type
+    if not edf_file.filename or not edf_file.filename.lower().endswith(".edf"):
+        raise HTTPException(status_code=400, detail="Only EDF files are supported")
+
+    # Read file content
+    content = await edf_file.read()
+
+    # Basic validation
+    if len(content) < 1000:
+        raise HTTPException(status_code=400, detail="File too small to be valid EDF")
+
+    # Save temporarily
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
+            tmp_path = Path(tmp_file.name)
+            tmp_file.write(content)
+            tmp_file.flush()
+    except OSError as e:
+        logger.error(f"Failed to save temporary EDF file: {e}")
+        raise HTTPException(status_code=507, detail="Insufficient storage") from e
+
+    try:
+        # Load EDF data
+        raw = load_edf_safe(tmp_path, preload=True, verbose=False)
+
+        # Get EEGPT model and sleep probe
+        eegpt_model = get_eegpt_model()
+        sleep_probe = get_sleep_probe()
+
+        # Extract windows from raw data
+        data = raw.get_data()
+        sfreq = int(raw.info["sfreq"])
+        channel_names = raw.ch_names
+
+        # Process in 4-second windows
+        window_duration = 4.0
+        window_samples = int(window_duration * sfreq)
+        n_windows = data.shape[1] // window_samples
+
+        stages = []
+        confidence_scores = []
+
+        # Process each window
+        for i in range(n_windows):
+            start_idx = i * window_samples
+            end_idx = start_idx + window_samples
+            window_data = data[:, start_idx:end_idx]
+
+            # Extract EEGPT features
+            features = eegpt_model.extract_features(window_data, channel_names)
+
+            # Convert to tensor and add batch dimension
+            features_tensor = torch.FloatTensor(features).unsqueeze(0)
+
+            # Get sleep stage prediction
+            with torch.no_grad():
+                stage_names, confidences = sleep_probe.predict_stage(features_tensor)
+
+            stages.extend(stage_names)
+            confidence_scores.extend(confidences.tolist())
+
+        # Create 30-second epoch hypnogram (aggregate 4s windows)
+        # Each epoch is 7.5 windows (30s / 4s)
+        epochs_per_30s = int(30 / window_duration)
+        hypnogram = []
+
+        for i in range(0, len(stages), epochs_per_30s):
+            epoch_stages = stages[i : i + epochs_per_30s]
+            if epoch_stages:
+                # Vote for most common stage in epoch
+                most_common = max(set(epoch_stages), key=epoch_stages.count)
+                hypnogram.append(most_common)
+
+        # Calculate summary statistics
+        stage_counts = dict.fromkeys(["W", "N1", "N2", "N3", "REM"], 0)
+        for stage in hypnogram:
+            if stage in stage_counts:
+                stage_counts[stage] += 1
+
+        total_epochs = len(hypnogram)
+        total_sleep_epochs = total_epochs - stage_counts.get("W", 0)
+
+        summary = {
+            "total_epochs": total_epochs,
+            "total_sleep_time": total_sleep_epochs * 0.5,  # minutes
+            "sleep_efficiency": (total_sleep_epochs / total_epochs * 100)
+            if total_epochs > 0
+            else 0,
+            "stage_percentages": {
+                stage: (count / total_epochs * 100) if total_epochs > 0 else 0
+                for stage, count in stage_counts.items()
+            },
+            "mean_confidence": np.mean(confidence_scores) if confidence_scores else 0,
+        }
+
+        return SleepStageResponse(
+            stages=stages,
+            confidence_scores=confidence_scores,
+            hypnogram=hypnogram,
+            summary=summary,
+        )
+
+    except EdfLoadError as e:
+        raise HTTPException(status_code=400, detail=f"Failed to load EDF: {e}") from e
+    except Exception as e:
+        logger.error(f"Error in EEGPT sleep staging: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+    finally:
+        # Cleanup
+        with contextlib.suppress(Exception):
+            if tmp_path.exists():
+                tmp_path.unlink()

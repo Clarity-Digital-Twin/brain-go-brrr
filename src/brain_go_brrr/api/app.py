@@ -7,7 +7,7 @@ import numpy as np
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from brain_go_brrr.api.routers import cache, health, jobs, qc, queue, resources, sleep
+from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
 from brain_go_brrr.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -77,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(sleep.router, prefix="/api/v1")
     app.include_router(qc.router, prefix="/api/v1")
     app.include_router(cache.router, prefix="/api/v1")
+    app.include_router(eegpt.router, prefix="/api/v1")
 
     # Startup event
     @app.on_event("startup")

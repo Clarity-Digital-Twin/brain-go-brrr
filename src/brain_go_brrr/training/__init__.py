@@ -1,1 +1,1 @@
-"""training module."""
+"""Training utilities for Brain-Go-Brrr models."""

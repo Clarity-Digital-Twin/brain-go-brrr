@@ -213,19 +213,13 @@ class EEGPTModel:
 
         with torch.no_grad():
             if self.encoder is not None:  # Additional null check for mypy
-                features = self.encoder(data_tensor, chan_ids)
-                # Average features across all patches to get summary
-                features = features.squeeze(0)  # Remove batch dim
-                # Reshape back to (n_patches, n_channels, embed_dim)
-                features = features.reshape(n_patches, n_channels, -1)
-                # Average across patches and channels to get summary tokens
-                # For now, return mean features (simplified)
-                summary_features = features.mean(dim=(0, 1))  # Shape: (embed_dim,)
-                # Repeat to get n_summary_tokens
-                summary_features = summary_features.unsqueeze(0).expand(
-                    self.config.n_summary_tokens, -1
-                )
-                result: npt.NDArray[np.float64] = summary_features.cpu().numpy()
+                # Encoder now returns summary tokens directly!
+                # Shape: (batch_size, n_summary_tokens, embed_dim)
+                summary_tokens = self.encoder(data_tensor, chan_ids)
+
+                # Remove batch dimension and convert to numpy
+                summary_tokens = summary_tokens.squeeze(0)  # Shape: (n_summary_tokens, embed_dim)
+                result: npt.NDArray[np.float64] = summary_tokens.cpu().numpy()
                 return result
 
         # This should never be reached due to the encoder None check above

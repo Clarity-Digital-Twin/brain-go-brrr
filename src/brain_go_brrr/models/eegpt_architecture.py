@@ -364,6 +364,7 @@ class EEGTransformer(nn.Module):
         n_channels: list | None = None,
         patch_size: int = 64,
         embed_dim: int = 768,
+        embed_num: int = 4,  # Number of summary tokens
         depth: int = 12,
         num_heads: int = 12,
         mlp_ratio: float = 4.0,
@@ -377,9 +378,14 @@ class EEGTransformer(nn.Module):
         self.n_channels = n_channels or list(range(58))  # Default to 58 channels
         self.patch_size = patch_size
         self.embed_dim = embed_dim
+        self.embed_num = embed_num
 
         # Patch embedding
         self.patch_embed = nn.Linear(patch_size, embed_dim)
+
+        # Summary tokens (learnable parameters)
+        self.summary_token = nn.Parameter(torch.zeros(1, embed_num, embed_dim))
+        nn.init.normal_(self.summary_token, std=0.02)
 
         # Transformer blocks
         self.blocks = nn.ModuleList(
@@ -417,9 +423,19 @@ class EEGTransformer(nn.Module):
         # Patch embedding
         x = self.patch_embed(x)
 
+        # Get batch size
+        batch_size = x.shape[0]
+
+        # Concatenate summary tokens
+        summary_tokens = self.summary_token.repeat(batch_size, 1, 1)
+        x = torch.cat([x, summary_tokens], dim=1)  # Add summary tokens at the end
+
         # Apply transformer blocks
         for block in self.blocks:
             x = block(x)
+
+        # Extract only the summary tokens from the output
+        x = x[:, -self.embed_num :, :]
 
         # Final normalization
         x = self.norm(x)
@@ -478,6 +494,7 @@ def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
         "n_channels": kwargs.get("n_channels"),
         "patch_size": kwargs.get("patch_size", 64),
         "embed_dim": kwargs.get("embed_dim", 768),
+        "embed_num": kwargs.get("embed_num", 4),  # Summary tokens
         "depth": kwargs.get("depth", 12),
         "num_heads": kwargs.get("num_heads", 12),
         "mlp_ratio": kwargs.get("mlp_ratio", 4.0),
