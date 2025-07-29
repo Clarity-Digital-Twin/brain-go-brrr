@@ -59,7 +59,7 @@ class LinearProbeHead(nn.Module):
         # Linear classification
         logits = self.classifier(features)
 
-        return logits  # type: ignore[no-any-return]
+        return logits
 
     def predict_proba(self, features: torch.Tensor) -> torch.Tensor:
         """Get class probabilities.

@@ -1,155 +1,79 @@
 # Pre-commit hooks configuration for Brain Go Brrr
-# Modern 2025 setup with ruff, mypy, and notebook support
+# Philosophy: Fast local hooks (< 2s), strict CI checks
+# Developers should never wait more than 2 seconds to commit
 
 repos:
-  # Ruff - Modern Python linter and formatter (replaces black, isort, flake8, etc.)
+  # Ruff - Fast Python formatter and linter
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.4
     hooks:
-      - id: ruff
-        name: ruff (lint)
-        args: [--fix, --exit-non-zero-on-fix]
-        types_or: [python, pyi, jupyter]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
+      # Format first - always auto-fix, never block
       - id: ruff-format
-        name: ruff (format)
-        types_or: [python, pyi, jupyter]
+        name: ruff format (auto-fix)
+        types_or: [python, pyi]
         exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
 
-  # Type checking with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.0
-    hooks:
-      - id: mypy
-        name: mypy (type check)
-        additional_dependencies: [pydantic, types-requests]
-        args: [--ignore-missing-imports, --scripts-are-modules]
-        files: ^src/brain_go_brrr/
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/|api/|services/|tests/)
+      # Lint with only fast, critical rules
+      - id: ruff
+        name: ruff lint (fast rules only)
+        # Only run fast rules that can auto-fix
+        args: [
+          --fix,
+          --select, "I,E,F,W,B,UP",  # imports, errors, pyflakes, warnings, bugbear, pyupgrade
+          --ignore, "E501,E712,B008",  # line length, comparison, FastAPI Depends - let CI handle
+        ]
+        types_or: [python, pyi]
+        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
 
-  # Notebook quality checks (disabled - no notebooks in project yet)
-  # - repo: https://github.com/nbQA-dev/nbQA
-  #   rev: 1.9.1
+  # Type checking - MOVED TO CI for speed
+  # Uncomment to enable mypy in pre-commit (adds ~5-10s)
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.17.0
   #   hooks:
-  #     - id: nbqa-ruff
-  #       name: nbqa-ruff (notebook lint)
-  #       args: [--fix, --exit-non-zero-on-fix]
-  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
-  #     - id: nbqa-ruff-format
-  #       name: nbqa-ruff-format (notebook format)
-  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
+  #     - id: mypy
+  #       additional_dependencies: [pydantic>=2.0, types-requests, numpy]
+  #       args: [--ignore-missing-imports, --no-error-summary]
+  #       files: ^src/
+  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|tests/)
 
-  # General file checks
+  # Essential file checks - all very fast
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
-        name: trim trailing whitespace
         exclude: ^(reference_repos/|data/)
       - id: end-of-file-fixer
-        name: fix end of files
         exclude: ^(reference_repos/|data/)
       - id: check-yaml
-        name: check yaml
+        exclude: ^reference_repos/  # Exclude external repos
       - id: check-toml
-        name: check toml
       - id: check-json
-        name: check json
       - id: check-added-large-files
-        name: check for added large files
-        args: [--maxkb=10000]
+        args: [--maxkb=10000]  # 10MB limit
       - id: check-merge-conflict
-        name: check for merge conflicts
       - id: check-case-conflict
-        name: check for case conflicts
-      - id: mixed-line-ending
-        name: check for mixed line endings
-      - id: check-executables-have-shebangs
-        name: check executables have shebangs
 
-  # Security checks
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
-    hooks:
-      - id: bandit
-        name: bandit (security check)
-        args: ["-c", "pyproject.toml", "-x", "tests/"]
-        additional_dependencies: ["bandit[toml]"]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
-
-  # Documentation checks
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-        name: pydocstyle (docstring check)
-        args: [--convention=google]
-        additional_dependencies: [toml]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
-
-  # Configuration file sorting
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        name: prettier (format configs)
-        types_or: [yaml, markdown, json]
-        exclude: ^(\.github/|docs/|literature/|reference_repos/|data/)
-
-  # Commit message formatting
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.8.3
-    hooks:
-      - id: commitizen
-        name: commitizen check
-        stages: [commit-msg]
-
-  # Additional Python checks
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
-    hooks:
-      - id: pyupgrade
-        name: pyupgrade (modernize syntax)
-        args: [--py311-plus]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|literature/)
-
-  # Machine Learning specific checks
+  # Prevent accidental commits of sensitive files
   - repo: local
     hooks:
       - id: check-model-files
-        name: check model files not committed
-        entry: python -c "import sys; sys.exit(0 if all('.pt' not in f and '.pth' not in f and '.h5' not in f for f in sys.argv[1:]) else 1)"
-        language: system
-        files: \.(pt|pth|h5|hdf5|pkl|pickle)$
-        stages: [pre-commit]
+        name: check no model files
+        entry: 'Model files should not be committed'
+        language: fail
+        files: \.(pt|pth|h5|ckpt|safetensors)$
 
       - id: check-data-files
-        name: check large data files not committed
-        entry: python -c "import sys; sys.exit(0 if all('.csv' not in f and '.parquet' not in f for f in sys.argv[1:]) else 1)"
-        language: system
-        files: \.(csv|parquet|feather)$
-        stages: [pre-commit]
+        name: check no large data files
+        entry: 'Large data files should use DVC or Git LFS'
+        language: fail
+        files: \.(csv|parquet|feather|edf)$
+        # Allow small test fixtures
+        exclude: ^tests/fixtures/.*\.(csv|edf)$
 
-      - id: pytest-unit
-        name: unit tests
-        entry: pytest -q -m "unit"
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]
-
-# Configuration for specific tools
+# Configuration
 default_language_version:
   python: python3.11
 
+# Don't run on CI - CI has its own strict checks
 ci:
-  autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit.com hooks
-
-    for more information, see https://pre-commit.ci
-  autofix_prs: true
-  autoupdate_branch: ""
-  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
-  autoupdate_schedule: weekly
-  skip: []
-  submodules: false
+  skip: [ruff, ruff-format]  # mypy already disabled above

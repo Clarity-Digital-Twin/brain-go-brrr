@@ -94,7 +94,7 @@ class RedisCache:
 
 
 # Global cache instance
-_cache_instance = None
+_cache_instance: RedisCache | None = None
 
 
 def get_cache() -> RedisCache | None:

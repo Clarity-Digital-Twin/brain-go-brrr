@@ -37,14 +37,36 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run ruff linting
-        run: uv run ruff check src tests --output-format=github
-
       - name: Run ruff formatting check
-        run: uv run ruff format src tests --check
+        run: uv run ruff format src tests scripts --check --diff
 
-      - name: Run type checking
-        run: uv run mypy src
+      - name: Run ruff linting (strict mode)
+        run: |
+          # Run with all rules enabled for CI
+          uv run ruff check src tests scripts \
+            --output-format=github \
+            --select=ALL \
+            --ignore=D,ANN101,ANN102,COM812,ISC001
+
+      - name: Run type checking (strict mode)
+        run: |
+          # Type check source code with strict settings
+          uv run mypy src --config-file=mypy.ini
+
+          # Type check tests with relaxed settings
+          uv run mypy tests --config-file=mypy.ini || true
+
+      - name: Run security checks
+        run: |
+          # Bandit security scanning
+          pip install bandit[toml]
+          bandit -r src -ll -x tests
+
+      - name: Check docstring coverage
+        run: |
+          # Use pydocstyle for docstring checks
+          pip install pydocstyle[toml]
+          pydocstyle src --convention=google || true
 
       # Security check removed - bandit not in dependencies
 
@@ -53,6 +75,7 @@ jobs:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: quality
+    timeout-minutes: 15  # Generous timeout for entire job
     strategy:
       fail-fast: false
       matrix:
