@@ -1,6 +1,6 @@
 # PROJECT STATUS - Brain-Go-Brrr
 
-_Last Updated: July 29, 2025 - EEGPT Summary Tokens Fixed & Benchmarks Complete_
+_Last Updated: July 29, 2025 @ 7:00 PM - CI/CD Pipeline Fully Green!_
 
 ## 🎯 Current Project State
 
@@ -12,44 +12,51 @@ Major breakthrough: Fixed EEGPT summary token extraction, implemented linear pro
 
 ### ✅ Recent Achievements
 
-1. **EEGPT Summary Token Fix** 🎉
+1. **CI/CD Pipeline Fixed & Green** 🚀
+   - Fixed all GitHub Actions failures (was failing despite local checks passing)
+   - Implemented proper test separation (unit vs integration)
+   - Created nightly-integration.yml for comprehensive testing
+   - Added CI status badges to README
+   - All branches synchronized with passing tests
+
+2. **EEGPT Summary Token Fix** 🎉
    - Fixed critical bug: were averaging all features instead of using summary tokens
    - Implemented proper 4 learnable summary tokens from EEGPT architecture
    - Features now discriminate between patterns (cosine similarity ~0.3-0.5 vs 1.0)
    - All 26 new tests passing (summary tokens + linear probes)
 
-2. **Linear Probe Implementation**
+3. **Linear Probe Implementation**
    - Created LinearProbeHead base class with task-specific probes
    - Implemented SleepStageProbe, AbnormalityProbe, MotorImageryProbe
    - Added comprehensive training module for Sleep-EDF dataset
    - Wired linear probes into API endpoints
 
-3. **Performance Benchmarks Completed**
+4. **Performance Benchmarks Completed**
    - Single window: 25.9ms (✅ beats 65ms target)
    - 30-minute recording: 20.51s (❌ misses 2s target)
    - Throughput: 1.5x real-time (acceptable for MVP)
    - Documented optimization path to achieve targets
 
-4. **Test Suite Deep Clean**
+5. **Test Suite Deep Clean**
    - Removed ALL inappropriate xfail markers (was hiding real failures)
    - Deleted 5 over-engineered mock test files that weren't testing real functionality
    - Added IO-agnostic API to EEGPTModel (load_from_tensor method)
    - Test suite now truly green with no silent failures
    - All tests now test actual behavior, not mock behavior
 
-5. **Fixed Major Test Issues**
+6. **Fixed Major Test Issues**
    - Redis caching tests now using proper FastAPI dependency injection
    - All API endpoints consistently using Depends(get_cache)
    - Field name consistency across endpoints
    - All branches synchronized at commit 6fa2f3d
 
-6. **Documentation Overhaul**
+7. **Documentation Overhaul**
    - Created comprehensive production-ready README.md
    - Updated CHANGELOG.md with v0.3.0-alpha release notes
    - Completed thorough code audit assessing all aspects
    - Updated project status to reflect test suite improvements
 
-7. **Code Quality Improvements**
+8. **Code Quality Improvements**
    - Strong typing throughout codebase
    - Consistent error handling patterns
    - Well-structured modular architecture
@@ -72,11 +79,12 @@ Major breakthrough: Fixed EEGPT summary token extraction, implemented linear pro
 
 - Total Coverage: 63.47% ✅ (Good TDD practice!)
 - Critical Paths: ~70-80% covered
-- Unit Tests: Well implemented
-- Integration Tests: Comprehensive
+- Unit Tests: 361 passing (fast, <2 min)
+- Integration Tests: 107 marked (run nightly)
 - E2E Tests: Basic coverage
 - Test Quality: All tests now test real behavior (no mock-only tests)
 - Silent Failures: ZERO (all xfails removed)
+- CI/CD: Fully green on all branches!
 
 ### 🔍 Key Technical Insights
 
@@ -196,20 +204,21 @@ Major breakthrough: Fixed EEGPT summary token extraction, implemented linear pro
 development (synchronized with staging and main)
 
 # Latest commit
-3b8f676 docs: create comprehensive README and update CHANGELOG for v0.3.0-alpha
+68e9022 fix: mark model-dependent tests as integration tests
 
 # Branch status
-- All branches at same commit
-- Ready for v0.3.0-alpha tag
-- No uncommitted changes
+- All branches synchronized
+- CI/CD pipeline fully green
+- Pre-commit hooks blazing fast (<2s)
 ```
 
 ### Recent Changes
 
-- Fixed Redis caching dependency injection
-- Created production-ready documentation
-- Completed comprehensive code audit
-- Synchronized all branches
+- Fixed CI/CD pipeline (removed unsupported tools, fixed Ruff/mypy configs)
+- Implemented test separation (unit vs integration)
+- Created nightly-integration.yml workflow
+- Consolidated EEGPT mocks into tests/_mocks.py
+- Added CI status badges to README
 
 ## 📈 Production Readiness Metrics
 
