@@ -43,7 +43,7 @@ class TestAPILinearProbeIntegration:
         assert response.status_code in [405, 422]
 
     def test_sleep_staging_with_edf_upload(
-        self, client, valid_edf_content, mock_eegpt_model, mock_sleep_probe
+        self, client, tiny_edf, mock_eegpt_model, mock_sleep_probe
     ):
         """Test sleep staging with EDF file upload."""
         with (
@@ -53,9 +53,13 @@ class TestAPILinearProbeIntegration:
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
 
-            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            # tiny_edf fixture returns bytes content directly
+            files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
             response = client.post("/api/v1/eeg/sleep/stages", files=files)
 
+            if response.status_code != 200:
+                print(f"Response status: {response.status_code}")
+                print(f"Response body: {response.text}")
             assert response.status_code == 200
             data = response.json()
 
@@ -156,29 +160,7 @@ class TestAPILinearProbeIntegration:
                 assert len(data["results"]) == batch_size
 
 
-@pytest.fixture
-def valid_edf_content():
-    """Create valid EDF content for testing."""
-    # Create a minimal valid EDF header
-    # EDF header is 256 bytes + 256 bytes per signal
-    header = b"0       "  # Version (8 bytes)
-    header += b" " * 80  # Patient ID (80 bytes)
-    header += b" " * 80  # Recording ID (80 bytes)
-    header += b"01.01.85"  # Start date (8 bytes)
-    header += b"01.01.85"  # Start time (8 bytes)
-    header += b" " * 8  # Header bytes (8 bytes)
-    header += b" " * 44  # Reserved (44 bytes)
-    header += b"1       "  # Number of data records (8 bytes)
-    header += b"1       "  # Duration of data record (8 bytes)
-    header += b"1       "  # Number of signals (8 bytes)
-
-    # Signal header (256 bytes per signal)
-    signal_header = b"EEG Fp1-F7      " * 16  # Label (16 bytes * 16 = 256)
-
-    # Data (simple mock data)
-    data = b"\x00\x00" * 100  # Mock samples
-
-    return header + signal_header + data
+# Removed - using tiny_edf fixture from conftest.py instead
 
 
 if __name__ == "__main__":

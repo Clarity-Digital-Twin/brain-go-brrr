@@ -461,5 +461,5 @@ if __name__ == "__main__":
         checkpoint_dir=args.checkpoint_dir,
     )
 
-    print("Training complete!")
-    print(f"Final validation accuracy: {metrics['val_accuracy']:.4f}")
+    logging.info("Training complete!")
+    logging.info(f"Final validation accuracy: {metrics['val_accuracy']:.4f}")

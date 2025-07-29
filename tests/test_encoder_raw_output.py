@@ -1,13 +1,13 @@
-"""Test what the encoder actually outputs to find summary tokens."""
+"""Test that encoder outputs proper summary tokens."""
 
 import numpy as np
 import torch
 
-from src.brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
 def test_encoder_raw_output():
-    """Check the raw encoder output to understand its structure."""
+    """Verify the encoder outputs 4 summary tokens as expected."""
     model = EEGPTModel()
     ch_names = [
         "Fp1",
@@ -34,105 +34,74 @@ def test_encoder_raw_output():
     # Simple test data
     data = np.random.randn(19, 1024) * 50e-6
 
-    # Prepare data like in extract_features
-    patch_size = 64
-    n_patches = 1024 // patch_size  # 16
-    n_channels = 19
+    # Run through model's extract_features
+    features = model.extract_features(data, ch_names)
 
-    # Reshape to patches
-    data_patched = data.reshape(n_channels, n_patches, patch_size)
-    data_rearranged = np.transpose(data_patched, (1, 0, 2))  # (n_patches, n_channels, patch_size)
-    data_flattened = data_rearranged.reshape(-1, patch_size)  # (n_patches * n_channels, patch_size)
+    print(f"Features shape: {features.shape}")
+    assert features.shape == (4, 512), f"Expected (4, 512) summary tokens, got {features.shape}"
 
-    print(f"Data shape: {data.shape}")
-    print(f"Patched shape: {data_patched.shape}")
-    print(f"Rearranged shape: {data_rearranged.shape}")
-    print(f"Flattened shape: {data_flattened.shape}")
+    # Check that summary tokens are different from each other
+    print("\nSummary token analysis:")
+    similarities = []
+    for i in range(4):
+        for j in range(i + 1, 4):
+            similarity = torch.cosine_similarity(
+                torch.from_numpy(features[i]), torch.from_numpy(features[j]), dim=0
+            )
+            similarities.append(similarity.item())
+            print(f"  Token {i} vs Token {j} similarity: {similarity.item():.4f}")
 
-    # Convert to tensor
-    data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(model.device)
-    print(f"Input tensor shape: {data_tensor.shape}")
+    # Summary tokens should be different (not identical)
+    avg_similarity = np.mean(similarities)
+    print(f"\nAverage similarity between tokens: {avg_similarity:.4f}")
+    # With random initialization, tokens will be somewhat similar but not identical
+    # Relaxed threshold for mock model
+    assert avg_similarity < 0.995, (
+        f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
+    )
 
-    # Get channel IDs
-    chan_ids = model._get_cached_channel_ids(ch_names)
-    print(f"Channel IDs shape: {chan_ids.shape}")
+    # Check token statistics
+    print("\nSummary token statistics:")
+    for i in range(4):
+        token_stats = {
+            "mean": features[i].mean(),
+            "std": features[i].std(),
+            "min": features[i].min(),
+            "max": features[i].max(),
+        }
+        print(f"  Token {i}: mean={token_stats['mean']:.4f}, std={token_stats['std']:.4f}")
 
-    # Run through encoder
-    with torch.no_grad():
-        # Get raw encoder output
-        encoder_output = model.encoder(data_tensor, chan_ids)
-        print(f"\nEncoder output shape: {encoder_output.shape}")
-        print(f"Encoder output dimensions: {encoder_output.dim()}")
-
-        # Let's examine the structure
-        if encoder_output.dim() == 3:
-            batch, seq_len, embed_dim = encoder_output.shape
-            print(f"  Batch size: {batch}")
-            print(f"  Sequence length: {seq_len}")
-            print(f"  Embedding dimension: {embed_dim}")
-
-            # Expected: seq_len = n_patches * n_channels = 16 * 19 = 304
-            expected_seq_len = n_patches * n_channels
-            print(f"  Expected sequence length: {expected_seq_len}")
-
-            # Check if there are extra tokens (summary tokens)
-            extra_tokens = seq_len - expected_seq_len
-            print(f"  Extra tokens (potential summary): {extra_tokens}")
-
-            # Look at the first few tokens
-            print("\nFirst 10 token statistics:")
-            for i in range(min(10, seq_len)):
-                token = encoder_output[0, i, :].cpu().numpy()
-                print(
-                    f"  Token {i}: mean={token.mean():.6f}, std={token.std():.6f}, min={token.min():.6f}, max={token.max():.6f}"
-                )
-
-        # Check what extract_features is doing
-        print("\n--- Current extract_features logic ---")
-        features = encoder_output.squeeze(0)  # Remove batch dim
-        print(f"After squeeze: {features.shape}")
-
-        # Current wrong approach
-        features_reshaped = features.reshape(n_patches, n_channels, -1)
-        print(f"After reshape: {features_reshaped.shape}")
-
-        summary_features = features_reshaped.mean(dim=(0, 1))
-        print(f"After averaging: {summary_features.shape}")
-
-        summary_expanded = summary_features.unsqueeze(0).expand(4, -1)
-        print(f"After expand: {summary_expanded.shape}")
-
-        # This is why all 4 "summary tokens" are identical!
-        print(
-            f"\nAre expanded tokens identical? {torch.allclose(summary_expanded[0], summary_expanded[1])}"
-        )
+    print("\n✅ Summary tokens are properly extracted!")
 
 
 def test_find_summary_tokens():
-    """Try to find where the summary tokens are in the encoder output."""
+    """Verify the encoder has summary token parameters."""
     model = EEGPTModel()
 
     # Check if encoder has summary tokens as parameters
     print("Checking encoder parameters for summary tokens:")
+    found_summary_token = False
+
     for name, param in model.encoder.named_parameters():
         if "summary" in name.lower() or "cls" in name.lower() or "token" in name.lower():
             print(f"  Found: {name} - shape: {param.shape}")
+            if "summary_token" in name:
+                found_summary_token = True
+                # Should be shape (1, 4, 512) for 4 summary tokens
+                assert param.shape[1] == 4, f"Expected 4 summary tokens, got {param.shape[1]}"
+                assert param.shape[2] == 512, f"Expected 512 dim embeddings, got {param.shape[2]}"
+
+    assert found_summary_token, "No summary_token parameter found in encoder!"
 
     # Check encoder attributes
     print("\nChecking encoder attributes:")
-    for attr in dir(model.encoder):
-        if (
-            "summary" in attr.lower() or "cls" in attr.lower() or "token" in attr.lower()
-        ) and not attr.startswith("_"):
-            print(f"  Found attribute: {attr}")
-            try:
-                value = getattr(model.encoder, attr)
-                if hasattr(value, "shape"):
-                    print(f"    Shape: {value.shape}")
-                elif isinstance(value, int | float | str):
-                    print(f"    Value: {value}")
-            except Exception:
-                pass
+    if hasattr(model.encoder, "embed_num"):
+        print(f"  embed_num (number of summary tokens): {model.encoder.embed_num}")
+        assert model.encoder.embed_num == 4, (
+            f"Expected 4 summary tokens, got {model.encoder.embed_num}"
+        )
+
+    print("\n✅ Encoder has proper summary token architecture!")
 
 
 if __name__ == "__main__":

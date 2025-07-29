@@ -85,6 +85,7 @@ jobs:
 
       - name: Run tests
         run: uv run pytest tests -m "not slow and not integration and not external" --maxfail=5
+        timeout-minutes: 10
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -97,10 +97,11 @@ class TestRotaryEmbeddingFix:
         # When: Forward pass through model
         output = model(x)
 
-        # Then: Output should have correct shape
-        expected_shape = (batch_size, patches, 512)  # embed_dim=512
+        # Then: Output should have correct shape (summary tokens)
+        expected_shape = (batch_size, 4, 512)  # 4 summary tokens, embed_dim=512
         assert output.shape == expected_shape, f"Expected {expected_shape}, got {output.shape}"
         print(f"✅ EEG Transformer output shape: {output.shape}")
+        print("✅ Summary tokens extracted correctly")
 
     def test_patch_embedding_calculation(self):
         """Test that patch embedding calculations are correct."""
