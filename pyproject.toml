@@ -175,7 +175,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG"]
+"tests/*" = ["ARG", "D417"]  # Don't require self in docstrings for test mocks
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"  # Use Google-style docstrings
