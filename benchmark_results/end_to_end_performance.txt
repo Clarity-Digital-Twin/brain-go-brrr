@@ -1,0 +1,4 @@
+duration_minutes: 30.0
+processing_time_seconds: 20.51
+target_seconds: 2.0
+passed: false
