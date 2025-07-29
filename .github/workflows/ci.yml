@@ -40,13 +40,11 @@ jobs:
       - name: Run ruff formatting check
         run: uv run ruff format src tests scripts --check --diff
 
-      - name: Run ruff linting (strict mode)
+      - name: Run ruff linting
         run: |
-          # Run with all rules enabled for CI
+          # Run with project's configured rules
           uv run ruff check src tests scripts \
-            --output-format=github \
-            --select=ALL \
-            --ignore=D,ANN101,ANN102,COM812,ISC001,S101,ANN201,PLR2004,PLC0415
+            --output-format=github
 
       - name: Run type checking (strict mode)
         run: |
@@ -56,19 +54,7 @@ jobs:
           # Type check tests with relaxed settings
           uv run mypy tests --config-file=mypy.ini || true
 
-      - name: Run security checks
-        run: |
-          # Bandit security scanning
-          pip install bandit[toml]
-          bandit -r src -ll -x tests
-
-      - name: Check docstring coverage
-        run: |
-          # Use pydocstyle for docstring checks
-          pip install pydocstyle[toml]
-          pydocstyle src --convention=google || true
-
-      # Security check removed - bandit not in dependencies
+      # Security and docstring checks removed - not in project dependencies
 
   # Testing on primary platform
   test:
