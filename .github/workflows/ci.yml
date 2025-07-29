@@ -92,8 +92,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Run unit tests (exclude integration)
-        run: uv run pytest tests -m "not integration" --maxfail=5 -v
+      - name: Run unit tests (fast only)
+        run: uv run pytest tests -m "not integration and not slow" --maxfail=5 -v
         timeout-minutes: 10
 
       - name: Upload coverage to Codecov

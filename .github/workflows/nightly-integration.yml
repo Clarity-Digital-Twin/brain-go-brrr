@@ -6,11 +6,16 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual trigger
 
+env:
+  PYTHON_VERSION: "3.11"
+  UV_VERSION: "0.8.1"
+  EEGPT_MODEL_URL: ${{ secrets.EEGPT_MODEL_URL }}  # Optional: URL to download model
+
 jobs:
   integration-tests:
-    name: Run Integration Tests
+    name: Full Test Suite (Integration + Slow)
     runs-on: ubuntu-latest
-    timeout-minutes: 60  # Kill job if it runs too long
+    timeout-minutes: 90  # Extended timeout for full suite
 
     steps:
       - name: Checkout code
@@ -19,7 +24,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -27,27 +32,51 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils fonts-dejavu-core
+
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras
 
-      - name: Run integration tests with extended timeout
-        run: |
-          uv run pytest tests/integration \
-            -v \
-            -m integration \
-            --timeout=900 \
-            --reruns=2 \
-            --reruns-delay=5 \
-            --tb=short
-        continue-on-error: true
+      - name: Cache EEGPT model
+        id: cache-model
+        uses: actions/cache@v4
+        with:
+          path: data/models/pretrained/
+          key: eegpt-model-${{ runner.os }}-v1
+          restore-keys: |
+            eegpt-model-${{ runner.os }}-
 
-      - name: Run slow tests
+      - name: Download EEGPT model (if not cached)
+        if: steps.cache-model.outputs.cache-hit != 'true' && env.EEGPT_MODEL_URL != ''
         run: |
+          mkdir -p data/models/pretrained
+          curl -L "${{ env.EEGPT_MODEL_URL }}" -o data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+
+      - name: Run all tests (unit + integration + slow)
+        run: |
+          # Set env var to use real model if available
+          if [ -f "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then
+            export EEGPT_MODEL_PATH="data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+          fi
+
           uv run pytest tests \
+            --run-integration \
             -v \
-            -m slow \
-            --timeout=1200 \
+            --cov=src/brain_go_brrr \
+            --cov-report=xml \
+            --cov-report=html \
             --tb=short
+
+      - name: Run benchmark tests
+        run: |
+          uv run pytest tests/benchmarks \
+            -v \
+            --benchmark-only \
+            --benchmark-json=benchmark_results.json \
+            --benchmark-autosave
         continue-on-error: true
 
       - name: Upload test results
@@ -56,19 +85,71 @@ jobs:
         with:
           name: integration-test-results
           path: |
-            .pytest_cache/
             htmlcov/
+            coverage.xml
+            benchmark_results.json
             *.log
 
-      - name: Notify on failure
-        if: failure()
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          flags: integration
+          name: nightly-integration
+
+      - name: Comment benchmark results
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.create({
+            const fs = require('fs');
+
+            // Read benchmark results if they exist
+            let benchmarkComment = '';
+            if (fs.existsSync('benchmark_results.json')) {
+              const results = JSON.parse(fs.readFileSync('benchmark_results.json', 'utf8'));
+              benchmarkComment = '\n\n### Benchmark Results\n';
+
+              for (const bench of results.benchmarks) {
+                benchmarkComment += `- **${bench.name}**: ${(bench.stats.mean * 1000).toFixed(2)}ms (±${(bench.stats.stddev * 1000).toFixed(2)}ms)\n`;
+              }
+            }
+
+            // Find or create issue for nightly results
+            const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'Nightly Integration Tests Failed',
-              body: `Integration tests failed in workflow run ${context.runId}. [View logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
-              labels: ['integration-test', 'automated']
-            })
+              labels: 'nightly-results',
+              state: 'open'
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+            const title = `Nightly Test Results - ${today}`;
+            const body = `## Nightly Integration Test Results
+
+            **Run ID**: ${context.runId}
+            **Status**: ${{ job.status }}
+
+            [View full logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            ${benchmarkComment}`;
+
+            if (issues.length > 0) {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                title: title,
+                body: body
+              });
+            } else {
+              // Create new issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['nightly-results']
+              });
+            }

@@ -362,54 +362,7 @@ def mock_eegpt_model(monkeypatch):
         # If model path is set, don't mock - allow real loading
         return
 
-    # Mock the model loading
-    def mock_load_model(self, checkpoint_path=None):
-        self.model = MagicMock()
-        self.is_loaded = True
-        return True
+    # Use centralized mocks
+    from ._mocks import mock_eegpt_model_loading
 
-    def mock_extract_features(self, eeg_data, ch_names=None):
-        # Return realistic feature shape matching expected output
-        n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
-        if eeg_data.ndim == 2:
-            # Single window, return (n_summary_tokens, 512)
-            return np.random.randn(n_summary_tokens, 512).astype(np.float32)
-        else:
-            # Batch, return (batch_size, n_summary_tokens, 512)
-            batch_size = eeg_data.shape[0]
-            return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
-
-    def mock_extract_features_batch(self, batch_data):
-        # Return realistic feature shape for batch processing
-        batch_size = batch_data.shape[0]
-        n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
-        return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
-
-    def mock_process_recording(self, raw, overlap=0.5, ch_names=None):
-        # Mock processing a full recording
-        duration = raw.times[-1]
-        window_size = 4.0
-        step_size = window_size * (1 - overlap)
-        n_windows = int((duration - window_size) / step_size) + 1
-        n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
-
-        return {
-            "features": np.random.randn(n_windows, n_summary_tokens, 512).astype(np.float32),
-            "n_windows": n_windows,
-            "window_times": [
-                (i * step_size, i * step_size + window_size) for i in range(n_windows)
-            ],
-        }
-
-    monkeypatch.setattr("brain_go_brrr.models.eegpt_model.EEGPTModel.load_model", mock_load_model)
-    monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features", mock_extract_features
-    )
-    monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features_batch",
-        mock_extract_features_batch,
-    )
-    monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.process_recording",
-        mock_process_recording,
-    )
+    mock_eegpt_model_loading(monkeypatch)
