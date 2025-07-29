@@ -248,8 +248,8 @@ class RedisConnectionPool:
                 ping_time = (time.time() - start_time) * 1000
 
                 # Get server info
-                info: dict[str, Any] = client.info()
-                stats: dict[str, Any] = client.info("stats")
+                info = dict(client.info())
+                stats = dict(client.info("stats"))
 
                 # Get pool stats
                 pool_stats = {

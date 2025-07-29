@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class PDFReportGenerator:
         pdf_buffer.seek(0)
         return pdf_buffer.read()
 
-    def _create_main_page(self, results: dict[str, Any]) -> plt.Figure:
+    def _create_main_page(self, results: dict[str, Any]) -> Figure:
         """Create main report page with summary and visualizations."""
         fig = plt.figure(figsize=self.figsize)
 
@@ -134,7 +135,7 @@ class PDFReportGenerator:
 
         return fig
 
-    def _add_warning_banner(self, fig: plt.Figure, flag: str, text: str) -> None:
+    def _add_warning_banner(self, fig: Figure, flag: str, text: str) -> None:
         """Add colored warning banner based on triage flag."""
         color = get_banner_color(flag)
 
@@ -161,7 +162,7 @@ class PDFReportGenerator:
 
         ax.axis("off")
 
-    def _add_normal_banner(self, fig: plt.Figure, text: str) -> None:
+    def _add_normal_banner(self, fig: Figure, text: str) -> None:
         """Add green banner for normal EEG."""
         ax = fig.add_axes((0, 0.92, 1, 0.08))
         ax.set_xlim(0, 1)
@@ -185,7 +186,7 @@ class PDFReportGenerator:
 
         ax.axis("off")
 
-    def _add_header(self, fig: plt.Figure, processing_info: dict[str, Any]) -> None:
+    def _add_header(self, fig: Figure, processing_info: dict[str, Any]) -> None:
         """Add report header with file info."""
         ax = fig.add_axes((0.1, 0.82, 0.8, 0.08))
         ax.axis("off")
@@ -209,7 +210,7 @@ class PDFReportGenerator:
 
     def _add_summary_stats(
         self,
-        fig: plt.Figure,
+        fig: Figure,
         quality_metrics: dict[str, Any],
         processing_info: dict[str, Any],
     ) -> None:
@@ -246,7 +247,7 @@ class PDFReportGenerator:
 
     def _add_electrode_heatmap(
         self,
-        fig: plt.Figure,
+        fig: Figure,
         channel_positions: dict[str, tuple[float, float]],
         bad_channels: list[str],
     ) -> None:
@@ -302,7 +303,7 @@ class PDFReportGenerator:
         eeg_data: npt.NDArray,
         artifacts: list[dict[str, Any]],
         results: dict[str, Any],
-    ) -> plt.Figure:
+    ) -> Figure:
         """Create page showing worst artifact examples."""
         # Sort artifacts by severity
         sorted_artifacts = sorted(artifacts, key=lambda x: x["severity"], reverse=True)[:5]
@@ -334,7 +335,7 @@ class PDFReportGenerator:
 
 def create_electrode_heatmap(
     channel_positions: dict[str, tuple[float, float]], bad_channels: list[str]
-) -> plt.Figure:
+) -> Figure:
     """Create electrode heatmap figure.
 
     Args:
@@ -379,7 +380,7 @@ def create_electrode_heatmap(
 
 def create_artifact_examples(
     eeg_data: npt.NDArray, artifacts: list[dict[str, Any]], sampling_rate: int
-) -> plt.Figure | None:
+) -> Figure | None:
     """Create visualization of artifact examples.
 
     Args:
