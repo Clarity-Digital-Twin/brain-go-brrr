@@ -258,7 +258,7 @@ class PDFReportGenerator:
         positions = normalize_electrode_positions(channel_positions)
 
         # Create head circle
-        head = plt.Circle((0, 0), 1, fill=False, linewidth=2)
+        head = patches.Circle((0, 0), 1, fill=False, linewidth=2)
         ax.add_patch(head)
 
         # Add nose
@@ -351,7 +351,7 @@ def create_electrode_heatmap(
     positions = normalize_electrode_positions(channel_positions)
 
     # Create head outline
-    head = plt.Circle((0, 0), 1, fill=False, linewidth=2)
+    head = patches.Circle((0, 0), 1, fill=False, linewidth=2)
     ax.add_patch(head)
 
     # Add nose

@@ -57,7 +57,7 @@ class LinearProbeHead(nn.Module):
         features = self.dropout(features)
 
         # Linear classification
-        logits = self.classifier(features)
+        logits: torch.Tensor = self.classifier(features)
 
         return logits
 
