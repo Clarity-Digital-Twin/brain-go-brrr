@@ -9,25 +9,26 @@ TDD approach for implementing async job processing based on:
 - Queue management best practices
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.fixtures.cache_fixtures import DummyCache
+
 
 @pytest.fixture
 def mock_redis_cache():
     """Mock Redis cache for testing."""
-    mock_cache = Mock()
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = True
-    mock_cache.health_check.return_value = {
+    cache = DummyCache()
+    # Set up health check response
+    cache.health_check = lambda: {
         "status": "healthy",
         "connected": True,
         "memory_usage": "1.2MB",
     }
-    return mock_cache
+    return cache
 
 
 @pytest.fixture
@@ -41,14 +42,17 @@ def mock_background_tasks():
 @pytest.fixture
 def client(mock_redis_cache):
     """FastAPI test client with mocked dependencies."""
-    # Mock the cache before importing the API
-    with (
-        patch("brain_go_brrr.api.cache.RedisCache", return_value=mock_redis_cache),
-        patch("brain_go_brrr.api.cache.get_cache", return_value=mock_redis_cache),
-    ):
-        from brain_go_brrr.api.main import app
+    import brain_go_brrr.api.main as api_main
+    from brain_go_brrr.api.cache import get_cache
 
-        return TestClient(app)
+    # Use dependency injection instead of patching
+    api_main.app.dependency_overrides[get_cache] = lambda: mock_redis_cache
+
+    with TestClient(api_main.app) as test_client:
+        yield test_client
+
+    # Clean up
+    api_main.app.dependency_overrides.pop(get_cache, None)
 
 
 class TestJobManagement:

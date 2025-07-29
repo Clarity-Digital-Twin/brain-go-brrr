@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Import benchmark fixtures to make them available
-pytest_plugins = ["tests.fixtures.benchmark_data"]
+pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
 
 # Set deterministic random seeds for reproducible tests
 random.seed(1337)
@@ -30,6 +30,9 @@ def test_environment_setup():
     import os
 
     os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
+
+
+# DummyCache and cache fixtures are now in tests.fixtures.cache_fixtures
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -102,6 +105,9 @@ def client():
     import brain_go_brrr.api.main as api_main
 
     return TestClient(api_main.app)
+
+
+# client_with_cache fixture is now in tests.fixtures.cache_fixtures
 
 
 @pytest.fixture

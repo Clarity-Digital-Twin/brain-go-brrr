@@ -382,8 +382,8 @@ class EEGPTModel:
 
         file_path = Path(file_path)
 
-        # Load raw data
-        raw = mne.io.read_raw_edf(file_path, preload=False, verbose=False)
+        # Load raw data - preload=True needed for processing
+        raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
 
         if analysis_type == "abnormality":
             return self.predict_abnormality(raw)
