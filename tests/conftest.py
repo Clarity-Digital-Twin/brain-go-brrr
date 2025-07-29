@@ -385,7 +385,7 @@ def mock_eegpt_model(monkeypatch):
         n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
         return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
 
-    def mock_process_full_recording(self, raw, overlap=0.5, ch_names=None):
+    def mock_process_recording(self, raw, overlap=0.5, ch_names=None):
         # Mock processing a full recording
         duration = raw.times[-1]
         window_size = 4.0
@@ -408,4 +408,8 @@ def mock_eegpt_model(monkeypatch):
     monkeypatch.setattr(
         "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features_batch",
         mock_extract_features_batch,
+    )
+    monkeypatch.setattr(
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.process_recording",
+        mock_process_recording,
     )
