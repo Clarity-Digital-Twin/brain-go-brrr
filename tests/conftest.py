@@ -409,7 +409,3 @@ def mock_eegpt_model(monkeypatch):
         "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features_batch",
         mock_extract_features_batch,
     )
-    monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.process_full_recording",
-        mock_process_full_recording,
-    )
