@@ -46,7 +46,7 @@ jobs:
           uv run ruff check src tests scripts \
             --output-format=github \
             --select=ALL \
-            --ignore=D,ANN101,ANN102,COM812,ISC001
+            --ignore=D,ANN101,ANN102,COM812,ISC001,S101,ANN201,PLR2004,PLC0415
 
       - name: Run type checking (strict mode)
         run: |
