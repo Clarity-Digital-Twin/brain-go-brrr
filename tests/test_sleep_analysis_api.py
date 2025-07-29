@@ -128,10 +128,11 @@ class TestSleepAnalysisEndpoints:
         # Endpoint should exist
         assert response.status_code != 405  # Method should be allowed
 
-    def test_sleep_analysis_supports_async_processing(self, client, test_edf_file):
+    @pytest.mark.integration  # Requires multi-channel EDF file for sleep staging
+    def test_sleep_analysis_supports_async_processing(self, client, valid_edf_file):
         """Test complete async workflow: submit -> check status -> get results."""
         # 1. Submit analysis job
-        with test_edf_file.open("rb") as f:
+        with valid_edf_file.open("rb") as f:
             submit_response = client.post(
                 "/api/v1/eeg/sleep/analyze",
                 files={"edf_file": ("test.edf", f, "application/octet-stream")},

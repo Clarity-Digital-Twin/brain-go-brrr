@@ -15,6 +15,7 @@ from sklearn.metrics import balanced_accuracy_score, confusion_matrix, roc_auc_s
 from tests.unit.test_accuracy_metrics import record_accuracy_metric
 
 
+@pytest.mark.integration  # Requires TUH dataset and real model
 class TestAbnormalityAccuracy:
     """Test suite for accuracy requirements (>80% balanced accuracy)."""
 

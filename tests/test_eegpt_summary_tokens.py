@@ -251,6 +251,7 @@ class TestLinearProbeIntegration:
 
         assert probe.classifier.weight.grad is not None, "Gradients should flow"
 
+    @pytest.mark.integration  # Requires model internals
     def test_frozen_encoder_trainable_probe(self):
         """Encoder should be frozen while probe is trainable."""
         model = EEGPTModel()

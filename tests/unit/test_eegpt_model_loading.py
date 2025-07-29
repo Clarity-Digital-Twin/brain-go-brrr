@@ -12,6 +12,7 @@ import torch
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
+@pytest.mark.integration  # Tests require model file interactions
 class TestEEGPTModelLoading:
     """Test EEGPT model loading and initialization."""
 

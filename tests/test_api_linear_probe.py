@@ -74,6 +74,7 @@ class TestAPILinearProbeIntegration:
             assert "sleep_efficiency" in data["summary"]
             assert "stage_percentages" in data["summary"]
 
+    @pytest.mark.integration  # Requires larger EDF file for multiple windows
     def test_sleep_staging_window_by_window(
         self, client, tiny_edf, mock_eegpt_model, mock_sleep_probe
     ):
@@ -105,6 +106,7 @@ class TestAPILinearProbeIntegration:
             assert data["stages"] == ["W", "N1", "N2", "N3", "N2"]
             assert len(data["confidence_scores"]) == 5
 
+    @pytest.mark.integration  # Requires proper EDF processing
     def test_abnormality_detection_with_probe(self, client, tiny_edf, mock_eegpt_model):
         """Test abnormality detection uses linear probe."""
         with (

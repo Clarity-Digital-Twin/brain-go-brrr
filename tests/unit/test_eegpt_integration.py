@@ -48,6 +48,7 @@ class TestEEGPTConfig:
             _ = config.n_patches_per_window  # This triggers the validation
 
 
+@pytest.mark.integration  # All tests require real EEGPT model
 class TestEEGPTModel:
     """Test EEGPT model loading and inference."""
 

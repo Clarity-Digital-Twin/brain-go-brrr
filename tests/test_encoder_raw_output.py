@@ -1,6 +1,7 @@
 """Test that encoder outputs proper summary tokens."""
 
 import numpy as np
+import pytest
 import torch
 
 from brain_go_brrr.models.eegpt_model import EEGPTModel
@@ -74,6 +75,7 @@ def test_encoder_raw_output():
     print("\n✅ Summary tokens are properly extracted!")
 
 
+@pytest.mark.integration  # Requires model internals
 def test_find_summary_tokens():
     """Verify the encoder has summary token parameters."""
     model = EEGPTModel()

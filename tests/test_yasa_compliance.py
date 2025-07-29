@@ -65,6 +65,7 @@ class TestYASACompliance:
         # Verify resampling to 100 Hz (YASA requirement)
         assert processed.info["sfreq"] == 100
 
+    @pytest.mark.integration  # Requires multi-channel EEG data
     def test_confidence_scores_returned(self, sample_raw):
         """Test that YASA returns confidence scores."""
         analyzer = SleepAnalyzer()
@@ -96,6 +97,7 @@ class TestYASACompliance:
         # Probabilities should sum to 1
         assert np.allclose(proba.sum(axis=1), 1.0)
 
+    @pytest.mark.integration  # Requires proper sleep staging setup
     def test_metadata_support(self, sample_raw):
         """Test that demographic metadata can be passed to YASA."""
         analyzer = SleepAnalyzer()
