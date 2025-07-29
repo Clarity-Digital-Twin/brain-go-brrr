@@ -1,5 +1,6 @@
 """Shared test fixtures and configuration."""
 
+import os
 import random
 import tempfile
 from pathlib import Path
@@ -16,6 +17,34 @@ pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixture
 # Set deterministic random seeds for reproducible tests
 random.seed(1337)
 np.random.seed(1337)
+
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line("markers", "integration: needs large models or datasets")
+    config.addinivalue_line("markers", "slow: test takes > 5 seconds")
+    config.addinivalue_line("markers", "external: requires external services or data")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip integration tests unless --run-integration is passed."""
+    if config.getoption("--run-integration", default=False):
+        return
+
+    skip_integration = pytest.mark.skip(reason="integration test (run with --run-integration)")
+    for item in items:
+        if "integration" in item.keywords:
+            item.add_marker(skip_integration)
+
+
+def pytest_addoption(parser):
+    """Add custom command line options."""
+    parser.addoption(
+        "--run-integration",
+        action="store_true",
+        default=False,
+        help="run integration tests that require models/data",
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -324,3 +353,27 @@ def channel_shuffled_raw(mock_eeg_data):
     shuffled_raw = mne.io.RawArray(shuffled_data, info)
 
     return shuffled_raw
+
+
+@pytest.fixture(autouse=True)
+def mock_eegpt_model(monkeypatch):
+    """Auto-mock EEGPT model loading for all unit tests."""
+    if os.environ.get("EEGPT_MODEL_PATH"):
+        # If model path is set, don't mock - allow real loading
+        return
+
+    # Mock the model loading
+    def mock_load_model(self, checkpoint_path=None):
+        self.model = MagicMock()
+        self.is_loaded = True
+        return True
+
+    def mock_extract_features(self, eeg_data, ch_names=None):
+        # Return realistic feature shape
+        batch_size = 1 if eeg_data.ndim == 2 else eeg_data.shape[0]
+        return np.random.randn(batch_size, 4, 768).astype(np.float32)
+
+    monkeypatch.setattr("brain_go_brrr.models.eegpt_model.EEGPTModel.load_model", mock_load_model)
+    monkeypatch.setattr(
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features", mock_extract_features
+    )

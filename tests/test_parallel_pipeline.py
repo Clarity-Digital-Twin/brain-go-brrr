@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 
+@pytest.mark.integration
 class TestParallelPipeline:
     """Test that EEGPT and YASA work independently in parallel."""
 

@@ -74,7 +74,9 @@ class TestAPILinearProbeIntegration:
             assert "sleep_efficiency" in data["summary"]
             assert "stage_percentages" in data["summary"]
 
-    def test_sleep_staging_window_by_window(self, client, mock_eegpt_model, mock_sleep_probe):
+    def test_sleep_staging_window_by_window(
+        self, client, tiny_edf, mock_eegpt_model, mock_sleep_probe
+    ):
         """Test that sleep staging processes windows correctly."""
         with (
             patch("src.brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
@@ -92,7 +94,7 @@ class TestAPILinearProbeIntegration:
                 (["N2"], torch.tensor([0.82])),
             ]
 
-            files = {"edf_file": ("test.edf", b"mock_edf_data", "application/octet-stream")}
+            files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
             response = client.post("/api/v1/eeg/sleep/stages", files=files)
 
             assert response.status_code == 200
@@ -103,7 +105,7 @@ class TestAPILinearProbeIntegration:
             assert data["stages"] == ["W", "N1", "N2", "N3", "N2"]
             assert len(data["confidence_scores"]) == 5
 
-    def test_abnormality_detection_with_probe(self, client, mock_eegpt_model):
+    def test_abnormality_detection_with_probe(self, client, tiny_edf, mock_eegpt_model):
         """Test abnormality detection uses linear probe."""
         with (
             patch("src.brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
@@ -116,7 +118,7 @@ class TestAPILinearProbeIntegration:
             mock_probe.predict_abnormal_probability.return_value = torch.tensor([0.75])
             mock_get_probe.return_value = mock_probe
 
-            files = {"edf_file": ("test.edf", b"mock_edf_data", "application/octet-stream")}
+            files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
             response = client.post(
                 "/api/v1/eeg/analyze", files=files, data={"analysis_type": "abnormality_probe"}
             )

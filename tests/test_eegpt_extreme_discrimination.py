@@ -1,10 +1,12 @@
 """Test EEGPT with extreme cases to expose the averaging bug."""
 
 import numpy as np
+import pytest
 
 from src.brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
+@pytest.mark.integration
 def test_extreme_pattern_discrimination():
     """Test with extremely different patterns that should produce very different features."""
     model = EEGPTModel()
@@ -87,6 +89,7 @@ def test_extreme_pattern_discrimination():
     assert cosine_sim(feat_ones, feat_spikes) < 0.95, "Ones and spikes too similar!"
 
 
+@pytest.mark.integration
 def test_check_averaging_bug():
     """Directly test if we're averaging features."""
     model = EEGPTModel()
