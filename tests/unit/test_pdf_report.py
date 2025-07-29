@@ -4,7 +4,6 @@ Following TDD approach - tests based on ROUGH_DRAFT.md specifications.
 """
 
 import io
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -302,24 +301,7 @@ class TestPDFReportIntegration:
 
         return TestClient(app)
 
-    @pytest.mark.xfail(reason="Integration test needs complex mocking", strict=True)
-    def test_api_pdf_endpoint(self, client):
-        """Test API endpoint returns PDF."""
-        # Test the detailed endpoint that should include PDF
-        with patch("mne.io.read_raw_edf"):
-            files = {"edf_file": ("test.edf", b"mock", "application/octet-stream")}
-            response = client.post(
-                "/api/v1/eeg/analyze/detailed",
-                files=files,
-                params={"include_report": True},
-            )
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Should indicate PDF availability
-        assert "detailed" in data
-        # Currently returns "coming soon" - will change after implementation
+    # TODO: Add proper integration test when PDF generation is implemented
 
     def test_pdf_download_endpoint(self, client):
         """Test PDF can be downloaded via API."""

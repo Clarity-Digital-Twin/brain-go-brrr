@@ -371,24 +371,52 @@ class EEGPTModel:
                 },
             }
 
-    def process_recording(
-        self, file_path: str | Path, analysis_type: str = "abnormality"
-    ) -> dict[str, Any]:
-        """Process a complete EEG recording."""
-        try:
-            import mne
-        except ImportError as e:
-            raise ImportError("MNE-Python is required for EEG processing") from e
+    def analyze(self, raw: "mne.io.Raw", analysis_type: str = "abnormality") -> dict[str, Any]:
+        """Analyze an MNE Raw object.
 
-        file_path = Path(file_path)
+        Args:
+            raw: MNE Raw object with EEG data
+            analysis_type: Type of analysis to perform
 
-        # Load raw data - preload=True needed for processing
-        raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
-
+        Returns:
+            Analysis results dictionary
+        """
         if analysis_type == "abnormality":
             return self.predict_abnormality(raw)
         else:
             raise ValueError(f"Unsupported analysis type: {analysis_type}")
+
+    def process_recording(
+        self,
+        file_path: str | Path | None = None,
+        raw: "mne.io.Raw | None" = None,
+        analysis_type: str = "abnormality",
+    ) -> dict[str, Any]:
+        """Process a complete EEG recording from file or Raw object.
+
+        Args:
+            file_path: Path to EDF file (optional if raw provided)
+            raw: MNE Raw object (optional if file_path provided)
+            analysis_type: Type of analysis to perform
+
+        Returns:
+            Analysis results dictionary
+        """
+        if raw is None:
+            if file_path is None:
+                raise ValueError("Must provide either file_path or raw")
+
+            try:
+                import mne
+            except ImportError as e:
+                raise ImportError("MNE-Python is required for EEG processing") from e
+
+            file_path = Path(file_path)
+
+            # Load raw data - preload=True needed for processing
+            raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
+
+        return self.analyze(raw, analysis_type)
 
     def extract_windows(self, data: np.ndarray, sampling_rate: int) -> list[np.ndarray]:
         """Extract non-overlapping windows from continuous data.

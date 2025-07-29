@@ -286,7 +286,6 @@ class TestFullRecordingBenchmarks:
 
     @pytest.mark.benchmark
     @pytest.mark.slow
-    @pytest.mark.xfail(reason="EDF writing issues with large synthetic data", strict=False)
     def test_twenty_minute_recording_processing(
         self, benchmark, eegpt_model_cpu, realistic_twenty_min_recording
     ):
@@ -294,50 +293,15 @@ class TestFullRecordingBenchmarks:
         model = eegpt_model_cpu
         data, ch_names = realistic_twenty_min_recording
 
+        # Create MNE Raw object directly
+        import mne
+
+        info = mne.create_info(ch_names=ch_names, sfreq=256, ch_types="eeg")
+        raw = mne.io.RawArray(data, info)
+
         def process_recording():
-            # Create a temporary EDF file for the data
-            import tempfile
-            from pathlib import Path
-
-            from pyedflib import EdfWriter
-
-            with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-                n_channels = len(ch_names)
-                writer = EdfWriter(tmp.name, n_channels=n_channels)
-
-                # Set up channel headers
-                for i, ch_name in enumerate(ch_names):
-                    writer.setSignalHeader(
-                        i,
-                        {
-                            "label": ch_name,
-                            "dimension": "uV",
-                            "sample_frequency": 256,
-                            "physical_max": 250,
-                            "physical_min": -250,
-                            "digital_max": 32767,
-                            "digital_min": -32768,
-                            "prefilter": "HP:0.1Hz LP:75Hz",
-                            "transducer": "AgAgCl electrode",
-                        },
-                    )
-
-                # Write data (convert to int16)
-                for i in range(n_channels):
-                    # Scale to microvolts and convert to digital values
-                    signal_uv = data[i] * 1e6  # Convert to microvolts
-                    # Clip to physical range
-                    signal_uv = np.clip(signal_uv, -250, 250)
-                    # Scale to fit in digital range
-                    scale = (32767 - (-32768)) / (250 - (-250))
-                    digital_signal = (signal_uv * scale).astype(np.int32)
-                    writer.writeDigitalSamples(digital_signal)
-
-                writer.close()
-
-                result = model.process_recording(file_path=tmp.name, analysis_type="abnormality")
-                Path(tmp.name).unlink()
-                return result
+            # Process the Raw object directly using clean API
+            return model.process_recording(raw=raw)
 
         result = benchmark(process_recording)
 
@@ -371,7 +335,6 @@ class TestFullRecordingBenchmarks:
         )
 
     @pytest.mark.benchmark
-    @pytest.mark.xfail(reason="EDF writing issues with synthetic data", strict=False)
     def test_different_recording_lengths(self, benchmark, eegpt_model_cpu):
         """Test processing performance for different recording lengths."""
         durations_minutes = [1, 5, 10, 20]
@@ -388,7 +351,7 @@ class TestFullRecordingBenchmarks:
             raw = mne.io.RawArray(recording, info)
 
             def process_recording_memory(raw=raw):
-                return eegpt_model_cpu.predict_abnormality(raw)
+                return eegpt_model_cpu.process_recording(raw=raw)
 
             result = benchmark(process_recording_memory)
             # Robust stats extraction

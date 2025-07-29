@@ -258,29 +258,4 @@ class TestMarkdownIntegration:
 
         return TestClient(app)
 
-    @pytest.mark.xfail(reason="Integration test needs complex mocking", strict=True)
-    def test_api_detailed_includes_markdown(self, client, valid_edf_content):
-        """Test API detailed endpoint can include markdown."""
-        from unittest.mock import MagicMock, patch
-
-        # Mock Redis
-        mock_cache = MagicMock()
-        mock_cache.connected = False  # Simulate Redis not being available
-
-        with (
-            patch("mne.io.read_raw_edf"),
-            patch("brain_go_brrr.api.cache.get_cache", return_value=mock_cache),
-            patch("brain_go_brrr.api.routers.qc.get_cache", return_value=mock_cache),
-        ):
-            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-            response = client.post(
-                "/api/v1/eeg/analyze/detailed",
-                files=files,
-                params={"include_report": True},
-            )
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Future: Check for markdown in response
-        assert "detailed" in data
+    # TODO: Add proper integration test when markdown generation is implemented

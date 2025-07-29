@@ -248,8 +248,11 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
+    "--durations=20",  # Show 20 slowest tests
     # "-n=auto",  # Temporarily disabled to avoid hanging issues
 ]
+# Timeout for individual tests (in seconds)
+timeout = 120
 
 [tool.coverage.run]
 source = ["src/brain_go_brrr"]
