@@ -369,11 +369,22 @@ def mock_eegpt_model(monkeypatch):
         return True
 
     def mock_extract_features(self, eeg_data, ch_names=None):
-        # Return realistic feature shape
+        # Return realistic feature shape matching expected output
         batch_size = 1 if eeg_data.ndim == 2 else eeg_data.shape[0]
-        return np.random.randn(batch_size, 4, 768).astype(np.float32)
+        n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
+        return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
+
+    def mock_extract_features_batch(self, batch_data):
+        # Return realistic feature shape for batch processing
+        batch_size = batch_data.shape[0]
+        n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
+        return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
 
     monkeypatch.setattr("brain_go_brrr.models.eegpt_model.EEGPTModel.load_model", mock_load_model)
     monkeypatch.setattr(
         "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features", mock_extract_features
+    )
+    monkeypatch.setattr(
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.extract_features_batch",
+        mock_extract_features_batch,
     )
