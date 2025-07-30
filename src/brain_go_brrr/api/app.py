@@ -30,7 +30,7 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Manage application lifespan."""
     # Startup
     logger.info("Starting Brain-Go-Brrr API...")
