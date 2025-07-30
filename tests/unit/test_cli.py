@@ -102,4 +102,4 @@ class TestCLI:
         """Test version command shows actual version."""
         result = self.runner.invoke(app, ["version"])
         assert result.exit_code == 0
-        assert "0.1.0" in result.stdout  # Should show version from pyproject.toml
+        assert "0.4.0" in result.stdout  # Should show version from pyproject.toml

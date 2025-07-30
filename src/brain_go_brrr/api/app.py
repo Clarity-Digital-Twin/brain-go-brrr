@@ -1,6 +1,8 @@
 """Application factory for Brain-Go-Brrr API."""
 
 import json
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 import numpy as np
@@ -27,15 +29,30 @@ class NumpyEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Manage application lifespan."""
+    # Startup
+    logger.info("Starting Brain-Go-Brrr API...")
+    # TODO: Initialize services (Redis, model loading, etc.)
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Brain-Go-Brrr API...")
+    # TODO: Cleanup (close connections, etc.)
+
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     # Create FastAPI app with custom JSON encoder
     app = FastAPI(
         title="Brain-Go-Brrr EEG Analysis API",
         description="Production-ready API for EEG analysis using EEGPT and YASA",
-        version="0.1.0",
+        version="0.4.0",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
+        lifespan=lifespan,
         json_encoders={
             np.integer: int,
             np.floating: float,
@@ -79,16 +96,6 @@ def create_app() -> FastAPI:
     app.include_router(cache.router, prefix="/api/v1")
     app.include_router(eegpt.router, prefix="/api/v1")
 
-    # Startup event
-    @app.on_event("startup")
-    async def startup_event() -> None:
-        logger.info("Starting Brain-Go-Brrr API...")
-        # TODO: Initialize services (Redis, model loading, etc.)
-
-    # Shutdown event
-    @app.on_event("shutdown")
-    async def shutdown_event() -> None:
-        logger.info("Shutting down Brain-Go-Brrr API...")
-        # TODO: Cleanup (close connections, etc.)
+    # Note: Startup/shutdown logic moved to lifespan context manager above
 
     return app
