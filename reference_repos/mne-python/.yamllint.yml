@@ -1,8 +1,0 @@
-extends: default
-
-ignore: |
-  .github/workflows/codeql-analysis.yml
-
-rules:
-  line-length: disable
-  document-start: disable
