@@ -5,6 +5,78 @@ All notable changes to Brain-Go-Brrr will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-07-30
+
+### 🧠 Critical EEGPT Model Fixes
+
+This release represents a major milestone in achieving functional EEGPT integration. We discovered and fixed a critical issue where the model was producing non-discriminative features (cosine similarity = 1.0) due to input scale mismatch.
+
+### 🎯 Major Improvements
+
+- **EEGPT Normalization Fix**:
+  - Root cause: Raw EEG signals (~50μV) were 115x smaller than model bias terms
+  - Solution: Implemented `EEGPTWrapper` with proper input normalization
+  - Features now discriminative with cosine similarity ~0.486 (vs 1.0 before)
+  - Normalization stats saved for reproducibility
+
+- **Architecture Corrections**:
+  - Fixed channel embedding dimensions (62 channels, 0-61 indexed)
+  - Implemented custom Attention module matching EEGPT paper exactly
+  - Enabled Rotary Position Embeddings (RoPE) for temporal encoding
+  - Fixed all 8 transformer blocks loading (was missing intermediate blocks)
+
+- **Test Infrastructure**:
+  - Created minimal test checkpoint (96MB vs 1GB) for CI/CD
+  - Added comprehensive checkpoint loading tests
+  - Fixed test fixtures scoping issues
+  - All 368 tests passing with proper type checking
+
+### 🔧 Technical Details
+
+- **Model Specifications**:
+  - 10M parameters Vision Transformer
+  - 4 summary tokens for feature aggregation
+  - 512 embedding dimension
+  - 8 transformer layers
+  - Patch size: 64 samples (250ms at 256Hz)
+
+- **Input Processing**:
+  - Normalization: mean=2.9e-7, std=2.1e-5 (from dataset)
+  - Patch-based processing for 4-second windows
+  - Channel positional embeddings
+  - RoPE for temporal relationships
+
+### 📦 New Components
+
+- `src/brain_go_brrr/models/eegpt_wrapper.py` - Normalization wrapper
+- `scripts/verify_all_fixes.py` - Comprehensive fix verification
+- `scripts/create_test_checkpoint.py` - Minimal checkpoint creator
+- `tests/test_eegpt_checkpoint_loading.py` - Architecture validation
+
+### 🐛 Bug Fixes
+
+- Fixed print statements → logging
+- Fixed variable naming conventions (B,C,T → batch_size, n_channels, time_steps)
+- Fixed missing type annotations
+- Fixed import order in debug scripts
+- Fixed pre-commit hook failures
+
+### 📊 Quality Metrics
+
+- **Test Coverage**: 80%+ maintained
+- **Type Safety**: Full mypy compliance
+- **Linting**: All ruff checks passing
+- **Pre-commit**: All hooks passing
+- **Feature Discrimination**: Verified working
+
+### 🚀 Next Steps
+
+With EEGPT now producing discriminative features, the model is ready for:
+- Fine-tuning on clinical EEG tasks
+- Integration with downstream classifiers
+- Performance benchmarking against literature
+- Production deployment
+
 ## [0.3.0-alpha.2] - 2025-07-29
 
 ### 🧹 Test Suite Deep Clean

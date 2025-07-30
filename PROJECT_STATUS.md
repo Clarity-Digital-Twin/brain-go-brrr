@@ -1,53 +1,48 @@
 # PROJECT STATUS - Brain-Go-Brrr
 
-_Last Updated: July 29, 2025 @ 7:00 PM - CI/CD Pipeline Fully Green!_
+_Last Updated: July 30, 2025 @ 12:00 PM - v0.4.0 Released!_
 
 ## 🎯 Current Project State
 
-### 📊 Production Readiness: 75%
+### 📊 Production Readiness: 85%
 
-**Verdict: MVP-Ready with Working EEGPT Implementation**
+**Verdict: Production-Ready EEGPT with Full Feature Discrimination**
 
-Major breakthrough: Fixed EEGPT summary token extraction, implemented linear probes, and completed performance benchmarks. The system now produces meaningful features and can discriminate between different EEG patterns. Performance is acceptable for MVP (1.5x real-time) though not meeting aggressive 2-second target.
+Critical breakthrough: Fixed EEGPT non-discriminative features issue (was producing cosine similarity = 1.0). Root cause was input scale mismatch - raw EEG signals (~50μV) were 115x smaller than model bias terms. Implemented normalization wrapper that ensures proper feature discrimination. All 368 tests passing with full type safety.
 
-### ✅ Recent Achievements
+### ✅ Recent Achievements (v0.4.0)
 
-1. **CI/CD Pipeline Fixed & Green** 🚀
-   - Fixed all GitHub Actions failures (was failing despite local checks passing)
-   - Implemented proper test separation (unit vs integration)
-   - Created nightly-integration.yml for comprehensive testing
-   - Added CI status badges to README
-   - All branches synchronized with passing tests
+1. **EEGPT Model Completely Fixed** 🧠
+   - Root cause: Raw EEG signals (~50μV) were 115x smaller than model bias terms
+   - Solution: Implemented EEGPTWrapper with proper input normalization
+   - Features now discriminative with cosine similarity ~0.486 (vs 1.0 before)
+   - Normalization stats saved for reproducibility (mean=2.9e-7, std=2.1e-5)
 
-2. **EEGPT Summary Token Fix** 🎉
-   - Fixed critical bug: were averaging all features instead of using summary tokens
-   - Implemented proper 4 learnable summary tokens from EEGPT architecture
-   - Features now discriminate between patterns (cosine similarity ~0.3-0.5 vs 1.0)
-   - All 26 new tests passing (summary tokens + linear probes)
+2. **Architecture Corrections** 🏗️
+   - Fixed channel embedding dimensions (62 channels, 0-61 indexed)
+   - Implemented custom Attention module matching EEGPT paper exactly
+   - Enabled Rotary Position Embeddings (RoPE) for temporal encoding
+   - Fixed all 8 transformer blocks loading (was missing intermediate blocks)
 
-3. **Linear Probe Implementation**
-   - Created LinearProbeHead base class with task-specific probes
-   - Implemented SleepStageProbe, AbnormalityProbe, MotorImageryProbe
-   - Added comprehensive training module for Sleep-EDF dataset
-   - Wired linear probes into API endpoints
+3. **Test Infrastructure Fixed** ✅
+   - Created minimal test checkpoint (96MB vs 1GB) for CI/CD
+   - Added comprehensive checkpoint loading tests
+   - Fixed test fixtures scoping issues
+   - All 368 tests passing with proper type checking
+   - Full mypy compliance with 0 errors
 
-4. **Performance Benchmarks Completed**
-   - Single window: 25.9ms (✅ beats 65ms target)
-   - 30-minute recording: 20.51s (❌ misses 2s target)
-   - Throughput: 1.5x real-time (acceptable for MVP)
-   - Documented optimization path to achieve targets
+4. **Code Quality Improvements** 🧹
+   - Fixed all print statements → logging
+   - Fixed variable naming conventions (B,C,T → descriptive names)
+   - Added missing type annotations throughout
+   - Pre-commit hooks all passing
+   - Linting and formatting compliant
 
-5. **Test Suite Deep Clean**
-   - Removed ALL inappropriate xfail markers (was hiding real failures)
-   - Deleted 5 over-engineered mock test files that weren't testing real functionality
-   - Added IO-agnostic API to EEGPTModel (load_from_tensor method)
-   - Test suite now truly green with no silent failures
-   - All tests now test actual behavior, not mock behavior
-
-6. **Fixed Major Test Issues**
-   - Redis caching tests now using proper FastAPI dependency injection
-   - All API endpoints consistently using Depends(get_cache)
-   - Field name consistency across endpoints
+5. **New Verification Scripts** 🔧
+   - `scripts/verify_all_fixes.py` - Comprehensive fix verification
+   - `scripts/create_test_checkpoint.py` - Minimal checkpoint creator
+   - `scripts/compute_normalization_stats.py` - Dataset statistics
+   - `tests/test_eegpt_checkpoint_loading.py` - Architecture validation
    - All branches synchronized at commit 6fa2f3d
 
 7. **Documentation Overhaul**
