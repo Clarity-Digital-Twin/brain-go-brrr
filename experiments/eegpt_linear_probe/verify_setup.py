@@ -30,7 +30,7 @@ data_root = os.getenv("BGB_DATA_ROOT", "data")
 print(f"\n📁 Data root: {data_root}")
 
 # Check for EEGPT checkpoint
-eegpt_path = Path(data_root) / "models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+eegpt_path = Path(data_root) / "models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
 if eegpt_path.exists():
     print(f"✓ EEGPT checkpoint found: {eegpt_path}")
     print(f"  Size: {eegpt_path.stat().st_size / 1e6:.1f} MB")
@@ -41,21 +41,21 @@ else:
     )
 
 # Check for TUAB dataset
-tuab_path = Path(data_root) / "datasets/external/tuh_eeg_abnormal/v3.0.0"
+tuab_path = Path(data_root) / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
 if tuab_path.exists():
     print(f"\n✓ TUAB dataset directory found: {tuab_path}")
 
     # Check splits
-    for split in ["train", "val", "test"]:
+    for split in ["train", "eval"]:
         split_path = tuab_path / split
         if split_path.exists():
             normal = (
-                len(list((split_path / "normal").glob("*.edf")))
+                len(list((split_path / "normal").glob("**/*.edf")))
                 if (split_path / "normal").exists()
                 else 0
             )
             abnormal = (
-                len(list((split_path / "abnormal").glob("*.edf")))
+                len(list((split_path / "abnormal").glob("**/*.edf")))
                 if (split_path / "abnormal").exists()
                 else 0
             )
@@ -65,12 +65,13 @@ if tuab_path.exists():
 else:
     print(f"\n✗ TUAB dataset not found at: {tuab_path}")
     print("  Expected structure:")
-    print("  datasets/external/tuh_eeg_abnormal/v3.0.0/")
+    print("  datasets/external/tuh_eeg_abnormal/v3.0.1/edf/")
     print("    ├── train/")
     print("    │   ├── normal/*.edf")
     print("    │   └── abnormal/*.edf")
-    print("    ├── val/")
-    print("    └── test/")
+    print("    └── eval/")
+    print("        ├── normal/*.edf")
+    print("        └── abnormal/*.edf")
 
 # Check GPU
 if torch.cuda.is_available():

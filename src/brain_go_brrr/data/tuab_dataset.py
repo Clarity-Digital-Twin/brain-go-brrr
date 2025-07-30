@@ -79,8 +79,8 @@ class TUABDataset(Dataset):
         """Initialize TUAB dataset.
 
         Args:
-            root_dir: Root directory containing train/val/test splits
-            split: Which split to use ('train', 'val', 'test')
+            root_dir: Root directory containing train/eval splits
+            split: Which split to use ('train', 'eval', 'val', 'test')
             sampling_rate: Target sampling rate in Hz
             window_duration: Window duration in seconds
             window_stride: Stride between windows in seconds
@@ -132,8 +132,8 @@ class TUABDataset(Dataset):
 
             label = self.LABEL_MAP[class_name]
 
-            # Find all EDF files
-            edf_files = list(class_dir.glob("*.edf"))
+            # Find all EDF files (including subdirectories)
+            edf_files = list(class_dir.glob("**/*.edf"))
             logger.info(f"Found {len(edf_files)} {class_name} files")
 
             for edf_file in edf_files:

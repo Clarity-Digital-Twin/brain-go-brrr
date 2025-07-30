@@ -1,7 +1,7 @@
 # TUAB Abnormality Detection Linear Probe Configuration
 
 model:
-  checkpoint_path: "models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"  # relative to BGB_DATA_ROOT
+  checkpoint_path: "models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"  # relative to BGB_DATA_ROOT
   n_input_channels: 23  # TUAB uses 23 channels
   n_classes: 2  # normal/abnormal
   embed_dim: 512
@@ -10,17 +10,17 @@ model:
   freeze_backbone: true
 
 data:
-  root_dir: "datasets/external/tuh_eeg_abnormal/v3.0.0"  # relative to BGB_DATA_ROOT
+  root_dir: "datasets/external/tuh_eeg_abnormal/v3.0.1/edf"  # relative to BGB_DATA_ROOT
   sampling_rate: 256  # Hz
   window_duration: 30.0  # seconds
   window_stride: 30.0  # no overlap
   normalize: true
 
 training:
-  batch_size: 64
-  num_workers: 4
+  batch_size: 32  # Reduced for MPS/CPU compatibility
+  num_workers: 0  # Set to 0 for MPS/debugging
   epochs: 10
-  learning_rate: 5e-4
+  learning_rate: 0.0005  # 5e-4
   weight_decay: 0.01
   # OneCycleLR settings
   pct_start: 0.2
@@ -38,7 +38,7 @@ training:
 experiment:
   name: "tuab_linear_probe"
   seed: 42
-  precision: 16  # Mixed precision
+  precision: 32  # Full precision for MPS compatibility
   accelerator: "auto"  # Will use GPU if available
 
 # Output paths

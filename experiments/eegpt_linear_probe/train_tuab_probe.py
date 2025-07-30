@@ -231,7 +231,7 @@ def train_tuab_probe(cfg: DictConfig) -> None:
 
     val_dataset = TUABDataset(
         root_dir=dataset_root,
-        split="val",
+        split="eval",
         sampling_rate=cfg.data.sampling_rate,
         window_duration=cfg.data.window_duration,
         window_stride=cfg.data.window_stride,
