@@ -1,0 +1,48 @@
+# TUAB Abnormality Detection Linear Probe Configuration
+
+model:
+  checkpoint_path: "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  n_input_channels: 23  # TUAB uses 23 channels
+  n_classes: 2  # normal/abnormal
+  embed_dim: 512
+  n_summary_tokens: 4
+  max_norm: 0.25
+  freeze_backbone: true
+
+data:
+  root_dir: "data/datasets/external/tuh_eeg_abnormal/v3.0.0"
+  sampling_rate: 256  # Hz
+  window_duration: 30.0  # seconds
+  window_stride: 30.0  # no overlap
+  normalize: true
+
+training:
+  batch_size: 64
+  num_workers: 4
+  epochs: 10
+  learning_rate: 5e-4
+  weight_decay: 0.01
+  # OneCycleLR settings
+  pct_start: 0.2
+  div_factor: 25  # initial_lr = max_lr / div_factor
+  final_div_factor: 10000  # min_lr = initial_lr / final_div_factor
+
+  # Early stopping
+  patience: 5
+  monitor: "val_auroc"
+  mode: "max"
+
+  # Checkpointing
+  save_top_k: 3
+
+experiment:
+  name: "tuab_linear_probe"
+  seed: 42
+  precision: 16  # Mixed precision
+  accelerator: "auto"  # Will use GPU if available
+
+# Output paths
+output:
+  checkpoint_dir: "experiments/eegpt_linear_probe/checkpoints"
+  log_dir: "experiments/eegpt_linear_probe/logs"
+  probe_save_path: "experiments/eegpt_linear_probe/checkpoints/tuab_probe_best.pth"
