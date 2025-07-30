@@ -124,7 +124,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = output_dir / "eegpt_normalization_stats.json"
-    with open(output_file, "w") as f:
+    with output_file.open("w") as f:
         json.dump(stats, f, indent=2)
 
     print(f"\nSaved to: {output_file}")
@@ -138,7 +138,7 @@ def main():
     }
 
     simple_file = output_dir / "normalization.json"
-    with open(simple_file, "w") as f:
+    with simple_file.open("w") as f:
         json.dump(simple_stats, f, indent=2)
 
     print(f"Saved simplified to: {simple_file}")

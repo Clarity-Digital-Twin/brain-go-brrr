@@ -86,7 +86,7 @@ def create_minimal_checkpoint():
     import json
 
     norm_path = output_dir / "normalization.json"
-    with open(norm_path, "w") as f:
+    with norm_path.open("w") as f:
         json.dump(norm_stats, f, indent=2)
 
     print(f"Created normalization stats: {norm_path}")

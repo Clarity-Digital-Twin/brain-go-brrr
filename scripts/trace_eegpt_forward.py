@@ -32,7 +32,7 @@ def trace_forward():
         # Step 1: Patch embedding
         x1 = model.patch_embed(input1)
         x2 = model.patch_embed(input2)
-        B, N, C, D = x1.shape
+        batch_size, n_patches, n_channels, embed_dim = x1.shape
         print(f"\n1. After patch embed: shape {x1.shape}")
         sim = torch.nn.functional.cosine_similarity(
             x1.flatten().unsqueeze(0), x2.flatten().unsqueeze(0)
@@ -40,7 +40,7 @@ def trace_forward():
         print(f"   Similarity: {sim:.6f}")
 
         # Step 2: Channel IDs and embedding
-        chan_ids = torch.arange(0, C, dtype=torch.long)
+        chan_ids = torch.arange(0, n_channels, dtype=torch.long)
         chan_embed = model.chan_embed(chan_ids).unsqueeze(0).unsqueeze(0)
         print(f"\n2. Channel embed shape: {chan_embed.shape}")
 
@@ -54,12 +54,12 @@ def trace_forward():
         print(f"   Similarity: {sim:.6f}")
 
         # Step 4: Reshape for transformer
-        x1 = x1.reshape(B, N * C, D)
-        x2 = x2.reshape(B, N * C, D)
+        x1 = x1.reshape(batch_size, n_patches * n_channels, embed_dim)
+        x2 = x2.reshape(batch_size, n_patches * n_channels, embed_dim)
         print(f"\n4. After reshape: shape {x1.shape}")
 
         # Step 5: Add summary tokens
-        summary_tokens = model.summary_token.repeat(B, 1, 1)
+        summary_tokens = model.summary_token.repeat(batch_size, 1, 1)
         x1 = torch.cat([x1, summary_tokens], dim=1)
         x2 = torch.cat([x2, summary_tokens], dim=1)
         print(f"\n5. After adding summary tokens: shape {x1.shape}")

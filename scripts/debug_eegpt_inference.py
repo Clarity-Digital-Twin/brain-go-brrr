@@ -40,7 +40,7 @@ def debug_inference():
     activations = {}
 
     def get_activation(name):
-        def hook(model, input, output):
+        def hook(model, input, output):  # noqa: ARG001
             activations[name] = output.detach()
 
         return hook
