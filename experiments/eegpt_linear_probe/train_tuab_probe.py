@@ -4,6 +4,7 @@ Target: AUROC ≥ 0.93 for abnormality detection
 """
 
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, RichProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 from sklearn.metrics import auc, precision_recall_curve, roc_auc_score
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 # Add project root to path
 project_root = Path(__file__).resolve().parents[2]
@@ -193,6 +194,17 @@ def train_tuab_probe(cfg: DictConfig) -> None:
     # Set seed
     pl.seed_everything(cfg.experiment.seed)
 
+    # Handle data root from environment variable
+    data_root = os.getenv("BGB_DATA_ROOT", "data")
+    logger.info(f"Using data root: {data_root}")
+
+    # Update paths with data root
+    model_checkpoint = Path(data_root) / cfg.model.checkpoint_path
+    dataset_root = Path(data_root) / cfg.data.root_dir
+
+    logger.info(f"Model checkpoint: {model_checkpoint}")
+    logger.info(f"Dataset root: {dataset_root}")
+
     # Create output directories
     checkpoint_dir = Path(cfg.output.checkpoint_dir)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -203,13 +215,13 @@ def train_tuab_probe(cfg: DictConfig) -> None:
     # Initialize model
     logger.info("Initializing model...")
     model = AbnormalityDetectionProbe(
-        checkpoint_path=Path(cfg.model.checkpoint_path), n_input_channels=cfg.model.n_input_channels
+        checkpoint_path=model_checkpoint, n_input_channels=cfg.model.n_input_channels
     )
 
     # Create datasets
     logger.info("Loading datasets...")
     train_dataset = TUABDataset(
-        root_dir=Path(cfg.data.root_dir),
+        root_dir=dataset_root,
         split="train",
         sampling_rate=cfg.data.sampling_rate,
         window_duration=cfg.data.window_duration,
@@ -218,7 +230,7 @@ def train_tuab_probe(cfg: DictConfig) -> None:
     )
 
     val_dataset = TUABDataset(
-        root_dir=Path(cfg.data.root_dir),
+        root_dir=dataset_root,
         split="val",
         sampling_rate=cfg.data.sampling_rate,
         window_duration=cfg.data.window_duration,
@@ -230,11 +242,21 @@ def train_tuab_probe(cfg: DictConfig) -> None:
     class_weights = train_dataset.get_class_weights()
     logger.info(f"Class weights: {class_weights}")
 
+    # Create weighted sampler for balanced training
+    sample_weights = []
+    for sample in train_dataset.samples:
+        label = sample["label"]
+        sample_weights.append(class_weights[label].item())
+
+    sampler = WeightedRandomSampler(
+        weights=sample_weights, num_samples=len(sample_weights), replacement=True
+    )
+
     # Create data loaders
     train_loader = DataLoader(
         train_dataset,
         batch_size=cfg.training.batch_size,
-        shuffle=True,
+        sampler=sampler,  # Use weighted sampler instead of shuffle
         num_workers=cfg.training.num_workers,
         pin_memory=True,
     )
@@ -311,7 +333,7 @@ def train_tuab_probe(cfg: DictConfig) -> None:
     # Test on test set if available
     try:
         test_dataset = TUABDataset(
-            root_dir=Path(cfg.data.root_dir),
+            root_dir=dataset_root,
             split="test",
             sampling_rate=cfg.data.sampling_rate,
             window_duration=cfg.data.window_duration,

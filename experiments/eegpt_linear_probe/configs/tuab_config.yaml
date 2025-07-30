@@ -1,7 +1,7 @@
 # TUAB Abnormality Detection Linear Probe Configuration
 
 model:
-  checkpoint_path: "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  checkpoint_path: "models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"  # relative to BGB_DATA_ROOT
   n_input_channels: 23  # TUAB uses 23 channels
   n_classes: 2  # normal/abnormal
   embed_dim: 512
@@ -10,7 +10,7 @@ model:
   freeze_backbone: true
 
 data:
-  root_dir: "data/datasets/external/tuh_eeg_abnormal/v3.0.0"
+  root_dir: "datasets/external/tuh_eeg_abnormal/v3.0.0"  # relative to BGB_DATA_ROOT
   sampling_rate: 256  # Hz
   window_duration: 30.0  # seconds
   window_stride: 30.0  # no overlap
