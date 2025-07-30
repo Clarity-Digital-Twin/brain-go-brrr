@@ -25,7 +25,7 @@ import torch.nn as nn
 from scipy import signal
 
 from ..core.config import ModelConfig
-from .eegpt_architecture import EEGTransformer, create_eegpt_model
+from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ class EEGPTModel:
         else:
             self.device = torch.device(self.config.device)
 
-        self.encoder: EEGTransformer | None = None
+        self.encoder: EEGPTWrapper | None = None
         self.abnormality_head: nn.Module | None = None
         self.is_loaded = False
 
@@ -125,7 +125,7 @@ class EEGPTModel:
             if self.encoder is None:
                 raise RuntimeError("Encoder not loaded")
             # Create and cache the channel IDs
-            chan_ids = self.encoder.prepare_chan_ids(channel_names)
+            chan_ids = self.encoder.model.prepare_chan_ids(channel_names)
             self._ch_idx_cache[key] = chan_ids.to(self.device)
         return self._ch_idx_cache[key]
 
@@ -154,8 +154,13 @@ class EEGPTModel:
         if not self.config.model_path.exists():
             raise FileNotFoundError(f"Model checkpoint not found: {self.config.model_path}")
 
-        # Load model architecture with real checkpoint
-        self.encoder = create_eegpt_model(str(self.config.model_path))
+        # Load model architecture with normalization wrapper
+        self.encoder = create_normalized_eegpt(
+            str(self.config.model_path),
+            normalize=True,
+            mean=0.0,
+            std=1.0,  # Will be estimated from data
+        )
 
         if self.encoder is None:
             raise RuntimeError("Failed to load EEGPT encoder")
@@ -187,26 +192,31 @@ class EEGPTModel:
         # Data should be shape (channels, time_samples)
         n_channels, n_samples = data.shape
 
-        # Reshape data into patches
-        # EEGPT expects patches of size 64 samples (250ms at 256Hz)
-        patch_size = self.config.patch_size
-        n_patches = n_samples // patch_size
+        # EEGPT expects input shape (B, C, T) where B=batch, C=channels, T=time
+        # The model will handle patching internally
 
-        if n_samples % patch_size != 0:
-            # Truncate to fit exact patches
-            data = data[:, : n_patches * patch_size]
+        # Ensure we have exactly the right number of samples (4 seconds at 256 Hz = 1024 samples)
+        expected_samples = self.config.window_samples
+        if n_samples != expected_samples:
+            # Truncate or pad as needed
+            if n_samples > expected_samples:
+                data = data[:, :expected_samples]
+            else:
+                # Pad with zeros
+                padding = expected_samples - n_samples
+                data = np.pad(data, ((0, 0), (0, padding)), mode="constant")
 
-        # Reshape to (n_channels, n_patches, patch_size)
-        data_patched = data.reshape(n_channels, n_patches, patch_size)
+        # Convert to tensor with shape (1, n_channels, time_samples)
+        data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
 
-        # Rearrange to (n_patches, n_channels, patch_size) for the model
-        data_rearranged = np.transpose(data_patched, (1, 0, 2))
-
-        # Flatten patches: (n_patches * n_channels, patch_size)
-        data_flattened = data_rearranged.reshape(-1, patch_size)
-
-        # Convert to tensor and add batch dimension
-        data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(self.device)
+        # Estimate normalization parameters from this data if not already done
+        if (
+            self.encoder is not None
+            and hasattr(self.encoder, "input_std")
+            and self.encoder.input_std.item() == 1.0
+        ):
+            # Default value, need to estimate
+            self.encoder.estimate_normalization_params(data_tensor)
 
         # Prepare channel IDs with caching for performance
         chan_ids = self._get_cached_channel_ids(channel_names)

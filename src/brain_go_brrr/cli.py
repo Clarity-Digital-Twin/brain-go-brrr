@@ -128,10 +128,11 @@ def stream(
     model = EEGPTModel(config=model_config, auto_load=False)
 
     # Use mock model for now
-    from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
-    model.encoder = create_eegpt_model(checkpoint_path=None)
-    model.encoder.to(model.device)
+    model.encoder = create_normalized_eegpt(checkpoint_path=None)
+    if model.encoder is not None:
+        model.encoder.to(model.device)
     model.is_loaded = True
 
     # Stream and process

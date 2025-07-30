@@ -111,7 +111,7 @@ class TestEEGPTWindowExtraction:
     @pytest.fixture
     def eegpt_model(self):
         """Create EEGPTModel instance with mocked components."""
-        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
+        with patch("brain_go_brrr.models.eegpt_wrapper.create_normalized_eegpt") as mock_create:
             # Mock the encoder
             mock_encoder = Mock()
             mock_encoder.prepare_chan_ids = Mock(return_value=torch.zeros(19))
@@ -184,7 +184,7 @@ class TestEEGPTFeatureExtraction:
     @pytest.fixture
     def mock_eegpt_model(self):
         """Create fully mocked EEGPT model."""
-        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model"):
+        with patch("brain_go_brrr.models.eegpt_architecture.create_eegpt_model"):
             model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock encoder to return features
@@ -333,7 +333,7 @@ class TestEEGPTPipeline:
 
         return fif_path
 
-    @patch("src.brain_go_brrr.models.eegpt_model.EEGPTModel")
+    @patch("brain_go_brrr.models.eegpt_model.EEGPTModel")
     def test_extract_features_from_raw(self, mock_model_class, sample_eeg_file):
         """Test the high-level feature extraction function."""
         # Setup mock model that returns a dict instead of Mock
@@ -370,7 +370,7 @@ class TestEEGPTPipeline:
 
     def test_abnormality_prediction_pipeline(self):
         """Test abnormality prediction with mocked model."""
-        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model"):
+        with patch("brain_go_brrr.models.eegpt_architecture.create_eegpt_model"):
             model = EEGPTModel(checkpoint_path=None, auto_load=False)
 
             # Mock the encoder and classifier
@@ -435,7 +435,7 @@ class TestEEGPTPipeline:
 
     def test_pipeline_error_handling(self):
         """Test pipeline handles errors gracefully."""
-        with patch("src.brain_go_brrr.models.eegpt_model.create_eegpt_model") as mock_create:
+        with patch("brain_go_brrr.models.eegpt_wrapper.create_normalized_eegpt") as mock_create:
             # Make encoder loading fail
             mock_create.side_effect = FileNotFoundError("Model not found")
 

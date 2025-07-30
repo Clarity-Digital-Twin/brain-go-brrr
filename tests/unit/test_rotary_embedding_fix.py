@@ -87,12 +87,12 @@ class TestRotaryEmbeddingFix:
             num_heads=8,
         )
 
-        # Given: Sample EEG data (batch=1, patches=308, features=64)
-        # This represents 19 channels x 16 patches per channel + 4 summary tokens = 308 total
+        # Given: Sample EEG data (batch=1, channels=19, time=1024)
+        # 1024 samples at 256Hz = 4 seconds, divisible by patch_size=64
         batch_size = 1
-        patches = 308  # 19 * 16 + 4 summary tokens
-        patch_size = 64
-        x = torch.randn(batch_size, patches, patch_size)
+        n_channels = 19
+        time_samples = 1024  # 16 patches of 64 samples each
+        x = torch.randn(batch_size, n_channels, time_samples)
 
         # When: Forward pass through model
         output = model(x)

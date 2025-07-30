@@ -289,12 +289,13 @@ class Block(nn.Module):
         """Initialize transformer block."""
         super().__init__()
         self.norm1 = norm_layer(dim)
-        self.attn = nn.MultiheadAttention(
-            embed_dim=dim,
+        self.attn = Attention(
+            dim=dim,
             num_heads=num_heads,
-            dropout=attn_drop,
-            bias=qkv_bias,
-            batch_first=True,
+            qkv_bias=qkv_bias,
+            attn_drop=attn_drop,
+            proj_drop=drop,
+            use_rope=True,  # EEGPT uses RoPE for temporal encoding
         )
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -309,7 +310,7 @@ class Block(nn.Module):
         """Forward pass through Transformer block with self-attention and MLP."""
         # Self-attention with residual connection
         x_norm = self.norm1(x)
-        attn_out, _ = self.attn(x_norm, x_norm, x_norm)
+        attn_out = self.attn(x_norm)
         x = x + attn_out
 
         # MLP with residual connection
@@ -347,12 +348,19 @@ class PatchEmbed(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Convert EEG signal to patch embeddings."""
-        batch_size, channels, time_steps = x.shape
-        x = x.unsqueeze(1)  # Add channel dimension for conv2d
-        x = self.proj(x)  # batch_size, embed_dim, channels, time_steps//patch_size
-        x = x.permute(0, 2, 3, 1)  # batch_size, channels, time_steps//patch_size, embed_dim
-        x = x.reshape(batch_size, -1, x.shape[-1])  # batch_size, channels*num_patches, embed_dim
+        """Convert EEG signal to patch embeddings.
+
+        Args:
+            x: Input of shape (B, C, T) where B=batch, C=channels, T=time
+
+        Returns:
+            Patches of shape (B, N, C, D) where N=num_patches, D=embed_dim
+        """
+        # x: B, C, T
+        x = x.unsqueeze(1)  # B, 1, C, T
+        x = self.proj(x)  # B, embed_dim, C, T//patch_size
+        x = x.transpose(1, 3)  # B, T//patch_size, C, embed_dim
+        # Return shape: (B, N, C, D)
         return x
 
 
@@ -380,8 +388,18 @@ class EEGTransformer(nn.Module):
         self.embed_dim = embed_dim
         self.embed_num = embed_num
 
-        # Patch embedding
-        self.patch_embed = nn.Linear(patch_size, embed_dim)
+        # Patch embedding using PatchEmbed module to match checkpoint
+        self.patch_embed = PatchEmbed(
+            img_size=[len(self.n_channels), 1024],  # channels x time_steps
+            patch_size=patch_size,
+            in_chans=1,
+            embed_dim=embed_dim,
+        )
+
+        # Channel embedding - size based on checkpoint (62 channels, 0-61)
+        # The checkpoint has 62 embeddings (not 63)
+        self.max_channel_id = 61  # Maximum channel ID is 61 (0-indexed)
+        self.chan_embed = nn.Embedding(62, embed_dim)  # 62 total embeddings
 
         # Summary tokens (learnable parameters)
         self.summary_token = nn.Parameter(torch.zeros(1, embed_num, embed_dim))
@@ -417,14 +435,56 @@ class EEGTransformer(nn.Module):
         return torch.tensor(chan_ids, dtype=torch.long)
 
     def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:
-        """Forward pass through EEG Transformer encoder."""
-        # Mark chan_ids as intentionally unused for now
-        _ = chan_ids
-        # Patch embedding
-        x = self.patch_embed(x)
+        """Forward pass through EEG Transformer encoder.
 
-        # Get batch size
-        batch_size = x.shape[0]
+        Args:
+            x: Input tensor of shape (B, C, T) where:
+               B = batch size
+               C = number of channels
+               T = time steps (e.g., 1024 for 4 seconds at 256 Hz)
+            chan_ids: Channel IDs for positional embedding (optional)
+
+        Returns:
+            Summary tokens of shape (B, embed_num, embed_dim)
+        """
+        # Input shape: (B, C, T)
+        batch_size, n_channels, time_steps = x.shape
+
+        # Validate input dimensions
+        if time_steps % self.patch_size != 0:
+            raise ValueError(
+                f"Time dimension {time_steps} must be divisible by patch_size {self.patch_size}. "
+                f"Expected multiple of {self.patch_size} samples."
+            )
+
+        # Patch embedding: (B, C, T) -> (B, N, C, D)
+        x = self.patch_embed(x)
+        batch_size, num_patches, num_channels, embed_dim = x.shape
+
+        # Generate channel IDs if not provided
+        if chan_ids is None:
+            chan_ids = torch.arange(0, num_channels, device=x.device, dtype=torch.long)
+        else:
+            chan_ids = chan_ids.to(x.device).long()
+
+        # Validate channel IDs
+        max_chan_id = chan_ids.max().item()
+        if max_chan_id > self.max_channel_id:
+            raise ValueError(
+                f"Channel ID {max_chan_id} exceeds maximum supported ID {self.max_channel_id}. "
+                f"Model was trained with up to {self.max_channel_id} channels."
+            )
+
+        # Add channel positional embedding
+        chan_embed = (
+            self.chan_embed(chan_ids).unsqueeze(0).unsqueeze(0)
+        )  # (1, 1, num_channels, embed_dim)
+        x = x + chan_embed  # Broadcast to (batch_size, num_patches, num_channels, embed_dim)
+
+        # Reshape to sequence format for transformer
+        x = x.reshape(
+            batch_size, num_patches * num_channels, embed_dim
+        )  # (batch_size, num_patches*num_channels, embed_dim)
 
         # Concatenate summary tokens
         summary_tokens = self.summary_token.repeat(batch_size, 1, 1)
@@ -481,7 +541,20 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
             elif k.startswith("target_encoder."):
                 encoder_state[k[15:]] = v  # Remove 'target_encoder.' prefix
 
-        model.load_state_dict(encoder_state, strict=False)
+        # Load with strict=False first to handle buffers
+        missing_keys, unexpected_keys = model.load_state_dict(encoder_state, strict=False)
+
+        # Filter out expected missing keys (RoPE buffers are initialized, not loaded)
+        filtered_missing = [k for k in missing_keys if not k.endswith(".rotary_emb.freqs")]
+
+        if filtered_missing:
+            logger.warning(f"Missing keys in checkpoint: {filtered_missing}")
+            # If there are real missing keys, fail
+            raise RuntimeError(f"Missing required keys: {filtered_missing}")
+
+        if unexpected_keys:
+            logger.warning(f"Unexpected keys in checkpoint: {unexpected_keys}")
+
         logger.info(f"Loaded pretrained weights from {checkpoint_path}")
 
     return model

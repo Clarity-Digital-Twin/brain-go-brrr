@@ -15,28 +15,29 @@ from sklearn.metrics import balanced_accuracy_score, confusion_matrix, roc_auc_s
 from tests.unit.test_accuracy_metrics import record_accuracy_metric
 
 
+@pytest.fixture
+def tuh_test_subset():
+    """Small subset of real TUH data for accuracy testing."""
+    base_path = Path("data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf/train")
+
+    # Get 5 abnormal and 5 normal files
+    abnormal_files = list((base_path / "abnormal" / "01_tcp_ar").glob("*.edf"))[:5]
+    normal_files = list((base_path / "normal" / "01_tcp_ar").glob("*.edf"))[:5]
+
+    if len(abnormal_files) < 5 or len(normal_files) < 5:
+        pytest.skip("TUH abnormal dataset not available")
+
+    return {
+        "abnormal": abnormal_files,
+        "normal": normal_files,
+        "labels": [1] * len(abnormal_files) + [0] * len(normal_files),
+        "file_paths": abnormal_files + normal_files,
+    }
+
+
 @pytest.mark.integration  # Requires TUH dataset and real model
 class TestAbnormalityAccuracy:
     """Test suite for accuracy requirements (>80% balanced accuracy)."""
-
-    @pytest.fixture
-    def tuh_test_subset(self):
-        """Small subset of real TUH data for accuracy testing."""
-        base_path = Path("data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf/train")
-
-        # Get 5 abnormal and 5 normal files
-        abnormal_files = list((base_path / "abnormal" / "01_tcp_ar").glob("*.edf"))[:5]
-        normal_files = list((base_path / "normal" / "01_tcp_ar").glob("*.edf"))[:5]
-
-        if len(abnormal_files) < 5 or len(normal_files) < 5:
-            pytest.skip("TUH abnormal dataset not available")
-
-        return {
-            "abnormal": abnormal_files,
-            "normal": normal_files,
-            "labels": [1] * len(abnormal_files) + [0] * len(normal_files),
-            "file_paths": abnormal_files + normal_files,
-        }
 
     @pytest.fixture
     def mock_predictions(self):
