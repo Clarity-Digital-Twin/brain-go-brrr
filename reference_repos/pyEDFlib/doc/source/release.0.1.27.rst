@@ -1,1 +1,0 @@
-.. include:: ../release/0.1.27-notes.rst
