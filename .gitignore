@@ -210,7 +210,12 @@ mlruns/
 *.dvc
 
 # Experiments
-experiments/
+experiments/*/checkpoints/
+experiments/*/logs/
+experiments/*/outputs/
+!experiments/**/*.py
+!experiments/**/*.yaml
+!experiments/**/*.md
 checkpoints/
 saved_models/
 
