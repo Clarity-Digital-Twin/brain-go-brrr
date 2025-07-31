@@ -65,12 +65,14 @@ class EEGPTLinearProbe(nn.Module):
             for param in self.backbone.parameters():
                 param.requires_grad = False
 
-        # Channel adaptation layer (maps input channels to 58 expected by EEGPT)
+        # Channel adaptation layer
+        # Reference implementation uses 20 channels for downstream tasks
+        self.n_eegpt_channels = 20
         self.channel_adapter = nn.Conv1d(
             in_channels=n_input_channels,
-            out_channels=58,  # EEGPT expects 58 channels
+            out_channels=self.n_eegpt_channels,
             kernel_size=1,
-            bias=True,
+            bias=False,  # Reference uses no bias
         )
 
         # Classification head
@@ -101,23 +103,30 @@ class EEGPTLinearProbe(nn.Module):
         Returns:
             Logits [batch, n_classes]
         """
-        # Input normalization (z-score per channel)
-        mean = x.mean(dim=0, keepdim=True)
-        var = x.var(dim=0, keepdim=True, unbiased=False)
-        x = (x - mean) / (var.sqrt() + 1e-6)
+        # Ensure input is 3D
+        if x.dim() == 4:
+            # Remove extra dimension if present
+            x = x.squeeze(1)
 
-        # Adapt channels from input to EEGPT's expected 58
-        x = self.channel_adapter(x)  # [batch, 58, time]
+        # Input normalization (z-score per channel)
+        mean = x.mean(dim=-1, keepdim=True)  # Average over time
+        std = x.std(dim=-1, keepdim=True) + 1e-6
+        x = (x - mean) / std
+
+        # Adapt channels from input to EEGPT's expected channels
+        x = self.channel_adapter(x)  # [batch, 20, time]
 
         # Extract features with backbone
+        # EEGPT returns [batch, embed_num, embed_dim]
         if self.freeze_backbone:
             with torch.no_grad():
-                # EEGPT expects [batch, 1, channels, time]
-                x = x.unsqueeze(1)
-                features = self.backbone.extract_features(x)  # [batch, 2048]
+                features = self.backbone.extract_features(x)
         else:
-            x = x.unsqueeze(1)
             features = self.backbone.extract_features(x)
+
+        # Flatten the features: [batch, embed_num, embed_dim] -> [batch, embed_num * embed_dim]
+        batch_size = features.shape[0]
+        features = features.reshape(batch_size, -1)  # [batch, 2048]
 
         # Classify
         logits = self.classifier(features)

@@ -19,14 +19,14 @@ class AbnormalityDetectionProbe(EEGPTLinearProbe):
     """TUAB abnormality detection probe.
 
     Binary classification: normal (0) vs abnormal (1)
-    Input: 23 channels, 30s windows at 256Hz
+    Input: 20 channels, 8s windows at 256Hz
 
     Expected performance (from EEGPT paper):
     - AUROC: ≥ 0.93
     - Training time: < 1 hour on single GPU
     """
 
-    # TUAB channel names (23 channels)
+    # TUAB channel names with modern naming (20 channels)
     TUAB_CHANNELS = [
         "FP1",
         "FP2",
@@ -35,30 +35,27 @@ class AbnormalityDetectionProbe(EEGPTLinearProbe):
         "FZ",
         "F4",
         "F8",
-        "T3",
+        "T7",  # Modern name for T3
         "C3",
         "CZ",
         "C4",
-        "T4",
-        "T5",
+        "T8",  # Modern name for T4
+        "P7",  # Modern name for T5
         "P3",
         "PZ",
         "P4",
-        "T6",
+        "P8",  # Modern name for T6
         "O1",
         "O2",
-        "A1",
-        "A2",  # Reference electrodes
-        "FPZ",
         "OZ",
     ]
 
-    def __init__(self, checkpoint_path: Path, n_input_channels: int = 23) -> None:
+    def __init__(self, checkpoint_path: Path, n_input_channels: int = 20) -> None:
         """Initialize abnormality detection probe.
 
         Args:
             checkpoint_path: Path to pretrained EEGPT checkpoint
-            n_input_channels: Number of input channels (default: 23 for TUAB)
+            n_input_channels: Number of input channels (default: 20 for TUAB)
         """
         super().__init__(
             checkpoint_path=checkpoint_path,
@@ -114,9 +111,9 @@ class AbnormalityDetectionProbe(EEGPTLinearProbe):
         """Get data requirements for TUAB dataset."""
         return {
             "sampling_rate": 256,  # Hz
-            "window_duration": 30.0,  # seconds
-            "window_samples": 7680,  # 30s * 256Hz
-            "n_channels": 23,
+            "window_duration": 8.0,  # seconds
+            "window_samples": 2048,  # Must be divisible by EEGPT patch_size (64)
+            "n_channels": 20,
             "channel_names": AbnormalityDetectionProbe.TUAB_CHANNELS,
             "preprocessing": {
                 "bandpass": (0.5, 50.0),  # Hz
