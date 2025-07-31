@@ -38,7 +38,7 @@ class TUABDataset(Dataset):
 
     LABEL_MAP = {"normal": 0, "abnormal": 1}
 
-    # Standard TUAB channels (23 channels)
+    # Standard EEGPT channels (20 channels) - using modern T7/T8/P7/P8 naming
     STANDARD_CHANNELS = [
         "FP1",
         "FP2",
@@ -47,22 +47,19 @@ class TUABDataset(Dataset):
         "FZ",
         "F4",
         "F8",
-        "T3",
+        "T7",  # Modern name for T3
         "C3",
         "CZ",
         "C4",
-        "T4",
-        "T5",
+        "T8",  # Modern name for T4
+        "P7",  # Modern name for T5
         "P3",
         "PZ",
         "P4",
-        "T6",
+        "P8",  # Modern name for T6
         "O1",
         "O2",
-        "A1",
-        "A2",  # Reference electrodes
-        "FPZ",
-        "OZ",
+        "OZ",  # EEGPT uses OZ
     ]
 
     # Channel name mapping for different naming conventions
@@ -179,6 +176,10 @@ class TUABDataset(Dataset):
             f"Loaded TUAB {split} split: {len(self.samples)} windows from "
             f"{len(self.file_list)} files ({self.class_counts})"
         )
+
+        # Initialize file cache for efficient loading
+        self._file_cache: dict[Path, np.ndarray] = {}
+        self._cache_size = 100  # Cache last 100 files in memory
 
         # Preload if requested
         if self.preload:
@@ -351,7 +352,18 @@ class TUABDataset(Dataset):
         if self.preload:
             data = self.preloaded_data[file_info["path"]]
         else:
-            data = self._load_edf_file(file_info["path"])
+            # Use file cache for efficiency
+            file_path = Path(file_info["path"])
+            if file_path in self._file_cache:
+                data = self._file_cache[file_path]
+            else:
+                data = self._load_edf_file(file_path)
+                # Add to cache and manage size
+                self._file_cache[file_path] = data
+                if len(self._file_cache) > self._cache_size:
+                    # Remove oldest entry (FIFO)
+                    oldest_key = next(iter(self._file_cache))
+                    del self._file_cache[oldest_key]
 
         # Extract window
         start_idx = sample_info["window_idx"] * self.stride_samples
