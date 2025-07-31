@@ -20,7 +20,7 @@ data:
 training:
   batch_size: 32  # Reduced for MPS/CPU compatibility
   num_workers: 0  # Set to 0 for MPS/debugging
-  epochs: 1  # Reduced for quick test
+  epochs: 10  # Full training
   learning_rate: 0.0005  # 5e-4
   weight_decay: 0.01
   # OneCycleLR settings
