@@ -84,26 +84,27 @@ def main():
         logger.info("=" * 60)
         logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
         
-        # Create datasets
-        # Convert window_duration to window_size in samples
-        window_size = int(cfg.data.window_duration * cfg.data.sampling_rate)  # 8s * 256Hz = 2048 samples
-        
+        # Create datasets - USING CORRECT PATH WITH /edf/
         train_dataset = TUABDataset(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1",
+            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",  # CORRECT PATH!
             split="train",
-            window_size=window_size,
-            stride=window_size,  # Non-overlapping
+            window_duration=cfg.data.window_duration,  # 8 seconds
+            window_stride=cfg.data.window_stride,  # 8 seconds (non-overlapping)
             sampling_rate=cfg.data.sampling_rate,
-            apply_augmentation=False,  # No augmentation for linear probe
+            preload=False,  # Don't preload everything to memory
+            normalize=cfg.data.normalize,
+            cache_dir=data_root / cfg.data.cache_dir if cfg.data.cache_dir else None,
         )
         
         val_dataset = TUABDataset(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1",
+            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",  # CORRECT PATH!
             split="eval",
-            window_size=window_size,
-            stride=window_size,
+            window_duration=cfg.data.window_duration,
+            window_stride=cfg.data.window_stride,
             sampling_rate=cfg.data.sampling_rate,
-            apply_augmentation=False,
+            preload=False,
+            normalize=cfg.data.normalize,
+            cache_dir=data_root / cfg.data.cache_dir if cfg.data.cache_dir else None,
         )
         
         # Log dataset info
@@ -249,8 +250,7 @@ def main():
             model=probe,
             learning_rate=cfg.training.learning_rate,
             weight_decay=cfg.training.weight_decay,
-            warmup_epochs=cfg.training.warmup_epochs,
-            max_epochs=cfg.training.epochs,
+            # warmup_epochs not supported - use scheduler instead
         )
         
         # Callbacks
