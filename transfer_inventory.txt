@@ -1,0 +1,31 @@
+# Essential files for PC training transfer
+
+## Model Weights (REQUIRED)
+data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt (~973MB)
+
+## Cache Files (HIGHLY RECOMMENDED - saves hours)
+data/cache/tuab_preprocessed/ (~1.1GB)
+- Contains preprocessed TUAB windows
+- Avoids reprocessing on PC
+
+## Current Training State (OPTIONAL)
+experiments/eegpt_linear_probe/logs/run_*/
+- Latest checkpoints if you want to resume
+- TensorBoard logs for monitoring
+
+## Configuration Files (REQUIRED - already in git)
+experiments/eegpt_linear_probe/configs/
+experiments/eegpt_linear_probe/*.py
+pyproject.toml
+requirements.txt
+
+## Environment (EXCLUDE - recreate on PC)
+.venv/
+__pycache__/
+
+## Data (EXCLUDE - too large, transfer separately)
+data/datasets/external/tuh_eeg_abnormal/ (~100GB)
+data/datasets/external/sleep-edf/ (if needed)
+
+## Other Gitignored but Useful
+.env (if you have API keys, etc.)
