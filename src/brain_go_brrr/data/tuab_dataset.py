@@ -65,6 +65,68 @@ class TUABDataset(Dataset):
         "OZ",
     ]
 
+    # Channel name mapping for different naming conventions
+    CHANNEL_MAPPING = {
+        # EEG prefix variations
+        "EEG FP1-REF": "FP1",
+        "EEG FP2-REF": "FP2",
+        "EEG F7-REF": "F7",
+        "EEG F3-REF": "F3",
+        "EEG FZ-REF": "FZ",
+        "EEG F4-REF": "F4",
+        "EEG F8-REF": "F8",
+        "EEG T3-REF": "T3",
+        "EEG C3-REF": "C3",
+        "EEG CZ-REF": "CZ",
+        "EEG C4-REF": "C4",
+        "EEG T4-REF": "T4",
+        "EEG T5-REF": "T5",
+        "EEG P3-REF": "P3",
+        "EEG PZ-REF": "PZ",
+        "EEG P4-REF": "P4",
+        "EEG T6-REF": "T6",
+        "EEG O1-REF": "O1",
+        "EEG O2-REF": "O2",
+        "EEG A1-REF": "A1",
+        "EEG A2-REF": "A2",
+        "EEG FPZ-REF": "FPZ",
+        "EEG OZ-REF": "OZ",
+        # T3/T4 are sometimes labeled as T7/T8 in newer nomenclature
+        "EEG T7-REF": "T7",
+        "EEG T8-REF": "T8",
+        "EEG P7-REF": "P7",
+        "EEG P8-REF": "P8",
+        # Also map standard names to themselves
+        "FP1": "FP1",
+        "FP2": "FP2",
+        "F7": "F7",
+        "F3": "F3",
+        "FZ": "FZ",
+        "F4": "F4",
+        "F8": "F8",
+        "C3": "C3",
+        "CZ": "CZ",
+        "C4": "C4",
+        "P3": "P3",
+        "PZ": "PZ",
+        "P4": "P4",
+        "O1": "O1",
+        "O2": "O2",
+        "A1": "A1",
+        "A2": "A2",
+        "FPZ": "FPZ",
+        "OZ": "OZ",
+        # Map old T3/T4/T5/T6 to new T7/T8/P7/P8 nomenclature
+        "T3": "T7",
+        "T4": "T8",
+        "T5": "P7",
+        "T6": "P8",
+        "T7": "T7",
+        "T8": "T8",
+        "P7": "P7",
+        "P8": "P8",
+    }
+
     def __init__(
         self,
         root_dir: Path,
@@ -99,6 +161,11 @@ class TUABDataset(Dataset):
         self.preload = preload
         self.normalize = normalize
         self.cache_dir = cache_dir
+
+        # Set MNE log level to reduce spam
+        import mne
+
+        mne.set_log_level("ERROR")
 
         # Validate directory structure
         if not self.split_dir.exists():
@@ -194,15 +261,30 @@ class TUABDataset(Dataset):
         # Load raw data
         raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
 
-        # Select channels (handle missing channels)
-        available_channels = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
-        if len(available_channels) < len(self.STANDARD_CHANNELS):
-            logger.warning(
-                f"Missing channels in {file_path.name}: "
-                f"{set(self.STANDARD_CHANNELS) - set(available_channels)}"
-            )
+        # Create a mapping of standardized channel names
+        channel_map = {}
+        for ch_name in raw.ch_names:
+            if ch_name in self.CHANNEL_MAPPING:
+                std_name = self.CHANNEL_MAPPING[ch_name]
+                if std_name in self.STANDARD_CHANNELS:
+                    channel_map[ch_name] = std_name
 
-        raw.pick_channels(available_channels, ordered=True)
+        # Rename channels to standard names
+        if channel_map:
+            raw.rename_channels(channel_map)
+
+        # Select available standard channels
+        available_channels = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
+        missing_channels = set(self.STANDARD_CHANNELS) - set(available_channels)
+
+        if missing_channels:
+            logger.warning(f"Missing channels in {file_path.name}: {missing_channels}")
+
+        # Pick only the channels we have
+        if available_channels:
+            raw.pick_channels(available_channels, ordered=False)
+        else:
+            raise ValueError(f"No standard channels found in {file_path.name}")
 
         # Resample if needed
         if raw.info["sfreq"] != self.sampling_rate:
@@ -215,16 +297,25 @@ class TUABDataset(Dataset):
         # Get data
         data = raw.get_data()
 
-        # Pad with zeros if we have fewer channels
-        if data.shape[0] < len(self.STANDARD_CHANNELS):
-            padding = np.zeros((len(self.STANDARD_CHANNELS) - data.shape[0], data.shape[1]))
-            data = np.vstack([data, padding])
+        # Create output array with exactly 23 channels
+        output_data = np.zeros((len(self.STANDARD_CHANNELS), data.shape[1]), dtype=np.float32)
 
-        return data.astype(np.float32)  # type: ignore
+        # Fill in available channels in the correct order
+        for idx, ch_name in enumerate(self.STANDARD_CHANNELS):
+            if ch_name in raw.ch_names:
+                ch_idx = raw.ch_names.index(ch_name)
+                output_data[idx] = data[ch_idx]
+            # else: channel remains zeros (padding)
+
+        return output_data
 
     def __len__(self) -> int:
         """Get dataset length."""
         return len(self.samples)
+
+    def _get_cache_key(self, file_path: Path, window_idx: int) -> str:
+        """Generate cache key for a window."""
+        return f"{file_path.stem}_{window_idx}"
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         """Get a sample.
@@ -240,7 +331,23 @@ class TUABDataset(Dataset):
         sample_info = self.samples[idx]
         file_info = self.file_list[sample_info["file_idx"]]
 
-        # Load data (from cache or file)
+        # Check cache first
+        if self.cache_dir:
+            import pickle
+
+            cache_key = self._get_cache_key(file_info["path"], sample_info["window_idx"])
+            cache_file = self.cache_dir / f"{cache_key}.pkl"
+
+            if cache_file.exists():
+                try:
+                    with cache_file.open("rb") as f:
+                        window, label = pickle.load(f)
+                    return torch.from_numpy(window).float(), label
+                except Exception:
+                    # If cache load fails, regenerate
+                    pass
+
+        # Load data (from memory or file)
         if self.preload:
             data = self.preloaded_data[file_info["path"]]
         else:
@@ -268,6 +375,16 @@ class TUABDataset(Dataset):
         # Convert to tensor
         eeg_tensor = torch.from_numpy(window).float()
         label = sample_info["label"]
+
+        # Cache the processed window
+        if self.cache_dir and cache_file:
+            try:
+                self.cache_dir.mkdir(parents=True, exist_ok=True)
+                with cache_file.open("wb") as f:
+                    pickle.dump((window, label), f)
+            except Exception:
+                # If caching fails, continue without error
+                pass
 
         return eeg_tensor, label
 

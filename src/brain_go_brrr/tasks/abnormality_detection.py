@@ -114,8 +114,8 @@ class AbnormalityDetectionProbe(EEGPTLinearProbe):
         """Get data requirements for TUAB dataset."""
         return {
             "sampling_rate": 256,  # Hz
-            "window_duration": 30.0,  # seconds
-            "window_samples": 7680,  # 30s * 256Hz
+            "window_duration": 8.0,  # seconds
+            "window_samples": 2048,  # Must be divisible by EEGPT patch_size (64)
             "n_channels": 23,
             "channel_names": AbnormalityDetectionProbe.TUAB_CHANNELS,
             "preprocessing": {

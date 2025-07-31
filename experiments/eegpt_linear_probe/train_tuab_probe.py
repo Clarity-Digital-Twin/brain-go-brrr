@@ -13,7 +13,7 @@ from typing import Any
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as functional
 import yaml
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, RichProgressBar
@@ -68,16 +68,16 @@ class LinearProbeTrainer(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss(weight=class_weights)
 
         # For validation metrics
-        self.validation_step_outputs = []
+        self.validation_step_outputs: list[dict[str, torch.Tensor]] = []
 
         # Log hyperparameters
         self.save_hyperparameters(ignore=["model"])
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass."""
-        return self.model(x)
+        return self.model(x)  # type: ignore[no-any-return]
 
-    def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: tuple, batch_idx: int) -> torch.Tensor:  # noqa: ARG002
         """Training step."""
         x, y = batch
         logits = self(x)
@@ -91,16 +91,16 @@ class LinearProbeTrainer(pl.LightningModule):
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
-        return loss
+        return loss  # type: ignore[no-any-return]
 
-    def validation_step(self, batch: tuple, batch_idx: int) -> dict[str, torch.Tensor]:
+    def validation_step(self, batch: tuple, batch_idx: int) -> dict[str, torch.Tensor]:  # noqa: ARG002
         """Validation step."""
         x, y = batch
         logits = self(x)
         loss = self.criterion(logits, y)
 
         # Get probabilities
-        probs = F.softmax(logits, dim=-1)
+        probs = functional.softmax(logits, dim=-1)
 
         # Store for epoch-end metrics
         output = {
@@ -159,7 +159,7 @@ class LinearProbeTrainer(pl.LightningModule):
         """Calculate test metrics at epoch end."""
         self.on_validation_epoch_end()
 
-    def configure_optimizers(self) -> dict[str, Any]:
+    def configure_optimizers(self) -> Any:
         """Configure optimizers and schedulers."""
         # Only optimize non-frozen parameters
         trainable_params = [p for p in self.model.parameters() if p.requires_grad]
@@ -177,7 +177,7 @@ class LinearProbeTrainer(pl.LightningModule):
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
             max_lr=self.learning_rate,
-            total_steps=self.trainer.estimated_stepping_batches,
+            total_steps=int(self.trainer.estimated_stepping_batches),
             pct_start=self.pct_start,
             div_factor=self.div_factor,
             final_div_factor=self.final_div_factor,
@@ -220,6 +220,12 @@ def train_tuab_probe(cfg: DictConfig) -> None:
 
     # Create datasets
     logger.info("Loading datasets...")
+    cache_dir = (
+        Path(data_root) / cfg.data.get("cache_dir", "cache/tuab_preprocessed")
+        if "cache_dir" in cfg.data
+        else None
+    )
+
     train_dataset = TUABDataset(
         root_dir=dataset_root,
         split="train",
@@ -227,6 +233,7 @@ def train_tuab_probe(cfg: DictConfig) -> None:
         window_duration=cfg.data.window_duration,
         window_stride=cfg.data.window_stride,
         normalize=cfg.data.normalize,
+        cache_dir=cache_dir,
     )
 
     val_dataset = TUABDataset(
@@ -236,6 +243,7 @@ def train_tuab_probe(cfg: DictConfig) -> None:
         window_duration=cfg.data.window_duration,
         window_stride=cfg.data.window_stride,
         normalize=cfg.data.normalize,
+        cache_dir=cache_dir,
     )
 
     # Get class weights for balanced training
@@ -311,6 +319,9 @@ def train_tuab_probe(cfg: DictConfig) -> None:
         callbacks=[checkpoint_callback, early_stopping, RichProgressBar()],
         log_every_n_steps=10,
         deterministic=True,
+        val_check_interval=0.25,  # Validate 4 times per epoch for quick feedback
+        limit_train_batches=0.02,  # Use only 2% of training data for very quick test
+        limit_val_batches=0.1,  # Use only 10% of validation data
     )
 
     # Train
@@ -365,7 +376,7 @@ if __name__ == "__main__":
     # Load config
     config_path = Path(__file__).parent / "configs" / "tuab_config.yaml"
 
-    with open(config_path) as f:
+    with config_path.open() as f:
         cfg = OmegaConf.create(yaml.safe_load(f))
 
     # Run training
