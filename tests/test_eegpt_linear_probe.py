@@ -54,16 +54,16 @@ class TestLinearProbe:
         """Test AbnormalityDetectionProbe configuration."""
         # Test class attributes
         assert AbnormalityDetectionProbe.TUAB_CHANNELS is not None
-        assert len(AbnormalityDetectionProbe.TUAB_CHANNELS) == 23
+        assert len(AbnormalityDetectionProbe.TUAB_CHANNELS) == 20
         assert "C3" in AbnormalityDetectionProbe.TUAB_CHANNELS
         assert "C4" in AbnormalityDetectionProbe.TUAB_CHANNELS
 
         # Test probe would be initialized with correct params
         # (without actually loading the model)
         probe = AbnormalityDetectionProbe.__new__(AbnormalityDetectionProbe)
-        probe.n_input_channels = 23
+        probe.n_input_channels = 20
         probe.n_classes = 2
 
         # Check configuration
-        assert probe.n_input_channels == 23
+        assert probe.n_input_channels == 20
         assert probe.n_classes == 2
