@@ -1,0 +1,6 @@
+# Reference repositories to clone on PC:
+cd reference_repos
+git clone https://github.com/ncclab/EEGPT.git
+git clone https://github.com/mne-tools/mne-python.git
+git clone https://github.com/raphaelvallat/yasa.git
+git clone https://github.com/autoreject/autoreject.git
