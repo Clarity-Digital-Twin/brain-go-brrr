@@ -85,11 +85,14 @@ def main():
         logger.info(f"Config: {OmegaConf.to_yaml(cfg)}")
         
         # Create datasets
+        # Convert window_duration to window_size in samples
+        window_size = int(cfg.data.window_duration * cfg.data.sampling_rate)  # 8s * 256Hz = 2048 samples
+        
         train_dataset = TUABDataset(
             root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1",
             split="train",
-            window_size=cfg.data.window_size,
-            stride=cfg.data.window_size,  # Non-overlapping
+            window_size=window_size,
+            stride=window_size,  # Non-overlapping
             sampling_rate=cfg.data.sampling_rate,
             apply_augmentation=False,  # No augmentation for linear probe
         )
@@ -97,8 +100,8 @@ def main():
         val_dataset = TUABDataset(
             root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1",
             split="eval",
-            window_size=cfg.data.window_size,
-            stride=cfg.data.window_size,
+            window_size=window_size,
+            stride=window_size,
             sampling_rate=cfg.data.sampling_rate,
             apply_augmentation=False,
         )
