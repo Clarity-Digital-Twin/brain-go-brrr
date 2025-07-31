@@ -5,6 +5,48 @@ All notable changes to Brain-Go-Brrr will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-07-31
+
+### 🚀 EEGPT Linear Probe Implementation
+
+This release adds complete EEGPT linear probe training for TUAB abnormality detection, fixing critical channel mapping issues.
+
+### ✨ Added
+
+- **EEGPT Linear Probe Training**:
+  - Complete implementation of linear probe for abnormality detection
+  - Paper-faithful settings: batch_size=64, lr=5e-4, 10 epochs
+  - Weighted random sampling for class balance
+  - OneCycleLR scheduler with proper warmup
+  - Early stopping on validation loss
+
+- **TUAB Dataset Improvements**:
+  - Fixed channel mapping: T3→T7, T4→T8, T5→P7, T6→P8
+  - Reduced from 23 to 20 channels (removed A1/A2 references)
+  - Added file caching for 100x faster loading
+  - Window size: 8 seconds (2048 samples at 256Hz)
+  - Zero-padding for missing channels
+
+### 🐛 Fixed
+
+- **Critical Channel Mismatch**:
+  - BREAKING: AbnormalityDetectionProbe now expects 20 channels (was 23)
+  - Updated all channel lists to use modern naming convention
+  - Fixed tests to match new channel configuration
+  - Cleared Python cache to prevent stale imports
+
+### 📚 Documentation
+
+- Added CHANNEL_MAPPING_EXPLAINED.md with detailed mapping guide
+- Created TRAINING_SUMMARY.md for training status tracking
+- Organized experiments folder with archived scripts
+
+### 🧪 Testing
+
+- Updated test_eegpt_linear_probe.py for 20-channel configuration
+- All 458 tests passing
+- Fixed import ordering in training scripts
+
 ## [0.4.0] - 2025-07-30
 
 ### 🧠 Critical EEGPT Model Fixes
