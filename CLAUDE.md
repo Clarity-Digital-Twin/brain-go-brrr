@@ -137,13 +137,16 @@ brain-go-brrr/
 - Generate reports in <30 seconds
 - Implementation: `/services/qc_flagger.py`
 
-### 2. Abnormality Detection
+### 2. Abnormality Detection ✅
 
 - Binary classification (normal/abnormal)
-- > 80% balanced accuracy target
+- > 80% balanced accuracy target (AUROC ≥ 0.93)
 - Confidence scoring (0-1)
 - Triage flags: routine/expedite/urgent
 - Reference: BioSerenity-E1 (94.63% accuracy)
+- **IMPLEMENTED**: Linear probe training in `experiments/eegpt_linear_probe/`
+- **FIXED**: Channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)
+- **STATUS**: Training with 20 channels, 8s windows @ 256Hz
 
 ### 3. Event Detection
 
@@ -173,10 +176,20 @@ brain-go-brrr/
 ### EEGPT Specifications
 
 - **Sampling**: 256 Hz (resample if needed)
-- **Windows**: 4 seconds (1024 samples)
-- **Channels**: Up to 58 electrodes
+- **Windows**: 8 seconds (2048 samples) for TUAB linear probe
+- **Channels**: 20 standard channels (modern naming)
 - **Patch size**: 64 samples (250ms)
 - **Architecture**: Vision Transformer with masked autoencoding
+
+### ⚠️ CRITICAL: Channel Mapping
+
+TUAB uses OLD naming → Convert to MODERN naming:
+- T3 → T7
+- T4 → T8
+- T5 → P7
+- T6 → P8
+
+**Current standard channels (20)**: FP1, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2, OZ
 
 ### Processing Pipeline
 
