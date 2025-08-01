@@ -10,6 +10,9 @@
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Nightly Tests](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/nightly-integration.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/nightly-integration.yml)
 
+> 🏆 **Built for GitHub's #ForTheLoveOfCode 2025 Hackathon** - Category: Agents of Change  
+> Using AI to detect brain abnormalities and make professional EEG analysis accessible to all clinics.
+
 ## 🎯 Overview
 
 Brain-Go-Brrr is a clinical-grade EEG analysis platform that leverages the EEGPT foundation model to provide automated quality control, abnormality detection, and comprehensive analysis for EEG recordings. Designed as a Clinical Decision Support System (FDA Class II medical device software pathway), it reduces EEG analysis turnaround time by 50% while maintaining high diagnostic accuracy.
@@ -277,6 +280,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - **EEGPT Team**: For the foundation model and research
 - **MNE-Python Community**: For the excellent EEG processing tools
 - **Clinical Partners**: For domain expertise and validation
+- **GitHub Copilot**: For being an amazing coding partner throughout this project
+- **#ForTheLoveOfCode**: Built with 💙 for GitHub's 2025 Summer Hackathon
 
 ## 📞 Support
 

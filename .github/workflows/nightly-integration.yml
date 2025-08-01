@@ -1,4 +1,4 @@
-name: Nightly Integration Tests
+name: Nightly Unit Tests
 
 on:
   schedule:
@@ -11,9 +11,13 @@ env:
   UV_VERSION: "0.8.1"
   EEGPT_MODEL_URL: ${{ secrets.EEGPT_MODEL_URL }}  # Optional: URL to download model
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   integration-tests:
-    name: Full Test Suite (Integration + Slow)
+    name: Unit Test Suite (No Model Required)
     runs-on: ubuntu-latest
     timeout-minutes: 90  # Extended timeout for full suite
 
@@ -55,15 +59,12 @@ jobs:
           mkdir -p data/models/pretrained
           curl -L "${{ env.EEGPT_MODEL_URL }}" -o data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
 
-      - name: Run all tests (unit + integration + slow)
+      - name: Run all tests (skip heavy model tests in CI)
         run: |
-          # Set env var to use real model if available
-          if [ -f "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then
-            export EEGPT_MODEL_PATH="data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
-          fi
-
+          # Skip integration tests that require the 1GB EEGPT model
+          # These tests run locally but not in CI
           uv run pytest tests \
-            --run-integration \
+            -m "not integration" \
             -v \
             --cov=src/brain_go_brrr \
             --cov-report=xml \
@@ -97,6 +98,19 @@ jobs:
           file: ./coverage.xml
           flags: integration
           name: nightly-integration
+
+      - name: Verify GitHub token permissions
+        run: |
+          # Check if we have write access to issues
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/issues?per_page=1")
+          
+          if [[ "$STATUS" != "2"* ]]; then
+            echo "::warning::GitHub token lacks issues:write permission. Skipping issue creation."
+            exit 0
+          fi
 
       - name: Comment benchmark results
         if: always()
