@@ -82,8 +82,9 @@ def test_gradient_flow():
     )
     
     # Create problematic input
-    x = torch.randn(8, 20, 2048, requires_grad=True)
+    x = torch.randn(8, 20, 2048)
     x[0, :, 100:200] = 100.0  # Extreme values
+    x.requires_grad = True
     
     # Forward pass
     output = model(x)
