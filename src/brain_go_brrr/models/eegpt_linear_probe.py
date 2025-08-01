@@ -123,6 +123,11 @@ class EEGPTLinearProbe(nn.Module):
                 features = self.backbone.extract_features(x)
         else:
             features = self.backbone.extract_features(x)
+            
+        # Check for NaN in features and replace with zeros if found
+        if torch.isnan(features).any():
+            print(f"WARNING: NaN detected in EEGPT features, replacing with zeros")
+            features = torch.nan_to_num(features, nan=0.0)
 
         # Flatten the features: [batch, embed_num, embed_dim] -> [batch, embed_num * embed_dim]
         batch_size = features.shape[0]

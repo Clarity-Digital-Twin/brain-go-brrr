@@ -128,6 +128,15 @@ class LinearProbeTrainer(pl.LightningModule):
         # Move to CPU for sklearn metrics
         probs_cpu = all_probs.cpu().numpy()
         labels_cpu = all_labels.cpu().numpy()
+        
+        # Check for NaN values
+        if np.isnan(probs_cpu).any():
+            self.log("val/has_nan", 1.0)
+            print(f"WARNING: Found {np.isnan(probs_cpu).sum()} NaN values in predictions")
+            # Replace NaN with 0.5 (neutral prediction)
+            probs_cpu = np.nan_to_num(probs_cpu, nan=0.5)
+        else:
+            self.log("val/has_nan", 0.0)
 
         # AUROC
         auroc = roc_auc_score(labels_cpu, probs_cpu)
