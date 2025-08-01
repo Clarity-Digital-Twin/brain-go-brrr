@@ -90,7 +90,7 @@ def main():
     
     # FAST CLASS WEIGHTS - Don't iterate through all samples
     # Use dataset statistics directly
-    train_stats = train_dataset.label_counts
+    train_stats = train_dataset.class_counts
     n_normal = train_stats.get('normal', 1)
     n_abnormal = train_stats.get('abnormal', 1)
     
