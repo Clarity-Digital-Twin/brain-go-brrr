@@ -11,6 +11,10 @@ env:
   UV_VERSION: "0.8.1"
   EEGPT_MODEL_URL: ${{ secrets.EEGPT_MODEL_URL }}  # Optional: URL to download model
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   integration-tests:
     name: Full Test Suite (Integration + Slow)
