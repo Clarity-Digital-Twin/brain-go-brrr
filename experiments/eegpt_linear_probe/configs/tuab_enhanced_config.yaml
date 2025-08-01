@@ -39,9 +39,9 @@ data:
   
   # Data loading
   batch_size: 100        # Match paper (was 64)
-  num_workers: 8
+  num_workers: 4         # Reduced from 8 to prevent OOM kills
   pin_memory: true
-  persistent_workers: true
+  persistent_workers: false  # Disable to save memory
   
   # Channel configuration
   channel_names: [
