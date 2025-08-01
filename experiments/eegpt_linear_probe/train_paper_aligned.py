@@ -175,7 +175,8 @@ def main():
                     logger.warning(f"NaN in probs at val batch {batch_idx}")
                     probs = torch.nan_to_num(probs, nan=0.5)
                 
-                preds = (probs > 0.5).long()
+                # For binary classification, get the predicted class
+                preds = torch.argmax(probs, dim=1)
                 
                 self.validation_step_outputs.append({
                     "loss": loss,
@@ -200,7 +201,8 @@ def main():
                 acc = (all_preds == all_labels).float().mean()
                 
                 # Move to CPU for sklearn metrics
-                probs_cpu = all_probs.cpu().numpy()
+                # For binary classification, we need the probability of the positive class
+                probs_cpu = all_probs[:, 1].cpu().numpy() if all_probs.dim() > 1 else all_probs.cpu().numpy()
                 labels_cpu = all_labels.cpu().numpy()
                 
                 # Comprehensive NaN handling
