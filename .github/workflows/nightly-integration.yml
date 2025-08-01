@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   integration-tests:
-    name: Full Test Suite (Integration + Slow)
+    name: Unit Test Suite (No Model Required)
     runs-on: ubuntu-latest
     timeout-minutes: 90  # Extended timeout for full suite
 
