@@ -196,6 +196,7 @@ datasets/*/processed/
 # Tensorboard logs
 runs/
 logs/
+logs/archive/
 tensorboard_logs/
 
 # Weights & Biases
@@ -308,8 +309,10 @@ site/
 
 # Output directories
 outputs/
+outputs/lightning_logs/
 logs/
 pipeline.log
+temp_docs/
 
 # MkDocs
 site/
