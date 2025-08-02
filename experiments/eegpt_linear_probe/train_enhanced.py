@@ -205,6 +205,8 @@ def main():
             cache_dir=data_root / "cache/tuab_enhanced",
             use_old_naming=True,
             n_jobs=4,
+            use_autoreject=getattr(cfg.data, 'use_autoreject', False),
+            ar_cache_dir=getattr(cfg.data, 'ar_cache_dir', data_root / "cache/autoreject"),
             **extra_kwargs
         )
     
@@ -239,6 +241,8 @@ def main():
             cache_dir=data_root / "cache/tuab_enhanced",
             use_old_naming=True,
             n_jobs=4,
+            use_autoreject=getattr(cfg.data, 'use_autoreject', False),
+            ar_cache_dir=getattr(cfg.data, 'ar_cache_dir', data_root / "cache/autoreject"),
             **extra_kwargs
         )
     

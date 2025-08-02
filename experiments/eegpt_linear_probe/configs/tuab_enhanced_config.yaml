@@ -51,6 +51,13 @@ data:
     'O1', 'O2'  # 19 channels total
   ]
   
+  # AutoReject settings (disabled by default)
+  use_autoreject: false
+  ar_cache_dir: "${BGB_DATA_ROOT}/cache/autoreject"
+  ar_fit_samples: 200
+  ar_n_interpolate: [1, 4]
+  ar_consensus: 0.1
+  
 training:
   epochs: 50             # Match paper (was 20)
   learning_rate: 5e-4
