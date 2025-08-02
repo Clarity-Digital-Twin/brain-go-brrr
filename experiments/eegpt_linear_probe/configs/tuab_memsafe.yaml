@@ -1,8 +1,8 @@
 # Enhanced TUAB configuration matching EEGPT paper specifications
 experiment:
-  name: "tuab_enhanced_10s_200hz"
+  name: "tuab_memsafe_wsl"
   seed: 42
-  precision: 32  # Full precision for stability
+  precision: 16  # Mixed precision for memory savings
   
 model:
   backbone:
@@ -27,9 +27,9 @@ data:
   root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
   cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
   
-  # Critical: Match paper's window specifications
-  window_duration: 10.24  # 10.24 seconds = 2048 samples @ 200Hz (divisible by 64)
-  window_stride: 5.12     # 50% overlap for training
+  # Window specifications - reduced for memory
+  window_duration: 5.12   # 5.12 seconds = 1024 samples @ 200Hz
+  window_stride: 2.56     # 50% overlap for training
   sampling_rate: 200     # 200 Hz to match paper (was 256)
   
   # Preprocessing to match paper
@@ -38,10 +38,11 @@ data:
   notch_filter: 50.0     # Add notch filter
   
   # Data loading
-  batch_size: 64         # Reduced from 100 to prevent OOM (will use gradient accumulation)
-  num_workers: 2         # Further reduced to prevent system OOM
-  pin_memory: true
+  batch_size: 16         # Very conservative for WSL
+  num_workers: 0         # CRITICAL: Avoid WSL deadlocks
+  pin_memory: false      # Save host memory
   persistent_workers: false  # Disable to save memory
+  prefetch_factor: null  # Disable prefetching to avoid WSL hangs
   
   # Channel configuration
   channel_names: [
@@ -68,7 +69,7 @@ training:
   
   # Gradient clipping
   gradient_clip_val: 1.0
-  accumulate_grad_batches: 2  # 64 * 2 = 128 effective batch size (close to paper's 100)
+  accumulate_grad_batches: 8  # 16 * 8 = 128 effective batch size
   
   # Layer decay for different learning rates
   layer_decay: 0.65      # Match paper
