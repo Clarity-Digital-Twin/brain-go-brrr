@@ -74,7 +74,8 @@ def build_tuab_index():
                     print(f"\nError reading {edf_file}: {e}")
     
     # Save index
-    output_path = Path("tuab_index.json")
+    output_path = Path("data/cache/tuab_index.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(index, f, indent=2)
     

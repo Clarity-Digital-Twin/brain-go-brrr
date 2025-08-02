@@ -3,10 +3,10 @@
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import os
-os.environ["BGB_DATA_ROOT"] = str(Path(__file__).parent / "data")
+os.environ["BGB_DATA_ROOT"] = str(Path(__file__).parent.parent.parent / "data")
 
 from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from torch.utils.data import DataLoader
@@ -22,7 +22,7 @@ dataset = TUABCachedDataset(
     preload=False,
     normalize=True,
     cache_dir=Path("data/cache/tuab_enhanced"),
-    cache_index_path=Path("tuab_index.json"),
+    cache_index_path=Path("data/cache/tuab_index.json"),
 )
 
 print(f"Dataset window_samples: {dataset.window_samples}")

@@ -3,7 +3,7 @@
 
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 import os
@@ -15,7 +15,7 @@ dataset = TUABCachedDataset(
     window_duration=5.12,
     window_stride=2.56,
     sampling_rate=200,
-    cache_index_path=Path("tuab_index.json"),
+    cache_index_path=Path("data/cache/tuab_index.json"),
     max_files=20  # Small test
 )
 

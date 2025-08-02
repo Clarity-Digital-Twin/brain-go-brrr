@@ -28,7 +28,7 @@ data:
   
   # USE CACHED DATASET!
   use_cached_dataset: true
-  cache_index_path: tuab_index.json
+  cache_index_path: data/cache/tuab_index.json
   # max_files: 100  # Uncomment to limit files
   
   # Window parameters matching enhanced dataset
