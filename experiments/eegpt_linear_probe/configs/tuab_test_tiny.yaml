@@ -27,7 +27,7 @@ data:
   # TINY DATASET FOR TESTING!
   max_files: 20  # Only 20 files total!
   use_cached_dataset: true  # Use our fast loader
-  cache_index_path: tuab_index.json
+  cache_index_path: data/cache/tuab_index.json
   
   window_duration: 8.0  # Smaller windows
   window_stride: 8.0    # No overlap for speed
