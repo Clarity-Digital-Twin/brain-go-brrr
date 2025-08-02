@@ -1,0 +1,71 @@
+# TINY TEST CONFIG - LOADS IN SECONDS!
+experiment:
+  name: tuab_test_tiny
+  seed: 42
+  precision: 16
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+    n_channels: 19
+  probe:
+    type: two_layer
+    input_dim: 768
+    hidden_dim: 16
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+
+data:
+  dataset: tuab
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_enhanced
+  # TINY DATASET FOR TESTING!
+  max_files: 20  # Only 20 files total!
+  use_cached_dataset: true  # Use our fast loader
+  cache_index_path: data/cache/tuab_index.json
+  
+  window_duration: 8.0  # Smaller windows
+  window_stride: 8.0    # No overlap for speed
+  sampling_rate: 256
+  bandpass_low: 0.5
+  bandpass_high: 50.0
+  notch_filter: 60.0
+  
+  batch_size: 4  # Small batch
+  num_workers: 0
+  pin_memory: false
+  persistent_workers: false
+  
+  channel_names: [FP1, FP2, F7, F3, FZ, F4, F8, T3, C3, CZ, C4, T4, T5, P3, PZ, P4, T6, O1, O2]
+
+training:
+  epochs: 2  # Just 2 epochs!
+  learning_rate: 0.001
+  weight_decay: 0.01
+  optimizer: adamw
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 1  # No accumulation
+  
+  # Simple scheduler
+  scheduler: none
+  
+  # Validation
+  val_check_interval: 1.0
+  monitor: val_auroc
+  mode: max
+
+evaluation:
+  metrics: [auroc, accuracy]
+
+logging:
+  log_every_n_steps: 10
+
+# Fast settings
+accelerator: gpu
+devices: 1
+distributed: false

@@ -1,0 +1,82 @@
+# FAST CACHED CONFIG - NO MORE WAITING!
+experiment:
+  name: tuab_cached_fast
+  seed: 42
+  precision: 16
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+    n_channels: 19
+  probe:
+    type: two_layer
+    input_dim: 768
+    hidden_dim: 16
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    max_norm: 1.0
+
+data:
+  dataset: tuab
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_enhanced
+  
+  # USE CACHED DATASET!
+  use_cached_dataset: true
+  cache_index_path: data/cache/tuab_index.json
+  # max_files: 100  # Uncomment to limit files
+  
+  # Window parameters matching enhanced dataset
+  window_duration: 5.12
+  window_stride: 2.56
+  sampling_rate: 200
+  bandpass_low: 0.1
+  bandpass_high: 75.0
+  notch_filter: 50.0
+  
+  # DataLoader settings
+  batch_size: 16
+  num_workers: 0
+  pin_memory: false
+  persistent_workers: false
+  prefetch_factor: null
+  
+  channel_names: [FP1, FP2, F7, F3, FZ, F4, F8, T3, C3, CZ, C4, T4, T5, P3, PZ, P4, T6, O1, O2]
+
+training:
+  epochs: 50
+  learning_rate: 0.0005
+  weight_decay: 0.05
+  warmup_epochs: 5
+  warmup_lr: 1.0e-06
+  min_lr: 1.0e-06
+  optimizer: adamw
+  adam_eps: 1.0e-08
+  adam_betas: [0.9, 0.999]
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 8
+  layer_decay: 0.65
+  scheduler: onecycle
+  pct_start: 0.1
+  patience: 10
+  monitor: val_auroc
+  mode: max
+  val_check_interval: 0.5
+  use_ema: false
+
+evaluation:
+  metrics: [auroc, accuracy, balanced_accuracy, f1_weighted]
+  save_predictions: true
+
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3
+
+accelerator: gpu
+devices: 1
+distributed: false

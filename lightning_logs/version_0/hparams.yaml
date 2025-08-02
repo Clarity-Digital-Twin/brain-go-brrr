@@ -1,0 +1,10 @@
+checkpoint_path: data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+n_channels: 19
+n_classes: 2
+learning_rate: 0.001
+weight_decay: 0.01
+warmup_epochs: 5
+total_epochs: 50
+layer_decay: 0.65
+scheduler_type: onecycle
+freeze_backbone: true
