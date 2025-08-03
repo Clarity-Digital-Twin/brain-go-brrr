@@ -1,0 +1,1 @@
+while true; do clear; echo 'EEGPT Training Monitor'; echo '===================='; tail -5 logs/baseline_training_20250802_201043.log; echo; ps aux | grep train_enhanced | grep -v grep | awk '{printf "PID %s: CPU=%s%% MEM=%s%%\n", $2, $3, $4}'; sleep 30; done
