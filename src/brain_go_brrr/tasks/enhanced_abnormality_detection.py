@@ -76,9 +76,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
         # Metrics storage
-        self.train_outputs = []
-        self.val_outputs = []
-        self.test_outputs = []
+        self.train_outputs: list[dict[str, Any]] = []
+        self.val_outputs: list[dict[str, Any]] = []
+        self.test_outputs: list[dict[str, Any]] = []
 
         logger.info("Initialized EnhancedAbnormalityDetectionProbe:")
         logger.info(f"  Backbone frozen: {freeze_backbone}")
