@@ -69,12 +69,14 @@ class TestChunkedAutoRejectProcessor:
         assert not processor.has_cached_params()
 
         # Create fake cache file with REAL autoreject structure
+        # Make sure cache directory exists first
+        processor.cache_dir.mkdir(parents=True, exist_ok=True)
         param_file = processor.cache_dir / "autoreject_params.pkl"
 
         params = {
             'consensus': 0.1,
             'n_interpolate': [1, 4],
-            'thresholds_': {'Fp1': [50.0, 100.0], 'Fp2': [50.0, 100.0]}
+            'thresholds': np.array([[50.0, 100.0], [50.0, 100.0]])
         }
         with param_file.open('wb') as f:
             pickle.dump(params, f)
@@ -290,6 +292,7 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir)
 
         # Create corrupted cache file
+        processor.cache_dir.mkdir(parents=True, exist_ok=True)
         param_file = processor.cache_dir / "autoreject_params.pkl"
         with param_file.open('w') as f:
             f.write("corrupted data")
