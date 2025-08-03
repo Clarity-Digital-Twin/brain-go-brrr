@@ -117,9 +117,9 @@ check: test quality ## Run all tests and quality checks
 
 ##@ Testing
 
-test: ## Run all tests (default - excludes benchmarks)
-	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) --ignore=tests/benchmarks $(PYTEST_NO_PLUGINS)
+test: ## Run fast tests only (excludes slow, external, gpu)
+	@echo "$(GREEN)Running fast tests...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks $(PYTEST_NO_PLUGINS)
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -147,6 +147,10 @@ test-cov: ## Run fast tests with coverage (80% minimum)
 test-integration: ## Run integration tests with timeout
 	@echo "$(GREEN)Running integration tests...$(NC)"
 	$(PYTEST) $(TEST_DIR) -v -m "integration" --timeout=900 --tb=short
+
+test-all: ## Run ALL tests including slow/external/gpu
+	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "" --ignore=tests/benchmarks
 
 test-all-cov: ## Run ALL tests with coverage report
 	@echo "$(GREEN)Running all tests with full coverage...$(NC)"

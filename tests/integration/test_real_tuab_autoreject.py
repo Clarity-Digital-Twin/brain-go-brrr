@@ -17,6 +17,9 @@ from brain_go_brrr.preprocessing import (
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.slow
+@pytest.mark.external
+@pytest.mark.integration
 class TestRealTUABAutoRejectIntegration:
     """Test AutoReject with REAL TUAB data - no fucking mocks!"""
 

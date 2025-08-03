@@ -12,6 +12,7 @@ from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
 from tests.fixtures.mock_eeg_generator import MockEEGGenerator
 
 
+@pytest.mark.integration
 class TestTUABAutoRejectIntegration:
     """Test AutoReject integration with TUAB dataset."""
 
