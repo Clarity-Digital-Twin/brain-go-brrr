@@ -15,6 +15,8 @@ from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProc
 def _isolate_tests(tmp_path, monkeypatch):
     """Isolate each test with its own temporary directory."""
     monkeypatch.chdir(tmp_path)
+    # Clear any cache-related environment variables
+    monkeypatch.delenv("BGB_AR_CACHE_DIR", raising=False)
 
 
 class TestChunkedAutoRejectProcessor:
