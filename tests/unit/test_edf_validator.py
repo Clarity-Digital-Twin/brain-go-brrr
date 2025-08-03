@@ -53,7 +53,7 @@ class TestEDFValidator:
         
         # Then
         assert result.is_valid is False
-        assert "duration" in result.errors[0].lower()
+        assert "short" in result.errors[0].lower()
         assert "30" in result.errors[0]  # Should mention actual duration
     
     def test_validates_sampling_rate(self):
