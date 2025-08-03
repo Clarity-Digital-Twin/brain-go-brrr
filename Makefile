@@ -95,8 +95,8 @@ format: ## Format code with ruff
 
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
-	@rm -rf .mypy_cache 2>/dev/null || true
-	$(MYPY) --config-file mypy-professional.ini src/brain_go_brrr
+	@rm -rf .mypy_cache_strict 2>/dev/null || true
+	$(MYPY) --config-file mypy.ini src/brain_go_brrr
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
 type-fast: ## Fast type checking for development (no hangs)
@@ -111,7 +111,7 @@ type-strict: ## Strictest type checking (catches everything)
 
 type-critical: ## Type check critical modules only
 	@echo "$(CYAN)Type checking critical modules...$(NC)"
-	$(MYPY) --config-file mypy-professional.ini \
+	$(MYPY) --config-file mypy.ini \
 		src/brain_go_brrr/data/tuab_cached_dataset.py \
 		src/brain_go_brrr/models/eegpt_* \
 		src/brain_go_brrr/tasks/enhanced_abnormality_detection.py

@@ -360,3 +360,8 @@ examples/*.log
 pipeline_test_report.txt
 *_test_report.txt
 data/
+
+# MyPy cache directories
+.mypy_cache/
+.mypy_cache_strict/
+.mypy_cache_fast/
