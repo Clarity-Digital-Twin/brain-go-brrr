@@ -64,8 +64,8 @@ class TestAutoRejectFallbacksSimple:
         # Mock ar_processor.transform_raw to raise a generic error
         dataset.ar_processor.transform_raw.side_effect = ValueError("Test error")
 
-        with caplog.at_level(logging.ERROR):
-            with patch.object(TUABEnhancedDataset, '_amplitude_based_cleaning', return_value=mock_raw):
+        with caplog.at_level(logging.ERROR), \
+             patch.object(TUABEnhancedDataset, '_amplitude_based_cleaning', return_value=mock_raw):
                 result = TUABEnhancedDataset._apply_autoreject_to_raw(dataset, mock_raw)
 
         # Check logging

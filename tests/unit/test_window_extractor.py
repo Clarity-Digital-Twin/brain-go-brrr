@@ -1,4 +1,5 @@
 """Test-driven development for sliding window extraction.
+
 Tests for 8-second windows with 50% overlap.
 """
 import numpy as np

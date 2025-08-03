@@ -1,4 +1,5 @@
 """Test-driven development for EDF file validation.
+
 Tests written BEFORE implementation.
 """
 import tempfile
@@ -223,6 +224,7 @@ class MockEDFData:
         n_channels: int,
         amplitude_uv: float = 50.0
     ):
+        """Initialize mock EDF data."""
         self.duration = duration_seconds
         self.sfreq = sfreq
         self.n_channels = n_channels

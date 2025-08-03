@@ -103,7 +103,7 @@ class TestAutoRejectEEGPTIntegration:
 
         # Create labels file
         labels_file = data_dir.parent / 'train_labels.csv'
-        with open(labels_file, 'w') as f:
+        with labels_file.open('w') as f:
             f.write("filename,label\n")
             for i, file in enumerate(files):
                 f.write(f"{file.name},{i % 2}\n")  # Binary labels
@@ -188,8 +188,8 @@ class TestAutoRejectEEGPTIntegration:
         mock_raw.get_data.return_value = np.random.randn(19, 10000)
 
         # When: AutoReject fails with memory error
-        with patch.object(dataset.ar_processor, 'transform_raw', side_effect=MemoryError):
-            with patch.object(dataset, '_amplitude_based_cleaning') as mock_fallback:
+        with patch.object(dataset.ar_processor, 'transform_raw', side_effect=MemoryError), \
+             patch.object(dataset, '_amplitude_based_cleaning') as mock_fallback:
                 mock_fallback.return_value = mock_raw
 
                 result = dataset._apply_autoreject_to_raw(mock_raw)
@@ -318,11 +318,11 @@ print(f"Cache: {args.ar_cache_dir}")
             }
         }
 
-        with open(config_file, 'w') as f:
+        with config_file.open('w') as f:
             yaml.dump(config_data, f)
 
         # When: Loading config
-        with open(config_file) as f:
+        with config_file.open() as f:
             loaded_config = yaml.safe_load(f)
 
         # Then: Should have all AutoReject settings

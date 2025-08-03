@@ -88,7 +88,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         logger.info(f"  Scheduler: {scheduler_type}")
         logger.info(f"  Warmup epochs: {warmup_epochs}/{total_epochs}")
 
-    def _load_backbone(self, checkpoint_path: str, n_channels: int) -> nn.Module:
+    def _load_backbone(self, checkpoint_path: str, n_channels: int) -> nn.Module:  # noqa: ARG002
         """Load EEGPT backbone from checkpoint."""
         try:
             # Use the wrapper to create EEGPT model
@@ -129,7 +129,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return logits
 
-    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:  # noqa: ARG002
         """Training step."""
         x, y = batch
 
@@ -154,7 +154,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:  # noqa: ARG002
         """Validation step."""
         x, y = batch
 
@@ -284,7 +284,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Probe parameters - base learning rate
         probe_params = []
-        for name, param in self.probe.named_parameters():
+        for _name, param in self.probe.named_parameters():
             if param.requires_grad:
                 probe_params.append(param)
 

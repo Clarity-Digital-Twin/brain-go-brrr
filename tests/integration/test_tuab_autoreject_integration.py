@@ -107,8 +107,8 @@ class TestTUABAutoRejectIntegration:
         dataset.file_list = [(temp_dataset_dir / "train" / "test1.edf", 0)]
 
         # Load file
-        with patch.object(dataset.position_generator, 'add_positions_to_raw', return_value=mock_raw):
-            with patch.object(dataset.ar_processor, 'transform_raw', return_value=mock_raw):
+        with patch.object(dataset.position_generator, 'add_positions_to_raw', return_value=mock_raw), \
+             patch.object(dataset.ar_processor, 'transform_raw', return_value=mock_raw):
                 data = dataset._load_edf_file(dataset.file_list[0][0])
 
         # Verify shape and type

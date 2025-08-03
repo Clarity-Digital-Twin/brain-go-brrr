@@ -1,4 +1,5 @@
 """Integration tests for Phase 1 data pipeline components.
+
 Tests channel mapping, EDF validation, and window extraction working together.
 """
 
@@ -202,6 +203,7 @@ class MockEDFFile:
     """Mock EDF file for integration testing."""
 
     def __init__(self, channels: list[str], duration_seconds: float, sfreq: float):
+        """Initialize mock EDF file."""
         self.ch_names = channels
         self.duration = duration_seconds
         self.sfreq = sfreq

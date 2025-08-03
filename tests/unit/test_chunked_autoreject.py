@@ -70,7 +70,7 @@ class TestChunkedAutoRejectProcessor:
 
         # Create fake cache file with REAL autoreject structure
         param_file = processor.cache_dir / "autoreject_params.pkl"
-        
+
         params = {
             'consensus': 0.1,
             'n_interpolate': [1, 4],
@@ -94,15 +94,15 @@ class TestChunkedAutoRejectProcessor:
                 self.consensus_ = [0.1]
                 self.n_interpolate_ = [1, 4]
                 self.picks_ = [0, 1]
-        
+
         fake_ar = FakeAutoReject()
-        
+
         # Save parameters
         processor._save_parameters(fake_ar)
 
         # Then: Should have cached params
         assert processor.has_cached_params()
-        
+
         # Verify saved params
         param_file = processor.cache_dir / "autoreject_params.pkl"
         assert param_file.exists()
@@ -136,7 +136,7 @@ class TestChunkedAutoRejectProcessor:
                 self.consensus_ = [0.1, 0.2]
                 self.n_interpolate_ = [1, 4]
                 self.picks_ = [0, 1, 2]
-        
+
         fake_ar = FakeAutoReject()
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
@@ -154,7 +154,7 @@ class TestChunkedAutoRejectProcessor:
         """Test saving and loading parameters."""
         # Given: Processor and test parameters
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
-        
+
         # Create fake AutoReject with parameters
         class FakeAutoReject:
             def __init__(self):
@@ -162,9 +162,9 @@ class TestChunkedAutoRejectProcessor:
                 self.consensus_ = [0.1]
                 self.n_interpolate_ = [1, 4]
                 self.picks_ = list(range(19))
-        
+
         fake_ar = FakeAutoReject()
-        
+
         # Save parameters
         processor._save_parameters(fake_ar)
 
@@ -195,10 +195,10 @@ class TestChunkedAutoRejectProcessor:
         # Test that method exists and can be called
         # (We can't test the actual AutoReject creation without the library)
         assert hasattr(processor, '_create_autoreject_from_params')
-        
+
         # If AutoReject is not installed, the method should handle it gracefully
         try:
-            from autoreject import AutoReject
+            from autoreject import AutoReject  # noqa: F401
             # If AutoReject is available, test would create real instance
             ar = processor._create_autoreject_from_params()
             assert ar is not None
@@ -220,7 +220,7 @@ class TestChunkedAutoRejectProcessor:
 
         # Test that method exists
         assert hasattr(processor, 'transform_raw')
-        
+
         # We can't test actual transformation without MNE and AutoReject
         # But we can verify the processor state
         assert processor.is_fitted
@@ -239,7 +239,7 @@ class TestChunkedAutoRejectProcessor:
 
         # Test that method exists
         assert hasattr(processor, '_apply_autoreject')
-        
+
         # Verify processor has the required parameters
         assert processor.ar_params is not None
         assert 'thresholds' in processor.ar_params
@@ -286,7 +286,7 @@ class TestChunkedAutoRejectProcessor:
     def test_error_handling_corrupted_cache(self, temp_cache_dir):
         """Test handling of corrupted cache files."""
         # Create new cache directory
-        cache_dir = temp_cache_dir / "corrupted_cache" 
+        cache_dir = temp_cache_dir / "corrupted_cache"
         processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir)
 
         # Create corrupted cache file

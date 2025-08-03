@@ -1,4 +1,5 @@
 """Test-driven development for channel mapping and validation.
+
 Written BEFORE implementation - pure TDD approach.
 """
 
