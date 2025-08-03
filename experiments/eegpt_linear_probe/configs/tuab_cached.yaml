@@ -1,0 +1,107 @@
+# TUAB configuration using pre-built cache for fast training
+experiment:
+  name: "tuab_cached_fast"
+  seed: 42
+  precision: 16  # Mixed precision for memory savings
+  
+model:
+  backbone:
+    name: "eegpt"
+    checkpoint_path: "${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+    freeze: true
+    n_channels: 19  # TUAB standard channels
+    
+  probe:
+    type: "two_layer"
+    input_dim: 768  # EEGPT feature dimension
+    hidden_dim: 16
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    max_norm: 1.0  # Weight constraint
+    
+data:
+  dataset: "tuab"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
+  cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
+  
+  # USE CACHED DATASET FOR FAST LOADING
+  use_cached_dataset: true
+  cache_mode: "readonly"  # Never regenerate cache
+  
+  # Window specifications MUST MATCH CACHE
+  window_duration: 8.0    # 8 seconds (cache was built with this)
+  window_stride: 4.0      # 50% overlap for training
+  sampling_rate: 256      # 256 Hz (cache was built with this)
+  
+  # Preprocessing (already applied in cache)
+  bandpass_low: 0.5       # Cache was built with 0.5-50Hz
+  bandpass_high: 50.0     
+  notch_filter: null      # No notch in cache
+  
+  # Data loading
+  batch_size: 32          # Can use larger batch with cached data
+  num_workers: 2          # Can use workers with cached data
+  pin_memory: true        # Fast with cached data
+  persistent_workers: true # Keep workers alive
+  prefetch_factor: 2      # Prefetch next batches
+  
+  # Channel configuration
+  channel_names: [
+    'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
+    'T3', 'C3', 'CZ', 'C4', 'T4',  # Using old naming for TUAB
+    'T5', 'P3', 'PZ', 'P4', 'T6',
+    'O1', 'O2'  # 19 channels total
+  ]
+  
+training:
+  epochs: 50             # Match paper
+  learning_rate: 5e-4
+  weight_decay: 0.05     # Match paper
+  
+  # Warmup settings
+  warmup_epochs: 5       # Match paper
+  warmup_lr: 1e-6
+  min_lr: 1e-6
+  
+  # Optimizer
+  optimizer: "adamw"
+  adam_eps: 1e-8
+  adam_betas: [0.9, 0.999]
+  
+  # Gradient clipping
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 4  # 32 * 4 = 128 effective batch size
+  
+  # Layer decay for different learning rates
+  layer_decay: 0.65      # Match paper
+  
+  # Scheduler  
+  scheduler: "onecycle"
+  pct_start: 0.1         # 10% warmup
+  
+  # Early stopping
+  patience: 10
+  monitor: "val_auroc"
+  mode: "max"
+  
+  # Validation
+  val_check_interval: 0.5  # Check twice per epoch
+  
+  # Model averaging
+  use_ema: false  # Paper doesn't mention EMA
+  
+evaluation:
+  metrics: ["auroc", "accuracy", "balanced_accuracy", "f1_weighted"]
+  save_predictions: true
+  
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3          # Save best 3 checkpoints
+  
+# Hardware
+accelerator: "gpu"
+devices: 1
+distributed: false

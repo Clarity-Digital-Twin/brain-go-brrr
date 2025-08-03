@@ -159,13 +159,10 @@ def main():
     # Create datasets
     logger.info("Creating enhanced TUAB datasets...")
     
-    # Use cached dataset if specified
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-        DatasetClass = TUABCachedDataset
-        logger.info("Using CACHED dataset for fast loading!")
-    else:
-        DatasetClass = TUABEnhancedDataset
+    # Always use enhanced dataset but with cache_mode parameter
+    DatasetClass = TUABEnhancedDataset
+    cache_mode = getattr(cfg.data, 'cache_mode', 'write')
+    logger.info(f"Using TUABEnhancedDataset with cache_mode='{cache_mode}'")
     
     # Additional kwargs for cached dataset
     extra_kwargs = {}
@@ -174,77 +171,49 @@ def main():
     if hasattr(cfg.data, 'cache_index_path'):
         extra_kwargs['cache_index_path'] = Path(cfg.data.cache_index_path)
     
-    # Create train dataset with appropriate args
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        # Cached dataset has simpler args
-        train_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="train",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_stride,
-            sampling_rate=cfg.data.sampling_rate,
-            preload=False,
-            normalize=True,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            **extra_kwargs
-        )
-    else:
-        # Enhanced dataset with all args
-        train_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="train",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_stride,
-            sampling_rate=cfg.data.sampling_rate,
-            channels=cfg.data.channel_names,
-            preload=False,
-            normalize=True,
-            bandpass_low=cfg.data.bandpass_low,
-            bandpass_high=cfg.data.bandpass_high,
-            notch_freq=cfg.data.notch_filter,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            use_old_naming=True,
-            n_jobs=4,
-            use_autoreject=getattr(cfg.data, 'use_autoreject', False),
-            ar_cache_dir=str(data_root / "cache/autoreject"),
-            **extra_kwargs
-        )
+    # Create train dataset with cache_mode
+    train_dataset = DatasetClass(
+        root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+        split="train",
+        window_duration=cfg.data.window_duration,
+        window_stride=cfg.data.window_stride,
+        sampling_rate=cfg.data.sampling_rate,
+        channels=cfg.data.channel_names,
+        preload=False,
+        normalize=True,
+        bandpass_low=cfg.data.bandpass_low,
+        bandpass_high=cfg.data.bandpass_high,
+        notch_freq=cfg.data.notch_filter,
+        cache_dir=data_root / "cache/tuab_enhanced",
+        use_old_naming=True,
+        n_jobs=4,
+        use_autoreject=getattr(cfg.data, 'use_autoreject', False),
+        ar_cache_dir=str(data_root / "cache/autoreject"),
+        cache_mode=cache_mode,  # Pass cache_mode from config
+        **extra_kwargs
+    )
     
-    # Create val dataset with appropriate args
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        # Cached dataset has simpler args
-        val_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="eval",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_duration,  # No overlap for validation
-            sampling_rate=cfg.data.sampling_rate,
-            preload=False,
-            normalize=True,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            **extra_kwargs
-        )
-    else:
-        # Enhanced dataset with all args
-        val_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="eval",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_duration,  # No overlap for validation
-            sampling_rate=cfg.data.sampling_rate,
-            channels=cfg.data.channel_names,
-            preload=False,
-            normalize=True,
-            bandpass_low=cfg.data.bandpass_low,
-            bandpass_high=cfg.data.bandpass_high,
-            notch_freq=cfg.data.notch_filter,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            use_old_naming=True,
-            n_jobs=4,
-            use_autoreject=getattr(cfg.data, 'use_autoreject', False),
-            ar_cache_dir=str(data_root / "cache/autoreject"),
-            **extra_kwargs
-        )
+    # Create val dataset with cache_mode
+    val_dataset = DatasetClass(
+        root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+        split="eval",
+        window_duration=cfg.data.window_duration,
+        window_stride=cfg.data.window_duration,  # No overlap for validation
+        sampling_rate=cfg.data.sampling_rate,
+        channels=cfg.data.channel_names,
+        preload=False,
+        normalize=True,
+        bandpass_low=cfg.data.bandpass_low,
+        bandpass_high=cfg.data.bandpass_high,
+        notch_freq=cfg.data.notch_filter,
+        cache_dir=data_root / "cache/tuab_enhanced",
+        use_old_naming=True,
+        n_jobs=4,
+        use_autoreject=getattr(cfg.data, 'use_autoreject', False),
+        ar_cache_dir=str(data_root / "cache/autoreject"),
+        cache_mode=cache_mode,  # Pass cache_mode from config
+        **extra_kwargs
+    )
     
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Val dataset: {len(val_dataset)} windows")
