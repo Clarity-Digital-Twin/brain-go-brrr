@@ -69,7 +69,7 @@ class AbnormalityScreener:
         self.calibrated = calibrated
 
         # Mock implementation for TDD
-        self._mock_scores = []
+        self._mock_scores: list[float] = []
 
     def screen(
         self,

@@ -42,8 +42,8 @@ class EDFValidator:
             ValidationResult with validation details
         """
         errors = []
-        warnings = []
-        metadata = {}
+        warnings: list[str] = []
+        metadata: dict[str, Any] = {}
 
         # Check file exists
         if not file_path.exists():
@@ -84,8 +84,8 @@ class EDFValidator:
             ValidationResult with validation details
         """
         errors = []
-        warnings = []
-        metadata = {}
+        warnings: list[str] = []
+        metadata: dict[str, Any] = {}
 
         # Extract metadata
         duration_seconds = edf_data.duration
@@ -129,7 +129,7 @@ class EDFValidator:
             errors.append("Data contains infinite values")
 
         # Check for extreme amplitudes (ignoring NaN values)
-        max_amplitude = np.nanmax(np.abs(data))
+        max_amplitude: float = float(np.nanmax(np.abs(data)))
         if not np.isnan(max_amplitude) and max_amplitude > self.max_amplitude_v:
             warnings.append(
                 f"Extreme amplitude detected: {max_amplitude*1e6:.1f}µV"
