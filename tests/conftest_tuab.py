@@ -1,6 +1,8 @@
 """Fixtures for fast TUAB testing."""
-import pytest
 from pathlib import Path
+
+import pytest
+
 from brain_go_brrr.data.tuab_dataset import TUABDataset
 
 

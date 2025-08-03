@@ -152,8 +152,9 @@ class EEGPTTwoLayerProbe(nn.Module):
             features = features.mean(dim=1)  # [B, D]
 
             # Repeat to match expected input dimension
-            if D < 2048:
-                repeat_factor = 2048 // D
+            feature_dim = features.shape[1]
+            if feature_dim < 2048:
+                repeat_factor = 2048 // feature_dim
                 features = features.repeat(1, repeat_factor)[:, :2048]
 
         # First probe layer
