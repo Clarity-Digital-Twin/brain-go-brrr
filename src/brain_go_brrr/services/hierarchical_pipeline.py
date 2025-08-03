@@ -82,10 +82,7 @@ class AbnormalityScreener:
         max_amp = np.max(np.abs(eeg))
 
         # If we see high amplitude spikes, likely abnormal
-        if max_amp > 30:
-            score = 0.8 + 0.2 * np.random.rand()
-        else:
-            score = 0.2 + 0.3 * np.random.rand()
+        score = 0.8 + 0.2 * np.random.rand() if max_amp > 30 else 0.2 + 0.3 * np.random.rand()
 
         if self.calibrated:
             # Add some variance for calibration testing

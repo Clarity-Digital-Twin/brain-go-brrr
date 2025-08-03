@@ -52,7 +52,7 @@ class YASASleepStager:
         """Validate YASA is properly installed with models."""
         try:
             # Check if lightgbm is available
-            import lightgbm
+            import lightgbm  # noqa: F401
             logger.info("LightGBM available for YASA")
         except ImportError:
             logger.warning("LightGBM not available, falling back to perceptron")
@@ -66,13 +66,13 @@ class YASASleepStager:
         epoch_duration: int = 30
     ) -> tuple[list[str], list[float], dict[str, any]]:
         """Perform sleep staging on EEG data.
-        
+
         Args:
             eeg_data: EEG data array (n_channels, n_times)
             sfreq: Sampling frequency
             ch_names: Channel names
             epoch_duration: Duration of each epoch in seconds
-            
+
         Returns:
             Tuple of:
                 - List of sleep stages per epoch
@@ -136,7 +136,7 @@ class YASASleepStager:
 
     def _select_eeg_channel(self, ch_names: list[str]) -> str | None:
         """Select best EEG channel for sleep staging.
-        
+
         YASA prefers frontal channels (e.g., C3, C4, Cz).
         """
         # Preference order for sleep staging
@@ -155,7 +155,7 @@ class YASASleepStager:
 
     def _yasa_to_standard_stage(self, yasa_stage: int) -> str:
         """Convert YASA numeric stage to standard string.
-        
+
         YASA uses: 0=Wake, 1=N1, 2=N2, 3=N3, 4=REM
         We use: W, N1, N2, N3, REM
         """
@@ -235,11 +235,11 @@ class YASASleepStager:
         output_hypnogram: bool = True
     ) -> dict[str, any]:
         """Process a full night recording.
-        
+
         Args:
             eeg_path: Path to EEG file
             output_hypnogram: Whether to include full hypnogram
-            
+
         Returns:
             Dictionary with sleep analysis results
         """
@@ -284,10 +284,10 @@ class HierarchicalPipelineYASAAdapter:
 
     def stage(self, eeg: npt.NDArray[np.float64]) -> tuple[str, float]:
         """Simple interface matching our mock SleepStager.
-        
+
         Args:
             eeg: EEG data (n_channels, n_times)
-            
+
         Returns:
             Tuple of (stage, confidence) for the dominant stage
         """
