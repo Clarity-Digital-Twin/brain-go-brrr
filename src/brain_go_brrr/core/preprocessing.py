@@ -28,6 +28,7 @@ class BandpassFilter:
     """Butterworth bandpass filter for EEG data."""
 
     def __init__(self, low_freq: float, high_freq: float, sampling_rate: float, order: int = 4):
+        """Initialize bandpass filter with frequency parameters."""
         self.low_freq = low_freq
         self.high_freq = high_freq
         self.sampling_rate = sampling_rate
