@@ -61,7 +61,7 @@ data:
   ar_consensus: 0.1
   
   # Cache mode - set to "readonly" after building cache
-  cache_mode: "write"
+  cache_mode: "readonly"  # Train cache is complete!
   
 training:
   epochs: 20             # Reasonable for baseline test
