@@ -8,6 +8,7 @@ YASA includes pre-trained models and requires no additional weights.
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import mne
 import numpy as np

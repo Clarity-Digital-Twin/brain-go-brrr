@@ -96,13 +96,26 @@ format: ## Format code with ruff
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
 	@rm -rf .mypy_cache 2>/dev/null || true
-	$(MYPY) src/brain_go_brrr
+	$(MYPY) --config-file mypy-professional.ini src/brain_go_brrr
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
-fast-type-check: ## Fast type checking for development (uses cache)
+type-fast: ## Fast type checking for development (no hangs)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
-	$(MYPY) --ignore-missing-imports src/brain_go_brrr
+	$(MYPY) --config-file mypy-fast.ini src/brain_go_brrr
 	@echo "$(GREEN)Fast type checking complete!$(NC)"
+
+type-strict: ## Strictest type checking (catches everything)
+	@echo "$(CYAN)Running strict type checks...$(NC)"
+	$(MYPY) --config-file mypy.ini src/brain_go_brrr
+	@echo "$(GREEN)Strict type checking complete!$(NC)"
+
+type-critical: ## Type check critical modules only
+	@echo "$(CYAN)Type checking critical modules...$(NC)"
+	$(MYPY) --config-file mypy-professional.ini \
+		src/brain_go_brrr/data/tuab_cached_dataset.py \
+		src/brain_go_brrr/models/eegpt_* \
+		src/brain_go_brrr/tasks/enhanced_abnormality_detection.py
+	@echo "$(GREEN)Critical modules type checked!$(NC)"
 
 type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py
 	@echo "$(CYAN)Type checking $(FILE)...$(NC)"

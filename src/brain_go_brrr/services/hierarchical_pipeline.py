@@ -12,7 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -79,7 +79,7 @@ class AbnormalityScreener:
         """Screen EEG for abnormality."""
         # Mock implementation for TDD
         # Check for spikes in the data (simple heuristic)
-        max_amp = np.max(np.abs(eeg))
+        max_amp: float = float(np.max(np.abs(eeg)))
 
         # If we see high amplitude spikes, likely abnormal
         score = 0.8 + 0.2 * np.random.rand() if max_amp > 30 else 0.2 + 0.3 * np.random.rand()
@@ -243,7 +243,7 @@ class HierarchicalEEGAnalyzer:
 
         # State tracking
         self.samples_processed = 0
-        self.running_statistics = {}
+        self.running_statistics: dict[str, Any] = {}
 
         # Create checkpoint directory if specified
         if config.checkpoint_dir:
@@ -272,13 +272,18 @@ class HierarchicalEEGAnalyzer:
         # Step 1: Abnormality screening
         if self.config.enable_abnormality_screening:
             if self.config.enable_feature_importance:
-                score, features = self.screener.screen(eeg, return_features=True)
-                result.feature_importance = {
-                    'channel_contributions': np.random.rand(eeg.shape[0]).tolist(),
-                    'temporal_regions': np.random.rand(10).tolist()
-                }
+                screen_result = self.screener.screen(eeg, return_features=True)
+                if isinstance(screen_result, tuple):
+                    score, features = screen_result
+                    result.feature_importance = {
+                        'channel_contributions': np.random.rand(eeg.shape[0]).tolist(),
+                        'temporal_regions': np.random.rand(10).tolist()
+                    }
+                else:
+                    score = screen_result
             else:
-                score = self.screener.screen(eeg)
+                screen_result = self.screener.screen(eeg)
+                score = float(screen_result) if not isinstance(screen_result, tuple) else screen_result[0]
 
             result.abnormality_score = score
             result.is_abnormal = score > self.config.abnormal_threshold
@@ -295,7 +300,7 @@ class HierarchicalEEGAnalyzer:
                 result.triage_flag = 'routine'
 
         # Parallel execution setup
-        tasks = []
+        tasks: list[Callable[[], Any]] = []
 
         # Step 2: Conditional epileptiform detection
         if self.config.enable_epileptiform_detection and result.is_abnormal:

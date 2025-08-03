@@ -510,7 +510,7 @@ class SleepAnalyzer:
         # Convert string hypnogram to numeric for diff calculation
         stage_map = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4, "ART": -1}
         hypnogram_numeric = np.array([stage_map.get(stage, -1) for stage in hypnogram])
-        stage_changes = np.sum(np.diff(hypnogram_numeric) != 0)
+        stage_changes: int = int(np.sum(np.diff(hypnogram_numeric) != 0))
         quality_metrics["fragmentation_index"] = (
             stage_changes / len(hypnogram) if len(hypnogram) > 0 else 0
         )
