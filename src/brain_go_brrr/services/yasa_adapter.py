@@ -305,7 +305,7 @@ class HierarchicalPipelineYASAAdapter:
                 # Use mean confidence
                 confidence = np.mean(confidences)
 
-                return dominant_stage, confidence
+                return dominant_stage, float(confidence)
             else:
                 # Fallback
                 return 'W', 0.5
