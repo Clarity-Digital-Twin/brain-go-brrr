@@ -4,7 +4,7 @@ import logging
 
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
+import torch.nn.functional as F  # noqa: N812
 
 logger = logging.getLogger(__name__)
 
