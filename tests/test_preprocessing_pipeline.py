@@ -455,7 +455,7 @@ class TestPreprocessingIntegration:
         pipeline = PreprocessingPipeline(config)
 
         # Track memory usage (simplified check)
-        data_id = id(data)
+        id(data)
         processed = pipeline.apply(data)
 
         # For inplace, might reuse same memory

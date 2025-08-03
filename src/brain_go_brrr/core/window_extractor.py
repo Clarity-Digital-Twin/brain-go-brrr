@@ -1,4 +1,5 @@
 """Sliding window extraction for EEG data processing.
+
 Implements 8-second windows with configurable overlap.
 """
 import numpy as np

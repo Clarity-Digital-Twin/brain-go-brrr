@@ -27,6 +27,7 @@ class EDFValidator:
         min_channels: int = 19,
         max_amplitude_v: float = 1e-3  # 1mV
     ):
+        """Initialize EDF validator with parameters."""
         self.min_duration_seconds = min_duration_seconds
         self.min_channels = min_channels
         self.max_amplitude_v = max_amplitude_v

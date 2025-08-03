@@ -66,6 +66,7 @@ class NotchFilter:
     """IIR notch filter for powerline interference."""
 
     def __init__(self, freq: float, sampling_rate: float, quality_factor: float = 30):
+        """Initialize notch filter with target frequency."""
         self.freq = freq
         self.sampling_rate = sampling_rate
         self.quality_factor = quality_factor
@@ -86,10 +87,10 @@ class NotchFilter:
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply notch filter to data.
-        
+
         Args:
             data: Input data (channels x samples) or (samples,)
-            
+
         Returns:
             Filtered data with same shape
         """
@@ -110,14 +111,15 @@ class Normalizer:
     """Signal normalization (z-score or robust)."""
 
     def __init__(self, method: Literal['zscore', 'robust'] = 'zscore'):
+        """Initialize normalizer with specified method."""
         self.method = method
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Normalize data to zero mean and unit variance.
-        
+
         Args:
             data: Input data (channels x samples) or (samples,)
-            
+
         Returns:
             Normalized data with same shape
         """
@@ -170,16 +172,17 @@ class Resampler:
     """Resample signals to different sampling rate."""
 
     def __init__(self, original_rate: float, target_rate: float):
+        """Initialize resampler with original and target rates."""
         self.original_rate = original_rate
         self.target_rate = target_rate
         self.ratio = target_rate / original_rate
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Resample data to target rate.
-        
+
         Args:
             data: Input data (channels x samples) or (samples,)
-            
+
         Returns:
             Resampled data
         """
@@ -202,6 +205,7 @@ class PreprocessingPipeline:
     """Complete preprocessing pipeline for EEG data."""
 
     def __init__(self, config: PreprocessingConfig):
+        """Initialize pipeline with configuration."""
         self.config = config
         self.steps: list[BandpassFilter | NotchFilter | Normalizer | Resampler] = []
 
@@ -237,10 +241,10 @@ class PreprocessingPipeline:
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply full preprocessing pipeline.
-        
+
         Args:
             data: Input EEG data (channels x samples)
-            
+
         Returns:
             Preprocessed data
         """
