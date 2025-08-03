@@ -64,7 +64,7 @@ class YASASleepStager:
         sfreq: float = 256,
         ch_names: list[str] | None = None,
         epoch_duration: int = 30
-    ) -> tuple[list[str], list[float], dict[str, any]]:
+    ) -> tuple[list[str], list[float], dict[str, Any]]:
         """Perform sleep staging on EEG data.
 
         Args:
@@ -172,7 +172,7 @@ class YASASleepStager:
         self,
         stages: list[str],
         confidences: list[float]
-    ) -> dict[str, any]:
+    ) -> dict[str, Any]:
         """Calculate sleep quality metrics from staging results."""
         n_epochs = len(stages)
 
@@ -233,7 +233,7 @@ class YASASleepStager:
         self,
         eeg_path: Path,
         output_hypnogram: bool = True
-    ) -> dict[str, any]:
+    ) -> dict[str, Any]:
         """Process a full night recording.
 
         Args:
