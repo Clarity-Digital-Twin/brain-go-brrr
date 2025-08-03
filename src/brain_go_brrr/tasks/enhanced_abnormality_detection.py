@@ -49,6 +49,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         scheduler_type: str = "onecycle",
         freeze_backbone: bool = True,
     ):
+        """Initialize enhanced abnormality detection module."""
         super().__init__()
         self.save_hyperparameters(ignore=['probe'])
 
