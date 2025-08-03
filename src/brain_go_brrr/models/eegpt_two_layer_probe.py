@@ -4,7 +4,7 @@ import logging
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ class LinearWithConstraint(nn.Linear):
     """Linear layer with weight norm constraint."""
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True, max_norm: float = 1.0):
+        """Initialize linear layer with weight normalization constraint."""
         super().__init__(in_features, out_features, bias)
         self.max_norm = max_norm
 
@@ -29,6 +30,7 @@ class Conv1dWithConstraint(nn.Conv1d):
 
     def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 1,
                  stride: int = 1, padding: int = 0, max_norm: float = 1.0):
+        """Initialize 1D convolution with weight normalization constraint."""
         super().__init__(in_channels, out_channels, kernel_size, stride, padding)
         self.max_norm = max_norm
 
@@ -52,7 +54,7 @@ class EEGPTTwoLayerProbe(nn.Module):
 
     def __init__(
         self,
-        backbone_dim: int = 768,
+        backbone_dim: int = 768,  # noqa: ARG002
         n_input_channels: int = 20,
         n_adapted_channels: int = 19,
         hidden_dim: int = 16,
@@ -61,6 +63,7 @@ class EEGPTTwoLayerProbe(nn.Module):
         n_patches: int = 16,  # Number of temporal patches from EEGPT
         use_channel_adapter: bool = True,
     ):
+        """Initialize two-layer probe for EEGPT with channel adaptation."""
         super().__init__()
 
         self.n_input_channels = n_input_channels
@@ -140,7 +143,7 @@ class EEGPTTwoLayerProbe(nn.Module):
         """
         # Flatten patches if needed
         if features.dim() == 3:
-            B, P, D = features.shape
+            batch_size, n_patches, feature_dim = features.shape
             # Option 1: Flatten all patches
             # features = features.flatten(1)  # [B, P*D]
 
@@ -181,6 +184,7 @@ class EEGPTChannelAdapter(nn.Module):
         out_channels: int = 19,
         intermediate_channels: int = 22,
     ):
+        """Initialize channel adapter for EEGPT."""
         super().__init__()
 
         self.expand = Conv1dWithConstraint(

@@ -29,6 +29,7 @@ class TestEEGPTCheckpointLoading:
             pytest.skip(f"Checkpoint not found at {path}")
         return path
 
+    @pytest.mark.slow
     def test_checkpoint_architecture_matches_paper(self, checkpoint_path):
         """Verify checkpoint matches EEGPT paper Table 6 specifications."""
         # Load checkpoint
@@ -55,6 +56,7 @@ class TestEEGPTCheckpointLoading:
             f"Attention qkv weight shape {attn_weight.shape} doesn't match expected (1536, 512)"
         )
 
+    @pytest.mark.slow
     def test_model_loads_all_weights(self, checkpoint_path):
         """Test that model loads all weights without missing keys."""
         # Create model - this should not raise any errors
@@ -83,6 +85,7 @@ class TestEEGPTCheckpointLoading:
             msg="Summary tokens not loaded correctly",
         )
 
+    @pytest.mark.slow
     def test_features_are_discriminative(self, checkpoint_path):
         """Test that EEGPT produces discriminative features for different patterns."""
         # Set seed for deterministic behavior
@@ -143,6 +146,7 @@ class TestEEGPTCheckpointLoading:
 
         print(f"✅ Features are discriminative! Cosine similarity: {cosine_sim:.3f}")
 
+    @pytest.mark.slow
     def test_attention_module_compatibility(self, checkpoint_path):
         """Test that our Attention module is compatible with checkpoint format."""
         model = create_eegpt_model(str(checkpoint_path))
@@ -173,6 +177,7 @@ class TestEEGPTCheckpointLoading:
             f"Proj weight shape mismatch: {model_proj.shape} != {ckpt_proj.shape}"
         )
 
+    @pytest.mark.slow
     def test_model_device_compatibility(self, checkpoint_path):
         """Test model works on available devices."""
         model = create_normalized_eegpt(str(checkpoint_path), normalize=True)

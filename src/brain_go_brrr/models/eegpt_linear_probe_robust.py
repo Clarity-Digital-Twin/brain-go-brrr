@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.nn import functional as F
 
 from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.modules.constraints import LinearWithConstraint
