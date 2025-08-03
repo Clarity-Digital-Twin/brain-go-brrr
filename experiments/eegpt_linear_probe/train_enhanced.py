@@ -30,6 +30,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
 from brain_go_brrr.tasks.enhanced_abnormality_detection import EnhancedAbnormalityDetectionProbe
 from experiments.eegpt_linear_probe.custom_collate import collate_eeg_batch
@@ -159,17 +160,17 @@ def main():
     # Create datasets
     logger.info("Creating enhanced TUAB datasets...")
     
-    # Always use enhanced dataset but with cache_mode parameter
-    DatasetClass = TUABEnhancedDataset
-    cache_mode = getattr(cfg.data, 'cache_mode', 'write')
-    logger.info(f"Using TUABEnhancedDataset with cache_mode='{cache_mode}'")
+    # ALWAYS USE CACHED DATASET FOR FAST LOADING
+    DatasetClass = TUABCachedDataset
+    cache_mode = 'readonly'  # FORCE readonly - never scan files
+    logger.info(f"Using TUABCachedDataset for FAST cached loading")
     
     # Additional kwargs for cached dataset
     extra_kwargs = {}
     if hasattr(cfg.data, 'max_files') and cfg.data.max_files:
         extra_kwargs['max_files'] = cfg.data.max_files
-    if hasattr(cfg.data, 'cache_index_path'):
-        extra_kwargs['cache_index_path'] = Path(cfg.data.cache_index_path)
+    # ALWAYS use the cache index
+    extra_kwargs['cache_index_path'] = data_root / "cache/tuab_index.json"
     
     # Create train dataset with cache_mode
     train_dataset = DatasetClass(
