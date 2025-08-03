@@ -94,7 +94,7 @@ class TestAutoRejectEEGPTIntegration:
 
             # Create and save mock EDF
             info = mne.create_info(ch_names, sfreq, ch_types='eeg')
-            raw = mne.io.RawArray(data, info)
+            mne.io.RawArray(data, info)
 
             # Note: In real tests, we'd use mne.export.export_raw
             # For now, just create empty file as placeholder
@@ -241,7 +241,7 @@ class TestAutoRejectEEGPTIntegration:
         mem_start = process.memory_info().rss / 1024 / 1024  # MB
 
         # Create dataset with AutoReject
-        dataset = TUABEnhancedDataset(
+        TUABEnhancedDataset(
             data_dir=tmp_path,
             split='train',
             use_autoreject=True,
@@ -249,7 +249,7 @@ class TestAutoRejectEEGPTIntegration:
         )
 
         # Simulate loading multiple files
-        for i in range(10):
+        for _i in range(10):
             mock_data = np.random.randn(19, 25600).astype(np.float32)  # 100s @ 256Hz
             # Process would happen here
             del mock_data  # Cleanup

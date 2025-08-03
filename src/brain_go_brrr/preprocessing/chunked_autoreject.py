@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class ChunkedAutoRejectProcessor:
     """Process large datasets with AutoReject using chunking and caching.
-    
+
     Simple approach:
     1. Fit AutoReject on a representative subset
     2. Cache the parameters
@@ -41,7 +41,7 @@ class ChunkedAutoRejectProcessor:
         random_state: int = 42
     ):
         """Initialize processor.
-        
+
         Args:
             cache_dir: Directory for caching fitted parameters
             chunk_size: Number of files to process at once
@@ -73,7 +73,7 @@ class ChunkedAutoRejectProcessor:
 
     def fit_on_subset(self, file_paths: list[Path], n_samples: int = 200) -> None:
         """Fit AutoReject on a representative subset.
-        
+
         Args:
             file_paths: List of EDF file paths
             n_samples: Number of files to use for fitting
@@ -138,11 +138,11 @@ class ChunkedAutoRejectProcessor:
 
     def transform_raw(self, raw: mne.io.Raw, window_adapter: Any) -> mne.io.Raw:
         """Apply fitted AutoReject to raw data.
-        
+
         Args:
             raw: Raw EEG data
             window_adapter: WindowEpochAdapter instance
-            
+
         Returns:
             Cleaned raw data
         """
@@ -166,7 +166,7 @@ class ChunkedAutoRejectProcessor:
 
     def _apply_autoreject(self, epochs: mne.Epochs) -> mne.Epochs:
         """Apply AutoReject with cached parameters.
-        
+
         Simple transform using pre-fitted thresholds.
         """
         ar = self._create_autoreject_from_params()
@@ -239,7 +239,7 @@ class ChunkedAutoRejectProcessor:
 
     def _stratified_sample(self, file_paths: list[Path], n_samples: int) -> list[Path]:
         """Sample files for fitting.
-        
+
         Simple random sampling - could be enhanced with stratification
         by label if needed.
         """

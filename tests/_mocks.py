@@ -101,7 +101,7 @@ def mock_eegpt_model_loading(monkeypatch):
         else:
             # Default duration
             duration = 20 * 60  # 20 minutes
-            
+
         window_size = 4.0  # EEGPT uses 4-second windows
         step_size = window_size * (1 - overlap)
         n_windows = max(1, int((duration - window_size) / step_size) + 1)

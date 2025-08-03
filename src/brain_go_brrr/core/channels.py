@@ -1,18 +1,17 @@
-"""
-Channel mapping and validation for EEG recordings.
+"""Channel mapping and validation for EEG recordings.
+
 Handles conversion from old to modern naming conventions.
 """
-from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass
 
 
 class ChannelMapper:
     """Maps old channel naming conventions to modern standards."""
-    
+
     # Mapping from old to modern naming
     OLD_TO_MODERN = {
         "T3": "T7",
-        "T4": "T8", 
+        "T4": "T8",
         "T5": "P7",
         "T6": "P8",
         # Handle uppercase variations
@@ -23,18 +22,18 @@ class ChannelMapper:
         "PZ": "Pz",
         "OZ": "Oz"
     }
-    
-    def standardize_channel_names(self, channels: List[str]) -> List[str]:
+
+    def standardize_channel_names(self, channels: list[str]) -> list[str]:
         """Convert channel names to modern convention.
-        
+
         Args:
             channels: List of channel names in any convention
-            
+
         Returns:
             List of standardized channel names
         """
         standardized = []
-        
+
         for channel in channels:
             # First check if it needs old->modern mapping
             upper = channel.upper()
@@ -57,13 +56,13 @@ class ChannelMapper:
                         standardized.append(result)
                 else:
                     standardized.append(channel.upper())
-        
+
         return standardized
 
 
 class ChannelValidator:
     """Validates channel availability for EEGPT requirements."""
-    
+
     # Required channels for EEGPT (19 channels)
     REQUIRED_CHANNELS = [
         "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
@@ -71,32 +70,32 @@ class ChannelValidator:
         "P7", "P3", "Pz", "P4", "P8",
         "O1", "O2"
     ]
-    
-    def validate_channels(self, channels: List[str]) -> Tuple[bool, List[str]]:
+
+    def validate_channels(self, channels: list[str]) -> tuple[bool, list[str]]:
         """Check if recording has minimum required channels.
-        
+
         Args:
             channels: List of available channel names
-            
+
         Returns:
             Tuple of (is_valid, missing_channels)
         """
         channel_set = set(channels)
         missing = []
-        
+
         for required in self.REQUIRED_CHANNELS:
             if required not in channel_set:
                 missing.append(required)
-        
+
         is_valid = len(missing) == 0
         return is_valid, missing
-    
-    def get_standard_channel_indices(self, channels: List[str]) -> Dict[str, int]:
+
+    def get_standard_channel_indices(self, channels: list[str]) -> dict[str, int]:
         """Get indices of standard channels in the input list.
-        
+
         Args:
             channels: List of channel names
-            
+
         Returns:
             Dict mapping standard channel names to their indices
         """
@@ -109,7 +108,7 @@ class ChannelValidator:
 
 class ChannelSelector:
     """Selects and reorders channels to standard configuration."""
-    
+
     # Canonical channel order for EEGPT
     CHANNEL_ORDER = [
         "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
@@ -117,26 +116,26 @@ class ChannelSelector:
         "P7", "P3", "Pz", "P4", "P8",
         "O1", "O2"
     ]
-    
-    def select_standard_channels(self, channels: List[str]) -> Tuple[List[str], List[int]]:
+
+    def select_standard_channels(self, channels: list[str]) -> tuple[list[str], list[int]]:
         """Select standard channels in canonical order.
-        
+
         Args:
             channels: List of available channel names
-            
+
         Returns:
             Tuple of (selected_channels, original_indices)
         """
         channel_to_index = {ch: i for i, ch in enumerate(channels)}
-        
+
         selected = []
         indices = []
-        
+
         for standard_ch in self.CHANNEL_ORDER:
             if standard_ch in channel_to_index:
                 selected.append(standard_ch)
                 indices.append(channel_to_index[standard_ch])
-        
+
         return selected, indices
 
 
@@ -144,38 +143,39 @@ class ChannelSelector:
 class ChannelProcessingResult:
     """Result of channel processing pipeline."""
     is_valid: bool
-    standardized_names: List[str]
-    selected_indices: List[int]
-    missing_channels: List[str]
-    selected_channels: List[str]
+    standardized_names: list[str]
+    selected_indices: list[int]
+    missing_channels: list[str]
+    selected_channels: list[str]
 
 
 class ChannelProcessor:
     """Complete channel processing pipeline."""
-    
+
     def __init__(self):
+        """Initialize channel processor with mapper, validator, and selector."""
         self.mapper = ChannelMapper()
         self.validator = ChannelValidator()
         self.selector = ChannelSelector()
-    
-    def process_channels(self, raw_channels: List[str]) -> ChannelProcessingResult:
+
+    def process_channels(self, raw_channels: list[str]) -> ChannelProcessingResult:
         """Process channels through complete pipeline.
-        
+
         Args:
             raw_channels: Raw channel names from EEG file
-            
+
         Returns:
             ChannelProcessingResult with all processing details
         """
         # Step 1: Standardize names
         standardized = self.mapper.standardize_channel_names(raw_channels)
-        
+
         # Step 2: Validate
         is_valid, missing = self.validator.validate_channels(standardized)
-        
+
         # Step 3: Select and reorder
         selected, indices = self.selector.select_standard_channels(standardized)
-        
+
         return ChannelProcessingResult(
             is_valid=is_valid,
             standardized_names=standardized,

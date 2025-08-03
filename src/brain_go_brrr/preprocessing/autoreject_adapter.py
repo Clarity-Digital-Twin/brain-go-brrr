@@ -14,14 +14,14 @@ logger = logging.getLogger(__name__)
 
 class WindowEpochAdapter:
     """Convert between sliding windows and MNE Epochs.
-    
+
     Simple adapter that makes our sliding window approach compatible
     with AutoReject's epoch-based processing.
     """
 
     def __init__(self, window_duration: float = 10.0, window_stride: float = 5.0):
         """Initialize adapter.
-        
+
         Args:
             window_duration: Window length in seconds
             window_stride: Stride between windows in seconds
@@ -32,13 +32,13 @@ class WindowEpochAdapter:
 
     def raw_to_windowed_epochs(self, raw: mne.io.Raw) -> mne.Epochs:
         """Convert raw data to epochs matching our windowing scheme.
-        
+
         Args:
             raw: Continuous raw EEG data
-            
+
         Returns:
             Epochs object with windows as epochs
-            
+
         Raises:
             ValueError: If recording is too short for even one window
         """
@@ -82,13 +82,13 @@ class WindowEpochAdapter:
 
     def epochs_to_continuous(self, epochs_clean: mne.Epochs, original_raw: mne.io.Raw) -> mne.io.Raw:
         """Reconstruct continuous data from cleaned epochs.
-        
+
         Handles overlapping windows by averaging in overlap regions.
-        
+
         Args:
             epochs_clean: Cleaned epochs from AutoReject
             original_raw: Original raw data (for metadata)
-            
+
         Returns:
             Reconstructed continuous raw data
         """
@@ -132,7 +132,7 @@ class WindowEpochAdapter:
 
 class SyntheticPositionGenerator:
     """Generate anatomically valid channel positions for datasets lacking montage info.
-    
+
     Simple, clean approach - just standard 10-20 positions, no magic.
     """
 
@@ -175,10 +175,10 @@ class SyntheticPositionGenerator:
 
     def add_positions_to_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Add synthetic but anatomically valid positions to raw data.
-        
+
         Args:
             raw: Raw EEG data without channel positions
-            
+
         Returns:
             Raw data with added montage
         """
@@ -209,7 +209,7 @@ class SyntheticPositionGenerator:
 
     def _create_circular_positions(self, ch_names: list) -> dict:
         """Create evenly spaced positions on a circle as fallback.
-        
+
         Simple circular arrangement at head level.
         """
         n_channels = len(ch_names)

@@ -26,7 +26,7 @@ class MockEEGGenerator:
         seed: int | None = None
     ) -> mne.io.RawArray:
         """Create mock raw EEG data.
-        
+
         Args:
             duration: Duration in seconds
             sfreq: Sampling frequency
@@ -34,7 +34,7 @@ class MockEEGGenerator:
             ch_names: Channel names (defaults to TUAB channels)
             add_artifacts: Whether to add realistic artifacts
             seed: Random seed for reproducibility
-            
+
         Returns:
             Mock raw EEG data
         """

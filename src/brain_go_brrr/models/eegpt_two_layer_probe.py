@@ -42,7 +42,7 @@ class Conv1dWithConstraint(nn.Conv1d):
 
 class EEGPTTwoLayerProbe(nn.Module):
     """Two-layer probe matching EEGPT paper implementation.
-    
+
     Architecture:
     - Channel adaptation: 20 -> 22 -> 19 channels
     - Linear probe 1: 2048 -> 16 with max_norm=1
@@ -111,10 +111,10 @@ class EEGPTTwoLayerProbe(nn.Module):
 
     def adapt_channels(self, x: torch.Tensor) -> torch.Tensor:
         """Apply channel adaptation if enabled.
-        
+
         Args:
             x: Input tensor [B, C, T]
-            
+
         Returns:
             Adapted tensor [B, C', T]
         """
@@ -129,12 +129,12 @@ class EEGPTTwoLayerProbe(nn.Module):
         return_features: bool = False
     ) -> torch.Tensor:
         """Forward pass matching paper implementation.
-        
+
         Args:
             features: EEGPT output features [B, n_patches, feature_dim]
                      or [B, feature_dim] if using summary tokens
             return_features: If True, return intermediate features
-            
+
         Returns:
             Logits [B, n_classes] or (logits, features) if return_features
         """

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class RobustEEGPTLinearProbe(nn.Module):
     """EEGPT Linear Probe with robust NaN handling.
-    
+
     Key improvements:
     1. Input validation and clipping
     2. Stable normalization with epsilon
@@ -36,7 +36,7 @@ class RobustEEGPTLinearProbe(nn.Module):
         normalization_eps: float = 1e-5,
     ) -> None:
         """Initialize Robust EEGPT Linear Probe.
-        
+
         Args:
             checkpoint_path: Path to pretrained EEGPT checkpoint
             n_input_channels: Number of input EEG channels
@@ -148,10 +148,10 @@ class RobustEEGPTLinearProbe(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with robust error handling.
-        
+
         Args:
             x: Input EEG data [batch, channels, time]
-            
+
         Returns:
             Logits [batch, n_classes]
         """

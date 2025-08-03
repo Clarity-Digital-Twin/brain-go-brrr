@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     """Enhanced Lightning module for EEGPT abnormality detection.
-    
+
     Improvements:
     - Two-layer probe with dropout
     - Layer-wise learning rate decay
@@ -104,10 +104,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through backbone and probe.
-        
+
         Args:
             x: Input tensor [B, C, T]
-            
+
         Returns:
             Logits [B, n_classes]
         """
@@ -174,8 +174,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             return
 
         # Gather all outputs
-        all_logits = torch.cat([x['logits'] for x in self.train_outputs])
-        all_labels = torch.cat([x['labels'] for x in self.train_outputs])
+        torch.cat([x['logits'] for x in self.train_outputs])
+        torch.cat([x['labels'] for x in self.train_outputs])
 
         # Clear stored outputs
         self.train_outputs.clear()

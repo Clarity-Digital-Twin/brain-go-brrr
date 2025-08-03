@@ -117,7 +117,7 @@ class TestWindowEpochAdapter:
         mem_before = process.memory_info().rss / 1024 / 1024  # MB
 
         # Convert to epochs
-        epochs = adapter.raw_to_windowed_epochs(mock_raw_data)
+        _ = adapter.raw_to_windowed_epochs(mock_raw_data)
 
         # Memory shouldn't explode (allow 100MB for overhead)
         mem_after = process.memory_info().rss / 1024 / 1024
@@ -137,7 +137,7 @@ class TestSyntheticPositionGenerator:
         assert 'O1' in generator.STANDARD_1020_POSITIONS
 
         # Check position ranges (head radius ~10cm)
-        for ch_name, pos in generator.STANDARD_1020_POSITIONS.items():
+        for _ch_name, pos in generator.STANDARD_1020_POSITIONS.items():
             radius = np.linalg.norm(pos)
             assert radius < 0.15  # Less than 15cm from origin
             assert radius > 0.01  # Not at origin

@@ -184,8 +184,8 @@ class TestTUABAutoRejectIntegration:
         )
 
         # Create large mock data
-        for i in range(5):
-            mock_raw = MockEEGGenerator.create_raw(
+        for _i in range(5):
+            _ = MockEEGGenerator.create_raw(
                 duration=300.0,  # 5 minutes each
                 sfreq=256,
                 add_artifacts=False  # Speed up
@@ -206,7 +206,7 @@ class TestTUABAutoRejectIntegration:
         """Test AutoReject cache directory is created."""
         cache_dir = temp_dataset_dir / "test_ar_cache"
 
-        dataset = TUABEnhancedDataset(
+        _ = TUABEnhancedDataset(
             root_dir=temp_dataset_dir,
             split="train",
             use_autoreject=True,
