@@ -71,21 +71,37 @@ def mock_eegpt_model_loading(monkeypatch):
         n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
         return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
 
-    def mock_process_recording(self, raw, overlap=0.5, ch_names=None):
+    def mock_process_recording(self, raw=None, data=None, sampling_rate=256, overlap=0.5, ch_names=None, batch_size=32, **kwargs):
         """Mock processing a full MNE Raw recording.
 
         Args:
-            raw: MNE Raw object
+            raw: MNE Raw object (preferred)
+            data: Raw numpy array (alternative API)
+            sampling_rate: Sampling rate if data is provided
             overlap: Window overlap fraction (0-1)
             ch_names: Channel names (unused in mock)
+            batch_size: Batch size for processing (unused in mock)
+            **kwargs: Additional arguments (ignored)
 
         Returns:
             dict: Results containing:
                 - features: (n_windows, n_summary_tokens, 512) array
                 - n_windows: Number of windows extracted
                 - window_times: List of (start, end) tuples for each window
+                - processing_complete: True (for memory test)
+                - abnormal_probability: 0.15 (for other tests)
+                - confidence: 0.85 (for other tests)
         """
-        duration = raw.times[-1]
+        # Handle both raw and data arguments
+        if raw is not None:
+            duration = raw.times[-1]
+        elif data is not None:
+            # Assume data is (n_channels, n_samples)
+            duration = data.shape[1] / sampling_rate
+        else:
+            # Default duration
+            duration = 20 * 60  # 20 minutes
+            
         window_size = 4.0  # EEGPT uses 4-second windows
         step_size = window_size * (1 - overlap)
         n_windows = max(1, int((duration - window_size) / step_size) + 1)
@@ -98,6 +114,9 @@ def mock_eegpt_model_loading(monkeypatch):
                 (i * step_size, min(i * step_size + window_size, duration))
                 for i in range(n_windows)
             ],
+            "processing_complete": True,
+            "abnormal_probability": 0.15,
+            "confidence": 0.85,
         }
 
     # Apply all mocks

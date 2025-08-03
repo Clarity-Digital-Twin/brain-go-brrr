@@ -1,6 +1,13 @@
+# DEPRECATED - DO NOT USE - CAUSES INFINITE LOOP
+# This config was for testing cached dataset but has issues:
+# - Uses MemoryMappedCache which causes dataloader to loop infinitely  
+# - Window parameters (5.12s @ 200Hz) don't match cached data (8s @ 256Hz)
+# - Was looping on same files for 11+ hours
+# Use tuab_cached_baseline.yaml instead for cached data
+#
 # FAST CACHED CONFIG - NO MORE WAITING!
 experiment:
-  name: tuab_cached_fast
+  name: tuab_cached_fast_DEPRECATED_DO_NOT_USE
   seed: 42
   precision: 16
 

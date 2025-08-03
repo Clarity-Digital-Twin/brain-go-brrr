@@ -366,3 +366,14 @@ def mock_eegpt_model(monkeypatch):
     from ._mocks import mock_eegpt_model_loading
 
     mock_eegpt_model_loading(monkeypatch)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_autoreject_cache(tmp_path_factory):
+    """Isolate AutoReject cache to temp directory for tests."""
+    tmp = tmp_path_factory.mktemp("ar_cache")
+    import os
+    os.environ["BGB_AR_CACHE_DIR"] = str(tmp)
+    yield
+    import shutil
+    shutil.rmtree(tmp, ignore_errors=True)

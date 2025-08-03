@@ -1,8 +1,6 @@
-# Enhanced TUAB configuration matching EEGPT paper specifications
-# WARNING: This uses 10.24s windows @ 200Hz - NOT compatible with existing cached data (8s @ 256Hz)
-# If you have cached data from previous runs, it will be regenerated!
+# Baseline TUAB configuration matching cached windows (8s @ 256Hz)
 experiment:
-  name: "tuab_enhanced_10s_200hz"
+  name: "tuab_baseline_8s_256hz"
   seed: 42
   precision: 32  # Full precision for stability
   
@@ -29,21 +27,21 @@ data:
   root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
   cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
   
-  # STANDARDIZED: Using 8s @ 256Hz for consistency
+  # Match cached windows
   window_duration: 8.0    # 8 seconds = 2048 samples @ 256Hz
-  window_stride: 4.0      # 50% overlap for training
-  sampling_rate: 256      # 256 Hz standard
+  window_stride: 4.0      # 50% overlap
+  sampling_rate: 256      # Match cached data
   
-  # Standard preprocessing
+  # Preprocessing to match cached
   bandpass_low: 0.5       # Standard low
   bandpass_high: 50.0     # Standard high
-  notch_filter: null      # No notch for standard config
+  notch_filter: null      # No notch in cached data
   
   # Data loading
-  batch_size: 64         # Reduced from 100 to prevent OOM (will use gradient accumulation)
-  num_workers: 2         # Further reduced to prevent system OOM
+  batch_size: 64         # Reasonable batch size
+  num_workers: 2         # Prevent system OOM
   pin_memory: true
-  persistent_workers: false  # Disable to save memory
+  persistent_workers: false
   
   # Channel configuration
   channel_names: [
@@ -53,23 +51,16 @@ data:
     'O1', 'O2'  # 19 channels total
   ]
   
-  # AutoReject settings (disabled by default)
+  # AutoReject settings (disabled for baseline)
   use_autoreject: false
-  ar_cache_dir: "${BGB_DATA_ROOT}/cache/autoreject"
-  ar_fit_samples: 200
-  ar_n_interpolate: [1, 4]
-  ar_consensus: 0.1
-  
-  # Cache mode - set to "readonly" after building cache
-  cache_mode: "write"
   
 training:
   epochs: 20             # Reasonable for baseline test
   learning_rate: 5e-4
-  weight_decay: 0.05     # Match paper (was 0.01)
+  weight_decay: 0.05     # Standard weight decay
   
   # Warmup settings
-  warmup_epochs: 5       # Match paper
+  warmup_epochs: 5
   warmup_lr: 1e-6
   min_lr: 1e-6
   
@@ -80,10 +71,10 @@ training:
   
   # Gradient clipping
   gradient_clip_val: 1.0
-  accumulate_grad_batches: 2  # 64 * 2 = 128 effective batch size (close to paper's 100)
+  accumulate_grad_batches: 2  # 64 * 2 = 128 effective batch size
   
   # Layer decay for different learning rates
-  layer_decay: 0.65      # Match paper
+  layer_decay: 0.65
   
   # Scheduler  
   scheduler: "onecycle"
@@ -98,7 +89,7 @@ training:
   val_check_interval: 0.5  # Check twice per epoch
   
   # Model averaging
-  use_ema: false  # Paper doesn't mention EMA
+  use_ema: false
   
 evaluation:
   metrics: ["auroc", "accuracy", "balanced_accuracy", "f1_weighted"]

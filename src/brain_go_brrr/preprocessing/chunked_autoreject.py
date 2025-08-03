@@ -5,6 +5,7 @@ Just works with large datasets without OOM.
 """
 
 import logging
+import os
 import pickle
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,12 @@ class ChunkedAutoRejectProcessor:
             consensus: AutoReject consensus parameter
             random_state: Random seed for reproducibility
         """
-        self.cache_dir = Path(cache_dir)
+        # Use env var if available
+        env_cache = os.environ.get("BGB_AR_CACHE_DIR")
+        if env_cache:
+            self.cache_dir = Path(env_cache)
+        else:
+            self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
         self.chunk_size = chunk_size
         self.n_interpolate = n_interpolate or [1, 4]
