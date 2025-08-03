@@ -172,47 +172,29 @@ def main():
     # ALWAYS use the cache index
     extra_kwargs['cache_index_path'] = data_root / "cache/tuab_index.json"
     
-    # Create train dataset with cache_mode
+    # Create train dataset - ONLY pass parameters TUABCachedDataset accepts
     train_dataset = DatasetClass(
         root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
         split="train",
         window_duration=cfg.data.window_duration,
         window_stride=cfg.data.window_stride,
         sampling_rate=cfg.data.sampling_rate,
-        channels=cfg.data.channel_names,
         preload=False,
         normalize=True,
-        bandpass_low=cfg.data.bandpass_low,
-        bandpass_high=cfg.data.bandpass_high,
-        notch_freq=cfg.data.notch_filter,
         cache_dir=data_root / "cache/tuab_enhanced",
-        use_old_naming=True,
-        n_jobs=4,
-        use_autoreject=getattr(cfg.data, 'use_autoreject', False),
-        ar_cache_dir=str(data_root / "cache/autoreject"),
-        cache_mode=cache_mode,  # Pass cache_mode from config
         **extra_kwargs
     )
     
-    # Create val dataset with cache_mode
+    # Create val dataset - ONLY pass parameters TUABCachedDataset accepts
     val_dataset = DatasetClass(
         root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
         split="eval",
         window_duration=cfg.data.window_duration,
         window_stride=cfg.data.window_duration,  # No overlap for validation
         sampling_rate=cfg.data.sampling_rate,
-        channels=cfg.data.channel_names,
         preload=False,
         normalize=True,
-        bandpass_low=cfg.data.bandpass_low,
-        bandpass_high=cfg.data.bandpass_high,
-        notch_freq=cfg.data.notch_filter,
         cache_dir=data_root / "cache/tuab_enhanced",
-        use_old_naming=True,
-        n_jobs=4,
-        use_autoreject=getattr(cfg.data, 'use_autoreject', False),
-        ar_cache_dir=str(data_root / "cache/autoreject"),
-        cache_mode=cache_mode,  # Pass cache_mode from config
         **extra_kwargs
     )
     
