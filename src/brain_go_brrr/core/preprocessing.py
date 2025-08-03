@@ -42,10 +42,10 @@ class BandpassFilter:
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply bandpass filter to data.
-        
+
         Args:
             data: Input data (channels x samples) or (samples,)
-            
+
         Returns:
             Filtered data with same shape
         """
