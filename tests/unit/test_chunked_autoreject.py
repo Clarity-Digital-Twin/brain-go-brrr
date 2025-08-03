@@ -11,6 +11,12 @@ import pytest
 from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
 
 
+@pytest.fixture(autouse=True)
+def _isolate_tests(tmp_path, monkeypatch):
+    """Isolate each test with its own temporary directory."""
+    monkeypatch.chdir(tmp_path)
+
+
 class TestChunkedAutoRejectProcessor:
     """Test memory-efficient AutoReject processing."""
 
@@ -265,7 +271,6 @@ class TestChunkedAutoRejectProcessor:
         # Should not accumulate memory (allow 100MB overhead)
         assert memory_increase < 100, f"Memory increased by {memory_increase}MB"
 
-    @pytest.mark.skip(reason="Flaky test - passes in isolation but fails in suite")
     def test_error_handling_missing_cache(self, temp_cache_dir):
         """Test error handling when cache is missing."""
         # Create processor with fresh cache directory
