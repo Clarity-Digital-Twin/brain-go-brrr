@@ -71,6 +71,8 @@ def main():
         d[keys[-1]] = value
     
     cfg = OmegaConf.create(config)
+    # Resolve environment variables
+    OmegaConf.resolve(cfg)
     
     logger.info("=" * 80)
     logger.info("CACHED DATALOADER SMOKE TEST")
