@@ -52,7 +52,7 @@ def build_cache(split="train", max_files=None):
         "bandpass_low": 0.5,
         "bandpass_high": 50.0,
         "notch_freq": None,          # Use correct parameter name
-        "preload": True,             # Forces immediate cache generation
+        "preload": False,            # Don't load all files into memory!
         "normalize": True,
         "use_autoreject": False,     # Skip AR for cache building
         "cache_dir": cache_dir,
@@ -84,10 +84,20 @@ def build_cache(split="train", max_files=None):
     n_windows = len(dataset)
     logger.info(f"Dataset has {n_windows} windows")
     
-    # Optionally iterate through a few samples to verify
-    logger.info("Verifying cache by loading first 10 windows...")
-    for i in tqdm(range(min(10, n_windows)), desc="Verification"):
-        _ = dataset[i]
+    # Force cache generation by iterating through ALL windows
+    logger.info(f"Generating cache for {n_windows} windows...")
+    logger.info("This will take a while, but only needs to be done once!")
+    
+    # Process in batches to show progress
+    batch_size = 1000
+    for start_idx in tqdm(range(0, n_windows, batch_size), desc=f"Building {split} cache"):
+        end_idx = min(start_idx + batch_size, n_windows)
+        for i in range(start_idx, end_idx):
+            try:
+                _ = dataset[i]  # This triggers cache writing
+            except Exception as e:
+                logger.warning(f"Failed to cache window {i}: {e}")
+                continue
     
     elapsed = time.time() - start_time
     logger.info(f"Cache building for {split} completed in {elapsed:.1f} seconds")
