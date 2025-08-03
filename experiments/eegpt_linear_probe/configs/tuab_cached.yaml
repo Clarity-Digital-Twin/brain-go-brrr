@@ -29,7 +29,7 @@ data:
   
   # USE CACHED DATASET FOR FAST LOADING
   use_cached_dataset: true
-  cache_mode: "readonly"  # Never regenerate cache
+  cache_mode: "write"  # Use write mode to allow cache access
   
   # Window specifications MUST MATCH CACHE
   window_duration: 8.0    # 8 seconds (cache was built with this)
