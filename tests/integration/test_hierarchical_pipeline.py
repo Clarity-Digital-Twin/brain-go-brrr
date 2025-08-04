@@ -74,11 +74,12 @@ class TestHierarchicalPipeline:
 
         # Create mock abnormal EEG data with spike-like patterns
         abnormal_eeg = np.random.randn(19, 2048)
-        # Add artificial spikes
+        # Add artificial spikes with high amplitude (>30 to trigger abnormality)
         for ch in range(5):  # Add spikes to first 5 channels
             spike_times = [500, 1000, 1500]
             for t in spike_times:
-                abnormal_eeg[ch, t : t + 10] += 5 * np.exp(-np.arange(10) / 2)
+                # Create high amplitude spikes (max ~50) to trigger abnormality detection
+                abnormal_eeg[ch, t : t + 10] += 50 * np.exp(-np.arange(10) / 2)
 
         result = pipeline.analyze(abnormal_eeg)
 

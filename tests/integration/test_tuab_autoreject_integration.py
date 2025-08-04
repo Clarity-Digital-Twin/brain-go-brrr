@@ -201,10 +201,16 @@ class TestTUABAutoRejectIntegration:
         """Test AutoReject cache directory is created."""
         cache_dir = temp_dataset_dir / "test_ar_cache"
         
-        # Create required directory structure
+        # Create required directory structure with both normal and abnormal dirs
         train_dir = temp_dataset_dir / "train"
         normal_dir = train_dir / "normal"
+        abnormal_dir = train_dir / "abnormal"
         normal_dir.mkdir(parents=True, exist_ok=True)
+        abnormal_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create dummy EDF files so dataset finds something
+        (normal_dir / "dummy.edf").touch()
+        (abnormal_dir / "dummy.edf").touch()
 
         _ = TUABEnhancedDataset(
             root_dir=temp_dataset_dir, split="train", use_autoreject=True, ar_cache_dir=cache_dir
