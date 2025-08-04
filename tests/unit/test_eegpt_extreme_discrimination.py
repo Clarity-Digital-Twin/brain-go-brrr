@@ -115,7 +115,7 @@ def test_check_averaging_bug():
     # and equal to the mean of 0-18 = 9
     np.mean(range(19))  # Should be 9
 
-    for i in range(4):
+    for _i in range(4):
         pass
 
     # Check if tokens are just copies
