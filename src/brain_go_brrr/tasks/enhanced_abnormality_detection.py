@@ -72,8 +72,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             )
         self.probe = probe
 
-        # Loss function with label smoothing
-        self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+        # Loss function - NO label smoothing for binary classification to avoid NaN
+        self.criterion = nn.CrossEntropyLoss()
 
         # Metrics storage
         self.train_outputs: list[dict[str, Any]] = []
