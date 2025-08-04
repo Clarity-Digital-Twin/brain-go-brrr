@@ -11,6 +11,7 @@ from typing import Any
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
@@ -113,7 +114,7 @@ class SleepAnalyzer:
 
         return raw_copy
 
-    def _smooth_hypnogram(self, hypnogram: np.ndarray, window_min: float = 7.5) -> np.ndarray:
+    def _smooth_hypnogram(self, hypnogram: npt.NDArray[np.str_], window_min: float = 7.5) -> npt.NDArray[np.str_]:
         """Apply temporal smoothing to hypnogram using triangular window.
 
         This implements YASA's default smoothing approach using a
@@ -158,12 +159,12 @@ class SleepAnalyzer:
         eeg_name: str = "C3-A2",
         eog_name: str = "EOG",
         emg_name: str = "EMG",
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
         picks: str | list[str] | None = None,
         return_proba: bool = False,
         apply_smoothing: bool = False,
         smoothing_window_min: float = 7.5,
-    ) -> tuple[np.ndarray, np.ndarray] | np.ndarray:
+    ) -> tuple[npt.NDArray[np.str_], npt.NDArray[np.float64]] | npt.NDArray[np.str_]:
         """Perform automatic sleep staging.
 
         Args:
@@ -283,8 +284,8 @@ class SleepAnalyzer:
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages
     def calculate_sleep_metrics(
-        self, raw_or_hypnogram: mne.io.BaseRaw | np.ndarray, epoch_length: float = 30.0
-    ) -> dict:
+        self, raw_or_hypnogram: mne.io.BaseRaw | npt.NDArray[np.str_], epoch_length: float = 30.0
+    ) -> dict[str, Any]:
         """Calculate sleep metrics from Raw object or hypnogram array.
 
         This method provides compatibility with tests expecting calculate_sleep_metrics.
@@ -305,7 +306,7 @@ class SleepAnalyzer:
 
         return self.compute_sleep_statistics(hypnogram, epoch_length)
 
-    def compute_sleep_statistics(self, hypnogram: np.ndarray, epoch_length: float = 30.0) -> dict:
+    def compute_sleep_statistics(self, hypnogram: npt.NDArray[np.str_], epoch_length: float = 30.0) -> dict[str, Any]:
         """Compute comprehensive sleep statistics.
 
         Args:
@@ -364,7 +365,7 @@ class SleepAnalyzer:
     def detect_sleep_events(
         self,
         raw: mne.io.Raw,
-        hypnogram: np.ndarray,
+        hypnogram: npt.NDArray[np.str_],
         include_spindles: bool = True,
         include_so: bool = True,
         include_rem: bool = True,
@@ -443,7 +444,7 @@ class SleepAnalyzer:
 
     def generate_hypnogram(
         self,
-        hypnogram: np.ndarray,
+        hypnogram: npt.NDArray[np.str_],
         epoch_length: float = 30.0,
         save_path: Path | None = None,
     ) -> dict:
