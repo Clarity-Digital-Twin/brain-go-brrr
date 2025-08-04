@@ -56,7 +56,7 @@ def test_extreme_pattern_discrimination():
     for _i, (_name, feat) in enumerate(
         [("zeros", feat_zeros), ("ones", feat_ones), ("noise", feat_noise), ("spikes", feat_spikes)]
     ):
-        for j in range(4):
+        for _j in range(4):
             pass
 
         # Check if all tokens are identical
