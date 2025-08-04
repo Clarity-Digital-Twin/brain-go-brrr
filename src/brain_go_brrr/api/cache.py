@@ -21,8 +21,10 @@ class RedisCache:
 
     def __init__(
         self, *args: Any, **kwargs: Any
-    ) -> None:  # noqa: ARG002 - Accepts args for drop-in compatibility, delegates to infra.cache
+    ) -> None:
         """Initialize using infra cache."""
+        # Accept args/kwargs but don't use them (for interface compatibility)
+        _ = (args, kwargs)  # Mark as intentionally unused
         self._cache = get_infra_cache()
         self.connected = self._cache.connected
 

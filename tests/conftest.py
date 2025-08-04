@@ -287,8 +287,9 @@ def tiny_edf(tmp_path_factory):
         },
     )
 
-    # Write 1 second of zero data (256 samples at 256 Hz)
-    data = np.zeros(256, dtype=np.int32)
+    # Write 30 seconds of zero data (7680 samples at 256 Hz)
+    # This gives us 7 windows of 4 seconds each for EEGPT
+    data = np.zeros(30 * 256, dtype=np.int32)
     writer.writeDigitalSamples(data)
 
     # Close the writer to finalize the file

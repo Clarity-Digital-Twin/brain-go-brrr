@@ -145,8 +145,8 @@ class TestRedisCaching:
                     "transducer": "AgAgCl electrode",
                 },
             )
-            # Write different data pattern
-            data = np.sin(np.linspace(0, 2 * np.pi, 256)) * 1000
+            # Write different data pattern - 30 seconds for proper testing
+            data = np.sin(np.linspace(0, 2 * np.pi * 30, 30 * 256)) * 1000
             writer.writeDigitalSamples(data.astype(np.int32))
             writer.close()
 

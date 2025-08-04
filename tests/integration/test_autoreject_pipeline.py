@@ -1,5 +1,6 @@
 """Integration tests for complete AutoReject pipeline with EEGPT."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import mne
@@ -130,7 +131,6 @@ class TestAutoRejectEEGPTIntegration:
 
         return files
 
-    @pytest.mark.skip(reason="Outdated mocking - pandas import has changed")
     def test_dataset_initialization_with_autoreject(
         self, mock_tuab_config, mock_edf_files, tmp_path
     ):
@@ -138,28 +138,32 @@ class TestAutoRejectEEGPTIntegration:
         # Given: Configuration with AutoReject enabled
         config = mock_tuab_config
 
+        # Create the expected directory structure for TUAB dataset
+        data_dir = Path(config["data_config"]["data_dir"])
+        train_dir = data_dir / "train"
+        normal_dir = train_dir / "normal"
+        abnormal_dir = train_dir / "abnormal"
+
+        normal_dir.mkdir(parents=True, exist_ok=True)
+        abnormal_dir.mkdir(parents=True, exist_ok=True)
+
+        # Move mock EDF files to the appropriate directories
+        for i, edf_file in enumerate(mock_edf_files):
+            if i % 2 == 0:
+                edf_file.rename(normal_dir / edf_file.name)
+            else:
+                edf_file.rename(abnormal_dir / edf_file.name)
+
         # When: Creating dataset with AutoReject
-        with patch("brain_go_brrr.data.tuab_enhanced_dataset.pd.read_csv") as mock_read_csv:
-            # Mock labels
-            import pandas as pd
-
-            mock_labels = pd.DataFrame(
-                {
-                    "filename": [f.name for f in mock_edf_files],
-                    "label": [i % 2 for i in range(len(mock_edf_files))],
-                }
-            )
-            mock_read_csv.return_value = mock_labels
-
-            dataset = TUABEnhancedDataset(
-                data_dir=config["data_config"]["data_dir"],
-                split="train",
-                use_autoreject=True,
-                ar_cache_dir=config["data_config"]["ar_cache_dir"],
-                window_duration=config["data_config"]["window_duration"],
-                window_stride=config["data_config"]["window_stride"],
-                sampling_rate=config["data_config"]["sampling_rate"],
-            )
+        dataset = TUABEnhancedDataset(
+            root_dir=config["data_config"]["data_dir"],
+            split="train",
+            use_autoreject=True,
+            ar_cache_dir=config["data_config"]["ar_cache_dir"],
+            window_duration=config["data_config"]["window_duration"],
+            window_stride=config["data_config"]["window_stride"],
+            sampling_rate=config["data_config"]["sampling_rate"],
+        )
 
         # Then: Should have AutoReject components initialized
         assert dataset.use_autoreject is True

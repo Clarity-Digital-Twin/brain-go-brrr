@@ -33,7 +33,6 @@ class TestRotaryEmbeddingFix:
         # Check that freqs has correct shape for apply_rotary_emb
         assert freqs is not None
         assert freqs.shape[0] == seq_len  # Should match sequence length
-        print(f"✅ RoPE freqs shape: {freqs.shape}")
 
     def test_apply_rotary_pos_emb_shapes(self):
         """Test that apply_rotary_pos_emb handles shapes correctly."""
@@ -74,7 +73,6 @@ class TestRotaryEmbeddingFix:
 
         # Then: Output should have correct shape
         assert output.shape == (batch_size, seq_len, embed_dim)
-        print(f"✅ Attention output shape: {output.shape}")
 
     def test_eeg_transformer_forward_pass(self):
         """Test full EEG transformer forward pass."""
@@ -100,8 +98,6 @@ class TestRotaryEmbeddingFix:
         # Then: Output should have correct shape (summary tokens)
         expected_shape = (batch_size, 4, 512)  # 4 summary tokens, embed_dim=512
         assert output.shape == expected_shape, f"Expected {expected_shape}, got {output.shape}"
-        print(f"✅ EEG Transformer output shape: {output.shape}")
-        print("✅ Summary tokens extracted correctly")
 
     def test_patch_embedding_calculation(self):
         """Test that patch embedding calculations are correct."""

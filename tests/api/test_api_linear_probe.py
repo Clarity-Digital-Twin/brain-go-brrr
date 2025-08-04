@@ -58,8 +58,7 @@ class TestAPILinearProbeIntegration:
             response = client.post("/api/v1/eeg/sleep/stages", files=files)
 
             if response.status_code != 200:
-                print(f"Response status: {response.status_code}")
-                print(f"Response body: {response.text}")
+                pass
             assert response.status_code == 200
             data = response.json()
 
@@ -175,7 +174,7 @@ class TestAPILinearProbeIntegration:
         # Write 30 seconds of data (7680 samples at 256 Hz) to get 7 windows
         # Create data for all channels at once
         all_data = []
-        for ch in range(19):
+        for _ch in range(19):
             # 30 seconds of data per channel
             channel_data = np.random.randint(-100, 100, 30 * 256, dtype=np.int32)
             all_data.append(channel_data)

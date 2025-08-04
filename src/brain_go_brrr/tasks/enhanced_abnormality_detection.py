@@ -175,8 +175,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def validation_step(
         self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> None:  # noqa: ARG002
+    ) -> None:
         """Validation step."""
+        _ = batch_idx  # Required by PyTorch Lightning interface
         x, y = batch
 
         # Forward pass

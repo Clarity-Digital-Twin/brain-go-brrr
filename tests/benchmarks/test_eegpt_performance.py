@@ -126,7 +126,6 @@ class TestSingleWindowBenchmarks:
                 inference_time_ms = benchmark.stats.mean * 1000
             except AttributeError:
                 # Skip performance check if stats not available
-                print(f"Benchmark stats: {benchmark.stats}")
                 inference_time_ms = 0  # Will skip assertion
         if inference_time_ms > 0:
             # Use complexity model for adaptive budget
@@ -165,7 +164,6 @@ class TestSingleWindowBenchmarks:
                 inference_time_ms = benchmark.stats.mean * 1000
             except AttributeError:
                 # Skip performance check if stats not available
-                print(f"Benchmark stats: {benchmark.stats}")
                 inference_time_ms = 0  # Will skip assertion
         if inference_time_ms > 0:
             assert inference_time_ms < SINGLE_WINDOW_TARGET_MS / 2, (
@@ -249,7 +247,6 @@ class TestBatchProcessingBenchmarks:
             try:
                 batch_time = benchmark.stats.mean
             except AttributeError:
-                print(f"Benchmark stats: {benchmark.stats}")
                 batch_time = 0.1  # Default fallback
 
         # Verify result shape
@@ -515,12 +512,9 @@ class TestPerformanceComparison:
         elif cpu_mean_time is None:
             cpu_mean_time = 1.0  # Default to avoid division by zero
 
-        speedup = cpu_mean_time / gpu_time
+        cpu_mean_time / gpu_time
 
         # Document the comparison
-        print(f"\nCPU time: {cpu_mean_time * 1000:.1f}ms")
-        print(f"GPU time: {gpu_time * 1000:.1f}ms")
-        print(f"GPU speedup: {speedup:.1f}x")
 
         # Both should produce same results (within floating point precision)
         cpu_result = eegpt_model_cpu.extract_features(data, ch_names)
@@ -566,9 +560,6 @@ class TestPerformanceComparison:
         # Calculate speedup
         speedup = cpu_time / gpu_time
 
-        print(f"\nBatch CPU time: {cpu_time * 1000:.1f}ms")
-        print(f"Batch GPU time: {gpu_time * 1000:.1f}ms")
-        print(f"GPU speedup: {speedup:.1f}x")
 
         # GPU should be faster for batch processing, but may vary by hardware
         # Check if we're in a CI environment with known GPU performance
