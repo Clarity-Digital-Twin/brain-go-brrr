@@ -99,7 +99,6 @@ def create_app() -> FastAPI:
     # Dual-mount for backward compatibility - mount eegpt router at both locations
     # The router already has /eeg/eegpt prefix, so we need to modify it
     # Create a new router instance with different prefix for backward compatibility
-    from brain_go_brrr.api.routers import eegpt as eegpt_module
     # Import the router creation logic
     eegpt_compat_router = APIRouter(prefix="/eegpt", tags=["eegpt (deprecated)"])
     
