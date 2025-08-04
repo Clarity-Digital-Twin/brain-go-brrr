@@ -1,4 +1,10 @@
-"""Enhanced abnormality detection probe with paper-matching features."""
+"""Enhanced abnormality detection probe with paper-matching features.
+
+WARNING: This module uses PyTorch Lightning which has a CRITICAL BUG in v2.5.2
+that causes training to hang with large cached datasets (>100k samples).
+DO NOT USE for training! Use experiments/eegpt_linear_probe/train_pytorch_stable.py instead.
+See experiments/eegpt_linear_probe/LIGHTNING_BUG_REPORT.md for details.
+"""
 
 import logging
 from typing import Any
@@ -135,13 +141,13 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Forward pass
         logits = self(x)
-        
+
         # Safety check for NaN in logits
         if torch.isnan(logits).any():
             raise RuntimeError(f"NaN detected in logits at step {self.global_step}")
-        
+
         loss = self.criterion(logits, y)
-        
+
         # Safety check for NaN in loss
         if torch.isnan(loss) or torch.isinf(loss):
             raise RuntimeError(f"Loss became NaN/Inf at step {self.global_step}: {loss.item()}")
@@ -268,19 +274,12 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
         else:
             # Simple warmup + cosine annealing
-            from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
+            from torch.optim.lr_scheduler import CosineAnnealingLR
 
             def warmup_lambda(epoch: int) -> float:
                 if epoch < self.hparams.warmup_epochs:
                     return float(epoch) / float(self.hparams.warmup_epochs)
                 return 1.0
-
-            warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
-            cosine_scheduler = CosineAnnealingLR(
-                optimizer,
-                T_max=self.hparams.total_epochs - self.hparams.warmup_epochs,
-                eta_min=1e-6,
-            )
 
             # Use only cosine scheduler (warmup is handled by OneCycleLR-like behavior)
             scheduler = CosineAnnealingLR(
@@ -288,7 +287,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 T_max=self.trainer.estimated_stepping_batches,
                 eta_min=1e-6,
             )
-            
+
             return {
                 'optimizer': optimizer,
                 'lr_scheduler': {
