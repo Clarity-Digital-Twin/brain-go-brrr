@@ -10,6 +10,13 @@ def collate_eeg_batch_fixed(batch: List[Tuple[torch.Tensor, int]]) -> Tuple[torc
     Some cached samples have 19 channels, others have 20. This function
     ensures all samples have the same number of channels by padding with zeros.
     """
+    # First check for NaN/Inf in input data
+    for i, (data, label) in enumerate(batch):
+        if not torch.isfinite(data).all():
+            raise RuntimeError(f"NaN/Inf detected in batch sample {i} before collation")
+        if data.abs().max() > 1000:
+            raise RuntimeError(f"Extreme values in batch sample {i}: max={data.abs().max():.2f}")
+    
     # Find the maximum number of channels
     max_channels = max(sample[0].shape[0] for sample in batch)
     
