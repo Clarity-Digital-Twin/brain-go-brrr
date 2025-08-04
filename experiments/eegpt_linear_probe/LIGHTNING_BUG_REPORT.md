@@ -41,9 +41,10 @@ Lightning's dataloader length estimation code enters an infinite loop or deadloc
 **DO NOT USE PYTORCH LIGHTNING FOR THIS PROJECT**
 
 Use pure PyTorch training loop:
-- `experiments/eegpt_linear_probe/train_pytorch_stable.py`
-- Works perfectly with same dataset/model
-- Training at ~2.4 it/s
+- `train_pytorch_nan_safe.py` - **RECOMMENDED** - Includes NaN protection
+- `train_pytorch_stable.py` - Basic version without NaN protection
+- Both work perfectly with same dataset/model
+- Training at ~10 it/s (much faster than Lightning would be)
 
 ## Evidence
 1. Standalone dataloader test passes (loads 3 batches in <1s)
