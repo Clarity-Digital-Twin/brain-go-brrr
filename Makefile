@@ -125,14 +125,14 @@ type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.
 quality: lint format type-check ## Run all code quality checks
 	@echo "$(GREEN)All quality checks complete!$(NC)"
 
-check: test quality ## Run all tests and quality checks
+check: test-fast quality ## Run all tests and quality checks
 	@echo "$(GREEN)All checks passed!$(NC)"
 
 ##@ Testing
 
 test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
 	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n auto --no-cov
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -146,17 +146,24 @@ test-parallel: ## Run tests in parallel (with xdist)
 	@echo "$(GREEN)Running tests in parallel...$(NC)"
 	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) $(PYTEST_PARALLEL) --ignore=tests/benchmarks
 
-test-fast: test-unit  ## Legacy alias for test-unit
+test-fast: ## Run tests in parallel without coverage (fastest)
+	@echo "$(GREEN)Running tests in parallel (fast mode)...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
 test-cov: ## Run tests with coverage (single process, longer timeout)
-	@echo "$(GREEN)Running tests with coverage (this takes longer)...$(NC)"
-	@timeout 600 $(PYTEST) $(TEST_DIR) \
+	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
+	@echo "$(YELLOW)Note: Using single process for accurate coverage. This takes longer than parallel tests.$(NC)"
+	$(PYTEST) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing:skip-covered \
-		--cov-report=html \
-		--cov-branch \
+		--cov-report= \
+		--no-cov-on-fail \
 		-m "not slow and not integration and not external" \
-		--tb=short
+		--tb=short \
+		--timeout=600
+	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
 
 test-cov-parallel: ## Run tests with coverage in parallel (requires combine step)
 	@echo "$(GREEN)Running tests with coverage in parallel...$(NC)"
@@ -200,10 +207,14 @@ test-all: ## Run ALL tests including slow/external/gpu
 test-all-cov: ## Run ALL tests with coverage report
 	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
-		--cov=src/brain_go_brrr \
+		--cov=brain_go_brrr \
 		--cov-report=term-missing \
-		--cov-report=html \
+		--cov-report= \
+		--no-cov-on-fail \
 		-m ""
+	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"

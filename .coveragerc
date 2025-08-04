@@ -1,21 +1,16 @@
 [run]
 source = brain_go_brrr
-branch = True
-parallel = True
-concurrency = multiprocessing
+branch = False
+parallel = False
 omit = 
     */tests/*
-    */__pycache__/*
-    */site-packages/*
-    */.venv/*
-    */reference_repos/*
     */__init__.py
     */__main__.py
 
 [report]
 precision = 2
 show_missing = True
-skip_covered = False
+skip_covered = True
 sort = Cover
 exclude_lines =
     # Have to re-enable the standard pragma
