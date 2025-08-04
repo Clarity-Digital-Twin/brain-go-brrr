@@ -13,7 +13,7 @@ def fix_typer_decorators(file_path: Path) -> None:
     modified = False
     new_lines = []
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         # Check if this is a Typer decorator without type: ignore
         if re.match(r"^\s*@app\.(command|callback)", line) and "# type: ignore" not in line:
             # Add type: ignore[misc]

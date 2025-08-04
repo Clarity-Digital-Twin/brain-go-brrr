@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the normalization fix works"""
+"""Verify the normalization fix works."""
 
 import sys
 from pathlib import Path

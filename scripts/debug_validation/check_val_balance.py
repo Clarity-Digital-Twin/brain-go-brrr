@@ -20,7 +20,7 @@ val_ds = TUABCachedDataset(
 
 labels = []
 loader = DataLoader(val_ds, batch_size=128, num_workers=0, collate_fn=collate_eeg_batch_fixed)
-for i, (data, label) in enumerate(loader):
+for i, (_data, label) in enumerate(loader):
     labels.append(label)
     if i >= 10:  # First 10 batches = 1280 samples
         break

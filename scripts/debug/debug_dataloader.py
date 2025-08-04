@@ -45,7 +45,7 @@ loader = DataLoader(
 
 # Check first few batches
 print("\nChecking batches...")
-for i, (batch_x, batch_y) in enumerate(loader):
+for i, (batch_x, _batch_y) in enumerate(loader):
     print(f"Batch {i}: shape={batch_x.shape}")
     if i >= 5:
         break

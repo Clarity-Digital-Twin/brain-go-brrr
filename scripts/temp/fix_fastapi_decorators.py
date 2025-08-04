@@ -13,7 +13,7 @@ def fix_router_decorators(file_path: Path) -> None:
     modified = False
     new_lines = []
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         # Check if this is a FastAPI decorator without type: ignore
         if (
             re.match(r"^\s*@router\.(get|post|put|delete|patch)", line)

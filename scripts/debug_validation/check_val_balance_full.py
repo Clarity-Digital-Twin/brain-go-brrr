@@ -28,7 +28,7 @@ labels = []
 loader = DataLoader(val_ds, batch_size=256, num_workers=0, collate_fn=collate_eeg_batch_fixed)
 
 print("Checking all labels...")
-for i, (data, label) in enumerate(loader):
+for i, (_data, label) in enumerate(loader):
     labels.append(label)
     if i % 10 == 0:
         print(f"Processed {i * 256} samples...")

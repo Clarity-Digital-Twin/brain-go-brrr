@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""JUST FUCKING WORK WITH THE CACHE"""
+"""JUST FUCKING WORK WITH THE CACHE."""
 
 import os
 import sys

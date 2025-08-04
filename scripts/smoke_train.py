@@ -145,7 +145,7 @@ def main():
     cache_misses = 0
 
     batch_times = []
-    for i, (data, labels) in enumerate(dataloader):
+    for i, (data, _labels) in enumerate(dataloader):
         if i >= args.n_batches:
             break
 

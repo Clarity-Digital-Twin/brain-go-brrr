@@ -57,7 +57,7 @@ def add_missing_return_types(file_path: Path) -> None:
     modified = False
     new_lines = []
 
-    for i, line in enumerate(lines):
+    for _i, line in enumerate(lines):
         # Check for __init__ without return type
         if re.match(r"^\s*def\s+__init__\s*\([^)]*\)\s*:", line):
             new_line = re.sub(r"(\)\s*):", r"\1 -> None:", line)
