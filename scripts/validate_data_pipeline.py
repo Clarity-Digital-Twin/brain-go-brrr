@@ -26,7 +26,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root))
 
-import numpy as np  # noqa: E402
+import numpy as np
 
 
 def validate_environment() -> dict[str, Any]:
