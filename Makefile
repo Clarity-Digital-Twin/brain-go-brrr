@@ -132,7 +132,7 @@ check: test quality ## Run all tests and quality checks
 
 test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
 	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --timeout=30 --no-cov
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n auto --no-cov
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -148,22 +148,46 @@ test-parallel: ## Run tests in parallel (with xdist)
 
 test-fast: test-unit  ## Legacy alias for test-unit
 
-test-cov: ## Run fast tests with coverage report
-	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	$(PYTEST) $(TEST_DIR) \
-		--cov=src/brain_go_brrr \
-		--cov-report=term-missing \
+test-cov: ## Run tests with coverage (single process, longer timeout)
+	@echo "$(GREEN)Running tests with coverage (this takes longer)...$(NC)"
+	@timeout 600 $(PYTEST) $(TEST_DIR) \
+		--cov=brain_go_brrr \
+		--cov-report=term-missing:skip-covered \
 		--cov-report=html \
-		--cov-report=term:skip-covered \
 		--cov-branch \
 		-m "not slow and not integration and not external" \
-		--no-header
+		--tb=short
 
-coverage-report: ## Generate and display coverage report
-	@echo "$(GREEN)Generating coverage report...$(NC)"
-	@$(PYTEST) tests/unit -q --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-report=html --no-header | tail -n 20
+test-cov-parallel: ## Run tests with coverage in parallel (requires combine step)
+	@echo "$(GREEN)Running tests with coverage in parallel...$(NC)"
+	$(PYTEST) $(TEST_DIR) -n auto \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--dist=loadfile \
+		-m "not slow and not integration and not external"
+	@echo "$(CYAN)Combining coverage data...$(NC)"
+	@$(UV) run coverage combine
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+coverage-report: ## Display coverage report summary
+	@echo "$(GREEN)Coverage Summary:$(NC)"
+	@$(UV) run coverage report --skip-covered | head -20
 	@echo ""
 	@echo "$(CYAN)Full HTML coverage report available at: htmlcov/index.html$(NC)"
+
+test-ci: ## Run tests for CI with coverage and XML report
+	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
+	$(PYTEST) $(TEST_DIR) -n auto \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--dist=loadfile \
+		-m "not slow and not integration and not external" \
+		--junitxml=test-results.xml
+	@$(UV) run coverage combine
+	@$(UV) run coverage xml
+	@$(UV) run coverage report
+	@echo "$(GREEN)CI test results: test-results.xml, coverage.xml$(NC)"
 
 test-integration: ## Run integration tests with timeout
 	@echo "$(GREEN)Running integration tests...$(NC)"

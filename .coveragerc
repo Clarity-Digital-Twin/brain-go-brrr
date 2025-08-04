@@ -1,13 +1,16 @@
 [run]
-source = src/brain_go_brrr
+source = brain_go_brrr
 branch = True
 parallel = True
+concurrency = multiprocessing
 omit = 
     */tests/*
     */__pycache__/*
     */site-packages/*
     */.venv/*
     */reference_repos/*
+    */__init__.py
+    */__main__.py
 
 [report]
 precision = 2
