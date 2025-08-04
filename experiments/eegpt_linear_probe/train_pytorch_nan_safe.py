@@ -166,12 +166,15 @@ def create_model(checkpoint_path, device):
     
     # Create backbone
     backbone = create_normalized_eegpt(
-        checkpoint_path=checkpoint_path,
-        n_channels=19,  # TUAB standard
-        freeze=True
+        checkpoint_path=str(checkpoint_path),
+        normalize=True  # TUAB data is already normalized
     )
     backbone = backbone.to(device)
     backbone.eval()
+    
+    # Freeze backbone
+    for param in backbone.parameters():
+        param.requires_grad = False
     
     # Create probe
     probe = EEGPTTwoLayerProbe(
