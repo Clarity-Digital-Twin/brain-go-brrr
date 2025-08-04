@@ -286,7 +286,7 @@ def main():
     )
     
     # Trainer
-    trainer = Trainer(
+    trainer_kwargs = dict(
         max_epochs=cfg.training.epochs,
         accelerator=cfg.accelerator,
         devices=cfg.devices,
@@ -305,6 +305,13 @@ def main():
         deterministic=True,
         enable_model_summary=True,
     )
+    
+    # Add fast_dev_run if specified
+    if hasattr(cfg.training, 'fast_dev_run') and cfg.training.fast_dev_run:
+        trainer_kwargs['fast_dev_run'] = cfg.training.fast_dev_run
+        logger.warning(f"FAST DEV RUN MODE: Only running {cfg.training.fast_dev_run} batches!")
+    
+    trainer = Trainer(**trainer_kwargs)
     
     # Log configuration
     logger.info("Configuration:")
