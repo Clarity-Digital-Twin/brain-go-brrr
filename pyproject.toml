@@ -83,10 +83,10 @@ dependencies = [
     "uvicorn>=0.35.0",
     "python-multipart>=0.0.20",
     "matplotlib>=3.8.0",
-    "PyPDF2>=3.0.0",
     "edfio>=0.4.9",
     "redis>=6.2.0",
     "tensorboard>=2.20.0",
+    "pypdf>=5.9.0",
 ]
 
 [project.optional-dependencies]

@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -129,13 +129,12 @@ class Config(BaseSettings):
     data: DataConfig = Field(default_factory=DataConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
 
-    class Config:
-        """Pydantic configuration class."""
-
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        extra = "ignore"  # Allow extra fields from env vars
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"  # Allow extra fields from env vars
+    )
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization setup."""

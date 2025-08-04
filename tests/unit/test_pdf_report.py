@@ -8,7 +8,7 @@ import io
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 
 class TestPDFReportGeneration:
