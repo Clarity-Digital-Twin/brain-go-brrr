@@ -61,7 +61,7 @@ training:
   learning_rate: 2e-4    # CHANGED: Reduced from 5e-4 for stability
   weight_decay: 0.05     # Match paper
   num_sanity_val_steps: 0  # SKIP sanity check entirely
-  limit_train_batches: 0.01  # Use 1% of batches (float to avoid counting issue)
+  limit_train_batches: 300  # Use fixed 300 batches (int to avoid counting hang)
   
   # Warmup settings
   warmup_epochs: 5       # Match paper

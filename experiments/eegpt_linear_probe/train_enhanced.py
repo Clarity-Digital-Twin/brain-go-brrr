@@ -302,8 +302,11 @@ def main():
         gradient_clip_val=cfg.training.gradient_clip_val,
         val_check_interval=cfg.training.val_check_interval,
         log_every_n_steps=cfg.logging.log_every_n_steps,
-        deterministic=True,
+        accumulate_grad_batches=cfg.training.accumulate_grad_batches,  # ADDED
+        deterministic=False,  # CHANGED: Avoid hang with limit_train_batches
         enable_model_summary=True,
+        reload_dataloaders_every_n_epochs=1,  # ADDED: Force dataloader reload
+        max_steps=100000,  # ADDED: Avoid step counting issues
     )
     
     # Add fast_dev_run if specified
