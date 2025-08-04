@@ -378,16 +378,16 @@ class TestFullRecordingBenchmarks:
             # Fallback - try to get from the stats object
             processing_time = getattr(stats, "mean", 0)
 
-            # Verify processing completed - check for expected result structure
-            assert "abnormal_probability" in result
-            assert "confidence" in result
+        # Verify processing completed - check for expected result structure
+        assert "abnormal_probability" in result
+        assert "confidence" in result
 
-            # Processing time should scale roughly linearly
-            expected_max_time = duration_min * (TWENTY_MIN_RECORDING_TARGET_S / 20)
-            assert processing_time < expected_max_time * 1.5, (
-                f"{duration_min}-minute recording took {processing_time:.1f}s, "
-                f"expected <{expected_max_time * 1.5:.1f}s"
-            )
+        # Processing time should scale roughly linearly
+        expected_max_time = duration_min * (TWENTY_MIN_RECORDING_TARGET_S / 20)
+        assert processing_time < expected_max_time * 1.5, (
+            f"{duration_min}-minute recording took {processing_time:.1f}s, "
+            f"expected <{expected_max_time * 1.5:.1f}s"
+        )
 
 
 class TestMemoryBenchmarks:
@@ -510,7 +510,7 @@ class TestPerformanceComparison:
             cpu_mean_time = benchmark.stats.get("mean", 1.0)
         elif cpu_mean_time is None:
             cpu_mean_time = 1.0  # Default to avoid division by zero
-            
+
         speedup = cpu_mean_time / gpu_time
 
         # Document the comparison
