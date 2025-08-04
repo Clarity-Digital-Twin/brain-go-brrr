@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 
+@pytest.mark.slow
 class TestEEGPTFeatureExtractor:
     """Test EEGPT feature extraction for integration."""
 

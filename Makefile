@@ -130,9 +130,9 @@ check: test quality ## Run all tests and quality checks
 
 ##@ Testing
 
-test: ## Run fast tests only (excludes slow, external, gpu)
-	@echo "$(GREEN)Running fast tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks $(PYTEST_NO_PLUGINS)
+test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
+	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --timeout=30
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"

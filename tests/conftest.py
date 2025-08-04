@@ -1,6 +1,18 @@
 """Shared test fixtures and configuration."""
 
 import os
+
+# MUST disable multiprocessing BEFORE any imports to prevent hangs
+os.environ["MNE_USE_NUMBA"] = "false"
+os.environ["NUMBA_DISABLE_JIT"] = "1"
+os.environ["NUMBA_THREADING_LAYER"] = "sequential"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["JOBLIB_MULTIPROCESSING"] = "0"
+
 import random
 import tempfile
 from pathlib import Path
@@ -46,6 +58,30 @@ def pytest_addoption(parser):
         help="run integration tests that require models/data",
     )
 
+
+@pytest.fixture(autouse=True)
+def disable_parallel_processing(monkeypatch):
+    """Disable parallel processing in all tests to prevent hangs."""
+    # Patch joblib to always use sequential backend
+    try:
+        import joblib
+        original_parallel = joblib.Parallel
+        
+        def patched_parallel(*args, **kwargs):
+            # Force n_jobs=1 if not already set
+            if 'n_jobs' not in kwargs:
+                kwargs['n_jobs'] = 1
+            elif kwargs['n_jobs'] != 1:
+                kwargs['n_jobs'] = 1
+            return original_parallel(*args, **kwargs)
+        
+        monkeypatch.setattr("joblib.Parallel", patched_parallel)
+    except ImportError:
+        pass
+    
+    # Ensure autoreject doesn't use parallel processing
+    monkeypatch.setenv("AUTOREJECT_N_JOBS", "1")
+    
 
 @pytest.fixture(scope="session", autouse=True)
 def test_environment_setup():
