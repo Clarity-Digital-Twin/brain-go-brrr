@@ -21,13 +21,13 @@ sys.path.insert(0, str(project_root))
 os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
+from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
 
 def build_cache(split="train", max_files=None):
