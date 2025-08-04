@@ -170,9 +170,9 @@ class TestAPILinearProbeIntegration:
                 },
             )
 
-        # Write 4 seconds of data (1024 samples at 256 Hz)
+        # Write 30 seconds of data (7680 samples at 256 Hz) to get 7 windows
         for _ in range(19):
-            data = np.random.randint(-100, 100, 1024, dtype=np.int32)
+            data = np.random.randint(-100, 100, 7680, dtype=np.int32)
             writer.writeDigitalSamples(data)
         writer.close()
 
@@ -189,10 +189,14 @@ class TestAPILinearProbeIntegration:
             patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
+            
+            # Mock extract_features to return proper features for each window
+            mock_eegpt_model.extract_features.return_value = np.zeros(2048)
 
-            # Mock abnormality probe
+            # Mock abnormality probe - ensure it returns scalar tensor
             mock_probe = Mock(spec=AbnormalityProbe)
-            mock_probe.predict_abnormal_probability.return_value = torch.tensor([0.75])
+            # Return scalar tensor value that will be converted to float via .item()
+            mock_probe.predict_abnormal_probability.return_value = torch.tensor(0.75)
             mock_get_probe.return_value = mock_probe
 
             files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
@@ -205,19 +209,17 @@ class TestAPILinearProbeIntegration:
             assert response.status_code == 200
             data = response.json()
 
-            # Check the nested structure and method
+            # Check the structure and method with strict assertions
             assert "result" in data
             assert "method" in data
             assert data["method"] == "linear_probe"
 
-            # Verify probe was actually called
-            assert "abnormal_probability" in data["result"]
-            assert "n_windows" in data["result"]
-
-            # If windows were processed, verify our mock value
-            if data["result"]["n_windows"] > 0:
-                # Mock returns 0.75
-                assert data["result"]["abnormal_probability"] == pytest.approx(0.75, abs=0.01)
+            # Strict assertions - probe must have been called
+            result = data["result"]
+            assert "abnormal_probability" in result
+            
+            # The probe should return 0.75 for each window
+            assert result["abnormal_probability"] == pytest.approx(0.75, abs=0.01)
 
     def test_probe_selection_based_on_task(self, client):
         """Test that correct probe is selected based on task."""
