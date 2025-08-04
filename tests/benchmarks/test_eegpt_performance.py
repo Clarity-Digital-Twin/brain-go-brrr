@@ -506,7 +506,11 @@ class TestPerformanceComparison:
         # GPU should be faster for large models
         # Get mean time from benchmark stats
         cpu_mean_time = getattr(benchmark.stats, "mean", None)
-        if cpu_mean_time is None and hasattr(benchmark, "stats") and isinstance(benchmark.stats, dict):
+        if (
+            cpu_mean_time is None
+            and hasattr(benchmark, "stats")
+            and isinstance(benchmark.stats, dict)
+        ):
             cpu_mean_time = benchmark.stats.get("mean", 1.0)
         elif cpu_mean_time is None:
             cpu_mean_time = 1.0  # Default to avoid division by zero
@@ -521,29 +525,20 @@ class TestPerformanceComparison:
         # Both should produce same results (within floating point precision)
         cpu_result = eegpt_model_cpu.extract_features(data, ch_names)
         # Convert to numpy if needed
-        if hasattr(cpu_result, 'numpy'):
-            cpu_result_np = cpu_result.numpy()
-        else:
-            cpu_result_np = cpu_result
-        if hasattr(gpu_result, 'cpu'):
-            gpu_result_np = gpu_result.cpu().numpy()
-        else:
-            gpu_result_np = gpu_result
-        
+        cpu_result_np = cpu_result.numpy() if hasattr(cpu_result, "numpy") else cpu_result
+        gpu_result_np = gpu_result.cpu().numpy() if hasattr(gpu_result, "cpu") else gpu_result
+
         # For proper models with loaded weights, results should match
         # For mock models, at least verify shapes match
         assert cpu_result_np.shape == gpu_result_np.shape, (
             f"CPU and GPU outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
         )
-        
+
         # If models have proper weights (not random init), they should produce similar results
         # Check if results are deterministic (not random)
         cpu_result2 = eegpt_model_cpu.extract_features(data, ch_names)
-        if hasattr(cpu_result2, 'numpy'):
-            cpu_result2_np = cpu_result2.numpy()
-        else:
-            cpu_result2_np = cpu_result2
-            
+        cpu_result2_np = cpu_result2.numpy() if hasattr(cpu_result2, "numpy") else cpu_result2
+
         if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6):
             # Model is deterministic, so CPU and GPU should match
             assert np.allclose(cpu_result_np, gpu_result_np, rtol=1e-4, atol=1e-6), (
@@ -591,20 +586,20 @@ class TestPerformanceComparison:
 
         # Results should be equivalent
         # Convert to numpy if needed
-        if hasattr(cpu_result, 'numpy'):
+        if hasattr(cpu_result, "numpy"):
             cpu_result_np = cpu_result.numpy()
         elif isinstance(cpu_result, np.ndarray):
             cpu_result_np = cpu_result
         else:
             cpu_result_np = np.array(cpu_result)
-            
-        if hasattr(gpu_result, 'cpu'):
+
+        if hasattr(gpu_result, "cpu"):
             gpu_result_np = gpu_result.cpu().numpy()
         elif isinstance(gpu_result, np.ndarray):
             gpu_result_np = gpu_result
         else:
             gpu_result_np = np.array(gpu_result)
-        
+
         # For mock models without proper weights, we just check shapes match
         assert cpu_result_np.shape == gpu_result_np.shape, (
             f"CPU and GPU batch outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"

@@ -63,9 +63,9 @@ class TestEEGPTModel:
     def eegpt_model(self, model_path):
         """Initialize EEGPT model."""
         # Create model without checkpoint for testing
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
         from brain_go_brrr.core.config import ModelConfig
-        
+        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+
         config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)
         # Create architecture without checkpoint
@@ -77,10 +77,10 @@ class TestEEGPTModel:
     def test_model_loading(self, model_path):
         """Test model loads from checkpoint."""
         # For testing, create model without requiring actual checkpoint
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
         from brain_go_brrr.core.config import ModelConfig
-        
-        config = ModelConfig(device="cpu") 
+        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+
+        config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)
         # Create architecture without checkpoint
         model.encoder = create_eegpt_model(checkpoint_path=None)
