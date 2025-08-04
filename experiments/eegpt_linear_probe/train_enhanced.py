@@ -305,8 +305,7 @@ def main():
         accumulate_grad_batches=cfg.training.accumulate_grad_batches,  # ADDED
         deterministic=False,  # CHANGED: Avoid hang with limit_train_batches
         enable_model_summary=True,
-        reload_dataloaders_every_n_epochs=1,  # ADDED: Force dataloader reload
-        max_steps=100000,  # ADDED: Avoid step counting issues
+        reload_dataloaders_every_n_epochs=1  # ADDED: Force dataloader reload
     )
     
     # Add fast_dev_run if specified
@@ -321,6 +320,11 @@ def main():
     # Add limit_train_batches if specified
     if hasattr(cfg.training, 'limit_train_batches'):
         trainer_kwargs['limit_train_batches'] = cfg.training.limit_train_batches
+        
+    # Add max_steps if specified - CRITICAL for bypassing batch counting
+    if hasattr(cfg.training, 'max_steps'):
+        trainer_kwargs['max_steps'] = cfg.training.max_steps
+        logger.info(f"Using max_steps={cfg.training.max_steps} to bypass batch counting")
     
     trainer = Trainer(**trainer_kwargs)
     
@@ -347,7 +351,7 @@ def main():
     
     # Save final results
     results = {
-        "best_auroc": float(checkpoint_callback.best_model_score),
+        "best_auroc": float(checkpoint_callback.best_model_score) if checkpoint_callback.best_model_score is not None else 0.0,
         "best_epoch": checkpoint_callback.best_k_models,
         "config": OmegaConf.to_container(cfg),
     }

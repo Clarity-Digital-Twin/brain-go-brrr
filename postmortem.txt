@@ -1,0 +1,29 @@
+POSTMORTEM: PyTorch Lightning Training Hang
+==========================================
+
+ROOT CAUSE:
+PyTorch Lightning hangs at "Loading train_dataloader to estimate number of stepping batches"
+even with integer limit_train_batches. This is a deeper Lightning issue with dataloader 
+initialization when combined with:
+- deterministic=False (our fix)
+- reload_dataloaders_every_n_epochs=1 (our fix)
+- max_steps=100000 (our fix)
+- Large cached dataset (930k samples)
+
+ATTEMPTED FIXES:
+1. Changed deterministic=True -> False (partially helped)
+2. Changed limit_train_batches from float (0.01) to int (300) (didn't resolve)
+3. Added max_steps=100000 to avoid step counting (didn't resolve)
+4. Set num_sanity_val_steps=0 (already was set)
+
+DIAGNOSIS:
+The hang occurs during Lightning's internal dataloader length calculation,
+even when using integer batches. This suggests a deeper issue with the
+dataloader/dataset interaction.
+
+FINAL SOLUTION:
+Need to either:
+1. Use fast_dev_run=True to bypass normal training flow
+2. Create custom training loop without Lightning
+3. Debug the exact line in Lightning causing the hang
+4. Use IterableDataset instead of map-style dataset
