@@ -178,7 +178,7 @@ def create_model(checkpoint_path, device):
     
     # Create probe
     probe = EEGPTTwoLayerProbe(
-        input_dim=768,  # EEGPT feature dimension
+        backbone_dim=768,  # EEGPT feature dimension
         hidden_dim=16,
         n_classes=2,
         dropout=0.5,
