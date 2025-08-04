@@ -104,10 +104,9 @@ class TestAPILinearProbeIntegration:
         )
 
         # Write 20 seconds of data (5120 samples at 256 Hz)
-        # Need to write in chunks of 1 second for pyedflib
-        for _ in range(20):
-            data = np.zeros(256, dtype=np.int32)
-            writer.writeDigitalSamples(data)
+        # pyedflib expects all data at once
+        data = np.zeros(5120, dtype=np.int32)  # 20 seconds * 256 Hz
+        writer.writeDigitalSamples([data])  # Pass as list
         writer.close()
 
         # Read the file content
@@ -233,16 +232,19 @@ class TestAPILinearProbeIntegration:
             assert response.status_code == 200
             data = response.json()
 
-            # Check the nested structure
+            # Check the nested structure and method
             assert "result" in data
-            assert "abnormal_probability" in data["result"]
-            
-            # Note: The mock returns 0.75 but there might be no windows processed
-            # so we get 0.0. Let's check n_windows first
-            assert data["result"]["n_windows"] >= 0
-            
             assert "method" in data
             assert data["method"] == "linear_probe"
+            
+            # Verify probe was actually called
+            assert "abnormal_probability" in data["result"]
+            assert "n_windows" in data["result"]
+            
+            # If windows were processed, verify our mock value
+            if data["result"]["n_windows"] > 0:
+                # Mock returns 0.75
+                assert data["result"]["abnormal_probability"] == pytest.approx(0.75, abs=0.01)
 
     def test_probe_selection_based_on_task(self, client):
         """Test that correct probe is selected based on task."""
