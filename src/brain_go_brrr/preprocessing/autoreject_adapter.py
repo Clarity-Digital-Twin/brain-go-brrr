@@ -42,7 +42,7 @@ class WindowEpochAdapter:
         Raises:
             ValueError: If recording is too short for even one window
         """
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         n_samples = raw.n_times
         window_samples = int(self.window_duration * sfreq)
         stride_samples = int(self.window_stride * sfreq)
@@ -50,7 +50,7 @@ class WindowEpochAdapter:
         # Check if we can extract at least one window
         if n_samples < window_samples:
             raise ValueError(
-                f"Recording too short ({n_samples/sfreq:.1f}s) for "
+                f"Recording too short ({n_samples / sfreq:.1f}s) for "
                 f"{self.window_duration}s windows"
             )
 
@@ -58,29 +58,34 @@ class WindowEpochAdapter:
         start_positions = np.arange(0, n_samples - window_samples + 1, stride_samples)
 
         # MNE events format: [sample_idx, 0, event_id]
-        events = np.column_stack([
-            start_positions,
-            np.zeros(len(start_positions), dtype=int),
-            np.ones(len(start_positions), dtype=int)
-        ])
+        events = np.column_stack(
+            [
+                start_positions,
+                np.zeros(len(start_positions), dtype=int),
+                np.ones(len(start_positions), dtype=int),
+            ]
+        )
 
         # Create epochs
         epochs = mne.Epochs(
-            raw, events,
-            event_id={'window': 1},
+            raw,
+            events,
+            event_id={"window": 1},
             tmin=0,
             tmax=self.window_duration - (1.0 / sfreq),
             baseline=None,
             preload=True,
             verbose=False,
-            proj=False  # Don't apply projections
+            proj=False,  # Don't apply projections
         )
 
-        logger.debug(f"Created {len(epochs)} epochs from {n_samples/sfreq:.1f}s recording")
+        logger.debug(f"Created {len(epochs)} epochs from {n_samples / sfreq:.1f}s recording")
 
         return epochs
 
-    def epochs_to_continuous(self, epochs_clean: mne.Epochs, original_raw: mne.io.Raw) -> mne.io.Raw:
+    def epochs_to_continuous(
+        self, epochs_clean: mne.Epochs, original_raw: mne.io.Raw
+    ) -> mne.io.Raw:
         """Reconstruct continuous data from cleaned epochs.
 
         Handles overlapping windows by averaging in overlap regions.
@@ -119,13 +124,11 @@ class WindowEpochAdapter:
         reconstructed /= counts
 
         # Create new raw object
-        raw_clean = mne.io.RawArray(
-            reconstructed,
-            original_raw.info.copy(),
-            verbose=False
-        )
+        raw_clean = mne.io.RawArray(reconstructed, original_raw.info.copy(), verbose=False)
 
-        logger.debug(f"Reconstructed {total_samples/original_raw.info['sfreq']:.1f}s of continuous data")
+        logger.debug(
+            f"Reconstructed {total_samples / original_raw.info['sfreq']:.1f}s of continuous data"
+        )
 
         return raw_clean
 
@@ -139,38 +142,34 @@ class SyntheticPositionGenerator:
     # Standard 10-20 positions in meters (from MNE-Python)
     STANDARD_1020_POSITIONS = {
         # Frontal
-        'FP1': np.array([-0.0270, 0.0866, 0.0150]),
-        'FP2': np.array([0.0270, 0.0866, 0.0150]),
-        'F7': np.array([-0.0702, 0.0596, -0.0150]),
-        'F3': np.array([-0.0450, 0.0693, 0.0300]),
-        'FZ': np.array([0.0000, 0.0732, 0.0450]),
-        'F4': np.array([0.0450, 0.0693, 0.0300]),
-        'F8': np.array([0.0702, 0.0596, -0.0150]),
-
+        "FP1": np.array([-0.0270, 0.0866, 0.0150]),
+        "FP2": np.array([0.0270, 0.0866, 0.0150]),
+        "F7": np.array([-0.0702, 0.0596, -0.0150]),
+        "F3": np.array([-0.0450, 0.0693, 0.0300]),
+        "FZ": np.array([0.0000, 0.0732, 0.0450]),
+        "F4": np.array([0.0450, 0.0693, 0.0300]),
+        "F8": np.array([0.0702, 0.0596, -0.0150]),
         # Temporal
-        'T7': np.array([-0.0860, 0.0000, -0.0150]),
-        'T3': np.array([-0.0860, 0.0000, -0.0150]),  # Old name, same position
-        'T8': np.array([0.0860, 0.0000, -0.0150]),
-        'T4': np.array([0.0860, 0.0000, -0.0150]),   # Old name, same position
-
+        "T7": np.array([-0.0860, 0.0000, -0.0150]),
+        "T3": np.array([-0.0860, 0.0000, -0.0150]),  # Old name, same position
+        "T8": np.array([0.0860, 0.0000, -0.0150]),
+        "T4": np.array([0.0860, 0.0000, -0.0150]),  # Old name, same position
         # Central
-        'C3': np.array([-0.0520, 0.0000, 0.0600]),
-        'CZ': np.array([0.0000, 0.0000, 0.0850]),
-        'C4': np.array([0.0520, 0.0000, 0.0600]),
-
+        "C3": np.array([-0.0520, 0.0000, 0.0600]),
+        "CZ": np.array([0.0000, 0.0000, 0.0850]),
+        "C4": np.array([0.0520, 0.0000, 0.0600]),
         # Parietal
-        'P7': np.array([-0.0702, -0.0596, -0.0150]),
-        'T5': np.array([-0.0702, -0.0596, -0.0150]),  # Old name, same position
-        'P3': np.array([-0.0450, -0.0693, 0.0300]),
-        'PZ': np.array([0.0000, -0.0732, 0.0450]),
-        'P4': np.array([0.0450, -0.0693, 0.0300]),
-        'P8': np.array([0.0702, -0.0596, -0.0150]),
-        'T6': np.array([0.0702, -0.0596, -0.0150]),   # Old name, same position
-
+        "P7": np.array([-0.0702, -0.0596, -0.0150]),
+        "T5": np.array([-0.0702, -0.0596, -0.0150]),  # Old name, same position
+        "P3": np.array([-0.0450, -0.0693, 0.0300]),
+        "PZ": np.array([0.0000, -0.0732, 0.0450]),
+        "P4": np.array([0.0450, -0.0693, 0.0300]),
+        "P8": np.array([0.0702, -0.0596, -0.0150]),
+        "T6": np.array([0.0702, -0.0596, -0.0150]),  # Old name, same position
         # Occipital
-        'O1': np.array([-0.0270, -0.0866, 0.0150]),
-        'OZ': np.array([0.0000, -0.0918, 0.0000]),
-        'O2': np.array([0.0270, -0.0866, 0.0150]),
+        "O1": np.array([-0.0270, -0.0866, 0.0150]),
+        "OZ": np.array([0.0000, -0.0918, 0.0000]),
+        "O2": np.array([0.0270, -0.0866, 0.0150]),
     }
 
     def add_positions_to_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
@@ -203,7 +202,7 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        raw.set_montage(montage, on_missing='ignore')
+        raw.set_montage(montage, on_missing="ignore")
 
         return raw
 

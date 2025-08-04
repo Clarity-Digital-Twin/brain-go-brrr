@@ -45,11 +45,7 @@ class TestChunkedAutoRejectProcessor:
 
         # When: Creating processor
         processor = ChunkedAutoRejectProcessor(
-            cache_dir=cache_dir,
-            chunk_size=50,
-            n_interpolate=[1, 4],
-            consensus=0.1,
-            random_state=42
+            cache_dir=cache_dir, chunk_size=50, n_interpolate=[1, 4], consensus=0.1, random_state=42
         )
 
         # Then: Should initialize properly
@@ -74,11 +70,11 @@ class TestChunkedAutoRejectProcessor:
         param_file = processor.cache_dir / "autoreject_params.pkl"
 
         params = {
-            'consensus': 0.1,
-            'n_interpolate': [1, 4],
-            'thresholds': np.array([[50.0, 100.0], [50.0, 100.0]])
+            "consensus": 0.1,
+            "n_interpolate": [1, 4],
+            "thresholds": np.array([[50.0, 100.0], [50.0, 100.0]]),
         }
-        with param_file.open('wb') as f:
+        with param_file.open("wb") as f:
             pickle.dump(params, f)
 
         # Now should detect cache
@@ -108,10 +104,10 @@ class TestChunkedAutoRejectProcessor:
         # Verify saved params
         param_file = processor.cache_dir / "autoreject_params.pkl"
         assert param_file.exists()
-        with param_file.open('rb') as f:
+        with param_file.open("rb") as f:
             saved_params = pickle.load(f)
-        assert saved_params['consensus'] == [0.1]
-        assert np.array_equal(saved_params['thresholds'], fake_ar.threshes_)
+        assert saved_params["consensus"] == [0.1]
+        assert np.array_equal(saved_params["thresholds"], fake_ar.threshes_)
 
     def test_stratified_sampling(self, mock_file_paths):
         """Test stratified sampling of files."""
@@ -131,6 +127,7 @@ class TestChunkedAutoRejectProcessor:
 
     def test_parameter_extraction(self, temp_cache_dir):
         """Test extracting parameters from fitted AutoReject."""
+
         # Given: Object with AutoReject-like attributes
         class FakeAutoReject:
             def __init__(self):
@@ -146,11 +143,11 @@ class TestChunkedAutoRejectProcessor:
         params = processor._extract_parameters(fake_ar)
 
         # Then: Should extract all relevant parameters
-        assert 'thresholds' in params
-        assert 'consensus' in params
-        assert 'n_interpolate' in params
-        assert 'picks' in params
-        assert np.array_equal(params['thresholds'], fake_ar.threshes_)
+        assert "thresholds" in params
+        assert "consensus" in params
+        assert "n_interpolate" in params
+        assert "picks" in params
+        assert np.array_equal(params["thresholds"], fake_ar.threshes_)
 
     def test_parameter_saving_loading(self, temp_cache_dir):
         """Test saving and loading parameters."""
@@ -180,27 +177,28 @@ class TestChunkedAutoRejectProcessor:
         # Verify loaded correctly
         assert processor.is_fitted
         assert processor.ar_params is not None
-        assert processor.ar_params['consensus'] == [0.1]
-        assert processor.ar_params['n_interpolate'] == [1, 4]
+        assert processor.ar_params["consensus"] == [0.1]
+        assert processor.ar_params["n_interpolate"] == [1, 4]
 
     def test_create_autoreject_from_params(self, temp_cache_dir):
         """Test creating AutoReject instance from cached parameters."""
         # Given: Processor with cached parameters
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
         processor.ar_params = {
-            'thresholds': np.random.rand(19, 10),
-            'consensus': [0.1],
-            'n_interpolate': [1, 4],
-            'picks': list(range(19))
+            "thresholds": np.random.rand(19, 10),
+            "consensus": [0.1],
+            "n_interpolate": [1, 4],
+            "picks": list(range(19)),
         }
 
         # Test that method exists and can be called
         # (We can't test the actual AutoReject creation without the library)
-        assert hasattr(processor, '_create_autoreject_from_params')
+        assert hasattr(processor, "_create_autoreject_from_params")
 
         # If AutoReject is not installed, the method should handle it gracefully
         try:
             from autoreject import AutoReject  # noqa: F401
+
             # If AutoReject is available, test would create real instance
             ar = processor._create_autoreject_from_params()
             assert ar is not None
@@ -214,14 +212,14 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
         processor.is_fitted = True
         processor.ar_params = {
-            'thresholds': np.random.rand(19, 10),
-            'consensus': [0.1],
-            'n_interpolate': [1, 4],
-            'picks': list(range(19))
+            "thresholds": np.random.rand(19, 10),
+            "consensus": [0.1],
+            "n_interpolate": [1, 4],
+            "picks": list(range(19)),
         }
 
         # Test that method exists
-        assert hasattr(processor, 'transform_raw')
+        assert hasattr(processor, "transform_raw")
 
         # We can't test actual transformation without MNE and AutoReject
         # But we can verify the processor state
@@ -233,19 +231,19 @@ class TestChunkedAutoRejectProcessor:
         # Given: Processor with parameters
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
         processor.ar_params = {
-            'thresholds': np.random.rand(19, 10),
-            'consensus': [0.1],
-            'n_interpolate': [1, 4],
-            'picks': list(range(19))
+            "thresholds": np.random.rand(19, 10),
+            "consensus": [0.1],
+            "n_interpolate": [1, 4],
+            "picks": list(range(19)),
         }
 
         # Test that method exists
-        assert hasattr(processor, '_apply_autoreject')
+        assert hasattr(processor, "_apply_autoreject")
 
         # Verify processor has the required parameters
         assert processor.ar_params is not None
-        assert 'thresholds' in processor.ar_params
-        assert 'consensus' in processor.ar_params
+        assert "thresholds" in processor.ar_params
+        assert "consensus" in processor.ar_params
 
     @pytest.mark.slow
     def test_memory_efficiency(self, temp_cache_dir):
@@ -254,11 +252,12 @@ class TestChunkedAutoRejectProcessor:
         n_files = 1000
         processor = ChunkedAutoRejectProcessor(
             cache_dir=temp_cache_dir,
-            chunk_size=100  # Process 100 at a time
+            chunk_size=100,  # Process 100 at a time
         )
 
         # Track memory usage
         import psutil
+
         process = psutil.Process()
         mem_before = process.memory_info().rss / 1024 / 1024  # MB
 
@@ -294,7 +293,7 @@ class TestChunkedAutoRejectProcessor:
         # Create corrupted cache file
         processor.cache_dir.mkdir(parents=True, exist_ok=True)
         param_file = processor.cache_dir / "autoreject_params.pkl"
-        with param_file.open('w') as f:
+        with param_file.open("w") as f:
             f.write("corrupted data")
 
         # Should raise appropriate error
@@ -338,4 +337,3 @@ class TestChunkedProcessingIntegration:
         """Benchmark processing speed."""
         # Will add performance benchmarks
         pass
-

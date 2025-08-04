@@ -2,6 +2,7 @@
 
 Tests written BEFORE implementation.
 """
+
 import tempfile
 from pathlib import Path
 
@@ -18,6 +19,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate(non_existent)
 
@@ -33,6 +35,7 @@ class TestEDFValidator:
 
             # When
             from brain_go_brrr.core.edf_validator import EDFValidator
+
             validator = EDFValidator()
             result = validator.validate(wrong_extension)
 
@@ -47,6 +50,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator(min_duration_seconds=60)
         result = validator.validate_data(mock_edf_data)
 
@@ -62,6 +66,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf_data)
 
@@ -80,6 +85,7 @@ class TestEDFValidator:
 
             # When
             from brain_go_brrr.core.edf_validator import EDFValidator
+
             validator = EDFValidator()
             result = validator.validate_data(mock_edf)
 
@@ -93,6 +99,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator(min_channels=19)
         result = validator.validate_data(mock_edf_data)
 
@@ -110,6 +117,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
 
@@ -125,6 +133,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
 
@@ -140,6 +149,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
 
@@ -157,6 +167,7 @@ class TestEDFValidator:
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
 
@@ -173,11 +184,12 @@ class TestEDFValidator:
             duration_seconds=300,
             sfreq=256,
             n_channels=20,
-            amplitude_uv=50  # Normal EEG amplitude
+            amplitude_uv=50,  # Normal EEG amplitude
         )
 
         # When
         from brain_go_brrr.core.edf_validator import EDFValidator
+
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
 
@@ -196,11 +208,12 @@ class TestValidationResult:
         """Validation result should have all necessary fields."""
         # Given/When
         from brain_go_brrr.core.edf_validator import ValidationResult
+
         result = ValidationResult(
             is_valid=True,
             errors=[],
             warnings=["High amplitude detected"],
-            metadata={"duration_seconds": 300}
+            metadata={"duration_seconds": 300},
         )
 
         # Then
@@ -218,11 +231,7 @@ class MockEDFData:
     """Mock EDF data for testing validation logic."""
 
     def __init__(
-        self,
-        duration_seconds: float,
-        sfreq: float,
-        n_channels: int,
-        amplitude_uv: float = 50.0
+        self, duration_seconds: float, sfreq: float, n_channels: int, amplitude_uv: float = 50.0
     ):
         """Initialize mock EDF data."""
         self.duration = duration_seconds
@@ -234,7 +243,7 @@ class MockEDFData:
         self.data = np.random.randn(n_channels, n_samples) * amplitude_uv * 1e-6
 
         # Channel names
-        self.ch_names = [f"CH{i+1}" for i in range(n_channels)]
+        self.ch_names = [f"CH{i + 1}" for i in range(n_channels)]
 
     @property
     def n_times(self):

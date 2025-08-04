@@ -14,6 +14,7 @@ class TestChannelMapper:
 
         # When
         from brain_go_brrr.core.channels import ChannelMapper
+
         mapper = ChannelMapper()
         modern_channels = mapper.standardize_channel_names(old_channels)
 
@@ -27,6 +28,7 @@ class TestChannelMapper:
 
         # When
         from brain_go_brrr.core.channels import ChannelMapper
+
         mapper = ChannelMapper()
         normalized = mapper.standardize_channel_names(mixed_case)
 
@@ -40,6 +42,7 @@ class TestChannelMapper:
 
         # When
         from brain_go_brrr.core.channels import ChannelMapper
+
         mapper = ChannelMapper()
         result = mapper.standardize_channel_names(modern_channels)
 
@@ -53,6 +56,7 @@ class TestChannelMapper:
 
         # When
         from brain_go_brrr.core.channels import ChannelMapper
+
         mapper = ChannelMapper()
         result = mapper.standardize_channel_names(empty_channels)
 
@@ -70,6 +74,7 @@ class TestChannelValidator:
 
         # When
         from brain_go_brrr.core.channels import ChannelValidator
+
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(insufficient_channels)
 
@@ -81,14 +86,28 @@ class TestChannelValidator:
         """Should identify which required channels are missing."""
         # Given - missing C3, C4, and others
         partial_channels = [
-            "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-            "T7", "Cz", "T8",  # Missing C3, C4
-            "P7", "P3", "Pz", "P4", "P8",
-            "O1", "O2"
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T7",
+            "Cz",
+            "T8",  # Missing C3, C4
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "O2",
         ]
 
         # When
         from brain_go_brrr.core.channels import ChannelValidator
+
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(partial_channels)
 
@@ -101,14 +120,30 @@ class TestChannelValidator:
         """Should accept recordings with all required channels."""
         # Given - all 19 required channels
         complete_channels = [
-            "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-            "T7", "C3", "Cz", "C4", "T8",
-            "P7", "P3", "Pz", "P4", "P8",
-            "O1", "O2"
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T7",
+            "C3",
+            "Cz",
+            "C4",
+            "T8",
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "O2",
         ]
 
         # When
         from brain_go_brrr.core.channels import ChannelValidator
+
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(complete_channels)
 
@@ -120,15 +155,34 @@ class TestChannelValidator:
         """Should accept recordings with extra non-standard channels."""
         # Given - standard channels plus extras
         channels_with_extras = [
-            "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-            "T7", "C3", "Cz", "C4", "T8",
-            "P7", "P3", "Pz", "P4", "P8",
-            "O1", "O2",
-            "ECG", "EOG1", "EOG2", "EMG"  # Extra channels
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T7",
+            "C3",
+            "Cz",
+            "C4",
+            "T8",
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "O2",
+            "ECG",
+            "EOG1",
+            "EOG2",
+            "EMG",  # Extra channels
         ]
 
         # When
         from brain_go_brrr.core.channels import ChannelValidator
+
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(channels_with_extras)
 
@@ -143,6 +197,7 @@ class TestChannelValidator:
 
         # When
         from brain_go_brrr.core.channels import ChannelValidator
+
         validator = ChannelValidator()
         indices = validator.get_standard_channel_indices(channels)
 
@@ -160,6 +215,7 @@ class TestChannelSelector:
 
         # When
         from brain_go_brrr.core.channels import ChannelSelector
+
         selector = ChannelSelector()
         selected, indices = selector.select_standard_channels(input_channels)
 
@@ -174,6 +230,7 @@ class TestChannelSelector:
 
         # When
         from brain_go_brrr.core.channels import ChannelSelector
+
         selector = ChannelSelector()
         selected, indices = selector.select_standard_channels(non_standard)
 
@@ -189,14 +246,32 @@ class TestChannelIntegration:
         """Complete pipeline: map old names, validate, select."""
         # Given - old naming with extras
         raw_channels = [
-            "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
-            "T3", "C3", "CZ", "C4", "T4",  # Old naming
-            "T5", "P3", "PZ", "P4", "T6",   # Old naming
-            "O1", "O2", "ECG1", "ECG2"
+            "FP1",
+            "FP2",
+            "F7",
+            "F3",
+            "FZ",
+            "F4",
+            "F8",
+            "T3",
+            "C3",
+            "CZ",
+            "C4",
+            "T4",  # Old naming
+            "T5",
+            "P3",
+            "PZ",
+            "P4",
+            "T6",  # Old naming
+            "O1",
+            "O2",
+            "ECG1",
+            "ECG2",
         ]
 
         # When
         from brain_go_brrr.core.channels import ChannelProcessor
+
         processor = ChannelProcessor()
         result = processor.process_channels(raw_channels)
 

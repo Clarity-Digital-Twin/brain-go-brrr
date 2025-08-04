@@ -11,5 +11,5 @@ __all__ = [
     "ChunkedAutoRejectProcessor",
     "EEGPreprocessor",
     "SyntheticPositionGenerator",
-    "WindowEpochAdapter"
+    "WindowEpochAdapter",
 ]

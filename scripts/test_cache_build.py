@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 
 import logging
+
 logging.basicConfig(level=logging.INFO)
 
 from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
@@ -30,7 +31,7 @@ dataset = TUABEnhancedDataset(
     preload=True,
     n_jobs=4,
     cache_mode="write",
-    verbose=True
+    verbose=True,
 )
 
 print(f"Dataset created with {len(dataset)} windows")

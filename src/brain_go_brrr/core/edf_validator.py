@@ -1,4 +1,5 @@
 """EDF file validation for quality and compatibility checks."""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,7 @@ import numpy as np
 @dataclass
 class ValidationResult:
     """Result of EDF validation."""
+
     is_valid: bool
     errors: list[str]
     warnings: list[str]
@@ -25,7 +27,7 @@ class EDFValidator:
         self,
         min_duration_seconds: float = 60.0,
         min_channels: int = 19,
-        max_amplitude_v: float = 1e-3  # 1mV
+        max_amplitude_v: float = 1e-3,  # 1mV
     ):
         """Initialize EDF validator with parameters."""
         self.min_duration_seconds = min_duration_seconds
@@ -49,29 +51,20 @@ class EDFValidator:
         if not file_path.exists():
             errors.append(f"File not found: {file_path}")
             return ValidationResult(
-                is_valid=False,
-                errors=errors,
-                warnings=warnings,
-                metadata=metadata
+                is_valid=False, errors=errors, warnings=warnings, metadata=metadata
             )
 
         # Check file extension
-        if file_path.suffix.lower() != '.edf':
+        if file_path.suffix.lower() != ".edf":
             errors.append(f"Invalid file extension: {file_path.suffix}, expected .edf")
             return ValidationResult(
-                is_valid=False,
-                errors=errors,
-                warnings=warnings,
-                metadata=metadata
+                is_valid=False, errors=errors, warnings=warnings, metadata=metadata
             )
 
         # Would load and validate actual EDF data here
         # For now, return validation result
         return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
-            metadata=metadata
+            is_valid=len(errors) == 0, errors=errors, warnings=warnings, metadata=metadata
         )
 
     def validate_data(self, edf_data: Any) -> ValidationResult:
@@ -112,10 +105,7 @@ class EDFValidator:
 
         # Check channel count
         if n_channels < self.min_channels:
-            errors.append(
-                f"Too few channels: {n_channels}, "
-                f"minimum required: {self.min_channels}"
-            )
+            errors.append(f"Too few channels: {n_channels}, minimum required: {self.min_channels}")
 
         # Check data quality
         data = edf_data.data
@@ -131,9 +121,7 @@ class EDFValidator:
         # Check for extreme amplitudes (ignoring NaN values)
         max_amplitude: float = float(np.nanmax(np.abs(data)))
         if not np.isnan(max_amplitude) and max_amplitude > self.max_amplitude_v:
-            warnings.append(
-                f"Extreme amplitude detected: {max_amplitude*1e6:.1f}µV"
-            )
+            warnings.append(f"Extreme amplitude detected: {max_amplitude * 1e6:.1f}µV")
 
         # Check for flat channels
         flat_channels = []
@@ -143,14 +131,9 @@ class EDFValidator:
                 flat_channels.append(i)
 
         if flat_channels:
-            warnings.append(
-                f"Flat channels detected: {flat_channels}"
-            )
+            warnings.append(f"Flat channels detected: {flat_channels}")
             metadata["flat_channels"] = flat_channels
 
         return ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
-            metadata=metadata
+            is_valid=len(errors) == 0, errors=errors, warnings=warnings, metadata=metadata
         )

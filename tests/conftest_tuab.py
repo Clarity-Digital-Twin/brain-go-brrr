@@ -1,4 +1,5 @@
 """Fixtures for fast TUAB testing."""
+
 from pathlib import Path
 
 import pytest
@@ -20,5 +21,5 @@ def fast_tuab_dataset(tiny_tuab_root):
         root_dir=tiny_tuab_root,
         split="train",
         max_files=4,  # Extra safety
-        cache_dir=None  # No caching needed for tiny dataset
+        cache_dir=None,  # No caching needed for tiny dataset
     )

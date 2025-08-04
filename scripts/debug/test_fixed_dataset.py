@@ -3,22 +3,26 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-from torch.utils.data import DataLoader
 import os
+
+from torch.utils.data import DataLoader
+
+from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 
 # Test dataset
 print("Creating cached dataset...")
 dataset = TUABCachedDataset(
-    root_dir=Path(os.environ.get("BGB_DATA_ROOT", "data")) / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+    root_dir=Path(os.environ.get("BGB_DATA_ROOT", "data"))
+    / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
     split="train",
     window_duration=5.12,
     window_stride=5.12,
     sampling_rate=200,
     cache_index_path=Path("data/cache/tuab_index.json"),
-    max_files=20  # Small test
+    max_files=20,  # Small test
 )
 
 print(f"Dataset size: {len(dataset)}")

@@ -91,7 +91,7 @@ class RobustEEGPTLinearProbe(nn.Module):
         for module in self.classifier.modules():
             if isinstance(module, LinearWithConstraint):
                 nn.init.xavier_uniform_(module.weight, gain=0.5)
-                if hasattr(module, 'bias') and module.bias is not None:
+                if hasattr(module, "bias") and module.bias is not None:
                     nn.init.zeros_(module.bias)
 
         # Store config
@@ -104,8 +104,8 @@ class RobustEEGPTLinearProbe(nn.Module):
         self.normalization_eps = normalization_eps
 
         # Statistics tracking
-        self.register_buffer('nan_count', torch.tensor(0))
-        self.register_buffer('clip_count', torch.tensor(0))
+        self.register_buffer("nan_count", torch.tensor(0))
+        self.register_buffer("clip_count", torch.tensor(0))
 
         logger.info(
             f"Initialized RobustEEGPTLinearProbe: {n_input_channels} channels -> {n_classes} classes"
@@ -117,7 +117,9 @@ class RobustEEGPTLinearProbe(nn.Module):
         if torch.isnan(x).any() or torch.isinf(x).any():
             self.nan_count += 1
             logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")
-            x = torch.nan_to_num(x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value)
+            x = torch.nan_to_num(
+                x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value
+            )
 
         # Clip extreme values
         before_clip = x
@@ -135,7 +137,7 @@ class RobustEEGPTLinearProbe(nn.Module):
 
         # Robust std calculation
         x_centered = x - mean
-        variance = (x_centered ** 2).mean(dim=-1, keepdim=True)
+        variance = (x_centered**2).mean(dim=-1, keepdim=True)
         std = torch.sqrt(variance + self.normalization_eps)
 
         # Normalize
@@ -231,7 +233,7 @@ class RobustEEGPTLinearProbe(nn.Module):
             "statistics": {
                 "nan_count": self.nan_count.item(),
                 "clip_count": self.clip_count.item(),
-            }
+            },
         }
         torch.save(probe_state, path)
         logger.info(f"Saved probe weights to {path}")

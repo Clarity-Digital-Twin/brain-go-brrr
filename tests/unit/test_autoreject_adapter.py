@@ -1,6 +1,5 @@
 """Unit tests for AutoReject adapter classes."""
 
-
 import mne
 import numpy as np
 import pytest
@@ -18,12 +17,7 @@ class TestWindowEpochAdapter:
     @pytest.fixture
     def mock_raw_data(self):
         """Create mock EEG data matching TUAB characteristics."""
-        return MockEEGGenerator.create_raw(
-            duration=60.0,
-            sfreq=256,
-            add_artifacts=True,
-            seed=42
-        )
+        return MockEEGGenerator.create_raw(duration=60.0, sfreq=256, add_artifacts=True, seed=42)
 
     def test_window_to_epoch_conversion_basic(self, mock_raw_data):
         """Test basic conversion from sliding windows to epochs."""
@@ -36,7 +30,7 @@ class TestWindowEpochAdapter:
         # Then: Should create correct number of epochs
         expected_n_epochs = (60 - 10) // 5 + 1  # (duration - window) / stride + 1
         assert len(epochs) == expected_n_epochs
-        assert epochs.info['sfreq'] == 256
+        assert epochs.info["sfreq"] == 256
 
         # Verify epoch duration
         epoch_data = epochs.get_data()
@@ -78,7 +72,7 @@ class TestWindowEpochAdapter:
         recon_data = raw_reconstructed.get_data()
 
         # Non-overlapping regions should be very close
-        assert np.allclose(orig_data[:, :256*5], recon_data[:, :256*5], rtol=1e-10)
+        assert np.allclose(orig_data[:, : 256 * 5], recon_data[:, : 256 * 5], rtol=1e-10)
 
     def test_no_overlap_reconstruction(self, mock_raw_data):
         """Test reconstruction with non-overlapping windows."""
@@ -113,6 +107,7 @@ class TestWindowEpochAdapter:
 
         # Track memory before
         import psutil
+
         process = psutil.Process()
         mem_before = process.memory_info().rss / 1024 / 1024  # MB
 
@@ -132,9 +127,9 @@ class TestSyntheticPositionGenerator:
         generator = SyntheticPositionGenerator()
 
         # Verify key channels have reasonable positions
-        assert 'FP1' in generator.STANDARD_1020_POSITIONS
-        assert 'C3' in generator.STANDARD_1020_POSITIONS
-        assert 'O1' in generator.STANDARD_1020_POSITIONS
+        assert "FP1" in generator.STANDARD_1020_POSITIONS
+        assert "C3" in generator.STANDARD_1020_POSITIONS
+        assert "O1" in generator.STANDARD_1020_POSITIONS
 
         # Check position ranges (head radius ~10cm)
         for _ch_name, pos in generator.STANDARD_1020_POSITIONS.items():
@@ -147,45 +142,56 @@ class TestSyntheticPositionGenerator:
         generator = SyntheticPositionGenerator()
 
         # Critical mappings for TUAB
-        mappings = [
-            ('T3', 'T7'),
-            ('T4', 'T8'),
-            ('T5', 'P7'),
-            ('T6', 'P8')
-        ]
+        mappings = [("T3", "T7"), ("T4", "T8"), ("T5", "P7"), ("T6", "P8")]
 
         for old, new in mappings:
             assert np.array_equal(
-                generator.STANDARD_1020_POSITIONS[old],
-                generator.STANDARD_1020_POSITIONS[new]
+                generator.STANDARD_1020_POSITIONS[old], generator.STANDARD_1020_POSITIONS[new]
             ), f"{old} and {new} should have identical positions"
 
     def test_add_positions_to_tuab_raw(self):
         """Test adding positions to TUAB data without positions."""
         # Given: Raw data with TUAB channels (no positions)
-        ch_names = ['FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
-                    'T3', 'C3', 'CZ', 'C4', 'T4',  # Old naming
-                    'T5', 'P3', 'PZ', 'P4', 'T6',   # Old naming
-                    'O1', 'O2']
+        ch_names = [
+            "FP1",
+            "FP2",
+            "F7",
+            "F3",
+            "FZ",
+            "F4",
+            "F8",
+            "T3",
+            "C3",
+            "CZ",
+            "C4",
+            "T4",  # Old naming
+            "T5",
+            "P3",
+            "PZ",
+            "P4",
+            "T6",  # Old naming
+            "O1",
+            "O2",
+        ]
 
-        info = mne.create_info(ch_names, 256, ch_types='eeg')
+        info = mne.create_info(ch_names, 256, ch_types="eeg")
         data = np.random.randn(len(ch_names), 2560)
         raw = mne.io.RawArray(data, info)
 
         # Explicitly remove any positions
-        for ch in raw.info['chs']:
-            ch['loc'][:] = 0
+        for ch in raw.info["chs"]:
+            ch["loc"][:] = 0
 
         # Verify no positions initially
-        assert all(np.all(ch['loc'][:3] == 0) for ch in raw.info['chs'])
+        assert all(np.all(ch["loc"][:3] == 0) for ch in raw.info["chs"])
 
         # When: Adding synthetic positions
         generator = SyntheticPositionGenerator()
         raw_with_pos = generator.add_positions_to_raw(raw)
 
         # Then: All channels should have positions
-        for i, ch in enumerate(raw_with_pos.info['chs']):
-            loc = ch['loc'][:3]
+        for i, ch in enumerate(raw_with_pos.info["chs"]):
+            loc = ch["loc"][:3]
             assert np.any(loc != 0), f"Channel {ch_names[i]} has no position"
             assert np.linalg.norm(loc) < 0.15, f"Channel {ch_names[i]} position too far"
 
@@ -194,8 +200,8 @@ class TestSyntheticPositionGenerator:
         # Given: Raw with synthetic positions
         generator = SyntheticPositionGenerator()
 
-        ch_names = ['C3', 'C4', 'CZ', 'F3', 'F4']  # Minimum for AutoReject
-        info = mne.create_info(ch_names, 256, ch_types='eeg')
+        ch_names = ["C3", "C4", "CZ", "F3", "F4"]  # Minimum for AutoReject
+        info = mne.create_info(ch_names, 256, ch_types="eeg")
         data = np.random.randn(len(ch_names), 2560)
         raw = mne.io.RawArray(data, info)
 
@@ -206,17 +212,17 @@ class TestSyntheticPositionGenerator:
         assert raw_with_pos.get_montage() is not None
 
         # Positions should be 3D
-        for ch in raw_with_pos.info['chs']:
-            assert len(ch['loc']) >= 3
-            assert not np.all(ch['loc'][:3] == 0)
+        for ch in raw_with_pos.info["chs"]:
+            assert len(ch["loc"]) >= 3
+            assert not np.all(ch["loc"][:3] == 0)
 
     def test_fallback_for_unknown_channels(self):
         """Test fallback positioning for non-standard channels."""
         # Given: Channels not in 10-20 system
         generator = SyntheticPositionGenerator()
 
-        weird_names = ['CH1', 'CH2', 'CUSTOM', 'UNKNOWN', 'X1']
-        info = mne.create_info(weird_names, 256, ch_types='eeg')
+        weird_names = ["CH1", "CH2", "CUSTOM", "UNKNOWN", "X1"]
+        info = mne.create_info(weird_names, 256, ch_types="eeg")
         data = np.random.randn(len(weird_names), 2560)
         raw = mne.io.RawArray(data, info)
 
@@ -225,8 +231,8 @@ class TestSyntheticPositionGenerator:
 
         # Then: Should still get valid positions (evenly spaced)
         positions = []
-        for ch in raw_with_pos.info['chs']:
-            loc = ch['loc'][:3]
+        for ch in raw_with_pos.info["chs"]:
+            loc = ch["loc"][:3]
             assert np.any(loc != 0), "Fallback position missing"
             positions.append(loc)
 
@@ -240,11 +246,11 @@ class TestSyntheticPositionGenerator:
         generator = SyntheticPositionGenerator()
 
         # Create same raw twice
-        ch_names = ['FP1', 'C3', 'O1']
-        info1 = mne.create_info(ch_names, 256, ch_types='eeg')
+        ch_names = ["FP1", "C3", "O1"]
+        info1 = mne.create_info(ch_names, 256, ch_types="eeg")
         raw1 = mne.io.RawArray(np.random.randn(3, 1000), info1)
 
-        info2 = mne.create_info(ch_names, 256, ch_types='eeg')
+        info2 = mne.create_info(ch_names, 256, ch_types="eeg")
         raw2 = mne.io.RawArray(np.random.randn(3, 1000), info2)
 
         # Add positions
@@ -253,19 +259,22 @@ class TestSyntheticPositionGenerator:
 
         # Positions should be identical
         for i in range(len(ch_names)):
-            pos1 = raw1_pos.info['chs'][i]['loc'][:3]
-            pos2 = raw2_pos.info['chs'][i]['loc'][:3]
+            pos1 = raw1_pos.info["chs"][i]["loc"][:3]
+            pos2 = raw2_pos.info["chs"][i]["loc"][:3]
             assert np.allclose(pos1, pos2), f"Inconsistent positions for {ch_names[i]}"
 
 
 class TestAutoRejectIntegration:
     """Test the full integration with AutoReject."""
 
-    @pytest.mark.parametrize("window_duration,stride", [
-        (10.0, 5.0),   # 50% overlap
-        (10.0, 10.0),  # No overlap
-        (8.0, 4.0),    # EEGPT default
-    ])
+    @pytest.mark.parametrize(
+        "window_duration,stride",
+        [
+            (10.0, 5.0),  # 50% overlap
+            (10.0, 10.0),  # No overlap
+            (8.0, 4.0),  # EEGPT default
+        ],
+    )
     def test_full_pipeline_with_parameters(self, window_duration, stride):
         """Test full pipeline with different window parameters."""
         # This test will fail until we implement the classes
@@ -284,7 +293,7 @@ class TestMemoryEfficiency:
         raw = MockEEGGenerator.create_raw(
             duration=3600.0,  # 1 hour
             sfreq=256,
-            add_artifacts=False  # Skip for speed
+            add_artifacts=False,  # Skip for speed
         )
 
         adapter = WindowEpochAdapter(window_duration=10.0, window_stride=5.0)

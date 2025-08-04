@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """DEEP FUCKING INVESTIGATION OF NAN CRASH - CHECK EVERY FUCKING THING"""
 
-import numpy as np
+import sys
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pathlib import Path
-import json
-import sys
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -15,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
 from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
-from brain_go_brrr.tasks.enhanced_abnormality_detection import EnhancedAbnormalityDetectionProbe
 
 print("=" * 80)
 print("DEEP NAN INVESTIGATION - CHECKING EVERY FUCKING COMPONENT")
@@ -26,8 +24,12 @@ print("\n1. CHECKING DATASET OUTPUT:")
 print("-" * 40)
 
 dataset = TUABCachedDataset(
-    root_dir=Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"),
-    cache_dir=Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_enhanced"),
+    root_dir=Path(
+        "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
+    ),
+    cache_dir=Path(
+        "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_enhanced"
+    ),
     split="train",
     window_duration=8.0,
     window_stride=4.0,
@@ -44,11 +46,11 @@ for i in range(min(10, len(dataset))):
     print(f"  Mean: {x.mean():.6f}, Std: {x.std():.6f}")
     print(f"  Has NaN: {torch.isnan(x).any()}")
     print(f"  Has Inf: {torch.isinf(x).any()}")
-    
+
     # Check for extreme values
     if x.abs().max() > 1000:
-        print(f"  WARNING: EXTREME VALUES DETECTED!")
-    
+        print("  WARNING: EXTREME VALUES DETECTED!")
+
     # Check channel-wise stats
     channel_means = x.mean(dim=1)
     channel_stds = x.std(dim=1)
@@ -60,10 +62,7 @@ print("\n\n2. CHECKING CHANNEL ADAPTER:")
 print("-" * 40)
 
 probe = EEGPTTwoLayerProbe(
-    backbone_dim=768,
-    n_input_channels=19,
-    n_classes=2,
-    use_channel_adapter=True
+    backbone_dim=768, n_input_channels=19, n_classes=2, use_channel_adapter=True
 )
 
 # Test channel adapter with various inputs
@@ -77,10 +76,10 @@ test_inputs = [
 for i, test_x in enumerate(test_inputs):
     print(f"\nTest input {i}:")
     print(f"  Input scale: mean={test_x.mean():.6f}, std={test_x.std():.6f}")
-    
+
     with torch.no_grad():
         adapted = probe.adapt_channels(test_x)
-    
+
     print(f"  After adapter: shape={adapted.shape}")
     print(f"  Output scale: mean={adapted.mean():.6f}, std={adapted.std():.6f}")
     print(f"  Has NaN: {torch.isnan(adapted).any()}")
@@ -103,7 +102,7 @@ print(f"Stats source: {backbone._stats_source}")
 x, _ = dataset[0]
 x_batch = x.unsqueeze(0)  # Add batch dimension
 
-print(f"\nBefore normalization:")
+print("\nBefore normalization:")
 print(f"  Data scale: mean={x_batch.mean():.6f}, std={x_batch.std():.6f}")
 
 # Check what happens in forward pass
@@ -112,7 +111,7 @@ with torch.no_grad():
     # Check normalization step
     if backbone.normalize:
         x_norm = (x_batch - backbone.input_mean) / (backbone.input_std + 1e-8)
-        print(f"\nAfter normalization:")
+        print("\nAfter normalization:")
         print(f"  Normalized scale: mean={x_norm.mean():.6f}, std={x_norm.std():.6f}")
         print(f"  Has NaN: {torch.isnan(x_norm).any()}")
         print(f"  Has Inf: {torch.isinf(x_norm).any()}")
@@ -137,11 +136,11 @@ labels = torch.randint(0, 2, (32,))
 for name, logits in test_scenarios:
     print(f"\n{name}:")
     print(f"  Logits scale: min={logits.min():.3f}, max={logits.max():.3f}")
-    
+
     # Check softmax
     probs = F.softmax(logits, dim=1)
     print(f"  Softmax range: min={probs.min():.6f}, max={probs.max():.6f}")
-    
+
     # Check loss
     loss = criterion(logits, labels)
     print(f"  Loss: {loss.item():.6f}")
@@ -156,9 +155,9 @@ if torch.cuda.is_available():
     # Test with fp16
     x_fp16 = x_batch.half().cuda()
     probe_fp16 = probe.half().cuda()
-    
+
     print(f"FP16 input range: min={x_fp16.min():.6f}, max={x_fp16.max():.6f}")
-    
+
     with torch.no_grad():
         adapted_fp16 = probe_fp16.adapt_channels(x_fp16)
         print(f"FP16 adapted range: min={adapted_fp16.min():.6f}, max={adapted_fp16.max():.6f}")

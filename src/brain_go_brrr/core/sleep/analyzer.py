@@ -114,7 +114,9 @@ class SleepAnalyzer:
 
         return raw_copy
 
-    def _smooth_hypnogram(self, hypnogram: npt.NDArray[np.str_], window_min: float = 7.5) -> npt.NDArray[np.str_]:
+    def _smooth_hypnogram(
+        self, hypnogram: npt.NDArray[np.str_], window_min: float = 7.5
+    ) -> npt.NDArray[np.str_]:
         """Apply temporal smoothing to hypnogram using triangular window.
 
         This implements YASA's default smoothing approach using a
@@ -153,6 +155,7 @@ class SleepAnalyzer:
             smoothed.append(unique[mode_idx])
 
         return np.array(smoothed)
+
     def stage_sleep(
         self,
         raw: mne.io.Raw,
@@ -283,6 +286,7 @@ class SleepAnalyzer:
 
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages
+
     def calculate_sleep_metrics(
         self, raw_or_hypnogram: mne.io.BaseRaw | npt.NDArray[np.str_], epoch_length: float = 30.0
     ) -> dict[str, Any]:
@@ -306,7 +310,9 @@ class SleepAnalyzer:
 
         return self.compute_sleep_statistics(hypnogram, epoch_length)
 
-    def compute_sleep_statistics(self, hypnogram: npt.NDArray[np.str_], epoch_length: float = 30.0) -> dict[str, Any]:
+    def compute_sleep_statistics(
+        self, hypnogram: npt.NDArray[np.str_], epoch_length: float = 30.0
+    ) -> dict[str, Any]:
         """Compute comprehensive sleep statistics.
 
         Args:
@@ -487,7 +493,9 @@ class SleepAnalyzer:
             logger.error(f"Hypnogram generation failed: {e}")
             return {"error": str(e)}
 
-    def analyze_sleep_quality(self, hypnogram: npt.NDArray[np.str_], sleep_stats: dict[str, Any], events: dict[str, Any]) -> dict[str, Any]:
+    def analyze_sleep_quality(
+        self, hypnogram: npt.NDArray[np.str_], sleep_stats: dict[str, Any], events: dict[str, Any]
+    ) -> dict[str, Any]:
         """Analyze overall sleep quality.
 
         Args:

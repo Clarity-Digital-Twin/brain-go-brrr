@@ -3,20 +3,23 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 import os
+
+from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 
 # Create dataset
 dataset = TUABCachedDataset(
-    root_dir=Path(os.environ.get("BGB_DATA_ROOT", "data")) / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+    root_dir=Path(os.environ.get("BGB_DATA_ROOT", "data"))
+    / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
     split="train",
     window_duration=5.12,
     window_stride=2.56,
     sampling_rate=200,
     cache_index_path=Path("data/cache/tuab_index.json"),
-    max_files=20  # Small test
+    max_files=20,  # Small test
 )
 
 print(f"Expected window samples: {dataset.window_samples}")

@@ -58,7 +58,7 @@ class TestRealTUABAutoRejectIntegration:
 
         # Verify we got epochs
         assert len(epochs) > 0
-        assert epochs.info['sfreq'] == raw.info['sfreq']
+        assert epochs.info["sfreq"] == raw.info["sfreq"]
 
         # Convert back
         raw_reconstructed = adapter.epochs_to_continuous(epochs, raw_with_pos)
@@ -80,7 +80,7 @@ class TestRealTUABAutoRejectIntegration:
             ar_cache_dir=data_root / "cache/autoreject_test",
             window_duration=10.0,
             window_stride=10.0,  # No overlap for speed
-            sampling_rate=200
+            sampling_rate=200,
         )
 
         # Check dataset loaded
@@ -129,11 +129,11 @@ class TestRealTUABAutoRejectIntegration:
 
         # Create a copy and mark bad channels
         raw_clean = raw.copy()
-        raw_clean.info['bads'] = bad_channels
+        raw_clean.info["bads"] = bad_channels
 
         # Check bad channels marked
         logger.info(f"Marked bad channels: {raw_clean.info['bads']}")
-        assert isinstance(raw_clean.info['bads'], list)
+        assert isinstance(raw_clean.info["bads"], list)
 
     def test_chunked_processor_with_real_files(self):
         """Test chunked processor can handle real TUAB files."""
@@ -144,7 +144,7 @@ class TestRealTUABAutoRejectIntegration:
             cache_dir=cache_dir,
             chunk_size=10,
             n_interpolate=[1, 2],  # Faster for test
-            consensus=0.1
+            consensus=0.1,
         )
 
         # Check cache
@@ -173,11 +173,11 @@ class TestRealTUABAutoRejectIntegration:
         montage = raw_with_pos.get_montage()
         if montage is not None:
             positions = montage.get_positions()
-            assert 'ch_pos' in positions
-            assert len(positions['ch_pos']) > 0
+            assert "ch_pos" in positions
+            assert len(positions["ch_pos"]) > 0
 
         # Filter
-        raw_with_pos.filter(0.5, 50.0, fir_design='firwin', verbose=False)
+        raw_with_pos.filter(0.5, 50.0, fir_design="firwin", verbose=False)
 
         # Convert to epochs
         epochs = adapter.raw_to_windowed_epochs(raw_with_pos)
@@ -190,4 +190,3 @@ class TestRealTUABAutoRejectIntegration:
         assert np.abs(epoch_data).mean() < 1e-3  # Mean less than 1mV
 
         logger.info(f"Successfully processed {len(epochs)} epochs from {real_tuab_file.name}")
-

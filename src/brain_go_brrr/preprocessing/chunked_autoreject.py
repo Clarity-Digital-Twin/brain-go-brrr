@@ -15,6 +15,7 @@ import mne
 # Only import if available
 try:
     from autoreject import AutoReject
+
     HAS_AUTOREJECT = True
 except ImportError:
     HAS_AUTOREJECT = False
@@ -38,7 +39,7 @@ class ChunkedAutoRejectProcessor:
         chunk_size: int = 100,
         n_interpolate: list[int] | None = None,
         consensus: float = 0.1,
-        random_state: int = 42
+        random_state: int = 42,
     ):
         """Initialize processor.
 
@@ -94,7 +95,7 @@ class ChunkedAutoRejectProcessor:
                 raw = mne.io.read_raw_edf(file_path, preload=True, verbose=False)
 
                 # Basic preprocessing
-                raw.filter(0.5, 50.0, fir_design='firwin', verbose=False)
+                raw.filter(0.5, 50.0, fir_design="firwin", verbose=False)
 
                 # Create epochs
                 epochs = mne.make_fixed_length_epochs(
@@ -124,7 +125,7 @@ class ChunkedAutoRejectProcessor:
             consensus=self.consensus,
             n_jobs=1,  # Single job for memory efficiency
             random_state=self.random_state,
-            verbose=False
+            verbose=False,
         )
 
         ar.fit(combined_epochs)
@@ -178,8 +179,7 @@ class ChunkedAutoRejectProcessor:
         rejection_rate = n_rejected / len(epochs) if len(epochs) > 0 else 0
 
         logger.debug(
-            f"AutoReject: {n_rejected}/{len(epochs)} epochs rejected "
-            f"({rejection_rate:.1%})"
+            f"AutoReject: {n_rejected}/{len(epochs)} epochs rejected ({rejection_rate:.1%})"
         )
 
         return epochs_clean
@@ -191,17 +191,17 @@ class ChunkedAutoRejectProcessor:
             consensus=self.consensus,
             n_jobs=1,
             random_state=self.random_state,
-            verbose=False
+            verbose=False,
         )
 
         # Set pre-computed parameters
         if self.ar_params is not None:
             # These are the fitted attributes AutoReject needs
-            ar.threshes_ = self.ar_params['thresholds']
-            ar.consensus_ = self.ar_params['consensus']
-            ar.n_interpolate_ = self.ar_params['n_interpolate']
-            if 'picks' in self.ar_params:
-                ar.picks_ = self.ar_params['picks']
+            ar.threshes_ = self.ar_params["thresholds"]
+            ar.consensus_ = self.ar_params["consensus"]
+            ar.n_interpolate_ = self.ar_params["n_interpolate"]
+            if "picks" in self.ar_params:
+                ar.picks_ = self.ar_params["picks"]
 
         return ar
 
@@ -210,7 +210,7 @@ class ChunkedAutoRejectProcessor:
         params = self._extract_parameters(ar)
         param_file = self.cache_dir / "autoreject_params.pkl"
 
-        with param_file.open('wb') as f:
+        with param_file.open("wb") as f:
             pickle.dump(params, f)
 
         logger.info(f"AutoReject parameters saved to {param_file}")
@@ -222,7 +222,7 @@ class ChunkedAutoRejectProcessor:
         if not param_file.exists():
             raise ValueError(f"No cached parameters found at {param_file}")
 
-        with param_file.open('rb') as f:
+        with param_file.open("rb") as f:
             self.ar_params = pickle.load(f)
 
         self.is_fitted = True
@@ -231,10 +231,10 @@ class ChunkedAutoRejectProcessor:
     def _extract_parameters(self, ar: Any) -> dict[str, Any]:
         """Extract fitted parameters from AutoReject instance."""
         return {
-            'thresholds': getattr(ar, 'threshes_', None),
-            'consensus': getattr(ar, 'consensus_', None),
-            'n_interpolate': getattr(ar, 'n_interpolate_', None),
-            'picks': getattr(ar, 'picks_', None)
+            "thresholds": getattr(ar, "threshes_", None),
+            "consensus": getattr(ar, "consensus_", None),
+            "n_interpolate": getattr(ar, "n_interpolate_", None),
+            "picks": getattr(ar, "picks_", None),
         }
 
     def _stratified_sample(self, file_paths: list[Path], n_samples: int) -> list[Path]:

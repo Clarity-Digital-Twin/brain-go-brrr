@@ -16,8 +16,8 @@ class TestAutoRejectFallbacksSimple:
     @pytest.fixture
     def mock_raw(self):
         """Create mock raw EEG data."""
-        ch_names = ['C3', 'C4', 'CZ', 'F3', 'F4']
-        info = mne.create_info(ch_names, 256, ch_types='eeg')
+        ch_names = ["C3", "C4", "CZ", "F3", "F4"]
+        info = mne.create_info(ch_names, 256, ch_types="eeg")
         data = np.random.randn(len(ch_names), 2560)
         return mne.io.RawArray(data, info)
 
@@ -31,7 +31,7 @@ class TestAutoRejectFallbacksSimple:
 
         # Should return cleaned data
         assert result is not None
-        assert isinstance(result.info['bads'], list)
+        assert isinstance(result.info["bads"], list)
 
     def test_apply_autoreject_fallback(self, mock_raw):
         """Test that _apply_autoreject_to_raw falls back gracefully."""
@@ -47,7 +47,7 @@ class TestAutoRejectFallbacksSimple:
         dataset.ar_processor._load_parameters.side_effect = ValueError("No cached params")
 
         # Call the method directly
-        with patch.object(TUABEnhancedDataset, '_amplitude_based_cleaning', return_value=mock_raw):
+        with patch.object(TUABEnhancedDataset, "_amplitude_based_cleaning", return_value=mock_raw):
             result = TUABEnhancedDataset._apply_autoreject_to_raw(dataset, mock_raw)
 
         # Should fall back and return data
@@ -64,9 +64,11 @@ class TestAutoRejectFallbacksSimple:
         # Mock ar_processor.transform_raw to raise a generic error
         dataset.ar_processor.transform_raw.side_effect = ValueError("Test error")
 
-        with caplog.at_level(logging.ERROR), \
-             patch.object(TUABEnhancedDataset, '_amplitude_based_cleaning', return_value=mock_raw):
-                result = TUABEnhancedDataset._apply_autoreject_to_raw(dataset, mock_raw)
+        with (
+            caplog.at_level(logging.ERROR),
+            patch.object(TUABEnhancedDataset, "_amplitude_based_cleaning", return_value=mock_raw),
+        ):
+            result = TUABEnhancedDataset._apply_autoreject_to_raw(dataset, mock_raw)
 
         # Check logging
         assert "AutoReject failed" in caplog.text

@@ -2,6 +2,7 @@
 
 Handles conversion from old to modern naming conventions.
 """
+
 from dataclasses import dataclass
 
 
@@ -20,7 +21,7 @@ class ChannelMapper:
         "FZ": "Fz",
         "CZ": "Cz",
         "PZ": "Pz",
-        "OZ": "Oz"
+        "OZ": "Oz",
     }
 
     def standardize_channel_names(self, channels: list[str]) -> list[str]:
@@ -43,8 +44,8 @@ class ChannelMapper:
                 # Just normalize case for standard channels
                 if len(channel) >= 2:
                     # First letter uppercase, rest lowercase except numbers
-                    if channel[0].upper() == 'F' and channel[1].upper() == 'P':
-                        standardized.append('Fp' + channel[2:])
+                    if channel[0].upper() == "F" and channel[1].upper() == "P":
+                        standardized.append("Fp" + channel[2:])
                     else:
                         # Standard case: First uppercase, then lowercase, preserve numbers
                         result = channel[0].upper()
@@ -65,10 +66,25 @@ class ChannelValidator:
 
     # Required channels for EEGPT (19 channels)
     REQUIRED_CHANNELS = [
-        "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-        "T7", "C3", "Cz", "C4", "T8",
-        "P7", "P3", "Pz", "P4", "P8",
-        "O1", "O2"
+        "Fp1",
+        "Fp2",
+        "F7",
+        "F3",
+        "Fz",
+        "F4",
+        "F8",
+        "T7",
+        "C3",
+        "Cz",
+        "C4",
+        "T8",
+        "P7",
+        "P3",
+        "Pz",
+        "P4",
+        "P8",
+        "O1",
+        "O2",
     ]
 
     def validate_channels(self, channels: list[str]) -> tuple[bool, list[str]]:
@@ -111,10 +127,25 @@ class ChannelSelector:
 
     # Canonical channel order for EEGPT
     CHANNEL_ORDER = [
-        "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-        "T7", "C3", "Cz", "C4", "T8",
-        "P7", "P3", "Pz", "P4", "P8",
-        "O1", "O2"
+        "Fp1",
+        "Fp2",
+        "F7",
+        "F3",
+        "Fz",
+        "F4",
+        "F8",
+        "T7",
+        "C3",
+        "Cz",
+        "C4",
+        "T8",
+        "P7",
+        "P3",
+        "Pz",
+        "P4",
+        "P8",
+        "O1",
+        "O2",
     ]
 
     def select_standard_channels(self, channels: list[str]) -> tuple[list[str], list[int]]:
@@ -142,6 +173,7 @@ class ChannelSelector:
 @dataclass
 class ChannelProcessingResult:
     """Result of channel processing pipeline."""
+
     is_valid: bool
     standardized_names: list[str]
     selected_indices: list[int]
@@ -181,5 +213,5 @@ class ChannelProcessor:
             standardized_names=standardized,
             selected_indices=indices,
             missing_channels=missing,
-            selected_channels=selected
+            selected_channels=selected,
         )

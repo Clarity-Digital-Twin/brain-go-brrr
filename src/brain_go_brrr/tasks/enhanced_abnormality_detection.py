@@ -57,7 +57,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     ):
         """Initialize enhanced abnormality detection module."""
         super().__init__()
-        self.save_hyperparameters(ignore=['probe'])
+        self.save_hyperparameters(ignore=["probe"])
 
         # Store freeze setting first
         self.backbone_frozen = freeze_backbone
@@ -98,9 +98,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         """Load EEGPT backbone from checkpoint."""
         try:
             # Use the wrapper to create EEGPT model
-            backbone = create_normalized_eegpt(
-                checkpoint_path=checkpoint_path
-            )
+            backbone = create_normalized_eegpt(checkpoint_path=checkpoint_path)
 
             logger.info(f"Loaded EEGPT backbone from {checkpoint_path}")
             return backbone
@@ -119,7 +117,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             Logits [B, n_classes]
         """
         # Apply channel adaptation if needed
-        if hasattr(self.probe, 'adapt_channels'):
+        if hasattr(self.probe, "adapt_channels"):
             x = self.probe.adapt_channels(x)
 
         # Extract features with backbone
@@ -135,7 +133,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return logits
 
-    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> torch.Tensor:  # noqa: ARG002
+    def training_step(
+        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """Training step."""
         x, y = batch
 
@@ -157,15 +157,17 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         acc = (preds == y).float().mean()
 
         # Log metrics
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log('train_acc', acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
         # Store outputs for epoch-level metrics
-        self.train_outputs.append({
-            'loss': loss.detach(),
-            'logits': logits.detach(),
-            'labels': y.detach(),
-        })
+        self.train_outputs.append(
+            {
+                "loss": loss.detach(),
+                "logits": logits.detach(),
+                "labels": y.detach(),
+            }
+        )
 
         return loss
 
@@ -178,11 +180,13 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         loss = self.criterion(logits, y)
 
         # Store outputs
-        self.val_outputs.append({
-            'loss': loss.detach(),
-            'logits': logits.detach(),
-            'labels': y.detach(),
-        })
+        self.val_outputs.append(
+            {
+                "loss": loss.detach(),
+                "logits": logits.detach(),
+                "labels": y.detach(),
+            }
+        )
 
     def on_train_epoch_end(self) -> None:
         """Calculate training metrics at epoch end."""
@@ -190,8 +194,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             return
 
         # Gather all outputs
-        torch.cat([x['logits'] for x in self.train_outputs])
-        torch.cat([x['labels'] for x in self.train_outputs])
+        torch.cat([x["logits"] for x in self.train_outputs])
+        torch.cat([x["labels"] for x in self.train_outputs])
 
         # Clear stored outputs
         self.train_outputs.clear()
@@ -202,9 +206,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             return
 
         # Gather all outputs
-        all_logits = torch.cat([x['logits'] for x in self.val_outputs])
-        all_labels = torch.cat([x['labels'] for x in self.val_outputs])
-        avg_loss = torch.stack([x['loss'] for x in self.val_outputs]).mean()
+        all_logits = torch.cat([x["logits"] for x in self.val_outputs])
+        all_labels = torch.cat([x["labels"] for x in self.val_outputs])
+        avg_loss = torch.stack([x["loss"] for x in self.val_outputs]).mean()
 
         # Convert to numpy
         probs = F.softmax(all_logits, dim=1).cpu().numpy()
@@ -215,29 +219,31 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         metrics = self._calculate_metrics(labels, preds, probs[:, 1])
 
         # Log metrics
-        self.log('val_loss', avg_loss, prog_bar=True)
+        self.log("val_loss", avg_loss, prog_bar=True)
         for name, value in metrics.items():
-            self.log(f'val_{name}', value, prog_bar=name in ['auroc', 'acc'])
+            self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"])
 
         # Clear stored outputs
         self.val_outputs.clear()
 
-    def _calculate_metrics(self, labels: np.ndarray, preds: np.ndarray, probs: np.ndarray) -> dict[str, float]:
+    def _calculate_metrics(
+        self, labels: np.ndarray, preds: np.ndarray, probs: np.ndarray
+    ) -> dict[str, float]:
         """Calculate classification metrics."""
         metrics = {}
 
         # Basic metrics
-        metrics['acc'] = accuracy_score(labels, preds)
-        metrics['balanced_acc'] = balanced_accuracy_score(labels, preds)
-        metrics['kappa'] = cohen_kappa_score(labels, preds)
+        metrics["acc"] = accuracy_score(labels, preds)
+        metrics["balanced_acc"] = balanced_accuracy_score(labels, preds)
+        metrics["kappa"] = cohen_kappa_score(labels, preds)
 
         # F1 scores
-        metrics['f1_weighted'] = f1_score(labels, preds, average='weighted')
-        metrics['f1_macro'] = f1_score(labels, preds, average='macro')
+        metrics["f1_weighted"] = f1_score(labels, preds, average="weighted")
+        metrics["f1_macro"] = f1_score(labels, preds, average="macro")
 
         # AUROC (for binary classification)
         if len(np.unique(labels)) == 2:
-            metrics['auroc'] = roc_auc_score(labels, probs)
+            metrics["auroc"] = roc_auc_score(labels, probs)
 
         return metrics
 
@@ -260,17 +266,17 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 max_lr=self.hparams.learning_rate,
                 total_steps=self.trainer.estimated_stepping_batches,
                 pct_start=self.hparams.warmup_epochs / self.hparams.total_epochs,
-                anneal_strategy='cos',
+                anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000
             )
 
             return {
-                'optimizer': optimizer,
-                'lr_scheduler': {
-                    'scheduler': scheduler,
-                    'interval': 'step',
-                }
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
+                },
             }
         else:
             # Simple warmup + cosine annealing
@@ -289,11 +295,11 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             )
 
             return {
-                'optimizer': optimizer,
-                'lr_scheduler': {
-                    'scheduler': scheduler,
-                    'interval': 'step',
-                }
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step",
+                },
             }
 
     def _get_param_groups(self) -> list:
@@ -306,28 +312,32 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             if param.requires_grad:
                 probe_params.append(param)
 
-        param_groups.append({
-            'params': probe_params,
-            'lr': self.hparams.learning_rate,
-            'weight_decay': self.hparams.weight_decay,
-            'name': 'probe',
-        })
+        param_groups.append(
+            {
+                "params": probe_params,
+                "lr": self.hparams.learning_rate,
+                "weight_decay": self.hparams.weight_decay,
+                "name": "probe",
+            }
+        )
 
         # Backbone parameters (if unfrozen) - apply layer decay
         if not self.backbone_frozen:
             for layer_id in range(12):  # EEGPT has 12 layers
                 layer_params = []
                 for name, param in self.backbone.named_parameters():
-                    if param.requires_grad and f'layers.{layer_id}.' in name:
+                    if param.requires_grad and f"layers.{layer_id}." in name:
                         layer_params.append(param)
 
                 if layer_params:
                     lr_scale = self.hparams.layer_decay ** (11 - layer_id)
-                    param_groups.append({
-                        'params': layer_params,
-                        'lr': self.hparams.learning_rate * lr_scale,
-                        'weight_decay': self.hparams.weight_decay,
-                        'name': f'backbone_layer_{layer_id}',
-                    })
+                    param_groups.append(
+                        {
+                            "params": layer_params,
+                            "lr": self.hparams.learning_rate * lr_scale,
+                            "weight_decay": self.hparams.weight_decay,
+                            "name": f"backbone_layer_{layer_id}",
+                        }
+                    )
 
         return param_groups

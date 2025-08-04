@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PipelineConfig:
     """Configuration for hierarchical EEG analysis pipeline."""
+
     enable_abnormality_screening: bool = True
     enable_epileptiform_detection: bool = True
     enable_sleep_staging: bool = True
@@ -42,6 +43,7 @@ class PipelineConfig:
 @dataclass
 class AnalysisResult:
     """Result from hierarchical EEG analysis."""
+
     abnormality_score: float
     is_abnormal: bool
     confidence: float
@@ -64,7 +66,7 @@ class AbnormalityScreener:
         self,
         model_path: Path | None = None,
         use_pretrained_features: bool = True,
-        calibrated: bool = False
+        calibrated: bool = False,
     ):
         """Initialize abnormality screener."""
         self.model_path = model_path
@@ -75,9 +77,7 @@ class AbnormalityScreener:
         self._mock_scores: list[float] = []
 
     def screen(
-        self,
-        eeg: npt.NDArray[np.float64],
-        return_features: bool = False
+        self, eeg: npt.NDArray[np.float64], return_features: bool = False
     ) -> float | tuple[float, npt.NDArray[np.float64]]:
         """Screen EEG for abnormality."""
         # Mock implementation for TDD
@@ -105,9 +105,9 @@ class EpileptiformDetector:
 
     def __init__(
         self,
-        sensitivity: str = 'medium',
+        sensitivity: str = "medium",
         min_spike_duration_ms: float = 20,
-        max_spike_duration_ms: float = 70
+        max_spike_duration_ms: float = 70,
     ):
         """Initialize epileptiform detector."""
         self.sensitivity = sensitivity
@@ -128,31 +128,32 @@ class EpileptiformDetector:
             if len(peaks) > 0:
                 # Group nearby peaks
                 for peak in peaks[:3]:  # Limit for mock
-                    events.append({
-                        'type': 'spike',
-                        'channel': ch,
-                        'time_ms': peak / 256 * 1000,  # 256Hz sampling
-                        'amplitude': float(channel_data[peak]),
-                        'duration_ms': 30.0
-                    })
+                    events.append(
+                        {
+                            "type": "spike",
+                            "channel": ch,
+                            "time_ms": peak / 256 * 1000,  # 256Hz sampling
+                            "amplitude": float(channel_data[peak]),
+                            "duration_ms": 30.0,
+                        }
+                    )
 
         # Check for spike-wave patterns (mock)
         if len(events) > 5:
-            events.append({
-                'type': 'spike_wave_complex',
-                'channels': list(range(5)),
-                'frequency_hz': 3.0,
-                'duration_ms': 1000.0
-            })
+            events.append(
+                {
+                    "type": "spike_wave_complex",
+                    "channels": list(range(5)),
+                    "frequency_hz": 3.0,
+                    "duration_ms": 1000.0,
+                }
+            )
 
         # Check for polyspikes (mock)
         if len(events) > 10:
-            events.append({
-                'type': 'polyspike',
-                'channel': 10,
-                'spike_count': 4,
-                'duration_ms': 120.0
-            })
+            events.append(
+                {"type": "polyspike", "channel": 10, "spike_count": 4, "duration_ms": 120.0}
+            )
 
         return events
 
@@ -162,13 +163,14 @@ class SleepStager:
 
     def __init__(self, use_yasa: bool = True):
         """Initialize sleep stager."""
-        self.stages = ['W', 'N1', 'N2', 'N3', 'REM']
+        self.stages = ["W", "N1", "N2", "N3", "REM"]
         self.use_yasa = use_yasa
         self.yasa_adapter: Any = None
 
         if use_yasa:
             try:
                 from brain_go_brrr.services.yasa_adapter import HierarchicalPipelineYASAAdapter
+
                 self.yasa_adapter = HierarchicalPipelineYASAAdapter()
                 logger.info("Using YASA for sleep staging")
             except ImportError:
@@ -197,15 +199,15 @@ class SleepStager:
         mean_amp = np.mean(np.abs(eeg))
 
         if mean_amp > 20:
-            return 'W', 0.85
+            return "W", 0.85
         elif mean_amp > 15:
-            return 'REM', 0.75
+            return "REM", 0.75
         elif mean_amp > 10:
-            return 'N1', 0.80
+            return "N1", 0.80
         elif mean_amp > 5:
-            return 'N2', 0.85
+            return "N2", 0.85
         else:
-            return 'N3', 0.90
+            return "N3", 0.90
 
 
 class ParallelExecutor:
@@ -257,10 +259,7 @@ class HierarchicalEEGAnalyzer:
         """Analyze EEG data through hierarchical pipeline."""
         start_time = time.time()
         result = AnalysisResult(
-            abnormality_score=0.5,
-            is_abnormal=False,
-            confidence=0.0,
-            triage_flag='routine'
+            abnormality_score=0.5, is_abnormal=False, confidence=0.0, triage_flag="routine"
         )
 
         # Check for errors
@@ -268,7 +267,7 @@ class HierarchicalEEGAnalyzer:
             result.has_errors = True
             result.error_messages.append("NaN values detected")
             if self.config.enable_error_fallback:
-                result.triage_flag = 'review'
+                result.triage_flag = "review"
                 result.processing_notes.append("Error detected - forced to review")
                 result.processing_time_ms = (time.time() - start_time) * 1000
                 return result
@@ -280,14 +279,18 @@ class HierarchicalEEGAnalyzer:
                 if isinstance(screen_result, tuple):
                     score, features = screen_result
                     result.feature_importance = {
-                        'channel_contributions': np.random.rand(eeg.shape[0]).tolist(),
-                        'temporal_regions': np.random.rand(10).tolist()
+                        "channel_contributions": np.random.rand(eeg.shape[0]).tolist(),
+                        "temporal_regions": np.random.rand(10).tolist(),
                     }
                 else:
                     score = screen_result
             else:
                 screen_result = self.screener.screen(eeg)
-                score = float(screen_result) if not isinstance(screen_result, tuple) else screen_result[0]
+                score = (
+                    float(screen_result)
+                    if not isinstance(screen_result, tuple)
+                    else screen_result[0]
+                )
 
             result.abnormality_score = score
             result.is_abnormal = score > self.config.abnormal_threshold
@@ -297,11 +300,11 @@ class HierarchicalEEGAnalyzer:
 
             # Triage based on confidence and score
             if result.is_abnormal and result.confidence > 0.8:
-                result.triage_flag = 'urgent'
+                result.triage_flag = "urgent"
             elif result.is_abnormal and result.confidence < 0.6:
-                result.triage_flag = 'review'
+                result.triage_flag = "review"
             else:
-                result.triage_flag = 'routine'
+                result.triage_flag = "routine"
 
         # Parallel execution setup
         tasks: list[Callable[[], Any]] = []
@@ -374,11 +377,12 @@ class HierarchicalEEGAnalyzer:
 
         # Mock save
         import pickle
+
         state = {
-            'samples_processed': self.samples_processed,
-            'running_statistics': self.running_statistics
+            "samples_processed": self.samples_processed,
+            "running_statistics": self.running_statistics,
         }
-        with checkpoint_path.open('wb') as f:
+        with checkpoint_path.open("wb") as f:
             pickle.dump(state, f)
 
         return checkpoint_path
@@ -386,8 +390,9 @@ class HierarchicalEEGAnalyzer:
     def load_checkpoint(self, checkpoint_path: Path) -> None:
         """Load pipeline state from checkpoint."""
         import pickle
-        with checkpoint_path.open('rb') as f:
+
+        with checkpoint_path.open("rb") as f:
             state = pickle.load(f)
 
-        self.samples_processed = state['samples_processed']
-        self.running_statistics = state['running_statistics']
+        self.samples_processed = state["samples_processed"]
+        self.running_statistics = state["running_statistics"]

@@ -65,12 +65,13 @@ def disable_parallel_processing(monkeypatch):
     # Patch joblib to always use sequential backend
     try:
         import joblib
+
         original_parallel = joblib.Parallel
 
         def patched_parallel(*args, **kwargs):
             # Force n_jobs=1 if not already set
-            if 'n_jobs' not in kwargs or kwargs['n_jobs'] != 1:
-                kwargs['n_jobs'] = 1
+            if "n_jobs" not in kwargs or kwargs["n_jobs"] != 1:
+                kwargs["n_jobs"] = 1
             return original_parallel(*args, **kwargs)
 
         monkeypatch.setattr("joblib.Parallel", patched_parallel)
@@ -407,7 +408,9 @@ def _isolate_autoreject_cache(tmp_path_factory):
     """Isolate AutoReject cache to temp directory for tests."""
     tmp = tmp_path_factory.mktemp("ar_cache")
     import os
+
     os.environ["BGB_AR_CACHE_DIR"] = str(tmp)
     yield
     import shutil
+
     shutil.rmtree(tmp, ignore_errors=True)
