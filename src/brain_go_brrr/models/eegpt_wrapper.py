@@ -42,11 +42,12 @@ class EEGPTWrapper(nn.Module):
             self.normalize = True
             self._stats_source = "file"
         else:
-            # Default normalization parameters
+            # Default normalization parameters - TUAB is already normalized!
             self.register_buffer("input_mean", torch.zeros(1))
             self.register_buffer("input_std", torch.ones(1))
             self.normalize = True
             self._stats_source = "default"
+            logger.warning("No normalization file found - using identity normalization (mean=0, std=1)")
 
     def set_normalization_params(self, mean: float, std: float) -> None:
         """Set normalization parameters.

@@ -135,7 +135,16 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Forward pass
         logits = self(x)
+        
+        # Safety check for NaN in logits
+        if torch.isnan(logits).any():
+            raise RuntimeError(f"NaN detected in logits at step {self.global_step}")
+        
         loss = self.criterion(logits, y)
+        
+        # Safety check for NaN in loss
+        if torch.isnan(loss) or torch.isinf(loss):
+            raise RuntimeError(f"Loss became NaN/Inf at step {self.global_step}: {loss.item()}")
 
         # Calculate metrics
         preds = torch.argmax(logits, dim=1)
