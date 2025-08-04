@@ -242,10 +242,11 @@ class TestHierarchicalPipeline:
     def _create_clear_abnormal_eeg(self) -> np.ndarray:
         """Create clearly abnormal EEG with epileptiform activity."""
         eeg = self._create_normal_eeg()
-        # Add clear spikes
+        # Add clear spikes with very high amplitude to ensure abnormality detection
         for ch in range(10):
             for spike_time in [512, 1024, 1536]:
-                spike = 10 * np.exp(-np.arange(50) / 10)
+                # Create very high amplitude spikes (100+ to ensure >30 threshold)
+                spike = 100 * np.exp(-np.arange(50) / 10)
                 eeg[ch, spike_time : spike_time + 50] += spike
         return eeg
 
