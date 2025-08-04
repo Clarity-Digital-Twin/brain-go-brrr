@@ -233,7 +233,7 @@ class EEGPTModel:
                 return result
 
         # This should never be reached due to the encoder None check above
-        return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)  # type: ignore[unreachable]
+        return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)
 
     def predict_abnormality(self, raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
         """Predict abnormality from raw EEG data with streaming support."""

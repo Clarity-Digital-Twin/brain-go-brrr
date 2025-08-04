@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/cache", tags=["cache"])
 
 
-@router.get("/stats")
+@router.get("/stats")  # type: ignore[misc]
 async def get_cache_stats(cache_client: Any = Depends(get_cache)) -> dict[str, Any]:
     """Get Redis cache statistics."""
     if not cache_client or not cache_client.connected:
@@ -33,7 +33,7 @@ async def get_cache_stats(cache_client: Any = Depends(get_cache)) -> dict[str, A
         return {"status": "error", "error": "Invalid cache client"}
 
 
-@router.delete("/clear")
+@router.delete("/clear")  # type: ignore[misc]
 async def clear_cache(
     pattern: str = "eeg_analysis:*",
     cache_client: Any = Depends(get_cache),
@@ -68,7 +68,7 @@ async def clear_cache(
         raise HTTPException(status_code=400, detail="Invalid cache pattern") from e
 
 
-@router.post("/warmup")
+@router.post("/warmup")  # type: ignore[misc]
 async def warmup_cache(
     request: CacheWarmupRequest,  # noqa: ARG001
     cache_client: Any = Depends(get_cache),

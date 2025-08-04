@@ -12,14 +12,14 @@ try:
     HAS_GPUTIL = True
 except ImportError:
     HAS_GPUTIL = False
-    GPUtil = None  # type: ignore[assignment]
+    GPUtil = None
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/resources", tags=["resources"])
 
 
-@router.get("/gpu")
+@router.get("/gpu")  # type: ignore[misc]
 async def get_gpu_resources() -> dict[str, Any]:
     """Get GPU resource utilization."""
     if not HAS_GPUTIL or GPUtil is None:
@@ -47,7 +47,7 @@ async def get_gpu_resources() -> dict[str, Any]:
         return {"gpus": [], "error": f"GPU not available: {e!s}"}
 
 
-@router.get("/memory")
+@router.get("/memory")  # type: ignore[misc]
 async def get_memory_resources() -> dict[str, Any]:
     """Get system memory utilization."""
     import psutil

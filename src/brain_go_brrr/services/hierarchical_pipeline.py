@@ -12,7 +12,10 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import numpy as np
 import numpy.typing as npt
@@ -161,6 +164,7 @@ class SleepStager:
         """Initialize sleep stager."""
         self.stages = ['W', 'N1', 'N2', 'N3', 'REM']
         self.use_yasa = use_yasa
+        self.yasa_adapter: Any = None
 
         if use_yasa:
             try:
@@ -379,7 +383,7 @@ class HierarchicalEEGAnalyzer:
 
         return checkpoint_path
 
-    def load_checkpoint(self, checkpoint_path: Path):
+    def load_checkpoint(self, checkpoint_path: Path) -> None:
         """Load pipeline state from checkpoint."""
         import pickle
         with checkpoint_path.open('rb') as f:

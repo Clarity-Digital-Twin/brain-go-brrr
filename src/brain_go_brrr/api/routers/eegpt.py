@@ -63,7 +63,7 @@ def get_probe(task: str) -> Any:
     return _probes[task]
 
 
-@router.post("/analyze", response_model=EEGPTAnalysisResponse)
+@router.post("/analyze", response_model=EEGPTAnalysisResponse)  # type: ignore[misc]
 async def analyze_with_probe(
     edf_file: UploadFile = File(...),
     analysis_type: Literal[
@@ -202,7 +202,7 @@ async def analyze_with_probe(
                 tmp_path.unlink()
 
 
-@router.get("/probes/available", response_model=ProbeInfoResponse)
+@router.get("/probes/available", response_model=ProbeInfoResponse)  # type: ignore[misc]
 async def get_available_probes() -> ProbeInfoResponse:
     """Get information about available linear probes."""
     probe_info = {
@@ -229,7 +229,7 @@ async def get_available_probes() -> ProbeInfoResponse:
     )
 
 
-@router.post("/analyze/batch")
+@router.post("/analyze/batch")  # type: ignore[misc]
 async def analyze_batch(
     edf_file: UploadFile = File(...),
     analysis_type: str = "abnormality",

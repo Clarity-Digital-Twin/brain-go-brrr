@@ -65,6 +65,7 @@ class TestSleepProbeTraining:
         assert window.shape == (19, 1024)
         assert label.item() == 0
 
+    @pytest.mark.slow
     def test_sleep_probe_trainer_init(self, mock_eegpt_model):
         """Test SleepProbeTrainer initialization."""
         probe = SleepStageProbe()

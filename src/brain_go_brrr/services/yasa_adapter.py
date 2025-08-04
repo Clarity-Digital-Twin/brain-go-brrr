@@ -49,7 +49,7 @@ class YASASleepStager:
         self.stages_processed = 0
         self.avg_confidence = 0.0
 
-    def _validate_installation(self):
+    def _validate_installation(self) -> None:
         """Validate YASA is properly installed with models."""
         try:
             # Check if lightgbm is available

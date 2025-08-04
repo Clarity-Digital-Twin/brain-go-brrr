@@ -18,7 +18,7 @@ try:
     HAS_AUTOREJECT = True
 except ImportError:
     HAS_AUTOREJECT = False
-    AutoReject = None  # type: ignore
+    AutoReject = None
 
 logger = logging.getLogger(__name__)
 

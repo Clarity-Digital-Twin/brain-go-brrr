@@ -41,7 +41,7 @@ class ModelConfig(BaseModel):
             raise ValueError("Window duration must result in integer samples")
         return int(samples)
 
-    @field_validator("model_path")
+    @field_validator("model_path")  # type: ignore[misc]
     @classmethod
     def validate_model_path(cls, v: Path) -> Path:
         """Validate that model path exists."""

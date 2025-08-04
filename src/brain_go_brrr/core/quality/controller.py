@@ -27,7 +27,7 @@ try:
 except ImportError:
     logging.warning("autoreject not available. Install with: pip install autoreject")
     HAS_AUTOREJECT = False
-    AutoReject = None  # type: ignore[assignment, misc]
+    AutoReject = None
 
 logger = logging.getLogger(__name__)
 

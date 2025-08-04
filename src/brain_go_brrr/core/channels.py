@@ -152,7 +152,7 @@ class ChannelProcessingResult:
 class ChannelProcessor:
     """Complete channel processing pipeline."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize channel processor with mapper, validator, and selector."""
         self.mapper = ChannelMapper()
         self.validator = ChannelValidator()

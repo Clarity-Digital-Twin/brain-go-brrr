@@ -58,7 +58,7 @@ class BandpassFilter:
                 filtered[ch] = signal.sosfiltfilt(self.sos, data[ch])
             return filtered
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"bandpass filter ({self.low_freq}-{self.high_freq}Hz @ {self.sampling_rate}Hz)"
 
 
@@ -103,7 +103,7 @@ class NotchFilter:
                 filtered[ch] = signal.sosfiltfilt(self.sos, data[ch])
             return filtered
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"notch filter ({self.freq}Hz @ {self.sampling_rate}Hz, Q={self.quality_factor})"
 
 
@@ -164,7 +164,7 @@ class Normalizer:
         else:
             raise ValueError(f"Unknown normalization method: {self.method}")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"normalize (method='{self.method}')"
 
 
@@ -197,7 +197,7 @@ class Resampler:
                 resampled[ch] = signal.resample(data[ch], n_samples_new)
             return resampled
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"resample ({self.original_rate}Hz -> {self.target_rate}Hz)"
 
 
@@ -284,6 +284,6 @@ class PreprocessingPipeline:
 
         return data
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         steps_str = ", ".join(repr(s) for s in self.steps)
         return f"PreprocessingPipeline([{steps_str}])"

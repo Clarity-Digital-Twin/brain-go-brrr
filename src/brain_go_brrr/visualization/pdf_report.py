@@ -89,7 +89,7 @@ class PDFReportGenerator:
 
     def _create_main_page(self, results: dict[str, Any]) -> Figure:
         """Create main report page with summary and visualizations."""
-        fig = plt.figure(figsize=self.figsize)
+        fig: Figure = plt.figure(figsize=self.figsize)
 
         # Get quality metrics
         quality_metrics = results.get("quality_metrics", {})

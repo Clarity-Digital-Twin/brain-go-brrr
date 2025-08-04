@@ -206,7 +206,7 @@ async def process_sleep_analysis_job(job_id: str, file_path: Path) -> None:
                 file_path.unlink()
 
 
-@router.post("/analyze", response_model=JobResponse, status_code=202)
+@router.post("/analyze", response_model=JobResponse, status_code=202)  # type: ignore[misc]
 async def analyze_sleep_eeg(
     edf_file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()
 ) -> JobResponse:
@@ -306,7 +306,7 @@ async def analyze_sleep_eeg(
     )
 
 
-@router.get("/jobs/{job_id}/status")
+@router.get("/jobs/{job_id}/status")  # type: ignore[misc]
 async def get_sleep_job_status(job_id: str) -> dict[str, Any]:
     """Get status of a sleep analysis job."""
     job = job_store.get(job_id)
@@ -324,7 +324,7 @@ async def get_sleep_job_status(job_id: str) -> dict[str, Any]:
     }
 
 
-@router.get("/jobs/{job_id}/results", response_model=SleepAnalysisResponse)
+@router.get("/jobs/{job_id}/results", response_model=SleepAnalysisResponse)  # type: ignore[misc]
 async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
     """Get results of a completed sleep analysis job."""
     job = job_store.get(job_id)
@@ -353,7 +353,7 @@ async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
     )
 
 
-@router.post("/stages", response_model=SleepStageResponse)
+@router.post("/stages", response_model=SleepStageResponse)  # type: ignore[misc]
 async def analyze_sleep_stages_eegpt(
     edf_file: UploadFile = File(...),
 ) -> SleepStageResponse:

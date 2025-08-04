@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/queue", tags=["queue"])
 
 
-@router.get("/status", response_model=QueueStatusResponse, name="get_queue_status")
+@router.get("/status", response_model=QueueStatusResponse, name="get_queue_status")  # type: ignore[misc]
 async def get_queue_status() -> QueueStatusResponse:
     """Get current queue status and statistics."""
     # Use Counter for efficient status counting
@@ -49,7 +49,7 @@ async def get_queue_status() -> QueueStatusResponse:
     )
 
 
-@router.get("/health")
+@router.get("/health")  # type: ignore[misc]
 async def queue_health_check() -> dict[str, Any]:
     """Check queue system health."""
     status = await get_queue_status()
@@ -63,7 +63,7 @@ async def queue_health_check() -> dict[str, Any]:
     }
 
 
-@router.get("/workers")
+@router.get("/workers")  # type: ignore[misc]
 async def get_worker_status() -> dict[str, Any]:
     """Get status of queue workers."""
     # TODO: Integrate with Celery
@@ -80,26 +80,26 @@ async def get_worker_status() -> dict[str, Any]:
     }
 
 
-@router.post("/cleanup")
+@router.post("/cleanup")  # type: ignore[misc]
 async def cleanup_old_jobs() -> dict[str, str]:
     """Clean up old completed/failed jobs."""
     # TODO: Implement cleanup logic
     return {"status": "not_implemented", "message": "Cleanup not yet implemented"}
 
 
-@router.post("/pause")
+@router.post("/pause")  # type: ignore[misc]
 async def pause_queue() -> dict[str, str]:
     """Pause job processing."""
     return {"status": "success", "message": "Queue paused", "queue_state": "paused"}
 
 
-@router.post("/resume")
+@router.post("/resume")  # type: ignore[misc]
 async def resume_queue() -> dict[str, str]:
     """Resume job processing."""
     return {"status": "success", "message": "Queue resumed", "queue_state": "active"}
 
 
-@router.get("/failed")
+@router.get("/failed")  # type: ignore[misc]
 async def get_failed_jobs() -> dict[str, Any]:
     """Get failed jobs (dead letter queue)."""
     failed_jobs = [job for job in job_store.list_all() if job.status == JobStatus.FAILED]
@@ -125,7 +125,7 @@ async def get_failed_jobs() -> dict[str, Any]:
     }
 
 
-@router.post("/recover")
+@router.post("/recover")  # type: ignore[misc]
 async def recover_jobs() -> dict[str, Any]:
     """Recover in-progress jobs after system restart."""
     # Find all jobs that were processing
