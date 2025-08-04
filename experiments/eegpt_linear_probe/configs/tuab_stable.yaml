@@ -43,9 +43,9 @@ data:
   
   # Data loading
   batch_size: 32          # Keep same batch size
-  num_workers: 2          # Can use workers with cached data
+  num_workers: 0          # CHANGED: Set to 0 to debug hanging
   pin_memory: true        # Fast with cached data
-  persistent_workers: true # Keep workers alive
+  persistent_workers: false # CHANGED: Must be false when num_workers=0
   prefetch_factor: 2      # Prefetch next batches
   
   # Channel configuration

@@ -33,7 +33,7 @@ from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
 from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
 from brain_go_brrr.tasks.enhanced_abnormality_detection import EnhancedAbnormalityDetectionProbe
-from experiments.eegpt_linear_probe.custom_collate import collate_eeg_batch
+from experiments.eegpt_linear_probe.custom_collate_fixed import collate_eeg_batch_fixed
 
 logging.basicConfig(
     level=logging.INFO,
@@ -213,7 +213,7 @@ def main():
         pin_memory=cfg.data.pin_memory,
         persistent_workers=cfg.data.persistent_workers,
         drop_last=True,
-        collate_fn=collate_eeg_batch,  # Custom collate for consistent dimensions
+        collate_fn=collate_eeg_batch_fixed  # Handle variable channel counts
     )
     
     val_loader = DataLoader(
@@ -223,7 +223,7 @@ def main():
         num_workers=cfg.data.num_workers,
         pin_memory=cfg.data.pin_memory,
         persistent_workers=cfg.data.persistent_workers,
-        collate_fn=collate_eeg_batch,  # Custom collate for consistent dimensions
+        collate_fn=collate_eeg_batch_fixed  # Handle variable channel counts
     )
     
     # Create model
