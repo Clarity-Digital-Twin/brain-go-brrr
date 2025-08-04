@@ -263,7 +263,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
             def warmup_lambda(epoch: int) -> float:
                 if epoch < self.hparams.warmup_epochs:
-                    return epoch / self.hparams.warmup_epochs
+                    return float(epoch) / float(self.hparams.warmup_epochs)
                 return 1.0
 
             warmup_scheduler = LambdaLR(optimizer, lr_lambda=warmup_lambda)
