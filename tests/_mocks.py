@@ -71,7 +71,16 @@ def mock_eegpt_model_loading(monkeypatch):
         n_summary_tokens = getattr(self.config, "n_summary_tokens", 4)
         return np.random.randn(batch_size, n_summary_tokens, 512).astype(np.float32)
 
-    def mock_process_recording(self, raw=None, data=None, sampling_rate=256, overlap=0.5, ch_names=None, batch_size=32, **kwargs):
+    def mock_process_recording(
+        self,
+        raw=None,
+        data=None,
+        sampling_rate=256,
+        overlap=0.5,
+        ch_names=None,
+        batch_size=32,
+        **kwargs,
+    ):
         """Mock processing a full MNE Raw recording.
 
         Args:

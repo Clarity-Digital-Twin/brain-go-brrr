@@ -3,14 +3,17 @@
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import os
+
 os.environ["BGB_DATA_ROOT"] = str(Path(__file__).parent.parent.parent / "data")
 
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from torch.utils.data import DataLoader
+
 from experiments.eegpt_linear_probe.train_enhanced import create_weighted_sampler
+from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 
 # Create dataset exactly as in training
 dataset = TUABCachedDataset(
@@ -42,11 +45,11 @@ loader = DataLoader(
 
 # Check first few batches
 print("\nChecking batches...")
-for i, (batch_x, batch_y) in enumerate(loader):
+for i, (batch_x, _batch_y) in enumerate(loader):
     print(f"Batch {i}: shape={batch_x.shape}")
     if i >= 5:
         break
-    
+
     # Check individual items in batch
     for j in range(batch_x.shape[0]):
         item_shape = batch_x[j].shape

@@ -2,6 +2,7 @@
 
 Implements 8-second windows with configurable overlap.
 """
+
 import numpy as np
 
 
@@ -56,9 +57,7 @@ class WindowExtractor:
         return windows
 
     def extract_with_timestamps(
-        self,
-        data: np.ndarray,
-        sfreq: float
+        self, data: np.ndarray, sfreq: float
     ) -> tuple[list[np.ndarray], list[tuple[float, float]]]:
         """Extract windows with their timestamps.
 
@@ -128,9 +127,7 @@ class BatchWindowExtractor:
         self.extractor = WindowExtractor(window_seconds, overlap_seconds)
 
     def extract_batch(
-        self,
-        recordings: list[np.ndarray],
-        sfreq: float
+        self, recordings: list[np.ndarray], sfreq: float
     ) -> tuple[list[np.ndarray], list[int]]:
         """Extract windows from multiple recordings.
 

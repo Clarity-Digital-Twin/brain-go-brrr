@@ -81,7 +81,7 @@ class TestPDFReportGeneration:
     def test_pdf_report_structure(self):
         """Test that PDF report has required structure."""
         # Test import works
-        from src.brain_go_brrr.visualization.pdf_report import generate_qc_report
+        from brain_go_brrr.visualization.pdf_report import generate_qc_report
 
         # Test function exists
         assert callable(generate_qc_report)
@@ -89,7 +89,7 @@ class TestPDFReportGeneration:
     def test_pdf_contains_warning_banner(self, qc_results):
         """Test PDF contains red warning banner for abnormal EEGs (ROUGH_DRAFT.md spec)."""
         # Import will fail initially (TDD)
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         generator = PDFReportGenerator()
         pdf_bytes = generator.generate_report(qc_results)
@@ -109,7 +109,7 @@ class TestPDFReportGeneration:
 
     def test_electrode_heatmap_generation(self, qc_results):
         """Test electrode heat-map showing bad channels."""
-        from src.brain_go_brrr.visualization.pdf_report import create_electrode_heatmap
+        from brain_go_brrr.visualization.pdf_report import create_electrode_heatmap
 
         # Generate heatmap
         fig = create_electrode_heatmap(
@@ -127,7 +127,7 @@ class TestPDFReportGeneration:
 
     def test_artifact_examples_visualization(self, qc_results, mock_eeg_data):
         """Test visualization of 5 worst artifact examples."""
-        from src.brain_go_brrr.visualization.pdf_report import create_artifact_examples
+        from brain_go_brrr.visualization.pdf_report import create_artifact_examples
 
         # Get 5 worst artifacts
         artifacts = sorted(
@@ -149,7 +149,7 @@ class TestPDFReportGeneration:
 
     def test_pdf_report_for_normal_eeg(self):
         """Test PDF report for normal EEG (no warning banner)."""
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         # Create normal results
         normal_results = {
@@ -181,7 +181,7 @@ class TestPDFReportGeneration:
 
     def test_pdf_metadata(self, qc_results):
         """Test PDF contains proper metadata."""
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         generator = PDFReportGenerator()
         pdf_bytes = generator.generate_report(qc_results)
@@ -198,7 +198,7 @@ class TestPDFReportGeneration:
 
     def test_pdf_file_size_reasonable(self, qc_results):
         """Test PDF file size is reasonable (<5MB for efficiency)."""
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         generator = PDFReportGenerator()
         pdf_bytes = generator.generate_report(qc_results)
@@ -211,7 +211,7 @@ class TestPDFReportGeneration:
         """Test PDF generation meets performance requirement (FR1.4: <30 seconds)."""
         import time
 
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         generator = PDFReportGenerator()
 
@@ -226,7 +226,7 @@ class TestPDFReportGeneration:
 
     def test_pdf_report_includes_summary_stats(self, qc_results):
         """Test PDF includes summary statistics."""
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         generator = PDFReportGenerator()
         pdf_bytes = generator.generate_report(qc_results)
@@ -252,7 +252,7 @@ class TestPDFReportGeneration:
     )
     def test_pdf_banner_color_by_flag(self, flag, expected_color):
         """Test PDF banner color matches triage flag."""
-        from src.brain_go_brrr.visualization.pdf_report import get_banner_color
+        from brain_go_brrr.visualization.pdf_report import get_banner_color
 
         color = get_banner_color(flag)
 
@@ -268,7 +268,7 @@ class TestPDFReportGeneration:
 
     def test_error_handling_missing_data(self):
         """Test graceful handling of missing data."""
-        from src.brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+        from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
 
         # Minimal results with missing optional fields
         minimal_results = {"quality_metrics": {"bad_channels": [], "abnormality_score": 0.5}}
@@ -282,7 +282,7 @@ class TestPDFReportGeneration:
 
     def test_artifact_visualization_empty_list(self, mock_eeg_data):
         """Test artifact visualization with no artifacts."""
-        from src.brain_go_brrr.visualization.pdf_report import create_artifact_examples
+        from brain_go_brrr.visualization.pdf_report import create_artifact_examples
 
         # No artifacts
         fig = create_artifact_examples(eeg_data=mock_eeg_data, artifacts=[], sampling_rate=256)
@@ -315,7 +315,7 @@ class TestPDFVisualizationHelpers:
 
     def test_coordinate_normalization(self):
         """Test electrode coordinates are normalized properly."""
-        from src.brain_go_brrr.visualization.pdf_report import (
+        from brain_go_brrr.visualization.pdf_report import (
             normalize_electrode_positions,
         )
 
@@ -330,7 +330,7 @@ class TestPDFVisualizationHelpers:
 
     def test_severity_to_color_mapping(self):
         """Test artifact severity maps to appropriate colors."""
-        from src.brain_go_brrr.visualization.pdf_report import severity_to_color
+        from brain_go_brrr.visualization.pdf_report import severity_to_color
 
         # High severity = red
         assert severity_to_color(0.9) in ["red", "#FF0000"]

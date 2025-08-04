@@ -12,33 +12,38 @@ logger = logging.getLogger(__name__)
 class LinearWithConstraint(nn.Linear):
     """Linear layer with weight norm constraint."""
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True, max_norm: float = 1.0):
+    def __init__(
+        self, in_features: int, out_features: int, bias: bool = True, max_norm: float = 1.0
+    ):
         """Initialize linear layer with weight normalization constraint."""
         super().__init__(in_features, out_features, bias)
         self.max_norm = max_norm
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # Apply weight normalization constraint
-        self.weight.data = torch.renorm(
-            self.weight.data, p=2, dim=0, maxnorm=self.max_norm
-        )
+        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=self.max_norm)
         return F.linear(input, self.weight, self.bias)
 
 
 class Conv1dWithConstraint(nn.Conv1d):
     """1D Convolution with weight norm constraint."""
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 1,
-                 stride: int = 1, padding: int = 0, max_norm: float = 1.0):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 1,
+        stride: int = 1,
+        padding: int = 0,
+        max_norm: float = 1.0,
+    ):
         """Initialize 1D convolution with weight normalization constraint."""
         super().__init__(in_channels, out_channels, kernel_size, stride, padding)
         self.max_norm = max_norm
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # Apply weight normalization constraint
-        self.weight.data = torch.renorm(
-            self.weight.data, p=2, dim=0, maxnorm=self.max_norm
-        )
+        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=self.max_norm)
         return super().forward(input)
 
 
@@ -90,15 +95,11 @@ class EEGPTTwoLayerProbe(nn.Module):
         probe_input_dim = 2048  # As specified in paper
 
         # Two-layer probe with constraints
-        self.linear_probe1 = LinearWithConstraint(
-            probe_input_dim, hidden_dim, max_norm=1.0
-        )
+        self.linear_probe1 = LinearWithConstraint(probe_input_dim, hidden_dim, max_norm=1.0)
 
         # Probe 2 takes flattened hidden features
         # Paper: 16*16 = 256 -> n_classes
-        self.linear_probe2 = LinearWithConstraint(
-            hidden_dim * n_patches, n_classes, max_norm=0.25
-        )
+        self.linear_probe2 = LinearWithConstraint(hidden_dim * n_patches, n_classes, max_norm=0.25)
 
         # Dropout layer
         self.dropout = nn.Dropout(p=dropout)
@@ -123,14 +124,10 @@ class EEGPTTwoLayerProbe(nn.Module):
         """
         if self.use_channel_adapter:
             x = self.chan_expand(x)  # [B, 20, T] -> [B, 22, T]
-            x = self.chan_conv(x)    # [B, 22, T] -> [B, 19, T]
+            x = self.chan_conv(x)  # [B, 22, T] -> [B, 19, T]
         return x
 
-    def forward(
-        self,
-        features: torch.Tensor,
-        return_features: bool = False
-    ) -> torch.Tensor:
+    def forward(self, features: torch.Tensor, return_features: bool = False) -> torch.Tensor:
         """Forward pass matching paper implementation.
 
         Args:

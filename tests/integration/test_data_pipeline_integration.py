@@ -13,12 +13,30 @@ class TestDataPipelineIntegration:
         """Test processing valid EDF through complete pipeline."""
         # Given - mock EDF with old channel names
         mock_edf = MockEDFFile(
-            channels=["FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
-                     "T3", "C3", "CZ", "C4", "T4",  # Old naming
-                     "T5", "P3", "PZ", "P4", "T6",   # Old naming
-                     "O1", "O2", "ECG"],
+            channels=[
+                "FP1",
+                "FP2",
+                "F7",
+                "F3",
+                "FZ",
+                "F4",
+                "F8",
+                "T3",
+                "C3",
+                "CZ",
+                "C4",
+                "T4",  # Old naming
+                "T5",
+                "P3",
+                "PZ",
+                "P4",
+                "T6",  # Old naming
+                "O1",
+                "O2",
+                "ECG",
+            ],
             duration_seconds=60,
-            sfreq=256
+            sfreq=256,
         )
 
         # When - process through pipeline
@@ -60,7 +78,7 @@ class TestDataPipelineIntegration:
         mock_edf = MockEDFFile(
             channels=["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"],
             duration_seconds=60,
-            sfreq=256
+            sfreq=256,
         )
 
         # When
@@ -83,12 +101,29 @@ class TestDataPipelineIntegration:
         """Test pipeline properly handles recordings shorter than window size."""
         # Given - 5 second recording (shorter than 8s window)
         mock_edf = MockEDFFile(
-            channels=["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-                     "T7", "C3", "Cz", "C4", "T8",
-                     "P7", "P3", "Pz", "P4", "P8",
-                     "O1", "O2"],
+            channels=[
+                "Fp1",
+                "Fp2",
+                "F7",
+                "F3",
+                "Fz",
+                "F4",
+                "F8",
+                "T7",
+                "C3",
+                "Cz",
+                "C4",
+                "T8",
+                "P7",
+                "P3",
+                "Pz",
+                "P4",
+                "P8",
+                "O1",
+                "O2",
+            ],
             duration_seconds=5,
-            sfreq=256
+            sfreq=256,
         )
 
         # When
@@ -109,12 +144,29 @@ class TestDataPipelineIntegration:
         """Test pipeline handles data with quality issues."""
         # Given - EDF with quality problems
         mock_edf = MockEDFFile(
-            channels=["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-                     "T7", "C3", "Cz", "C4", "T8",
-                     "P7", "P3", "Pz", "P4", "P8",
-                     "O1", "O2"],
+            channels=[
+                "Fp1",
+                "Fp2",
+                "F7",
+                "F3",
+                "Fz",
+                "F4",
+                "F8",
+                "T7",
+                "C3",
+                "Cz",
+                "C4",
+                "T8",
+                "P7",
+                "P3",
+                "Pz",
+                "P4",
+                "P8",
+                "O1",
+                "O2",
+            ],
             duration_seconds=60,
-            sfreq=256
+            sfreq=256,
         )
 
         # Add quality issues
@@ -149,12 +201,29 @@ class TestDataPipelineIntegration:
         # Given - multiple mock EDFs
         mock_edfs = [
             MockEDFFile(
-                channels=["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-                         "T3", "C3", "Cz", "C4", "T4",  # Old naming
-                         "P7", "P3", "Pz", "P4", "P8",
-                         "O1", "O2"],
+                channels=[
+                    "Fp1",
+                    "Fp2",
+                    "F7",
+                    "F3",
+                    "Fz",
+                    "F4",
+                    "F8",
+                    "T3",
+                    "C3",
+                    "Cz",
+                    "C4",
+                    "T4",  # Old naming
+                    "P7",
+                    "P3",
+                    "Pz",
+                    "P4",
+                    "P8",
+                    "O1",
+                    "O2",
+                ],
                 duration_seconds=duration,
-                sfreq=256
+                sfreq=256,
             )
             for duration in [60, 120, 90]  # Different durations
         ]
@@ -185,8 +254,7 @@ class TestDataPipelineIntegration:
 
         # Extract windows from all recordings
         all_windows, recording_indices = batch_extractor.extract_batch(
-            processed_recordings,
-            sfreq=256
+            processed_recordings, sfreq=256
         )
 
         # Then - verify batch results

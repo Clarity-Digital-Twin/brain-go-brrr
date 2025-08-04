@@ -1,10 +1,12 @@
 """Minimal test to ensure CI passes."""
 
+
 def test_imports():
     """Test critical imports work."""
     import numpy as np
-    import torch
     import pytorch_lightning
+    import torch
+
     assert np.__version__
     assert torch.__version__
     assert pytorch_lightning.__version__

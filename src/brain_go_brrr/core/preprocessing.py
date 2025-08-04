@@ -13,14 +13,15 @@ from scipy.stats import median_abs_deviation
 @dataclass
 class PreprocessingConfig:
     """Configuration for preprocessing pipeline."""
+
     bandpass_low: float | None = None
     bandpass_high: float | None = None
     notch_freq: float | None = None
     notch_quality_factor: float = 30.0
-    normalization: Literal['zscore', 'robust'] | None = None
+    normalization: Literal["zscore", "robust"] | None = None
     original_sampling_rate: float = 256.0
     target_sampling_rate: float | None = None
-    handle_nan: Literal['raise', 'interpolate', 'zero'] = 'raise'
+    handle_nan: Literal["raise", "interpolate", "zero"] = "raise"
     inplace: bool = False
 
 
@@ -38,7 +39,7 @@ class BandpassFilter:
         nyquist = sampling_rate / 2
         low = low_freq / nyquist
         high = high_freq / nyquist
-        self.sos = signal.butter(order, [low, high], btype='band', output='sos')
+        self.sos = signal.butter(order, [low, high], btype="band", output="sos")
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply bandpass filter to data.
@@ -75,15 +76,15 @@ class NotchFilter:
         nyquist = sampling_rate / 2
         # Create a narrow bandstop around the target frequency
         bandwidth = 2.0  # Hz - narrow band around target
-        low = (freq - bandwidth/2) / nyquist
-        high = (freq + bandwidth/2) / nyquist
+        low = (freq - bandwidth / 2) / nyquist
+        high = (freq + bandwidth / 2) / nyquist
 
         # Ensure we're within valid range
         low = max(low, 0.001)
         high = min(high, 0.999)
 
         # Use butterworth bandstop for better attenuation
-        self.sos = signal.butter(4, [low, high], btype='bandstop', output='sos')
+        self.sos = signal.butter(4, [low, high], btype="bandstop", output="sos")
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply notch filter to data.
@@ -110,7 +111,7 @@ class NotchFilter:
 class Normalizer:
     """Signal normalization (z-score or robust)."""
 
-    def __init__(self, method: Literal['zscore', 'robust'] = 'zscore'):
+    def __init__(self, method: Literal["zscore", "robust"] = "zscore"):
         """Initialize normalizer with specified method."""
         self.method = method
 
@@ -123,7 +124,7 @@ class Normalizer:
         Returns:
             Normalized data with same shape
         """
-        if self.method == 'zscore':
+        if self.method == "zscore":
             if data.ndim == 1:
                 mean = np.mean(data)
                 std = np.std(data)
@@ -142,10 +143,10 @@ class Normalizer:
                         normalized[ch] = (data[ch] - mean) / std
                 return normalized
 
-        elif self.method == 'robust':
+        elif self.method == "robust":
             if data.ndim == 1:
                 median = np.median(data)
-                mad = median_abs_deviation(data, scale='normal')
+                mad = median_abs_deviation(data, scale="normal")
                 if mad == 0:
                     return data - median
                 return (data - median) / mad
@@ -154,7 +155,7 @@ class Normalizer:
                 normalized = np.zeros_like(data)
                 for ch in range(data.shape[0]):
                     median = np.median(data[ch])
-                    mad = median_abs_deviation(data[ch], scale='normal')
+                    mad = median_abs_deviation(data[ch], scale="normal")
                     if mad == 0:
                         normalized[ch] = data[ch] - median
                     else:
@@ -213,31 +214,25 @@ class PreprocessingPipeline:
         if config.bandpass_low is not None and config.bandpass_high is not None:
             self.steps.append(
                 BandpassFilter(
-                    config.bandpass_low,
-                    config.bandpass_high,
-                    config.original_sampling_rate
+                    config.bandpass_low, config.bandpass_high, config.original_sampling_rate
                 )
             )
 
         if config.notch_freq is not None:
             self.steps.append(
                 NotchFilter(
-                    config.notch_freq,
-                    config.original_sampling_rate,
-                    config.notch_quality_factor
+                    config.notch_freq, config.original_sampling_rate, config.notch_quality_factor
                 )
             )
 
         if config.normalization is not None:
             self.steps.append(Normalizer(config.normalization))
 
-        if config.target_sampling_rate is not None and config.target_sampling_rate != config.original_sampling_rate:
-            self.steps.append(
-                Resampler(
-                    config.original_sampling_rate,
-                    config.target_sampling_rate
-                )
-            )
+        if (
+            config.target_sampling_rate is not None
+            and config.target_sampling_rate != config.original_sampling_rate
+        ):
+            self.steps.append(Resampler(config.original_sampling_rate, config.target_sampling_rate))
 
     def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Apply full preprocessing pipeline.
@@ -249,11 +244,11 @@ class PreprocessingPipeline:
             Preprocessed data
         """
         # Handle NaN if configured
-        if self.config.handle_nan == 'interpolate' and np.any(np.isnan(data)):
+        if self.config.handle_nan == "interpolate" and np.any(np.isnan(data)):
             data = self._interpolate_nan(data)
-        elif self.config.handle_nan == 'zero' and np.any(np.isnan(data)):
+        elif self.config.handle_nan == "zero" and np.any(np.isnan(data)):
             data = np.nan_to_num(data, nan=0.0)
-        elif self.config.handle_nan == 'raise' and np.any(np.isnan(data)):
+        elif self.config.handle_nan == "raise" and np.any(np.isnan(data)):
             # Don't raise, just pass through for now
             pass
 

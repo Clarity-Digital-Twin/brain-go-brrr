@@ -30,10 +30,7 @@ class TestYASAConfig:
     def test_custom_config(self):
         """Test custom configuration."""
         config = YASAConfig(
-            use_consensus=False,
-            eeg_backend="perceptron",
-            min_confidence=0.7,
-            n_jobs=4
+            use_consensus=False, eeg_backend="perceptron", min_confidence=0.7, n_jobs=4
         )
 
         assert config.use_consensus is False
@@ -48,17 +45,19 @@ class TestYASASleepStager:
     @pytest.fixture
     def mock_yasa(self):
         """Mock YASA module."""
-        with patch('brain_go_brrr.services.yasa_adapter.yasa') as mock:
+        with patch("brain_go_brrr.services.yasa_adapter.yasa") as mock:
             # Mock SleepStaging class
             mock_sls = MagicMock()
             mock_sls.predict.return_value = np.array([0, 1, 2, 3, 4])  # W, N1, N2, N3, REM
-            mock_sls.predict_proba.return_value = np.array([
-                [0.9, 0.05, 0.03, 0.01, 0.01],  # W with high confidence
-                [0.1, 0.8, 0.05, 0.03, 0.02],   # N1 with high confidence
-                [0.05, 0.1, 0.7, 0.1, 0.05],     # N2 with good confidence
-                [0.02, 0.03, 0.15, 0.75, 0.05],  # N3 with good confidence
-                [0.05, 0.05, 0.1, 0.1, 0.7]      # REM with good confidence
-            ])
+            mock_sls.predict_proba.return_value = np.array(
+                [
+                    [0.9, 0.05, 0.03, 0.01, 0.01],  # W with high confidence
+                    [0.1, 0.8, 0.05, 0.03, 0.02],  # N1 with high confidence
+                    [0.05, 0.1, 0.7, 0.1, 0.05],  # N2 with good confidence
+                    [0.02, 0.03, 0.15, 0.75, 0.05],  # N3 with good confidence
+                    [0.05, 0.05, 0.1, 0.1, 0.7],  # REM with good confidence
+                ]
+            )
             mock.SleepStaging.return_value = mock_sls
             yield mock
 
@@ -81,15 +80,15 @@ class TestYASASleepStager:
 
         # Check outputs
         assert len(stages) == 5
-        assert stages == ['W', 'N1', 'N2', 'N3', 'REM']
+        assert stages == ["W", "N1", "N2", "N3", "REM"]
         assert len(confidences) == 5
         assert all(0 <= c <= 1 for c in confidences)
         assert confidences[0] > 0.8  # High confidence for wake
 
         # Check metrics
-        assert 'stage_counts' in metrics
-        assert 'sleep_efficiency' in metrics
-        assert metrics['n_epochs'] == 5
+        assert "stage_counts" in metrics
+        assert "sleep_efficiency" in metrics
+        assert metrics["n_epochs"] == 5
 
     def test_stage_sleep_short_data_error(self):
         """Test error handling for too-short data."""
@@ -106,87 +105,87 @@ class TestYASASleepStager:
         stager = YASASleepStager()
 
         # Test with preferred channels
-        ch_names = ['F3', 'C3', 'O1', 'T3']
+        ch_names = ["F3", "C3", "O1", "T3"]
         selected = stager._select_eeg_channel(ch_names)
-        assert selected == 'C3'  # C3 is preferred
+        assert selected == "C3"  # C3 is preferred
 
         # Test without preferred channels
-        ch_names = ['T3', 'T4', 'O1', 'O2']
+        ch_names = ["T3", "T4", "O1", "O2"]
         selected = stager._select_eeg_channel(ch_names)
-        assert selected == 'T3'  # Falls back to first
+        assert selected == "T3"  # Falls back to first
 
     def test_yasa_to_standard_stage(self):
         """Test stage conversion."""
         stager = YASASleepStager()
 
-        assert stager._yasa_to_standard_stage(0) == 'W'
-        assert stager._yasa_to_standard_stage(1) == 'N1'
-        assert stager._yasa_to_standard_stage(2) == 'N2'
-        assert stager._yasa_to_standard_stage(3) == 'N3'
-        assert stager._yasa_to_standard_stage(4) == 'REM'
-        assert stager._yasa_to_standard_stage(99) == 'W'  # Unknown -> Wake
+        assert stager._yasa_to_standard_stage(0) == "W"
+        assert stager._yasa_to_standard_stage(1) == "N1"
+        assert stager._yasa_to_standard_stage(2) == "N2"
+        assert stager._yasa_to_standard_stage(3) == "N3"
+        assert stager._yasa_to_standard_stage(4) == "REM"
+        assert stager._yasa_to_standard_stage(99) == "W"  # Unknown -> Wake
 
     def test_calculate_sleep_metrics(self):
         """Test sleep metrics calculation."""
         stager = YASASleepStager()
 
         # Create hypnogram
-        stages = ['W', 'W', 'N1', 'N2', 'N2', 'N3', 'N3', 'REM', 'W', 'N2']
+        stages = ["W", "W", "N1", "N2", "N2", "N3", "N3", "REM", "W", "N2"]
         confidences = [0.9, 0.8, 0.7, 0.8, 0.85, 0.9, 0.85, 0.75, 0.6, 0.8]
 
         metrics = stager._calculate_sleep_metrics(stages, confidences)
 
         # Check counts
-        assert metrics['stage_counts']['W'] == 3
-        assert metrics['stage_counts']['N1'] == 1
-        assert metrics['stage_counts']['N2'] == 3
-        assert metrics['stage_counts']['N3'] == 2
-        assert metrics['stage_counts']['REM'] == 1
+        assert metrics["stage_counts"]["W"] == 3
+        assert metrics["stage_counts"]["N1"] == 1
+        assert metrics["stage_counts"]["N2"] == 3
+        assert metrics["stage_counts"]["N3"] == 2
+        assert metrics["stage_counts"]["REM"] == 1
 
         # Check percentages
-        assert metrics['stage_percentages']['W'] == 30.0
-        assert metrics['stage_percentages']['N2'] == 30.0
+        assert metrics["stage_percentages"]["W"] == 30.0
+        assert metrics["stage_percentages"]["N2"] == 30.0
 
         # Check sleep efficiency
-        assert metrics['sleep_efficiency'] == 70.0  # 7/10 epochs are sleep
+        assert metrics["sleep_efficiency"] == 70.0  # 7/10 epochs are sleep
 
         # Check WASO
-        assert metrics['waso_epochs'] == 1  # One W epoch after sleep onset
+        assert metrics["waso_epochs"] == 1  # One W epoch after sleep onset
 
         # Check confidence
-        assert 0.7 < metrics['mean_confidence'] < 0.9
+        assert 0.7 < metrics["mean_confidence"] < 0.9
 
-    @patch('brain_go_brrr.services.yasa_adapter.mne.io.read_raw')
+    @patch("brain_go_brrr.services.yasa_adapter.mne.io.read_raw")
     def test_process_full_night(self, mock_read_raw, mock_yasa):
         """Test processing full night recording."""
         # Mock raw data
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.random.randn(4, 256 * 3600)  # 4 channels, 1 hour
-        mock_raw.info = {'sfreq': 256}
-        mock_raw.ch_names = ['C3', 'C4', 'O1', 'O2']
+        mock_raw.info = {"sfreq": 256}
+        mock_raw.ch_names = ["C3", "C4", "O1", "O2"]
         mock_read_raw.return_value = mock_raw
 
         stager = YASASleepStager()
 
         results = stager.process_full_night(Path("/fake/eeg.edf"))
 
-        assert 'file' in results
-        assert 'duration_hours' in results
-        assert 'metrics' in results
-        assert 'quality_check' in results
-        assert 'hypnogram' in results
+        assert "file" in results
+        assert "duration_hours" in results
+        assert "metrics" in results
+        assert "quality_check" in results
+        assert "hypnogram" in results
 
         # Check quality warnings
-        qc = results['quality_check']
-        assert 'mean_confidence' in qc
-        assert 'low_confidence_epochs' in qc
-        assert isinstance(qc['confidence_warning'], bool)
+        qc = results["quality_check"]
+        assert "mean_confidence" in qc
+        assert "low_confidence_epochs" in qc
+        assert isinstance(qc["confidence_warning"], bool)
 
 
 class TestHierarchicalPipelineYASAAdapter:
     """Test the pipeline adapter."""
 
-    @patch('brain_go_brrr.services.yasa_adapter.yasa')
+    @patch("brain_go_brrr.services.yasa_adapter.yasa")
     def test_adapter_interface(self, mock_yasa):
         """Test adapter matches our pipeline interface."""
         # Setup mock
@@ -203,9 +202,9 @@ class TestHierarchicalPipelineYASAAdapter:
 
         stage, confidence = adapter.stage(eeg)
 
-        assert stage in ['W', 'N1', 'N2', 'N3', 'REM']
+        assert stage in ["W", "N1", "N2", "N3", "REM"]
         assert 0 <= confidence <= 1
-        assert stage == 'N2'  # Most common stage
+        assert stage == "N2"  # Most common stage
         assert confidence > 0.7  # Good confidence
 
     def test_adapter_error_handling(self):
@@ -213,15 +212,13 @@ class TestHierarchicalPipelineYASAAdapter:
         adapter = HierarchicalPipelineYASAAdapter()
 
         # Mock stager to raise error
-        adapter.stager.stage_sleep = MagicMock(
-            side_effect=Exception("YASA error")
-        )
+        adapter.stager.stage_sleep = MagicMock(side_effect=Exception("YASA error"))
 
         # Should return wake with zero confidence
         eeg = np.random.randn(19, 2048)
         stage, confidence = adapter.stage(eeg)
 
-        assert stage == 'W'
+        assert stage == "W"
         assert confidence == 0.0
 
 

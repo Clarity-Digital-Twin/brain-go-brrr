@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class YASAConfig:
     """Configuration for YASA sleep staging."""
+
     # Model selection
     use_consensus: bool = True  # Use consensus of multiple models
     eeg_backend: str = "lightgbm"  # "lightgbm" or "perceptron"
@@ -54,6 +55,7 @@ class YASASleepStager:
         try:
             # Check if lightgbm is available
             import lightgbm  # noqa: F401
+
             logger.info("LightGBM available for YASA")
         except ImportError:
             logger.warning("LightGBM not available, falling back to perceptron")
@@ -64,7 +66,7 @@ class YASASleepStager:
         eeg_data: npt.NDArray[np.float64],
         sfreq: float = 256,
         ch_names: list[str] | None = None,
-        epoch_duration: int = 30
+        epoch_duration: int = 30,
     ) -> tuple[list[str], list[float], dict[str, Any]]:
         """Perform sleep staging on EEG data.
 
@@ -86,19 +88,14 @@ class YASASleepStager:
 
         if duration_sec < epoch_duration:
             raise ValueError(
-                f"Data too short: {duration_sec:.1f}s, "
-                f"need at least {epoch_duration}s"
+                f"Data too short: {duration_sec:.1f}s, need at least {epoch_duration}s"
             )
 
         # Create MNE Raw object if needed
         if ch_names is None:
             ch_names = [f"EEG{i}" for i in range(n_channels)]
 
-        info = mne.create_info(
-            ch_names=ch_names,
-            sfreq=sfreq,
-            ch_types='eeg'
-        )
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(eeg_data, info)
 
         # Select frontal channels for sleep staging (if available)
@@ -110,7 +107,7 @@ class YASASleepStager:
             eeg_name=eeg_name,
             eog_name=None,  # We typically don't have EOG
             emg_name=None,  # We typically don't have EMG
-            metadata=None
+            metadata=None,
         )
 
         # Get predictions
@@ -129,9 +126,8 @@ class YASASleepStager:
         # Update tracking
         self.stages_processed += len(stages)
         self.avg_confidence = (
-            (self.avg_confidence * (self.stages_processed - len(stages)) +
-             sum(confidences)) / self.stages_processed
-        )
+            self.avg_confidence * (self.stages_processed - len(stages)) + sum(confidences)
+        ) / self.stages_processed
 
         return stages, confidences, metrics
 
@@ -141,7 +137,7 @@ class YASASleepStager:
         YASA prefers frontal channels (e.g., C3, C4, Cz).
         """
         # Preference order for sleep staging
-        preferred = ['C3', 'C4', 'Cz', 'F3', 'F4', 'Fz']
+        preferred = ["C3", "C4", "Cz", "F3", "F4", "Fz"]
 
         for ch in preferred:
             if ch in ch_names:
@@ -149,9 +145,7 @@ class YASASleepStager:
                 return ch
 
         # Fallback to first channel
-        logger.warning(
-            f"No preferred channel found, using {ch_names[0]}"
-        )
+        logger.warning(f"No preferred channel found, using {ch_names[0]}")
         return ch_names[0]
 
     def _yasa_to_standard_stage(self, yasa_stage: int) -> str:
@@ -160,19 +154,11 @@ class YASASleepStager:
         YASA uses: 0=Wake, 1=N1, 2=N2, 3=N3, 4=REM
         We use: W, N1, N2, N3, REM
         """
-        mapping = {
-            0: 'W',
-            1: 'N1',
-            2: 'N2',
-            3: 'N3',
-            4: 'REM'
-        }
-        return mapping.get(yasa_stage, 'W')
+        mapping = {0: "W", 1: "N1", 2: "N2", 3: "N3", 4: "REM"}
+        return mapping.get(yasa_stage, "W")
 
     def _calculate_sleep_metrics(
-        self,
-        stages: list[str],
-        confidences: list[float]
+        self, stages: list[str], confidences: list[float]
     ) -> dict[str, Any]:
         """Calculate sleep quality metrics from staging results."""
         n_epochs = len(stages)
@@ -182,21 +168,20 @@ class YASASleepStager:
 
         # Count stages
         stage_counts = {
-            'W': stages.count('W'),
-            'N1': stages.count('N1'),
-            'N2': stages.count('N2'),
-            'N3': stages.count('N3'),
-            'REM': stages.count('REM')
+            "W": stages.count("W"),
+            "N1": stages.count("N1"),
+            "N2": stages.count("N2"),
+            "N3": stages.count("N3"),
+            "REM": stages.count("REM"),
         }
 
         # Calculate percentages
         stage_percentages = {
-            stage: (count / n_epochs) * 100
-            for stage, count in stage_counts.items()
+            stage: (count / n_epochs) * 100 for stage, count in stage_counts.items()
         }
 
         # Sleep efficiency
-        sleep_epochs = n_epochs - stage_counts['W']
+        sleep_epochs = n_epochs - stage_counts["W"]
         sleep_efficiency = (sleep_epochs / n_epochs) * 100
 
         # Find sleep onset and offset
@@ -204,37 +189,33 @@ class YASASleepStager:
         sleep_offset = None
 
         for i, stage in enumerate(stages):
-            if stage != 'W' and sleep_onset is None:
+            if stage != "W" and sleep_onset is None:
                 sleep_onset = i
-            if stage != 'W':
+            if stage != "W":
                 sleep_offset = i
 
         # Calculate WASO (Wake After Sleep Onset)
         waso_epochs = 0
         if sleep_onset is not None and sleep_offset is not None:
             for i in range(sleep_onset, sleep_offset + 1):
-                if stages[i] == 'W':
+                if stages[i] == "W":
                     waso_epochs += 1
 
         # Mean confidence
         mean_confidence = np.mean(confidences)
 
         return {
-            'stage_counts': stage_counts,
-            'stage_percentages': stage_percentages,
-            'sleep_efficiency': sleep_efficiency,
-            'sleep_onset_epoch': sleep_onset,
-            'sleep_offset_epoch': sleep_offset,
-            'waso_epochs': waso_epochs,
-            'mean_confidence': mean_confidence,
-            'n_epochs': n_epochs
+            "stage_counts": stage_counts,
+            "stage_percentages": stage_percentages,
+            "sleep_efficiency": sleep_efficiency,
+            "sleep_onset_epoch": sleep_onset,
+            "sleep_offset_epoch": sleep_offset,
+            "waso_epochs": waso_epochs,
+            "mean_confidence": mean_confidence,
+            "n_epochs": n_epochs,
         }
 
-    def process_full_night(
-        self,
-        eeg_path: Path,
-        output_hypnogram: bool = True
-    ) -> dict[str, Any]:
+    def process_full_night(self, eeg_path: Path, output_hypnogram: bool = True) -> dict[str, Any]:
         """Process a full night recording.
 
         Args:
@@ -249,29 +230,29 @@ class YASASleepStager:
 
         # Get data
         data = raw.get_data()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         ch_names = raw.ch_names
 
         # Run staging
-        stages, confidences, metrics = self.stage_sleep(
-            data, sfreq, ch_names
-        )
+        stages, confidences, metrics = self.stage_sleep(data, sfreq, ch_names)
 
         # Prepare results
         results = {
-            'file': str(eeg_path),
-            'duration_hours': len(stages) * 30 / 3600,  # 30s epochs
-            'metrics': metrics,
-            'quality_check': {
-                'mean_confidence': metrics['mean_confidence'],
-                'low_confidence_epochs': sum(1 for c in confidences if c < self.config.min_confidence),
-                'confidence_warning': bool(metrics['mean_confidence'] < 0.7)
-            }
+            "file": str(eeg_path),
+            "duration_hours": len(stages) * 30 / 3600,  # 30s epochs
+            "metrics": metrics,
+            "quality_check": {
+                "mean_confidence": metrics["mean_confidence"],
+                "low_confidence_epochs": sum(
+                    1 for c in confidences if c < self.config.min_confidence
+                ),
+                "confidence_warning": bool(metrics["mean_confidence"] < 0.7),
+            },
         }
 
         if output_hypnogram:
-            results['hypnogram'] = stages
-            results['confidences'] = confidences
+            results["hypnogram"] = stages
+            results["confidences"] = confidences
 
         return results
 
@@ -300,6 +281,7 @@ class HierarchicalPipelineYASAAdapter:
             if stages:
                 # Find most common stage
                 from collections import Counter
+
                 stage_counter = Counter(stages)
                 dominant_stage = stage_counter.most_common(1)[0][0]
 
@@ -309,9 +291,9 @@ class HierarchicalPipelineYASAAdapter:
                 return dominant_stage, float(confidence)
             else:
                 # Fallback
-                return 'W', 0.5
+                return "W", 0.5
 
         except Exception as e:
             logger.error(f"YASA staging failed: {e}")
             # Return wake with low confidence
-            return 'W', 0.0
+            return "W", 0.0

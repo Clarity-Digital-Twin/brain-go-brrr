@@ -47,7 +47,9 @@ class EEGPTWrapper(nn.Module):
             self.register_buffer("input_std", torch.ones(1))
             self.normalize = True
             self._stats_source = "default"
-            logger.warning("No normalization file found - using identity normalization (mean=0, std=1)")
+            logger.warning(
+                "No normalization file found - using identity normalization (mean=0, std=1)"
+            )
 
     def set_normalization_params(self, mean: float, std: float) -> None:
         """Set normalization parameters.

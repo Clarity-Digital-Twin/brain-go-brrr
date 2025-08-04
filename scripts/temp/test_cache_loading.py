@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Test cache loading functionality"""
+"""Test cache loading functionality."""
 
 import os
 import sys

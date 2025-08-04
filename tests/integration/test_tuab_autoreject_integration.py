@@ -39,7 +39,7 @@ class TestTUABAutoRejectIntegration:
             duration=120.0,  # 2 minutes
             sfreq=256,
             add_artifacts=True,
-            seed=42
+            seed=42,
         )
 
         # Save to file (mock)
@@ -57,7 +57,7 @@ class TestTUABAutoRejectIntegration:
             ar_cache_dir=temp_dataset_dir / "ar_cache",
             window_duration=10.0,
             window_stride=5.0,
-            sampling_rate=200
+            sampling_rate=200,
         )
 
         # Verify AutoReject components initialized
@@ -73,9 +73,7 @@ class TestTUABAutoRejectIntegration:
     def test_dataset_with_autoreject_disabled(self, temp_dataset_dir):
         """Test dataset with AutoReject disabled (backward compatibility)."""
         dataset = TUABEnhancedDataset(
-            root_dir=temp_dataset_dir,
-            split="train",
-            use_autoreject=False
+            root_dir=temp_dataset_dir, split="train", use_autoreject=False
         )
 
         # Verify no AutoReject components
@@ -84,15 +82,11 @@ class TestTUABAutoRejectIntegration:
         assert dataset.window_adapter is None
         assert dataset.position_generator is None
 
-    @patch('mne.io.read_raw_edf')
+    @patch("mne.io.read_raw_edf")
     def test_load_file_with_autoreject(self, mock_read_edf, temp_dataset_dir):
         """Test loading EDF file with AutoReject processing."""
         # Create mock raw data
-        mock_raw = MockEEGGenerator.create_raw(
-            duration=60.0,
-            sfreq=256,
-            add_artifacts=True
-        )
+        mock_raw = MockEEGGenerator.create_raw(duration=60.0, sfreq=256, add_artifacts=True)
         mock_read_edf.return_value = mock_raw
 
         # Create dataset with AutoReject
@@ -100,16 +94,18 @@ class TestTUABAutoRejectIntegration:
             root_dir=temp_dataset_dir,
             split="train",
             use_autoreject=True,
-            ar_cache_dir=temp_dataset_dir / "ar_cache"
+            ar_cache_dir=temp_dataset_dir / "ar_cache",
         )
 
         # Mock the file list
         dataset.file_list = [(temp_dataset_dir / "train" / "test1.edf", 0)]
 
         # Load file
-        with patch.object(dataset.position_generator, 'add_positions_to_raw', return_value=mock_raw), \
-             patch.object(dataset.ar_processor, 'transform_raw', return_value=mock_raw):
-                data = dataset._load_edf_file(dataset.file_list[0][0])
+        with (
+            patch.object(dataset.position_generator, "add_positions_to_raw", return_value=mock_raw),
+            patch.object(dataset.ar_processor, "transform_raw", return_value=mock_raw),
+        ):
+            data = dataset._load_edf_file(dataset.file_list[0][0])
 
         # Verify shape and type
         assert isinstance(data, np.ndarray)
@@ -118,60 +114,58 @@ class TestTUABAutoRejectIntegration:
 
     def test_fallback_on_autoreject_failure(self, temp_dataset_dir):
         """Test fallback mechanisms when AutoReject fails."""
-        dataset = TUABEnhancedDataset(
-            root_dir=temp_dataset_dir,
-            split="train",
-            use_autoreject=True
-        )
+        dataset = TUABEnhancedDataset(root_dir=temp_dataset_dir, split="train", use_autoreject=True)
 
         # Create mock raw without positions
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.random.randn(19, 10000) * 50e-6
-        mock_raw.ch_names = ['C3', 'C4'] * 9 + ['CZ']
-        mock_raw.info = {'bads': []}
+        mock_raw.ch_names = ["C3", "C4"] * 9 + ["CZ"]
+        mock_raw.info = {"bads": []}
 
         # Test MemoryError fallback
-        with patch.object(dataset.ar_processor, 'transform_raw', side_effect=MemoryError):
+        with patch.object(dataset.ar_processor, "transform_raw", side_effect=MemoryError):
             result = dataset._apply_autoreject_to_raw(mock_raw)
             assert result is not None  # Should return cleaned data
 
         # Test RuntimeError fallback
-        with patch.object(dataset.ar_processor, 'transform_raw',
-                         side_effect=RuntimeError("Valid channel positions")):
+        with patch.object(
+            dataset.ar_processor,
+            "transform_raw",
+            side_effect=RuntimeError("Valid channel positions"),
+        ):
             result = dataset._apply_autoreject_to_raw(mock_raw)
             assert result is not None
 
     def test_amplitude_cleaning_marks_bad_channels(self, temp_dataset_dir):
         """Test amplitude-based cleaning marks bad channels correctly."""
         dataset = TUABEnhancedDataset(
-            root_dir=temp_dataset_dir,
-            split="train",
-            use_autoreject=False
+            root_dir=temp_dataset_dir, split="train", use_autoreject=False
         )
 
         # Create data with bad channels
-        ch_names = ['FP1', 'FP2', 'C3', 'C4', 'O1', 'O2']
+        ch_names = ["FP1", "FP2", "C3", "C4", "O1", "O2"]
         data = np.random.randn(6, 5000) * 50e-6
 
         # Make channels bad
         data[0, :] = 0  # Flat channel
         data[1, :] = np.random.randn(5000) * 300e-6  # Very noisy
 
-        info = mne.create_info(ch_names, 256, ch_types='eeg')
+        info = mne.create_info(ch_names, 256, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Apply cleaning
         raw_clean = dataset._amplitude_based_cleaning(raw)
 
         # Check bad channels marked
-        assert 'FP1' in raw_clean.info['bads']  # Flat
-        assert 'FP2' in raw_clean.info['bads']  # Noisy
-        assert len(raw_clean.info['bads']) >= 2
+        assert "FP1" in raw_clean.info["bads"]  # Flat
+        assert "FP2" in raw_clean.info["bads"]  # Noisy
+        assert len(raw_clean.info["bads"]) >= 2
 
     @pytest.mark.slow
     def test_memory_usage_with_large_dataset(self, temp_dataset_dir):
         """Test memory usage stays reasonable with large files."""
         import psutil
+
         process = psutil.Process()
 
         # Get baseline memory
@@ -181,7 +175,7 @@ class TestTUABAutoRejectIntegration:
             root_dir=temp_dataset_dir,
             split="train",
             use_autoreject=True,
-            ar_cache_dir=temp_dataset_dir / "ar_cache"
+            ar_cache_dir=temp_dataset_dir / "ar_cache",
         )
 
         # Create large mock data
@@ -189,11 +183,11 @@ class TestTUABAutoRejectIntegration:
             _ = MockEEGGenerator.create_raw(
                 duration=300.0,  # 5 minutes each
                 sfreq=256,
-                add_artifacts=False  # Speed up
+                add_artifacts=False,  # Speed up
             )
 
             # Process (would normally load from file)
-            with patch.object(dataset, '_load_edf_file'):
+            with patch.object(dataset, "_load_edf_file"):
                 pass  # Just testing memory allocation
 
         # Check memory increase
@@ -208,10 +202,7 @@ class TestTUABAutoRejectIntegration:
         cache_dir = temp_dataset_dir / "test_ar_cache"
 
         _ = TUABEnhancedDataset(
-            root_dir=temp_dataset_dir,
-            split="train",
-            use_autoreject=True,
-            ar_cache_dir=cache_dir
+            root_dir=temp_dataset_dir, split="train", use_autoreject=True, ar_cache_dir=cache_dir
         )
 
         # Cache directory should be created

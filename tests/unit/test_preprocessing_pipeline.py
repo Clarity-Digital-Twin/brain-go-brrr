@@ -46,15 +46,15 @@ class TestBandpassFilter:
         t = np.linspace(0, duration, sampling_rate * duration)
 
         # Mix of frequencies: 10Hz (pass), 40Hz (pass), 80Hz (reject)
-        signal = (np.sin(2 * np.pi * 10 * t) +
-                 np.sin(2 * np.pi * 40 * t) +
-                 np.sin(2 * np.pi * 80 * t))
+        signal = (
+            np.sin(2 * np.pi * 10 * t) + np.sin(2 * np.pi * 40 * t) + np.sin(2 * np.pi * 80 * t)
+        )
 
         filter = BandpassFilter(low_freq=0.5, high_freq=50.0, sampling_rate=sampling_rate)
         filtered = filter.apply(signal)
 
         # Check power spectrum
-        freqs = np.fft.fftfreq(len(filtered), 1/sampling_rate)
+        freqs = np.fft.fftfreq(len(filtered), 1 / sampling_rate)
         fft = np.abs(np.fft.fft(filtered))
 
         # Power at 80Hz should be heavily attenuated
@@ -102,7 +102,7 @@ class TestNotchFilter:
         filtered = filter.apply(signal)
 
         # Check power spectrum
-        freqs = np.fft.fftfreq(len(filtered), 1/sampling_rate)
+        freqs = np.fft.fftfreq(len(filtered), 1 / sampling_rate)
         fft = np.abs(np.fft.fft(filtered))
 
         # Power at 50Hz should be heavily attenuated
@@ -128,14 +128,16 @@ class TestNotchFilter:
         t = np.linspace(0, duration, sampling_rate * duration)
 
         # Frequencies near 50Hz
-        signal = (np.sin(2 * np.pi * 48 * t) +  # Should mostly pass
-                 np.sin(2 * np.pi * 50 * t) +   # Should be removed
-                 np.sin(2 * np.pi * 52 * t))    # Should mostly pass
+        signal = (
+            np.sin(2 * np.pi * 48 * t)  # Should mostly pass
+            + np.sin(2 * np.pi * 50 * t)  # Should be removed
+            + np.sin(2 * np.pi * 52 * t)
+        )  # Should mostly pass
 
         filter = NotchFilter(freq=50.0, sampling_rate=sampling_rate, quality_factor=30)
         filtered = filter.apply(signal)
 
-        freqs = np.fft.fftfreq(len(filtered), 1/sampling_rate)
+        freqs = np.fft.fftfreq(len(filtered), 1 / sampling_rate)
         fft_orig = np.abs(np.fft.fft(signal))
         fft_filt = np.abs(np.fft.fft(filtered))
 
@@ -160,7 +162,7 @@ class TestNormalizer:
         std = 2.0
         data = np.random.normal(mean, std, 1000)
 
-        normalizer = Normalizer(method='zscore')
+        normalizer = Normalizer(method="zscore")
         normalized = normalizer.apply(data)
 
         # Should have zero mean and unit variance
@@ -179,7 +181,7 @@ class TestNormalizer:
             std = ch + 1
             data[ch] = np.random.normal(mean, std, n_samples)
 
-        normalizer = Normalizer(method='zscore')
+        normalizer = Normalizer(method="zscore")
         normalized = normalizer.apply(data)
 
         # Each channel should be normalized independently
@@ -194,8 +196,8 @@ class TestNormalizer:
         data = np.random.normal(0, 1, 1000)
         data[::100] = 100  # Add extreme outliers
 
-        zscore_norm = Normalizer(method='zscore')
-        robust_norm = Normalizer(method='robust')
+        zscore_norm = Normalizer(method="zscore")
+        robust_norm = Normalizer(method="robust")
 
         zscore_result = zscore_norm.apply(data.copy())
         robust_result = robust_norm.apply(data.copy())
@@ -285,19 +287,19 @@ class TestPreprocessingPipeline:
             bandpass_low=0.5,
             bandpass_high=50.0,
             notch_freq=50.0,
-            normalization='zscore',
+            normalization="zscore",
             target_sampling_rate=200,
-            original_sampling_rate=256
+            original_sampling_rate=256,
         )
 
         pipeline = PreprocessingPipeline(config)
 
         # Should have all components
         assert len(pipeline.steps) == 4  # bandpass, notch, normalize, resample
-        assert any('bandpass' in str(step) for step in pipeline.steps)
-        assert any('notch' in str(step) for step in pipeline.steps)
-        assert any('normalize' in str(step) for step in pipeline.steps)
-        assert any('resample' in str(step) for step in pipeline.steps)
+        assert any("bandpass" in str(step) for step in pipeline.steps)
+        assert any("notch" in str(step) for step in pipeline.steps)
+        assert any("normalize" in str(step) for step in pipeline.steps)
+        assert any("resample" in str(step) for step in pipeline.steps)
 
     def test_pipeline_end_to_end(self):
         """Test full pipeline processing."""
@@ -312,11 +314,11 @@ class TestPreprocessingPipeline:
         for ch in range(n_channels):
             # Neural rhythms
             alpha = 0.5 * np.sin(2 * np.pi * 10 * t + ch)  # 10Hz alpha
-            beta = 0.3 * np.sin(2 * np.pi * 25 * t + ch)   # 25Hz beta
+            beta = 0.3 * np.sin(2 * np.pi * 25 * t + ch)  # 25Hz beta
 
             # Artifacts
-            powerline = 2.0 * np.sin(2 * np.pi * 50 * t)   # 50Hz powerline
-            highfreq = 0.5 * np.sin(2 * np.pi * 80 * t)    # High freq noise
+            powerline = 2.0 * np.sin(2 * np.pi * 50 * t)  # 50Hz powerline
+            highfreq = 0.5 * np.sin(2 * np.pi * 80 * t)  # High freq noise
 
             # DC offset
             dc_offset = ch * 10
@@ -329,9 +331,9 @@ class TestPreprocessingPipeline:
             bandpass_low=0.5,
             bandpass_high=50.0,
             notch_freq=50.0,
-            normalization='zscore',
+            normalization="zscore",
             target_sampling_rate=200,
-            original_sampling_rate=256
+            original_sampling_rate=256,
         )
 
         pipeline = PreprocessingPipeline(config)
@@ -348,7 +350,7 @@ class TestPreprocessingPipeline:
 
         # Verify artifacts removed by checking frequency content
         for ch in range(n_channels):
-            freqs = np.fft.fftfreq(processed.shape[1], 1/200)  # New sampling rate
+            freqs = np.fft.fftfreq(processed.shape[1], 1 / 200)  # New sampling rate
             fft = np.abs(np.fft.fft(processed[ch]))
 
             # Find peaks in spectrum
@@ -374,8 +376,8 @@ class TestPreprocessingPipeline:
         config = PreprocessingConfig(
             bandpass_low=0.5,
             bandpass_high=50.0,
-            normalization='zscore',
-            handle_nan='interpolate'  # Should interpolate NaN regions
+            normalization="zscore",
+            handle_nan="interpolate",  # Should interpolate NaN regions
         )
 
         pipeline = PreprocessingPipeline(config)
@@ -391,14 +393,14 @@ class TestPreprocessingPipeline:
             bandpass_high=50.0,
             notch_freq=None,  # Disable notch filter
             normalization=None,  # Disable normalization
-            target_sampling_rate=None  # Disable resampling
+            target_sampling_rate=None,  # Disable resampling
         )
 
         pipeline = PreprocessingPipeline(config)
 
         # Should only have bandpass
         assert len(pipeline.steps) == 1
-        assert 'bandpass' in str(pipeline.steps[0])
+        assert "bandpass" in str(pipeline.steps[0])
 
 
 # Integration tests with real EEG parameters
@@ -420,9 +422,9 @@ class TestPreprocessingIntegration:
             bandpass_low=0.5,
             bandpass_high=50.0,
             notch_freq=None,  # TUAB doesn't use notch
-            normalization='zscore',
+            normalization="zscore",
             original_sampling_rate=256,
-            target_sampling_rate=256  # No resampling needed
+            target_sampling_rate=256,  # No resampling needed
         )
 
         pipeline = PreprocessingPipeline(config)
@@ -448,8 +450,8 @@ class TestPreprocessingIntegration:
         config = PreprocessingConfig(
             bandpass_low=0.5,
             bandpass_high=50.0,
-            normalization='zscore',
-            inplace=True  # Should modify in place when possible
+            normalization="zscore",
+            inplace=True,  # Should modify in place when possible
         )
 
         pipeline = PreprocessingPipeline(config)

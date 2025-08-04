@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test imports to find hanging issue."""
 
-import sys
 import time
+
 
 def test_import(module_name):
     """Test importing a module."""
@@ -16,6 +16,7 @@ def test_import(module_name):
     except Exception as e:
         print(f"✗ Error: {e}")
         return False
+
 
 modules = [
     "brain_go_brrr.preprocessing.flexible_preprocessor",
