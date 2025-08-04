@@ -85,7 +85,7 @@ def main():
 import numpy as np
 import torch
 import pytorch_lightning
-from brain_go_brrr  # noqa: E402.data.tuab_dataset import TUABDataset
+from brain_go_brrr.data.tuab_dataset import TUABDataset
 print("OK")
 """
     code, output = run_command(f'uv run python -c "{import_test}"', check=False)

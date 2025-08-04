@@ -16,7 +16,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-from brain_go_brrr  # noqa: E402.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
 # Test with just 10 files
 print("Testing cache build with 10 files...")

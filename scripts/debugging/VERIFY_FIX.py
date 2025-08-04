@@ -8,8 +8,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from brain_go_brrr  # noqa: E402.data.tuab_cached_dataset import TUABCachedDataset
-from brain_go_brrr  # noqa: E402.models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
+from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
 print("=" * 80)
 print("VERIFYING NORMALIZATION FIX")

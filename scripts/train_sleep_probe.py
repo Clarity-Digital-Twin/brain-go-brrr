@@ -12,8 +12,8 @@ import argparse
 import logging
 from pathlib import Path
 
-from brain_go_brrr  # noqa: E402.models.eegpt_model import EEGPTModel
-from brain_go_brrr  # noqa: E402.training.sleep_probe_trainer import train_sleep_probe
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.training.sleep_probe_trainer import train_sleep_probe
 
 # Configure logging
 logging.basicConfig(

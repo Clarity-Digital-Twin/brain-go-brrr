@@ -10,7 +10,7 @@ import torch
 from custom_collate_fixed import collate_eeg_batch_fixed
 from torch.utils.data import DataLoader
 
-from brain_go_brrr  # noqa: E402.data.tuab_cached_dataset import TUABCachedDataset
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 
 print("Loading validation dataset...")
 val_ds = TUABCachedDataset(

@@ -13,8 +13,8 @@ import numpy as np
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from brain_go_brrr  # noqa: E402.core.logger import get_logger
-from brain_go_brrr  # noqa: E402.core.sleep import SleepAnalyzer
+from brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.core.sleep import SleepAnalyzer
 
 logger = get_logger(__name__)
 

@@ -11,7 +11,7 @@ sys.path.insert(0, str(project_root))
 os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 
 print("Testing cache loading...")
-from brain_go_brrr  # noqa: E402.data.tuab_cached_dataset import TUABCachedDataset
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 
 # Paths
 data_root = Path(os.environ["BGB_DATA_ROOT"])

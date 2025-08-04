@@ -4,7 +4,7 @@
 import numpy as np
 import torch
 
-from brain_go_brrr  # noqa: E402.models.eegpt_architecture import create_eegpt_model
+from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
 
 
 def trace_forward():
