@@ -106,8 +106,10 @@ class TestAPILinearProbeIntegration:
         )
         
         # Write 20 seconds of data (5120 samples at 256 Hz)
-        data = np.zeros(5120, dtype=np.int32)
-        writer.writeDigitalSamples(data)
+        # Need to write in chunks of 1 second for pyedflib
+        for _ in range(20):
+            data = np.zeros(256, dtype=np.int32)
+            writer.writeDigitalSamples(data)
         writer.close()
         
         # Read the file content
