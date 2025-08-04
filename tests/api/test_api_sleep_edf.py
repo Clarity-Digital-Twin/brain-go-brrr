@@ -168,8 +168,8 @@ class TestSleepEDFIntegration:
         if not sleep_dir.exists():
             pytest.skip("Sleep-EDF directory not found")
 
-        # Get first 3 PSG EDF files (not hypnogram files)
-        edf_files = list(sleep_dir.glob("*PSG.edf"))[:3]
+        # Get first 3 PSG EDF files (not hypnogram files or hidden files)
+        edf_files = [f for f in sleep_dir.glob("*PSG.edf") if not f.name.startswith("._")][:3]
 
         if not edf_files:
             pytest.skip("No EDF files found in Sleep-EDF directory")
