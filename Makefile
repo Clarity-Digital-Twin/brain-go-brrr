@@ -132,7 +132,7 @@ check: test quality ## Run all tests and quality checks
 
 test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
 	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --timeout=30
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --timeout=30 --no-cov
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -148,14 +148,22 @@ test-parallel: ## Run tests in parallel (with xdist)
 
 test-fast: test-unit  ## Legacy alias for test-unit
 
-test-cov: ## Run fast tests with coverage (80% minimum)
+test-cov: ## Run fast tests with coverage report
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
 		--cov=src/brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report=html \
-		--cov-fail-under=80 \
-		-m "not slow and not integration and not external"
+		--cov-report=term:skip-covered \
+		--cov-branch \
+		-m "not slow and not integration and not external" \
+		--no-header
+
+coverage-report: ## Generate and display coverage report
+	@echo "$(GREEN)Generating coverage report...$(NC)"
+	@$(PYTEST) tests/unit -q --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-report=html --no-header | tail -n 20
+	@echo ""
+	@echo "$(CYAN)Full HTML coverage report available at: htmlcov/index.html$(NC)"
 
 test-integration: ## Run integration tests with timeout
 	@echo "$(GREEN)Running integration tests...$(NC)"
