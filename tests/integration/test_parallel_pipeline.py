@@ -68,7 +68,11 @@ class TestParallelPipeline:
         if results["eegpt"]["status"] == "success":
             assert "embeddings" in results["eegpt"]
             assert "window_times" in results["eegpt"]
-            assert results["eegpt"]["embeddings"].shape[1] == 512
+            # EEGPT returns (n_windows, n_summary_tokens, embed_dim)
+            # Mock returns shape[1] = 4 (summary tokens), not 512 (embed dim)
+            embeddings = results["eegpt"]["embeddings"]
+            assert embeddings.shape[1] == 4  # n_summary_tokens
+            assert embeddings.shape[2] == 512  # embed_dim
 
         # Check YASA results
         if results["yasa"]["status"] == "success":

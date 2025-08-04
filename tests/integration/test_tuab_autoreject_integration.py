@@ -200,6 +200,11 @@ class TestTUABAutoRejectIntegration:
     def test_cache_directory_creation(self, temp_dataset_dir):
         """Test AutoReject cache directory is created."""
         cache_dir = temp_dataset_dir / "test_ar_cache"
+        
+        # Create required directory structure
+        train_dir = temp_dataset_dir / "train"
+        normal_dir = train_dir / "normal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
 
         _ = TUABEnhancedDataset(
             root_dir=temp_dataset_dir, split="train", use_autoreject=True, ar_cache_dir=cache_dir

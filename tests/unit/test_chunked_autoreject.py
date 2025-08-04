@@ -328,8 +328,12 @@ class TestChunkedProcessingIntegration:
     """Integration tests for chunked processing."""
 
     @pytest.mark.integration
-    def test_full_chunked_pipeline(self, temp_cache_dir):
+    def test_full_chunked_pipeline(self, tmp_path):
         """Test complete chunked processing pipeline."""
+        # Use tmp_path instead of temp_cache_dir
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+        
         # This will be implemented when we have the actual classes
         pass
 
