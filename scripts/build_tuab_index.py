@@ -73,7 +73,7 @@ def build_tuab_index():
     # Save index
     output_path = Path("data/cache/tuab_index.json")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
+    with output_path.open("w") as f:
         json.dump(index, f, indent=2)
 
     # Print summary

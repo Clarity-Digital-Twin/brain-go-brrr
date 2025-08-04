@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as functional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -138,7 +138,7 @@ for name, logits in test_scenarios:
     print(f"  Logits scale: min={logits.min():.3f}, max={logits.max():.3f}")
 
     # Check softmax
-    probs = F.softmax(logits, dim=1)
+    probs = functional.softmax(logits, dim=1)
     print(f"  Softmax range: min={probs.min():.6f}, max={probs.max():.6f}")
 
     # Check loss
