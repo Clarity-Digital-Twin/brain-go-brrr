@@ -362,14 +362,11 @@ class EEGSnippetMaker:
             logger.error(f"Feature extraction failed: {e}")
             return {}
 
-    def analyze_snippet_with_eegpt(
-        self, snippet: dict[str, Any], model_path: Path | None = None
-    ) -> dict[str, Any]:
+    def analyze_snippet_with_eegpt(self, snippet: dict[str, Any]) -> dict[str, Any]:
         """Analyze snippet using EEGPT model.
 
         Args:
             snippet: Snippet dictionary
-            model_path: Path to EEGPT model
 
         Returns:
             EEGPT analysis results

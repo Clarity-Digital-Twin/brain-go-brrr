@@ -59,7 +59,7 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(autouse=True)
 def force_seq_joblib(monkeypatch):
     """Force sequential execution for joblib to prevent hangs."""
     # Make anything that reads this var stay single-threaded

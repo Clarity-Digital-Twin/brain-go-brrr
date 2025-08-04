@@ -7,8 +7,8 @@ import pytest
 import torch
 from fastapi.testclient import TestClient
 
-from src.brain_go_brrr.api.main import app
-from src.brain_go_brrr.models.linear_probe import AbnormalityProbe, SleepStageProbe
+from brain_go_brrr.api.main import app
+from brain_go_brrr.models.linear_probe import AbnormalityProbe, SleepStageProbe
 
 
 class TestAPILinearProbeIntegration:
@@ -47,8 +47,8 @@ class TestAPILinearProbeIntegration:
     ):
         """Test sleep staging with EDF file upload."""
         with (
-            patch("src.brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
-            patch("src.brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
+            patch("brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
+            patch("brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
@@ -80,8 +80,8 @@ class TestAPILinearProbeIntegration:
     ):
         """Test that sleep staging processes windows correctly."""
         with (
-            patch("src.brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
-            patch("src.brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
+            patch("brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
+            patch("brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
@@ -110,8 +110,8 @@ class TestAPILinearProbeIntegration:
     def test_abnormality_detection_with_probe(self, client, tiny_edf, mock_eegpt_model):
         """Test abnormality detection uses linear probe."""
         with (
-            patch("src.brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
-            patch("src.brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
+            patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
+            patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
 
@@ -146,7 +146,7 @@ class TestAPILinearProbeIntegration:
 
     def test_batch_processing_with_probe(self, client, mock_eegpt_model):
         """Test batch processing of multiple EEG windows."""
-        with patch("src.brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model:
+        with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model:
             mock_get_model.return_value = mock_eegpt_model
 
             # Mock batch features

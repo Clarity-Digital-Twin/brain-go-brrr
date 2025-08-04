@@ -41,7 +41,7 @@ class TestSleepPreprocessor:
 
     def test_basic_preprocessing(self, raw_sleep_data):
         """Test that basic preprocessing works correctly."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         preprocessor = SleepPreprocessor()
         processed = preprocessor.preprocess(raw_sleep_data)
@@ -60,7 +60,7 @@ class TestSleepPreprocessor:
 
     def test_resampling(self):
         """Test that resampling works when needed."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         # Create 256 Hz data
         sfreq = 256.0
@@ -78,7 +78,7 @@ class TestSleepPreprocessor:
 
     def test_no_aggressive_filtering(self, raw_sleep_data):
         """Test that preprocessing is minimal - no notch, no aggressive artifact rejection."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         preprocessor = SleepPreprocessor()
 
@@ -97,7 +97,7 @@ class TestSleepPreprocessor:
 
     def test_average_reference(self, raw_sleep_data):
         """Test that average reference is applied."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         preprocessor = SleepPreprocessor(reference="average")
         processed = preprocessor.preprocess(raw_sleep_data)
@@ -109,7 +109,7 @@ class TestSleepPreprocessor:
 
     def test_no_reference_option(self, raw_sleep_data):
         """Test that reference can be skipped."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         preprocessor = SleepPreprocessor(reference=None)
         processed = preprocessor.preprocess(raw_sleep_data)
@@ -122,7 +122,7 @@ class TestSleepPreprocessor:
 
     def test_channel_type_setting(self):
         """Test that channel types can be set for YASA."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         # Create data with mixed channel types
         ch_names = ["Fpz", "Pz", "EOG", "EMG"]
@@ -140,7 +140,7 @@ class TestSleepPreprocessor:
 
     def test_filter_parameters(self):
         """Test custom filter parameters."""
-        from src.brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+        from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
 
         # Test with YASA's exact parameters
         preprocessor = SleepPreprocessor(l_freq=0.4, h_freq=30.0)

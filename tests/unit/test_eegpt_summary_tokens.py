@@ -5,7 +5,7 @@ import pytest
 import torch
 from numpy.typing import NDArray
 
-from src.brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 
 @pytest.mark.integration

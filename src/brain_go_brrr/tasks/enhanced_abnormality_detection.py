@@ -134,7 +134,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         return logits
 
     def training_step(
-        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
+        self,
+        batch: tuple[torch.Tensor, torch.Tensor],
+        batch_idx: int,  # noqa: ARG002
     ) -> torch.Tensor:
         """Training step."""
         x, y = batch
