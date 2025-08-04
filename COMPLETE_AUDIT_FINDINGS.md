@@ -108,11 +108,50 @@ EEGPT_CONFIG="experiments/eegpt_linear_probe/configs/tuab_cached.yaml" uv run py
 
 ### File: `/scripts/build_tuab_cache.py`
 
-**NEED TO CHECK**: What parameters was cache actually built with?
+**LINES 49-54: CACHE BUILD PARAMETERS**
+```python
+"window_duration": 8.0,      # 8 seconds
+"window_stride": 4.0,        # 50% overlap for train
+"sampling_rate": 256,        # 256 Hz
+"bandpass_low": 0.5,
+"bandpass_high": 50.0,
+"notch_freq": None,          # Use correct parameter name
+```
+**CONFIRMED**: Cache was built with 8s @ 256Hz, 0.5-50Hz bandpass, NO notch
+
+**LINE 75: EVAL STRIDE**
+```python
+if split == "eval":
+    dataset_params["window_stride"] = 8.0  # No overlap for eval
+```
+
+**LINE 81: USES TUABEnhancedDataset**
+```python
+dataset = TUABEnhancedDataset(**dataset_params)
+```
+**IMPORTANT**: Cache was built with TUABEnhancedDataset, not TUABCachedDataset
 
 ### File: `/scripts/build_tuab_index.py`
 
-**NEED TO CHECK**: Does index store the parameters used?
+**LINES 62-69: INDEX CONTENTS**
+```python
+file_info = {
+    "path": str(edf_file.relative_to(tuab_dir)),
+    "duration": float(raw.n_times / raw.info["sfreq"]),
+    "sfreq": float(raw.info["sfreq"]),
+    "n_channels": int(len(raw.ch_names)),
+    "channels": raw.ch_names,
+    "n_times": int(raw.n_times),
+}
+```
+**ISSUE**: Index does NOT store window parameters used for cache building!
+**ISSUE**: Index only stores file metadata, not cache build parameters!
+
+**LINE 77: OUTPUT PATH**
+```python
+output_path = Path("data/cache/tuab_index.json")
+```
+**GOOD**: Saves to correct location
 
 ## 6. OTHER DATASET IMPLEMENTATIONS
 
@@ -132,15 +171,89 @@ EEGPT_CONFIG="experiments/eegpt_linear_probe/configs/tuab_cached.yaml" uv run py
 - `/data/cache/tuab_enhanced/` - EXISTS with 1,003,251 files ✅
 - Symlink `/tuab_index.json -> data/cache/tuab_index.json` - EXISTS ✅
 
+## 8. CONFIG FILES AUDIT
+
+### File: `/experiments/eegpt_linear_probe/configs/tuab_enhanced_config.yaml`
+
+**LINE 2: WARNING COMMENT**
+```yaml
+# WARNING: This uses 10.24s windows @ 200Hz - NOT compatible with existing cached data (8s @ 256Hz)
+```
+**ISSUE**: Comment is WRONG - file actually has 8s @ 256Hz on lines 33-35!
+
+**LINES 33-35: ACTUAL PARAMETERS**
+```yaml
+window_duration: 8.0    # 8 seconds = 2048 samples @ 256Hz
+window_stride: 4.0      # 50% overlap for training
+sampling_rate: 256      # 256 Hz standard
+```
+**GOOD**: These match cache parameters
+
+### File: `/experiments/eegpt_linear_probe/configs/tuab_test_tiny.yaml`
+
+**LINES 28-30: TINY TEST CONFIG**
+```yaml
+max_files: 20  # Only 20 files total!
+use_cached_dataset: true  # Use our fast loader
+cache_index_path: data/cache/tuab_index.json
+```
+**ISSUE**: use_cached_dataset is not a valid parameter!
+
+**LINE 37: NOTCH FILTER**
+```yaml
+notch_filter: 60.0  # ❌ Cache built with None
+```
+**ISSUE**: Has notch filter but cache was built without it
+
+## 9. BASE DATASET CLASS AUDIT
+
+### File: `/src/brain_go_brrr/data/tuab_dataset.py`
+
+**LINE 132: DEFAULT WINDOW DURATION**
+```python
+window_duration: float = 30.0,  # ❌ WRONG DEFAULT
+```
+**ISSUE**: Base class also has 30 second default!
+
+**LINE 133: DEFAULT WINDOW STRIDE**
+```python
+window_stride: float = 30.0,  # ❌ WRONG DEFAULT
+```
+**ISSUE**: Base class also has 30 second stride default!
+
+**LINES 75-86: CHANNEL MAPPING**
+```python
+"EEG T3-REF": "T3",
+"EEG T4-REF": "T4",
+"EEG T5-REF": "T5",
+"EEG T6-REF": "T6",
+```
+**ISSUE**: Maps to OLD naming (T3/T4/T5/T6) not modern (T7/T8/P7/P8)
+
+**LINES 118-120: OLD TO MODERN MAPPING**
+```python
+"T3": "T7",
+"T4": "T8",
+"T5": "P7",
+"T6": "P8",
+```
+**GOOD**: Has mapping but inconsistent with line 75-86
+
 ## 🔥 SUMMARY OF ALL FUCKED UP THINGS
 
 1. **TUABCachedDataset has WRONG DEFAULTS** (30s instead of 8s)
-2. **train_enhanced.py uses CONFIG VALUES instead of hardcoded cache params**
-3. **Default config is tuab_memsafe.yaml with INCOMPATIBLE parameters**
-4. **No validation that config params match cache params**
-5. **Cache index uses relative path by default**
-6. **No error if parameters don't match cache**
-7. **Window count calculation depends on matching parameters**
+2. **TUABDataset base class ALSO has WRONG DEFAULTS** (30s instead of 8s)
+3. **train_enhanced.py uses CONFIG VALUES instead of hardcoded cache params**
+4. **Default config is tuab_memsafe.yaml with INCOMPATIBLE parameters**
+5. **No validation that config params match cache params**
+6. **Cache index uses relative path by default**
+7. **No error if parameters don't match cache**
+8. **Window count calculation depends on matching parameters**
+9. **Index doesn't store cache build parameters**
+10. **Misleading comments in config files**
+11. **Invalid parameters in test configs**
+12. **Inconsistent channel mapping (old vs modern naming)**
+13. **NO FUCKING VALIDATION ANYWHERE**
 
 ## 🛠 FIXES NEEDED
 
@@ -149,3 +262,26 @@ EEGPT_CONFIG="experiments/eegpt_linear_probe/configs/tuab_cached.yaml" uv run py
 3. **REMOVE parameter passing from config for cached dataset**
 4. **USE absolute paths everywhere**
 5. **ADD loud warnings if params don't match**
+6. **FIX all config files to match cache**
+7. **ADD cache parameters to index file**
+8. **CREATE pre-flight validation script**
+
+## ✅ TRAINING NOW WORKING
+
+With the fixed configuration:
+- Cache loads in 0.14 seconds
+- 930,495 train windows loaded instantly
+- NO file scanning
+- Using correct 8s @ 256Hz parameters
+- GPU utilization expected to be >90%
+
+**Key fixes applied:**
+1. Fixed EEGPT_CONFIG path in launch script
+2. Using tuab_cached.yaml instead of tuab_memsafe.yaml
+3. Verified cache loading with correct parameters
+
+**Remaining issues to fix in PR:**
+- Change default window_duration from 30.0 to 8.0 in dataset classes
+- Add validation for parameter mismatches
+- Fix misleading comments in configs
+- Add cache build parameters to index file
