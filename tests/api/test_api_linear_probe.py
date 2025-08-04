@@ -75,65 +75,28 @@ class TestAPILinearProbeIntegration:
             assert "stage_percentages" in data["summary"]
 
     @pytest.mark.integration  # Requires larger EDF file for multiple windows
-    def test_sleep_staging_window_by_window(self, client, mock_eegpt_model, mock_sleep_probe):
+    def test_sleep_staging_window_by_window(self, client, mock_eegpt_model, mock_sleep_probe, tiny_edf):
         """Test that sleep staging processes windows correctly."""
-        # Create a longer EDF file (20 seconds = 5 windows of 4 seconds each)
-        import tempfile
-
-        import numpy as np
-        from pyedflib import EdfWriter
-
-        # Create temporary EDF with 20 seconds of data
-        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-            tmp_path = tmp.name
-
-        # Set file duration to 20 seconds
-        writer = EdfWriter(tmp_path, n_channels=1, file_duration=20)
-        writer.setDatarecordDuration(1)  # 1 second per data record
-        writer.setSignalHeader(
-            0,
-            {
-                "label": "EEG Fpz-Cz",
-                "dimension": "uV",
-                "sample_frequency": 256,
-                "physical_max": 250,
-                "physical_min": -250,
-                "digital_max": 2047,
-                "digital_min": -2048,
-                "prefilter": "HP:0.1Hz LP:75Hz",
-                "transducer": "AgAgCl electrode",
-            },
-        )
-
-        # Write 20 seconds of data (5120 samples at 256 Hz)
-        # Write 20 data records of 1 second each
-        data_per_record = np.zeros(256, dtype=np.int32)  # 1 second at 256 Hz
-        for _ in range(20):
-            writer.writeDigitalSamples(data_per_record)
-        writer.close()
-
-        # Read the file content
-        from pathlib import Path
-        tmp = Path(tmp_path)
-        edf_content = tmp.read_bytes()
-
-        # Clean up
-        tmp.unlink()
+        # Use tiny_edf fixture which creates 30 seconds of data
+        # This should give us at least 7 windows (30s / 4s per window)
+        edf_content = tiny_edf
 
         with (
-            patch("brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
-            patch("brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
+            patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
+            patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
 
-            # Mock multiple windows
+            # Mock multiple windows - tiny_edf creates 30 seconds, so expect 7 windows
             mock_sleep_probe.predict_stage.side_effect = [
                 (["W"], torch.tensor([0.9])),
                 (["N1"], torch.tensor([0.7])),
                 (["N2"], torch.tensor([0.85])),
                 (["N3"], torch.tensor([0.8])),
                 (["N2"], torch.tensor([0.82])),
+                (["REM"], torch.tensor([0.75])),
+                (["N2"], torch.tensor([0.88])),
             ]
 
             files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
@@ -142,10 +105,10 @@ class TestAPILinearProbeIntegration:
             assert response.status_code == 200
             data = response.json()
 
-            # Should have processed 5 windows
-            assert len(data["stages"]) == 5
-            assert data["stages"] == ["W", "N1", "N2", "N3", "N2"]
-            assert len(data["confidence_scores"]) == 5
+            # Should have processed 7 windows from 30-second file
+            assert len(data["stages"]) == 7
+            assert data["stages"] == ["W", "N1", "N2", "N3", "N2", "REM", "N2"]
+            assert len(data["confidence_scores"]) == 7
 
     @pytest.mark.integration  # Requires proper EDF processing
     def test_abnormality_detection_with_probe(self, client, tiny_edf, mock_eegpt_model):
