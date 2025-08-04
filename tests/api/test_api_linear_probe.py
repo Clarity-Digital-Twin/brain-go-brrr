@@ -158,6 +158,7 @@ class TestAPILinearProbeIntegration:
         with (
             patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
             patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
+            patch("brain_go_brrr.core.quality.controller.EEGQualityController.run_full_qc_pipeline") as mock_qc,
         ):
             mock_get_model.return_value = mock_eegpt_model
 
@@ -165,6 +166,13 @@ class TestAPILinearProbeIntegration:
             mock_probe = Mock(spec=AbnormalityProbe)
             mock_probe.predict_abnormal_probability.return_value = torch.tensor([0.75])
             mock_get_probe.return_value = mock_probe
+            
+            # Mock QC results
+            mock_qc.return_value = {
+                "bad_channels": [],
+                "overall_quality": "good",
+                "qc_metrics": {"overall_score": 0.9}
+            }
 
             files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
             response = client.post(
