@@ -520,7 +520,16 @@ class TestPerformanceComparison:
 
         # Both should produce same results (within floating point precision)
         cpu_result = eegpt_model_cpu.extract_features(data, ch_names)
-        assert np.allclose(cpu_result.numpy(), gpu_result.cpu().numpy(), rtol=1e-5)
+        # Convert to numpy if needed
+        if hasattr(cpu_result, 'numpy'):
+            cpu_result_np = cpu_result.numpy()
+        else:
+            cpu_result_np = cpu_result
+        if hasattr(gpu_result, 'cpu'):
+            gpu_result_np = gpu_result.cpu().numpy()
+        else:
+            gpu_result_np = gpu_result
+        assert np.allclose(cpu_result_np, gpu_result_np, rtol=1e-5)
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
