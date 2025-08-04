@@ -152,7 +152,6 @@ class SleepAnalyzer:
             smoothed.append(unique[mode_idx])
 
         return np.array(smoothed)
-
     def stage_sleep(
         self,
         raw: mne.io.Raw,
@@ -270,7 +269,6 @@ class SleepAnalyzer:
             )
             # Return just the array for simple interface
             return y_pred
-
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback (always return strings)
@@ -284,7 +282,6 @@ class SleepAnalyzer:
 
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
             return dummy_stages
-
     def calculate_sleep_metrics(
         self, raw_or_hypnogram: mne.io.BaseRaw | np.ndarray, epoch_length: float = 30.0
     ) -> dict:
