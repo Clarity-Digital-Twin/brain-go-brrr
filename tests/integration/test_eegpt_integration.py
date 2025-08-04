@@ -235,6 +235,6 @@ class TestEEGPTModel:
         assert features["abnormal_probability"] is not None
 
         # Performance check: should process 1 minute in < 5 seconds
-        assert (
-            features["processing_time"] < 5.0
-        ), f"Processing too slow: {features['processing_time']:.2f}s"
+        assert features["processing_time"] < 5.0, (
+            f"Processing too slow: {features['processing_time']:.2f}s"
+        )

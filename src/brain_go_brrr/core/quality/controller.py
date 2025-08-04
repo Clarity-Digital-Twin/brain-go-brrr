@@ -526,9 +526,7 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(
-        self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any
-    ) -> dict:
+    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict:
         """Run the complete QC pipeline.
 
         Args:

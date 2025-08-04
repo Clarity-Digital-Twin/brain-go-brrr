@@ -82,9 +82,9 @@ class TestAPIEndpoints:
         data = response.json()
 
         # Ensure we didn't get an error response
-        assert (
-            data.get("flag") != "ERROR"
-        ), f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        assert data.get("flag") != "ERROR", (
+            f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        )
 
         # Verify response matches QCResponse schema
         assert "flag" in data
@@ -198,9 +198,9 @@ class TestAPIEndpoints:
         data = response.json()
 
         # Ensure we didn't get an error response
-        assert (
-            data.get("flag") != "ERROR"
-        ), f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        assert data.get("flag") != "ERROR", (
+            f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        )
 
         assert isinstance(data["bad_channels"], list)
         assert all(isinstance(ch, str) for ch in data["bad_channels"])
@@ -217,9 +217,9 @@ class TestAPIEndpoints:
         data = response.json()
 
         # Ensure we didn't get an error response
-        assert (
-            data.get("flag") != "ERROR"
-        ), f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        assert data.get("flag") != "ERROR", (
+            f"Unexpected ERROR response: {data.get('error', 'Unknown error')}"
+        )
 
         assert "quality_metrics" in data
         assert "abnormality_score" in data["quality_metrics"]

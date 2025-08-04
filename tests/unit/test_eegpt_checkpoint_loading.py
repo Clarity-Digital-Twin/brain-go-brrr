@@ -139,15 +139,14 @@ class TestEEGPTCheckpointLoading:
         ).item()
 
         # Features should be discriminative (not identical)
-        assert (
-            cosine_sim < 0.95
-        ), f"Features not discriminative! Cosine similarity {cosine_sim:.3f} >= 0.95"
+        assert cosine_sim < 0.95, (
+            f"Features not discriminative! Cosine similarity {cosine_sim:.3f} >= 0.95"
+        )
 
         # Features should also not be random (some correlation expected)
-        assert (
-            cosine_sim > -0.5
-        ), f"Features seem random! Cosine similarity {cosine_sim:.3f} <= -0.5"
-
+        assert cosine_sim > -0.5, (
+            f"Features seem random! Cosine similarity {cosine_sim:.3f} <= -0.5"
+        )
 
     @pytest.mark.slow
     def test_attention_module_compatibility(self, checkpoint_path):
@@ -156,12 +155,12 @@ class TestEEGPTCheckpointLoading:
 
         # Check that first block uses our custom Attention
         first_block = model.blocks[0]
-        assert hasattr(
-            first_block.attn, "qkv"
-        ), "Block doesn't use custom Attention module with qkv layer"
-        assert hasattr(
-            first_block.attn, "proj"
-        ), "Block doesn't use custom Attention module with proj layer"
+        assert hasattr(first_block.attn, "qkv"), (
+            "Block doesn't use custom Attention module with qkv layer"
+        )
+        assert hasattr(first_block.attn, "proj"), (
+            "Block doesn't use custom Attention module with proj layer"
+        )
 
         # Verify weight shapes match checkpoint
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
@@ -169,16 +168,16 @@ class TestEEGPTCheckpointLoading:
         # Check QKV weights
         ckpt_qkv = checkpoint["state_dict"]["encoder.blocks.0.attn.qkv.weight"]
         model_qkv = first_block.attn.qkv.weight
-        assert (
-            model_qkv.shape == ckpt_qkv.shape
-        ), f"QKV weight shape mismatch: {model_qkv.shape} != {ckpt_qkv.shape}"
+        assert model_qkv.shape == ckpt_qkv.shape, (
+            f"QKV weight shape mismatch: {model_qkv.shape} != {ckpt_qkv.shape}"
+        )
 
         # Check projection weights
         ckpt_proj = checkpoint["state_dict"]["encoder.blocks.0.attn.proj.weight"]
         model_proj = first_block.attn.proj.weight
-        assert (
-            model_proj.shape == ckpt_proj.shape
-        ), f"Proj weight shape mismatch: {model_proj.shape} != {ckpt_proj.shape}"
+        assert model_proj.shape == ckpt_proj.shape, (
+            f"Proj weight shape mismatch: {model_proj.shape} != {ckpt_proj.shape}"
+        )
 
     @pytest.mark.slow
     def test_model_device_compatibility(self, checkpoint_path):
@@ -205,7 +204,6 @@ if __name__ == "__main__":
     checkpoint_path = Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
 
     if checkpoint_path.exists():
-
         with contextlib.suppress(AssertionError):
             test.test_checkpoint_architecture_matches_paper(checkpoint_path)
 

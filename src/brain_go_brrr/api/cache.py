@@ -19,9 +19,7 @@ APP_VERSION = os.getenv("BRAIN_GO_BRRR_APP_VERSION", "0.1.0")
 class RedisCache:
     """Redis cache wrapper for EEG analysis results - delegates to infra.cache."""
 
-    def __init__(
-        self, *args: Any, **kwargs: Any
-    ) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize using infra cache."""
         # Accept args/kwargs but don't use them (for interface compatibility)
         _ = (args, kwargs)  # Mark as intentionally unused

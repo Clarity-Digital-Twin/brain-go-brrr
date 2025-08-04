@@ -58,12 +58,10 @@ def test_root_endpoint() -> None:
 
 
 if __name__ == "__main__":
-
     try:
         test_root_endpoint()
         test_health_check()
         test_qc_analysis()
-
 
     except requests.exceptions.ConnectionError:
         pass

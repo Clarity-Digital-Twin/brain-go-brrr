@@ -51,7 +51,6 @@ def test_extreme_pattern_discrimination():
     feat_noise = model.extract_features(noise, ch_names)
     feat_spikes = model.extract_features(spikes, ch_names)
 
-
     # Check if all 4 summary tokens are identical within each feature
     for _i, (_name, feat) in enumerate(
         [("zeros", feat_zeros), ("ones", feat_ones), ("noise", feat_noise), ("spikes", feat_spikes)]
@@ -69,7 +68,6 @@ def test_extreme_pattern_discrimination():
         return np.dot(a.flatten(), b.flatten()) / (
             np.linalg.norm(a.flatten()) * np.linalg.norm(b.flatten())
         )
-
 
     # These should be very different!
     assert cosine_sim(feat_zeros, feat_ones) < 0.99, "Zeros and ones too similar!"
@@ -109,7 +107,6 @@ def test_check_averaging_bug():
         data[i, :] = i  # Channel i has value i
 
     features = model.extract_features(data, ch_names)
-
 
     # If we're averaging across channels, all features should be similar
     # and equal to the mean of 0-18 = 9

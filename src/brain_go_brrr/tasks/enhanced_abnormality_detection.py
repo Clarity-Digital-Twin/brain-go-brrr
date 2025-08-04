@@ -173,9 +173,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return loss
 
-    def validation_step(
-        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> None:
+    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
         _ = batch_idx  # Required by PyTorch Lightning interface
         x, y = batch

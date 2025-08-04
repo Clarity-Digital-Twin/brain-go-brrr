@@ -116,7 +116,6 @@ class TestSleepEDFIntegration:
         # Full file can take longer
         assert processing_time < 120, f"Processing took too long: {processing_time:.2f}s"
 
-
     @pytest.mark.integration
     @pytest.mark.slow
     def test_sleep_edf_quality_detection(self, client, sleep_edf_file):
@@ -138,10 +137,7 @@ class TestSleepEDFIntegration:
             expected_bad_patterns = ["EOG", "EMG", "RESP", "EVENT", "ECG"]
 
             # At least some bad channels should match expected patterns
-            any(
-                any(pattern in ch for pattern in expected_bad_patterns) for ch in bad_channel_names
-            )
-
+            any(any(pattern in ch for pattern in expected_bad_patterns) for ch in bad_channel_names)
 
     @pytest.mark.integration
     @pytest.mark.slow
@@ -218,7 +214,6 @@ class TestSleepEDFIntegration:
         # Real model would have higher scores (>0.5)
         consistency = max(confidence_scores) - min(confidence_scores) < 0.1
         assert consistency, f"Confidence scores not consistent: {confidence_scores}"
-
 
 
 class TestAPIRobustness:

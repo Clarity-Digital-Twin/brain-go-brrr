@@ -55,9 +55,9 @@ class TestYASACompliance:
 
         # If filtering was applied, std would drop by >40%
         # Resampling alone should result in <40% change
-        assert (
-            std_change_ratio < 0.4
-        ), f"Standard deviation changed by {std_change_ratio * 100:.1f}% - filtering may have been applied"
+        assert std_change_ratio < 0.4, (
+            f"Standard deviation changed by {std_change_ratio * 100:.1f}% - filtering may have been applied"
+        )
 
         # Mean should be relatively preserved
         assert np.abs(processed_mean - original_mean) < original_std * 0.1

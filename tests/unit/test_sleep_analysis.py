@@ -253,4 +253,3 @@ def test_full_sleep_analysis_pipeline():
     assert len(hypnogram) > 0
     assert "SE" in metrics  # YASA uses "SE" for sleep efficiency
     assert 0 <= metrics["SE"] <= 100
-

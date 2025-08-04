@@ -531,9 +531,7 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         # Load pretrained weights
         # NOTE: weights_only=False needed for EEGPT checkpoint format compatibility
         # This is safe as we only load from trusted model checkpoints
-        checkpoint = torch.load(
-            checkpoint_path, map_location="cpu", weights_only=False
-        )  # nosec B614 - Loading pretrained EEGPT model weights from trusted source
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614 - Loading pretrained EEGPT model weights from trusted source
 
         # Extract encoder weights
         encoder_state = {}

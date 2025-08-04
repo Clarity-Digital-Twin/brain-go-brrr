@@ -51,9 +51,9 @@ class TestWindowExtractor:
             windows = extractor.extract(data, sfreq)
 
             # Then
-            assert (
-                len(windows) == expected_windows
-            ), f"Duration={duration}s, window={window_size}s, overlap={overlap}s"
+            assert len(windows) == expected_windows, (
+                f"Duration={duration}s, window={window_size}s, overlap={overlap}s"
+            )
 
     def test_handles_50_percent_overlap(self):
         """Should correctly implement 50% overlap between windows."""

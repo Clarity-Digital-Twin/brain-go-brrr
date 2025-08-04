@@ -53,9 +53,9 @@ def test_encoder_raw_output():
     avg_similarity = np.mean(similarities)
     # With random initialization, tokens will be somewhat similar but not identical
     # Relaxed threshold for mock model
-    assert (
-        avg_similarity < 0.995
-    ), f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
+    assert avg_similarity < 0.995, (
+        f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
+    )
 
     # Check token statistics
     for i in range(4):
@@ -67,7 +67,6 @@ def test_encoder_raw_output():
         }
 
 
-
 @pytest.mark.integration  # Requires model internals
 def test_find_summary_tokens():
     """Verify the encoder has summary token parameters."""
@@ -77,21 +76,21 @@ def test_find_summary_tokens():
     found_summary_token = False
 
     for name, param in model.encoder.named_parameters():
-        if "summary" in name.lower() or "cls" in name.lower() or "token" in name.lower():
-            if "summary_token" in name:
-                found_summary_token = True
-                # Should be shape (1, 4, 512) for 4 summary tokens
-                assert param.shape[1] == 4, f"Expected 4 summary tokens, got {param.shape[1]}"
-                assert param.shape[2] == 512, f"Expected 512 dim embeddings, got {param.shape[2]}"
+        if (
+            "summary" in name.lower() or "cls" in name.lower() or "token" in name.lower()
+        ) and "summary_token" in name:
+            found_summary_token = True
+            # Should be shape (1, 4, 512) for 4 summary tokens
+            assert param.shape[1] == 4, f"Expected 4 summary tokens, got {param.shape[1]}"
+            assert param.shape[2] == 512, f"Expected 512 dim embeddings, got {param.shape[2]}"
 
     assert found_summary_token, "No summary_token parameter found in encoder!"
 
     # Check encoder attributes
     if hasattr(model.encoder, "embed_num"):
-        assert (
-            model.encoder.embed_num == 4
-        ), f"Expected 4 summary tokens, got {model.encoder.embed_num}"
-
+        assert model.encoder.embed_num == 4, (
+            f"Expected 4 summary tokens, got {model.encoder.embed_num}"
+        )
 
 
 if __name__ == "__main__":

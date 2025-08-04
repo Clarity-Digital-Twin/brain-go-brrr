@@ -177,7 +177,6 @@ class TestEEGPTSummaryTokens:
             np.mean(potential_summary)
             np.mean(other_tokens)
 
-
     @pytest.mark.parametrize(
         "freq1,freq2,expected_similarity",
         [
@@ -203,13 +202,13 @@ class TestEEGPTSummaryTokens:
 
         # Check if similarity is in expected range
         if freq1 == freq2:
-            assert (
-                similarity > expected_similarity
-            ), f"Same frequency similarity too low: {similarity:.3f}"
+            assert similarity > expected_similarity, (
+                f"Same frequency similarity too low: {similarity:.3f}"
+            )
         else:
-            assert (
-                similarity < expected_similarity
-            ), f"Different frequency similarity too high: {similarity:.3f}"
+            assert similarity < expected_similarity, (
+                f"Different frequency similarity too high: {similarity:.3f}"
+            )
 
 
 class TestLinearProbeIntegration:

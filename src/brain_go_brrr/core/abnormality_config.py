@@ -86,9 +86,7 @@ class ModelConfig:
     classifier_hidden_1: int = 256
     classifier_hidden_2: int = 128
     classifier_dropout: float = 0.3
-    feature_dim: int = (
-        2048  # EEGPT produces 4 summary tokens x 512 dims = 2048 flattened (verified from literature)
-    )
+    feature_dim: int = 2048  # EEGPT produces 4 summary tokens x 512 dims = 2048 flattened (verified from literature)
     num_classes: int = 2
 
     # Model versioning
