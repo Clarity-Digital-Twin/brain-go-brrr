@@ -23,7 +23,7 @@ class TestJobModel:
             created_at=now,
             updated_at=now,
         )
-        
+
         assert job.job_id == "test-123"
         assert job.analysis_type == "qc"
         assert job.file_path == "/path/to/file.edf"
@@ -51,7 +51,7 @@ class TestJobModel:
             started_at=now,
             completed_at=now,
         )
-        
+
         assert job.options == {"include_report": True}
         assert job.progress == 1.0
         assert job.result == {"sleep_efficiency": 0.85}
@@ -111,9 +111,9 @@ class TestJobModel:
             updated_at=now,
             progress=0.5,
         )
-        
+
         data = job.to_dict()
-        
+
         assert data["job_id"] == "test-789"
         assert data["analysis_type"] == "abnormal"
         assert data["file_path"] == "/path/to/abnormal.edf"
@@ -139,9 +139,9 @@ class TestJobModel:
             "progress": 0.75,
             "error": "Processing failed",
         }
-        
+
         job = Job.from_dict(data)
-        
+
         assert job.job_id == "test-101"
         assert job.analysis_type == "events"
         assert job.file_path == "/path/to/events.edf"
@@ -161,7 +161,7 @@ class TestJobModel:
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
-        
+
         with pytest.raises(AttributeError):
             job.job_id = "changed"
 
@@ -182,11 +182,11 @@ class TestJobModel:
             started_at=now,
             completed_at=now,
         )
-        
+
         # Convert to dict and back
         data = original.to_dict()
         restored = Job.from_dict(data)
-        
+
         # Compare all fields
         assert restored.job_id == original.job_id
         assert restored.analysis_type == original.analysis_type

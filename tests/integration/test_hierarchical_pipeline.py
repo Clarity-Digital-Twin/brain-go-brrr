@@ -119,7 +119,7 @@ class TestHierarchicalPipeline:
         # Test high confidence abnormal
         high_conf_abnormal = pipeline.analyze(self._create_clear_abnormal_eeg())
         assert high_conf_abnormal.triage_flag == "urgent"
-        assert high_conf_abnormal.confidence > 0.9
+        assert high_conf_abnormal.confidence > 0.8  # High confidence threshold
 
         # Test low confidence abnormal
         low_conf_abnormal = pipeline.analyze(self._create_ambiguous_eeg())

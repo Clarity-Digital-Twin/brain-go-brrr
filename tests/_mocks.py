@@ -136,10 +136,10 @@ def mock_eegpt_model_loading(monkeypatch):
         overlap = 0.5
         step_size = window_size * (1 - overlap)
         n_windows = max(1, int((duration - window_size) / step_size) + 1)
-        
+
         # Generate mock window scores
         window_scores = [0.15 + 0.1 * np.random.rand() for _ in range(n_windows)]
-        
+
         return {
             'abnormal_probability': 0.15,
             'confidence': 0.85,

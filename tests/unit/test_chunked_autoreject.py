@@ -333,18 +333,18 @@ class TestChunkedProcessingIntegration:
         # Use tmp_path instead of temp_cache_dir
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir()
-        
+
         # Create processor
         processor = ChunkedAutoRejectProcessor(
             cache_dir=cache_dir,
             chunk_size=50
         )
-        
+
         # Verify processor initialized
         assert processor.cache_dir == cache_dir
         assert processor.chunk_size == 50
         assert not processor.is_fitted
-        
+
         # Create mock parameters as if fitted
         processor.ar_params = {
             "thresholds": np.random.rand(19, 10),
@@ -353,18 +353,18 @@ class TestChunkedProcessingIntegration:
             "picks": list(range(19))
         }
         processor.is_fitted = True
-        
+
         # Save parameters
         processor._save_parameters(processor)
-        
+
         # Verify saved
         param_file = cache_dir / "autoreject_params.pkl"
         assert param_file.exists()
-        
+
         # Create new processor and load
         new_processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir)
         new_processor._load_parameters()
-        
+
         # Verify loaded correctly
         assert new_processor.is_fitted
         assert np.array_equal(

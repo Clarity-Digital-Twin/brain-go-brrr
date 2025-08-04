@@ -61,7 +61,7 @@ class TestAPIRoutes:
         """Test that all routes start with expected prefixes."""
         # Get all route attributes
         route_attrs = [attr for attr in dir(routes) if attr.isupper() and not attr.startswith('_')]
-        
+
         for attr_name in route_attrs:
             route_value = getattr(routes, attr_name)
             if isinstance(route_value, str) and route_value.startswith("/"):
@@ -77,11 +77,11 @@ class TestAPIRoutes:
     def test_create_new_routes_instance(self):
         """Test creating a new APIRoutes instance."""
         new_routes = APIRoutes()
-        
+
         # Should have same values as singleton
         assert new_routes.API_V1 == routes.API_V1
         assert new_routes.HEALTH == routes.HEALTH
         assert new_routes.QC_ANALYZE == routes.QC_ANALYZE
-        
+
         # But should be different instance
         assert new_routes is not routes

@@ -200,14 +200,14 @@ class TestTUABAutoRejectIntegration:
     def test_cache_directory_creation(self, temp_dataset_dir):
         """Test AutoReject cache directory is created."""
         cache_dir = temp_dataset_dir / "test_ar_cache"
-        
+
         # Create required directory structure with both normal and abnormal dirs
         train_dir = temp_dataset_dir / "train"
         normal_dir = train_dir / "normal"
         abnormal_dir = train_dir / "abnormal"
         normal_dir.mkdir(parents=True, exist_ok=True)
         abnormal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create dummy EDF files so dataset finds something
         (normal_dir / "dummy.edf").touch()
         (abnormal_dir / "dummy.edf").touch()

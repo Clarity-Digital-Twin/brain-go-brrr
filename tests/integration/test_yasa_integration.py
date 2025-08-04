@@ -57,7 +57,7 @@ class TestYASAIntegration:
             # Just check the structure is correct
             assert hasattr(result, 'sleep_stage')
             assert hasattr(result, 'sleep_confidence')
-            
+
             if result.sleep_stage is not None:
                 assert result.sleep_stage in ["W", "N1", "N2", "N3", "REM"]
                 assert 0 <= result.sleep_confidence <= 1

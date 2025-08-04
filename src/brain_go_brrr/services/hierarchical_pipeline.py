@@ -84,13 +84,22 @@ class AbnormalityScreener:
         # Check for spikes in the data (simple heuristic)
         max_amp: float = float(np.max(np.abs(eeg)))
 
-        # If we see high amplitude spikes, likely abnormal
-        score = 0.8 + 0.2 * np.random.rand() if max_amp > 30 else 0.2 + 0.3 * np.random.rand()
+        # Determine score based on amplitude
+        if max_amp > 100:
+            # Very high amplitude = high confidence abnormal
+            score = 0.9 + 0.05 * np.random.rand()
+        elif max_amp > 30:
+            # Moderate amplitude = low confidence abnormal
+            score = 0.6 + 0.1 * np.random.rand()
+        else:
+            # Low amplitude = normal
+            score = 0.2 + 0.2 * np.random.rand()
 
         if self.calibrated:
             # Add some variance for calibration testing
             self._mock_scores.append(score)
-            score = np.clip(score + 0.1 * np.random.randn(), 0, 1)
+            # Small variance to avoid changing categories
+            score = np.clip(score + 0.02 * np.random.randn(), 0, 1)
 
         if return_features:
             # Mock EEGPT features
@@ -295,14 +304,20 @@ class HierarchicalEEGAnalyzer:
             result.abnormality_score = score
             result.is_abnormal = score > self.config.abnormal_threshold
 
-            # Calculate confidence (distance from threshold)
-            result.confidence = abs(score - 0.5) * 2  # Scale to 0-1
+            # Calculate confidence (higher score = higher confidence for abnormal)
+            if result.is_abnormal:
+                # For abnormal cases, confidence increases with score
+                result.confidence = min((score - 0.5) * 2, 1.0)
+            else:
+                # For normal cases, confidence increases as score approaches 0
+                result.confidence = min((0.5 - score) * 2, 1.0)
 
-            # Triage based on confidence and score
-            if result.is_abnormal and result.confidence > 0.8:
-                result.triage_flag = "urgent"
-            elif result.is_abnormal and result.confidence < 0.6:
-                result.triage_flag = "review"
+            # Triage based on abnormality and confidence
+            if result.is_abnormal:
+                if result.confidence > 0.8:
+                    result.triage_flag = "urgent"
+                else:
+                    result.triage_flag = "review"  # Low confidence abnormal
             else:
                 result.triage_flag = "routine"
 

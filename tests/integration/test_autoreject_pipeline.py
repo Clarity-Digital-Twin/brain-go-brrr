@@ -183,11 +183,11 @@ class TestAutoRejectEEGPTIntegration:
         abnormal_dir = train_dir / "abnormal"
         normal_dir.mkdir(parents=True, exist_ok=True)
         abnormal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create a dummy EDF file
         dummy_edf = normal_dir / "test.edf"
         dummy_edf.touch()
-        
+
         # Given: Dataset with AutoReject
         dataset = TUABEnhancedDataset(
             root_dir=tmp_path,
@@ -222,7 +222,7 @@ class TestAutoRejectEEGPTIntegration:
         train_dir = tmp_path / "train"
         normal_dir = train_dir / "normal"
         normal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Given: Dataset with AutoReject that will fail
         dataset = TUABEnhancedDataset(root_dir=tmp_path, split="train", use_autoreject=True)
 
@@ -249,7 +249,7 @@ class TestAutoRejectEEGPTIntegration:
         train_dir = tmp_path / "train"
         normal_dir = train_dir / "normal"
         normal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Given: Dataset with metrics tracking
         dataset = TUABEnhancedDataset(root_dir=tmp_path, split="train", use_autoreject=True)
 
@@ -292,7 +292,7 @@ class TestAutoRejectEEGPTIntegration:
         train_dir = tmp_path / "train"
         normal_dir = train_dir / "normal"
         normal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create dataset with AutoReject
         TUABEnhancedDataset(
             root_dir=tmp_path,
@@ -319,7 +319,7 @@ class TestAutoRejectEEGPTIntegration:
         train_dir = tmp_path / "train"
         normal_dir = train_dir / "normal"
         normal_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Given: Dataset with AutoReject disabled
         dataset_no_ar = TUABEnhancedDataset(
             root_dir=tmp_path,
