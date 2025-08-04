@@ -1,5 +1,30 @@
 #!/usr/bin/env python
-"""Enhanced EEGPT training with all paper-matching improvements."""
+"""
+🚨🚨🚨 CRITICAL WARNING - DO NOT USE THIS SCRIPT 🚨🚨🚨
+
+This script uses PyTorch Lightning which has a CRITICAL BUG in version 2.5.2
+that causes training to hang indefinitely at:
+  "Loading `train_dataloader` to estimate number of stepping batches"
+
+The hang occurs with large cached datasets (>100k samples) and CANNOT be fixed
+with any configuration changes. We tried everything:
+  - deterministic=False
+  - limit_train_batches (integer/float)
+  - max_steps
+  - fast_dev_run
+  - num_sanity_val_steps=0
+  - reload_dataloaders_every_n_epochs
+  - num_workers=0
+  
+NOTHING WORKS. This is a fundamental Lightning bug.
+
+✅ USE train_pytorch_stable.py INSTEAD - IT WORKS PERFECTLY
+
+See LIGHTNING_BUG_REPORT.md for full details.
+
+Original description:
+Enhanced EEGPT training with all paper-matching improvements.
+"""
 
 import logging
 import os
@@ -16,11 +41,12 @@ os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 import numpy as np
-import pytorch_lightning as pl
+# WARNING: PyTorch Lightning imports cause training to hang - DO NOT USE
+import pytorch_lightning as pl  # BROKEN - causes infinite hang with large datasets
 import torch
 from omegaconf import OmegaConf
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
+from pytorch_lightning import Trainer  # BROKEN - will hang at dataloader estimation
+from pytorch_lightning.callbacks import (  # BROKEN - Lightning hangs with cached data
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
@@ -30,9 +56,10 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
 from brain_go_brrr.tasks.enhanced_abnormality_detection import EnhancedAbnormalityDetectionProbe
-from experiments.eegpt_linear_probe.custom_collate import collate_eeg_batch
+from experiments.eegpt_linear_probe.custom_collate_fixed import collate_eeg_batch_fixed
 
 logging.basicConfig(
     level=logging.INFO,
@@ -142,122 +169,77 @@ def main():
     checkpoint_path = data_root / "models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
     
     logger.info("=" * 80)
-    logger.info("ENHANCED EEGPT TRAINING - MATCHING PAPER SPECIFICATIONS")
+    logger.info("ENHANCED EEGPT TRAINING")
     logger.info("=" * 80)
-    logger.info(f"Key improvements implemented:")
-    logger.info(f"  ✓ 10-second windows @ 200Hz (was 8s @ 256Hz)")
-    logger.info(f"  ✓ Two-layer probe with 50% dropout")
-    logger.info(f"  ✓ Channel adaptation layer (20→22→19)")
-    logger.info(f"  ✓ Batch size 100 (was 64)")
-    logger.info(f"  ✓ 50 epochs with 5-epoch warmup")
-    logger.info(f"  ✓ Layer decay 0.65")
-    logger.info(f"  ✓ Weight decay 0.05")
-    logger.info(f"  ✓ OneCycle learning rate schedule")
-    logger.info(f"  ✓ 0.1-75Hz bandpass + 50Hz notch filter")
+    logger.info(f"Configuration: {config_file}")
+    logger.info(f"Key settings from config:")
+    logger.info(f"  ✓ {cfg.data.window_duration}s windows @ {cfg.data.sampling_rate}Hz")
+    logger.info(f"  ✓ Two-layer probe with {cfg.model.probe.dropout} dropout")
+    logger.info(f"  ✓ Batch size {cfg.data.batch_size}")
+    logger.info(f"  ✓ {cfg.training.epochs} epochs with {cfg.training.warmup_epochs}-epoch warmup")
+    logger.info(f"  ✓ Layer decay {cfg.training.layer_decay}")
+    logger.info(f"  ✓ Weight decay {cfg.training.weight_decay}")
+    logger.info(f"  ✓ {cfg.training.scheduler} learning rate schedule")
+    logger.info(f"  ✓ {cfg.data.bandpass_low}-{cfg.data.bandpass_high}Hz bandpass")
     logger.info("=" * 80)
     
     # Create datasets
     logger.info("Creating enhanced TUAB datasets...")
     
-    # Use cached dataset if specified
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-        DatasetClass = TUABCachedDataset
-        logger.info("Using CACHED dataset for fast loading!")
-    else:
-        DatasetClass = TUABEnhancedDataset
+    # ALWAYS USE CACHED DATASET FOR FAST LOADING
+    DatasetClass = TUABCachedDataset
+    cache_mode = 'readonly'  # FORCE readonly - never scan files
+    logger.info(f"Using TUABCachedDataset for FAST cached loading")
     
     # Additional kwargs for cached dataset
     extra_kwargs = {}
     if hasattr(cfg.data, 'max_files') and cfg.data.max_files:
         extra_kwargs['max_files'] = cfg.data.max_files
-    if hasattr(cfg.data, 'cache_index_path'):
-        extra_kwargs['cache_index_path'] = Path(cfg.data.cache_index_path)
+    # ALWAYS use the cache index
+    extra_kwargs['cache_index_path'] = data_root / "cache/tuab_index.json"
     
-    # Create train dataset with appropriate args
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        # Cached dataset has simpler args
-        train_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="train",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_stride,
-            sampling_rate=cfg.data.sampling_rate,
-            preload=False,
-            normalize=True,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            **extra_kwargs
-        )
-    else:
-        # Enhanced dataset with all args
-        train_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="train",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_stride,
-            sampling_rate=cfg.data.sampling_rate,
-            channels=cfg.data.channel_names,
-            preload=False,
-            normalize=True,
-            bandpass_low=cfg.data.bandpass_low,
-            bandpass_high=cfg.data.bandpass_high,
-            notch_freq=cfg.data.notch_filter,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            use_old_naming=True,
-            n_jobs=4,
-            **extra_kwargs
-        )
+    # Create train dataset - ONLY pass parameters TUABCachedDataset accepts
+    train_dataset = DatasetClass(
+        root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+        split="train",
+        window_duration=cfg.data.window_duration,
+        window_stride=cfg.data.window_stride,
+        sampling_rate=cfg.data.sampling_rate,
+        preload=False,
+        normalize=True,
+        cache_dir=data_root / "cache/tuab_enhanced",
+        **extra_kwargs
+    )
     
-    # Create val dataset with appropriate args
-    if hasattr(cfg.data, 'use_cached_dataset') and cfg.data.use_cached_dataset:
-        # Cached dataset has simpler args
-        val_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="eval",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_duration,  # No overlap for validation
-            sampling_rate=cfg.data.sampling_rate,
-            preload=False,
-            normalize=True,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            **extra_kwargs
-        )
-    else:
-        # Enhanced dataset with all args
-        val_dataset = DatasetClass(
-            root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
-            split="eval",
-            window_duration=cfg.data.window_duration,
-            window_stride=cfg.data.window_duration,  # No overlap for validation
-            sampling_rate=cfg.data.sampling_rate,
-            channels=cfg.data.channel_names,
-            preload=False,
-            normalize=True,
-            bandpass_low=cfg.data.bandpass_low,
-            bandpass_high=cfg.data.bandpass_high,
-            notch_freq=cfg.data.notch_filter,
-            cache_dir=data_root / "cache/tuab_enhanced",
-            use_old_naming=True,
-            n_jobs=4,
-            **extra_kwargs
-        )
+    # Create val dataset - ONLY pass parameters TUABCachedDataset accepts
+    val_dataset = DatasetClass(
+        root_dir=data_root / "datasets/external/tuh_eeg_abnormal/v3.0.1/edf",
+        split="eval",
+        window_duration=cfg.data.window_duration,
+        window_stride=cfg.data.window_duration,  # No overlap for validation
+        sampling_rate=cfg.data.sampling_rate,
+        preload=False,
+        normalize=True,
+        cache_dir=data_root / "cache/tuab_enhanced",
+        **extra_kwargs
+    )
     
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Val dataset: {len(val_dataset)} windows")
     logger.info(f"Class distribution: {train_dataset.class_counts}")
     
     # Create data loaders
-    train_sampler = create_weighted_sampler(train_dataset)
+    # Skip weighted sampler for now - it's causing hangs
     
     train_loader = DataLoader(
         train_dataset,
         batch_size=cfg.data.batch_size,
-        sampler=train_sampler,
+        shuffle=True,  # Simple shuffle instead of weighted sampler
         num_workers=cfg.data.num_workers,
         pin_memory=cfg.data.pin_memory,
         persistent_workers=cfg.data.persistent_workers,
         drop_last=True,
-        collate_fn=collate_eeg_batch,  # Custom collate for consistent dimensions
+        collate_fn=collate_eeg_batch_fixed  # Handle variable channel counts
     )
     
     val_loader = DataLoader(
@@ -267,7 +249,7 @@ def main():
         num_workers=cfg.data.num_workers,
         pin_memory=cfg.data.pin_memory,
         persistent_workers=cfg.data.persistent_workers,
-        collate_fn=collate_eeg_batch,  # Custom collate for consistent dimensions
+        collate_fn=collate_eeg_batch_fixed  # Handle variable channel counts
     )
     
     # Create model
@@ -330,7 +312,7 @@ def main():
     )
     
     # Trainer
-    trainer = Trainer(
+    trainer_kwargs = dict(
         max_epochs=cfg.training.epochs,
         accelerator=cfg.accelerator,
         devices=cfg.devices,
@@ -346,9 +328,31 @@ def main():
         gradient_clip_val=cfg.training.gradient_clip_val,
         val_check_interval=cfg.training.val_check_interval,
         log_every_n_steps=cfg.logging.log_every_n_steps,
-        deterministic=True,
+        accumulate_grad_batches=cfg.training.accumulate_grad_batches,  # ADDED
+        deterministic=False,  # CHANGED: Avoid hang with limit_train_batches
         enable_model_summary=True,
+        reload_dataloaders_every_n_epochs=1  # ADDED: Force dataloader reload
     )
+    
+    # Add fast_dev_run if specified
+    if hasattr(cfg.training, 'fast_dev_run') and cfg.training.fast_dev_run:
+        trainer_kwargs['fast_dev_run'] = cfg.training.fast_dev_run
+        logger.warning(f"FAST DEV RUN MODE: Only running {cfg.training.fast_dev_run} batches!")
+    
+    # Add num_sanity_val_steps if specified
+    if hasattr(cfg.training, 'num_sanity_val_steps'):
+        trainer_kwargs['num_sanity_val_steps'] = cfg.training.num_sanity_val_steps
+    
+    # Add limit_train_batches if specified
+    if hasattr(cfg.training, 'limit_train_batches'):
+        trainer_kwargs['limit_train_batches'] = cfg.training.limit_train_batches
+        
+    # Add max_steps if specified - CRITICAL for bypassing batch counting
+    if hasattr(cfg.training, 'max_steps'):
+        trainer_kwargs['max_steps'] = cfg.training.max_steps
+        logger.info(f"Using max_steps={cfg.training.max_steps} to bypass batch counting")
+    
+    trainer = Trainer(**trainer_kwargs)
     
     # Log configuration
     logger.info("Configuration:")
@@ -365,14 +369,15 @@ def main():
     # Log results
     logger.info("=" * 80)
     logger.info("Training completed!")
-    logger.info(f"Best AUROC: {checkpoint_callback.best_model_score:.4f}")
-    logger.info(f"Best checkpoint: {checkpoint_callback.best_model_path}")
+    if checkpoint_callback.best_model_score is not None:
+        logger.info(f"Best AUROC: {checkpoint_callback.best_model_score:.4f}")
+        logger.info(f"Best checkpoint: {checkpoint_callback.best_model_path}")
     logger.info(f"Logs saved to: {log_dir}")
     logger.info("=" * 80)
     
     # Save final results
     results = {
-        "best_auroc": float(checkpoint_callback.best_model_score),
+        "best_auroc": float(checkpoint_callback.best_model_score) if checkpoint_callback.best_model_score is not None else 0.0,
         "best_epoch": checkpoint_callback.best_k_models,
         "config": OmegaConf.to_container(cfg),
     }

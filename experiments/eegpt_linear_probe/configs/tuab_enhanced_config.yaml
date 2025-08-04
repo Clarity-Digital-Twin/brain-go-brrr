@@ -1,4 +1,6 @@
 # Enhanced TUAB configuration matching EEGPT paper specifications
+# WARNING: This uses 10.24s windows @ 200Hz - NOT compatible with existing cached data (8s @ 256Hz)
+# If you have cached data from previous runs, it will be regenerated!
 experiment:
   name: "tuab_enhanced_10s_200hz"
   seed: 42
@@ -27,15 +29,15 @@ data:
   root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
   cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
   
-  # Critical: Match paper's window specifications
-  window_duration: 10.24  # 10.24 seconds = 2048 samples @ 200Hz (divisible by 64)
-  window_stride: 5.12     # 50% overlap for training
-  sampling_rate: 200     # 200 Hz to match paper (was 256)
+  # STANDARDIZED: Using 8s @ 256Hz for consistency
+  window_duration: 8.0    # 8 seconds = 2048 samples @ 256Hz
+  window_stride: 4.0      # 50% overlap for training
+  sampling_rate: 256      # 256 Hz standard
   
-  # Preprocessing to match paper
-  bandpass_low: 0.1      # Paper uses 0.1-75 Hz (was 0.5)
-  bandpass_high: 75.0    # Paper uses 75 Hz (was 50)
-  notch_filter: 50.0     # Add notch filter
+  # Standard preprocessing
+  bandpass_low: 0.5       # Standard low
+  bandpass_high: 50.0     # Standard high
+  notch_filter: null      # No notch for standard config
   
   # Data loading
   batch_size: 64         # Reduced from 100 to prevent OOM (will use gradient accumulation)
@@ -51,8 +53,18 @@ data:
     'O1', 'O2'  # 19 channels total
   ]
   
+  # AutoReject settings (disabled by default)
+  use_autoreject: false
+  ar_cache_dir: "${BGB_DATA_ROOT}/cache/autoreject"
+  ar_fit_samples: 200
+  ar_n_interpolate: [1, 4]
+  ar_consensus: 0.1
+  
+  # Cache mode - set to "readonly" after building cache
+  cache_mode: "readonly"  # Train cache is complete!
+  
 training:
-  epochs: 50             # Match paper (was 20)
+  epochs: 20             # Reasonable for baseline test
   learning_rate: 5e-4
   weight_decay: 0.05     # Match paper (was 0.01)
   

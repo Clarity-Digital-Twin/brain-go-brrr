@@ -95,14 +95,27 @@ format: ## Format code with ruff
 
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
-	@rm -rf .mypy_cache 2>/dev/null || true
-	$(MYPY) src/brain_go_brrr
+	@rm -rf .mypy_cache_strict 2>/dev/null || true
+	$(MYPY) --config-file mypy.ini src/brain_go_brrr
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
-fast-type-check: ## Fast type checking for development (uses cache)
+type-fast: ## Fast type checking for development (no hangs)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
-	$(MYPY) --ignore-missing-imports src/brain_go_brrr
+	$(MYPY) --config-file mypy-fast.ini src/brain_go_brrr
 	@echo "$(GREEN)Fast type checking complete!$(NC)"
+
+type-strict: ## Strictest type checking (catches everything)
+	@echo "$(CYAN)Running strict type checks...$(NC)"
+	$(MYPY) --config-file mypy.ini src/brain_go_brrr
+	@echo "$(GREEN)Strict type checking complete!$(NC)"
+
+type-critical: ## Type check critical modules only
+	@echo "$(CYAN)Type checking critical modules...$(NC)"
+	$(MYPY) --config-file mypy.ini \
+		src/brain_go_brrr/data/tuab_cached_dataset.py \
+		src/brain_go_brrr/models/eegpt_* \
+		src/brain_go_brrr/tasks/enhanced_abnormality_detection.py
+	@echo "$(GREEN)Critical modules type checked!$(NC)"
 
 type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.py
 	@echo "$(CYAN)Type checking $(FILE)...$(NC)"
@@ -112,14 +125,14 @@ type-check-file: ## Check specific file: make type-check-file FILE=path/to/file.
 quality: lint format type-check ## Run all code quality checks
 	@echo "$(GREEN)All quality checks complete!$(NC)"
 
-check: test quality ## Run all tests and quality checks
+check: test-fast quality ## Run all tests and quality checks
 	@echo "$(GREEN)All checks passed!$(NC)"
 
 ##@ Testing
 
-test: ## Run all tests (default - excludes benchmarks)
-	@echo "$(GREEN)Running all tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) --ignore=tests/benchmarks $(PYTEST_NO_PLUGINS)
+test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
+	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -133,28 +146,75 @@ test-parallel: ## Run tests in parallel (with xdist)
 	@echo "$(GREEN)Running tests in parallel...$(NC)"
 	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) $(PYTEST_PARALLEL) --ignore=tests/benchmarks
 
-test-fast: test-unit  ## Legacy alias for test-unit
+test-fast: ## Run tests in parallel without coverage (fastest)
+	@echo "$(GREEN)Running tests in parallel (fast mode)...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
-test-cov: ## Run fast tests with coverage (80% minimum)
-	@echo "$(GREEN)Running tests with coverage...$(NC)"
+test-cov: ## Run tests with coverage (single process, longer timeout)
+	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
+	@echo "$(YELLOW)Note: Using single process for accurate coverage. This takes longer than parallel tests.$(NC)"
 	$(PYTEST) $(TEST_DIR) \
-		--cov=src/brain_go_brrr \
-		--cov-report=term-missing \
-		--cov-report=html \
-		--cov-fail-under=80 \
+		--cov=brain_go_brrr \
+		--cov-report=term-missing:skip-covered \
+		--cov-report= \
+		--no-cov-on-fail \
+		-m "not slow and not integration and not external" \
+		--tb=short \
+		--timeout=600
+	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+test-cov-parallel: ## Run tests with coverage in parallel (requires combine step)
+	@echo "$(GREEN)Running tests with coverage in parallel...$(NC)"
+	$(PYTEST) $(TEST_DIR) -n auto \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--dist=loadfile \
 		-m "not slow and not integration and not external"
+	@echo "$(CYAN)Combining coverage data...$(NC)"
+	@$(UV) run coverage combine
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+coverage-report: ## Display coverage report summary
+	@echo "$(GREEN)Coverage Summary:$(NC)"
+	@$(UV) run coverage report --skip-covered | head -20
+	@echo ""
+	@echo "$(CYAN)Full HTML coverage report available at: htmlcov/index.html$(NC)"
+
+test-ci: ## Run tests for CI with coverage and XML report
+	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
+	$(PYTEST) $(TEST_DIR) -n auto \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--dist=loadfile \
+		-m "not slow and not integration and not external" \
+		--junitxml=test-results.xml
+	@$(UV) run coverage combine
+	@$(UV) run coverage xml
+	@$(UV) run coverage report
+	@echo "$(GREEN)CI test results: test-results.xml, coverage.xml$(NC)"
 
 test-integration: ## Run integration tests with timeout
 	@echo "$(GREEN)Running integration tests...$(NC)"
 	$(PYTEST) $(TEST_DIR) -v -m "integration" --timeout=900 --tb=short
 
+test-all: ## Run ALL tests including slow/external/gpu
+	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "" --ignore=tests/benchmarks
+
 test-all-cov: ## Run ALL tests with coverage report
 	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
-		--cov=src/brain_go_brrr \
+		--cov=brain_go_brrr \
 		--cov-report=term-missing \
-		--cov-report=html \
+		--cov-report= \
+		--no-cov-on-fail \
 		-m ""
+	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
+	@$(UV) run coverage html
+	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"

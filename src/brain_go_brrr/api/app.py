@@ -70,7 +70,7 @@ def create_app() -> FastAPI:
     )
 
     # Root endpoint - defined before routers are included
-    @app.get("/", tags=["root"], name="root")
+    @app.get("/", tags=["root"], name="root")  # type: ignore[misc]
     async def root(request: Request) -> dict[str, Any]:
         """Root endpoint with API information."""
         return {

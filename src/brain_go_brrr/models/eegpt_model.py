@@ -233,7 +233,7 @@ class EEGPTModel:
                 return result
 
         # This should never be reached due to the encoder None check above
-        return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)  # type: ignore[unreachable]
+        return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)
 
     def predict_abnormality(self, raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
         """Predict abnormality from raw EEG data with streaming support."""
@@ -478,7 +478,7 @@ class EEGPTModel:
             features = self.extract_features(window, ch_names)
             batch_features.append(features)
 
-        return np.stack(batch_features, axis=0)
+        return np.stack(batch_features, axis=0)  # type: ignore[no-any-return]
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""

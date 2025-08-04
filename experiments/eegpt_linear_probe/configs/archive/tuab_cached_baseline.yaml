@@ -1,0 +1,105 @@
+# Baseline TUAB configuration matching cached windows (8s @ 256Hz)
+experiment:
+  name: "tuab_baseline_8s_256hz"
+  seed: 42
+  precision: 32  # Full precision for stability
+  
+model:
+  backbone:
+    name: "eegpt"
+    checkpoint_path: "${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+    freeze: true
+    n_channels: 19  # TUAB standard channels
+    
+  probe:
+    type: "two_layer"
+    input_dim: 768  # EEGPT feature dimension
+    hidden_dim: 16
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    max_norm: 1.0  # Weight constraint
+    
+data:
+  dataset: "tuab"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
+  cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
+  
+  # Match cached windows
+  window_duration: 8.0    # 8 seconds = 2048 samples @ 256Hz
+  window_stride: 4.0      # 50% overlap
+  sampling_rate: 256      # Match cached data
+  
+  # Preprocessing to match cached
+  bandpass_low: 0.5       # Standard low
+  bandpass_high: 50.0     # Standard high
+  notch_filter: null      # No notch in cached data
+  
+  # Data loading
+  batch_size: 64         # Reasonable batch size
+  num_workers: 2         # Prevent system OOM
+  pin_memory: true
+  persistent_workers: false
+  
+  # Channel configuration
+  channel_names: [
+    'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
+    'T3', 'C3', 'CZ', 'C4', 'T4',  # Using old naming for TUAB
+    'T5', 'P3', 'PZ', 'P4', 'T6',
+    'O1', 'O2'  # 19 channels total
+  ]
+  
+  # AutoReject settings (disabled for baseline)
+  use_autoreject: false
+  
+training:
+  epochs: 20             # Reasonable for baseline test
+  learning_rate: 5e-4
+  weight_decay: 0.05     # Standard weight decay
+  
+  # Warmup settings
+  warmup_epochs: 5
+  warmup_lr: 1e-6
+  min_lr: 1e-6
+  
+  # Optimizer
+  optimizer: "adamw"
+  adam_eps: 1e-8
+  adam_betas: [0.9, 0.999]
+  
+  # Gradient clipping
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 2  # 64 * 2 = 128 effective batch size
+  
+  # Layer decay for different learning rates
+  layer_decay: 0.65
+  
+  # Scheduler  
+  scheduler: "onecycle"
+  pct_start: 0.1         # 10% warmup
+  
+  # Early stopping
+  patience: 10
+  monitor: "val_auroc"
+  mode: "max"
+  
+  # Validation
+  val_check_interval: 0.5  # Check twice per epoch
+  
+  # Model averaging
+  use_ema: false
+  
+evaluation:
+  metrics: ["auroc", "accuracy", "balanced_accuracy", "f1_weighted"]
+  save_predictions: true
+  
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3          # Save best 3 checkpoints
+  
+# Hardware
+accelerator: "gpu"
+devices: 1
+distributed: false

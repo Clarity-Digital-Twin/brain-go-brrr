@@ -89,7 +89,7 @@ class PDFReportGenerator:
 
     def _create_main_page(self, results: dict[str, Any]) -> Figure:
         """Create main report page with summary and visualizations."""
-        fig = plt.figure(figsize=self.figsize)
+        fig: Figure = plt.figure(figsize=self.figsize)
 
         # Get quality metrics
         quality_metrics = results.get("quality_metrics", {})
@@ -345,6 +345,8 @@ def create_electrode_heatmap(
     Returns:
         Matplotlib figure
     """
+    fig: Figure
+    ax: plt.Axes
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # Normalize positions
@@ -395,6 +397,8 @@ def create_artifact_examples(
         return None
 
     n_artifacts = min(len(artifacts), 5)
+    fig: Figure
+    axes: list[plt.Axes] | plt.Axes
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
     if n_artifacts == 1:

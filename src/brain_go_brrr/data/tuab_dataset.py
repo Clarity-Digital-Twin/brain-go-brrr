@@ -308,7 +308,7 @@ class TUABDataset(Dataset):
                 output_data[idx] = data[ch_idx]
             # else: channel remains zeros (padding)
 
-        return output_data
+        return output_data  # type: ignore[no-any-return]
 
     def __len__(self) -> int:
         """Get dataset length."""
@@ -333,6 +333,7 @@ class TUABDataset(Dataset):
         file_info = self.file_list[sample_info["file_idx"]]
 
         # Check cache first
+        cache_file = None
         if self.cache_dir:
             import pickle
 
@@ -347,6 +348,12 @@ class TUABDataset(Dataset):
                 except Exception:
                     # If cache load fails, regenerate
                     pass
+            elif getattr(self, 'cache_mode', 'write') == 'readonly':
+                # In readonly mode, raise error if cache miss
+                raise RuntimeError(
+                    f"Cache miss in readonly mode for {cache_key}. "
+                    f"Run cache building script first!"
+                )
 
         # Load data (from memory or file)
         if self.preload:
@@ -388,8 +395,8 @@ class TUABDataset(Dataset):
         eeg_tensor = torch.from_numpy(window).float()
         label = sample_info["label"]
 
-        # Cache the processed window
-        if self.cache_dir and cache_file:
+        # Cache the processed window (only in write mode)
+        if self.cache_dir and cache_file and getattr(self, 'cache_mode', 'write') == 'write':
             try:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
                 with cache_file.open("wb") as f:

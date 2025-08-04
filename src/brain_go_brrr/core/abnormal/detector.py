@@ -607,7 +607,7 @@ class AbnormalityDetector:
             + self.config.classification.confidence_extremity_weight * extremity
         )
 
-        return float(max(0.0, min(1.0, confidence)))
+        return max(0.0, min(1.0, float(confidence)))
 
     def _compute_quality_metrics(
         self,
