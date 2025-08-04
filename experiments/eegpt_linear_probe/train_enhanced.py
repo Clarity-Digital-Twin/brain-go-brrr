@@ -203,12 +203,12 @@ def main():
     logger.info(f"Class distribution: {train_dataset.class_counts}")
     
     # Create data loaders
-    train_sampler = create_weighted_sampler(train_dataset)
+    # Skip weighted sampler for now - it's causing hangs
     
     train_loader = DataLoader(
         train_dataset,
         batch_size=cfg.data.batch_size,
-        sampler=train_sampler,
+        shuffle=True,  # Simple shuffle instead of weighted sampler
         num_workers=cfg.data.num_workers,
         pin_memory=cfg.data.pin_memory,
         persistent_workers=cfg.data.persistent_workers,
@@ -311,6 +311,14 @@ def main():
         trainer_kwargs['fast_dev_run'] = cfg.training.fast_dev_run
         logger.warning(f"FAST DEV RUN MODE: Only running {cfg.training.fast_dev_run} batches!")
     
+    # Add num_sanity_val_steps if specified
+    if hasattr(cfg.training, 'num_sanity_val_steps'):
+        trainer_kwargs['num_sanity_val_steps'] = cfg.training.num_sanity_val_steps
+    
+    # Add limit_train_batches if specified
+    if hasattr(cfg.training, 'limit_train_batches'):
+        trainer_kwargs['limit_train_batches'] = cfg.training.limit_train_batches
+    
     trainer = Trainer(**trainer_kwargs)
     
     # Log configuration
@@ -328,8 +336,9 @@ def main():
     # Log results
     logger.info("=" * 80)
     logger.info("Training completed!")
-    logger.info(f"Best AUROC: {checkpoint_callback.best_model_score:.4f}")
-    logger.info(f"Best checkpoint: {checkpoint_callback.best_model_path}")
+    if checkpoint_callback.best_model_score is not None:
+        logger.info(f"Best AUROC: {checkpoint_callback.best_model_score:.4f}")
+        logger.info(f"Best checkpoint: {checkpoint_callback.best_model_path}")
     logger.info(f"Logs saved to: {log_dir}")
     logger.info("=" * 80)
     

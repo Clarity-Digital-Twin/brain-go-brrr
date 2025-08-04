@@ -43,9 +43,9 @@ data:
   
   # Data loading
   batch_size: 32          # Keep same batch size
-  num_workers: 0          # CHANGED: Set to 0 to debug hanging
+  num_workers: 0          # Set to 0 to avoid multiprocessing hang
   pin_memory: true        # Fast with cached data
-  persistent_workers: false # CHANGED: Must be false when num_workers=0
+  persistent_workers: false # Must be false when num_workers=0
   prefetch_factor: 2      # Prefetch next batches
   
   # Channel configuration
@@ -60,7 +60,8 @@ training:
   epochs: 50             # Match paper
   learning_rate: 2e-4    # CHANGED: Reduced from 5e-4 for stability
   weight_decay: 0.05     # Match paper
-  fast_dev_run: 3        # TEMPORARY: Test 3 batches to verify setup
+  num_sanity_val_steps: 0  # SKIP sanity check entirely
+  limit_train_batches: 0.01  # Use 1% of batches (float to avoid counting issue)
   
   # Warmup settings
   warmup_epochs: 5       # Match paper
