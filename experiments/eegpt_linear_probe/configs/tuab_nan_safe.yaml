@@ -1,0 +1,118 @@
+# NaN-Safe TUAB configuration with all safety measures
+experiment:
+  name: "tuab_nan_safe"
+  seed: 42
+  precision: 32  # NO mixed precision to avoid overflow
+  
+model:
+  backbone:
+    name: "eegpt"
+    checkpoint_path: "${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+    freeze: true
+    n_channels: 19
+    
+  probe:
+    type: "two_layer"
+    input_dim: 768
+    hidden_dim: 16
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    max_norm: 1.0  # Weight constraint for stability
+    
+data:
+  dataset: "tuab"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
+  cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
+  
+  # USE CACHED DATASET
+  use_cached_dataset: true
+  cache_mode: "readonly"
+  
+  # Window specifications
+  window_duration: 8.0
+  window_stride: 4.0
+  sampling_rate: 256
+  
+  # Preprocessing
+  bandpass_low: 0.5
+  bandpass_high: 50.0
+  notch_filter: null
+  
+  # CRITICAL: Safe data loading settings
+  batch_size: 32
+  num_workers: 2          # NOT 0 to avoid persistent_workers bug
+  pin_memory: true
+  persistent_workers: true  # Safe when num_workers > 0
+  prefetch_factor: 2
+  
+  # Channel configuration
+  channel_names: [
+    'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
+    'T3', 'C3', 'CZ', 'C4', 'T4',
+    'T5', 'P3', 'PZ', 'P4', 'T6',
+    'O1', 'O2'
+  ]
+  
+training:
+  epochs: 50
+  learning_rate: 2e-4     # REDUCED for stability
+  weight_decay: 0.05
+  
+  # CRITICAL: NaN prevention settings
+  gradient_clip_val: 1.0  # Clip gradients
+  gradient_clip_algorithm: "norm"  # L2 norm clipping
+  detect_anomaly: true    # Enable anomaly detection
+  
+  # Warmup for stable start
+  warmup_epochs: 5
+  warmup_lr: 1e-6
+  min_lr: 1e-6
+  
+  # Optimizer
+  optimizer: "adamw"
+  adam_eps: 1e-8         # Numerical stability
+  adam_betas: [0.9, 0.999]
+  
+  # NO accumulation to reduce complexity
+  accumulate_grad_batches: 1
+  
+  # Layer decay
+  layer_decay: 0.65
+  
+  # Scheduler  
+  scheduler: "cosine_with_warmup"
+  
+  # Early stopping
+  patience: 10
+  monitor: "val_auroc"
+  mode: "max"
+  
+  # Validation
+  val_check_interval: 0.5
+  
+  # NO EMA to reduce complexity
+  use_ema: false
+  
+evaluation:
+  metrics: ["auroc", "accuracy", "balanced_accuracy", "f1_weighted"]
+  save_predictions: true
+  
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3
+  verbose: true  # Extra logging for debugging
+
+# Hardware settings  
+accelerator: "gpu"
+devices: 1
+distributed: false
+
+# NaN detection callbacks
+callbacks:
+  - name: "NaNDetector"
+    monitor_gradients: true
+    monitor_weights: true
+    monitor_outputs: true
