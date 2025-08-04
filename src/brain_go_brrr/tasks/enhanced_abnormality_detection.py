@@ -282,9 +282,19 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 eta_min=1e-6,
             )
 
+            # Use only cosine scheduler (warmup is handled by OneCycleLR-like behavior)
+            scheduler = CosineAnnealingLR(
+                optimizer,
+                T_max=self.trainer.estimated_stepping_batches,
+                eta_min=1e-6,
+            )
+            
             return {
                 'optimizer': optimizer,
-                'lr_scheduler': [warmup_scheduler, cosine_scheduler],
+                'lr_scheduler': {
+                    'scheduler': scheduler,
+                    'interval': 'step',
+                }
             }
 
     def _get_param_groups(self) -> list:

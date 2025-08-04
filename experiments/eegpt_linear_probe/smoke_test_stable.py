@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-# Set environment variables
-os.environ["BGB_DATA_ROOT"] = str(Path(__file__).parent.parent.parent / "data")
+# Set environment variables BEFORE imports
+os.environ["BGB_DATA_ROOT"] = "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
 os.environ["EEGPT_CONFIG"] = "configs/tuab_stable.yaml"
 
 # Add project root to path
