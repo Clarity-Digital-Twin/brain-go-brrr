@@ -236,11 +236,11 @@ class TestAPILinearProbeIntegration:
             assert "result" in data
             assert "method" in data
             assert data["method"] == "linear_probe"
-            
+
             # Verify probe was actually called
             assert "abnormal_probability" in data["result"]
             assert "n_windows" in data["result"]
-            
+
             # If windows were processed, verify our mock value
             if data["result"]["n_windows"] > 0:
                 # Mock returns 0.75
