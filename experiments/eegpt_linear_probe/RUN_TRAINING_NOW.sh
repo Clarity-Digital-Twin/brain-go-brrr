@@ -14,6 +14,7 @@ echo "==========================================================================
 # Environment setup
 export CUDA_VISIBLE_DEVICES=0
 export PYTHONUNBUFFERED=1
+export EEGPT_CONFIG="experiments/eegpt_linear_probe/configs/tuab_cached.yaml"
 
 # Kill any existing sessions
 tmux kill-session -t eegpt_training 2>/dev/null || true
@@ -34,7 +35,7 @@ echo ""
 # Launch training in tmux
 tmux new-session -d -s eegpt_training \
     "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr && \
-     uv run python experiments/eegpt_linear_probe/train_enhanced.py \
+     EEGPT_CONFIG="experiments/eegpt_linear_probe/configs/tuab_cached.yaml" uv run python experiments/eegpt_linear_probe/train_enhanced.py \
          2>&1 | tee ${LOG_DIR}/training.log"
 
 echo "=================================================================================="
