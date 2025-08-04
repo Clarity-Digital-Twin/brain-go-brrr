@@ -87,6 +87,13 @@ class TestAPILinearProbeIntegration:
         ):
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
+            
+            # Mock extract_windows to return 7 windows
+            mock_windows = [np.zeros((19, 1024)) for _ in range(7)]
+            mock_eegpt_model.extract_windows.return_value = mock_windows
+            
+            # Mock extract_features to return proper features
+            mock_eegpt_model.extract_features.return_value = np.zeros(2048)
 
             # Mock multiple windows - tiny_edf creates 30 seconds, so expect 7 windows
             mock_sleep_probe.predict_stage.side_effect = [
