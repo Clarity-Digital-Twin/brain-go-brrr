@@ -114,10 +114,11 @@ def analyze_test_file(file_path: Path) -> dict[str, any]:
             category = cat
             break
         # Check imports
-        if any(imp_pattern in " ".join(imports).lower() for imp_pattern in rules["imports"]):
-            if not any(excl in filename for excl in rules["excludes"]):
-                category = cat
-                break
+        if any(
+            imp_pattern in " ".join(imports).lower() for imp_pattern in rules["imports"]
+        ) and not any(excl in filename for excl in rules["excludes"]):
+            category = cat
+            break
 
     # Check if test is for valid module
     is_valid = False
@@ -150,9 +151,10 @@ def reorganize_tests(dry_run: bool = True):
     # Collect all test files
     test_files = []
     for file in test_root.rglob("*.py"):
-        if file.name.startswith(("test_", "_test")) or file.name.endswith("_test.py"):
-            if "__pycache__" not in str(file):
-                test_files.append(file)
+        if (
+            file.name.startswith(("test_", "_test")) or file.name.endswith("_test.py")
+        ) and "__pycache__" not in str(file):
+            test_files.append(file)
 
     # Analyze each file
     moves = []
@@ -167,10 +169,8 @@ def reorganize_tests(dry_run: bool = True):
 
         # Determine target directory
         category = analysis["category"]
-        if category == "unknown":
-            # Try to infer from tested modules
-            if analysis["tested_modules"]:
-                category = "unit"  # Default to unit if we can identify modules
+        if category == "unknown" and analysis["tested_modules"]:
+            category = "unit"  # Default to unit if we can identify modules
 
         if category != "unknown":
             target_dir = test_root / category

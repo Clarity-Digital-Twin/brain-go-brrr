@@ -91,16 +91,20 @@ def run_monitor_check():
             latest_log = max(log_files, key=lambda p: p.stat().st_mtime)
 
             # Check for epochs
-            with open(latest_log) as f:
+            with latest_log.open() as f:
                 content = f.read()
-                epoch_lines = [l for l in content.split("\n") if "Epoch" in l and "loss" in l]
+                epoch_lines = [
+                    line for line in content.split("\n") if "Epoch" in line and "loss" in line
+                ]
                 if epoch_lines:
                     print("\n📈 Training progress:")
                     for line in epoch_lines[-5:]:
                         print(line)
 
             # Check cache status
-            cache_lines = [l for l in content.split("\n") if "Loaded TUAB" in l and "cache" in l]
+            cache_lines = [
+                line for line in content.split("\n") if "Loaded TUAB" in line and "cache" in line
+            ]
             if cache_lines:
                 print(f"\n💾 Cache status: {cache_lines[-1]}")
 

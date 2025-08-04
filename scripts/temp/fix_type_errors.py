@@ -15,18 +15,16 @@ def fix_fastapi_decorators(file_path: Path) -> None:
 
     for i, line in enumerate(lines):
         # Check if this is a FastAPI decorator
-        if re.match(r"^\s*@router\.(get|post|put|delete|patch)", line):
-            # Check if the next line has a function def
-            if i + 1 < len(lines):
-                next_line = lines[i + 1]
-                if "async def" in next_line or "def" in next_line:
-                    # Extract function name
-                    func_match = re.search(r"def\s+(\w+)", next_line)
-                    if func_match and "-> " not in next_line:
-                        # Function missing return type
-                        print(
-                            f"Warning: {file_path}:{i + 2} - Function {func_match.group(1)} missing return type"
-                        )
+        if re.match(r"^\s*@router\.(get|post|put|delete|patch)", line) and i + 1 < len(lines):
+            next_line = lines[i + 1]
+            if "async def" in next_line or "def" in next_line:
+                # Extract function name
+                func_match = re.search(r"def\s+(\w+)", next_line)
+                if func_match and "-> " not in next_line:
+                    # Function missing return type
+                    print(
+                        f"Warning: {file_path}:{i + 2} - Function {func_match.group(1)} missing return type"
+                    )
 
         new_lines.append(line)
 
@@ -75,7 +73,7 @@ def add_missing_return_types(file_path: Path) -> None:
 def main():
     """Main function to fix type errors."""
     # Read type errors
-    with open("/tmp/type_errors.txt") as f:
+    with Path("/tmp/type_errors.txt").open() as f:
         errors = f.readlines()
 
     # Group errors by file

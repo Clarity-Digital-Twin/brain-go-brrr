@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Smoke test for cached dataloader - verifies cache is being used properly."""
 
+import contextlib
 import os
 import sys
 import time
@@ -80,10 +81,8 @@ def main():
         for k in keys[:-1]:
             d = d[k]
         # Parse value
-        try:
-            value = eval(value)
-        except Exception:
-            pass  # Keep as string
+        with contextlib.suppress(Exception):
+            value = eval(value)  # Keep as string if eval fails
         d[keys[-1]] = value
 
     cfg = OmegaConf.create(config)
