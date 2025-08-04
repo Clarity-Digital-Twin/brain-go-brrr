@@ -82,7 +82,7 @@ def main():
         # Parse value
         try:
             value = eval(value)
-        except:
+        except Exception:
             pass  # Keep as string
         d[keys[-1]] = value
 
