@@ -447,7 +447,7 @@ class SleepAnalyzer:
         hypnogram: npt.NDArray[np.str_],
         epoch_length: float = 30.0,
         save_path: Path | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Generate and optionally save hypnogram visualization.
 
         Args:
