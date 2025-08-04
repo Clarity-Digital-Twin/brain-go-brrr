@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import numpy as np
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
@@ -95,6 +95,28 @@ def create_app() -> FastAPI:
     app.include_router(qc.router, prefix="/api/v1")
     app.include_router(cache.router, prefix="/api/v1")
     app.include_router(eegpt.router, prefix="/api/v1")
+    
+    # Dual-mount for backward compatibility - mount eegpt router at both locations
+    # The router already has /eeg/eegpt prefix, so we need to modify it
+    # Create a new router instance with different prefix for backward compatibility
+    from brain_go_brrr.api.routers import eegpt as eegpt_module
+    # Import the router creation logic
+    eegpt_compat_router = APIRouter(prefix="/eegpt", tags=["eegpt (deprecated)"])
+    
+    # Copy all routes from the original router
+    for route in eegpt.router.routes:
+        if hasattr(route, "path"):
+            # Remove the /eeg/eegpt prefix and add to compat router
+            new_path = route.path.replace("/eeg/eegpt", "")
+            eegpt_compat_router.add_api_route(
+                new_path,
+                route.endpoint,
+                methods=route.methods,
+                name=f"{route.name}_compat" if hasattr(route, "name") else None,
+                deprecated=True
+            )
+    
+    app.include_router(eegpt_compat_router, prefix="/api/v1")
 
     # Note: Startup/shutdown logic moved to lifespan context manager above
 

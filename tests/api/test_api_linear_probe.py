@@ -171,9 +171,14 @@ class TestAPILinearProbeIntegration:
             )
 
         # Write 30 seconds of data (7680 samples at 256 Hz) to get 7 windows
-        for _ in range(19):
-            data = np.random.randint(-100, 100, 7680, dtype=np.int32)
-            writer.writeDigitalSamples(data)
+        # pyedflib requires writing all channels for each data record
+        # With 1 second data records, we need 30 records
+        writer.setDatarecordDuration(1)  # 1 second per data record
+        
+        for _ in range(30):  # 30 data records = 30 seconds
+            for ch in range(19):  # Write each channel
+                data = np.random.randint(-100, 100, 256, dtype=np.int32)  # 256 samples = 1 second
+                writer.writeDigitalSamples(data)
         writer.close()
 
         # Read the file content
