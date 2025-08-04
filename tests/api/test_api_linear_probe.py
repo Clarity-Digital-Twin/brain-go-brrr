@@ -87,7 +87,9 @@ class TestAPILinearProbeIntegration:
         with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
             tmp_path = tmp.name
 
-        writer = EdfWriter(tmp_path, n_channels=1)
+        # Set file duration to 20 seconds
+        writer = EdfWriter(tmp_path, n_channels=1, file_duration=20)
+        writer.setDatarecordDuration(1)  # 1 second per data record
         writer.setSignalHeader(
             0,
             {
@@ -104,9 +106,10 @@ class TestAPILinearProbeIntegration:
         )
 
         # Write 20 seconds of data (5120 samples at 256 Hz)
-        # pyedflib expects all data at once
-        data = np.zeros(5120, dtype=np.int32)  # 20 seconds * 256 Hz
-        writer.writeDigitalSamples([data])  # Pass as list
+        # Write 20 data records of 1 second each
+        data_per_record = np.zeros(256, dtype=np.int32)  # 1 second at 256 Hz
+        for _ in range(20):
+            writer.writeDigitalSamples(data_per_record)
         writer.close()
 
         # Read the file content
@@ -134,7 +137,7 @@ class TestAPILinearProbeIntegration:
             ]
 
             files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
-            response = client.post("/api/v1/eeg/sleep/stages", files=files)
+            response = client.post("/api/v1/eeg/eegpt/sleep/stages", files=files)
 
             assert response.status_code == 200
             data = response.json()
