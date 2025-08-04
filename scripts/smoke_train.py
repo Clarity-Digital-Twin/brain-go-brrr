@@ -14,12 +14,12 @@ sys.path.insert(0, str(project_root))
 os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-import logging
+import logging  # noqa: E402
 
-from omegaconf import OmegaConf
-from torch.utils.data import DataLoader
+from omegaconf import OmegaConf  # noqa: E402
+from torch.utils.data import DataLoader  # noqa: E402
 
-from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger(__name__)

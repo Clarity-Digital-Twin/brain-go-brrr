@@ -121,11 +121,15 @@ def analyze_test_file(file_path: Path) -> dict[str, any]:
 
     # Check if test is for valid module
     is_valid = False
-    if tested_modules or any(
-        module in filename.lower()
-        for module_list in VALID_MODULES.values()
-        for module in module_list
-    ) or any(keyword in filename.lower() for keyword in VALID_KEYWORDS):
+    if (
+        tested_modules
+        or any(
+            module in filename.lower()
+            for module_list in VALID_MODULES.values()
+            for module in module_list
+        )
+        or any(keyword in filename.lower() for keyword in VALID_KEYWORDS)
+    ):
         is_valid = True
     elif "brain_go_brrr" in " ".join(imports):
         # If it imports from our package, it's probably valid

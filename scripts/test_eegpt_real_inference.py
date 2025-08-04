@@ -11,8 +11,8 @@ import torch
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr  # noqa: E402.core.config import ModelConfig
+from brain_go_brrr  # noqa: E402.models.eegpt_model import EEGPTModel
 
 
 def test_checkpoint_loading():

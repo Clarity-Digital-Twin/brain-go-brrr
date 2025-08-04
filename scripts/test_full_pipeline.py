@@ -18,14 +18,14 @@ import mne
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from brain_go_brrr.core.logger import get_logger
-from brain_go_brrr.core.quality import EEGQualityController
-from brain_go_brrr.core.sleep import SleepAnalyzer
-from brain_go_brrr.core.snippets import EEGSnippetMaker
-from brain_go_brrr.data.edf_streaming import decide_streaming, estimate_memory_usage
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
-from brain_go_brrr.preprocessing.sleep_preprocessor import SleepPreprocessor
+from brain_go_brrr  # noqa: E402.core.logger import get_logger
+from brain_go_brrr  # noqa: E402.core.quality import EEGQualityController
+from brain_go_brrr  # noqa: E402.core.sleep import SleepAnalyzer
+from brain_go_brrr  # noqa: E402.core.snippets import EEGSnippetMaker
+from brain_go_brrr  # noqa: E402.data.edf_streaming import decide_streaming, estimate_memory_usage
+from brain_go_brrr  # noqa: E402.models.eegpt_model import EEGPTModel
+from brain_go_brrr  # noqa: E402.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr  # noqa: E402.preprocessing.sleep_preprocessor import SleepPreprocessor
 
 # Set up logging
 logger = get_logger(__name__)

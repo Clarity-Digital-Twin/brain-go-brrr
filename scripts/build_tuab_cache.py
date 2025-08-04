@@ -21,7 +21,7 @@ sys.path.insert(0, str(project_root))
 os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr  # noqa: E402.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
 # Configure logging
 logging.basicConfig(

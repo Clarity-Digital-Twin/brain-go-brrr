@@ -6,9 +6,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr  # noqa: E402.core.config import ModelConfig
+from brain_go_brrr  # noqa: E402.models.eegpt_model import EEGPTModel
+from brain_go_brrr  # noqa: E402.models.eegpt_wrapper import create_normalized_eegpt
 
 
 def verify_fixes():

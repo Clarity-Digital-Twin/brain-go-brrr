@@ -16,7 +16,7 @@ import torch
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from brain_go_brrr.models.eegpt_architecture import EEGTransformer, create_eegpt_model
+from brain_go_brrr  # noqa: E402.models.eegpt_architecture import EEGTransformer, create_eegpt_model
 
 
 def verify_checkpoint_architecture():
