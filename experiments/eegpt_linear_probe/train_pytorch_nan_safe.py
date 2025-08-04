@@ -23,7 +23,8 @@ import json
 import shutil
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+project_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(project_root))
 
 import torch
 import torch.nn as nn
@@ -33,11 +34,14 @@ from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import roc_auc_score, balanced_accuracy_score
 
-# Project imports
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-from src.brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
-from src.brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
-from experiments.eegpt_linear_probe.custom_collate_fixed import collate_eeg_batch_fixed
+# Project imports - use absolute imports
+from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
+from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+
+# Import collate from same directory
+sys.path.insert(0, str(Path(__file__).parent))
+from custom_collate_fixed import collate_eeg_batch_fixed
 
 # Configure logging
 logging.basicConfig(
@@ -104,7 +108,8 @@ def create_dataloaders(data_root, batch_size=32, num_workers=2):
         sampling_rate=256,
         preload=False,
         normalize=True,
-        cache_dir=data_root / "cache/tuab_enhanced"
+        cache_dir=data_root / "cache/tuab_enhanced",
+        cache_index_path=data_root / "cache/tuab_index.json"  # Specify exact path
     )
     
     # Val dataset
@@ -116,7 +121,8 @@ def create_dataloaders(data_root, batch_size=32, num_workers=2):
         sampling_rate=256,
         preload=False,
         normalize=True,
-        cache_dir=data_root / "cache/tuab_enhanced"
+        cache_dir=data_root / "cache/tuab_enhanced",
+        cache_index_path=data_root / "cache/tuab_index.json"  # Specify exact path
     )
     
     logger.info(f"Train dataset: {len(train_dataset)} samples")
