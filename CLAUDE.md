@@ -1,5 +1,21 @@
 # CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
 
+## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
+
+**DO NOT USE PYTORCH LIGHTNING FOR TRAINING!** Lightning 2.5.2 has a critical bug that causes training to hang indefinitely at:
+```
+Loading `train_dataloader` to estimate number of stepping batches
+```
+
+This occurs with large cached datasets (>100k samples) and CANNOT be fixed with any settings. We tried:
+- `deterministic=False` ❌
+- `limit_train_batches` as integer ❌  
+- `max_steps=10000` ❌
+- `num_sanity_val_steps=0` ❌
+- `fast_dev_run=True` ❌
+
+**SOLUTION**: Use `experiments/eegpt_linear_probe/train_pytorch_stable.py` (pure PyTorch)
+
 ## 🧠 Critical Context
 
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.

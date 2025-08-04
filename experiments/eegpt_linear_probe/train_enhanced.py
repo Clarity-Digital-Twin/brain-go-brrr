@@ -1,5 +1,30 @@
 #!/usr/bin/env python
-"""Enhanced EEGPT training with all paper-matching improvements."""
+"""
+🚨🚨🚨 CRITICAL WARNING - DO NOT USE THIS SCRIPT 🚨🚨🚨
+
+This script uses PyTorch Lightning which has a CRITICAL BUG in version 2.5.2
+that causes training to hang indefinitely at:
+  "Loading `train_dataloader` to estimate number of stepping batches"
+
+The hang occurs with large cached datasets (>100k samples) and CANNOT be fixed
+with any configuration changes. We tried everything:
+  - deterministic=False
+  - limit_train_batches (integer/float)
+  - max_steps
+  - fast_dev_run
+  - num_sanity_val_steps=0
+  - reload_dataloaders_every_n_epochs
+  - num_workers=0
+  
+NOTHING WORKS. This is a fundamental Lightning bug.
+
+✅ USE train_pytorch_stable.py INSTEAD - IT WORKS PERFECTLY
+
+See LIGHTNING_BUG_REPORT.md for full details.
+
+Original description:
+Enhanced EEGPT training with all paper-matching improvements.
+"""
 
 import logging
 import os
@@ -16,11 +41,12 @@ os.environ["BGB_DATA_ROOT"] = str(project_root / "data")
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 import numpy as np
-import pytorch_lightning as pl
+# WARNING: PyTorch Lightning imports cause training to hang - DO NOT USE
+import pytorch_lightning as pl  # BROKEN - causes infinite hang with large datasets
 import torch
 from omegaconf import OmegaConf
-from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import (
+from pytorch_lightning import Trainer  # BROKEN - will hang at dataloader estimation
+from pytorch_lightning.callbacks import (  # BROKEN - Lightning hangs with cached data
     EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
