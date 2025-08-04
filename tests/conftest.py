@@ -62,24 +62,11 @@ def pytest_addoption(parser):
 @pytest.fixture(autouse=True)
 def disable_parallel_processing(monkeypatch):
     """Disable parallel processing in all tests to prevent hangs."""
-    # Patch joblib to always use sequential backend
-    try:
-        import joblib
-
-        original_parallel = joblib.Parallel
-
-        def patched_parallel(*args, **kwargs):
-            # Force n_jobs=1 if not already set
-            if "n_jobs" not in kwargs or kwargs["n_jobs"] != 1:
-                kwargs["n_jobs"] = 1
-            return original_parallel(*args, **kwargs)
-
-        monkeypatch.setattr("joblib.Parallel", patched_parallel)
-    except ImportError:
-        pass
-
     # Ensure autoreject doesn't use parallel processing
     monkeypatch.setenv("AUTOREJECT_N_JOBS", "1")
+    # Also set sklearn to use sequential backend
+    monkeypatch.setenv("SKLEARN_N_JOBS", "1")
+    monkeypatch.setenv("LOKY_MAX_CPU_COUNT", "1")
 
 
 @pytest.fixture(scope="session", autouse=True)
