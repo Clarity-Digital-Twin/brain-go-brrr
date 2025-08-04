@@ -261,7 +261,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             # Simple warmup + cosine annealing
             from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
 
-            def warmup_lambda(epoch):
+            def warmup_lambda(epoch: int) -> float:
                 if epoch < self.hparams.warmup_epochs:
                     return epoch / self.hparams.warmup_epochs
                 return 1.0

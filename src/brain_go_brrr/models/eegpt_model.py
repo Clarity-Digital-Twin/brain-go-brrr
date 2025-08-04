@@ -478,7 +478,7 @@ class EEGPTModel:
             features = self.extract_features(window, ch_names)
             batch_features.append(features)
 
-        return np.stack(batch_features, axis=0)
+        return np.stack(batch_features, axis=0)  # type: ignore[no-any-return]
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""

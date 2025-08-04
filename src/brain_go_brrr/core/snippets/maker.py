@@ -12,6 +12,7 @@ from typing import Any
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 
 from brain_go_brrr.utils import utc_now
@@ -79,7 +80,7 @@ class EEGSnippetMaker:
         start_time: float = 0.0,
         end_time: float | None = None,
         channel_selection: list[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Extract fixed-length snippets from continuous EEG.
 
         Args:
@@ -144,13 +145,13 @@ class EEGSnippetMaker:
     def extract_event_snippets(
         self,
         raw: mne.io.Raw,
-        events: np.ndarray,
+        events: npt.NDArray[np.float64],
         event_id: dict[str, int],
         tmin: float = -1.0,
         tmax: float = 2.0,
         channel_selection: list[str] | None = None,
-        reject_criteria: dict | None = None,
-    ) -> list[dict]:
+        reject_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """Extract event-based snippets from EEG data.
 
         Args:
@@ -224,11 +225,11 @@ class EEGSnippetMaker:
     def extract_anomaly_snippets(
         self,
         raw: mne.io.Raw,
-        anomaly_scores: np.ndarray,
+        anomaly_scores: npt.NDArray[np.float64],
         score_threshold: float = 0.8,
         snippet_length: float = 5.0,
         channel_selection: list[str] | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Extract snippets around detected anomalies.
 
         Args:
@@ -294,8 +295,8 @@ class EEGSnippetMaker:
         return snippets
 
     def extract_features_from_snippet(
-        self, snippet: dict, feature_settings: dict | None = None
-    ) -> dict:
+        self, snippet: dict[str, Any], feature_settings: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Extract time-series features from a snippet using tsfresh.
 
         Args:
@@ -361,7 +362,7 @@ class EEGSnippetMaker:
             logger.error(f"Feature extraction failed: {e}")
             return {}
 
-    def analyze_snippet_with_eegpt(self, snippet: dict, model_path: Path | None = None) -> dict:  # noqa: ARG002
+    def analyze_snippet_with_eegpt(self, snippet: dict[str, Any], model_path: Path | None = None) -> dict[str, Any]:  # noqa: ARG002
         """Analyze snippet using EEGPT model.
 
         Args:
@@ -394,7 +395,7 @@ class EEGSnippetMaker:
             logger.error(f"EEGPT analysis failed: {e}")
             return {"error": str(e)}
 
-    def classify_snippet(self, snippet: dict, features: dict, eegpt_results: dict) -> dict:
+    def classify_snippet(self, snippet: dict[str, Any], features: dict[str, Any], eegpt_results: dict) -> dict[str, Any]:
         """Classify snippet based on features and EEGPT results.
 
         Args:
@@ -441,10 +442,10 @@ class EEGSnippetMaker:
 
     def create_snippet_report(
         self,
-        snippets: list[dict],
+        snippets: list[dict[str, Any]],
         include_features: bool = True,
         include_eegpt: bool = True,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create comprehensive report for all snippets.
 
         Args:
@@ -523,7 +524,7 @@ class EEGSnippetMaker:
         return report
 
     def save_snippets(
-        self, snippets: list[dict], output_dir: Path, format: str = "json"
+        self, snippets: list[dict[str, Any]], output_dir: Path, format: str = "json"
     ) -> list[Path]:
         """Save snippets to files.
 

@@ -532,7 +532,7 @@ class SleepAnalyzer:
 
         return quality_metrics
 
-    def _compute_quality_score(self, metrics: dict) -> float:
+    def _compute_quality_score(self, metrics: dict[str, Any]) -> float:
         """Compute overall sleep quality score."""
         score = 0
         factors = 0
@@ -636,7 +636,7 @@ class SleepAnalyzer:
         # Perform sleep staging
         staging_result = self.stage_sleep(raw_sleep, **kwargs)
         # Handle both tuple and array return types
-        hypnogram: np.ndarray
+        hypnogram: npt.NDArray[np.str_]
         staging_results: dict[str, Any]
         if isinstance(staging_result, tuple):
             hypnogram, proba_matrix = staging_result

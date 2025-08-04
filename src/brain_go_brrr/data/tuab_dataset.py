@@ -308,7 +308,7 @@ class TUABDataset(Dataset):
                 output_data[idx] = data[ch_idx]
             # else: channel remains zeros (padding)
 
-        return output_data
+        return output_data  # type: ignore[no-any-return]
 
     def __len__(self) -> int:
         """Get dataset length."""
