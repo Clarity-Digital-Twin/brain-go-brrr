@@ -183,6 +183,16 @@ coverage-report: ## Display coverage report summary
 	@echo ""
 	@echo "$(CYAN)Full HTML coverage report available at: htmlcov/index.html$(NC)"
 
+cov: ## Quick coverage check - shows TOTAL coverage percentage
+	@echo "$(GREEN)Running quick coverage check...$(NC)"
+	@$(PYTEST) tests \
+		--cov=brain_go_brrr \
+		--cov-report=term \
+		-m "not slow and not external and not gpu and not integration" \
+		--tb=short \
+		--timeout=300 \
+		-q | grep -E "TOTAL.*[0-9]+%" || echo "No coverage data found"
+
 test-ci: ## Run tests for CI with coverage and XML report
 	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
 	$(PYTEST) $(TEST_DIR) -n auto \

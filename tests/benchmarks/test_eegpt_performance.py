@@ -368,9 +368,14 @@ class TestFullRecordingBenchmarks:
             result = benchmark(process_recording_memory)
             # Robust stats extraction
             stats = benchmark.stats
-            processing_time = getattr(stats, "mean", None) or getattr(stats, "stats", {}).get(
-                "mean", 0
-            )
+            # Check if it's a dict-like or object with attributes
+            if hasattr(stats, "mean"):
+                processing_time = stats.mean
+            elif isinstance(stats, dict) and "mean" in stats:
+                processing_time = stats["mean"]
+            else:
+                # Fallback - try to get from the stats object
+                processing_time = getattr(stats, "mean", 0)
 
             # Verify processing completed - check for expected result structure
             assert "abnormal_probability" in result
@@ -498,10 +503,17 @@ class TestPerformanceComparison:
         gpu_time = time.perf_counter() - start_time
 
         # GPU should be faster for large models
-        speedup = benchmark.stats.mean / gpu_time
+        # Get mean time from benchmark stats
+        cpu_mean_time = getattr(benchmark.stats, "mean", None)
+        if cpu_mean_time is None and hasattr(benchmark, "stats") and isinstance(benchmark.stats, dict):
+            cpu_mean_time = benchmark.stats.get("mean", 1.0)
+        elif cpu_mean_time is None:
+            cpu_mean_time = 1.0  # Default to avoid division by zero
+            
+        speedup = cpu_mean_time / gpu_time
 
         # Document the comparison
-        print(f"\nCPU time: {benchmark.stats.mean * 1000:.1f}ms")
+        print(f"\nCPU time: {cpu_mean_time * 1000:.1f}ms")
         print(f"GPU time: {gpu_time * 1000:.1f}ms")
         print(f"GPU speedup: {speedup:.1f}x")
 

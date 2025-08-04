@@ -1,28 +1,45 @@
 # EEGPT Linear Probe Training
 
-## 🚨 CRITICAL: What Works and What Doesn't
+## 🚨 CRITICAL: Only ONE Working Script!
 
-### ✅ WORKING SCRIPTS
+### ✅ THE ONLY WORKING SCRIPT
 
-1. **`train_pytorch_nan_safe.py`** - **USE THIS ONE!**
-   - Pure PyTorch implementation with comprehensive NaN protection
-   - Includes gradient clipping, anomaly detection, and safe numerical operations
-   - Currently running successfully with 52%+ accuracy
-   - Launch with: `./launch_nan_safe_training.sh`
+**`train_pytorch_nan_safe.py`** - **THIS IS THE ONLY RELIABLE TRAINING SCRIPT!**
+- Pure PyTorch with FULL NaN protection
+- Gradient clipping, anomaly detection, input validation
+- Currently running at 62.5% accuracy
+- Launch with: `./launch_nan_safe_training.sh`
+- **DO NOT USE ANYTHING ELSE!**
 
-2. **`train_pytorch_stable.py`** - Basic PyTorch version
-   - Works but lacks NaN protection
-   - Use as fallback if nan_safe has issues
+### ❌ ALL OTHER SCRIPTS ARE BROKEN
 
-### ❌ BROKEN SCRIPTS (DO NOT USE!)
+1. **`train_pytorch_stable.py`** (ARCHIVED - CRASHED OVERNIGHT!)
+   - NO NaN protection
+   - Crashed after 171 batches (0.6% of epoch 0)
+   - Wasted entire night of compute
+   - Now in `archive/crashed_overnight/`
 
-All scripts in `archive/lightning_broken/`:
+2. **ALL PyTorch Lightning scripts** (ARCHIVED)
+   - Lightning 2.5.2 HANGS FOREVER on large datasets
+   - Cannot be fixed with ANY settings
+   - Wasted DAYS debugging this shit
+   - All in `archive/lightning_broken/`
 
-- **`train_enhanced.py`** - PyTorch Lightning version
-  - **CRITICAL BUG**: Lightning 2.5.2 hangs indefinitely on large cached datasets
-  - Hangs at: "Loading train_dataloader to estimate number of stepping batches"
-  - Cannot be fixed with ANY Lightning settings
-  - See `LIGHTNING_BUG_REPORT.md` for details
+### 📁 What's in This Folder
+
+**Working Files:**
+- `train_pytorch_nan_safe.py` - The ONLY training script to use
+- `launch_nan_safe_training.sh` - Launch script
+- `custom_collate_fixed.py` - Handles variable channels
+- `inference_example.py` - Example inference code
+- `configs/` - Configuration files
+- Documentation (`.md` files)
+
+**Archive (DO NOT USE):**
+- `archive/crashed_overnight/` - Scripts that crashed during training
+- `archive/lightning_broken/` - All Lightning-based scripts
+- `archive/failed_attempts/` - Various broken experiments
+- See `archive/ARCHIVE_README.md` for why each is broken
 
 ## 🎯 Current Training Status
 
