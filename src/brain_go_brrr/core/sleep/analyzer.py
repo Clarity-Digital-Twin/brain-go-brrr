@@ -487,7 +487,7 @@ class SleepAnalyzer:
             logger.error(f"Hypnogram generation failed: {e}")
             return {"error": str(e)}
 
-    def analyze_sleep_quality(self, hypnogram: np.ndarray, sleep_stats: dict, events: dict) -> dict:
+    def analyze_sleep_quality(self, hypnogram: npt.NDArray[np.str_], sleep_stats: dict[str, Any], events: dict[str, Any]) -> dict[str, Any]:
         """Analyze overall sleep quality.
 
         Args:
