@@ -60,6 +60,7 @@ training:
   epochs: 50             # Match paper
   learning_rate: 2e-4    # CHANGED: Reduced from 5e-4 for stability
   weight_decay: 0.05     # Match paper
+  fast_dev_run: 3        # TEMPORARY: Test 3 batches to verify setup
   
   # Warmup settings
   warmup_epochs: 5       # Match paper
