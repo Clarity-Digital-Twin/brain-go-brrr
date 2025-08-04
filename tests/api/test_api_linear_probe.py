@@ -176,7 +176,7 @@ class TestAPILinearProbeIntegration:
 
             files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
             response = client.post(
-                "/api/v1/eeg/analyze", files=files, data={"analysis_type": "abnormality_probe"}
+                "/api/v1/eegpt/analyze", files=files, data={"analysis_type": "abnormality_probe"}
             )
 
             assert response.status_code == 200

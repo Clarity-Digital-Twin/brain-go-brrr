@@ -22,7 +22,7 @@ from brain_go_brrr.models.linear_probe import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/eeg", tags=["eegpt"])
+router = APIRouter(prefix="/eegpt", tags=["eegpt"])
 
 
 class EEGPTAnalysisResponse(BaseModel):
