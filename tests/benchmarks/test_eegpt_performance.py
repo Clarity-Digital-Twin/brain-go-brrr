@@ -530,11 +530,25 @@ class TestPerformanceComparison:
         else:
             gpu_result_np = gpu_result
         
-        # For mock models without proper weights, we just check shapes match
-        # Real models would have matching outputs
+        # For proper models with loaded weights, results should match
+        # For mock models, at least verify shapes match
         assert cpu_result_np.shape == gpu_result_np.shape, (
             f"CPU and GPU outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
         )
+        
+        # If models have proper weights (not random init), they should produce similar results
+        # Check if results are deterministic (not random)
+        cpu_result2 = eegpt_model_cpu.extract_features(data, ch_names)
+        if hasattr(cpu_result2, 'numpy'):
+            cpu_result2_np = cpu_result2.numpy()
+        else:
+            cpu_result2_np = cpu_result2
+            
+        if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6):
+            # Model is deterministic, so CPU and GPU should match
+            assert np.allclose(cpu_result_np, gpu_result_np, rtol=1e-4, atol=1e-6), (
+                "Deterministic model produces different results on CPU vs GPU"
+            )
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
@@ -562,13 +576,17 @@ class TestPerformanceComparison:
         print(f"GPU speedup: {speedup:.1f}x")
 
         # GPU should be faster for batch processing, but may vary by hardware
-        # On some systems (especially WSL2), GPU speedup might be minimal
-        # We'll warn instead of failing if speedup is low
-        if speedup < 2.0:
+        # Check if we're in a CI environment with known GPU performance
+        if os.environ.get("CI_GPU_AVAILABLE") == "true":
+            # In CI with proper GPU, enforce minimum speedup
+            assert speedup > 2.0, (
+                f"GPU speedup was only {speedup:.1f}x (expected >2x in CI environment)"
+            )
+        elif speedup < 2.0:
+            # In other environments (WSL2, CPU-only CI), skip if speedup is low
             pytest.skip(
                 f"GPU speedup was only {speedup:.1f}x (expected >2x). "
-                "This may be due to WSL2 overhead or small batch size. "
-                "Skipping assertion to avoid false failures."
+                "Set CI_GPU_AVAILABLE=true to enforce GPU performance requirements."
             )
 
         # Results should be equivalent

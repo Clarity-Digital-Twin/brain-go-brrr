@@ -75,7 +75,6 @@ class TestAPILinearProbeIntegration:
             assert "stage_percentages" in data["summary"]
 
     @pytest.mark.integration  # Requires larger EDF file for multiple windows
-    @pytest.mark.skip(reason="EDF file creation issue - needs investigation")
     def test_sleep_staging_window_by_window(
         self, client, mock_eegpt_model, mock_sleep_probe
     ):
@@ -137,15 +136,8 @@ class TestAPILinearProbeIntegration:
             files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
             response = client.post("/api/v1/eeg/sleep/stages", files=files)
 
-            if response.status_code != 200:
-                print(f"Response status: {response.status_code}")
-                print(f"Response body: {response.text}")
             assert response.status_code == 200
             data = response.json()
-            
-            # Debug output
-            print(f"Response data: {data}")
-            print(f"Number of stages: {len(data.get('stages', []))}")
 
             # Should have processed 5 windows
             assert len(data["stages"]) == 5
@@ -155,10 +147,53 @@ class TestAPILinearProbeIntegration:
     @pytest.mark.integration  # Requires proper EDF processing
     def test_abnormality_detection_with_probe(self, client, tiny_edf, mock_eegpt_model):
         """Test abnormality detection uses linear probe."""
+        # Create a longer EDF for QC to work properly (at least 2 seconds)
+        import numpy as np
+        from pyedflib import EdfWriter
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
+            tmp_path = tmp.name
+        
+        writer = EdfWriter(tmp_path, n_channels=19)  # Use standard 19 channels
+        
+        # Standard 10-20 channel names
+        channel_names = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "T3", "C3", 
+                        "Cz", "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2"]
+        
+        for i, ch_name in enumerate(channel_names):
+            writer.setSignalHeader(
+                i,
+                {
+                    "label": ch_name,
+                    "dimension": "uV",
+                    "sample_frequency": 256,
+                    "physical_max": 250,
+                    "physical_min": -250,
+                    "digital_max": 2047,
+                    "digital_min": -2048,
+                    "prefilter": "HP:0.1Hz LP:75Hz",
+                    "transducer": "AgAgCl electrode",
+                },
+            )
+        
+        # Write 4 seconds of data (1024 samples at 256 Hz)
+        for i in range(19):
+            data = np.random.randint(-100, 100, 1024, dtype=np.int32)
+            writer.writeDigitalSamples(data)
+        writer.close()
+        
+        # Read the file content
+        with open(tmp_path, "rb") as f:
+            edf_content = f.read()
+        
+        # Clean up
+        os.unlink(tmp_path)
+        
         with (
             patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model") as mock_get_model,
             patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
-            patch("brain_go_brrr.core.quality.controller.EEGQualityController.run_full_qc_pipeline") as mock_qc,
         ):
             mock_get_model.return_value = mock_eegpt_model
 
@@ -166,17 +201,10 @@ class TestAPILinearProbeIntegration:
             mock_probe = Mock(spec=AbnormalityProbe)
             mock_probe.predict_abnormal_probability.return_value = torch.tensor([0.75])
             mock_get_probe.return_value = mock_probe
-            
-            # Mock QC results
-            mock_qc.return_value = {
-                "bad_channels": [],
-                "overall_quality": "good",
-                "qc_metrics": {"overall_score": 0.9}
-            }
 
-            files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
             response = client.post(
-                "/api/v1/eegpt/analyze", files=files, data={"analysis_type": "abnormality_probe"}
+                "/api/v1/eeg/eegpt/analyze", files=files, data={"analysis_type": "abnormality_probe"}
             )
 
             assert response.status_code == 200
