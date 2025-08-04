@@ -522,20 +522,20 @@ class TestBioSerenityE1Compliance:
         # 8th order Butterworth has ~48 dB/octave rolloff
         # At 50 Hz (5 Hz above 45 Hz cutoff), we expect ~10-15 dB attenuation
         # -10 dB = factor of 0.316, -15 dB = factor of 0.178
-        assert fft_normalized[idx_0_3] < 0.1, (
-            f"0.3 Hz not sufficiently attenuated: {fft_normalized[idx_0_3]:.3f}"
-        )
-        assert fft_normalized[idx_50] < 0.32, (
-            f"50 Hz not sufficiently attenuated: {fft_normalized[idx_50]:.3f}"
-        )
+        assert (
+            fft_normalized[idx_0_3] < 0.1
+        ), f"0.3 Hz not sufficiently attenuated: {fft_normalized[idx_0_3]:.3f}"
+        assert (
+            fft_normalized[idx_50] < 0.32
+        ), f"50 Hz not sufficiently attenuated: {fft_normalized[idx_50]:.3f}"
 
         # Components in passband should be preserved (allow some filter ripple)
-        assert fft_normalized[idx_10] > 0.7, (
-            f"10 Hz signal attenuated too much: {fft_normalized[idx_10]:.3f}"
-        )
-        assert fft_normalized[idx_20] > 0.7, (
-            f"20 Hz signal attenuated too much: {fft_normalized[idx_20]:.3f}"
-        )
+        assert (
+            fft_normalized[idx_10] > 0.7
+        ), f"10 Hz signal attenuated too much: {fft_normalized[idx_10]:.3f}"
+        assert (
+            fft_normalized[idx_20] > 0.7
+        ), f"20 Hz signal attenuated too much: {fft_normalized[idx_20]:.3f}"
 
     def test_window_size_for_128hz(self):
         """Test window extraction for 16s windows at 128 Hz."""

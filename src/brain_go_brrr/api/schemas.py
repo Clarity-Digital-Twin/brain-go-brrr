@@ -108,9 +108,11 @@ class JobData:
             file_path=data["file_path"],
             options=data.get("options", {}),
             status=JobStatus(data["status"]) if isinstance(data["status"], str) else data["status"],
-            priority=JobPriority(data["priority"])
-            if isinstance(data["priority"], str)
-            else data["priority"],
+            priority=(
+                JobPriority(data["priority"])
+                if isinstance(data["priority"], str)
+                else data["priority"]
+            ),
             progress=data.get("progress", 0.0),
             result=data.get("result"),
             error=data.get("error"),

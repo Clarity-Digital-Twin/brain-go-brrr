@@ -454,9 +454,9 @@ async def analyze_sleep_stages_eegpt(
         summary = {
             "total_epochs": total_epochs,
             "total_sleep_time": total_sleep_epochs * 0.5,  # minutes
-            "sleep_efficiency": (total_sleep_epochs / total_epochs * 100)
-            if total_epochs > 0
-            else 0,
+            "sleep_efficiency": (
+                (total_sleep_epochs / total_epochs * 100) if total_epochs > 0 else 0
+            ),
             "stage_percentages": {
                 stage: (count / total_epochs * 100) if total_epochs > 0 else 0
                 for stage, count in stage_counts.items()

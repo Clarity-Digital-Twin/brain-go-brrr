@@ -57,9 +57,9 @@ def test_encoder_raw_output():
     print(f"\nAverage similarity between tokens: {avg_similarity:.4f}")
     # With random initialization, tokens will be somewhat similar but not identical
     # Relaxed threshold for mock model
-    assert avg_similarity < 0.995, (
-        f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
-    )
+    assert (
+        avg_similarity < 0.995
+    ), f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
 
     # Check token statistics
     print("\nSummary token statistics:")
@@ -99,9 +99,9 @@ def test_find_summary_tokens():
     print("\nChecking encoder attributes:")
     if hasattr(model.encoder, "embed_num"):
         print(f"  embed_num (number of summary tokens): {model.encoder.embed_num}")
-        assert model.encoder.embed_num == 4, (
-            f"Expected 4 summary tokens, got {model.encoder.embed_num}"
-        )
+        assert (
+            model.encoder.embed_num == 4
+        ), f"Expected 4 summary tokens, got {model.encoder.embed_num}"
 
     print("\n✅ Encoder has proper summary token architecture!")
 

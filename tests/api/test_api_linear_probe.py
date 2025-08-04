@@ -75,7 +75,9 @@ class TestAPILinearProbeIntegration:
             assert "stage_percentages" in data["summary"]
 
     @pytest.mark.integration  # Requires larger EDF file for multiple windows
-    def test_sleep_staging_window_by_window(self, client, mock_eegpt_model, mock_sleep_probe, tiny_edf):
+    def test_sleep_staging_window_by_window(
+        self, client, mock_eegpt_model, mock_sleep_probe, tiny_edf
+    ):
         """Test that sleep staging processes windows correctly."""
         # Use tiny_edf fixture which creates 30 seconds of data
         # This should give us at least 7 windows (30s / 4s per window)
@@ -87,11 +89,11 @@ class TestAPILinearProbeIntegration:
         ):
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
-            
+
             # Mock extract_windows to return 7 windows
             mock_windows = [np.zeros((19, 1024)) for _ in range(7)]
             mock_eegpt_model.extract_windows.return_value = mock_windows
-            
+
             # Mock extract_features to return proper features
             mock_eegpt_model.extract_features.return_value = np.zeros(2048)
 
@@ -177,13 +179,14 @@ class TestAPILinearProbeIntegration:
             # 30 seconds of data per channel
             channel_data = np.random.randint(-100, 100, 30 * 256, dtype=np.int32)
             all_data.append(channel_data)
-        
+
         # Write all data at once
         writer.writeSamples(all_data)
         writer.close()
 
         # Read the file content
         from pathlib import Path
+
         tmp = Path(tmp_path)
         edf_content = tmp.read_bytes()
 
@@ -195,7 +198,7 @@ class TestAPILinearProbeIntegration:
             patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe,
         ):
             mock_get_model.return_value = mock_eegpt_model
-            
+
             # Mock extract_features to return proper features for each window
             mock_eegpt_model.extract_features.return_value = np.zeros(2048)
 
@@ -223,7 +226,7 @@ class TestAPILinearProbeIntegration:
             # Strict assertions - probe must have been called
             result = data["result"]
             assert "abnormal_probability" in result
-            
+
             # The probe should return 0.75 for each window
             assert result["abnormal_probability"] == pytest.approx(0.75, abs=0.01)
 

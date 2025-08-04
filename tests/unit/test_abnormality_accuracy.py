@@ -89,9 +89,9 @@ class TestAbnormalityAccuracy:
         )
 
         # Requirement from spec: >80% balanced accuracy
-        assert balanced_acc > 0.80, (
-            f"Balanced accuracy {balanced_acc:.2%} does not meet >80% requirement"
-        )
+        assert (
+            balanced_acc > 0.80
+        ), f"Balanced accuracy {balanced_acc:.2%} does not meet >80% requirement"
 
         # Target from BioSerenity-E1: 82% on TUAB
         assert balanced_acc > 0.82, f"Balanced accuracy {balanced_acc:.2%} below target 82%"

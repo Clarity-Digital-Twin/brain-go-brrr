@@ -173,7 +173,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return loss
 
-    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:  # noqa: ARG002
+    def validation_step(
+        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:  # noqa: ARG002
         """Validation step."""
         x, y = batch
 

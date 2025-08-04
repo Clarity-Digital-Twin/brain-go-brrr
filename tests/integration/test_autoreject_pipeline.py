@@ -306,7 +306,8 @@ class TestAutoRejectEEGPTIntegration:
 
         # Create minimal training script mock
         train_script = tmp_path / "train_enhanced.py"
-        train_script.write_text("""
+        train_script.write_text(
+            """
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--use-autoreject', action='store_true')
@@ -314,7 +315,8 @@ parser.add_argument('--ar-cache-dir', type=str, default='ar_cache')
 args = parser.parse_args()
 print(f"AutoReject: {args.use_autoreject}")
 print(f"Cache: {args.ar_cache_dir}")
-""")
+"""
+        )
 
         # Test with AutoReject enabled
         result = subprocess.run(

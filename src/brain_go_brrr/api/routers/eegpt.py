@@ -234,7 +234,7 @@ async def analyze_sleep_stages(
     edf_file: UploadFile = File(...),
 ) -> dict[str, Any]:
     """Analyze sleep stages from EEG file.
-    
+
     Returns window-by-window sleep stage predictions.
     """
     # Validate file
@@ -263,15 +263,15 @@ async def analyze_sleep_stages(
 
         # Get sleep probe
         probe = get_probe("sleep")
-        
+
         stages = []
         confidence_scores = []
-        
+
         for window in windows:
             # Extract features
             features = eegpt_model.extract_features(window, channel_names)
             features_tensor = torch.FloatTensor(features).unsqueeze(0)
-            
+
             # Predict stage
             with torch.no_grad():
                 stage, confidence = probe.predict_stage(features_tensor)

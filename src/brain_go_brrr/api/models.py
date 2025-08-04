@@ -68,25 +68,37 @@ class Job:
             analysis_type=data["analysis_type"],
             file_path=data["file_path"],
             options=data.get("options", {}),
-            status=data["status"]
-            if isinstance(data["status"], JobStatus)
-            else JobStatus(data["status"]),
-            priority=data["priority"]
-            if isinstance(data["priority"], JobPriority)
-            else JobPriority(data["priority"]),
+            status=(
+                data["status"]
+                if isinstance(data["status"], JobStatus)
+                else JobStatus(data["status"])
+            ),
+            priority=(
+                data["priority"]
+                if isinstance(data["priority"], JobPriority)
+                else JobPriority(data["priority"])
+            ),
             progress=data.get("progress", 0.0),
             result=data.get("result"),
             error=data.get("error"),
-            created_at=datetime.fromisoformat(data["created_at"])
-            if isinstance(data["created_at"], str)
-            else data["created_at"],
-            updated_at=datetime.fromisoformat(data["updated_at"])
-            if isinstance(data["updated_at"], str)
-            else data["updated_at"],
-            started_at=datetime.fromisoformat(data["started_at"])
-            if data.get("started_at") and isinstance(data["started_at"], str)
-            else data.get("started_at"),
-            completed_at=datetime.fromisoformat(data["completed_at"])
-            if data.get("completed_at") and isinstance(data["completed_at"], str)
-            else data.get("completed_at"),
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if isinstance(data["created_at"], str)
+                else data["created_at"]
+            ),
+            updated_at=(
+                datetime.fromisoformat(data["updated_at"])
+                if isinstance(data["updated_at"], str)
+                else data["updated_at"]
+            ),
+            started_at=(
+                datetime.fromisoformat(data["started_at"])
+                if data.get("started_at") and isinstance(data["started_at"], str)
+                else data.get("started_at")
+            ),
+            completed_at=(
+                datetime.fromisoformat(data["completed_at"])
+                if data.get("completed_at") and isinstance(data["completed_at"], str)
+                else data.get("completed_at")
+            ),
         )
