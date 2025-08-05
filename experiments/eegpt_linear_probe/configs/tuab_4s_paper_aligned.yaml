@@ -17,7 +17,7 @@ model:
     
   probe:
     type: "two_layer"
-    input_dim: 768  # EEGPT feature dimension
+    input_dim: 512  # EEGPT feature dimension (model-specific)
     hidden_dim: 32  # Slightly larger for better capacity
     n_classes: 2
     dropout: 0.5

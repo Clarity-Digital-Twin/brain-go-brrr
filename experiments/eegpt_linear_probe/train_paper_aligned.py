@@ -22,8 +22,8 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTBackbone
+from src.brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 
 # Configure logging
@@ -88,19 +88,27 @@ def load_config(config_path):
 def create_dataloaders(config):
     """Create train and validation dataloaders."""
     # Train dataset
-    train_dataset = TUABCachedDataset(
+    train_dataset = TUABEnhancedDataset(
+        root_dir=Path(config['data']['root_dir']),
         cache_dir=Path(config['data']['cache_dir']),
         split='train',
+        window_duration=config['data']['window_duration'],
+        window_stride=config['data']['window_stride'], 
         sampling_rate=config['data']['sampling_rate'],
-        return_raw=True  # Return raw windows for EEGPT
+        use_cached_dataset=config['data'].get('use_cached_dataset', True),
+        cache_mode=config['data'].get('cache_mode', 'readonly')
     )
     
     # Validation dataset
-    val_dataset = TUABCachedDataset(
+    val_dataset = TUABEnhancedDataset(
+        root_dir=Path(config['data']['root_dir']),
         cache_dir=Path(config['data']['cache_dir']),
         split='eval',
+        window_duration=config['data']['window_duration'],
+        window_stride=config['data']['window_stride'],
         sampling_rate=config['data']['sampling_rate'],
-        return_raw=True
+        use_cached_dataset=config['data'].get('use_cached_dataset', True),
+        cache_mode=config['data'].get('cache_mode', 'readonly')
     )
     
     # Create dataloaders
@@ -271,9 +279,8 @@ def main():
     config['training']['scheduler']['steps_per_epoch'] = len(train_loader)
     
     # Create model
-    backbone = EEGPTBackbone(
-        checkpoint_path=config['model']['backbone']['checkpoint_path'],
-        n_channels=config['model']['backbone']['n_channels']
+    backbone = EEGPTWrapper(
+        checkpoint_path=config['model']['backbone']['checkpoint_path']
     )
     backbone.to(device)
     backbone.eval()  # Freeze backbone

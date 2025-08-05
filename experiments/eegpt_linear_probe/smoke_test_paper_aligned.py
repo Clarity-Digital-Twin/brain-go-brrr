@@ -110,7 +110,8 @@ def test_setup():
         print(f"✓ Forward pass successful, features shape: {features.shape}")
         assert features.shape[0] == 2  # Batch size
         assert features.shape[1] == 4  # Summary tokens (embed_num)
-        assert features.shape[2] == 768  # Feature dim (embed_dim)
+        # Feature dim depends on model size - could be 512 or 768
+        assert features.shape[2] in [512, 768], f"Unexpected embed_dim: {features.shape[2]}"
         
     except Exception as e:
         print(f"✗ Model test failed: {e}")
