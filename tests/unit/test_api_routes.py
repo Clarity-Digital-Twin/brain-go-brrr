@@ -60,7 +60,7 @@ class TestAPIRoutes:
     def test_all_routes_start_correctly(self):
         """Test that all routes start with expected prefixes."""
         # Get all route attributes
-        route_attrs = [attr for attr in dir(routes) if attr.isupper() and not attr.startswith('_')]
+        route_attrs = [attr for attr in dir(routes) if attr.isupper() and not attr.startswith("_")]
 
         for attr_name in route_attrs:
             route_value = getattr(routes, attr_name)
@@ -72,7 +72,9 @@ class TestAPIRoutes:
                     assert route_value.startswith("/api/")
                 else:
                     # All other routes should start with /api/v1/
-                    assert route_value.startswith("/api/v1/"), f"{attr_name} doesn't start with /api/v1/"
+                    assert route_value.startswith("/api/v1/"), (
+                        f"{attr_name} doesn't start with /api/v1/"
+                    )
 
     def test_create_new_routes_instance(self):
         """Test creating a new APIRoutes instance."""

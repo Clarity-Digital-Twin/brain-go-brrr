@@ -335,10 +335,7 @@ class TestChunkedProcessingIntegration:
         cache_dir.mkdir()
 
         # Create processor
-        processor = ChunkedAutoRejectProcessor(
-            cache_dir=cache_dir,
-            chunk_size=50
-        )
+        processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir, chunk_size=50)
 
         # Verify processor initialized
         assert processor.cache_dir == cache_dir
@@ -350,12 +347,21 @@ class TestChunkedProcessingIntegration:
             "thresholds": np.random.rand(19, 10),
             "consensus": [0.1],
             "n_interpolate": [1, 4],
-            "picks": list(range(19))
+            "picks": list(range(19)),
         }
         processor.is_fitted = True
 
         # Save parameters
-        processor._save_parameters(processor)
+        # Create a mock AutoReject object
+        class FakeAutoReject:
+            def __init__(self, params):
+                self.threshes_ = params["thresholds"]
+                self.consensus_ = params["consensus"]
+                self.n_interpolate_ = params["n_interpolate"]
+                self.picks_ = params["picks"]
+        
+        fake_ar = FakeAutoReject(processor.ar_params)
+        processor._save_parameters(fake_ar)
 
         # Verify saved
         param_file = cache_dir / "autoreject_params.pkl"
@@ -368,8 +374,7 @@ class TestChunkedProcessingIntegration:
         # Verify loaded correctly
         assert new_processor.is_fitted
         assert np.array_equal(
-            new_processor.ar_params["thresholds"],
-            processor.ar_params["thresholds"]
+            new_processor.ar_params["thresholds"], processor.ar_params["thresholds"]
         )
 
     def test_performance_benchmarks(self):

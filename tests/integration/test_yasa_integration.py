@@ -55,8 +55,8 @@ class TestYASAIntegration:
 
             # Sleep staging might still be None if data is too short or noisy
             # Just check the structure is correct
-            assert hasattr(result, 'sleep_stage')
-            assert hasattr(result, 'sleep_confidence')
+            assert hasattr(result, "sleep_stage")
+            assert hasattr(result, "sleep_confidence")
 
             if result.sleep_stage is not None:
                 assert result.sleep_stage in ["W", "N1", "N2", "N3", "REM"]

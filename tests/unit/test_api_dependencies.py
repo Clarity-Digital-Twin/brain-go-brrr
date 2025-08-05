@@ -76,6 +76,6 @@ class TestAPIDependencies:
 
     def test_module_level_globals_exist(self):
         """Test that module-level globals are defined."""
-        assert hasattr(dependencies, 'cache_client')
-        assert hasattr(dependencies, 'job_store')
+        assert hasattr(dependencies, "cache_client")
+        assert hasattr(dependencies, "job_store")
         assert isinstance(dependencies.job_store, dict)

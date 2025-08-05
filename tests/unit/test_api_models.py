@@ -197,4 +197,6 @@ class TestJobModel:
         assert restored.progress == original.progress
         assert restored.result == original.result
         # Datetime comparison might have microsecond differences due to isoformat
-        assert restored.created_at.replace(microsecond=0) == original.created_at.replace(microsecond=0)
+        assert restored.created_at.replace(microsecond=0) == original.created_at.replace(
+            microsecond=0
+        )

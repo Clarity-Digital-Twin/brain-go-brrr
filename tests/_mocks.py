@@ -131,7 +131,7 @@ def mock_eegpt_model_loading(monkeypatch):
     def mock_predict_abnormality(self, raw):
         """Mock abnormality prediction."""
         # Calculate number of windows
-        duration = raw.times[-1] if hasattr(raw, 'times') else 20.0
+        duration = raw.times[-1] if hasattr(raw, "times") else 20.0
         window_size = 4.0
         overlap = 0.5
         step_size = window_size * (1 - overlap)
@@ -141,11 +141,11 @@ def mock_eegpt_model_loading(monkeypatch):
         window_scores = [0.15 + 0.1 * np.random.rand() for _ in range(n_windows)]
 
         return {
-            'abnormal_probability': 0.15,
-            'confidence': 0.85,
-            'window_scores': window_scores,
-            'n_windows': n_windows,
-            'used_streaming': False
+            "abnormal_probability": 0.15,
+            "confidence": 0.85,
+            "window_scores": window_scores,
+            "n_windows": n_windows,
+            "used_streaming": False,
         }
 
     # Apply all mocks
