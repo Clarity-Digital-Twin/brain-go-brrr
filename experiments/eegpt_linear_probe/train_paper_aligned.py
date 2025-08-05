@@ -22,8 +22,12 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+
+# Import custom collate function
+sys.path.insert(0, str(Path(__file__).parent))
+from custom_collate_fixed import collate_eeg_batch_fixed
 
 
 # Configure logging
@@ -87,28 +91,34 @@ def load_config(config_path):
 
 def create_dataloaders(config):
     """Create train and validation dataloaders."""
+    # Resolve environment variables in paths
+    data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
+    cache_index_path = Path(data_root) / "cache" / "tuab_index.json"
+    
     # Train dataset
-    train_dataset = TUABEnhancedDataset(
+    train_dataset = TUABCachedDataset(
         root_dir=Path(config['data']['root_dir']),
-        cache_dir=Path(config['data']['cache_dir']),
         split='train',
         window_duration=config['data']['window_duration'],
         window_stride=config['data']['window_stride'], 
         sampling_rate=config['data']['sampling_rate'],
-        use_cached_dataset=config['data'].get('use_cached_dataset', True),
-        cache_mode=config['data'].get('cache_mode', 'readonly')
+        preload=False,
+        normalize=True,
+        cache_dir=Path(config['data']['cache_dir']),
+        cache_index_path=cache_index_path
     )
     
     # Validation dataset
-    val_dataset = TUABEnhancedDataset(
+    val_dataset = TUABCachedDataset(
         root_dir=Path(config['data']['root_dir']),
-        cache_dir=Path(config['data']['cache_dir']),
         split='eval',
         window_duration=config['data']['window_duration'],
-        window_stride=config['data']['window_stride'],
+        window_stride=config['data']['window_duration'],  # No overlap for validation
         sampling_rate=config['data']['sampling_rate'],
-        use_cached_dataset=config['data'].get('use_cached_dataset', True),
-        cache_mode=config['data'].get('cache_mode', 'readonly')
+        preload=False,
+        normalize=True,
+        cache_dir=Path(config['data']['cache_dir']),
+        cache_index_path=cache_index_path
     )
     
     # Create dataloaders
@@ -119,7 +129,8 @@ def create_dataloaders(config):
         num_workers=config['data']['num_workers'],
         pin_memory=config['data']['pin_memory'],
         persistent_workers=config['data']['persistent_workers'],
-        prefetch_factor=config['data']['prefetch_factor']
+        prefetch_factor=config['data']['prefetch_factor'],
+        collate_fn=collate_eeg_batch_fixed
     )
     
     val_loader = DataLoader(
@@ -129,7 +140,8 @@ def create_dataloaders(config):
         num_workers=config['data']['num_workers'],
         pin_memory=config['data']['pin_memory'],
         persistent_workers=config['data']['persistent_workers'],
-        prefetch_factor=config['data']['prefetch_factor']
+        prefetch_factor=config['data']['prefetch_factor'],
+        collate_fn=collate_eeg_batch_fixed
     )
     
     return train_loader, val_loader
@@ -279,13 +291,19 @@ def main():
     config['training']['scheduler']['steps_per_epoch'] = len(train_loader)
     
     # Create model
+    # Resolve model checkpoint path
+    model_checkpoint = config['model']['backbone']['checkpoint_path']
+    if '${BGB_DATA_ROOT}' in model_checkpoint:
+        data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
+        model_checkpoint = model_checkpoint.replace('${BGB_DATA_ROOT}', data_root)
+    
     backbone = EEGPTWrapper(
-        checkpoint_path=config['model']['backbone']['checkpoint_path']
+        checkpoint_path=model_checkpoint
     )
     backbone.to(device)
     backbone.eval()  # Freeze backbone
     
-    probe = LinearProbe(config)
+    probe = LinearProbe(config['model'])
     probe.to(device)
     
     # Create optimizer
