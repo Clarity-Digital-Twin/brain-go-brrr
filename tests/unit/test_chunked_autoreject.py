@@ -359,7 +359,7 @@ class TestChunkedProcessingIntegration:
                 self.consensus_ = params["consensus"]
                 self.n_interpolate_ = params["n_interpolate"]
                 self.picks_ = params["picks"]
-        
+
         fake_ar = FakeAutoReject(processor.ar_params)
         processor._save_parameters(fake_ar)
 
