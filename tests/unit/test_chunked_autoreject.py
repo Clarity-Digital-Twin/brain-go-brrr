@@ -9,6 +9,7 @@ import pytest
 
 # This will fail until implemented - TDD!
 from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+from tests._test_utils import FakeAutoReject
 
 
 @pytest.fixture(autouse=True)
@@ -86,14 +87,12 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create a simple object with AutoReject-like attributes
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.array([[50.0, 100.0], [50.0, 100.0]])
-                self.consensus_ = [0.1]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = [0, 1]
-
-        fake_ar = FakeAutoReject()
+        fake_ar = FakeAutoReject(
+            thresholds=np.array([[50.0, 100.0], [50.0, 100.0]]),
+            consensus=[0.1],
+            n_interpolate=[1, 4],
+            picks=[0, 1]
+        )
 
         # Save parameters
         processor._save_parameters(fake_ar)
@@ -129,14 +128,14 @@ class TestChunkedAutoRejectProcessor:
         """Test extracting parameters from fitted AutoReject."""
 
         # Given: Object with AutoReject-like attributes
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.array([[100e-6, 150e-6], [120e-6, 180e-6]])
-                self.consensus_ = [0.1, 0.2]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = [0, 1, 2]
-
-        fake_ar = FakeAutoReject()
+        from tests._test_utils import FakeAutoReject
+        
+        fake_ar = FakeAutoReject(
+            thresholds=np.array([[100e-6, 150e-6], [120e-6, 180e-6]]),
+            consensus=[0.1, 0.2],
+            n_interpolate=[1, 4],
+            picks=[0, 1, 2]
+        )
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # When: Extracting parameters
@@ -155,13 +154,8 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create fake AutoReject with parameters
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.random.rand(19, 10)
-                self.consensus_ = [0.1]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = list(range(19))
-
+        from tests._test_utils import FakeAutoReject
+        
         fake_ar = FakeAutoReject()
 
         # Save parameters
@@ -352,15 +346,10 @@ class TestChunkedProcessingIntegration:
         processor.is_fitted = True
 
         # Save parameters
-        # Create a mock AutoReject object
-        class FakeAutoReject:
-            def __init__(self, params):
-                self.threshes_ = params["thresholds"]
-                self.consensus_ = params["consensus"]
-                self.n_interpolate_ = params["n_interpolate"]
-                self.picks_ = params["picks"]
-
-        fake_ar = FakeAutoReject(processor.ar_params)
+        # Use shared test utility
+        from tests._test_utils import FakeAutoReject
+        
+        fake_ar = FakeAutoReject.from_params(processor.ar_params)
         processor._save_parameters(fake_ar)
 
         # Verify saved

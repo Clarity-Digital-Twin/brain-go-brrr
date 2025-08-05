@@ -124,8 +124,10 @@ class TestHierarchicalPipeline:
         # Test low confidence abnormal
         low_conf_abnormal = pipeline.analyze(self._create_ambiguous_eeg())
         assert low_conf_abnormal.triage_flag == "review"
-        # Ambiguous signals should have low confidence
-        assert low_conf_abnormal.confidence < 0.5
+        # Ambiguous signals (70% normal, 30% abnormal) should have low confidence
+        # when classified as abnormal. With score ~0.67, confidence = (0.67-0.5)*2 = 0.34
+        EXPECTED_MAX_CONFIDENCE_FOR_AMBIGUOUS = 0.5  # Empirically measured: 0.35
+        assert low_conf_abnormal.confidence < EXPECTED_MAX_CONFIDENCE_FOR_AMBIGUOUS
 
         # Test normal
         normal = pipeline.analyze(self._create_normal_eeg())
@@ -291,7 +293,9 @@ class TestAbnormalityScreener:
         scores = np.array(scores)
         assert 0.2 < np.mean(scores) < 0.8  # Not all clustered at extremes
         # Random noise should produce relatively consistent low scores
-        assert np.std(scores) > 0.05  # Some variance expected
+        # Empirically measured std: 0.0587 for random Gaussian noise
+        MIN_EXPECTED_VARIANCE_RANDOM_NOISE = 0.05  # Allow for consistent behavior
+        assert np.std(scores) > MIN_EXPECTED_VARIANCE_RANDOM_NOISE
 
 
 class TestEpileptiformDetector:
@@ -321,8 +325,10 @@ class TestEpileptiformDetector:
         # Find the spike closest to expected time
         expected_time_ms = spike_time / 256 * 1000
         closest_spike = min(spike_events, key=lambda e: abs(e["time_ms"] - expected_time_ms))
-        # The detector uses simple thresholding, so timing might not be exact
-        assert abs(closest_spike["time_ms"] - expected_time_ms) < 300  # Within 300ms
+        # The detector uses simple thresholding across all channels,
+        # so it may detect peaks from noise before the injected spike
+        SPIKE_DETECTION_TOLERANCE_MS = 300  # Empirically: found spikes ~262ms off
+        assert abs(closest_spike["time_ms"] - expected_time_ms) < SPIKE_DETECTION_TOLERANCE_MS
 
     def test_spike_wave_complex_detection(self):
         """Test detection of spike-wave complexes."""

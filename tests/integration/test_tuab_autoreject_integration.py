@@ -214,9 +214,11 @@ class TestTUABAutoRejectIntegration:
 
         # The dataset will fail to load invalid EDF files, but should still create cache dir
         from contextlib import suppress
-
-        with suppress(Exception):
+        
+        # Catch specific exceptions that occur when loading invalid EDF files
+        with suppress(ValueError, OSError, RuntimeError):
             # Expected - dummy files are not valid EDFs
+            # ValueError: "invalid literal for int() with base 10: ''"
             _ = TUABEnhancedDataset(
                 root_dir=temp_dataset_dir, split="train", use_autoreject=True, ar_cache_dir=cache_dir
             )
