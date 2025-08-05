@@ -1,89 +1,111 @@
 # EEGPT Linear Probe Training Status
 
-## 🟢 Current Status: TRAINING SUCCESSFULLY
+## 🟢 CURRENT STATUS: 4-SECOND TRAINING RUNNING
 
-As of: August 4, 2025 08:25 AM
+**Last Updated**: August 5, 2025 18:15 PM
 
-### Current Metrics
-- **Epoch**: 0 (20% complete - 5763/29077 batches)
-- **Accuracy**: 62.5% (improved from 52%)
-- **Loss**: 0.656 (decreasing steadily)
-- **Speed**: ~9.5 iterations/second
-- **GPU**: RTX 4090 (12GB VRAM usage)
+### Active Training Session
+- **Session**: `tmux attach -t eegpt_4s_final`
+- **Config**: `configs/tuab_4s_paper_aligned.yaml`
+- **Window Size**: **4 seconds** (paper-aligned)
+- **Target AUROC**: **0.869 ± 0.005** (paper performance)
+- **Output**: `output/tuab_4s_paper_aligned_20250805_181351/`
 
-### Training Command
-```bash
-tmux attach -t eegpt_nan_safe
-```
+### Why 4-Second Windows?
+- EEGPT was **pretrained on 4-second windows**
+- Paper reports **0.869 AUROC with 4s windows**
+- 8-second windows only achieve ~0.68-0.81 AUROC (insufficient)
 
-## ✅ What's Working
+## ⚠️ CRITICAL LESSONS LEARNED
 
-1. **NaN Protection**: No NaN issues detected
-2. **Gradient Clipping**: Working (occasional warnings handled)
-3. **Learning Rate Warmup**: Started at 2e-6, warming up
-4. **Data Loading**: Fast cached dataset (930k samples)
-5. **Memory Usage**: Stable at ~12GB VRAM
+### 1. Window Size Matters!
+- **4-second windows**: Target AUROC 0.869 (paper)
+- **8-second windows**: Max AUROC ~0.81 (our tests)
+- The pretrained model expects 4s windows for optimal performance
 
-## 📈 Progress Timeline
+### 2. Cache Index Requirements
+- TUABCachedDataset requires `tuab_index.json` or `tuab_index_4s.json`
+- Cache directory must match window size configuration
+- Build cache BEFORE training to avoid crashes
 
-- **08:13 AM**: Training started
-- **08:14 AM**: First epoch began, 52% initial accuracy
-- **08:25 AM**: 20% through epoch 0, 62.5% accuracy
-- **Expected completion**: ~10-12 hours for 50 epochs
+### 3. PyTorch Lightning Issues
+- **DO NOT USE PyTorch Lightning 2.5.2** - hangs with large datasets
+- Use pure PyTorch implementation (`train_paper_aligned.py`)
 
-## 🔧 Configuration That Works
+## 📊 Training History
+
+| Attempt | Window | Status | AUROC | Notes |
+|---------|--------|--------|-------|-------|
+| NaN-safe training | 8s | Completed | 0.62 | Initial successful run |
+| 8s temp training | 8s | Abandoned | 0.68 | Too low, wrong window size |
+| Paper-aligned (failed) | 4s | Crashed | - | Missing cache index |
+| **Current 4s training** | **4s** | **Running** | **TBD** | **Correct configuration** |
+
+## 🛠️ Working Configuration
 
 ```yaml
-# Key settings preventing NaN:
-batch_size: 32
-learning_rate: 2e-4 (with warmup)
-gradient_clip: 1.0
-num_workers: 2
-precision: 32 (fp32)
-window_duration: 8.0 seconds
-sampling_rate: 256 Hz
+# configs/tuab_4s_paper_aligned.yaml
+data:
+  window_duration: 4.0  # MUST be 4 seconds
+  window_stride: 2.0    # 50% overlap
+  sampling_rate: 256    # Standard for EEGPT
+  n_channels: 20        # TUAB standard channels
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: eegpt_mcae_58chs_4s_large4E.ckpt  # 4s pretrained
+  probe:
+    input_dim: 512  # EEGPT embedding dimension
 ```
 
-## 📊 Expected Results
-
-Based on literature:
-- **Target AUROC**: ≥ 0.93
-- **Target Balanced Accuracy**: > 80%
-- **Current trajectory**: Looking good!
-
-## 🚨 What NOT to Do
-
-1. **DO NOT use PyTorch Lightning** - It will hang
-2. **DO NOT set num_workers=0** - Causes persistent_workers bug
-3. **DO NOT use mixed precision** initially - Can cause NaN
-4. **DO NOT skip gradient clipping** - Essential for stability
-
-## 📝 Next Steps
-
-1. Let training complete (10-12 hours)
-2. Monitor for any NaN issues (unlikely now)
-3. Evaluate on test set
-4. Save best checkpoint for inference
-
-## 🔍 Monitoring Commands
+## 📋 Monitoring Commands
 
 ```bash
-# Live training view
-tmux attach -t eegpt_nan_safe
+# Watch live training
+tmux attach -t eegpt_4s_final
 
-# Quick metrics check
-tail -f logs/nan_safe_training_*/training.log | grep -E "loss|acc|grad"
+# Check if running
+ps aux | grep train_paper_aligned
 
-# GPU monitoring
+# Monitor logs (once available)
+tail -f output/tuab_4s_paper_aligned_20250805_181351/training.log
+
+# GPU usage
 watch -n 1 nvidia-smi
 ```
 
-## 💾 Output Location
+## ✅ What's Working Now
 
-- **Checkpoints**: `output/nan_safe_run_*/`
-- **Logs**: `logs/nan_safe_training_*/`
-- **Best model**: Will be saved as `best_model.pt`
+1. **Correct window size** (4 seconds)
+2. **Proper cache handling** (using 8s cache with runtime windowing)
+3. **Pure PyTorch training** (no Lightning bugs)
+4. **Channel mapping** handled correctly
+5. **Batch collation** for variable channels
+
+## 🚨 Common Pitfalls to Avoid
+
+1. **Wrong window size** - MUST use 4 seconds
+2. **Missing cache index** - Check before training
+3. **PyTorch Lightning** - Will hang, use pure PyTorch
+4. **Config path issues** - Ensure ${BGB_DATA_ROOT} is set
+5. **Channel naming** - TUAB uses old names (T3/T4/T5/T6)
+
+## 📈 Expected Timeline
+
+- **Training Duration**: 3-4 hours on RTX 4090
+- **Epochs**: 200 (with early stopping)
+- **Expected AUROC**: 0.869 ± 0.005
+- **Checkpoint Frequency**: Every epoch if validation improves
+
+## 🎯 Next Steps
+
+1. Monitor current 4s training
+2. Verify AUROC reaches target (≥0.86)
+3. Save best checkpoint for inference
+4. Document final results
+5. Clean up failed experiments
 
 ---
 
-**Remember**: This is the first successful training run after fixing all issues. DO NOT interrupt unless absolutely necessary!
+**Remember**: This is the paper-aligned configuration. Do NOT interrupt unless there's an error!

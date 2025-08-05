@@ -1,60 +1,81 @@
-# EEGPT Linear Probe Training - Documentation Index
+# EEGPT Linear Probe Experiment Index
 
-## 🚀 Quick Start
-- **[README.md](README.md)** - Project overview and current status
-- **[RUN_TRAINING_8S.sh](RUN_TRAINING_8S.sh)** - Launch training immediately
+## 🟢 Current Status
+**4-SECOND TRAINING ACTIVE** - Paper-aligned configuration
+- Session: `tmux attach -t eegpt_4s_final`
+- Target: AUROC ≥ 0.869 (paper performance)
 
-## 📚 Setup & Configuration
-- **[SETUP_COOKBOOK.md](SETUP_COOKBOOK.md)** - Complete setup guide with all fixes
-- **[ISSUES_AND_FIXES.md](ISSUES_AND_FIXES.md)** - Problems encountered and solutions
-- **[configs/](configs/)** - Training configuration files
+## 📁 Clean Directory Structure
 
-## 💻 Code & Templates
-- **[TRAINING_SCRIPT_TEMPLATE.py](TRAINING_SCRIPT_TEMPLATE.py)** - Professional template for new experiments
-- **[train_paper_aligned.py](train_paper_aligned.py)** - Current active training script
-- **[custom_collate_fixed.py](custom_collate_fixed.py)** - Handles variable channel counts
+### ✅ Active Components
+| File | Purpose | Status |
+|------|---------|--------|
+| `train_paper_aligned.py` | Main training script | ✅ Running |
+| `smoke_test_paper_aligned.py` | Pre-flight checks | ✅ Working |
+| `custom_collate_fixed.py` | Variable channel handler | ✅ Essential |
+| `launch_paper_aligned_training.sh` | Launch script | ✅ Fixed |
+| `configs/tuab_4s_paper_aligned.yaml` | 4s window config | ✅ ACTIVE |
 
-## 📊 Status & Progress
-- **[TRAINING_STATUS.md](TRAINING_STATUS.md)** - Current training progress and metrics
-- **[output/](output/)** - Training outputs and checkpoints
+### 📚 Documentation
+| File | Content | Importance |
+|------|---------|------------|
+| `README.md` | Overview & quick start | ⭐⭐⭐ |
+| `TRAINING_STATUS.md` | **LIVE STATUS** | ⭐⭐⭐ |
+| `ISSUES_AND_FIXES.md` | Problem solutions | ⭐⭐⭐ |
+| `SETUP_COOKBOOK.md` | Detailed setup | ⭐⭐ |
+| `PROFESSIONAL_PRACTICES.md` | Best practices | ⭐ |
 
-## 🏆 Best Practices
-- **[PROFESSIONAL_PRACTICES.md](PROFESSIONAL_PRACTICES.md)** - What pro teams do and why
+### 📂 Directories
+- `output/` - Training outputs (current: `tuab_4s_paper_aligned_*`)
+- `configs/` - Configuration files
+- `archive/` - Old/failed attempts
+- `logs/` - Training logs
 
-## 🗄️ Archive
-- **[archive/](archive/)** - Old scripts and failed attempts (for reference)
+## 🎯 Critical Discovery: Window Size Matters!
 
----
+| Window | AUROC | Status | Why |
+|--------|-------|--------|-----|
+| **4 seconds** | **0.869** | **✅ CORRECT** | EEGPT pretrained on 4s |
+| 8 seconds | ~0.81 | ❌ Wrong | Mismatched with pretraining |
 
-## Common Tasks
+## ⚡ Quick Commands
 
-### Check Training Progress
 ```bash
-tmux attach -t eegpt_training
-# or
-tail -f output/training_8s_*/training.log | grep -E "AUROC|Epoch"
+# Monitor current training
+tmux attach -t eegpt_4s_final
+
+# Check if running
+ps aux | grep train_paper_aligned
+
+# Watch logs (once available)
+tail -f output/tuab_4s_paper_aligned_*/training.log | grep -E "Epoch|AUROC"
+
+# GPU monitoring
+watch -n 1 nvidia-smi
 ```
 
-### Start New Experiment
-1. Copy `TRAINING_SCRIPT_TEMPLATE.py`
-2. Create new config in `configs/`
-3. Follow setup in `SETUP_COOKBOOK.md`
+## 🚨 Lessons Learned
 
-### Debug Issues
-1. Check `ISSUES_AND_FIXES.md` for known problems
-2. Validate setup with smoke test
-3. Use debugging checklist in `SETUP_COOKBOOK.md`
+1. **PyTorch Lightning Bug**: Hangs with large datasets → Use pure PyTorch
+2. **Window Size Critical**: Must match pretraining (4s for EEGPT)
+3. **Cache Index Required**: TUABCachedDataset needs index file
+4. **Channel Variability**: Some files 19ch, others 20ch → custom collate
+
+## ✅ What's Working Now
+
+- 4-second window training (paper-aligned)
+- Pure PyTorch implementation
+- Proper cache handling
+- Channel mapping (T3→T7, etc.)
+- Stable training loop
+
+## 🗄️ Archived Files
+Moved to `archive/old_scripts/`:
+- Old training scripts (nan_safe, template)
+- Failed launch scripts
+- Obsolete builders
 
 ---
 
-## Key Takeaways
-
-1. **PyTorch Lightning doesn't work** with large cached datasets - use pure PyTorch
-2. **Path resolution** needs manual handling for `${BGB_DATA_ROOT}`
-3. **Channel counts vary** - always use custom collate function
-4. **Documentation saves time** - keep it updated
-
----
-
-Last Updated: August 4, 2025
-Training Status: Active (8s windows, targeting >0.85 AUROC)
+**Last Updated**: August 5, 2025 18:20 PM
+**Training Status**: RUNNING (4s windows, ~3-4 hours remaining)
