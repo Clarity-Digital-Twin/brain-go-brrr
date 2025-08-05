@@ -96,28 +96,37 @@ def create_dataloaders(config):
     cache_index_path = Path(data_root) / "cache" / "tuab_index.json"
     
     # Train dataset
+    # Resolve paths
+    root_dir = config['data']['root_dir']
+    if '${BGB_DATA_ROOT}' in root_dir:
+        root_dir = root_dir.replace('${BGB_DATA_ROOT}', data_root)
+    
+    cache_dir = config['data']['cache_dir']
+    if '${BGB_DATA_ROOT}' in cache_dir:
+        cache_dir = cache_dir.replace('${BGB_DATA_ROOT}', data_root)
+    
     train_dataset = TUABCachedDataset(
-        root_dir=Path(config['data']['root_dir']),
+        root_dir=Path(root_dir),
         split='train',
         window_duration=config['data']['window_duration'],
         window_stride=config['data']['window_stride'], 
         sampling_rate=config['data']['sampling_rate'],
         preload=False,
         normalize=True,
-        cache_dir=Path(config['data']['cache_dir']),
+        cache_dir=Path(cache_dir),
         cache_index_path=cache_index_path
     )
     
     # Validation dataset
     val_dataset = TUABCachedDataset(
-        root_dir=Path(config['data']['root_dir']),
+        root_dir=Path(root_dir),
         split='eval',
         window_duration=config['data']['window_duration'],
         window_stride=config['data']['window_duration'],  # No overlap for validation
         sampling_rate=config['data']['sampling_rate'],
         preload=False,
         normalize=True,
-        cache_dir=Path(config['data']['cache_dir']),
+        cache_dir=Path(cache_dir),
         cache_index_path=cache_index_path
     )
     
@@ -316,7 +325,7 @@ def main():
     # Create scheduler
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=config['training']['scheduler']['max_lr'],
+        max_lr=float(config['training']['scheduler']['max_lr']),
         epochs=config['training']['scheduler']['epochs'],
         steps_per_epoch=config['training']['scheduler']['steps_per_epoch'],
         pct_start=config['training']['scheduler']['pct_start'],
