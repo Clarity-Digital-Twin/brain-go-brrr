@@ -14,7 +14,7 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 - `num_sanity_val_steps=0` ❌
 - `fast_dev_run=True` ❌
 
-**SOLUTION**: Use `experiments/eegpt_linear_probe/train_pytorch_stable.py` (pure PyTorch)
+**SOLUTION**: Use `experiments/eegpt_linear_probe/train_paper_aligned.py` (pure PyTorch)
 
 ## 🧠 Critical Context
 
