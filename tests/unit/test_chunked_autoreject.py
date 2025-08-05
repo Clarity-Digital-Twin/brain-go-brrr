@@ -9,6 +9,7 @@ import pytest
 
 # This will fail until implemented - TDD!
 from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+from tests._test_utils import FakeAutoReject
 
 
 
