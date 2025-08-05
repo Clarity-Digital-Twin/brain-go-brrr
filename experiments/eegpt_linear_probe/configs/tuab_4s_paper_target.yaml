@@ -1,0 +1,64 @@
+experiment:
+  name: tuab_4s_paper_target
+  description: "Paper-aligned training with 4s windows targeting 0.87 AUROC"
+  seed: 42
+
+data:
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
+  cache_dir: ${BGB_DATA_ROOT}/cache_4s
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+  # Paper-aligned parameters
+  window_duration: 4.0  # 4 seconds as per paper
+  window_stride: 2.0    # 50% overlap for training
+  sampling_rate: 256
+  n_channels: 20
+  
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+  probe:
+    type: linear  # Simple linear probe as per paper
+    input_dim: 512  # EEGPT embedding dimension
+    n_classes: 2
+    dropout: 0.1
+    use_channel_adapter: false
+
+training:
+  max_epochs: 50  # Shorter training, should converge faster with correct window size
+  early_stopping:
+    patience: 10
+    min_delta: 0.001
+    mode: max
+    monitor: val_auroc
+  
+  optimizer:
+    name: AdamW
+    lr: 1.0e-3  # Higher LR for linear probe
+    weight_decay: 1.0e-4
+  
+  scheduler:
+    name: OneCycleLR
+    max_lr: 3.0e-3
+    epochs: 50
+    pct_start: 0.2
+    anneal_strategy: cos
+    div_factor: 25.0
+    final_div_factor: 1000.0
+  
+  gradient_clip_val: 1.0
+  val_check_interval: 1
+  weighted_loss: true  # Handle class imbalance
+
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3
+  
+target_metrics:
+  auroc: 0.869  # Paper's reported performance
+  tolerance: 0.005  # ± as per paper
