@@ -128,6 +128,26 @@ def mock_eegpt_model_loading(monkeypatch):
             "confidence": 0.85,
         }
 
+    def mock_predict_abnormality(self, raw):
+        """Mock abnormality prediction."""
+        # Calculate number of windows
+        duration = raw.times[-1] if hasattr(raw, "times") else 20.0
+        window_size = 4.0
+        overlap = 0.5
+        step_size = window_size * (1 - overlap)
+        n_windows = max(1, int((duration - window_size) / step_size) + 1)
+
+        # Generate mock window scores
+        window_scores = [0.15 + 0.1 * np.random.rand() for _ in range(n_windows)]
+
+        return {
+            "abnormal_probability": 0.15,
+            "confidence": 0.85,
+            "window_scores": window_scores,
+            "n_windows": n_windows,
+            "used_streaming": False,
+        }
+
     # Apply all mocks
     monkeypatch.setattr("brain_go_brrr.models.eegpt_model.EEGPTModel.load_model", mock_load_model)
     monkeypatch.setattr(
@@ -140,6 +160,10 @@ def mock_eegpt_model_loading(monkeypatch):
     monkeypatch.setattr(
         "brain_go_brrr.models.eegpt_model.EEGPTModel.process_recording",
         mock_process_recording,
+    )
+    monkeypatch.setattr(
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.predict_abnormality",
+        mock_predict_abnormality,
     )
 
 

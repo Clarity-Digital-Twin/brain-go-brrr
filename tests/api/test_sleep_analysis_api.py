@@ -156,7 +156,11 @@ class TestSleepAnalysisEndpoints:
             results_response = client.get(f"/api/v1/eeg/sleep/jobs/{job_id}/results")
 
             # Should either have results or indicate they're not ready yet
-            assert results_response.status_code in [200, 202, 404]
+            # For single-channel EDF, we expect a failed job (404 or 500)
+            if status_data.get("status") == "failed":
+                assert results_response.status_code in [404, 500]
+            else:
+                assert results_response.status_code in [200, 202]
 
     def test_sleep_analysis_result_format(self, client):
         """Test that sleep analysis results follow expected format."""

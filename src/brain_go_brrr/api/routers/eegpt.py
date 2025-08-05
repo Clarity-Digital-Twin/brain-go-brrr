@@ -22,7 +22,7 @@ from brain_go_brrr.models.linear_probe import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/eeg", tags=["eegpt"])
+router = APIRouter(prefix="/eeg/eegpt", tags=["eegpt"])
 
 
 class EEGPTAnalysisResponse(BaseModel):
@@ -227,6 +227,71 @@ async def get_available_probes() -> ProbeInfoResponse:
         available_probes=list(probe_info.keys()),
         probe_info=probe_info,
     )
+
+
+@router.post("/sleep/stages")  # type: ignore[misc]
+async def analyze_sleep_stages(
+    edf_file: UploadFile = File(...),
+) -> dict[str, Any]:
+    """Analyze sleep stages from EEG file.
+
+    Returns window-by-window sleep stage predictions.
+    """
+    # Validate file
+    if not edf_file.filename or not edf_file.filename.lower().endswith(".edf"):
+        raise HTTPException(status_code=400, detail="Only EDF files are supported")
+
+    content = await edf_file.read()
+
+    with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp_file:
+        tmp_path = Path(tmp_file.name)
+        tmp_file.write(content)
+        tmp_file.flush()
+
+    try:
+        # Load EDF
+        raw = load_edf_safe(tmp_path, preload=True, verbose=False)
+        data = raw.get_data()
+        channel_names = raw.ch_names
+
+        # Get model
+        eegpt_model = get_eegpt_model()
+
+        # Extract windows
+        windows = eegpt_model.extract_windows(data, int(raw.info["sfreq"]))
+        logger.info(f"Extracted {len(windows)} windows from {data.shape} data")
+
+        # Get sleep probe
+        probe = get_probe("sleep")
+
+        stages = []
+        confidence_scores = []
+
+        for window in windows:
+            # Extract features
+            features = eegpt_model.extract_features(window, channel_names)
+            features_tensor = torch.FloatTensor(features).unsqueeze(0)
+
+            # Predict stage
+            with torch.no_grad():
+                stage, confidence = probe.predict_stage(features_tensor)
+                stages.extend(stage)
+                confidence_scores.append(confidence.item())
+
+        return {
+            "stages": stages,
+            "confidence_scores": confidence_scores,
+            "total_windows": len(windows),
+            "sampling_rate": int(raw.info["sfreq"]),
+        }
+
+    except Exception as e:
+        logger.error(f"Error in sleep stage analysis: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Sleep analysis failed") from e
+    finally:
+        with contextlib.suppress(Exception):
+            if tmp_path.exists():
+                tmp_path.unlink()
 
 
 @router.post("/analyze/batch")  # type: ignore[misc]

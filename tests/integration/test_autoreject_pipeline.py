@@ -1,5 +1,6 @@
 """Integration tests for complete AutoReject pipeline with EEGPT."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import mne
@@ -137,28 +138,32 @@ class TestAutoRejectEEGPTIntegration:
         # Given: Configuration with AutoReject enabled
         config = mock_tuab_config
 
+        # Create the expected directory structure for TUAB dataset
+        data_dir = Path(config["data_config"]["data_dir"])
+        train_dir = data_dir / "train"
+        normal_dir = train_dir / "normal"
+        abnormal_dir = train_dir / "abnormal"
+
+        normal_dir.mkdir(parents=True, exist_ok=True)
+        abnormal_dir.mkdir(parents=True, exist_ok=True)
+
+        # Move mock EDF files to the appropriate directories
+        for i, edf_file in enumerate(mock_edf_files):
+            if i % 2 == 0:
+                edf_file.rename(normal_dir / edf_file.name)
+            else:
+                edf_file.rename(abnormal_dir / edf_file.name)
+
         # When: Creating dataset with AutoReject
-        with patch("brain_go_brrr.data.tuab_enhanced_dataset.pd.read_csv") as mock_read_csv:
-            # Mock labels
-            import pandas as pd
-
-            mock_labels = pd.DataFrame(
-                {
-                    "filename": [f.name for f in mock_edf_files],
-                    "label": [i % 2 for i in range(len(mock_edf_files))],
-                }
-            )
-            mock_read_csv.return_value = mock_labels
-
-            dataset = TUABEnhancedDataset(
-                data_dir=config["data_config"]["data_dir"],
-                split="train",
-                use_autoreject=True,
-                ar_cache_dir=config["data_config"]["ar_cache_dir"],
-                window_duration=config["data_config"]["window_duration"],
-                window_stride=config["data_config"]["window_stride"],
-                sampling_rate=config["data_config"]["sampling_rate"],
-            )
+        dataset = TUABEnhancedDataset(
+            root_dir=config["data_config"]["data_dir"],
+            split="train",
+            use_autoreject=True,
+            ar_cache_dir=config["data_config"]["ar_cache_dir"],
+            window_duration=config["data_config"]["window_duration"],
+            window_stride=config["data_config"]["window_stride"],
+            sampling_rate=config["data_config"]["sampling_rate"],
+        )
 
         # Then: Should have AutoReject components initialized
         assert dataset.use_autoreject is True
@@ -172,9 +177,20 @@ class TestAutoRejectEEGPTIntegration:
     @patch("mne.io.read_raw_edf")
     def test_data_loading_with_autoreject(self, mock_read_edf, mock_tuab_config, tmp_path):
         """Test that data loading applies AutoReject cleaning."""
+        # Create required directory structure
+        train_dir = tmp_path / "train"
+        normal_dir = train_dir / "normal"
+        abnormal_dir = train_dir / "abnormal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
+        abnormal_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a dummy EDF file
+        dummy_edf = normal_dir / "test.edf"
+        dummy_edf.touch()
+
         # Given: Dataset with AutoReject
         dataset = TUABEnhancedDataset(
-            data_dir=tmp_path,
+            root_dir=tmp_path,
             split="train",
             use_autoreject=True,
             ar_cache_dir=tmp_path / "ar_cache",
@@ -192,17 +208,23 @@ class TestAutoRejectEEGPTIntegration:
             mock_ar.return_value = mock_raw  # Return cleaned version
 
             # When: Loading a file
-            result = dataset._load_edf_file(tmp_path / "test.edf", label=0)
+            result = dataset._load_edf_file(dummy_edf)
 
             # Then: Should apply AutoReject
             mock_ar.assert_called_once()
-            assert "windows" in result
-            assert "label" in result
+            # Result should be numpy array of EEG data
+            assert isinstance(result, np.ndarray)
+            assert result.shape[0] == 19  # channels
 
     def test_autoreject_fallback_on_error(self, mock_tuab_config, tmp_path):
         """Test fallback to amplitude rejection when AutoReject fails."""
+        # Create required directory structure
+        train_dir = tmp_path / "train"
+        normal_dir = train_dir / "normal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
+
         # Given: Dataset with AutoReject that will fail
-        dataset = TUABEnhancedDataset(data_dir=tmp_path, split="train", use_autoreject=True)
+        dataset = TUABEnhancedDataset(root_dir=tmp_path, split="train", use_autoreject=True)
 
         # Mock raw data
         mock_raw = MagicMock()
@@ -223,8 +245,13 @@ class TestAutoRejectEEGPTIntegration:
 
     def test_performance_metrics_tracking(self, mock_tuab_config, tmp_path):
         """Test that performance metrics are tracked."""
+        # Create required directory structure
+        train_dir = tmp_path / "train"
+        normal_dir = train_dir / "normal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
+
         # Given: Dataset with metrics tracking
-        dataset = TUABEnhancedDataset(data_dir=tmp_path, split="train", use_autoreject=True)
+        dataset = TUABEnhancedDataset(root_dir=tmp_path, split="train", use_autoreject=True)
 
         # Initialize tracking
         dataset.ar_processing_time = 0
@@ -261,12 +288,16 @@ class TestAutoRejectEEGPTIntegration:
         # Baseline memory
         mem_start = process.memory_info().rss / 1024 / 1024  # MB
 
+        # Create required directory structure
+        train_dir = tmp_path / "train"
+        normal_dir = train_dir / "normal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
+
         # Create dataset with AutoReject
         TUABEnhancedDataset(
-            data_dir=tmp_path,
+            root_dir=tmp_path,
             split="train",
             use_autoreject=True,
-            max_samples=50,  # Limit for testing
         )
 
         # Simulate loading multiple files
@@ -284,9 +315,14 @@ class TestAutoRejectEEGPTIntegration:
 
     def test_backward_compatibility(self, mock_tuab_config, tmp_path):
         """Test that disabling AutoReject maintains backward compatibility."""
+        # Create required directory structure
+        train_dir = tmp_path / "train"
+        normal_dir = train_dir / "normal"
+        normal_dir.mkdir(parents=True, exist_ok=True)
+
         # Given: Dataset with AutoReject disabled
         dataset_no_ar = TUABEnhancedDataset(
-            data_dir=tmp_path,
+            root_dir=tmp_path,
             split="train",
             use_autoreject=False,  # Disabled
         )
@@ -305,7 +341,8 @@ class TestAutoRejectEEGPTIntegration:
 
         # Create minimal training script mock
         train_script = tmp_path / "train_enhanced.py"
-        train_script.write_text("""
+        train_script.write_text(
+            """
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--use-autoreject', action='store_true')
@@ -313,7 +350,8 @@ parser.add_argument('--ar-cache-dir', type=str, default='ar_cache')
 args = parser.parse_args()
 print(f"AutoReject: {args.use_autoreject}")
 print(f"Cache: {args.ar_cache_dir}")
-""")
+"""
+        )
 
         # Test with AutoReject enabled
         result = subprocess.run(

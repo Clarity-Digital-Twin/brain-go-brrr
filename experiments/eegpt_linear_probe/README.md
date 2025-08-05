@@ -1,74 +1,143 @@
 # EEGPT Linear Probe Training
 
-## 🚨 CRITICAL: PyTorch Lightning Bug Warning
+## 🎯 Mission: Achieve Paper-Level Performance
 
-**DO NOT USE PyTorch Lightning for training!** Lightning 2.5.2 has a critical bug that causes training to hang indefinitely at "Loading train_dataloader to estimate number of stepping batches" with large cached datasets (>100k samples).
+Train a linear probe on frozen EEGPT features for EEG abnormality detection using the TUAB dataset.
 
-See [LIGHTNING_BUG_REPORT.md](LIGHTNING_BUG_REPORT.md) for full details.
+**Target**: AUROC ≥ 0.869 (paper performance with 4-second windows)
 
-## ✅ Working Training Script
+## 🟢 Current Status
 
-Use **`train_pytorch_stable.py`** - Pure PyTorch implementation that works perfectly.
+**TRAINING ACTIVE**: 4-second window configuration running
+- Session: `tmux attach -t eegpt_4s_final`
+- Expected completion: ~3-4 hours
+- Monitor: `tail -f output/tuab_4s_paper_aligned_20250805_181351/training.log`
+
+## ⚡ Quick Start
 
 ```bash
-# Launch training
-./launch_training.sh
+# Set environment
+export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
+
+# Run smoke test to verify setup
+python smoke_test_paper_aligned.py
+
+# Launch training (4-second windows - CORRECT)
+bash launch_paper_aligned_training.sh
 
 # Monitor progress
-tmux attach -t eegpt_training
+tmux attach -t eegpt_4s_final
 ```
 
-## Overview
+## 📁 Clean Directory Structure
 
-This experiment implements EEGPT linear probe training for EEG abnormality detection on the TUAB dataset.
+```
+experiments/eegpt_linear_probe/
+├── configs/                      # Training configurations
+│   ├── tuab_4s_paper_aligned.yaml  # ✅ ACTIVE - Paper-aligned 4s config
+│   ├── tuab_8s_temp.yaml           # 8s config (suboptimal)
+│   └── archive/                    # Old configs
+├── output/                       # Training outputs
+│   └── tuab_4s_paper_aligned_*/    # Current training
+├── archive/                      # Obsolete/failed attempts
+│   └── old_scripts/              # Deprecated scripts
+├── train_paper_aligned.py       # ✅ MAIN training script
+├── smoke_test_paper_aligned.py  # Pre-flight checks
+├── custom_collate_fixed.py      # Handles variable channels
+├── launch_paper_aligned_training.sh  # Launch script
+└── *.md                          # Documentation
+```
+
+## 🔑 Critical Insights
+
+### Why 4-Second Windows Are Essential
+
+| Window Size | AUROC | Status | Notes |
+|------------|-------|--------|-------|
+| **4 seconds** | **0.869** | **✅ Paper** | EEGPT pretrained on 4s |
+| 8 seconds | ~0.81 | ❌ Too low | Mismatched with pretraining |
+
+**The pretrained EEGPT model expects 4-second windows!**
 
 ### Architecture
-- **Backbone**: Frozen EEGPT (25.3M parameters)
-- **Probe**: Two-layer MLP with dropout (34.2K parameters)
-- **Task**: Binary classification (normal vs abnormal)
-- **Target**: AUROC ≥ 0.93
 
-### Dataset
-- **TUAB**: TUH Abnormal EEG Corpus v3.0.1
-- **Windows**: 8 seconds @ 256Hz (2048 samples)
-- **Channels**: 19 standard 10-20 channels
-- **Training**: 930,495 cached windows
-- **Validation**: 232,548 cached windows
+```
+Input (4s @ 256Hz) → EEGPT (frozen) → Linear Probe → Binary Classification
+     1024 samples       512-dim            2 classes
+                       features         (normal/abnormal)
+```
 
-### Key Features
-- Channel adapter: Maps 19 → 22 → 19 channels
-- Custom collate function for variable channel counts
-- Cached dataset for fast loading
-- Pure PyTorch training (no Lightning)
+## ⚠️ Common Pitfalls & Solutions
 
-## Files
+| Problem | Solution |
+|---------|----------|
+| PyTorch Lightning hangs | Use pure PyTorch (`train_paper_aligned.py`) |
+| Missing cache index | Copy from 8s cache or build new |
+| Channel count mismatch | Use `custom_collate_fixed.py` |
+| Wrong window size | MUST use 4 seconds |
+| Old channel names | TUAB uses T3/T4/T5/T6 (handled automatically) |
 
-### Core Training
-- `train_pytorch_stable.py` - ✅ WORKING training script
-- `launch_training.sh` - Professional launch script
-- `custom_collate_fixed.py` - Handles channel padding
+## 📊 Performance Benchmarks
 
-### Configuration
-- `configs/tuab_stable.yaml` - Training configuration
-- `configs/tuab_cached.yaml` - Dataset caching config
+| Metric | Current | Target | Paper |
+|--------|---------|--------|-------|
+| AUROC | TBD (training) | ≥0.85 | 0.869 |
+| Balanced Acc | TBD | >80% | 85.4% |
+| Window Size | 4s | 4s | 4s |
+| Epochs | 0/200 | - | 200 |
 
-### Documentation
-- `LIGHTNING_BUG_REPORT.md` - Critical bug documentation
-- `CHANNEL_MAPPING_EXPLAINED.md` - Channel naming details
+## 🛠️ Key Configuration
 
-### Legacy (DO NOT USE)
-- `train_enhanced.py` - ❌ BROKEN - Uses Lightning, will hang
+```yaml
+# configs/tuab_4s_paper_aligned.yaml
+data:
+  window_duration: 4.0  # CRITICAL: Must be 4 seconds
+  window_stride: 2.0    # 50% overlap for training
+  sampling_rate: 256
+  
+model:
+  backbone:
+    checkpoint_path: eegpt_mcae_58chs_4s_large4E.ckpt
+  probe:
+    input_dim: 512  # EEGPT embedding dimension
+```
 
-## Performance
+## 📋 Monitoring Commands
 
-Training on RTX 4090:
-- Speed: ~2.4 iterations/second
-- Memory: ~12GB VRAM
-- Time: ~10 hours for 50 epochs
+```bash
+# Live training view
+tmux attach -t eegpt_4s_final
 
-## Results
+# Check process
+ps aux | grep train_paper_aligned
 
-Best performance achieved:
-- AUROC: TBD (training in progress)
-- Balanced Accuracy: TBD
-- Target: AUROC ≥ 0.93 (from paper)
+# Watch logs
+tail -f output/tuab_4s_paper_aligned_*/training.log | grep -E "Epoch|AUROC"
+
+# GPU usage
+watch -n 1 nvidia-smi
+```
+
+## 📚 Documentation
+
+- `TRAINING_STATUS.md` - Live training updates
+- `ISSUES_AND_FIXES.md` - Problems encountered & solutions
+- `SETUP_COOKBOOK.md` - Detailed setup guide
+
+## 🎯 Success Criteria
+
+- [ ] AUROC ≥ 0.869 on validation set
+- [ ] Stable training (no NaN/divergence)
+- [ ] Reproducible results (seed=42)
+- [ ] Saved best checkpoint
+
+## 🚀 Next Steps
+
+1. **Let current training complete** (3-4 hours)
+2. **Evaluate on test set** once training finishes
+3. **Save best model** for production inference
+4. **Document final results** in TRAINING_STATUS.md
+
+---
+
+**Remember**: The key to success is using 4-second windows to match the EEGPT pretraining!

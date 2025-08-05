@@ -154,13 +154,6 @@ class TestAbnormalityAccuracy:
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
         # Log confusion matrix for debugging
-        print("\nConfusion Matrix:")
-        print(f"TN: {tn}, FP: {fp}")
-        print(f"FN: {fn}, TP: {tp}")
-        print(f"Accuracy: {accuracy:.2%}")
-        print(f"Precision: {precision:.2%}")
-        print(f"Recall: {recall:.2%}")
-        print(f"F1 Score: {f1:.3f}")
 
         # Basic sanity checks
         assert accuracy > 0.75  # Overall accuracy

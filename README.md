@@ -57,10 +57,11 @@ make run-api
 
 ### 2. Abnormality Detection
 
-- **Binary Classification**: Normal/Abnormal with >80% balanced accuracy
+- **Binary Classification**: Normal/Abnormal targeting 86.9% AUROC (paper performance)
 - **Triage System**: Automatic flagging (URGENT/EXPEDITE/ROUTINE/NORMAL)
 - **Confidence Scoring**: 0-1 scale with uncertainty quantification
 - **Clinical Integration**: EMR-compatible output (HL7/FHIR ready)
+- **Status**: Linear probe training active with 4-second windows
 
 ### 3. Event Detection
 

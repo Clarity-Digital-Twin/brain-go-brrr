@@ -19,10 +19,18 @@ class TestPerformanceBenchmarks:
     """Performance benchmarks for production requirements."""
 
     @pytest.fixture
-    def eegpt_model(self, benchmark_model_path):
+    def eegpt_model(self):
         """Load EEGPT model for performance tests."""
-        model_path = benchmark_model_path  # From benchmark_data fixture
-        return EEGPTModel(checkpoint_path=model_path)
+        from brain_go_brrr.core.config import ModelConfig
+        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+
+        config = ModelConfig(device="cpu")
+        model = EEGPTModel(config=config, auto_load=False)
+        # Create architecture without checkpoint
+        model.encoder = create_eegpt_model(checkpoint_path=None)
+        model.encoder.to(model.device)
+        model.is_loaded = True
+        return model
 
     @pytest.mark.slow
     def test_inference_speed(self, eegpt_model, benchmark):

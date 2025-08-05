@@ -38,11 +38,9 @@ def test_encoder_raw_output():
     # Run through model's extract_features
     features = model.extract_features(data, ch_names)
 
-    print(f"Features shape: {features.shape}")
     assert features.shape == (4, 512), f"Expected (4, 512) summary tokens, got {features.shape}"
 
     # Check that summary tokens are different from each other
-    print("\nSummary token analysis:")
     similarities = []
     for i in range(4):
         for j in range(i + 1, 4):
@@ -50,11 +48,9 @@ def test_encoder_raw_output():
                 torch.from_numpy(features[i]), torch.from_numpy(features[j]), dim=0
             )
             similarities.append(similarity.item())
-            print(f"  Token {i} vs Token {j} similarity: {similarity.item():.4f}")
 
     # Summary tokens should be different (not identical)
     avg_similarity = np.mean(similarities)
-    print(f"\nAverage similarity between tokens: {avg_similarity:.4f}")
     # With random initialization, tokens will be somewhat similar but not identical
     # Relaxed threshold for mock model
     assert avg_similarity < 0.995, (
@@ -62,17 +58,13 @@ def test_encoder_raw_output():
     )
 
     # Check token statistics
-    print("\nSummary token statistics:")
     for i in range(4):
-        token_stats = {
+        {
             "mean": features[i].mean(),
             "std": features[i].std(),
             "min": features[i].min(),
             "max": features[i].max(),
         }
-        print(f"  Token {i}: mean={token_stats['mean']:.4f}, std={token_stats['std']:.4f}")
-
-    print("\n✅ Summary tokens are properly extracted!")
 
 
 @pytest.mark.integration  # Requires model internals
@@ -81,32 +73,26 @@ def test_find_summary_tokens():
     model = EEGPTModel()
 
     # Check if encoder has summary tokens as parameters
-    print("Checking encoder parameters for summary tokens:")
     found_summary_token = False
 
     for name, param in model.encoder.named_parameters():
-        if "summary" in name.lower() or "cls" in name.lower() or "token" in name.lower():
-            print(f"  Found: {name} - shape: {param.shape}")
-            if "summary_token" in name:
-                found_summary_token = True
-                # Should be shape (1, 4, 512) for 4 summary tokens
-                assert param.shape[1] == 4, f"Expected 4 summary tokens, got {param.shape[1]}"
-                assert param.shape[2] == 512, f"Expected 512 dim embeddings, got {param.shape[2]}"
+        if (
+            "summary" in name.lower() or "cls" in name.lower() or "token" in name.lower()
+        ) and "summary_token" in name:
+            found_summary_token = True
+            # Should be shape (1, 4, 512) for 4 summary tokens
+            assert param.shape[1] == 4, f"Expected 4 summary tokens, got {param.shape[1]}"
+            assert param.shape[2] == 512, f"Expected 512 dim embeddings, got {param.shape[2]}"
 
     assert found_summary_token, "No summary_token parameter found in encoder!"
 
     # Check encoder attributes
-    print("\nChecking encoder attributes:")
     if hasattr(model.encoder, "embed_num"):
-        print(f"  embed_num (number of summary tokens): {model.encoder.embed_num}")
         assert model.encoder.embed_num == 4, (
             f"Expected 4 summary tokens, got {model.encoder.embed_num}"
         )
 
-    print("\n✅ Encoder has proper summary token architecture!")
-
 
 if __name__ == "__main__":
     test_encoder_raw_output()
-    print("\n" + "=" * 50 + "\n")
     test_find_summary_tokens()

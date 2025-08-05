@@ -526,17 +526,18 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict:  # noqa: ARG002
+    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict:
         """Run the complete QC pipeline.
 
         Args:
             raw: Raw EEG data
             preprocess: Whether to apply preprocessing
-            **kwargs: Additional arguments
+            **kwargs: Additional arguments (for future extensibility)
 
         Returns:
             Complete QC report
         """
+        _ = kwargs  # Mark as intentionally unused (for future extensibility)
         logger.info("Starting full QC pipeline")
 
         # Preprocessing

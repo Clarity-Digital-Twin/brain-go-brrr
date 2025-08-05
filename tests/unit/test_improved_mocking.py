@@ -122,4 +122,3 @@ class TestImprovedMocking:
             # With random classifier weights, we can't guarantee specific differences,
             # but the pipeline should work without errors
             assert score_normal is not None and score_abnormal is not None
-            print(f"Pipeline working: normal={score_normal:.4f}, abnormal={score_abnormal:.4f}")

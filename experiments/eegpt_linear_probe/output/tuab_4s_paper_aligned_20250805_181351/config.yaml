@@ -1,0 +1,67 @@
+data:
+  augmentation:
+    amplitude_scale: 0.1
+    time_shift: 0.1
+  bandpass_high: 38.0
+  bandpass_low: 0.5
+  batch_size: 256
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_windows
+  cache_mode: readonly
+  dataset: tuab
+  notch_filter: null
+  num_workers: 4
+  persistent_workers: true
+  pin_memory: true
+  prefetch_factor: 2
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf
+  sampling_rate: 256
+  use_cached_dataset: true
+  window_duration: 4.0
+  window_stride: 2.0
+experiment:
+  name: tuab_4s_paper_aligned
+  seed: 42
+model:
+  backbone:
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+    n_channels: 19
+    name: eegpt
+  probe:
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    dropout: 0.5
+    hidden_dim: 32
+    input_dim: 512
+    n_classes: 2
+    type: two_layer
+    use_channel_adapter: true
+training:
+  checkpoint:
+    mode: max
+    monitor: val_auroc
+    save_top_k: 3
+  early_stopping:
+    mode: max
+    monitor: val_auroc
+    patience: 20
+  gradient_clip_algorithm: norm
+  gradient_clip_val: 5.0
+  log_every_n_steps: 50
+  max_epochs: 200
+  optimizer:
+    lr: 0.00025
+    name: AdamW
+    weight_decay: 0.01
+  precision: 16
+  scheduler:
+    anneal_strategy: cos
+    div_factor: 20
+    epochs: 200
+    final_div_factor: 1000
+    max_lr: 5e-4
+    name: OneCycleLR
+    pct_start: 0.3
+    steps_per_epoch: -1
+  val_check_interval: 0.5
+  weighted_loss: true

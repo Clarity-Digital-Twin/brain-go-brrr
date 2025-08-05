@@ -1,0 +1,101 @@
+# TUAB configuration aligned with EEGPT paper specifications
+# - 4-second windows (matches EEGPT pretraining)
+# - OneCycle LR schedule
+# - 200 epochs
+# - Proper regularization
+
+experiment:
+  name: "tuab_4s_paper_aligned"
+  seed: 42
+  
+model:
+  backbone:
+    name: "eegpt"
+    checkpoint_path: "${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+    freeze: true  # Linear probing
+    n_channels: 19  # TUAB standard channels
+    
+  probe:
+    type: "two_layer"
+    input_dim: 512  # EEGPT feature dimension (model-specific)
+    hidden_dim: 32  # Slightly larger for better capacity
+    n_classes: 2
+    dropout: 0.5
+    use_channel_adapter: true
+    channel_adapter_in: 19
+    channel_adapter_out: 19
+    
+data:
+  dataset: "tuab"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
+  cache_dir: "${BGB_DATA_ROOT}/cache/tuab_4s_windows"
+  
+  # USE 4-SECOND WINDOWS TO MATCH EEGPT PRETRAINING
+  use_cached_dataset: true
+  cache_mode: "readonly"
+  
+  # Window specifications MATCHING PAPER
+  window_duration: 4.0    # 4 seconds (EEGPT paper)
+  window_stride: 2.0      # 50% overlap
+  sampling_rate: 256      # 256 Hz
+  
+  # Preprocessing (matching paper)
+  bandpass_low: 0.5       
+  bandpass_high: 38.0     # Paper uses 0-38Hz for MI tasks
+  notch_filter: null      
+  
+  # Data loading
+  batch_size: 256         # Larger batch for stability
+  num_workers: 4          
+  pin_memory: true        
+  persistent_workers: true
+  prefetch_factor: 2      
+  
+  # Augmentation
+  augmentation:
+    time_shift: 0.1       # ±10% temporal jitter
+    amplitude_scale: 0.1  # ±10% amplitude variation
+    
+training:
+  max_epochs: 200         # Paper uses 200 epochs
+  
+  optimizer:
+    name: "AdamW"
+    lr: 2.5e-4           # Initial LR from paper
+    weight_decay: 0.01
+    
+  scheduler:
+    name: "OneCycleLR"    # Paper uses OneCycle
+    max_lr: 5e-4          # Peak LR from paper
+    epochs: 200
+    steps_per_epoch: -1   # Will be computed
+    pct_start: 0.3        # 30% warmup
+    anneal_strategy: "cos"
+    div_factor: 20        # start_lr = max_lr / 20
+    final_div_factor: 1000 # end_lr = start_lr / 1000
+    
+  # Gradient clipping for stability
+  gradient_clip_val: 5.0
+  gradient_clip_algorithm: "norm"
+  
+  # Early stopping
+  early_stopping:
+    monitor: "val_auroc"
+    patience: 20          # More patience for OneCycle
+    mode: "max"
+    
+  # Checkpointing
+  checkpoint:
+    monitor: "val_auroc"
+    save_top_k: 3
+    mode: "max"
+    
+  # Class balancing
+  weighted_loss: true     # Handle class imbalance
+  
+  # Logging
+  log_every_n_steps: 50
+  val_check_interval: 0.5 # Validate twice per epoch
+  
+  # Mixed precision
+  precision: 16           # Use AMP for speed

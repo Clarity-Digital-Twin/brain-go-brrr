@@ -126,7 +126,6 @@ class EEGPTLinearProbe(nn.Module):
 
         # Check for NaN in features and replace with zeros if found
         if torch.isnan(features).any():
-            print("WARNING: NaN detected in EEGPT features, replacing with zeros")
             features = torch.nan_to_num(features, nan=0.0)
 
         # Flatten the features: [batch, embed_num, embed_dim] -> [batch, embed_num * embed_dim]

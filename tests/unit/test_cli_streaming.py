@@ -395,7 +395,6 @@ class TestCLIStreamingEdgeCases:
             # If there was an error, it should be in stderr
             assert stderr, f"Process failed with code {proc.returncode} but no error output"
             # Log the error for debugging
-            print(f"Process stderr: {stderr}")
         else:
             # Process completed normally (max-windows=2 is small)
             assert stdout, "Process completed but produced no output"

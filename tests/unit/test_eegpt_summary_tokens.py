@@ -158,7 +158,6 @@ class TestEEGPTSummaryTokens:
             encoder_output = eegpt_model.encoder(data_tensor, chan_ids)
 
         # Check output shape - should contain summary tokens
-        print(f"Encoder output shape: {encoder_output.shape}")
 
         # The output should have a dimension for summary tokens
         # Based on the paper, we expect something like:
@@ -175,11 +174,8 @@ class TestEEGPTSummaryTokens:
             other_tokens = encoder_output[0, 4:, :].cpu().numpy()
 
             # Summary tokens should have different statistics
-            summary_mean = np.mean(potential_summary)
-            other_mean = np.mean(other_tokens)
-
-            print(f"Potential summary tokens mean: {summary_mean:.6f}")
-            print(f"Other tokens mean: {other_mean:.6f}")
+            np.mean(potential_summary)
+            np.mean(other_tokens)
 
     @pytest.mark.parametrize(
         "freq1,freq2,expected_similarity",

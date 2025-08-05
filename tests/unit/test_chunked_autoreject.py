@@ -9,6 +9,7 @@ import pytest
 
 # This will fail until implemented - TDD!
 from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+from tests._test_utils import FakeAutoReject
 
 
 @pytest.fixture(autouse=True)
@@ -86,14 +87,12 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create a simple object with AutoReject-like attributes
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.array([[50.0, 100.0], [50.0, 100.0]])
-                self.consensus_ = [0.1]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = [0, 1]
-
-        fake_ar = FakeAutoReject()
+        fake_ar = FakeAutoReject(
+            thresholds=np.array([[50.0, 100.0], [50.0, 100.0]]),
+            consensus=[0.1],
+            n_interpolate=[1, 4],
+            picks=[0, 1],
+        )
 
         # Save parameters
         processor._save_parameters(fake_ar)
@@ -127,16 +126,14 @@ class TestChunkedAutoRejectProcessor:
 
     def test_parameter_extraction(self, temp_cache_dir):
         """Test extracting parameters from fitted AutoReject."""
-
         # Given: Object with AutoReject-like attributes
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.array([[100e-6, 150e-6], [120e-6, 180e-6]])
-                self.consensus_ = [0.1, 0.2]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = [0, 1, 2]
 
-        fake_ar = FakeAutoReject()
+        fake_ar = FakeAutoReject(
+            thresholds=np.array([[100e-6, 150e-6], [120e-6, 180e-6]]),
+            consensus=[0.1, 0.2],
+            n_interpolate=[1, 4],
+            picks=[0, 1, 2],
+        )
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # When: Extracting parameters
@@ -155,12 +152,6 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create fake AutoReject with parameters
-        class FakeAutoReject:
-            def __init__(self):
-                self.threshes_ = np.random.rand(19, 10)
-                self.consensus_ = [0.1]
-                self.n_interpolate_ = [1, 4]
-                self.picks_ = list(range(19))
 
         fake_ar = FakeAutoReject()
 
@@ -328,10 +319,48 @@ class TestChunkedProcessingIntegration:
     """Integration tests for chunked processing."""
 
     @pytest.mark.integration
-    def test_full_chunked_pipeline(self, temp_cache_dir):
+    def test_full_chunked_pipeline(self, tmp_path):
         """Test complete chunked processing pipeline."""
-        # This will be implemented when we have the actual classes
-        pass
+        # Use tmp_path instead of temp_cache_dir
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+
+        # Create processor
+        processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir, chunk_size=50)
+
+        # Verify processor initialized
+        assert processor.cache_dir == cache_dir
+        assert processor.chunk_size == 50
+        assert not processor.is_fitted
+
+        # Create mock parameters as if fitted
+        processor.ar_params = {
+            "thresholds": np.random.rand(19, 10),
+            "consensus": [0.1],
+            "n_interpolate": [1, 4],
+            "picks": list(range(19)),
+        }
+        processor.is_fitted = True
+
+        # Save parameters
+        # Use shared test utility
+
+        fake_ar = FakeAutoReject.from_params(processor.ar_params)
+        processor._save_parameters(fake_ar)
+
+        # Verify saved
+        param_file = cache_dir / "autoreject_params.pkl"
+        assert param_file.exists()
+
+        # Create new processor and load
+        new_processor = ChunkedAutoRejectProcessor(cache_dir=cache_dir)
+        new_processor._load_parameters()
+
+        # Verify loaded correctly
+        assert new_processor.is_fitted
+        assert np.array_equal(
+            new_processor.ar_params["thresholds"], processor.ar_params["thresholds"]
+        )
 
     def test_performance_benchmarks(self):
         """Benchmark processing speed."""

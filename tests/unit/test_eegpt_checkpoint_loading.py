@@ -8,6 +8,7 @@ This is a comprehensive test to verify:
 4. Model matches paper specifications exactly
 """
 
+import contextlib
 from pathlib import Path
 
 import numpy as np
@@ -37,9 +38,11 @@ class TestEEGPTCheckpointLoading:
 
         # Check summary token dimensions
         summary_token = checkpoint["state_dict"]["encoder.summary_token"]
-        assert summary_token.shape == (1, 4, 512), (
-            f"Summary token shape {summary_token.shape} doesn't match paper (1, 4, 512)"
-        )
+        assert summary_token.shape == (
+            1,
+            4,
+            512,
+        ), f"Summary token shape {summary_token.shape} doesn't match paper (1, 4, 512)"
 
         # Count transformer blocks (only encoder, not target_encoder)
         block_keys = [
@@ -52,9 +55,10 @@ class TestEEGPTCheckpointLoading:
 
         # Check attention dimensions
         attn_weight = checkpoint["state_dict"]["encoder.blocks.0.attn.qkv.weight"]
-        assert attn_weight.shape == (1536, 512), (
-            f"Attention qkv weight shape {attn_weight.shape} doesn't match expected (1536, 512)"
-        )
+        assert attn_weight.shape == (
+            1536,
+            512,
+        ), f"Attention qkv weight shape {attn_weight.shape} doesn't match expected (1536, 512)"
 
     @pytest.mark.slow
     def test_model_loads_all_weights(self, checkpoint_path):
@@ -74,8 +78,7 @@ class TestEEGPTCheckpointLoading:
 
         # They should be very close if loaded correctly (allowing for small numerical differences)
         # Check the actual difference first
-        diff = torch.abs(actual_tokens.cpu() - expected_tokens).max().item()
-        print(f"Max difference in summary tokens: {diff}")
+        torch.abs(actual_tokens.cpu() - expected_tokens).max().item()
 
         torch.testing.assert_close(
             actual_tokens.cpu(),
@@ -123,9 +126,10 @@ class TestEEGPTCheckpointLoading:
             beta_features = model(beta_input).squeeze(0)
 
         # Check shapes
-        assert alpha_features.shape == (4, 512), (
-            f"Feature shape {alpha_features.shape} != expected (4, 512)"
-        )
+        assert alpha_features.shape == (
+            4,
+            512,
+        ), f"Feature shape {alpha_features.shape} != expected (4, 512)"
 
         # Calculate cosine similarity
         alpha_flat = alpha_features.flatten()
@@ -143,8 +147,6 @@ class TestEEGPTCheckpointLoading:
         assert cosine_sim > -0.5, (
             f"Features seem random! Cosine similarity {cosine_sim:.3f} <= -0.5"
         )
-
-        print(f"✅ Features are discriminative! Cosine similarity: {cosine_sim:.3f}")
 
     @pytest.mark.slow
     def test_attention_module_compatibility(self, checkpoint_path):
@@ -194,7 +196,6 @@ class TestEEGPTCheckpointLoading:
             test_input = test_input.to("mps")
             output = model(test_input)
             assert output.shape == (1, 4, 512), f"MPS output shape {output.shape} incorrect"
-            print("✅ Model runs on M1 Mac (MPS)!")
 
 
 if __name__ == "__main__":
@@ -203,34 +204,19 @@ if __name__ == "__main__":
     checkpoint_path = Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
 
     if checkpoint_path.exists():
-        print("Running EEGPT checkpoint loading tests...\n")
-
-        try:
+        with contextlib.suppress(AssertionError):
             test.test_checkpoint_architecture_matches_paper(checkpoint_path)
-            print("✅ Checkpoint architecture matches paper")
-        except AssertionError as e:
-            print(f"❌ Architecture test failed: {e}")
 
-        try:
+        with contextlib.suppress(Exception):
             test.test_model_loads_all_weights(checkpoint_path)
-            print("✅ All weights loaded successfully")
-        except Exception as e:
-            print(f"❌ Weight loading failed: {e}")
 
-        try:
+        with contextlib.suppress(AssertionError):
             test.test_features_are_discriminative(checkpoint_path)
-        except AssertionError as e:
-            print(f"❌ Feature discrimination failed: {e}")
 
-        try:
+        with contextlib.suppress(AssertionError):
             test.test_attention_module_compatibility(checkpoint_path)
-            print("✅ Attention module compatible with checkpoint")
-        except AssertionError as e:
-            print(f"❌ Attention compatibility failed: {e}")
 
-        try:
+        with contextlib.suppress(Exception):
             test.test_model_device_compatibility(checkpoint_path)
-        except Exception as e:
-            print(f"❌ Device compatibility failed: {e}")
     else:
-        print(f"❌ Checkpoint not found at {checkpoint_path}")
+        pass

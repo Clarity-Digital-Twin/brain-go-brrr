@@ -14,7 +14,7 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 - `num_sanity_val_steps=0` ❌
 - `fast_dev_run=True` ❌
 
-**SOLUTION**: Use `experiments/eegpt_linear_probe/train_pytorch_stable.py` (pure PyTorch)
+**SOLUTION**: Use `experiments/eegpt_linear_probe/train_paper_aligned.py` (pure PyTorch)
 
 ## 🧠 Critical Context
 
@@ -153,16 +153,16 @@ brain-go-brrr/
 - Generate reports in <30 seconds
 - Implementation: `/services/qc_flagger.py`
 
-### 2. Abnormality Detection ✅
+### 2. Abnormality Detection 🟢 TRAINING
 
 - Binary classification (normal/abnormal)
-- > 80% balanced accuracy target (AUROC ≥ 0.93)
+- **Target AUROC**: ≥ 0.869 (paper performance)
 - Confidence scoring (0-1)
 - Triage flags: routine/expedite/urgent
-- Reference: BioSerenity-E1 (94.63% accuracy)
+- **CRITICAL**: Must use 4-second windows (EEGPT pretrained on 4s)
 - **IMPLEMENTED**: Linear probe training in `experiments/eegpt_linear_probe/`
 - **FIXED**: Channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)
-- **STATUS**: Training with 20 channels, 8s windows @ 256Hz
+- **STATUS**: Training with 4s windows @ 256Hz - `tmux attach -t eegpt_4s_final`
 
 ### 3. Event Detection
 
