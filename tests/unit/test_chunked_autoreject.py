@@ -91,7 +91,7 @@ class TestChunkedAutoRejectProcessor:
             thresholds=np.array([[50.0, 100.0], [50.0, 100.0]]),
             consensus=[0.1],
             n_interpolate=[1, 4],
-            picks=[0, 1]
+            picks=[0, 1],
         )
 
         # Save parameters
@@ -128,12 +128,11 @@ class TestChunkedAutoRejectProcessor:
         """Test extracting parameters from fitted AutoReject."""
         # Given: Object with AutoReject-like attributes
 
-
         fake_ar = FakeAutoReject(
             thresholds=np.array([[100e-6, 150e-6], [120e-6, 180e-6]]),
             consensus=[0.1, 0.2],
             n_interpolate=[1, 4],
-            picks=[0, 1, 2]
+            picks=[0, 1, 2],
         )
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
@@ -153,7 +152,6 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create fake AutoReject with parameters
-
 
         fake_ar = FakeAutoReject()
 
@@ -346,7 +344,6 @@ class TestChunkedProcessingIntegration:
 
         # Save parameters
         # Use shared test utility
-
 
         fake_ar = FakeAutoReject.from_params(processor.ar_params)
         processor._save_parameters(fake_ar)

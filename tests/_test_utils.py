@@ -13,7 +13,7 @@ class FakeAutoReject:
         thresholds: np.ndarray | None = None,
         consensus: list[float] | None = None,
         n_interpolate: list[int] | None = None,
-        picks: list[int] | None = None
+        picks: list[int] | None = None,
     ):
         """Initialize fake AutoReject with parameters.
 
@@ -42,6 +42,5 @@ class FakeAutoReject:
             thresholds=params.get("thresholds"),
             consensus=params.get("consensus"),
             n_interpolate=params.get("n_interpolate"),
-            picks=params.get("picks")
+            picks=params.get("picks"),
         )
-

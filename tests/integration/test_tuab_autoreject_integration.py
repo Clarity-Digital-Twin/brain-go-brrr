@@ -220,7 +220,10 @@ class TestTUABAutoRejectIntegration:
             # Expected - dummy files are not valid EDFs
             # ValueError: "invalid literal for int() with base 10: ''"
             _ = TUABEnhancedDataset(
-                root_dir=temp_dataset_dir, split="train", use_autoreject=True, ar_cache_dir=cache_dir
+                root_dir=temp_dataset_dir,
+                split="train",
+                use_autoreject=True,
+                ar_cache_dir=cache_dir,
             )
 
         # Cache directory should be created even if dataset init fails
