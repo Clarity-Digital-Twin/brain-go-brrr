@@ -9,7 +9,7 @@ import pytest
 
 # This will fail until implemented - TDD!
 from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
-from tests._test_utils import FakeAutoReject
+
 
 
 @pytest.fixture(autouse=True)
@@ -128,7 +128,7 @@ class TestChunkedAutoRejectProcessor:
         """Test extracting parameters from fitted AutoReject."""
 
         # Given: Object with AutoReject-like attributes
-        from tests._test_utils import FakeAutoReject
+        
         
         fake_ar = FakeAutoReject(
             thresholds=np.array([[100e-6, 150e-6], [120e-6, 180e-6]]),
@@ -154,7 +154,7 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create fake AutoReject with parameters
-        from tests._test_utils import FakeAutoReject
+        
         
         fake_ar = FakeAutoReject()
 
@@ -347,7 +347,7 @@ class TestChunkedProcessingIntegration:
 
         # Save parameters
         # Use shared test utility
-        from tests._test_utils import FakeAutoReject
+        
         
         fake_ar = FakeAutoReject.from_params(processor.ar_params)
         processor._save_parameters(fake_ar)
