@@ -370,6 +370,13 @@ ci: ## Run CI pipeline locally
 	$(MAKE) build
 	@echo "$(GREEN)CI pipeline completed successfully!$(NC)"
 
+check-all: ## Run all quality checks (for CI/CD)
+	@echo "$(GREEN)Running all quality checks...$(NC)"
+	$(MAKE) lint
+	$(MAKE) type-fast
+	$(MAKE) test-ci
+	@echo "$(GREEN)All checks passed!$(NC)"
+
 ##@ Examples
 
 example-train: ## Run training example

@@ -12,7 +12,6 @@ from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProc
 from tests._test_utils import FakeAutoReject
 
 
-
 @pytest.fixture(autouse=True)
 def _isolate_tests(tmp_path, monkeypatch):
     """Isolate each test with its own temporary directory."""
@@ -127,10 +126,9 @@ class TestChunkedAutoRejectProcessor:
 
     def test_parameter_extraction(self, temp_cache_dir):
         """Test extracting parameters from fitted AutoReject."""
-
         # Given: Object with AutoReject-like attributes
-        
-        
+
+
         fake_ar = FakeAutoReject(
             thresholds=np.array([[100e-6, 150e-6], [120e-6, 180e-6]]),
             consensus=[0.1, 0.2],
@@ -155,8 +153,8 @@ class TestChunkedAutoRejectProcessor:
         processor = ChunkedAutoRejectProcessor(cache_dir=temp_cache_dir)
 
         # Create fake AutoReject with parameters
-        
-        
+
+
         fake_ar = FakeAutoReject()
 
         # Save parameters
@@ -348,8 +346,8 @@ class TestChunkedProcessingIntegration:
 
         # Save parameters
         # Use shared test utility
-        
-        
+
+
         fake_ar = FakeAutoReject.from_params(processor.ar_params)
         processor._save_parameters(fake_ar)
 

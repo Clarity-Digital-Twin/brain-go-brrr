@@ -214,7 +214,7 @@ class TestTUABAutoRejectIntegration:
 
         # The dataset will fail to load invalid EDF files, but should still create cache dir
         from contextlib import suppress
-        
+
         # Catch specific exceptions that occur when loading invalid EDF files
         with suppress(ValueError, OSError, RuntimeError):
             # Expected - dummy files are not valid EDFs
