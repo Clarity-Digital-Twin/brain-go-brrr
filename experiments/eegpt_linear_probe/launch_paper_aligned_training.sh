@@ -17,7 +17,7 @@ echo "Log file: $LOG_FILE"
 
 # Launch in tmux for robustness
 tmux new-session -d -s eegpt_paper_aligned \
-    "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python train_paper_aligned.py 2>&1 | tee $LOG_FILE"
+    "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python train_paper_aligned.py --config $EEGPT_CONFIG 2>&1 | tee $LOG_FILE"
 
 echo "Training launched in tmux session 'eegpt_paper_aligned'"
 echo "Monitor with: tmux attach -t eegpt_paper_aligned"

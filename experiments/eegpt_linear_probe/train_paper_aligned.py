@@ -93,7 +93,7 @@ def create_dataloaders(config):
     """Create train and validation dataloaders."""
     # Resolve environment variables in paths
     data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
-    cache_index_path = Path(data_root) / "cache" / "tuab_index.json"
+    cache_index_path = Path(data_root) / "cache_4s" / "tuab_index_4s.json"
     
     # Train dataset
     # Resolve paths
