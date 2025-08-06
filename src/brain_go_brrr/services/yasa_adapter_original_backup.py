@@ -37,33 +37,9 @@ class YASAConfig:
     # Performance
     n_jobs: int = 1  # Number of parallel jobs
 
-    # Channel aliasing for non-standard montages
-    auto_alias: bool = True  # Automatically alias channels for Sleep-EDF etc.
-
 
 class YASASleepStager:
     """YASA-based sleep staging with our pipeline integration."""
-
-    # Default channel aliases for common sleep montages
-    DEFAULT_ALIASES = {
-        # Sleep-EDF mappings
-        "EEG Fpz-Cz": "C4",
-        "EEG Pz-Oz": "O2",
-        "Fpz-Cz": "C4",
-        "Pz-Oz": "O2",
-
-        # Single electrode mappings
-        "Fpz": "C3",
-        "Pz": "C4",
-        "Fz": "C3",
-        "Oz": "O1",
-
-        # Alternative frontal channels
-        "F3-M2": "C3-M2",
-        "F4-M1": "C4-M1",
-        "F3-A2": "C3-A2",
-        "F4-A1": "C4-A1",
-    }
 
     def __init__(self, config: YASAConfig | None = None):
         """Initialize YASA sleep stager."""
@@ -73,7 +49,6 @@ class YASASleepStager:
         # Track performance metrics
         self.stages_processed = 0
         self.avg_confidence = 0.0
-        self.aliasing_log: list[str] = []
 
     def _validate_installation(self) -> None:
         """Validate YASA is properly installed with models."""
@@ -86,88 +61,26 @@ class YASASleepStager:
             logger.warning("LightGBM not available, falling back to perceptron")
             self.config.eeg_backend = "perceptron"
 
-    def _prepare_channels_for_yasa(
-        self,
-        raw: mne.io.Raw,
-        channel_map: dict[str, str] | None = None
-    ) -> mne.io.Raw:
-        """Prepare channels for YASA by aliasing if needed.
-
-        This method intelligently aliases non-standard channel names to
-        the central channels that YASA was trained on, improving accuracy
-        without requiring model retraining.
-
-        Args:
-            raw: MNE Raw object with original channel names
-            channel_map: Optional custom mapping (overrides defaults)
-
-        Returns:
-            Raw object with aliased channels for optimal YASA performance
-        """
-        if not self.config.auto_alias and not channel_map:
-            return raw
-
-        ch_names = raw.ch_names
-
-        # Combine default and custom mappings
-        final_mapping = {**self.DEFAULT_ALIASES, **(channel_map or {})}
-
-        # Check if we already have central channels
-        central_channels = ["C3", "C4", "C3-M2", "C4-M1", "C3-A2", "C4-A1", "Cz"]
-        has_central = any(ch in ch_names for ch in central_channels)
-
-        if has_central:
-            logger.info(f"Central channels already present: {[ch for ch in ch_names if ch in central_channels]}")
-            return raw
-
-        # Apply aliasing
-        rename_dict = {}
-        for old_name, new_name in final_mapping.items():
-            if old_name in ch_names and new_name not in ch_names:
-                rename_dict[old_name] = new_name
-
-        if rename_dict:
-            # Create a copy to avoid modifying original
-            raw = raw.copy()
-            raw.rename_channels(rename_dict)
-
-            # Log aliasing for transparency
-            for old, new in rename_dict.items():
-                msg = f"Channel aliased: '{old}' → '{new}'"
-                logger.info(msg)
-                self.aliasing_log.append(msg)
-
-            logger.info(f"Applied {len(rename_dict)} channel aliases for YASA compatibility")
-        else:
-            logger.warning(
-                "No central channels found and no aliasing possible. "
-                "YASA accuracy may be reduced. Available channels: " + str(ch_names[:5])
-            )
-
-        return raw
-
     def stage_sleep(
         self,
         eeg_data: npt.NDArray[np.float64],
         sfreq: float = 256,
         ch_names: list[str] | None = None,
         epoch_duration: int = 30,
-        channel_map: dict[str, str] | None = None
     ) -> tuple[list[str], list[float], dict[str, Any]]:
-        """Perform sleep staging on EEG data with automatic channel aliasing.
+        """Perform sleep staging on EEG data.
 
         Args:
             eeg_data: EEG data array (n_channels, n_times)
             sfreq: Sampling frequency
             ch_names: Channel names
             epoch_duration: Duration of each epoch in seconds
-            channel_map: Optional custom channel aliasing map
 
         Returns:
             Tuple of:
                 - List of sleep stages per epoch
                 - List of confidence scores per epoch
-                - Dictionary with additional metrics and aliasing info
+                - Dictionary with additional metrics
         """
         # Validate input
         n_channels, n_times = eeg_data.shape
@@ -185,13 +98,8 @@ class YASASleepStager:
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(eeg_data, info)
 
-        # Apply channel aliasing for compatibility
-        original_channels = raw.ch_names.copy()
-        raw = self._prepare_channels_for_yasa(raw, channel_map)
-        aliased_channels = raw.ch_names
-
-        # Select best channel for sleep staging (after aliasing)
-        eeg_name = self._select_eeg_channel(raw.ch_names)
+        # Select frontal channels for sleep staging (if available)
+        eeg_name = self._select_eeg_channel(ch_names)
 
         # Run YASA sleep staging
         sls = yasa.SleepStaging(
@@ -215,15 +123,6 @@ class YASASleepStager:
         # Calculate additional metrics
         metrics = self._calculate_sleep_metrics(stages, confidences)
 
-        # Add aliasing information to metrics
-        metrics['channel_aliasing'] = {
-            'applied': original_channels != aliased_channels,
-            'original_channels': original_channels[:5],  # First 5 for brevity
-            'aliased_channels': aliased_channels[:5],
-            'channel_used': eeg_name,
-            'aliasing_log': self.aliasing_log[-5:] if self.aliasing_log else []
-        }
-
         # Update tracking
         self.stages_processed += len(stages)
         self.avg_confidence = (
@@ -235,29 +134,18 @@ class YASASleepStager:
     def _select_eeg_channel(self, ch_names: list[str]) -> str | None:
         """Select best EEG channel for sleep staging.
 
-        After aliasing, we should have central channels available.
-        YASA was trained on and prefers central channels (C3, C4).
+        YASA prefers frontal channels (e.g., C3, C4, Cz).
         """
-        # Preference order (central > frontal > occipital)
-        preferred = [
-            "C4", "C3", "C4-M1", "C3-M2", "C4-A1", "C3-A2", "Cz",  # Central
-            "F4", "F3", "Fz", "F4-M1", "F3-M2",  # Frontal
-            "O2", "O1", "Oz",  # Occipital
-            "P4", "P3", "Pz",  # Parietal
-        ]
+        # Preference order for sleep staging
+        preferred = ["C3", "C4", "Cz", "F3", "F4", "Fz"]
 
         for ch in preferred:
             if ch in ch_names:
-                logger.info(f"Selected '{ch}' for sleep staging (after aliasing)")
+                logger.info(f"Using {ch} for sleep staging")
                 return ch
 
-        # Fallback to first EEG channel
-        eeg_channels = [ch for ch in ch_names if 'EEG' in ch.upper()]
-        if eeg_channels:
-            logger.warning(f"No preferred channel found, using '{eeg_channels[0]}'")
-            return eeg_channels[0]
-
-        logger.warning(f"No EEG channels found, using '{ch_names[0]}'")
+        # Fallback to first channel
+        logger.warning(f"No preferred channel found, using {ch_names[0]}")
         return ch_names[0]
 
     def _yasa_to_standard_stage(self, yasa_stage: int) -> str:
@@ -316,15 +204,6 @@ class YASASleepStager:
         # Mean confidence
         mean_confidence = np.mean(confidences)
 
-        # Check if staging looks reasonable
-        quality_warnings = []
-        if stage_counts["W"] == n_epochs:
-            quality_warnings.append("All epochs classified as Wake - check channel mapping")
-        if mean_confidence < 0.6:
-            quality_warnings.append(f"Low confidence ({mean_confidence:.1%}) - consider channel aliasing")
-        if stage_counts["N2"] == 0 and n_epochs > 20:
-            quality_warnings.append("No N2 sleep detected - unusual for sleep recording")
-
         return {
             "stage_counts": stage_counts,
             "stage_percentages": stage_percentages,
@@ -334,7 +213,6 @@ class YASASleepStager:
             "waso_epochs": waso_epochs,
             "mean_confidence": mean_confidence,
             "n_epochs": n_epochs,
-            "quality_warnings": quality_warnings
         }
 
     def process_full_night(self, eeg_path: Path, output_hypnogram: bool = True) -> dict[str, Any]:
@@ -375,54 +253,6 @@ class YASASleepStager:
         if output_hypnogram:
             results["hypnogram"] = stages
             results["confidences"] = confidences
-
-        return results
-
-    def process_sleep_edf(self, edf_path: Path) -> dict[str, Any]:
-        """Process Sleep-EDF file with automatic channel aliasing.
-
-        This method is specifically optimized for Sleep-EDF datasets which
-        use Fpz-Cz and Pz-Oz channels instead of the standard C3/C4.
-
-        Args:
-            edf_path: Path to Sleep-EDF file
-
-        Returns:
-            Complete sleep analysis with aliasing applied
-        """
-        # Load EEG data
-        raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
-
-        # Sleep-EDF specific channel mapping
-        sleep_edf_mapping = {
-            "EEG Fpz-Cz": "C4",
-            "EEG Pz-Oz": "O2",
-        }
-
-        # Process with aliasing
-        data = raw.get_data()
-        sfreq = raw.info["sfreq"]
-        ch_names = raw.ch_names
-
-        # Run staging with Sleep-EDF optimized mapping
-        stages, confidences, metrics = self.stage_sleep(
-            data, sfreq, ch_names, channel_map=sleep_edf_mapping
-        )
-
-        # Prepare comprehensive results
-        results = {
-            "file": str(edf_path),
-            "dataset": "Sleep-EDF",
-            "duration_hours": len(stages) * 30 / 3600,
-            "stages": stages,
-            "confidences": confidences,
-            "metrics": metrics,
-            "channel_handling": {
-                "method": "automatic_aliasing",
-                "mapping_applied": sleep_edf_mapping,
-                "confidence_improvement": "Expected +15-20% vs no aliasing"
-            }
-        }
 
         return results
 
