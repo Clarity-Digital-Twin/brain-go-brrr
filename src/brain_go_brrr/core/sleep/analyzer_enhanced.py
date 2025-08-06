@@ -322,7 +322,7 @@ class EnhancedSleepAnalyzer:
         eeg_ch: str,
         eog_ch: str | None,
         emg_ch: str | None
-    ) -> dict[str, Any]:
+    ) -> dict[str, float]:
         """Extract key features used for staging (based on YASA paper).
 
         Top features from paper:
@@ -331,7 +331,7 @@ class EnhancedSleepAnalyzer:
         3. EEG beta power
         4. Temporal smoothing features
         """
-        features = {}
+        features: dict[str, float] = {}
 
         # Get EEG data
         eeg_data = raw.get_data(picks=[eeg_ch])[0]
@@ -351,7 +351,7 @@ class EnhancedSleepAnalyzer:
 
         for band_name, (low, high) in bands.items():
             idx = np.logical_and(freqs >= low, freqs <= high)
-            features[f'eeg_{band_name}_power'] = np.mean(psd[idx])
+            features[f'eeg_{band_name}_power'] = float(np.mean(psd[idx]))
 
         # Fractal dimension (2nd most important feature)
         features['eeg_fractal_dimension'] = self._compute_fractal_dimension(eeg_data)
@@ -360,25 +360,25 @@ class EnhancedSleepAnalyzer:
         features['eeg_permutation_entropy'] = self._compute_permutation_entropy(eeg_data)
 
         # Statistical features
-        features['eeg_kurtosis'] = kurtosis(eeg_data)
-        features['eeg_skewness'] = skew(eeg_data)
+        features['eeg_kurtosis'] = float(kurtosis(eeg_data))
+        features['eeg_skewness'] = float(skew(eeg_data))
 
         # EOG features if available (most important in paper)
         if eog_ch:
             eog_data = raw.get_data(picks=[eog_ch])[0]
             freqs_eog, psd_eog = signal.welch(eog_data, sfreq, nperseg=int(4 * sfreq))
-            features['eog_absolute_power'] = np.sum(psd_eog)
-            features['eog_slow_eye_power'] = np.sum(psd_eog[freqs_eog < 1])
+            features['eog_absolute_power'] = float(np.sum(psd_eog))
+            features['eog_slow_eye_power'] = float(np.sum(psd_eog[freqs_eog < 1]))
 
         # EMG features if available
         if emg_ch:
             emg_data = raw.get_data(picks=[emg_ch])[0]
-            features['emg_power'] = np.var(emg_data)
-            features['emg_high_freq_power'] = np.sum(
+            features['emg_power'] = float(np.var(emg_data))
+            features['emg_high_freq_power'] = float(np.sum(
                 signal.welch(emg_data, sfreq, nperseg=int(sfreq))[1][
                     signal.welch(emg_data, sfreq, nperseg=int(sfreq))[0] > 20
                 ]
-            )
+            ))
 
         return features
 
@@ -396,7 +396,7 @@ class EnhancedSleepAnalyzer:
             for k in range(1, k_max + 1):
                 lk = []
                 for m in range(k):
-                    lmk = 0
+                    lmk: float = 0
                     for i in range(1, int((n - m) / k)):
                         lmk += abs(data[m + i * k] - data[m + (i - 1) * k])
                     lmk = lmk * (n - 1) / (k * int((n - m) / k))
@@ -421,9 +421,18 @@ class EnhancedSleepAnalyzer:
             # Discretize data
             n_bins = 10
             hist, _ = np.histogram(data, bins=n_bins)
+            if len(data) == 0:
+                return 0.0
             prob = hist / len(data)
-            prob = prob[prob > 0]  # Remove zeros
-            return -np.sum(prob * np.log2(prob))
+            prob_nonzero = prob[prob > 0]  # Remove zeros
+            if len(prob_nonzero) == 0:
+                return 0.0
+            # Compute entropy with explicit type casting
+            entropy_val: float = 0.0
+            for p in prob_nonzero:
+                if p > 0:
+                    entropy_val -= p * np.log2(p)
+            return entropy_val
 
     def _fallback_staging(
         self,
@@ -453,11 +462,11 @@ class EnhancedSleepAnalyzer:
             alpha_idx = (freqs >= 8) & (freqs <= 12)
             beta_idx = (freqs >= 12) & (freqs <= 30)
 
-            delta_power = np.sum(psd[delta_idx])
-            alpha_power = np.sum(psd[alpha_idx])
-            beta_power = np.sum(psd[beta_idx])
+            delta_power: float = float(np.sum(psd[delta_idx]))
+            alpha_power: float = float(np.sum(psd[alpha_idx]))
+            beta_power: float = float(np.sum(psd[beta_idx]))
 
-            total_power = np.sum(psd)
+            total_power: float = float(np.sum(psd))
 
             # Simple rules
             if beta_power / total_power > 0.5:
@@ -519,11 +528,11 @@ class EnhancedSleepAnalyzer:
         total_time_min = n_epochs * epoch_length / 60
 
         # Sleep efficiency
-        sleep_epochs = np.sum(hypnogram != 'W')
+        sleep_epochs: int = int(np.sum(hypnogram != 'W'))
         stats['sleep_efficiency'] = (sleep_epochs / n_epochs) * 100 if n_epochs > 0 else 0
 
         # Stage transitions (fragmentation)
-        transitions = np.sum(hypnogram[:-1] != hypnogram[1:])
+        transitions: int = int(np.sum(hypnogram[:-1] != hypnogram[1:]))
         stats['fragmentation_index'] = transitions / n_epochs if n_epochs > 0 else 0
 
         # REM metrics
