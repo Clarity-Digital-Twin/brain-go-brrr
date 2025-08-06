@@ -83,10 +83,15 @@ notebook: ## Start Jupyter Lab
 
 ##@ Code Quality
 
-lint: ## Run linting with ruff
+lint: ## Run linting with ruff (with auto-fix)
 	@echo "$(GREEN)Running linting checks...$(NC)"
 	$(RUFF) check $(SRC_DIR) $(TEST_DIR) --fix
 	@echo "$(GREEN)Linting complete!$(NC)"
+
+lint-ci: ## Run linter exactly as CI does (no auto-fix)
+	@echo "$(CYAN)Running CI-style lint check...$(NC)"
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR)
+	@echo "$(GREEN)CI lint check passed!$(NC)"
 
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
@@ -358,7 +363,7 @@ env-info: ## Show environment information
 
 ##@ Git Hooks
 
-pre-push: test quality ## Run pre-push checks
+pre-push-old: test quality ## Old pre-push target (deprecated)
 	@echo "$(GREEN)Running pre-push checks...$(NC)"
 	@echo "$(GREEN)All pre-push checks passed!$(NC)"
 
@@ -372,10 +377,20 @@ ci: ## Run CI pipeline locally
 
 check-all: ## Run all quality checks (for CI/CD)
 	@echo "$(GREEN)Running all quality checks...$(NC)"
-	$(MAKE) lint
+	$(MAKE) format
+	$(MAKE) lint-ci
 	$(MAKE) type-fast
 	$(MAKE) test-ci
 	@echo "$(GREEN)All checks passed!$(NC)"
+
+pre-push: ## Run before pushing to ensure CI will pass
+	@echo "$(CYAN)Running pre-push checks...$(NC)"
+	$(MAKE) format
+	@echo "$(YELLOW)Checking for uncommitted formatting changes...$(NC)"
+	@git diff --exit-code || (echo "$(RED)Error: Formatting changes detected. Please commit them.$(NC)" && exit 1)
+	$(MAKE) lint-ci
+	$(MAKE) type-fast
+	@echo "$(GREEN)Ready to push! CI should pass.$(NC)"
 
 ##@ Examples
 
