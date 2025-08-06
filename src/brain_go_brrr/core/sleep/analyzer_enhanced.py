@@ -491,11 +491,29 @@ class EnhancedSleepAnalyzer:
         epoch_length: float = 30.0
     ) -> dict[str, Any]:
         """Compute comprehensive sleep metrics (from YASA paper)."""
+        # Handle empty hypnogram
+        if len(hypnogram) == 0:
+            return {
+                'sleep_efficiency': 0,
+                'total_sleep_time_min': 0,
+                'total_recording_time_min': 0,
+                'fragmentation_index': 0,
+                'rem_latency_min': None,
+                'sleep_onset_latency_min': None
+            }
+
         # Convert to YASA format
         hypno_int = yasa.hypno_str_to_int(hypnogram)
 
-        # Get YASA metrics
-        stats = yasa.sleep_statistics(hypno_int, sf_hyp=1/epoch_length)
+        # Get YASA metrics - handle all-wake case
+        try:
+            stats = yasa.sleep_statistics(hypno_int, sf_hyp=1/epoch_length)
+        except (IndexError, ValueError):
+            # All wake epochs - YASA can't compute stats
+            stats = {
+                '%W': 100, '%N1': 0, '%N2': 0, '%N3': 0, '%REM': 0,
+                'n_transitions': 0, 'n_awakenings': 0
+            }
 
         # Add custom metrics
         n_epochs = len(hypnogram)
