@@ -79,7 +79,7 @@ class YASAConfig:
 
 class EnhancedSleepAnalyzer:
     """Production-ready sleep analyzer with flexible channel support.
-    
+
     Key improvements over base implementation:
     1. Flexible channel mapping for any montage
     2. Automatic channel selection based on availability
@@ -103,8 +103,8 @@ class EnhancedSleepAnalyzer:
             import yasa
             self.yasa_version = yasa.__version__
             logger.info(f"YASA {self.yasa_version} initialized")
-        except ImportError:
-            raise ImportError("YASA required: pip install yasa")
+        except ImportError as e:
+            raise ImportError("YASA required: pip install yasa") from e
 
     def find_best_channels(
         self,
@@ -112,11 +112,11 @@ class EnhancedSleepAnalyzer:
         channel_type: str = 'eeg'
     ) -> str | None:
         """Find best available channel based on preferences.
-        
+
         Args:
             raw: MNE Raw object
             channel_type: 'eeg', 'eog', or 'emg'
-            
+
         Returns:
             Best available channel name or None
         """
@@ -164,7 +164,7 @@ class EnhancedSleepAnalyzer:
         copy: bool = True
     ) -> mne.io.Raw:
         """Preprocess data for YASA staging.
-        
+
         CRITICAL: Per YASA paper, do NOT filter before staging!
         YASA handles all filtering internally.
         """
@@ -191,10 +191,9 @@ class EnhancedSleepAnalyzer:
                 channel_types[ch] = 'eog'
             elif any(emg in ch_lower for emg in ['emg', 'chin', 'submental']):
                 channel_types[ch] = 'emg'
-            elif raw.get_channel_types([ch])[0] == 'misc':
+            elif raw.get_channel_types([ch])[0] == 'misc' and any(eeg in ch_lower for eeg in ['fp', 'f', 'c', 't', 'p', 'o', 'a', 'm']):
                 # Default misc to eeg if it looks like EEG
-                if any(eeg in ch_lower for eeg in ['fp', 'f', 'c', 't', 'p', 'o', 'a', 'm']):
-                    channel_types[ch] = 'eeg'
+                channel_types[ch] = 'eeg'
 
         if channel_types:
             raw.set_channel_types(channel_types)
@@ -205,13 +204,13 @@ class EnhancedSleepAnalyzer:
         metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Perform sleep staging with flexible channel selection.
-        
+
         This is the main entry point that handles any montage.
-        
+
         Args:
             raw: Preprocessed EEG data
             metadata: Optional metadata with 'age' and 'male' keys
-            
+
         Returns:
             Complete sleep staging results with confidence scores
         """
@@ -325,7 +324,7 @@ class EnhancedSleepAnalyzer:
         emg_ch: str | None
     ) -> dict[str, Any]:
         """Extract key features used for staging (based on YASA paper).
-        
+
         Top features from paper:
         1. EOG absolute power
         2. EEG fractal dimension
@@ -388,30 +387,30 @@ class EnhancedSleepAnalyzer:
         try:
             from yasa import higuchi_fd
             return higuchi_fd(data)
-        except:
+        except Exception:
             # Fallback: simple box-counting dimension
             n = len(data)
             k_max = 10
-            L = []
+            l_values = []
 
             for k in range(1, k_max + 1):
-                Lk = []
+                lk = []
                 for m in range(k):
-                    Lmk = 0
+                    lmk = 0
                     for i in range(1, int((n - m) / k)):
-                        Lmk += abs(data[m + i * k] - data[m + (i - 1) * k])
-                    Lmk = Lmk * (n - 1) / (k * int((n - m) / k))
-                    Lk.append(Lmk)
-                L.append(np.mean(Lk))
+                        lmk += abs(data[m + i * k] - data[m + (i - 1) * k])
+                    lmk = lmk * (n - 1) / (k * int((n - m) / k))
+                    lk.append(lmk)
+                l_values.append(np.mean(lk))
 
             # Linear fit in log-log space
             x = np.log(1 / np.arange(1, k_max + 1))
-            y = np.log(L)
+            y = np.log(l_values)
             fd = np.polyfit(x, y, 1)[0]
 
             return fd
 
-    def _compute_permutation_entropy(self, data: npt.NDArray, order: int = 3) -> float:
+    def _compute_permutation_entropy(self, data: npt.NDArray) -> float:
         """Compute permutation entropy (nonlinear feature)."""
         try:
             from yasa import petrosian_fd
@@ -717,7 +716,7 @@ def main():
     logging.basicConfig(level=logging.INFO)
 
     # Example with flexible channel handling
-    analyzer = EnhancedSleepAnalyzer()
+    EnhancedSleepAnalyzer()
 
     # Simulate loading EEG with non-standard channels
     # In real use, this would be: raw = mne.io.read_raw_edf('sleep_recording.edf')
