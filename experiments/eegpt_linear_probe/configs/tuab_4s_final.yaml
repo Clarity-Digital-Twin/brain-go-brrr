@@ -1,0 +1,38 @@
+experiment:
+  name: tuab_4s_final
+  description: "Final training with 4s windows"
+  seed: 42
+
+data:
+  cache_index: ${BGB_DATA_ROOT}/cache/tuab_4s_final/index.json
+  window_duration: 4.0  # CRITICAL: 4 seconds
+  window_stride: 2.0
+  sampling_rate: 256
+  batch_size: 256
+  num_workers: 8
+  n_channels: 20
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+  probe:
+    input_dim: 512
+    hidden_dim: 128
+    dropout: 0.3
+
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.01
+  patience: 20
+  gradient_accumulation: 1
+  mixed_precision: true
+  scheduler:
+    name: cosine
+    warmup_epochs: 2
+
+logging:
+  log_interval: 10
+  save_best_only: true

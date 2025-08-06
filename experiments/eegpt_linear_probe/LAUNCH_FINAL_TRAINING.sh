@@ -23,8 +23,8 @@ if [ ! -f "$CACHE_INDEX" ]; then
     exit 1
 fi
 
-# Check window count
-WINDOWS=$(jq '.total_windows' "$CACHE_INDEX")
+# Check window count using Python instead of jq
+WINDOWS=$(/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python -c "import json; print(json.load(open('$CACHE_INDEX'))['total_windows'])")
 echo "✅ Cache ready with $WINDOWS windows"
 
 if [ "$WINDOWS" -lt 1000000 ]; then
@@ -34,6 +34,11 @@ fi
 
 # Create config
 cat > configs/tuab_4s_final.yaml << 'EOF'
+experiment:
+  name: tuab_4s_final
+  description: "Final training with 4s windows"
+  seed: 42
+
 data:
   cache_index: ${BGB_DATA_ROOT}/cache/tuab_4s_final/index.json
   window_duration: 4.0  # CRITICAL: 4 seconds

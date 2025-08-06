@@ -22,11 +22,11 @@ from tqdm import tqdm
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
-# Import custom collate function
+# Import custom dataset and collate
 sys.path.insert(0, str(Path(__file__).parent))
+from tuab_simple_cached import TUABSimpleCachedDataset
 from custom_collate_fixed import collate_eeg_batch_fixed
 
 
@@ -93,41 +93,18 @@ def create_dataloaders(config):
     """Create train and validation dataloaders."""
     # Resolve environment variables in paths
     data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
-    cache_index_path = Path(data_root) / "cache_4s" / "tuab_index_4s.json"
+    cache_dir = Path(data_root) / "cache" / "tuab_4s_final"
     
-    # Train dataset
-    # Resolve paths
-    root_dir = config['data']['root_dir']
-    if '${BGB_DATA_ROOT}' in root_dir:
-        root_dir = root_dir.replace('${BGB_DATA_ROOT}', data_root)
-    
-    cache_dir = config['data']['cache_dir']
-    if '${BGB_DATA_ROOT}' in cache_dir:
-        cache_dir = cache_dir.replace('${BGB_DATA_ROOT}', data_root)
-    
-    train_dataset = TUABCachedDataset(
-        root_dir=Path(root_dir),
-        split='train',
-        window_duration=config['data']['window_duration'],
-        window_stride=config['data']['window_stride'], 
-        sampling_rate=config['data']['sampling_rate'],
-        preload=False,
-        normalize=True,
-        cache_dir=Path(cache_dir),
-        cache_index_path=cache_index_path
+    # Create datasets using the simple cached dataset
+    train_dataset = TUABSimpleCachedDataset(
+        cache_dir=cache_dir,
+        split='train'
     )
     
     # Validation dataset
-    val_dataset = TUABCachedDataset(
-        root_dir=Path(root_dir),
-        split='eval',
-        window_duration=config['data']['window_duration'],
-        window_stride=config['data']['window_duration'],  # No overlap for validation
-        sampling_rate=config['data']['sampling_rate'],
-        preload=False,
-        normalize=True,
-        cache_dir=Path(cache_dir),
-        cache_index_path=cache_index_path
+    val_dataset = TUABSimpleCachedDataset(
+        cache_dir=cache_dir,
+        split='eval'
     )
     
     # Create dataloaders

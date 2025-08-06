@@ -15,9 +15,13 @@ echo "Target AUROC: 0.869 ± 0.005 (paper performance)"
 echo "Config: $EEGPT_CONFIG"
 echo "Log file: $LOG_FILE"
 
-# Launch in tmux for robustness
+# Launch in tmux for robustness - WITH ABSOLUTE PATHS
+SCRIPT_PATH="/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_paper_aligned.py"
+CONFIG_PATH="/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/configs/tuab_4s_paper_target.yaml"
+
 tmux new-session -d -s eegpt_paper_aligned \
-    "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python train_paper_aligned.py --config $EEGPT_CONFIG 2>&1 | tee $LOG_FILE"
+    "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe && \
+     /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python $SCRIPT_PATH --config $CONFIG_PATH 2>&1 | tee $LOG_FILE"
 
 echo "Training launched in tmux session 'eegpt_paper_aligned'"
 echo "Monitor with: tmux attach -t eegpt_paper_aligned"

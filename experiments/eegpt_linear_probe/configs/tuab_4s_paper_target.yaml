@@ -5,7 +5,7 @@ experiment:
 
 data:
   root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
-  cache_dir: ${BGB_DATA_ROOT}/cache_4s
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
   batch_size: 32
   num_workers: 4
   pin_memory: true

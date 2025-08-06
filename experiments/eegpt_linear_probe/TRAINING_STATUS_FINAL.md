@@ -8,8 +8,8 @@
 # Monitor cache build progress
 tail -f cache_build.log | grep "Processing files"
 
-# Current: 174/2993 files (5.8%) @ ~1.2 files/sec
-# ETA: ~40 minutes to complete
+# Current: 435/2993 files (14.5%) @ ~1.1 files/sec
+# ETA: ~38 minutes remaining (25 min elapsed)
 ```
 
 ## ✅ WHAT'S FIXED
