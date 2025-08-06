@@ -39,7 +39,6 @@ class TestYASAIntegration:
             enable_sleep_staging=True,
             use_yasa_sleep_staging=True,
             parallel_execution=False,  # Easier to debug
-            minimum_duration_for_sleep=10.0,  # Allow shorter data for testing
         )
 
         pipeline = HierarchicalEEGAnalyzer(config)
