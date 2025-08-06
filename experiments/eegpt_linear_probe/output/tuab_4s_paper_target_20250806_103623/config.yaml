@@ -1,0 +1,56 @@
+data:
+  batch_size: 128
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
+  n_channels: 20
+  num_workers: 8
+  persistent_workers: true
+  pin_memory: true
+  prefetch_factor: 4
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
+  sampling_rate: 256
+  window_duration: 4.0
+  window_stride: 2.0
+experiment:
+  description: Paper-aligned training with 4s windows targeting 0.87 AUROC
+  name: tuab_4s_paper_target
+  seed: 42
+logging:
+  log_every_n_steps: 50
+  save_top_k: 3
+model:
+  backbone:
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+    name: eegpt
+  probe:
+    dropout: 0.1
+    hidden_dim: 128
+    input_dim: 512
+    n_classes: 2
+    type: linear
+    use_channel_adapter: false
+target_metrics:
+  auroc: 0.869
+  tolerance: 0.005
+training:
+  early_stopping:
+    min_delta: 0.001
+    mode: max
+    monitor: val_auroc
+    patience: 10
+  gradient_clip_val: 1.0
+  max_epochs: 50
+  optimizer:
+    lr: 0.001
+    name: AdamW
+    weight_decay: 0.0001
+  scheduler:
+    anneal_strategy: cos
+    div_factor: 25.0
+    epochs: 50
+    final_div_factor: 1000.0
+    max_lr: 0.003
+    name: OneCycleLR
+    pct_start: 0.2
+  val_check_interval: 1
+  weighted_loss: true

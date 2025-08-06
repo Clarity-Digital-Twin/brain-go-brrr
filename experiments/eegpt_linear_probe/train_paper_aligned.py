@@ -112,10 +112,10 @@ def create_dataloaders(config):
         train_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=True,
-        num_workers=config['data']['num_workers'],
-        pin_memory=config['data']['pin_memory'],
-        persistent_workers=config['data']['persistent_workers'],
-        prefetch_factor=config['data']['prefetch_factor'],
+        num_workers=config['data'].get('num_workers', 0),
+        pin_memory=config['data'].get('pin_memory', True),
+        persistent_workers=config['data'].get('persistent_workers', False) if config['data'].get('num_workers', 0) > 0 else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 0) > 0 else None,
         collate_fn=collate_eeg_batch_fixed
     )
     
@@ -123,10 +123,10 @@ def create_dataloaders(config):
         val_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=False,
-        num_workers=config['data']['num_workers'],
-        pin_memory=config['data']['pin_memory'],
-        persistent_workers=config['data']['persistent_workers'],
-        prefetch_factor=config['data']['prefetch_factor'],
+        num_workers=config['data'].get('num_workers', 0),
+        pin_memory=config['data'].get('pin_memory', True),
+        persistent_workers=config['data'].get('persistent_workers', False) if config['data'].get('num_workers', 0) > 0 else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 0) > 0 else None,
         collate_fn=collate_eeg_batch_fixed
     )
     
