@@ -54,26 +54,58 @@ class YASAConfig:
         if self.eeg_channels_preference is None:
             # Order based on YASA paper performance
             self.eeg_channels_preference = [
-                'C4-M1', 'C3-M2', 'C4-A1', 'C3-A2',  # Best for staging
-                'C4', 'C3', 'Cz',  # Central channels
-                'F4', 'F3', 'Fz',  # Frontal
-                'O2', 'O1', 'Oz',  # Occipital
-                'P4', 'P3', 'Pz',  # Parietal
-                'T4', 'T3', 'T8', 'T7',  # Temporal
-                'Fp2', 'Fp1', 'Fpz',  # Frontopolar
-                'A2', 'A1', 'M2', 'M1'  # References
+                "C4-M1",
+                "C3-M2",
+                "C4-A1",
+                "C3-A2",  # Best for staging
+                "C4",
+                "C3",
+                "Cz",  # Central channels
+                "F4",
+                "F3",
+                "Fz",  # Frontal
+                "O2",
+                "O1",
+                "Oz",  # Occipital
+                "P4",
+                "P3",
+                "Pz",  # Parietal
+                "T4",
+                "T3",
+                "T8",
+                "T7",  # Temporal
+                "Fp2",
+                "Fp1",
+                "Fpz",  # Frontopolar
+                "A2",
+                "A1",
+                "M2",
+                "M1",  # References
             ]
 
         if self.eog_channels_preference is None:
             self.eog_channels_preference = [
-                'EOG', 'EOG1', 'EOG2', 'EOGL', 'EOGR',
-                'LOC', 'ROC', 'E1', 'E2'
+                "EOG",
+                "EOG1",
+                "EOG2",
+                "EOGL",
+                "EOGR",
+                "LOC",
+                "ROC",
+                "E1",
+                "E2",
             ]
 
         if self.emg_channels_preference is None:
             self.emg_channels_preference = [
-                'EMG', 'EMG1', 'EMG2', 'EMG_chin', 'Chin',
-                'CHIN1', 'CHIN2', 'EMG_submental'
+                "EMG",
+                "EMG1",
+                "EMG2",
+                "EMG_chin",
+                "Chin",
+                "CHIN1",
+                "CHIN2",
+                "EMG_submental",
             ]
 
 
@@ -101,16 +133,13 @@ class EnhancedSleepAnalyzer:
         """Ensure YASA is properly installed."""
         try:
             import yasa
+
             self.yasa_version = yasa.__version__
             logger.info(f"YASA {self.yasa_version} initialized")
         except ImportError as e:
             raise ImportError("YASA required: pip install yasa") from e
 
-    def find_best_channels(
-        self,
-        raw: mne.io.Raw,
-        channel_type: str = 'eeg'
-    ) -> str | None:
+    def find_best_channels(self, raw: mne.io.Raw, channel_type: str = "eeg") -> str | None:
         """Find best available channel based on preferences.
 
         Args:
@@ -121,11 +150,11 @@ class EnhancedSleepAnalyzer:
             Best available channel name or None
         """
         # Get channel preferences
-        if channel_type == 'eeg':
+        if channel_type == "eeg":
             preferences = self.config.eeg_channels_preference
-        elif channel_type == 'eog':
+        elif channel_type == "eog":
             preferences = self.config.eog_channels_preference
-        elif channel_type == 'emg':
+        elif channel_type == "emg":
             preferences = self.config.emg_channels_preference
         else:
             return None
@@ -142,9 +171,9 @@ class EnhancedSleepAnalyzer:
                 return available_channels[idx]
 
             # Try partial match for referenced channels
-            if '-' in pref:
+            if "-" in pref:
                 # e.g., C4-M1 -> look for C4
-                base_channel = pref.split('-')[0]
+                base_channel = pref.split("-")[0]
                 if base_channel.lower() in available_lower:
                     idx = available_lower.index(base_channel.lower())
                     return available_channels[idx]
@@ -158,11 +187,7 @@ class EnhancedSleepAnalyzer:
 
         return None
 
-    def preprocess_for_staging(
-        self,
-        raw: mne.io.Raw,
-        copy: bool = True
-    ) -> mne.io.Raw:
+    def preprocess_for_staging(self, raw: mne.io.Raw, copy: bool = True) -> mne.io.Raw:
         """Preprocess data for YASA staging.
 
         CRITICAL: Per YASA paper, do NOT filter before staging!
@@ -172,7 +197,7 @@ class EnhancedSleepAnalyzer:
             raw = raw.copy()
 
         # Resample to YASA requirement (100 Hz)
-        if raw.info['sfreq'] != self.config.resample_freq:
+        if raw.info["sfreq"] != self.config.resample_freq:
             logger.info(f"Resampling from {raw.info['sfreq']} to {self.config.resample_freq} Hz")
             raw.resample(self.config.resample_freq)
 
@@ -187,21 +212,21 @@ class EnhancedSleepAnalyzer:
 
         for ch in raw.ch_names:
             ch_lower = ch.lower()
-            if any(eog in ch_lower for eog in ['eog', 'loc', 'roc', 'e1', 'e2']):
-                channel_types[ch] = 'eog'
-            elif any(emg in ch_lower for emg in ['emg', 'chin', 'submental']):
-                channel_types[ch] = 'emg'
-            elif raw.get_channel_types([ch])[0] == 'misc' and any(eeg in ch_lower for eeg in ['fp', 'f', 'c', 't', 'p', 'o', 'a', 'm']):
+            if any(eog in ch_lower for eog in ["eog", "loc", "roc", "e1", "e2"]):
+                channel_types[ch] = "eog"
+            elif any(emg in ch_lower for emg in ["emg", "chin", "submental"]):
+                channel_types[ch] = "emg"
+            elif raw.get_channel_types([ch])[0] == "misc" and any(
+                eeg in ch_lower for eeg in ["fp", "f", "c", "t", "p", "o", "a", "m"]
+            ):
                 # Default misc to eeg if it looks like EEG
-                channel_types[ch] = 'eeg'
+                channel_types[ch] = "eeg"
 
         if channel_types:
             raw.set_channel_types(channel_types)
 
     def stage_sleep_flexible(
-        self,
-        raw: mne.io.Raw,
-        metadata: dict[str, Any] | None = None
+        self, raw: mne.io.Raw, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Perform sleep staging with flexible channel selection.
 
@@ -215,9 +240,9 @@ class EnhancedSleepAnalyzer:
             Complete sleep staging results with confidence scores
         """
         # Find best available channels
-        eeg_ch = self.find_best_channels(raw, 'eeg')
-        eog_ch = self.find_best_channels(raw, 'eog')
-        emg_ch = self.find_best_channels(raw, 'emg')
+        eeg_ch = self.find_best_channels(raw, "eeg")
+        eog_ch = self.find_best_channels(raw, "eog")
+        emg_ch = self.find_best_channels(raw, "emg")
 
         if eeg_ch is None:
             raise UnsupportedMontageError(
@@ -230,11 +255,7 @@ class EnhancedSleepAnalyzer:
         try:
             # Create YASA SleepStaging object
             sls = yasa.SleepStaging(
-                raw,
-                eeg_name=eeg_ch,
-                eog_name=eog_ch,
-                emg_name=emg_ch,
-                metadata=metadata
+                raw, eeg_name=eeg_ch, eog_name=eog_ch, emg_name=emg_ch, metadata=metadata
             )
 
             # Get predictions
@@ -244,8 +265,7 @@ class EnhancedSleepAnalyzer:
             # Apply smoothing if configured
             if self.config.apply_smoothing:
                 hypnogram = self._apply_temporal_smoothing(
-                    hypnogram,
-                    self.config.smoothing_window_min
+                    hypnogram, self.config.smoothing_window_min
                 )
 
             # Calculate confidence scores
@@ -256,19 +276,15 @@ class EnhancedSleepAnalyzer:
             features = self._extract_staging_features(raw, eeg_ch, eog_ch, emg_ch)
 
             results = {
-                'hypnogram': hypnogram,
-                'probabilities': probabilities,
-                'confidence_scores': confidence_scores,
-                'mean_confidence': mean_confidence,
-                'channels_used': {
-                    'eeg': eeg_ch,
-                    'eog': eog_ch,
-                    'emg': emg_ch
-                },
-                'features': features,
-                'n_epochs': len(hypnogram),
-                'epoch_length': self.config.epoch_length,
-                'staging_successful': True
+                "hypnogram": hypnogram,
+                "probabilities": probabilities,
+                "confidence_scores": confidence_scores,
+                "mean_confidence": mean_confidence,
+                "channels_used": {"eeg": eeg_ch, "eog": eog_ch, "emg": emg_ch},
+                "features": features,
+                "n_epochs": len(hypnogram),
+                "epoch_length": self.config.epoch_length,
+                "staging_successful": True,
             }
 
             self.stages_processed += len(hypnogram)
@@ -282,9 +298,7 @@ class EnhancedSleepAnalyzer:
             return self._fallback_staging(raw, eeg_ch)
 
     def _apply_temporal_smoothing(
-        self,
-        hypnogram: npt.NDArray[np.str_],
-        window_min: float = 7.5
+        self, hypnogram: npt.NDArray[np.str_], window_min: float = 7.5
     ) -> npt.NDArray[np.str_]:
         """Apply triangular-weighted temporal smoothing (YASA paper method)."""
         # Calculate window size in epochs
@@ -300,28 +314,24 @@ class EnhancedSleepAnalyzer:
         weights = weights / weights.sum()
 
         # Convert stages to numeric for filtering
-        stage_map = {'W': 0, 'N1': 1, 'N2': 2, 'N3': 3, 'REM': 4}
+        stage_map = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "REM": 4}
         reverse_map = {v: k for k, v in stage_map.items()}
 
         numeric = np.array([stage_map.get(s, 0) for s in hypnogram])
 
         # Apply weighted smoothing
-        smoothed = signal.convolve(numeric, weights, mode='same')
+        smoothed = signal.convolve(numeric, weights, mode="same")
         smoothed = np.round(smoothed).astype(int)
 
         # Convert back to string stages
-        result = np.array([reverse_map.get(s, 'W') for s in smoothed])
+        result = np.array([reverse_map.get(s, "W") for s in smoothed])
 
         logger.info(f"Applied temporal smoothing with {window_min} min window")
 
         return result
 
     def _extract_staging_features(
-        self,
-        raw: mne.io.Raw,
-        eeg_ch: str,
-        eog_ch: str | None,
-        emg_ch: str | None
+        self, raw: mne.io.Raw, eeg_ch: str, eog_ch: str | None, emg_ch: str | None
     ) -> dict[str, float]:
         """Extract key features used for staging (based on YASA paper).
 
@@ -335,50 +345,52 @@ class EnhancedSleepAnalyzer:
 
         # Get EEG data
         eeg_data = raw.get_data(picks=[eeg_ch])[0]
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         # Spectral features (top importance in paper)
         freqs, psd = signal.welch(eeg_data, sfreq, nperseg=int(4 * sfreq))
 
         # Define frequency bands
         bands = {
-            'delta': (0.5, 4),
-            'theta': (4, 8),
-            'alpha': (8, 12),
-            'beta': (12, 30),
-            'gamma': (30, 45)
+            "delta": (0.5, 4),
+            "theta": (4, 8),
+            "alpha": (8, 12),
+            "beta": (12, 30),
+            "gamma": (30, 45),
         }
 
         for band_name, (low, high) in bands.items():
             idx = np.logical_and(freqs >= low, freqs <= high)
-            features[f'eeg_{band_name}_power'] = float(np.mean(psd[idx]))
+            features[f"eeg_{band_name}_power"] = float(np.mean(psd[idx]))
 
         # Fractal dimension (2nd most important feature)
-        features['eeg_fractal_dimension'] = self._compute_fractal_dimension(eeg_data)
+        features["eeg_fractal_dimension"] = self._compute_fractal_dimension(eeg_data)
 
         # Permutation entropy (nonlinear feature from paper)
-        features['eeg_permutation_entropy'] = self._compute_permutation_entropy(eeg_data)
+        features["eeg_permutation_entropy"] = self._compute_permutation_entropy(eeg_data)
 
         # Statistical features
-        features['eeg_kurtosis'] = float(kurtosis(eeg_data))
-        features['eeg_skewness'] = float(skew(eeg_data))
+        features["eeg_kurtosis"] = float(kurtosis(eeg_data))
+        features["eeg_skewness"] = float(skew(eeg_data))
 
         # EOG features if available (most important in paper)
         if eog_ch:
             eog_data = raw.get_data(picks=[eog_ch])[0]
             freqs_eog, psd_eog = signal.welch(eog_data, sfreq, nperseg=int(4 * sfreq))
-            features['eog_absolute_power'] = float(np.sum(psd_eog))
-            features['eog_slow_eye_power'] = float(np.sum(psd_eog[freqs_eog < 1]))
+            features["eog_absolute_power"] = float(np.sum(psd_eog))
+            features["eog_slow_eye_power"] = float(np.sum(psd_eog[freqs_eog < 1]))
 
         # EMG features if available
         if emg_ch:
             emg_data = raw.get_data(picks=[emg_ch])[0]
-            features['emg_power'] = float(np.var(emg_data))
-            features['emg_high_freq_power'] = float(np.sum(
-                signal.welch(emg_data, sfreq, nperseg=int(sfreq))[1][
-                    signal.welch(emg_data, sfreq, nperseg=int(sfreq))[0] > 20
-                ]
-            ))
+            features["emg_power"] = float(np.var(emg_data))
+            features["emg_high_freq_power"] = float(
+                np.sum(
+                    signal.welch(emg_data, sfreq, nperseg=int(sfreq))[1][
+                        signal.welch(emg_data, sfreq, nperseg=int(sfreq))[0] > 20
+                    ]
+                )
+            )
 
         return features
 
@@ -386,6 +398,7 @@ class EnhancedSleepAnalyzer:
         """Compute Higuchi fractal dimension (from YASA)."""
         try:
             from yasa import higuchi_fd
+
             return higuchi_fd(data)
         except Exception:
             # Fallback: simple box-counting dimension
@@ -414,6 +427,7 @@ class EnhancedSleepAnalyzer:
         """Compute permutation entropy (nonlinear feature)."""
         try:
             from yasa import petrosian_fd
+
             # Use Petrosian FD as proxy for complexity
             return petrosian_fd(data)
         except Exception:
@@ -434,16 +448,12 @@ class EnhancedSleepAnalyzer:
                     entropy_val -= p * np.log2(p)
             return entropy_val
 
-    def _fallback_staging(
-        self,
-        raw: mne.io.Raw,
-        eeg_ch: str
-    ) -> dict[str, Any]:
+    def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:
         """Simple rule-based fallback when YASA fails."""
         logger.warning("Using fallback staging method")
 
         data = raw.get_data(picks=[eeg_ch])[0]
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         # Create epochs
         epoch_samples = int(self.config.epoch_length * sfreq)
@@ -452,7 +462,7 @@ class EnhancedSleepAnalyzer:
         hypnogram = []
 
         for i in range(n_epochs):
-            epoch = data[i * epoch_samples:(i + 1) * epoch_samples]
+            epoch = data[i * epoch_samples : (i + 1) * epoch_samples]
 
             # Simple spectral analysis
             freqs, psd = signal.welch(epoch, sfreq, nperseg=min(512, len(epoch)))
@@ -470,44 +480,42 @@ class EnhancedSleepAnalyzer:
 
             # Simple rules
             if beta_power / total_power > 0.5:
-                stage = 'W'  # Wake
+                stage = "W"  # Wake
             elif delta_power / total_power > 0.5:
-                stage = 'N3'  # Deep sleep
+                stage = "N3"  # Deep sleep
             elif alpha_power / total_power > 0.3:
-                stage = 'N2'  # Light sleep
+                stage = "N2"  # Light sleep
             else:
-                stage = 'N1'  # Transition
+                stage = "N1"  # Transition
 
             hypnogram.append(stage)
 
         return {
-            'hypnogram': np.array(hypnogram),
-            'probabilities': np.ones((n_epochs, 5)) * 0.2,  # Uniform
-            'confidence_scores': np.ones(n_epochs) * 0.5,
-            'mean_confidence': 0.5,
-            'channels_used': {'eeg': eeg_ch, 'eog': None, 'emg': None},
-            'features': {},
-            'n_epochs': n_epochs,
-            'epoch_length': self.config.epoch_length,
-            'staging_successful': False,
-            'fallback_used': True
+            "hypnogram": np.array(hypnogram),
+            "probabilities": np.ones((n_epochs, 5)) * 0.2,  # Uniform
+            "confidence_scores": np.ones(n_epochs) * 0.5,
+            "mean_confidence": 0.5,
+            "channels_used": {"eeg": eeg_ch, "eog": None, "emg": None},
+            "features": {},
+            "n_epochs": n_epochs,
+            "epoch_length": self.config.epoch_length,
+            "staging_successful": False,
+            "fallback_used": True,
         }
 
     def compute_sleep_metrics(
-        self,
-        hypnogram: npt.NDArray[np.str_],
-        epoch_length: float = 30.0
+        self, hypnogram: npt.NDArray[np.str_], epoch_length: float = 30.0
     ) -> dict[str, Any]:
         """Compute comprehensive sleep metrics (from YASA paper)."""
         # Handle empty hypnogram
         if len(hypnogram) == 0:
             return {
-                'sleep_efficiency': 0,
-                'total_sleep_time_min': 0,
-                'total_recording_time_min': 0,
-                'fragmentation_index': 0,
-                'rem_latency_min': None,
-                'sleep_onset_latency_min': None
+                "sleep_efficiency": 0,
+                "total_sleep_time_min": 0,
+                "total_recording_time_min": 0,
+                "fragmentation_index": 0,
+                "rem_latency_min": None,
+                "sleep_onset_latency_min": None,
             }
 
         # Convert to YASA format
@@ -515,12 +523,17 @@ class EnhancedSleepAnalyzer:
 
         # Get YASA metrics - handle all-wake case
         try:
-            stats = yasa.sleep_statistics(hypno_int, sf_hyp=1/epoch_length)
+            stats = yasa.sleep_statistics(hypno_int, sf_hyp=1 / epoch_length)
         except (IndexError, ValueError):
             # All wake epochs - YASA can't compute stats
             stats = {
-                '%W': 100, '%N1': 0, '%N2': 0, '%N3': 0, '%REM': 0,
-                'n_transitions': 0, 'n_awakenings': 0
+                "%W": 100,
+                "%N1": 0,
+                "%N2": 0,
+                "%N3": 0,
+                "%REM": 0,
+                "n_transitions": 0,
+                "n_awakenings": 0,
             }
 
         # Add custom metrics
@@ -528,39 +541,37 @@ class EnhancedSleepAnalyzer:
         total_time_min = n_epochs * epoch_length / 60
 
         # Sleep efficiency
-        sleep_epochs: int = int(np.sum(hypnogram != 'W'))
-        stats['sleep_efficiency'] = (sleep_epochs / n_epochs) * 100 if n_epochs > 0 else 0
+        sleep_epochs: int = int(np.sum(hypnogram != "W"))
+        stats["sleep_efficiency"] = (sleep_epochs / n_epochs) * 100 if n_epochs > 0 else 0
 
         # Stage transitions (fragmentation)
         transitions: int = int(np.sum(hypnogram[:-1] != hypnogram[1:]))
-        stats['fragmentation_index'] = transitions / n_epochs if n_epochs > 0 else 0
+        stats["fragmentation_index"] = transitions / n_epochs if n_epochs > 0 else 0
 
         # REM metrics
-        rem_epochs = hypnogram == 'REM'
+        rem_epochs = hypnogram == "REM"
         if np.any(rem_epochs):
             first_rem = np.argmax(rem_epochs)
-            stats['rem_latency_min'] = first_rem * epoch_length / 60
+            stats["rem_latency_min"] = first_rem * epoch_length / 60
         else:
-            stats['rem_latency_min'] = None
+            stats["rem_latency_min"] = None
 
         # Sleep onset
-        sleep_epochs_mask = hypnogram != 'W'
+        sleep_epochs_mask = hypnogram != "W"
         if np.any(sleep_epochs_mask):
             first_sleep = np.argmax(sleep_epochs_mask)
-            stats['sleep_onset_latency_min'] = first_sleep * epoch_length / 60
+            stats["sleep_onset_latency_min"] = first_sleep * epoch_length / 60
         else:
-            stats['sleep_onset_latency_min'] = None
+            stats["sleep_onset_latency_min"] = None
 
         # Total sleep time
-        stats['total_sleep_time_min'] = sleep_epochs * epoch_length / 60
-        stats['total_recording_time_min'] = total_time_min
+        stats["total_sleep_time_min"] = sleep_epochs * epoch_length / 60
+        stats["total_recording_time_min"] = total_time_min
 
         return stats
 
     def generate_sleep_report(
-        self,
-        staging_results: dict[str, Any],
-        metrics: dict[str, Any]
+        self, staging_results: dict[str, Any], metrics: dict[str, Any]
     ) -> dict[str, Any]:
         """Generate comprehensive sleep report with quality assessment."""
         # Calculate quality score (A-F grading from paper)
@@ -568,33 +579,33 @@ class EnhancedSleepAnalyzer:
         quality_grade = self._score_to_grade(quality_score)
 
         report = {
-            'summary': {
-                'total_recording_time': metrics.get('total_recording_time_min', 0),
-                'total_sleep_time': metrics.get('total_sleep_time_min', 0),
-                'sleep_efficiency': metrics.get('sleep_efficiency', 0),
-                'sleep_onset_latency': metrics.get('sleep_onset_latency_min'),
-                'rem_latency': metrics.get('rem_latency_min'),
-                'quality_score': quality_score,
-                'quality_grade': quality_grade
+            "summary": {
+                "total_recording_time": metrics.get("total_recording_time_min", 0),
+                "total_sleep_time": metrics.get("total_sleep_time_min", 0),
+                "sleep_efficiency": metrics.get("sleep_efficiency", 0),
+                "sleep_onset_latency": metrics.get("sleep_onset_latency_min"),
+                "rem_latency": metrics.get("rem_latency_min"),
+                "quality_score": quality_score,
+                "quality_grade": quality_grade,
             },
-            'stage_distribution': {
-                'wake_pct': metrics.get('%W', 0),
-                'n1_pct': metrics.get('%N1', 0),
-                'n2_pct': metrics.get('%N2', 0),
-                'n3_pct': metrics.get('%N3', 0),
-                'rem_pct': metrics.get('%REM', 0)
+            "stage_distribution": {
+                "wake_pct": metrics.get("%W", 0),
+                "n1_pct": metrics.get("%N1", 0),
+                "n2_pct": metrics.get("%N2", 0),
+                "n3_pct": metrics.get("%N3", 0),
+                "rem_pct": metrics.get("%REM", 0),
             },
-            'sleep_architecture': {
-                'fragmentation_index': metrics.get('fragmentation_index', 0),
-                'n_transitions': metrics.get('n_transitions', 0),
-                'n_awakenings': metrics.get('n_awakenings', 0)
+            "sleep_architecture": {
+                "fragmentation_index": metrics.get("fragmentation_index", 0),
+                "n_transitions": metrics.get("n_transitions", 0),
+                "n_awakenings": metrics.get("n_awakenings", 0),
             },
-            'confidence': {
-                'mean_confidence': staging_results.get('mean_confidence', 0),
-                'channels_used': staging_results.get('channels_used', {}),
-                'staging_successful': staging_results.get('staging_successful', False)
+            "confidence": {
+                "mean_confidence": staging_results.get("mean_confidence", 0),
+                "channels_used": staging_results.get("channels_used", {}),
+                "staging_successful": staging_results.get("staging_successful", False),
             },
-            'clinical_flags': self._generate_clinical_flags(metrics)
+            "clinical_flags": self._generate_clinical_flags(metrics),
         }
 
         return report
@@ -605,8 +616,8 @@ class EnhancedSleepAnalyzer:
         weights = 0
 
         # Sleep efficiency (25 points)
-        if 'sleep_efficiency' in metrics:
-            se = metrics['sleep_efficiency']
+        if "sleep_efficiency" in metrics:
+            se = metrics["sleep_efficiency"]
             if se >= 85:
                 score += 25
             elif se >= 75:
@@ -618,8 +629,8 @@ class EnhancedSleepAnalyzer:
             weights += 25
 
         # Fragmentation (20 points - lower is better)
-        if 'fragmentation_index' in metrics:
-            fi = metrics['fragmentation_index']
+        if "fragmentation_index" in metrics:
+            fi = metrics["fragmentation_index"]
             if fi <= 0.1:
                 score += 20
             elif fi <= 0.2:
@@ -631,8 +642,8 @@ class EnhancedSleepAnalyzer:
             weights += 20
 
         # REM percentage (20 points)
-        if '%REM' in metrics:
-            rem = metrics['%REM']
+        if "%REM" in metrics:
+            rem = metrics["%REM"]
             if 18 <= rem <= 25:
                 score += 20
             elif 15 <= rem <= 30:
@@ -644,8 +655,8 @@ class EnhancedSleepAnalyzer:
             weights += 20
 
         # Deep sleep (N3) percentage (20 points)
-        if '%N3' in metrics:
-            n3 = metrics['%N3']
+        if "%N3" in metrics:
+            n3 = metrics["%N3"]
             if n3 >= 15:
                 score += 20
             elif n3 >= 10:
@@ -657,8 +668,8 @@ class EnhancedSleepAnalyzer:
             weights += 20
 
         # Sleep onset latency (15 points)
-        if 'sleep_onset_latency_min' in metrics:
-            sol = metrics['sleep_onset_latency_min']
+        if "sleep_onset_latency_min" in metrics:
+            sol = metrics["sleep_onset_latency_min"]
             if sol is not None:
                 if sol <= 15:
                     score += 15
@@ -676,45 +687,45 @@ class EnhancedSleepAnalyzer:
     def _score_to_grade(self, score: float) -> str:
         """Convert quality score to letter grade."""
         if score >= 90:
-            return 'A'
+            return "A"
         elif score >= 80:
-            return 'B'
+            return "B"
         elif score >= 70:
-            return 'C'
+            return "C"
         elif score >= 60:
-            return 'D'
+            return "D"
         else:
-            return 'F'
+            return "F"
 
     def _generate_clinical_flags(self, metrics: dict[str, Any]) -> list[str]:
         """Generate clinical flags based on sleep metrics."""
         flags = []
 
         # Check for poor sleep efficiency
-        if metrics.get('sleep_efficiency', 100) < 70:
-            flags.append('Poor sleep efficiency (<70%)')
+        if metrics.get("sleep_efficiency", 100) < 70:
+            flags.append("Poor sleep efficiency (<70%)")
 
         # Check for excessive fragmentation
-        if metrics.get('fragmentation_index', 0) > 0.3:
-            flags.append('Highly fragmented sleep')
+        if metrics.get("fragmentation_index", 0) > 0.3:
+            flags.append("Highly fragmented sleep")
 
         # Check for reduced REM
-        if metrics.get('%REM', 100) < 10:
-            flags.append('Reduced REM sleep (<10%)')
+        if metrics.get("%REM", 100) < 10:
+            flags.append("Reduced REM sleep (<10%)")
 
         # Check for reduced deep sleep
-        if metrics.get('%N3', 100) < 5:
-            flags.append('Reduced deep sleep (<5%)')
+        if metrics.get("%N3", 100) < 5:
+            flags.append("Reduced deep sleep (<5%)")
 
         # Check for long sleep onset
-        sol = metrics.get('sleep_onset_latency_min')
+        sol = metrics.get("sleep_onset_latency_min")
         if sol is not None and sol > 60:
-            flags.append('Prolonged sleep onset (>60 min)')
+            flags.append("Prolonged sleep onset (>60 min)")
 
         # Check for delayed REM
-        rem_lat = metrics.get('rem_latency_min')
+        rem_lat = metrics.get("rem_latency_min")
         if rem_lat is not None and rem_lat > 120:
-            flags.append('Delayed REM onset (>120 min)')
+            flags.append("Delayed REM onset (>120 min)")
 
         return flags
 
@@ -722,6 +733,7 @@ class EnhancedSleepAnalyzer:
 def main():
     """Example usage of enhanced sleep analyzer."""
     import logging
+
     logging.basicConfig(level=logging.INFO)
 
     # Example with flexible channel handling
