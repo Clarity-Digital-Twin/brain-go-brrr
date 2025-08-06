@@ -20,11 +20,12 @@ data:
 model:
   backbone:
     name: eegpt
-    checkpoint_path: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
     freeze: true
   probe:
     type: linear  # Simple linear probe as per paper
     input_dim: 512  # EEGPT embedding dimension
+    hidden_dim: 128  # Hidden layer size  
     n_classes: 2
     dropout: 0.1
     use_channel_adapter: false
