@@ -7,10 +7,10 @@ data:
   root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
   cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
   batch_size: 32   # Paper-aligned batch size
-  num_workers: 0   # WSL crashes with workers, set to 0
+  num_workers: 2   # Try 2 workers for WSL (was 0)
   pin_memory: true
-  persistent_workers: false  # Can't persist with 0 workers
-  prefetch_factor: null  # No prefetch with 0 workers
+  persistent_workers: true  # Keep workers alive
+  prefetch_factor: 2  # Prefetch batches
   # Paper-aligned parameters
   window_duration: 4.0  # 4 seconds as per paper
   window_stride: 2.0    # 50% overlap for training
