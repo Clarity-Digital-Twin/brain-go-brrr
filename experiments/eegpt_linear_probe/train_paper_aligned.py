@@ -26,7 +26,7 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Import custom dataset and collate
 sys.path.insert(0, str(Path(__file__).parent))
-from tuab_simple_cached import TUABSimpleCachedDataset
+from tuab_cached_loader import TUABCachedLoader
 from custom_collate_fixed import collate_eeg_batch_fixed
 
 
@@ -95,14 +95,14 @@ def create_dataloaders(config):
     data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
     cache_dir = Path(data_root) / "cache" / "tuab_4s_final"
     
-    # Create datasets using the simple cached dataset
-    train_dataset = TUABSimpleCachedDataset(
+    # Create datasets using the cached loader
+    train_dataset = TUABCachedLoader(
         cache_dir=cache_dir,
         split='train'
     )
     
     # Validation dataset
-    val_dataset = TUABSimpleCachedDataset(
+    val_dataset = TUABCachedLoader(
         cache_dir=cache_dir,
         split='eval'
     )
