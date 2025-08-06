@@ -277,10 +277,9 @@ class TestEnhancedSleepAnalyzer:
 
         # Smoothed hypnogram should have fewer transitions
         hypno = results['hypnogram']
-        transitions = np.sum(hypno[:-1] != hypno[1:])
-        original_transitions = np.sum(noisy_hypno[:-1] != noisy_hypno[1:])
+        # Note: transitions would normally be reduced by smoothing, but mocking may affect this
 
-        # Smoothing should reduce transitions (might not always due to mocking)
+        # Verify same length
         assert len(hypno) == len(noisy_hypno)
 
     def test_fallback_staging(self, analyzer, minimal_raw):
