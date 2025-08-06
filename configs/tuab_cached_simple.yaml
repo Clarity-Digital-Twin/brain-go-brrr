@@ -1,0 +1,59 @@
+data:
+  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache
+  cache_mode: create_if_missing  # Will create cache automatically
+  window_duration: 4.0  # CRITICAL: 4 seconds for EEGPT
+  window_stride: 2.0
+  sampling_rate: 256
+  batch_size: 128
+  num_workers: 4
+  bandpass_low: 0.5
+  bandpass_high: 50.0
+  n_channels: 20
+  channel_names:
+    - FP1
+    - FP2
+    - F7
+    - F3
+    - FZ
+    - F4
+    - F8
+    - T7
+    - C3
+    - CZ
+    - C4
+    - T8
+    - P7
+    - P3
+    - PZ
+    - P4
+    - P8
+    - O1
+    - O2
+    - OZ
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+  probe:
+    input_dim: 512
+    hidden_dim: 128
+    dropout: 0.3
+    num_classes: 1
+
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.01
+  patience: 20
+  scheduler:
+    name: onecycle
+    max_lr: 0.01
+    pct_start: 0.3
+
+logging:
+  log_interval: 10
+  save_interval: 1
+  wandb: false

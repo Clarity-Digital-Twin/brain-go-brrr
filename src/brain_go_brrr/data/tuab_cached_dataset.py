@@ -76,8 +76,21 @@ class TUABCachedDataset(TUABDataset):
         self.file_list = []
         self.class_counts = defaultdict(int)
         
-        # Process cached metadata
-        split_data = index["files"].get(split, {})
+        # Handle both nested and flat index formats
+        if 'splits' in index:
+            # Original nested format
+            split_data = index["files"].get(split, {})
+        else:
+            # Flat format from our cache builder
+            split_data = {"normal": [], "abnormal": []}
+            for file_path, info in index.get("files", {}).items():
+                if split in file_path:
+                    class_name = "normal" if "normal" in file_path else "abnormal"
+                    split_data[class_name].append({
+                        "path": file_path,
+                        "duration": info.get("duration", 600),  # Default 10 min
+                        "n_channels": info.get("n_channels", 20)
+                    })
         file_count = 0
         
         for class_name in ["normal", "abnormal"]:
