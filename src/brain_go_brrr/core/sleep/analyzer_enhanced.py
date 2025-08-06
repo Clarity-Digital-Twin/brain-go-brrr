@@ -29,9 +29,9 @@ class YASAConfig:
     use_single_channel: bool = False  # Allow single EEG channel
 
     # Channel preferences (in order of preference)
-    eeg_channels_preference: list[str] = None  # Will be set in __post_init__
-    eog_channels_preference: list[str] = None
-    emg_channels_preference: list[str] = None
+    eeg_channels_preference: list[str] | None = None  # Will be set in __post_init__
+    eog_channels_preference: list[str] | None = None
+    emg_channels_preference: list[str] | None = None
 
     # Processing parameters
     epoch_length: float = 30.0  # Standard 30s epochs
@@ -49,7 +49,7 @@ class YASAConfig:
     n_jobs: int = 1
     verbose: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set default channel preferences based on YASA paper."""
         if self.eeg_channels_preference is None:
             # Order based on YASA paper performance
@@ -129,7 +129,7 @@ class EnhancedSleepAnalyzer:
         self.stages_processed = 0
         self.success_rate = 1.0
 
-    def _validate_yasa_installation(self):
+    def _validate_yasa_installation(self) -> None:
         """Ensure YASA is properly installed."""
         try:
             import yasa
@@ -159,6 +159,10 @@ class EnhancedSleepAnalyzer:
         else:
             return None
 
+        # Check if preferences is None (shouldn't happen after __post_init__)
+        if preferences is None:
+            return None
+
         # Check each preference in order
         available_channels = raw.ch_names
         available_lower = [ch.lower() for ch in available_channels]
@@ -168,7 +172,7 @@ class EnhancedSleepAnalyzer:
             pref_lower = pref.lower()
             if pref_lower in available_lower:
                 idx = available_lower.index(pref_lower)
-                return available_channels[idx]
+                return str(available_channels[idx])
 
             # Try partial match for referenced channels
             if "-" in pref:
@@ -176,14 +180,14 @@ class EnhancedSleepAnalyzer:
                 base_channel = pref.split("-")[0]
                 if base_channel.lower() in available_lower:
                     idx = available_lower.index(base_channel.lower())
-                    return available_channels[idx]
+                    return str(available_channels[idx])
 
         # Fallback: any channel of the right type
         ch_types = raw.get_channel_types()
         for i, ch in enumerate(available_channels):
             if ch_types[i] == channel_type:
                 logger.warning(f"Using fallback {channel_type} channel: {ch}")
-                return ch
+                return str(ch)
 
         return None
 
@@ -206,7 +210,7 @@ class EnhancedSleepAnalyzer:
 
         return raw
 
-    def _set_channel_types(self, raw: mne.io.Raw):
+    def _set_channel_types(self, raw: mne.io.Raw) -> None:
         """Automatically set channel types based on names."""
         channel_types = {}
 
@@ -399,7 +403,7 @@ class EnhancedSleepAnalyzer:
         try:
             from yasa import higuchi_fd
 
-            return higuchi_fd(data)
+            return float(higuchi_fd(data))
         except Exception:
             # Fallback: simple box-counting dimension
             n = len(data)
@@ -421,7 +425,7 @@ class EnhancedSleepAnalyzer:
             y = np.log(l_values)
             fd = np.polyfit(x, y, 1)[0]
 
-            return fd
+            return float(fd)
 
     def _compute_permutation_entropy(self, data: npt.NDArray) -> float:
         """Compute permutation entropy (nonlinear feature)."""
@@ -429,7 +433,7 @@ class EnhancedSleepAnalyzer:
             from yasa import petrosian_fd
 
             # Use Petrosian FD as proxy for complexity
-            return petrosian_fd(data)
+            return float(petrosian_fd(data))
         except Exception:
             # Simple entropy calculation
             # Discretize data
@@ -568,7 +572,7 @@ class EnhancedSleepAnalyzer:
         stats["total_sleep_time_min"] = sleep_epochs * epoch_length / 60
         stats["total_recording_time_min"] = total_time_min
 
-        return stats
+        return dict(stats)
 
     def generate_sleep_report(
         self, staging_results: dict[str, Any], metrics: dict[str, Any]
@@ -730,7 +734,7 @@ class EnhancedSleepAnalyzer:
         return flags
 
 
-def main():
+def main() -> None:
     """Example usage of enhanced sleep analyzer."""
     import logging
 
