@@ -232,9 +232,7 @@ test-ci: ## Run tests for CI with coverage and XML report
 	@$(UV) run coverage report
 	@echo "$(GREEN)CI test results: test-results.xml, coverage.xml$(NC)"
 
-test-integration: ## Run integration tests with timeout
-	@echo "$(GREEN)Running integration tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -m "integration" --timeout=900 --tb=short
+# Duplicate removed - see line 157 for test-integration target
 
 test-all: ## Run ALL tests including slow/external/gpu
 	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
