@@ -118,14 +118,22 @@ class EEGPTModel:
             except Exception as e:
                 self.logger.warning(f"Auto-load failed: {e}")
 
+    def _enc_core(self) -> Any:
+        """Get the core encoder model, handling both wrapped and raw encoders.
+        
+        Returns the wrapped model if encoder has .model attribute,
+        otherwise returns the encoder itself.
+        """
+        if self.encoder is None:
+            raise RuntimeError("Encoder not loaded")
+        return getattr(self.encoder, "model", self.encoder)
+
     def _get_cached_channel_ids(self, channel_names: list[str]) -> torch.Tensor:
         """Get channel IDs with caching for performance."""
         key = tuple(channel_names)
         if key not in self._ch_idx_cache:
-            if self.encoder is None:
-                raise RuntimeError("Encoder not loaded")
-            # Create and cache the channel IDs
-            chan_ids = self.encoder.model.prepare_chan_ids(channel_names)
+            # Create and cache the channel IDs - use _enc_core() for compatibility
+            chan_ids = self._enc_core().prepare_chan_ids(channel_names)
             self._ch_idx_cache[key] = chan_ids.to(self.device)
         return self._ch_idx_cache[key]
 
@@ -395,6 +403,11 @@ class EEGPTModel:
         file_path: str | Path | None = None,
         raw: "mne.io.Raw | None" = None,
         analysis_type: str = "abnormality",
+        # Legacy backward compatibility args
+        data: npt.NDArray[np.float64] | None = None,
+        sampling_rate: float | None = None,
+        batch_size: int | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Process a complete EEG recording from file or Raw object.
 
@@ -402,13 +415,30 @@ class EEGPTModel:
             file_path: Path to EDF file (optional if raw provided)
             raw: MNE Raw object (optional if file_path provided)
             analysis_type: Type of analysis to perform
+            data: Legacy - raw data array (deprecated, use raw instead)
+            sampling_rate: Legacy - sampling rate for data (deprecated)
+            batch_size: Legacy - batch size (ignored)
+            **kwargs: Additional legacy arguments (ignored)
 
         Returns:
             Analysis results dictionary
         """
+        # Backward compatibility: construct Raw from legacy data/sampling_rate
+        if raw is None and data is not None:
+            if sampling_rate is None:
+                raise ValueError("sampling_rate required when using legacy 'data=' input")
+
+            # Create MNE Raw from data
+            import mne
+            n_channels = data.shape[0]
+            # Use standard channel names
+            ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
+            info = mne.create_info(ch_names=ch_names, sfreq=float(sampling_rate), ch_types="eeg")
+            raw = mne.io.RawArray(data, info)
+
         if raw is None:
             if file_path is None:
-                raise ValueError("Must provide either file_path or raw")
+                raise ValueError("Must provide either file_path, raw, or data")
 
             try:
                 import mne

@@ -9,7 +9,7 @@ pytestmark = pytest.mark.skip(reason="TUABCachedDataset imports MNE - causes col
 
 class TestTUABCachedDataset:
     """Test TUAB cached dataset functionality."""
-    
+
     def test_placeholder(self):
         """Placeholder to keep file valid."""
         pass

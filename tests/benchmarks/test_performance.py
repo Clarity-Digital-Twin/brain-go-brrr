@@ -22,12 +22,12 @@ class TestPerformanceBenchmarks:
     def eegpt_model(self):
         """Load EEGPT model for performance tests."""
         from brain_go_brrr.core.config import ModelConfig
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+        from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
         config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)
-        # Create architecture without checkpoint
-        model.encoder = create_eegpt_model(checkpoint_path=None)
+        # Create architecture without checkpoint - use wrapper for proper API
+        model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
         model.encoder.to(model.device)
         model.is_loaded = True
         return model

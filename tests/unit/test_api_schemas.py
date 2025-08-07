@@ -2,9 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-from pydantic import ValidationError
-
 from brain_go_brrr.api.schemas import (
     AnalysisRequest,
     JobCreateRequest,

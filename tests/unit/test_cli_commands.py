@@ -1,7 +1,7 @@
 """Tests for CLI commands - Using CliRunner for black-box testing."""
 
-from typer.testing import CliRunner
 import pytest
+from typer.testing import CliRunner
 
 from brain_go_brrr.cli import app
 
