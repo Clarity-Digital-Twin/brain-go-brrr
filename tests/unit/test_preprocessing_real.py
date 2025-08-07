@@ -31,7 +31,6 @@ class TestBandpassFilterREAL:
         filtered = filt.apply(mixed)
 
         # Compute FFT to check frequencies
-        fft_orig = np.abs(np.fft.rfft(mixed))
         fft_filt = np.abs(np.fft.rfft(filtered))
         freqs = np.fft.rfftfreq(len(mixed), 1/fs)
 

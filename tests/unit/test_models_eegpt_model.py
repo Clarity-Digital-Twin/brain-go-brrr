@@ -154,8 +154,6 @@ class TestModelInference:
 
     def test_single_sample_inference(self):
         """Test single sample inference."""
-        config = EEGPTConfig()
-
         with patch('brain_go_brrr.models.eegpt_model.EEGPTModel') as mock_model:
             mock_instance = MagicMock()
             mock_instance.forward.return_value = torch.randn(1, 16, 512)
