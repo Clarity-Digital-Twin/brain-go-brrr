@@ -179,6 +179,7 @@ class TestTwoLayerProbe:
 class TestProbeTraining:
     """Test probe training dynamics."""
 
+    @pytest.mark.slow
     def test_probe_learning(self):
         """Test that probe can learn simple pattern."""
         from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
