@@ -109,10 +109,15 @@ class TestYASASleepStager:
         selected = stager._select_eeg_channel(ch_names)
         assert selected == "C3"  # C3 is preferred
 
-        # Test without preferred channels
+        # Test without central/frontal channels - should pick occipital
         ch_names = ["T3", "T4", "O1", "O2"]
         selected = stager._select_eeg_channel(ch_names)
-        assert selected == "T3"  # Falls back to first
+        assert selected == "O2"  # O2 is in preferred list before others
+
+        # Test with only non-preferred channels
+        ch_names = ["T3", "T4", "T5", "T6"]
+        selected = stager._select_eeg_channel(ch_names)
+        assert selected == "T3"  # Falls back to first if no preferred
 
     def test_yasa_to_standard_stage(self):
         """Test stage conversion."""
