@@ -143,6 +143,26 @@ test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
 	$(PYTEST) tests/unit $(PYTEST_BASE_OPTS) -q $(PYTEST_NO_PLUGINS)
 
+test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
+	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
+	$(PYTEST) tests/unit -m "not integration" \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--cov-report=term-missing:skip-covered \
+		--cov-report=html \
+		--no-cov-on-fail
+	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
+
+test-integration: ## Run integration tests without coverage (includes MNE/YASA)
+	@echo "$(GREEN)Running integration tests (no coverage)...$(NC)"
+	$(PYTEST) tests/integration -m "not slow" --no-cov -v
+	@echo "$(GREEN)Integration tests complete!$(NC)"
+
+test-slow: ## Run slow tests (nightly CI only)
+	@echo "$(YELLOW)Running slow tests (this may take a while)...$(NC)"
+	$(PYTEST) -m "slow" --no-cov -v
+	@echo "$(GREEN)Slow tests complete!$(NC)"
+
 test-perf: ## Run performance benchmarks
 	@echo "$(GREEN)Running performance benchmarks...$(NC)"
 	$(PYTEST) tests/benchmarks $(PYTEST_BASE_OPTS) -m perf -p pytest_benchmark

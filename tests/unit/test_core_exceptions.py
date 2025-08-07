@@ -1,7 +1,7 @@
 """Tests for core.exceptions module - CLEAN, NO BULLSHIT."""
 
 import pytest
-from src.brain_go_brrr.core.exceptions import (
+from brain_go_brrr.core.exceptions import (
     BrainGoBrrrError,
     ConfigurationError,
     EdfLoadError,

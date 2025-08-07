@@ -387,7 +387,7 @@ def mock_eegpt_model(monkeypatch):
         return
 
     # Use centralized mocks
-    from ._mocks import mock_eegpt_model_loading
+    from tests._mocks import mock_eegpt_model_loading
 
     mock_eegpt_model_loading(monkeypatch)
 
