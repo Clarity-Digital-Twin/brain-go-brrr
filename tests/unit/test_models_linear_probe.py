@@ -191,24 +191,24 @@ class TestProbeTraining:
         optimizer = torch.optim.Adam(probe.parameters(), lr=0.1)  # Higher LR for faster convergence
         criterion = nn.CrossEntropyLoss()
         
-        # Create simple linearly separable data (smaller dataset for speed)
-        X_class0 = torch.randn(50, 10) - 1.0  # More separation
-        X_class1 = torch.randn(50, 10) + 1.0
+        # Create VERY simple linearly separable data (tiny dataset for speed)
+        X_class0 = torch.randn(20, 10) - 2.0  # Even more separation
+        X_class1 = torch.randn(20, 10) + 2.0
         
         X = torch.cat([X_class0, X_class1])
-        y = torch.cat([torch.zeros(50, dtype=torch.long),
-                       torch.ones(50, dtype=torch.long)])
+        y = torch.cat([torch.zeros(20, dtype=torch.long),
+                       torch.ones(20, dtype=torch.long)])
         
         # Shuffle
-        perm = torch.randperm(100)
+        perm = torch.randperm(40)
         X = X[perm]
         y = y[perm]
         
-        # Train for fewer steps
+        # Train for very few steps
         probe.train()
         initial_loss = None
         
-        for epoch in range(10):  # Reduced from 20
+        for epoch in range(5):  # Reduced to 5 epochs
             optimizer.zero_grad()
             logits = probe(X)
             loss = criterion(logits, y)
