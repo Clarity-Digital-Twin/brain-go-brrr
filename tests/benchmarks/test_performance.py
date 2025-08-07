@@ -30,14 +30,10 @@ class TestPerformanceBenchmarks:
         model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
         model.encoder.to(model.device)
 
-        # Initialize abnormality head (required for predict_abnormality)
-        import torch.nn as nn
-        model.abnormality_head = nn.Sequential(
-            nn.Linear(config.embed_dim * config.n_summary_tokens, 512),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(512, 2),  # Binary classification
-        ).to(model.device)
+        # Initialize abnormality head using helper (required for predict_abnormality)
+        if model.abnormality_head is None:
+            model.abnormality_head = model._create_abnormality_head()
+        model.abnormality_head.eval()  # Set to eval mode
 
         model.is_loaded = True
         return model

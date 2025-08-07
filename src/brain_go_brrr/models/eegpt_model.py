@@ -157,6 +157,15 @@ class EEGPTModel:
         """Backward compatibility property."""
         return self.config.window_samples
 
+    def _create_abnormality_head(self) -> nn.Module:
+        """Create default abnormality detection head."""
+        return nn.Sequential(
+            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 2),  # Binary classification
+        ).to(self.device)
+
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""
         if not self.config.model_path.exists():
@@ -177,12 +186,7 @@ class EEGPTModel:
         self.encoder.eval()
 
         # Initialize abnormality detection head (trainable on top of frozen EEGPT)
-        self.abnormality_head = nn.Sequential(
-            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(512, 2),  # Binary classification
-        ).to(self.device)
+        self.abnormality_head = self._create_abnormality_head()
 
         self.is_loaded = True
         self.logger.info(f"✅ Loaded real EEGPT model from {self.config.model_path}")
@@ -318,11 +322,11 @@ class EEGPTModel:
                 "abnormal_probability": float(abnormality_score),
                 "confidence": float(confidence),
                 "window_scores": window_scores,
-                "n_windows": len(window_scores),
+                "n_windows": n_windows_processed,  # Count actual windows processed, not scored
                 "mean_score": float(abnormality_score),
                 "std_score": float(np.std(window_scores)) if window_scores else 0.0,
                 "used_streaming": True,
-                "n_windows_processed": n_windows_processed,
+                "n_windows_scored": len(window_scores),  # Keep track of scored windows separately
                 "metadata": {
                     "duration": duration,
                     "n_channels": len(channel_names),
@@ -425,13 +429,20 @@ class EEGPTModel:
         """
         # Backward compatibility: construct Raw from legacy data/sampling_rate
         if raw is None and data is not None:
+            import warnings
+            warnings.warn(
+                "Passing 'data' and 'sampling_rate' to process_recording is deprecated. "
+                "Please pass an MNE Raw object instead via the 'raw' parameter.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             if sampling_rate is None:
                 raise ValueError("sampling_rate required when using legacy 'data=' input")
 
             # Create MNE Raw from data
             import mne
             n_channels = data.shape[0]
-            # Use standard channel names
+            # Use standard channel names that match expected patterns
             ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
             info = mne.create_info(ch_names=ch_names, sfreq=float(sampling_rate), ch_types="eeg")
             raw = mne.io.RawArray(data, info)
