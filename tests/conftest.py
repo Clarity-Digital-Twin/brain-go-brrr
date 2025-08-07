@@ -379,7 +379,7 @@ def channel_shuffled_raw(mock_eeg_data):
     return shuffled_raw
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=False)  # DISABLED - causes import hangs
 def mock_eegpt_model(monkeypatch):
     """Auto-mock EEGPT model loading for all unit tests."""
     if os.environ.get("EEGPT_MODEL_PATH"):

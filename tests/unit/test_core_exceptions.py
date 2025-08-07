@@ -48,8 +48,9 @@ class TestExceptionHierarchy:
         """Test EDF-specific load error."""
         exc = EdfLoadError("Invalid EDF file")
         assert str(exc) == "Invalid EDF file"
-        assert isinstance(exc, ProcessingError)
+        # EdfLoadError inherits directly from BrainGoBrrrError, not ProcessingError
         assert isinstance(exc, BrainGoBrrrError)
+        assert not isinstance(exc, ProcessingError)
     
     def test_sleep_analysis_error(self):
         """Test sleep analysis error."""
