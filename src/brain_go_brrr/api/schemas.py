@@ -1,7 +1,7 @@
 """Pydantic models for Brain-Go-Brrr API."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -116,8 +116,8 @@ class JobData:
             progress=data.get("progress", 0.0),
             result=data.get("result"),
             error=data.get("error"),
-            created_at=created_at if created_at else datetime.utcnow(),
-            updated_at=updated_at if updated_at else datetime.utcnow(),
+            created_at=created_at if created_at else datetime.now(UTC),
+            updated_at=updated_at if updated_at else datetime.now(UTC),
             started_at=started_at,
             completed_at=completed_at,
         )

@@ -29,6 +29,16 @@ class TestPerformanceBenchmarks:
         # Create architecture without checkpoint - use wrapper for proper API
         model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
         model.encoder.to(model.device)
+
+        # Initialize abnormality head (required for predict_abnormality)
+        import torch.nn as nn
+        model.abnormality_head = nn.Sequential(
+            nn.Linear(config.embed_dim * config.n_summary_tokens, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 2),  # Binary classification
+        ).to(model.device)
+
         model.is_loaded = True
         return model
 

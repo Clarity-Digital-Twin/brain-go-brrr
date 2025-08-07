@@ -9,6 +9,7 @@ against specified targets:
 
 import gc
 import os
+import random
 import time
 from typing import Any
 
@@ -16,6 +17,22 @@ import mne
 import numpy as np
 import pytest
 import torch
+
+from brain_go_brrr.core.config import ModelConfig
+from brain_go_brrr.models.eegpt_model import EEGPTModel
+
+# Import complexity budget calculator
+from .conftest import channel_complexity_budget
+
+# Set deterministic seeds for reproducibility
+random.seed(0)
+np.random.seed(0)
+torch.manual_seed(0)
+torch.set_num_threads(1)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(0)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
 
 # Optional imports for memory monitoring
 try:
@@ -37,12 +54,6 @@ except ImportError:
         return func
 
 
-from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-
-# Import complexity budget calculator
-from .conftest import channel_complexity_budget
-
 # Mark all tests in this module as slow
 pytestmark = pytest.mark.slow
 
@@ -52,6 +63,10 @@ pytestmark = pytest.mark.slow
 SINGLE_WINDOW_TARGET_MS = 65  # milliseconds (original target)
 TWENTY_MIN_RECORDING_TARGET_S = 120  # seconds (2 minutes)
 MEMORY_TARGET_GB = 2.0  # gigabytes
+
+# Relax thresholds for local/mock runs vs CI
+STRICT = os.getenv("CI_BENCHMARKS", "0") == "1"
+PERF_MULTIPLIER = 2.0 if STRICT else 3.0  # More lenient locally
 
 
 @pytest.fixture(scope="session")
@@ -65,6 +80,18 @@ def eegpt_model_cpu():
     # Create architecture without checkpoint - use wrapper for proper API
     model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
     model.encoder.to(model.device)
+
+    # Initialize abnormality head (required for predict_abnormality)
+    import torch.nn as nn
+    model.abnormality_head = nn.Sequential(
+        nn.Linear(config.embed_dim * config.n_summary_tokens, 512),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(512, 2),  # Binary classification
+    ).to(model.device)
+    model.abnormality_head.eval()  # Set to eval mode
+    model.encoder.eval()  # Set encoder to eval mode too
+
     model.is_loaded = True
     return model
 
@@ -82,6 +109,18 @@ def eegpt_model_gpu():
     # Create architecture without checkpoint - use wrapper for proper API
     model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
     model.encoder.to(model.device)
+
+    # Initialize abnormality head (required for predict_abnormality)
+    import torch.nn as nn
+    model.abnormality_head = nn.Sequential(
+        nn.Linear(config.embed_dim * config.n_summary_tokens, 512),
+        nn.ReLU(),
+        nn.Dropout(0.2),
+        nn.Linear(512, 2),  # Binary classification
+    ).to(model.device)
+    model.abnormality_head.eval()  # Set to eval mode
+    model.encoder.eval()  # Set encoder to eval mode too
+
     model.is_loaded = True
     return model
 
@@ -288,7 +327,7 @@ class TestBatchProcessingBenchmarks:
             except AttributeError:
                 per_window_time_ms = 10.0  # Default fallback
         # Allow more overhead for mock models without real weights
-        assert per_window_time_ms < SINGLE_WINDOW_TARGET_MS * 2.5  # Allow overhead for mock model
+        assert per_window_time_ms < SINGLE_WINDOW_TARGET_MS * PERF_MULTIPLIER  # Allow overhead for mock model
 
 
 class TestFullRecordingBenchmarks:

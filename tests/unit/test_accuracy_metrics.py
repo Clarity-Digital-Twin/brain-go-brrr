@@ -5,7 +5,7 @@ during test runs, enabling trend monitoring without hard failures.
 """
 
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -52,7 +52,7 @@ class MetricsRecorder:
         data["metrics"][test_name][metric_name].append(
             {
                 "value": value,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "commit": self._get_git_commit(),
             }
         )

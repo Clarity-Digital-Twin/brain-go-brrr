@@ -1,6 +1,6 @@
 """Tests for API schemas - Fixed to match ACTUAL API."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from brain_go_brrr.api.schemas import (
     AnalysisRequest,
@@ -18,7 +18,7 @@ class TestJobSchemas:
 
     def test_job_data_complete(self):
         """Test JobData with all fields."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         job = JobData(
             job_id="test-456",
             analysis_type="abnormality",
