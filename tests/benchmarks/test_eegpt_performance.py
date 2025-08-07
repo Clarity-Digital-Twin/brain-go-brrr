@@ -58,12 +58,12 @@ MEMORY_TARGET_GB = 2.0  # gigabytes
 def eegpt_model_cpu():
     """Create EEGPT model for CPU benchmarks."""
     # Use mock model if no checkpoint available to avoid dependency issues
-    from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
     config = ModelConfig(device="cpu")
     model = EEGPTModel(config=config, auto_load=False)
-    # Create architecture without checkpoint
-    model.encoder = create_eegpt_model(checkpoint_path=None)
+    # Create architecture without checkpoint - use wrapper for proper API
+    model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
     model.encoder.to(model.device)
     model.is_loaded = True
     return model
@@ -75,12 +75,12 @@ def eegpt_model_gpu():
     if not torch.cuda.is_available():
         pytest.skip("GPU not available for testing")
 
-    from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
     config = ModelConfig(device="cuda")
     model = EEGPTModel(config=config, auto_load=False)
-    # Create architecture without checkpoint
-    model.encoder = create_eegpt_model(checkpoint_path=None)
+    # Create architecture without checkpoint - use wrapper for proper API
+    model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
     model.encoder.to(model.device)
     model.is_loaded = True
     return model
@@ -436,8 +436,12 @@ class TestMemoryBenchmarks:
         process = psutil.Process()
         memory_before_mb = process.memory_info().rss / 1024 / 1024
 
+        # Create MNE Raw object for processing
+        info = mne.create_info(ch_names=ch_names, sfreq=256, ch_types="eeg")
+        raw = mne.io.RawArray(data, info)
+        
         # Process recording
-        result = model.process_recording(data=data, sampling_rate=256, batch_size=32)
+        result = model.process_recording(raw=raw)
 
         # Measure memory after
         memory_after_mb = process.memory_info().rss / 1024 / 1024
@@ -451,7 +455,8 @@ class TestMemoryBenchmarks:
         )
 
         # Verify processing completed
-        assert result["processing_complete"] is True
+        assert "abnormal_probability" in result
+        assert result["n_windows"] > 0
 
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
