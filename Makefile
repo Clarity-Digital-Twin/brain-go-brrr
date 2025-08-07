@@ -145,7 +145,7 @@ test-unit: ## Run unit tests only (fast)
 
 test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
-	$(PYTEST) tests/unit -m "not integration" \
+	$(PYTEST) tests/unit -m "not integration and not slow" \
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
@@ -153,6 +153,16 @@ test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 		--no-cov-on-fail \
 		--timeout=600
 	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
+
+test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
+	@echo "$(CYAN)Running FAST tests with coverage (no benchmarks, no slow tests)...$(NC)"
+	$(PYTEST) tests/unit tests/api \
+		-m "not integration and not slow and not benchmark" \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--cov-report=term-missing:skip-covered \
+		--tb=short \
+		-q
 
 test-integration: ## Run integration tests without coverage (includes MNE/YASA)
 	@echo "$(GREEN)Running integration tests (no coverage)...$(NC)"
@@ -238,17 +248,26 @@ test-all: ## Run ALL tests including slow/external/gpu
 	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
 	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "" --ignore=tests/benchmarks
 
-test-all-cov: ## Run ALL tests with coverage report
-	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
+test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
+	@echo "$(GREEN)Running all tests with full coverage (excluding slow benchmarks)...$(NC)"
 	$(PYTEST) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		-m ""
+		-m "not benchmark" \
+		--ignore=tests/benchmarks
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(UV) run coverage html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
+	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
+	$(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
+
+test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
+	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
+	CI_BENCHMARKS=1 $(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"
