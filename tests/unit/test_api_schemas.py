@@ -1,24 +1,24 @@
 """REAL tests for API schemas - Clean, no bullshit."""
 
-import pytest
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
 
 from brain_go_brrr.api.schemas import (
-    JobData,
-    JobResponse,
-    JobStatus,
-    JobPriority,
-    SleepAnalysisResponse,
-    QCResponse,
     AnalysisRequest,
     JobCreateRequest,
+    JobData,
+    JobPriority,
+    JobStatus,
+    QCResponse,
+    SleepAnalysisResponse,
 )
 
 
 class TestJobSchemas:
     """Test job-related schemas."""
-    
+
     def test_job_data_minimal(self):
         """Test JobData with minimal fields."""
         job = JobData(
@@ -26,13 +26,13 @@ class TestJobSchemas:
             analysis_type="sleep",
             status=JobStatus.PENDING
         )
-        
+
         assert job.job_id == "test-123"
         assert job.analysis_type == "sleep"
         assert job.status == JobStatus.PENDING
         assert job.priority == JobPriority.NORMAL  # default
         assert job.progress == 0.0  # default
-    
+
     def test_job_data_complete(self):
         """Test JobData with all fields."""
         now = datetime.utcnow()
@@ -51,12 +51,12 @@ class TestJobSchemas:
             started_at=now,
             completed_at=None
         )
-        
+
         assert job.job_id == "test-456"
         assert job.analysis_type == "abnormality"
         assert job.options["threshold"] == 0.8
         assert job.progress == 0.5
-    
+
     def test_job_status_transitions(self):
         """Test job status values."""
         assert JobStatus.PENDING.value == "pending"
@@ -64,7 +64,7 @@ class TestJobSchemas:
         assert JobStatus.COMPLETED.value == "completed"
         assert JobStatus.FAILED.value == "failed"
         assert JobStatus.CANCELLED.value == "cancelled"
-    
+
     def test_job_priority_levels(self):
         """Test job priority values."""
         assert JobPriority.LOW.value == "low"
@@ -75,7 +75,7 @@ class TestJobSchemas:
 
 class TestAnalysisResponses:
     """Test analysis response schemas."""
-    
+
     def test_sleep_analysis_response(self):
         """Test SleepAnalysisResponse schema."""
         response = SleepAnalysisResponse(
@@ -92,13 +92,13 @@ class TestAnalysisResponses:
             timestamp="2024-01-01T00:00:00Z",
             cached=False
         )
-        
+
         assert response.status == "success"
         assert response.sleep_stages["W"] == 0.3
         assert response.sleep_metrics["sleep_efficiency"] == 85.5
         assert len(response.hypnogram) == 6
         assert response.processing_time == 2.5
-    
+
     def test_qc_response(self):
         """Test QCResponse schema."""
         response = QCResponse(
@@ -107,12 +107,12 @@ class TestAnalysisResponses:
             quality_score=0.85,
             recommendations=["Remove Fp1", "Interpolate O2"]
         )
-        
+
         assert response.status == "success"
         assert "Fp1" in response.bad_channels
         assert response.quality_score == 0.85
         assert len(response.recommendations) == 2
-    
+
     def test_analysis_request(self):
         """Test AnalysisRequest schema."""
         request = AnalysisRequest(
@@ -120,11 +120,11 @@ class TestAnalysisResponses:
             analysis_type="sleep",
             options={"window_size": 30}
         )
-        
+
         assert request.file_id == "file-123"
         assert request.analysis_type == "sleep"
         assert request.options["window_size"] == 30
-    
+
     def test_job_create_request(self):
         """Test JobCreateRequest schema."""
         request = JobCreateRequest(
@@ -133,7 +133,7 @@ class TestAnalysisResponses:
             priority=JobPriority.HIGH,
             options={"threshold": 0.8}
         )
-        
+
         assert request.analysis_type == "abnormality"
         assert request.file_path == "/data/test.edf"
         assert request.priority == JobPriority.HIGH
@@ -142,7 +142,7 @@ class TestAnalysisResponses:
 
 class TestSchemaValidation:
     """Test schema validation rules."""
-    
+
     def test_job_data_invalid_progress(self):
         """Test JobData rejects invalid progress values."""
         with pytest.raises(ValidationError) as exc_info:
@@ -152,9 +152,9 @@ class TestSchemaValidation:
                 status=JobStatus.PENDING,
                 progress=1.5  # > 1.0
             )
-        
+
         assert "progress" in str(exc_info.value)
-    
+
     def test_job_data_empty_job_id(self):
         """Test JobData requires non-empty job_id."""
         with pytest.raises(ValidationError) as exc_info:
@@ -163,9 +163,9 @@ class TestSchemaValidation:
                 analysis_type="sleep",
                 status=JobStatus.PENDING
             )
-        
+
         assert "job_id" in str(exc_info.value)
-    
+
     def test_sleep_stages_sum_validation(self):
         """Test sleep stages should sum to approximately 1.0."""
         # This might not have validation, but good to check
@@ -179,6 +179,6 @@ class TestSchemaValidation:
             timestamp="2024-01-01T00:00:00Z",
             cached=False
         )
-        
+
         # Should accept it (no strict validation) but document the behavior
         assert sum(response.sleep_stages.values()) > 1.0
