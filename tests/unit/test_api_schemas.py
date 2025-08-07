@@ -24,16 +24,21 @@ class TestJobSchemas:
 
     def test_job_data_minimal(self):
         """Test JobData with minimal fields."""
+        now = datetime.utcnow()
         job = JobData(
             job_id="test-123",
             analysis_type="sleep",
-            status=JobStatus.PENDING
+            file_path="/data/test.edf",
+            status=JobStatus.PENDING,
+            priority=JobPriority.NORMAL,
+            created_at=now,
+            updated_at=now
         )
 
         assert job.job_id == "test-123"
         assert job.analysis_type == "sleep"
         assert job.status == JobStatus.PENDING
-        assert job.priority == JobPriority.NORMAL  # default
+        assert job.priority == JobPriority.NORMAL
         assert job.progress == 0.0  # default
 
     def test_job_data_complete(self):
@@ -73,7 +78,7 @@ class TestJobSchemas:
         assert JobPriority.LOW.value == "low"
         assert JobPriority.NORMAL.value == "normal"
         assert JobPriority.HIGH.value == "high"
-        assert JobPriority.URGENT.value == "urgent"
+        # URGENT was removed from enum
 
 
 class TestAnalysisResponses:
