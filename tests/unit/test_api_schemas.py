@@ -99,76 +99,45 @@ class TestAnalysisResponses:
         assert len(response.hypnogram) == 6
         assert response.processing_time == 2.5
     
-    def test_quality_check_response(self):
-        """Test QualityCheckResponse schema."""
-        response = QualityCheckResponse(
+    def test_qc_response(self):
+        """Test QCResponse schema."""
+        response = QCResponse(
             status="success",
-            has_quality_issues=True,
             bad_channels=["Fp1", "O2"],
-            quality_metrics={
-                "snr": 15.5,
-                "artifact_ratio": 0.12
-            },
-            recommendations=["Remove Fp1", "Interpolate O2"],
-            metadata={"method": "autoreject"},
-            processing_time=1.2,
-            timestamp="2024-01-01T00:00:00Z",
-            cached=False
+            quality_score=0.85,
+            recommendations=["Remove Fp1", "Interpolate O2"]
         )
         
-        assert response.has_quality_issues is True
+        assert response.status == "success"
         assert "Fp1" in response.bad_channels
-        assert response.quality_metrics["snr"] == 15.5
+        assert response.quality_score == 0.85
         assert len(response.recommendations) == 2
     
-    def test_abnormality_detection_response(self):
-        """Test AbnormalityDetectionResponse schema."""
-        response = AbnormalityDetectionResponse(
-            status="success",
-            is_abnormal=True,
-            confidence=0.92,
-            abnormality_type="epileptiform",
-            abnormal_segments=[
-                {"start": 100, "end": 150, "confidence": 0.95}
-            ],
-            metadata={"model": "eegpt"},
-            processing_time=3.5,
-            timestamp="2024-01-01T00:00:00Z",
-            cached=False
+    def test_analysis_request(self):
+        """Test AnalysisRequest schema."""
+        request = AnalysisRequest(
+            file_id="file-123",
+            analysis_type="sleep",
+            options={"window_size": 30}
         )
         
-        assert response.is_abnormal is True
-        assert response.confidence == 0.92
-        assert response.abnormality_type == "epileptiform"
-        assert len(response.abnormal_segments) == 1
-        assert response.abnormal_segments[0]["confidence"] == 0.95
+        assert request.file_id == "file-123"
+        assert request.analysis_type == "sleep"
+        assert request.options["window_size"] == 30
     
-    def test_event_detection_response(self):
-        """Test EventDetectionResponse schema."""
-        response = EventDetectionResponse(
-            status="success",
-            events_detected=True,
-            events=[
-                {
-                    "type": "spike",
-                    "timestamp": 120.5,
-                    "duration": 0.2,
-                    "channels": ["C3", "C4"],
-                    "confidence": 0.88
-                }
-            ],
-            event_summary={"spike": 1, "sharp_wave": 0},
-            metadata={"algorithm": "template_matching"},
-            processing_time=2.8,
-            timestamp="2024-01-01T00:00:00Z",
-            cached=True
+    def test_job_create_request(self):
+        """Test JobCreateRequest schema."""
+        request = JobCreateRequest(
+            analysis_type="abnormality",
+            file_path="/data/test.edf",
+            priority=JobPriority.HIGH,
+            options={"threshold": 0.8}
         )
         
-        assert response.events_detected is True
-        assert len(response.events) == 1
-        assert response.events[0]["type"] == "spike"
-        assert response.event_summary["spike"] == 1
-        assert response.cached is True
+        assert request.analysis_type == "abnormality"
+        assert request.file_path == "/data/test.edf"
+        assert request.priority == JobPriority.HIGH
+        assert request.options["threshold"] == 0.8
 
 
 class TestSchemaValidation:
