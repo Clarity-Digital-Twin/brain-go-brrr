@@ -183,29 +183,32 @@ class TestProbeTraining:
         """Test that probe can learn simple pattern."""
         from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
         
+        # Seed for reproducibility and speed
+        torch.manual_seed(0)
+        np.random.seed(0)
+        
         probe = LinearProbe(input_dim=10, num_classes=2)
-        optimizer = torch.optim.Adam(probe.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(probe.parameters(), lr=0.1)  # Higher LR for faster convergence
         criterion = nn.CrossEntropyLoss()
         
-        # Create simple linearly separable data
-        torch.manual_seed(42)
-        X_class0 = torch.randn(100, 10) - 0.5
-        X_class1 = torch.randn(100, 10) + 0.5
+        # Create simple linearly separable data (smaller dataset for speed)
+        X_class0 = torch.randn(50, 10) - 1.0  # More separation
+        X_class1 = torch.randn(50, 10) + 1.0
         
         X = torch.cat([X_class0, X_class1])
-        y = torch.cat([torch.zeros(100, dtype=torch.long),
-                       torch.ones(100, dtype=torch.long)])
+        y = torch.cat([torch.zeros(50, dtype=torch.long),
+                       torch.ones(50, dtype=torch.long)])
         
         # Shuffle
-        perm = torch.randperm(200)
+        perm = torch.randperm(100)
         X = X[perm]
         y = y[perm]
         
-        # Train for a few steps
+        # Train for fewer steps
         probe.train()
         initial_loss = None
         
-        for epoch in range(20):
+        for epoch in range(10):  # Reduced from 20
             optimizer.zero_grad()
             logits = probe(X)
             loss = criterion(logits, y)

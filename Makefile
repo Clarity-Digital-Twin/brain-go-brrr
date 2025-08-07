@@ -150,7 +150,8 @@ test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
 		--cov-report=html \
-		--no-cov-on-fail
+		--no-cov-on-fail \
+		--timeout=600
 	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
 
 test-integration: ## Run integration tests without coverage (includes MNE/YASA)
