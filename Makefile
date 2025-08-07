@@ -44,6 +44,13 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
 	@echo ""
+	@echo "$(RED)⚠️  IMPORTANT: Testing Performance Notes$(NC)"
+	@echo "  • $(YELLOW)NEVER$(NC) run coverage on benchmarks - they will hang!"
+	@echo "  • Use '$(GREEN)make test-benchmarks$(NC)' for benchmark tests (no coverage)"
+	@echo "  • Use '$(GREEN)make test-fast-cov$(NC)' for quick coverage (~1 min)"
+	@echo "  • Use '$(GREEN)make test-unit-cov$(NC)' for thorough coverage (~2 min)"
+	@echo "  • The '$(CYAN)make test-all-cov$(NC)' now excludes benchmarks automatically"
+	@echo ""
 	@echo "$(BLUE)Development Workflow:$(NC)"
 	@echo "  1. $(GREEN)make install$(NC)     - Install dependencies"
 	@echo "  2. $(GREEN)make dev-install$(NC) - Install dev dependencies"
