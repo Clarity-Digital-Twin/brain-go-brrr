@@ -120,7 +120,7 @@ class EEGPTModel:
 
     def _enc_core(self) -> Any:
         """Get the core encoder model, handling both wrapped and raw encoders.
-        
+
         Returns the wrapped model if encoder has .model attribute,
         otherwise returns the encoder itself.
         """
@@ -406,8 +406,8 @@ class EEGPTModel:
         # Legacy backward compatibility args
         data: npt.NDArray[np.float64] | None = None,
         sampling_rate: float | None = None,
-        batch_size: int | None = None,
-        **kwargs: Any,
+        batch_size: int | None = None,  # noqa: ARG002
+        **kwargs: Any,  # noqa: ARG002
     ) -> dict[str, Any]:
         """Process a complete EEG recording from file or Raw object.
 

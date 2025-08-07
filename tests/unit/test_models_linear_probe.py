@@ -197,25 +197,25 @@ class TestProbeTraining:
         criterion = nn.CrossEntropyLoss()
 
         # Create VERY simple linearly separable data (tiny dataset for speed)
-        X_class0 = torch.randn(20, 10) - 2.0  # Even more separation
-        X_class1 = torch.randn(20, 10) + 2.0
+        x_class0 = torch.randn(20, 10) - 2.0  # Even more separation
+        x_class1 = torch.randn(20, 10) + 2.0
 
-        X = torch.cat([X_class0, X_class1])
+        x = torch.cat([x_class0, x_class1])
         y = torch.cat([torch.zeros(20, dtype=torch.long),
                        torch.ones(20, dtype=torch.long)])
 
         # Shuffle
         perm = torch.randperm(40)
-        X = X[perm]
+        x = x[perm]
         y = y[perm]
 
         # Train for very few steps
         probe.train()
         initial_loss = None
 
-        for epoch in range(5):  # Reduced to 5 epochs
+        for _ in range(5):  # Reduced to 5 epochs
             optimizer.zero_grad()
-            logits = probe(X)
+            logits = probe(x)
             loss = criterion(logits, y)
 
             if initial_loss is None:
@@ -232,7 +232,7 @@ class TestProbeTraining:
         # Check accuracy
         probe.eval()
         with torch.no_grad():
-            logits = probe(X)
+            logits = probe(x)
             preds = logits.argmax(dim=-1)
             acc = (preds == y).float().mean().item()
 
