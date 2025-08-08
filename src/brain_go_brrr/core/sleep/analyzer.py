@@ -263,7 +263,7 @@ class SleepAnalyzer:
             # Apply temporal smoothing if requested
             # Get prediction probabilities if requested
             if return_proba:
-                _ = sls.predict_proba()
+                proba = sls.predict_proba()
                 if apply_smoothing:
                     y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
                     logger.info(
@@ -272,7 +272,7 @@ class SleepAnalyzer:
                 logger.info(
                     f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
                 )
-                return y_pred  # type: ignore[no-any-return], proba
+                return y_pred, proba  # type: ignore[no-any-return]
 
             if apply_smoothing:
                 y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
