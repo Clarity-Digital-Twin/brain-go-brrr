@@ -22,6 +22,16 @@ from brain_go_brrr.api.routers.eegpt import (
 class TestEEGPTRouterClean:
     """Test EEGPT router with minimal mocking - focus on REAL logic."""
 
+    @pytest.fixture(autouse=True)
+    def clear_globals(self):
+        """Clear global state between tests."""
+        import brain_go_brrr.api.routers.eegpt as eegpt_module
+        eegpt_module._eegpt_model = None
+        eegpt_module._probes = {}
+        yield
+        eegpt_module._eegpt_model = None
+        eegpt_module._probes = {}
+
     @pytest.fixture
     def mock_eegpt_model(self):
         """Create minimal mock of EEGPT model with real-like behavior."""
@@ -58,7 +68,9 @@ class TestEEGPTRouterClean:
     @pytest.fixture
     def mock_abnormality_probe(self):
         """Create minimal mock of abnormality probe."""
-        probe = MagicMock()
+        from brain_go_brrr.models.linear_probe import AbnormalityProbe
+        
+        probe = MagicMock(spec=AbnormalityProbe)
         
         def predict_abnormal_probability(features_tensor):
             # Return realistic probability (0-1)
@@ -70,7 +82,9 @@ class TestEEGPTRouterClean:
     @pytest.fixture
     def mock_sleep_probe(self):
         """Create minimal mock of sleep probe."""
-        probe = MagicMock()
+        from brain_go_brrr.models.linear_probe import SleepStageProbe
+        
+        probe = MagicMock(spec=SleepStageProbe)
         
         def predict_stage(features_tensor):
             # Return realistic sleep stages (0-4) and confidence
@@ -374,7 +388,7 @@ class TestEEGPTRouterClean:
         response = test_client.post(
             "/eeg/eegpt/analyze/batch",
             files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
-            data={"analysis_type": "abnormality", "batch_size": "2"}
+            data={"analysis_type": "abnormality", "batch_size": 2}  # Pass as int, not string
         )
         
         assert response.status_code == 200
@@ -412,7 +426,7 @@ class TestEEGPTRouterClean:
             response = test_client.post(
                 "/eeg/eegpt/analyze/batch",
                 files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
-                data={"analysis_type": "custom", "batch_size": "2"}
+                data={"analysis_type": "custom", "batch_size": 2}
             )
             
             assert response.status_code == 200
