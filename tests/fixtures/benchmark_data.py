@@ -7,12 +7,15 @@ This module provides realistic EEG data samples for benchmarking:
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 import pytest
 
-# NOTE: mne import moved inside fixtures to prevent hanging during test collection
+# Type checking imports only
+if TYPE_CHECKING:
+    import mne
 
 
 @pytest.fixture(scope="session")

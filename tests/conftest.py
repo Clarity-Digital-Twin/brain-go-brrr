@@ -16,13 +16,16 @@ os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 import random
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-# NOTE: mne import moved inside fixtures to prevent hanging during test collection
+# Type checking imports only - don't trigger actual imports
+if TYPE_CHECKING:
+    import mne
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
@@ -71,17 +74,19 @@ def force_seq_joblib(monkeypatch):
     monkeypatch.setenv("LOKY_MAX_CPU_COUNT", "1")
 
 
-@pytest.fixture(scope="session", autouse=True)
-def test_environment_setup():
-    """Set up test environment - silence MNE logging and replace Redis."""
-    # Silence MNE filter design messages
+@pytest.fixture(scope="session")
+def mne_silence():
+    """Import MNE and silence its logging - safe runtime import."""
     import mne
-
     mne.set_log_level("WARNING")
+    os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
+    return mne
 
-    # Also set environment variable for any subprocesses
-    import os
 
+@pytest.fixture(scope="session", autouse=True) 
+def test_environment_setup():
+    """Set up test environment - configure logging levels."""
+    # Set environment variable for any subprocesses
     os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
 
 
@@ -179,9 +184,9 @@ def sleep_edf_path(project_root) -> Path:
 
 
 @pytest.fixture
-def sleep_edf_raw_cropped(sleep_edf_path) -> "mne.io.Raw":
+def sleep_edf_raw_cropped(sleep_edf_path, mne_silence) -> "mne.io.Raw":
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
-    import mne
+    mne = mne_silence
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     raw.crop(tmax=60)  # 1-minute slice for CI speed
     yield raw
@@ -191,9 +196,9 @@ def sleep_edf_raw_cropped(sleep_edf_path) -> "mne.io.Raw":
 
 
 @pytest.fixture
-def sleep_edf_raw_full(sleep_edf_path) -> "mne.io.Raw":
+def sleep_edf_raw_full(sleep_edf_path, mne_silence) -> "mne.io.Raw":
     """Load full Sleep-EDF file (for slow tests only)."""
-    import mne
+    mne = mne_silence
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     yield raw
     # Cleanup: explicitly delete to free memory
@@ -349,13 +354,13 @@ def mock_abnormality_detector():
 
 
 @pytest.fixture
-def channel_shuffled_raw(mock_eeg_data):
+def channel_shuffled_raw(mock_eeg_data, mne_silence):
     """Create mock EEG data with shuffled channel order.
 
     This fixture creates EEG data with channels in a randomized order
     to test robustness of algorithms to different channel arrangements.
     """
-    import mne
+    mne = mne_silence
     
     # Set seed for reproducible shuffling
     np.random.seed(42)
