@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient
 
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:
-    import mne  # noqa: TC004
+    import mne
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]

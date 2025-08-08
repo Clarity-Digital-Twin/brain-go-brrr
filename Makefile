@@ -28,6 +28,8 @@ PYTHON := $(UV) run python
 PIP := $(UV) pip
 PYTEST := $(UV) run pytest
 RUFF := $(UV) run ruff
+# Add explicit plugin loading when autoload is disabled
+PYTEST_WITH_COV := PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(UV) run pytest -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
@@ -152,7 +154,7 @@ test-unit: ## Run unit tests only (fast)
 
 test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
-	$(PYTEST) tests/unit -m "not integration and not slow" \
+	$(PYTEST_WITH_COV) tests/unit -m "not integration and not slow" \
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
@@ -163,7 +165,7 @@ test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 
 test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 	@echo "$(CYAN)Running FAST tests with coverage (no benchmarks, no slow tests)...$(NC)"
-	$(PYTEST) tests/unit tests/api \
+	$(PYTEST_WITH_COV) tests/unit tests/api \
 		-m "not integration and not slow and not benchmark" \
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
@@ -196,7 +198,7 @@ test-fast: ## Run tests in parallel without coverage (fastest)
 test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
 	@echo "$(YELLOW)Note: Using single process for accurate coverage. This takes longer than parallel tests.$(NC)"
-	$(PYTEST) $(TEST_DIR) \
+	$(PYTEST_WITH_COV) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing:skip-covered \
 		--cov-report= \
@@ -228,7 +230,7 @@ coverage-report: ## Display coverage report summary
 
 cov: ## Quick coverage check - shows TOTAL coverage percentage
 	@echo "$(GREEN)Running quick coverage check...$(NC)"
-	@$(PYTEST) tests \
+	@$(PYTEST_WITH_COV) tests \
 		--cov=brain_go_brrr \
 		--cov-report=term \
 		-m "not slow and not external and not gpu and not integration" \
@@ -257,7 +259,7 @@ test-all: ## Run ALL tests including slow/external/gpu
 
 test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
 	@echo "$(GREEN)Running all tests with full coverage (excluding slow benchmarks)...$(NC)"
-	$(PYTEST) $(TEST_DIR) \
+	$(PYTEST_WITH_COV) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \

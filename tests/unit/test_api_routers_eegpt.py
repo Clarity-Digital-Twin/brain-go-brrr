@@ -40,8 +40,8 @@ class TestEEGPTRouterClean:
         
         # Extract features returns realistic feature vector
         def extract_features(data, channels):
-            # Return 2048-dim feature vector (EEGPT output size)
-            return np.random.randn(2048).astype(np.float32)
+            # Return fixed 2048-dim feature vector for deterministic tests
+            return np.ones(2048).astype(np.float32) * 0.1
         
         def extract_windows(data, sfreq):
             # Return realistic windows (4-second windows)
@@ -55,9 +55,9 @@ class TestEEGPTRouterClean:
             return windows
         
         def extract_features_batch(batch_array, channels):
-            # Return batch of feature vectors
+            # Return fixed batch of feature vectors for deterministic tests
             batch_size = batch_array.shape[0]
-            return np.random.randn(batch_size, 2048).astype(np.float32)
+            return np.ones((batch_size, 2048)).astype(np.float32) * 0.1
         
         model.extract_features = extract_features
         model.extract_windows = extract_windows
@@ -73,8 +73,8 @@ class TestEEGPTRouterClean:
         probe = MagicMock(spec=AbnormalityProbe)
         
         def predict_abnormal_probability(features_tensor):
-            # Return realistic probability (0-1)
-            return torch.tensor(0.3 + np.random.random() * 0.4)
+            # Return fixed probability for deterministic tests
+            return torch.tensor(0.42)
         
         probe.predict_abnormal_probability = predict_abnormal_probability
         return probe
@@ -87,9 +87,9 @@ class TestEEGPTRouterClean:
         probe = MagicMock(spec=SleepStageProbe)
         
         def predict_stage(features_tensor):
-            # Return realistic sleep stages (0-4) and confidence
-            stages = [np.random.randint(0, 5)]
-            confidences = torch.tensor([0.7 + np.random.random() * 0.3])
+            # Return fixed sleep stage and confidence for deterministic tests
+            stages = [2]  # N2 sleep
+            confidences = torch.tensor([0.8])
             return stages, confidences
         
         probe.predict_stage = predict_stage
@@ -117,8 +117,8 @@ class TestEEGPTRouterClean:
                     "transducer": "AgAgCl electrode",
                 })
             
-            # Write 20 seconds of data (5 windows of 4 seconds)
-            data = np.random.randn(2, 20 * 256).astype(np.float64) * 50  # pyedflib needs float64
+            # Write 20 seconds of fixed data (5 windows of 4 seconds)
+            data = np.ones((2, 20 * 256)).astype(np.float64) * 50  # pyedflib needs float64, fixed values
             for i in range(2):
                 writer.writePhysicalSamples(data[i])
             
@@ -191,7 +191,7 @@ class TestEEGPTRouterClean:
         
         # Create mock raw object
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.random.randn(19, 20 * 256) * 50e-6
+        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
         mock_raw.ch_names = [f"EEG{i+1}" for i in range(19)]
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
@@ -240,7 +240,7 @@ class TestEEGPTRouterClean:
         
         # Create mock raw object
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.random.randn(19, 20 * 256) * 50e-6
+        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
         mock_raw.ch_names = [f"EEG{i+1}" for i in range(19)]
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
@@ -338,7 +338,7 @@ class TestEEGPTRouterClean:
         
         # Create mock raw object
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.random.randn(19, 20 * 256) * 50e-6
+        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
         mock_raw.ch_names = [f"EEG{i+1}" for i in range(19)]
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
@@ -378,7 +378,7 @@ class TestEEGPTRouterClean:
         
         # Create mock raw object with more data for batching
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.random.randn(19, 40 * 256) * 50e-6  # 40 seconds
+        mock_raw.get_data.return_value = np.ones((19, 40 * 256)) * 50e-6  # 40 seconds, fixed values
         mock_raw.ch_names = [f"EEG{i+1}" for i in range(19)]
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
@@ -411,7 +411,7 @@ class TestEEGPTRouterClean:
         
         # Create mock raw object
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.random.randn(19, 20 * 256) * 50e-6
+        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
         mock_raw.ch_names = [f"EEG{i+1}" for i in range(19)]
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw

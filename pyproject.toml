@@ -181,6 +181,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG", "D417"]  # Don't require self in docstrings for test mocks
 "scripts/*.py" = ["E402"]  # Allow imports after env var setup in scripts
+"tests/conftest.py" = ["TC004"]  # Allow type-checking imports with future annotations
+"tests/fixtures/mock_eeg_generator.py" = ["TC004"]  # Allow type-checking imports with future annotations
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"  # Use Google-style docstrings
