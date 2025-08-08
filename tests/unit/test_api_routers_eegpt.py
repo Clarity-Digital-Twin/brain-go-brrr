@@ -116,10 +116,11 @@ class TestEEGPTRouterClean:
                     },
                 )
 
-            # Write 20 seconds of fixed data (5 windows of 4 seconds)
-            data = (
-                np.ones((2, 20 * 256)).astype(np.float64) * 50
-            )  # pyedflib needs float64, fixed values
+            # Write 20 seconds of deterministic sine wave data (5 windows of 4 seconds)
+            t = np.arange(20 * 256) / 256.0
+            # 10 Hz sine wave, realistic amplitude
+            signal = 50 * np.sin(2 * np.pi * 10 * t)  # pyedflib needs float64
+            data = np.vstack([signal, signal * 0.9]).astype(np.float64)  # 2 channels with slight difference
             for i in range(2):
                 writer.writePhysicalSamples(data[i])
 
@@ -196,11 +197,17 @@ class TestEEGPTRouterClean:
         mock_get_model.return_value = mock_eegpt_model
         mock_get_probe.return_value = mock_abnormality_probe
 
-        # Create mock raw object
+        # Create mock raw object with deterministic sine wave
+        sfreq = 256
+        duration = 20  # seconds
+        t = np.arange(duration * sfreq) / sfreq
+        # 12 Hz sine wave with small DC offset, realistic EEG amplitude
+        signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
+        
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
+        mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
-        mock_raw.info = {"sfreq": 256}
+        mock_raw.info = {"sfreq": sfreq}
         mock_load_edf.return_value = mock_raw
 
         # Make request
@@ -251,11 +258,17 @@ class TestEEGPTRouterClean:
         mock_get_model.return_value = mock_eegpt_model
         mock_get_probe.return_value = mock_sleep_probe
 
-        # Create mock raw object
+        # Create mock raw object with deterministic sine wave
+        sfreq = 256
+        duration = 20  # seconds
+        t = np.arange(duration * sfreq) / sfreq
+        # 12 Hz sine wave with small DC offset, realistic EEG amplitude
+        signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
+        
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
+        mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
-        mock_raw.info = {"sfreq": 256}
+        mock_raw.info = {"sfreq": sfreq}
         mock_load_edf.return_value = mock_raw
 
         # Make request - analysis_type as query param
@@ -353,11 +366,17 @@ class TestEEGPTRouterClean:
         mock_get_model.return_value = mock_eegpt_model
         mock_get_probe.return_value = mock_sleep_probe
 
-        # Create mock raw object
+        # Create mock raw object with deterministic sine wave
+        sfreq = 256
+        duration = 20  # seconds
+        t = np.arange(duration * sfreq) / sfreq
+        # 12 Hz sine wave with small DC offset, realistic EEG amplitude
+        signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
+        
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
+        mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
-        mock_raw.info = {"sfreq": 256}
+        mock_raw.info = {"sfreq": sfreq}
         mock_load_edf.return_value = mock_raw
 
         # Make request
@@ -397,10 +416,16 @@ class TestEEGPTRouterClean:
         mock_get_probe.return_value = mock_probe
 
         # Create mock raw object with more data for batching
+        sfreq = 256
+        duration = 40  # seconds for more windows
+        t = np.arange(duration * sfreq) / sfreq
+        # 12 Hz sine wave with small DC offset, realistic EEG amplitude
+        signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
+        
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.ones((19, 40 * 256)) * 50e-6  # 40 seconds, fixed values
+        mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
-        mock_raw.info = {"sfreq": 256}
+        mock_raw.info = {"sfreq": sfreq}
         mock_load_edf.return_value = mock_raw
 
         # Make request - batch_size is a query param, not form data
@@ -428,11 +453,17 @@ class TestEEGPTRouterClean:
         # Setup mocks
         mock_get_model.return_value = mock_eegpt_model
 
-        # Create mock raw object
+        # Create mock raw object with deterministic sine wave
+        sfreq = 256
+        duration = 20  # seconds
+        t = np.arange(duration * sfreq) / sfreq
+        # 12 Hz sine wave with small DC offset, realistic EEG amplitude
+        signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
+        
         mock_raw = MagicMock()
-        mock_raw.get_data.return_value = np.ones((19, 20 * 256)) * 50e-6
+        mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
-        mock_raw.info = {"sfreq": 256}
+        mock_raw.info = {"sfreq": sfreq}
         mock_load_edf.return_value = mock_raw
 
         with patch("brain_go_brrr.api.routers.eegpt.get_probe") as mock_get_probe:

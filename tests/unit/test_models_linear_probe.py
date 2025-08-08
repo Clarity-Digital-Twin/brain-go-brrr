@@ -115,7 +115,13 @@ class TestLinearProbe:
 class TestTwoLayerProbe:
     """Test two-layer probe variant."""
 
-    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented - see issue #XXX")
+    @pytest.fixture(autouse=True)
+    def skip_if_not_implemented(self):
+        """Skip tests if module doesn't exist, xfail if it does but is broken."""
+        pytest.importorskip("brain_go_brrr.models.eegpt_two_layer_probe", 
+                           reason="TwoLayerProbe module not found")
+
+    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented correctly - see issue #XXX")
     def test_two_layer_initialization(self):
         """Test two-layer probe initialization."""
         from brain_go_brrr.models.eegpt_two_layer_probe import (
@@ -130,7 +136,7 @@ class TestTwoLayerProbe:
         assert probe.fc1.out_features == 256
         assert probe.fc2.out_features == 2
 
-    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented - see issue #XXX")
+    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented correctly - see issue #XXX")
     def test_two_layer_forward(self):
         """Test two-layer forward pass."""
         from brain_go_brrr.models.eegpt_two_layer_probe import (

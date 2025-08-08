@@ -227,7 +227,7 @@ class SleepAnalyzer:
                     available_channels = [
                         ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
                     ]
-                    
+
                     # Accept Sleep-EDF montage
                     if "EEG Fpz-Cz" in available_channels or "Fpz-Cz" in available_channels:
                         eeg_ch = "EEG Fpz-Cz" if "EEG Fpz-Cz" in available_channels else "Fpz-Cz"
