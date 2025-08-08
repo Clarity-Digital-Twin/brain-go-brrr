@@ -94,12 +94,12 @@ class TestAbnormalityAccuracy:
 
         # Baseline regression test - ensure we don't regress from current performance
         # This is computed on deterministic mock data with seed=42
-        BASELINE_ACCURACY = 0.794  # Baseline on mock data
-        REGRESSION_TOLERANCE = 0.01  # Allow 1% variance
+        baseline_accuracy = 0.794  # Baseline on mock data
+        regression_tolerance = 0.01  # Allow 1% variance
 
-        assert balanced_acc >= BASELINE_ACCURACY - REGRESSION_TOLERANCE, (
+        assert balanced_acc >= baseline_accuracy - regression_tolerance, (
             f"Balanced accuracy {balanced_acc:.2%} regressed below baseline "
-            f"{BASELINE_ACCURACY:.2%} - {REGRESSION_TOLERANCE:.2%}"
+            f"{baseline_accuracy:.2%} - {regression_tolerance:.2%}"
         )
 
         # Production target from BioSerenity-E1: 82% on real TUAB data
