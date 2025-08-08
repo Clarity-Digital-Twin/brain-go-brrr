@@ -4,12 +4,12 @@ This locks in our acceptance logic for Fpz-Cz and Pz-Oz channels.
 Clean tests that verify real business logic, not mocks.
 """
 
-import pytest
-import numpy as np
 import mne
+import numpy as np
+import pytest
 
-from brain_go_brrr.core.sleep.analyzer import SleepAnalyzer
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
+from brain_go_brrr.core.sleep.analyzer import SleepAnalyzer
 
 
 class TestSleepEDFMontageDetection:
@@ -81,7 +81,7 @@ class TestSleepEDFMontageDetection:
         raw = create_raw_with_channels(["EEG Fpz-Cz", "EEG Pz-Oz", "EOG horizontal"])
 
         # Mock the YASA SleepStaging to capture which channel was used
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
 
         with patch("yasa.SleepStaging") as mock_sleep_staging:
             mock_instance = MagicMock()
