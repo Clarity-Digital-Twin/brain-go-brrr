@@ -219,7 +219,12 @@ class EEGPTModel:
                 data = np.pad(data, ((0, 0), (0, padding)), mode="constant")
 
         # Convert to tensor with shape (1, n_channels, time_samples)
-        data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
+        # Check if data is already a tensor (from extract_features_batch)
+        if isinstance(data, torch.Tensor):
+            data_tensor = data.unsqueeze(0) if data.dim() == 2 else data
+            data_tensor = data_tensor.to(self.device)
+        else:
+            data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
 
         # Estimate normalization parameters from this data if not already done
         if (
@@ -494,7 +499,7 @@ class EEGPTModel:
         return windows
 
     def extract_features_batch(
-        self, windows: np.ndarray, channel_names: list[str] | None = None
+        self, windows: np.ndarray | torch.Tensor, channel_names: list[str] | None = None
     ) -> np.ndarray:
         """Extract features from batch of windows.
 
@@ -505,14 +510,22 @@ class EEGPTModel:
         Returns:
             Features (batch, n_summary_tokens, feature_dim)
         """
-        batch_size, n_channels, n_samples = windows.shape
+        # Handle both numpy and torch tensors
+        if isinstance(windows, torch.Tensor):
+            batch_size, n_channels, n_samples = windows.shape
+        else:
+            batch_size, n_channels, n_samples = windows.shape
 
         # Process each window individually for now
         # TODO: Optimize for true batch processing
         batch_features = []
 
         for i in range(batch_size):
-            window = windows[i]
+            if isinstance(windows, torch.Tensor):
+                window = windows[i].cpu().numpy()  # Convert to numpy for extract_features
+            else:
+                window = windows[i]
+            
             if channel_names is None:
                 ch_names = [f"EEG{j:03d}" for j in range(n_channels)]
             else:
