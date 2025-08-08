@@ -88,7 +88,7 @@ class TestSleepEDFMontageDetection:
             mock_instance.predict.return_value = np.array(["N2"] * 10)
             mock_sleep_staging.return_value = mock_instance
 
-            hypnogram = sleep_analyzer.stage_sleep(raw)
+            _ = sleep_analyzer.stage_sleep(raw)
 
             # Verify Fpz-Cz was chosen (first argument after raw is eeg_name)
             call_args = mock_sleep_staging.call_args
