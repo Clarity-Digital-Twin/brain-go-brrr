@@ -164,11 +164,16 @@ select = [
     "PTH",  # flake8-use-pathlib
     "N",    # pep8-naming
     "D",    # pydocstyle (docstring conventions)
+    "ANN",  # flake8-annotations - CHECK FOR MISSING TYPE HINTS!
 ]
 ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Do not perform function calls in argument defaults
     "RUF012", # Mutable class attributes should be annotated
+    # Type annotation exceptions
+    "ANN101", # Missing type annotation for self in method
+    "ANN102", # Missing type annotation for cls in classmethod
+    "ANN204", # Missing return type annotation for special method __init__
     # Docstring exceptions for now (will fix incrementally)
     "D100",   # Missing docstring in public module
     "D101",   # Missing docstring in public class
@@ -179,8 +184,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "D417"]  # Don't require self in docstrings for test mocks
-"scripts/*.py" = ["E402"]  # Allow imports after env var setup in scripts
+"tests/*" = ["ARG", "D417", "ANN"]  # Tests don't need strict type annotations
+"scripts/*.py" = ["E402", "ANN"]  # Allow imports after env var setup, relaxed types
 "tests/conftest.py" = ["TC004"]  # Allow type-checking imports with future annotations
 "tests/fixtures/mock_eeg_generator.py" = ["TC004"]  # Allow type-checking imports with future annotations
 
