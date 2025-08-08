@@ -18,10 +18,11 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import mne
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+
+# NOTE: mne import moved inside fixtures to prevent hanging during test collection
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
@@ -178,8 +179,9 @@ def sleep_edf_path(project_root) -> Path:
 
 
 @pytest.fixture
-def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
+def sleep_edf_raw_cropped(sleep_edf_path) -> "mne.io.Raw":
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
+    import mne
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     raw.crop(tmax=60)  # 1-minute slice for CI speed
     yield raw
@@ -189,8 +191,9 @@ def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
 
 
 @pytest.fixture
-def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
+def sleep_edf_raw_full(sleep_edf_path) -> "mne.io.Raw":
     """Load full Sleep-EDF file (for slow tests only)."""
+    import mne
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     yield raw
     # Cleanup: explicitly delete to free memory
@@ -352,6 +355,8 @@ def channel_shuffled_raw(mock_eeg_data):
     This fixture creates EEG data with channels in a randomized order
     to test robustness of algorithms to different channel arrangements.
     """
+    import mne
+    
     # Set seed for reproducible shuffling
     np.random.seed(42)
 
