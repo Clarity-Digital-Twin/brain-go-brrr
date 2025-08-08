@@ -27,7 +27,7 @@ from fastapi.testclient import TestClient
 
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:
-    import mne
+    import mne  # noqa: TC004
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
@@ -186,7 +186,7 @@ def sleep_edf_path(project_root) -> Path:
 
 
 @pytest.fixture
-def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> "mne.io.Raw":
+def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> mne.io.Raw:
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
     mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
@@ -198,7 +198,7 @@ def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> "mne.io.Raw":
 
 
 @pytest.fixture
-def sleep_edf_raw_full(sleep_edf_path, mne_mod) -> "mne.io.Raw":
+def sleep_edf_raw_full(sleep_edf_path, mne_mod) -> mne.io.Raw:
     """Load full Sleep-EDF file (for slow tests only)."""
     mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)

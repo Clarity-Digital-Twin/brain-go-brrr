@@ -44,7 +44,7 @@ class MockEEGGenerator:
         ch_names: list[str] | None = None,
         add_artifacts: bool = True,
         seed: int | None = None,
-    ) -> "mne.io.RawArray":
+    ) -> mne.io.RawArray:
         """Create mock raw EEG data.
 
         Args:
@@ -142,7 +142,7 @@ class MockEEGGenerator:
         epoch_duration: float = 10.0,
         sfreq: int = 256,
         ch_names: list[str] | None = None,
-    ) -> "mne.Epochs":
+    ) -> mne.Epochs:
         """Create mock epochs directly."""
         # Create longer raw data
         raw = MockEEGGenerator.create_raw(
