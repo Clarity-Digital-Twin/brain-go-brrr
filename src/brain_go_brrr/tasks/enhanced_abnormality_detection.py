@@ -129,10 +129,6 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         Returns:
             Logits [B, n_classes]
         """
-        # Apply channel adaptation if needed
-        if hasattr(self.probe, "adapt_channels"):
-            pass  # x = self.probe.adapt_channels(x)  # TODO: Implement channel adaptation
-
         # Extract features with backbone
         if self.backbone_frozen:
             self.backbone.eval()
