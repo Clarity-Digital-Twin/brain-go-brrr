@@ -87,6 +87,7 @@ class MockEEGGenerator:
 
         # Create MNE Raw object
         import mne
+
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
@@ -151,6 +152,7 @@ class MockEEGGenerator:
 
         # Create epochs
         import mne
+
         events = mne.make_fixed_length_events(raw, duration=epoch_duration)
         epochs = mne.Epochs(
             raw, events, tmin=0, tmax=epoch_duration, baseline=None, preload=True, verbose=False

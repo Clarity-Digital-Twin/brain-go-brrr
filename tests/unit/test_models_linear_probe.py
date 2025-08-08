@@ -13,15 +13,11 @@ class TestLinearProbe:
         """Test linear probe initialization."""
         from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
 
-        probe = LinearProbe(
-            input_dim=768,
-            num_classes=2,
-            dropout=0.1
-        )
+        probe = LinearProbe(input_dim=768, num_classes=2, dropout=0.1)
 
         # Check layers exist
-        assert hasattr(probe, 'dropout')
-        assert hasattr(probe, 'classifier')
+        assert hasattr(probe, "dropout")
+        assert hasattr(probe, "classifier")
         assert isinstance(probe.dropout, nn.Dropout)
         assert isinstance(probe.classifier, nn.Linear)
 
@@ -127,16 +123,11 @@ class TestTwoLayerProbe:
                 TwoLayerProbeHead as TwoLayerProbe,
             )
 
-            probe = TwoLayerProbe(
-                input_dim=768,
-                hidden_dim=256,
-                num_classes=2,
-                dropout=0.1
-            )
+            probe = TwoLayerProbe(input_dim=768, hidden_dim=256, num_classes=2, dropout=0.1)
 
             # Check layers
-            assert hasattr(probe, 'fc1')
-            assert hasattr(probe, 'fc2')
+            assert hasattr(probe, "fc1")
+            assert hasattr(probe, "fc2")
             assert probe.fc1.out_features == 256
             assert probe.fc2.out_features == 2
 
@@ -150,11 +141,7 @@ class TestTwoLayerProbe:
                 TwoLayerProbeHead as TwoLayerProbe,
             )
 
-            probe = TwoLayerProbe(
-                input_dim=768,
-                hidden_dim=128,
-                num_classes=2
-            )
+            probe = TwoLayerProbe(input_dim=768, hidden_dim=128, num_classes=2)
 
             x = torch.randn(32, 768)
             out = probe(x)
@@ -166,6 +153,7 @@ class TestTwoLayerProbe:
             with torch.no_grad():
                 # Hook to capture intermediate
                 activations = []
+
                 def hook(module, input, output):
                     activations.append(output)
 
@@ -201,8 +189,7 @@ class TestProbeTraining:
         x_class1 = torch.randn(20, 10) + 2.0
 
         x = torch.cat([x_class0, x_class1])
-        y = torch.cat([torch.zeros(20, dtype=torch.long),
-                       torch.ones(20, dtype=torch.long)])
+        y = torch.cat([torch.zeros(20, dtype=torch.long), torch.ones(20, dtype=torch.long)])
 
         # Shuffle
         perm = torch.randperm(40)

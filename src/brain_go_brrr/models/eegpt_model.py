@@ -430,17 +430,19 @@ class EEGPTModel:
         # Backward compatibility: construct Raw from legacy data/sampling_rate
         if raw is None and data is not None:
             import warnings
+
             warnings.warn(
                 "Passing 'data' and 'sampling_rate' to process_recording is deprecated. "
                 "Please pass an MNE Raw object instead via the 'raw' parameter.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             if sampling_rate is None:
                 raise ValueError("sampling_rate required when using legacy 'data=' input")
 
             # Create MNE Raw from data
             import mne
+
             n_channels = data.shape[0]
             # Use standard channel names that match expected patterns
             ch_names = [f"EEG{i:03d}" for i in range(n_channels)]

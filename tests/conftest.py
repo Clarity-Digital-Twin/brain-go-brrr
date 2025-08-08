@@ -80,6 +80,7 @@ def force_seq_joblib(monkeypatch):
 def mne_mod():
     """Import MNE and silence its logging - safe runtime import."""
     import mne
+
     os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
     mne.set_log_level("WARNING")
     return mne

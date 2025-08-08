@@ -32,7 +32,7 @@ class TestJobSchemas:
             result={"abnormal": True},
             error=None,
             started_at=now,
-            completed_at=None
+            completed_at=None,
         )
 
         assert job.job_id == "test-456"
@@ -66,13 +66,13 @@ class TestAnalysisResponses:
             sleep_metrics={
                 "sleep_efficiency": 85.5,
                 "total_sleep_time": 420,
-                "sleep_onset_latency": 15
+                "sleep_onset_latency": 15,
             },
             hypnogram=[{"stage": "W", "time": 0}, {"stage": "N1", "time": 30}],
             metadata={"version": "1.0"},
             processing_time=2.5,
             timestamp="2024-01-01T00:00:00Z",
-            cached=False
+            cached=False,
         )
 
         assert response.status == "success"
@@ -91,7 +91,7 @@ class TestAnalysisResponses:
             recommendation="Remove Fp1",
             processing_time=1.5,
             quality_grade="A",
-            timestamp="2024-01-01T00:00:00Z"
+            timestamp="2024-01-01T00:00:00Z",
         )
 
         assert response.flag == "good"
@@ -101,10 +101,7 @@ class TestAnalysisResponses:
 
     def test_analysis_request(self):
         """Test AnalysisRequest schema."""
-        request = AnalysisRequest(
-            file_path="/data/file-123.edf",
-            analysis_type="sleep"
-        )
+        request = AnalysisRequest(file_path="/data/file-123.edf", analysis_type="sleep")
 
         assert request.file_path == "/data/file-123.edf"
         assert request.analysis_type == "sleep"
@@ -115,7 +112,7 @@ class TestAnalysisResponses:
             analysis_type="abnormality",
             file_path="/data/test.edf",
             priority=JobPriority.HIGH,
-            options={"threshold": 0.8}
+            options={"threshold": 0.8},
         )
 
         assert request.analysis_type == "abnormality"

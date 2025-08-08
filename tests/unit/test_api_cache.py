@@ -1,8 +1,6 @@
 """CLEAN tests for API cache - no bullshit mocks, test real logic."""
 
-import hashlib
 import json
-import time
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,36 +18,36 @@ class TestRedisCacheClean:
         cache.connected = True
         # Use a real dict to store values - no fake bullshit
         cache._storage = {}
-        
+
         def get(key):
             return cache._storage.get(key)
-        
+
         def set(key, value, expiry=None):
             cache._storage[key] = value
             return True
-        
+
         def delete(key):
             if key in cache._storage:
                 del cache._storage[key]
                 return 1
             return 0
-        
+
         cache.get = get
         cache.set = set
         cache.delete = delete
         cache.clear_pattern = MagicMock(return_value=5)
         cache.get_stats = MagicMock(return_value={"hits": 10, "misses": 2})
         cache.health_check = MagicMock(return_value={"status": "healthy"})
-        
+
         return cache
 
     @patch("brain_go_brrr.api.cache.get_infra_cache")
     def test_init_connects_to_infra_cache(self, mock_get_cache, mock_infra_cache):
         """Test that RedisCache properly delegates to infra cache."""
         mock_get_cache.return_value = mock_infra_cache
-        
+
         cache = RedisCache()
-        
+
         assert cache.connected is True
         assert cache._cache == mock_infra_cache
         mock_get_cache.assert_called_once()
@@ -59,21 +57,21 @@ class TestRedisCacheClean:
         """Test cache key generation is deterministic and includes versioning."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         # Same content should generate same key
         content1 = b"test eeg data"
         key1 = cache.generate_cache_key(content1, "qc")
         key2 = cache.generate_cache_key(content1, "qc")
-        
+
         assert key1 == key2
         assert CACHE_VERSION in key1
         assert "qc" in key1
-        
+
         # Different content should generate different key
         content2 = b"different eeg data"
         key3 = cache.generate_cache_key(content2, "qc")
         assert key3 != key1
-        
+
         # Different analysis type should generate different key
         key4 = cache.generate_cache_key(content1, "sleep")
         assert key4 != key1
@@ -84,20 +82,20 @@ class TestRedisCacheClean:
         """Test setting and getting values with metadata stripping."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         # Set a value
         test_data = {"result": "abnormal", "confidence": 0.95}
         success = cache.set("test_key", test_data, ttl=300)
-        
+
         assert success is True
-        
+
         # Get the value back
         retrieved = cache.get("test_key")
-        
+
         # Should get original data without metadata
         assert retrieved == test_data
         assert "_cache_meta" not in retrieved
-        
+
         # Verify metadata was stored internally
         raw_data = json.loads(mock_infra_cache._storage["test_key"])
         assert "_cache_meta" in raw_data
@@ -108,7 +106,7 @@ class TestRedisCacheClean:
         """Test getting non-existent key returns None."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         result = cache.get("nonexistent_key")
         assert result is None
 
@@ -117,13 +115,13 @@ class TestRedisCacheClean:
         """Test exists method properly checks key presence."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         # Key doesn't exist
         assert cache.exists("test_key") is False
-        
+
         # Add key
         cache.set("test_key", {"data": "value"})
-        
+
         # Key exists
         assert cache.exists("test_key") is True
 
@@ -132,16 +130,16 @@ class TestRedisCacheClean:
         """Test delete properly removes keys."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         # Add a key
         cache.set("test_key", {"data": "value"})
         assert cache.exists("test_key") is True
-        
+
         # Delete it
         result = cache.delete("test_key")
         assert result is True
         assert cache.exists("test_key") is False
-        
+
         # Delete non-existent key
         result = cache.delete("nonexistent")
         assert result is False
@@ -151,9 +149,9 @@ class TestRedisCacheClean:
         """Test clear_pattern delegates to infra cache."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         result = cache.clear_pattern("eeg_analysis:*")
-        
+
         assert result == 5
         mock_infra_cache.clear_pattern.assert_called_once_with("eeg_analysis:*")
 
@@ -162,9 +160,9 @@ class TestRedisCacheClean:
         """Test get_stats returns proper statistics."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         stats = cache.get_stats()
-        
+
         assert stats == {"hits": 10, "misses": 2}
         mock_infra_cache.get_stats.assert_called_once()
 
@@ -173,9 +171,9 @@ class TestRedisCacheClean:
         """Test health_check returns proper status."""
         mock_get_cache.return_value = mock_infra_cache
         cache = RedisCache()
-        
+
         health = cache.health_check()
-        
+
         assert health == {"status": "healthy"}
         mock_infra_cache.health_check.assert_called_once()
 
@@ -184,10 +182,10 @@ class TestRedisCacheClean:
         """Test get handles errors gracefully."""
         mock_get_cache.return_value = mock_infra_cache
         mock_infra_cache.get = MagicMock(side_effect=Exception("Redis error"))
-        
+
         cache = RedisCache()
         result = cache.get("test_key")
-        
+
         assert result is None  # Should return None on error
 
     @patch("brain_go_brrr.api.cache.get_infra_cache")
@@ -195,10 +193,10 @@ class TestRedisCacheClean:
         """Test set handles errors gracefully."""
         mock_get_cache.return_value = mock_infra_cache
         mock_infra_cache.set = MagicMock(side_effect=Exception("Redis error"))
-        
+
         cache = RedisCache()
         result = cache.set("test_key", {"data": "value"})
-        
+
         assert result is False  # Should return False on error
 
     @patch("brain_go_brrr.api.cache.get_infra_cache")
@@ -206,8 +204,8 @@ class TestRedisCacheClean:
         """Test exists handles errors gracefully."""
         mock_get_cache.return_value = mock_infra_cache
         mock_infra_cache.get = MagicMock(side_effect=Exception("Redis error"))
-        
+
         cache = RedisCache()
         result = cache.exists("test_key")
-        
+
         assert result is False  # Should return False on error

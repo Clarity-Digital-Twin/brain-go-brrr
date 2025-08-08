@@ -317,7 +317,9 @@ class TestBatchProcessingBenchmarks:
             except AttributeError:
                 per_window_time_ms = 10.0  # Default fallback
         # Allow more overhead for mock models without real weights
-        assert per_window_time_ms < SINGLE_WINDOW_TARGET_MS * PERF_MULTIPLIER  # Allow overhead for mock model
+        assert (
+            per_window_time_ms < SINGLE_WINDOW_TARGET_MS * PERF_MULTIPLIER
+        )  # Allow overhead for mock model
 
 
 class TestFullRecordingBenchmarks:

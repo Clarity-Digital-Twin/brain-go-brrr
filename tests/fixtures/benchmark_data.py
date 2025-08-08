@@ -39,6 +39,7 @@ def benchmark_raw_data(benchmark_edf_path) -> "mne.io.Raw | None":
 
     # Load and preprocess to standard format
     import mne
+
     raw = mne.io.read_raw_edf(benchmark_edf_path, preload=True)
 
     # Standardize to common sampling rate

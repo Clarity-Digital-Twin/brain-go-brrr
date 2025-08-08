@@ -34,11 +34,7 @@ class TestEEGPTConfig:
 
     def test_custom_config(self):
         """Test custom configuration."""
-        config = EEGPTConfig(
-            n_channels=19,
-            embed_dim=768,
-            n_heads=12
-        )
+        config = EEGPTConfig(n_channels=19, embed_dim=768, n_heads=12)
 
         assert config.n_channels == 19
         assert config.embed_dim == 768
@@ -54,7 +50,7 @@ class TestEEGPTConfig:
 class TestEEGPTModel:
     """Test EEGPT model without loading weights."""
 
-    @patch('brain_go_brrr.models.eegpt_model.load_checkpoint')
+    @patch("brain_go_brrr.models.eegpt_model.load_checkpoint")
     def test_model_initialization(self, mock_load):
         """Test model initialization with mocked weights."""
         # Mock checkpoint loading
@@ -64,15 +60,15 @@ class TestEEGPTModel:
         model = EEGPTModel(config, load_weights=False)
 
         assert model.config == config
-        assert hasattr(model, 'encoder')
-        assert hasattr(model, 'patch_embed')
+        assert hasattr(model, "encoder")
+        assert hasattr(model, "patch_embed")
 
     def test_forward_pass_shape(self):
         """Test forward pass output shape."""
         config = EEGPTConfig(n_channels=20, embed_dim=512)
 
         # Create lightweight mock model
-        with patch.object(EEGPTModel, '__init__', lambda x, y, z: None):
+        with patch.object(EEGPTModel, "__init__", lambda x, y, z: None):
             model = EEGPTModel.__new__(EEGPTModel)
             model.config = config
 
@@ -85,7 +81,7 @@ class TestEEGPTModel:
             input_data = torch.randn(batch_size, config.n_channels, 1024)
 
             # Mock forward to return correct shape
-            with patch.object(model, 'forward') as mock_forward:
+            with patch.object(model, "forward") as mock_forward:
                 # Output should be [batch, n_patches, embed_dim]
                 n_patches = 1024 // config.patch_size  # 16 patches
                 mock_forward.return_value = torch.randn(batch_size, n_patches, config.embed_dim)
@@ -108,11 +104,7 @@ class TestEEGPTModel:
 
     def test_patch_embedding_dimension(self):
         """Test patch embedding dimensions."""
-        config = EEGPTConfig(
-            n_channels=20,
-            patch_size=64,
-            embed_dim=512
-        )
+        config = EEGPTConfig(n_channels=20, patch_size=64, embed_dim=512)
 
         # Patch embed input size = n_channels * patch_size
         input_dim = config.n_channels * config.patch_size
@@ -127,8 +119,6 @@ class TestEEGPTModel:
         assert patch_output.shape == (10, config.embed_dim)
 
 
-
-
 class TestModelInference:
     """Test model inference capabilities."""
 
@@ -136,7 +126,7 @@ class TestModelInference:
         """Test batch inference."""
         config = EEGPTConfig()
 
-        with patch('brain_go_brrr.models.eegpt_model.EEGPTModel') as mock_model:
+        with patch("brain_go_brrr.models.eegpt_model.EEGPTModel") as mock_model:
             mock_instance = MagicMock()
 
             # Mock forward to handle batches
@@ -157,7 +147,7 @@ class TestModelInference:
 
     def test_single_sample_inference(self):
         """Test single sample inference."""
-        with patch('brain_go_brrr.models.eegpt_model.EEGPTModel') as mock_model:
+        with patch("brain_go_brrr.models.eegpt_model.EEGPTModel") as mock_model:
             mock_instance = MagicMock()
             mock_instance.forward.return_value = torch.randn(1, 16, 512)
             mock_model.return_value = mock_instance

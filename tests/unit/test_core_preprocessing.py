@@ -54,12 +54,9 @@ class TestNormalizer:
 
     def test_zscore_normalization(self):
         """Test z-score normalization."""
-        data = np.array([
-            [1, 2, 3, 4, 5],
-            [10, 20, 30, 40, 50]
-        ], dtype=np.float32)
+        data = np.array([[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]], dtype=np.float32)
 
-        normalizer = Normalizer(method='zscore')
+        normalizer = Normalizer(method="zscore")
         normalized = normalizer.apply(data)
 
         # Each channel should have mean ~0 and std ~1
@@ -147,11 +144,7 @@ class TestPreprocessingPipeline:
         data = np.random.randn(4, sfreq * 2)
 
         # Create pipeline
-        config = PreprocessingConfig(
-            bandpass_low=0.5,
-            bandpass_high=40.0,
-            notch_freq=50.0
-        )
+        config = PreprocessingConfig(bandpass_low=0.5, bandpass_high=40.0, notch_freq=50.0)
 
         pipeline = PreprocessingPipeline(config, sfreq=sfreq)
         processed = pipeline.apply(data)
@@ -169,11 +162,7 @@ class TestPreprocessingPipeline:
         data = np.random.randn(4, 1000)
 
         # Create empty config (all operations disabled)
-        config = PreprocessingConfig(
-            bandpass_low=None,
-            bandpass_high=None,
-            notch_freq=None
-        )
+        config = PreprocessingConfig(bandpass_low=None, bandpass_high=None, notch_freq=None)
 
         pipeline = PreprocessingPipeline(config, sfreq=sfreq)
         processed = pipeline.apply(data)

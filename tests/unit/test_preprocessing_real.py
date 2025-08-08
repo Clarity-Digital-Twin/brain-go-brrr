@@ -32,7 +32,7 @@ class TestBandpassFilterREAL:
 
         # Compute FFT to check frequencies
         fft_filt = np.abs(np.fft.rfft(filtered))
-        freqs = np.fft.rfftfreq(len(mixed), 1/fs)
+        freqs = np.fft.rfftfreq(len(mixed), 1 / fs)
 
         # Find peaks
         idx_10hz = np.argmin(np.abs(freqs - 10))
@@ -57,12 +57,15 @@ class TestNormalizerREAL:
     def test_zscore_actually_normalizes(self):
         """Test z-score ACTUALLY normalizes data."""
         # Create data with known statistics
-        data = np.array([
-            [1, 2, 3, 4, 5],     # mean=3, std≈1.58
-            [10, 20, 30, 40, 50] # mean=30, std≈15.8
-        ], dtype=np.float64)
+        data = np.array(
+            [
+                [1, 2, 3, 4, 5],  # mean=3, std≈1.58
+                [10, 20, 30, 40, 50],  # mean=30, std≈15.8
+            ],
+            dtype=np.float64,
+        )
 
-        norm = Normalizer(method='zscore')
+        norm = Normalizer(method="zscore")
         normalized = norm.apply(data)
 
         # Check actual normalization
@@ -75,7 +78,7 @@ class TestNormalizerREAL:
         # Data with outliers
         data = np.array([[1, 2, 3, 4, 5, 100]], dtype=np.float64)
 
-        norm = Normalizer(method='robust')
+        norm = Normalizer(method="robust")
         result = norm.apply(data)
 
         # Should be normalized (not same as input)
@@ -105,7 +108,7 @@ class TestNotchFilterREAL:
         # Check 60 Hz is reduced
         fft_noisy = np.abs(np.fft.rfft(noisy))
         fft_clean = np.abs(np.fft.rfft(filtered[0]))
-        freqs = np.fft.rfftfreq(len(noisy), 1/fs)
+        freqs = np.fft.rfftfreq(len(noisy), 1 / fs)
 
         idx_60hz = np.argmin(np.abs(freqs - 60))
 
@@ -133,8 +136,8 @@ class TestResamplerREAL:
 
         # Check frequency preserved (FFT peak should still be at 10 Hz)
         fft = np.abs(np.fft.rfft(resampled[0]))
-        freqs = np.fft.rfftfreq(len(resampled[0]), 1/target_fs)
-        peak_freq = freqs[np.argmax(fft[1:])+1]  # Skip DC
+        freqs = np.fft.rfftfreq(len(resampled[0]), 1 / target_fs)
+        peak_freq = freqs[np.argmax(fft[1:]) + 1]  # Skip DC
 
         assert abs(peak_freq - 10) < 1  # Peak still at ~10 Hz
 
@@ -151,10 +154,7 @@ class TestPipelineREAL:
         data = data + 10
 
         config = PreprocessingConfig(
-            bandpass_low=1,
-            bandpass_high=40,
-            notch_freq=50,
-            normalization='zscore'
+            bandpass_low=1, bandpass_high=40, notch_freq=50, normalization="zscore"
         )
 
         pipeline = PreprocessingPipeline(config)
