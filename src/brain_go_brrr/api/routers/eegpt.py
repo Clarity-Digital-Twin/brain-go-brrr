@@ -363,3 +363,10 @@ async def analyze_batch(
         with contextlib.suppress(Exception):
             if tmp_path.exists():
                 tmp_path.unlink()
+
+
+def _reset_state_for_tests() -> None:
+    """Reset global state for testing. Only use in tests\!"""
+    global _eegpt_model, _probes
+    _eegpt_model = None
+    _probes = {}
