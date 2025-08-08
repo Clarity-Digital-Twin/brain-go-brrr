@@ -264,7 +264,7 @@ class TUABEnhancedDataset(TUABDataset):
         
         return raw
     
-    def _load_edf_file(self, file_path: Path) -> np.ndarray:
+    def _load_edf_file(self, file_path: Path) -> npt.NDArray[np.float64]:
         """Load and preprocess EDF file with enhanced preprocessing.
         
         Args:
@@ -398,7 +398,7 @@ class TUABEnhancedDataset(TUABDataset):
         
         return torch.tensor(sample_weights, dtype=torch.float32)
     
-    def _extract_windows(self, raw: mne.io.Raw) -> List[Tuple[np.ndarray, int]]:
+    def _extract_windows(self, raw: mne.io.Raw) -> List[Tuple[npt.NDArray[np.float64], int]]:
         """Extract windows with proper overlap.
         
         Args:
@@ -429,7 +429,7 @@ class TUABEnhancedDataset(TUABDataset):
             
             # Ensure correct shape
             if window.shape[1] == window_samples:
-                windows.append((window, self.current_label))
+                windows.append((window, label))
         
         return windows
     

@@ -17,7 +17,7 @@ from torch.utils.data import Dataset
 logger = logging.getLogger(__name__)
 
 
-class TUABDataset(Dataset):
+class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
     """TUAB Dataset for abnormality detection.
 
     Expects data organized as:
@@ -178,7 +178,7 @@ class TUABDataset(Dataset):
         )
 
         # Initialize file cache for efficient loading
-        self._file_cache: dict[Path, np.ndarray] = {}
+        self._file_cache: dict[Path, npt.NDArray[np.float64]] = {}
         self._cache_size = 100  # Cache last 100 files in memory
 
         # Preload if requested
@@ -250,7 +250,7 @@ class TUABDataset(Dataset):
             except Exception as e:
                 logger.error(f"Error preloading {file_info['path']}: {e}")
 
-    def _load_edf_file(self, file_path: Path) -> np.ndarray:
+    def _load_edf_file(self, file_path: Path) -> npt.NDArray[np.float64]:
         """Load and preprocess EDF file.
 
         Args:
@@ -308,7 +308,7 @@ class TUABDataset(Dataset):
                 output_data[idx] = data[ch_idx]
             # else: channel remains zeros (padding)
 
-        return output_data  # type: ignore[no-any-return]
+        return output_data
 
     def __len__(self) -> int:
         """Get dataset length."""

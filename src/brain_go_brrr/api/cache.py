@@ -34,7 +34,7 @@ class RedisCache:
         file_hash = hashlib.sha256(file_content).hexdigest()
         return f"eeg_analysis:{CACHE_VERSION}:{file_hash}:{analysis_type}"
 
-    def get(self, key: str) -> dict | None:
+    def get(self, key: str) -> dict[str, Any] | None:
         """Get cached result."""
         try:
             cached = self._cache.get(key)
@@ -50,7 +50,7 @@ class RedisCache:
             logger.error(f"Cache get error: {e}")
             return None
 
-    def set(self, key: str, value: dict, ttl: int = 3600) -> bool:
+    def set(self, key: str, value: dict[str, Any], ttl: int = 3600) -> bool:
         """Set cache entry with TTL."""
         try:
             # Add version metadata
@@ -86,11 +86,11 @@ class RedisCache:
         """Clear all keys matching pattern."""
         return self._cache.clear_pattern(pattern)
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         return self._cache.get_stats()
 
-    def health_check(self) -> dict:
+    def health_check(self) -> dict[str, Any]:
         """Perform health check on Redis connection."""
         return self._cache.health_check()
 

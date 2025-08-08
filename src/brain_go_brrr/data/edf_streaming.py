@@ -197,7 +197,7 @@ class EDFStreamer:
 
         return window_memory_bytes / (1024 * 1024)  # Convert to MB
 
-    def get_info(self) -> dict:
+    def get_info(self) -> dict[str, Any]:
         """Get basic file information.
 
         Returns:
@@ -217,7 +217,7 @@ class EDFStreamer:
             else 0.0,
         }
 
-    def get_file_info(self) -> dict:
+    def get_file_info(self) -> dict[str, Any]:
         """Get basic file information.
 
         Returns:
@@ -226,7 +226,7 @@ class EDFStreamer:
         return self.get_info()
 
 
-def process_large_edf(file_path: str | Path, max_memory_mb: float = 500.0) -> dict:
+def process_large_edf(file_path: str | Path, max_memory_mb: float = 500.0) -> dict[str, Any]:
     """Process EDF file with streaming decision based on memory.
 
     Args:
@@ -267,7 +267,7 @@ def process_large_edf(file_path: str | Path, max_memory_mb: float = 500.0) -> di
         }
 
 
-def estimate_memory_usage(file_path: str | Path, preload: bool = True) -> dict:
+def estimate_memory_usage(file_path: str | Path, preload: bool = True) -> dict[str, Any]:
     """Estimate memory usage for loading an EDF file.
 
     Args:

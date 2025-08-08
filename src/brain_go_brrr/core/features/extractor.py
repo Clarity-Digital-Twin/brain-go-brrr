@@ -11,6 +11,7 @@ from typing import Any
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from brain_go_brrr.models.eegpt_model import EEGPTModel
@@ -40,7 +41,7 @@ class EEGPTFeatureExtractor:
         self.device = device
         self.enable_cache = enable_cache
         self.cache_size = cache_size
-        self._cache: dict[str, np.ndarray] = {}
+        self._cache: dict[str, npt.NDArray[np.float64]] = {}
         self.model: EEGPTModel | None
 
         # Initialize model
@@ -58,7 +59,7 @@ class EEGPTFeatureExtractor:
         # Initialize preprocessor for EEGPT mode
         self.preprocessor = FlexibleEEGPreprocessor(mode="abnormality")
 
-    def extract_embeddings(self, raw: mne.io.Raw) -> np.ndarray:
+    def extract_embeddings(self, raw: mne.io.Raw) -> npt.NDArray[np.float64]:
         """Extract EEGPT embeddings from raw EEG data.
 
         Args:
@@ -120,7 +121,7 @@ class EEGPTFeatureExtractor:
             "embedding_dim": embeddings.shape[1],
         }
 
-    def extract_batch_embeddings(self, raws: list[mne.io.Raw]) -> list[np.ndarray]:
+    def extract_batch_embeddings(self, raws: list[mne.io.Raw]) -> list[npt.NDArray[np.float64]]:
         """Extract embeddings for multiple recordings.
 
         Args:
@@ -152,7 +153,7 @@ class EEGPTFeatureExtractor:
 
     def _extract_windows(
         self, raw: mne.io.Raw, window_size: float = 4.0, overlap: float = 0.0
-    ) -> list[np.ndarray]:
+    ) -> list[npt.NDArray[np.float64]]:
         """Extract windows from raw data.
 
         Args:
@@ -176,7 +177,7 @@ class EEGPTFeatureExtractor:
 
         return windows
 
-    def _run_inference(self, windows: list[np.ndarray], channel_names: list[str]) -> np.ndarray:
+    def _run_inference(self, windows: list[npt.NDArray[np.float64]], channel_names: list[str]) -> np.ndarray:
         """Run EEGPT inference on windows.
 
         Args:

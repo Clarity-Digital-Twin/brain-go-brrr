@@ -5,6 +5,7 @@ sliding windows and MNE epochs for AutoReject compatibility.
 """
 
 import logging
+from typing import Any
 
 import mne
 import numpy as np
@@ -206,7 +207,7 @@ class SyntheticPositionGenerator:
 
         return raw
 
-    def _create_circular_positions(self, ch_names: list) -> dict:
+    def _create_circular_positions(self, ch_names: list[str]) -> dict[str, Any]:
         """Create evenly spaced positions on a circle as fallback.
 
         Simple circular arrangement at head level.

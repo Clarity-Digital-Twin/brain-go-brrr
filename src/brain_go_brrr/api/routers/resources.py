@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/resources", tags=["resources"])
 
 
-@router.get("/gpu")  # type: ignore[misc]
+@router.get("/gpu")
 async def get_gpu_resources() -> dict[str, Any]:
     """Get GPU resource utilization."""
     if not HAS_GPUTIL or GPUtil is None:
@@ -47,7 +47,7 @@ async def get_gpu_resources() -> dict[str, Any]:
         return {"gpus": [], "error": f"GPU not available: {e!s}"}
 
 
-@router.get("/memory")  # type: ignore[misc]
+@router.get("/memory")
 async def get_memory_resources() -> dict[str, Any]:
     """Get system memory utilization."""
     import psutil

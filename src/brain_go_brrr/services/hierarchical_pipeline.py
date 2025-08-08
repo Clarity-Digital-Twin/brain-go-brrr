@@ -193,7 +193,7 @@ class SleepStager:
         """Classify sleep stage."""
         if self.use_yasa and self.yasa_adapter:
             try:
-                return self.yasa_adapter.stage(eeg)
+                return self.yasa_adapter.stage(eeg)  # type: ignore[no-any-return]
             except Exception as e:
                 logger.error(f"YASA staging failed: {e}, falling back to mock")
 
@@ -226,12 +226,12 @@ class ParallelExecutor:
         """Initialize parallel executor."""
         self.max_workers = max_workers
 
-    async def run_parallel(self, tasks: list) -> list[Any]:
+    async def run_parallel(self, tasks: list[Any]) -> list[Any]:
         """Run tasks in parallel using asyncio."""
         results = await asyncio.gather(*tasks, return_exceptions=True)
         return results
 
-    def run_tasks(self, tasks: list) -> list[Any]:
+    def run_tasks(self, tasks: list[Any]) -> list[Any]:
         """Run callable tasks in parallel using threads."""
         results = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:

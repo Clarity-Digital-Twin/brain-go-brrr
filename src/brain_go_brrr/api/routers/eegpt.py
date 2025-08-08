@@ -63,7 +63,7 @@ def get_probe(task: str) -> Any:
     return _probes[task]
 
 
-@router.post("/analyze", response_model=EEGPTAnalysisResponse)  # type: ignore[misc]
+@router.post("/analyze", response_model=EEGPTAnalysisResponse)
 async def analyze_with_probe(
     edf_file: UploadFile = File(...),
     analysis_type: Literal[
@@ -202,7 +202,7 @@ async def analyze_with_probe(
                 tmp_path.unlink()
 
 
-@router.get("/probes/available", response_model=ProbeInfoResponse)  # type: ignore[misc]
+@router.get("/probes/available", response_model=ProbeInfoResponse)
 async def get_available_probes() -> ProbeInfoResponse:
     """Get information about available linear probes."""
     probe_info = {
@@ -229,7 +229,7 @@ async def get_available_probes() -> ProbeInfoResponse:
     )
 
 
-@router.post("/sleep/stages")  # type: ignore[misc]
+@router.post("/sleep/stages")
 async def analyze_sleep_stages(
     edf_file: UploadFile = File(...),
 ) -> dict[str, Any]:
@@ -294,7 +294,7 @@ async def analyze_sleep_stages(
                 tmp_path.unlink()
 
 
-@router.post("/analyze/batch")  # type: ignore[misc]
+@router.post("/analyze/batch")
 async def analyze_batch(
     edf_file: UploadFile = File(...),
     analysis_type: str = "abnormality",

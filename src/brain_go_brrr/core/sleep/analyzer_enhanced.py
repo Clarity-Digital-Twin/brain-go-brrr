@@ -398,7 +398,7 @@ class EnhancedSleepAnalyzer:
 
         return features
 
-    def _compute_fractal_dimension(self, data: npt.NDArray) -> float:
+    def _compute_fractal_dimension(self, data: npt.NDArray[np.float64]) -> float:
         """Compute Higuchi fractal dimension (from YASA)."""
         try:
             from yasa import higuchi_fd
@@ -427,7 +427,7 @@ class EnhancedSleepAnalyzer:
 
             return float(fd)
 
-    def _compute_permutation_entropy(self, data: npt.NDArray) -> float:
+    def _compute_permutation_entropy(self, data: npt.NDArray[np.float64]) -> float:
         """Compute permutation entropy (nonlinear feature)."""
         try:
             from yasa import petrosian_fd

@@ -284,7 +284,7 @@ class EEGQualityController:
         raw: mne.io.Raw,
         epoch_length: float = 2.0,
         overlap: float = 0.0,
-        reject_criteria: dict | None = None,
+        reject_criteria: dict[str, Any] | None = None,
     ) -> mne.Epochs:
         """Create epochs from raw data.
 
@@ -398,7 +398,7 @@ class EEGQualityController:
 
     def compute_abnormality_score(
         self, epochs: mne.Epochs, return_details: bool = False
-    ) -> float | dict:
+    ) -> float | dict[str, Any]:
         """Compute abnormality score using EEGPT.
 
         Args:
@@ -464,7 +464,7 @@ class EEGQualityController:
         bad_channels: list[str],
         abnormality_score: float,
         reject_log: object | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Generate comprehensive QC report.
 
         Args:
@@ -526,7 +526,7 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict:
+    def run_full_qc_pipeline(self, raw: mne.io.Raw, preprocess: bool = True, **kwargs: Any) -> dict[str, Any]:
         """Run the complete QC pipeline.
 
         Args:

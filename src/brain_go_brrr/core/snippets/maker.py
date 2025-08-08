@@ -356,7 +356,7 @@ class EEGSnippetMaker:
             # Convert to dictionary
             features_dict = features.iloc[0].to_dict()
 
-            return features_dict
+            return features_dict  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Feature extraction failed: {e}")
@@ -395,7 +395,7 @@ class EEGSnippetMaker:
             return {"error": str(e)}
 
     def classify_snippet(
-        self, snippet: dict[str, Any], features: dict[str, Any], eegpt_results: dict
+        self, snippet: dict[str, Any], features: dict[str, Any], eegpt_results: dict[str, Any]
     ) -> dict[str, Any]:
         """Classify snippet based on features and EEGPT results.
 

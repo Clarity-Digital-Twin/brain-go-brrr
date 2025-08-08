@@ -41,7 +41,7 @@ class ModelConfig(BaseModel):
             raise ValueError("Window duration must result in integer samples")
         return int(samples)
 
-    @field_validator("model_path")  # type: ignore[misc]
+    @field_validator("model_path")
     @classmethod
     def validate_model_path(cls, v: Path) -> Path:
         """Validate that model path exists."""
@@ -129,12 +129,8 @@ class Config(BaseSettings):
     data: DataConfig = Field(default_factory=DataConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
 
-    model_config = ConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore",  # Allow extra fields from env vars
-    )
+    # Using dict for pydantic-settings compatibility
+    model_config = {"extra": "ignore"}  # type: ignore[misc]
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization setup."""

@@ -25,7 +25,7 @@ from matplotlib.figure import Figure
 logger = logging.getLogger(__name__)
 
 
-def generate_qc_report(qc_results: dict[str, Any], eeg_data: npt.NDArray | None = None) -> bytes:
+def generate_qc_report(qc_results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None) -> bytes:
     """Generate a QC report from results.
 
     Args:
@@ -48,7 +48,7 @@ class PDFReportGenerator:
         self.dpi = 100
 
     def generate_report(
-        self, results: dict[str, Any], eeg_data: npt.NDArray | None = None
+        self, results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None
     ) -> bytes:
         """Generate complete PDF report.
 
@@ -300,7 +300,7 @@ class PDFReportGenerator:
 
     def _create_artifact_page(
         self,
-        eeg_data: npt.NDArray,
+        eeg_data: npt.NDArray[np.float64],
         artifacts: list[dict[str, Any]],
         results: dict[str, Any],
     ) -> Figure:
@@ -381,7 +381,7 @@ def create_electrode_heatmap(
 
 
 def create_artifact_examples(
-    eeg_data: npt.NDArray, artifacts: list[dict[str, Any]], sampling_rate: int
+    eeg_data: npt.NDArray[np.float64], artifacts: list[dict[str, Any]], sampling_rate: int
 ) -> Figure | None:
     """Create visualization of artifact examples.
 

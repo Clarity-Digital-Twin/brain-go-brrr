@@ -6,6 +6,7 @@ import logging
 import os
 import secrets
 from datetime import datetime
+from typing import Any
 
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
@@ -115,7 +116,7 @@ def create_cache_clear_token() -> str:
 
 
 # For future JWT implementation
-def verify_jwt_token(token: str) -> dict:
+def verify_jwt_token(token: str) -> dict[str, Any]:
     """Verify JWT token and return claims."""
     # TODO: Implement with python-jose
     raise NotImplementedError("JWT authentication not yet implemented")

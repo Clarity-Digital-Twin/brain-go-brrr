@@ -369,7 +369,7 @@ class EEGTransformer(nn.Module):
 
     def __init__(
         self,
-        n_channels: list | None = None,
+        n_channels: list[int] | None = None,
         patch_size: int = 64,
         embed_dim: int = 768,
         embed_num: int = 4,  # Number of summary tokens
@@ -423,7 +423,7 @@ class EEGTransformer(nn.Module):
 
         self.norm = norm_layer(embed_dim)
 
-    def prepare_chan_ids(self, channel_names: list) -> Tensor:
+    def prepare_chan_ids(self, channel_names: list[str]) -> Tensor:
         """Prepare channel IDs for the model."""
         # Map channel names to indices
         chan_ids = []

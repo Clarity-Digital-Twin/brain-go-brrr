@@ -470,7 +470,7 @@ class EEGPTModel:
 
         return self.analyze(raw, analysis_type)
 
-    def extract_windows(self, data: np.ndarray, sampling_rate: int) -> list[np.ndarray]:
+    def extract_windows(self, data: npt.NDArray[np.float64], sampling_rate: int) -> list[np.ndarray]:
         """Extract non-overlapping windows from continuous data.
 
         Args:
@@ -499,8 +499,8 @@ class EEGPTModel:
         return windows
 
     def extract_features_batch(
-        self, windows: np.ndarray | torch.Tensor, channel_names: list[str] | None = None
-    ) -> np.ndarray:
+        self, windows: npt.NDArray[np.float64] | torch.Tensor, channel_names: list[str] | None = None
+    ) -> npt.NDArray[np.float64]:
         """Extract features from batch of windows.
 
         Args:
@@ -521,11 +521,8 @@ class EEGPTModel:
         batch_features = []
 
         for i in range(batch_size):
-            if isinstance(windows, torch.Tensor):
-                window = windows[i].cpu().numpy()  # Convert to numpy for extract_features
-            else:
-                window = windows[i]
-            
+            window = windows[i].cpu().numpy() if isinstance(windows, torch.Tensor) else windows[i]
+
             if channel_names is None:
                 ch_names = [f"EEG{j:03d}" for j in range(n_channels)]
             else:
@@ -549,7 +546,7 @@ def preprocess_for_eegpt(
     target_sfreq: int = 256,
     l_freq: float = 0.5,
     h_freq: float = 50.0,
-    notch_freq: float | list | None = None,
+    notch_freq: float | list[float] | None = None,
 ) -> "mne.io.Raw":  # Use string annotation
     """Preprocess EEG data for EEGPT model."""
     # Mark unused parameters as intentionally unused for now

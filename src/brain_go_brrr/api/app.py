@@ -70,7 +70,7 @@ def create_app() -> FastAPI:
     )
 
     # Root endpoint - defined before routers are included
-    @app.get("/", tags=["root"], name="root")  # type: ignore[misc]
+    @app.get("/", tags=["root"], name="root")
     async def root(request: Request) -> dict[str, Any]:
         """Root endpoint with API information."""
         return {
@@ -109,8 +109,8 @@ def create_app() -> FastAPI:
             new_path = route.path.replace("/eeg/eegpt", "")
             eegpt_compat_router.add_api_route(
                 new_path,
-                route.endpoint,
-                methods=route.methods,
+                route.endpoint,  # type: ignore[attr-defined]
+                methods=route.methods,  # type: ignore[attr-defined]
                 name=f"{route.name}_compat" if hasattr(route, "name") else None,
                 deprecated=True,
             )

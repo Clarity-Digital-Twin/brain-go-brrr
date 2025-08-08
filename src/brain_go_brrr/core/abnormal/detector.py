@@ -12,6 +12,7 @@ from typing import Any, Protocol
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from brain_go_brrr.core.abnormality_config import AbnormalityConfig
@@ -32,7 +33,7 @@ class EEGBackbone(Protocol):
         """Number of summary tokens."""
         ...
 
-    def extract_features(self, data: np.ndarray, channel_names: list[str]) -> np.ndarray:
+    def extract_features(self, data: npt.NDArray[np.float64], channel_names: list[str]) -> np.ndarray:
         """Extract features from EEG data."""
         ...
 
@@ -453,7 +454,7 @@ class AbnormalityDetector:
         raw._data = data
         return raw
 
-    def _extract_windows(self, raw: mne.io.Raw) -> list[np.ndarray]:
+    def _extract_windows(self, raw: mne.io.Raw) -> list[npt.NDArray[np.float64]]:
         """Extract sliding windows from EEG data."""
         data = raw.get_data()
         sfreq = raw.info["sfreq"]
@@ -475,7 +476,7 @@ class AbnormalityDetector:
 
         return windows
 
-    def _assess_window_quality(self, window: np.ndarray) -> float:
+    def _assess_window_quality(self, window: npt.NDArray[np.float64]) -> float:
         """Assess quality of a single window."""
         # Check for flat channels
         flat_channels: int = int(
@@ -504,7 +505,7 @@ class AbnormalityDetector:
 
         return float(max(0.0, min(1.0, quality)))
 
-    def _predict_window(self, window: np.ndarray) -> float:
+    def _predict_window(self, window: npt.NDArray[np.float64]) -> float:
         """Get abnormality prediction for a single window."""
         # Convert to tensor
         window_tensor = torch.from_numpy(window).float().unsqueeze(0).to(self.device)

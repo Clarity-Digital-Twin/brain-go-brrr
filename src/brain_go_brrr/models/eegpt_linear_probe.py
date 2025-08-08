@@ -135,7 +135,7 @@ class EEGPTLinearProbe(nn.Module):
         # Classify
         logits = self.classifier(features)
 
-        return logits
+        return logits  # type: ignore[no-any-return]
 
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
         """Get class probabilities.

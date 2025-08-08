@@ -8,6 +8,7 @@ import logging
 
 import mne
 import numpy as np
+import numpy.typing as npt
 
 logger = logging.getLogger(__name__)
 
@@ -427,7 +428,7 @@ class EEGPreprocessor:
 
     def extract_windows(
         self, raw: mne.io.BaseRaw, window_duration: float = 16.0, overlap: float = 0.0
-    ) -> list[np.ndarray]:
+    ) -> list[npt.NDArray[np.float64]]:
         """Extract windows from EEG data.
 
         Args:

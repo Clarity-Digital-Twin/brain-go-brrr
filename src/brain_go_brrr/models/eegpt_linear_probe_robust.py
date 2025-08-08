@@ -115,8 +115,8 @@ class RobustEEGPTLinearProbe(nn.Module):
         """Validate and clean input tensor."""
         # Check for NaN/Inf
         if torch.isnan(x).any() or torch.isinf(x).any():
-            self.nan_count += 1
-            logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")
+            self.nan_count = self.nan_count + 1  # type: ignore[operator,assignment]
+            logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")  # type: ignore[operator]
             x = torch.nan_to_num(
                 x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value
             )
@@ -125,8 +125,8 @@ class RobustEEGPTLinearProbe(nn.Module):
         before_clip = x
         x = torch.clamp(x, min=-self.input_clip_value, max=self.input_clip_value)
         if not torch.equal(before_clip, x):
-            self.clip_count += 1
-            logger.debug(f"Clipped input values (count: {self.clip_count.item()})")
+            self.clip_count = self.clip_count + 1  # type: ignore[operator,assignment]
+            logger.debug(f"Clipped input values (count: {self.clip_count.item()})")  # type: ignore[operator]
 
         return x
 
@@ -231,8 +231,8 @@ class RobustEEGPTLinearProbe(nn.Module):
                 "normalization_eps": self.normalization_eps,
             },
             "statistics": {
-                "nan_count": self.nan_count.item(),
-                "clip_count": self.clip_count.item(),
+                "nan_count": self.nan_count.item(),  # type: ignore[operator]
+                "clip_count": self.clip_count.item(),  # type: ignore[operator]
             },
         }
         torch.save(probe_state, path)
@@ -246,7 +246,7 @@ class RobustEEGPTLinearProbe(nn.Module):
 
         # Load statistics if available
         if "statistics" in checkpoint:
-            self.nan_count.fill_(checkpoint["statistics"]["nan_count"])
-            self.clip_count.fill_(checkpoint["statistics"]["clip_count"])
+            self.nan_count.fill_(checkpoint["statistics"]["nan_count"])  # type: ignore[operator]
+            self.clip_count.fill_(checkpoint["statistics"]["clip_count"])  # type: ignore[operator]
 
         logger.info(f"Loaded probe weights from {path}")
