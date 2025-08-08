@@ -78,7 +78,7 @@ class TestAbnormalityAccuracy:
 
     def test_balanced_accuracy_requirement(self, mock_predictions):
         """Test that model maintains baseline accuracy (regression test).
-        
+
         This is a deterministic baseline test on mock data.
         Real accuracy on TUAB after Autoreject integration should reach 82%.
         """
@@ -96,7 +96,7 @@ class TestAbnormalityAccuracy:
         # This is computed on deterministic mock data with seed=42
         BASELINE_ACCURACY = 0.794  # Baseline on mock data
         REGRESSION_TOLERANCE = 0.01  # Allow 1% variance
-        
+
         assert balanced_acc >= BASELINE_ACCURACY - REGRESSION_TOLERANCE, (
             f"Balanced accuracy {balanced_acc:.2%} regressed below baseline "
             f"{BASELINE_ACCURACY:.2%} - {REGRESSION_TOLERANCE:.2%}"

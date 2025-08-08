@@ -120,7 +120,9 @@ class TestEEGPTRouterClean:
             t = np.arange(20 * 256) / 256.0
             # 10 Hz sine wave, realistic amplitude
             signal = 50 * np.sin(2 * np.pi * 10 * t)  # pyedflib needs float64
-            data = np.vstack([signal, signal * 0.9]).astype(np.float64)  # 2 channels with slight difference
+            data = np.vstack([signal, signal * 0.9]).astype(
+                np.float64
+            )  # 2 channels with slight difference
             for i in range(2):
                 writer.writePhysicalSamples(data[i])
 
@@ -203,7 +205,7 @@ class TestEEGPTRouterClean:
         t = np.arange(duration * sfreq) / sfreq
         # 12 Hz sine wave with small DC offset, realistic EEG amplitude
         signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
-        
+
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
@@ -264,7 +266,7 @@ class TestEEGPTRouterClean:
         t = np.arange(duration * sfreq) / sfreq
         # 12 Hz sine wave with small DC offset, realistic EEG amplitude
         signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
-        
+
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
@@ -372,7 +374,7 @@ class TestEEGPTRouterClean:
         t = np.arange(duration * sfreq) / sfreq
         # 12 Hz sine wave with small DC offset, realistic EEG amplitude
         signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
-        
+
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
@@ -421,7 +423,7 @@ class TestEEGPTRouterClean:
         t = np.arange(duration * sfreq) / sfreq
         # 12 Hz sine wave with small DC offset, realistic EEG amplitude
         signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
-        
+
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
@@ -459,7 +461,7 @@ class TestEEGPTRouterClean:
         t = np.arange(duration * sfreq) / sfreq
         # 12 Hz sine wave with small DC offset, realistic EEG amplitude
         signal = 50e-6 * (0.1 + 0.9 * np.sin(2 * np.pi * 12 * t))
-        
+
         mock_raw = MagicMock()
         mock_raw.get_data.return_value = np.vstack([signal] * 19)  # 19 channels
         mock_raw.ch_names = [f"EEG{i + 1}" for i in range(19)]
