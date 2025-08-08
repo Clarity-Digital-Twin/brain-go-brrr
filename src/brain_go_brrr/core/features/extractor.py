@@ -93,7 +93,7 @@ class EEGPTFeatureExtractor:
         if self.enable_cache and len(self._cache) < self.cache_size:
             self._cache[cache_key] = embeddings
 
-        return embeddings  # type: ignore[no-any-return]
+        return embeddings
 
     def extract_embeddings_with_metadata(self, raw: mne.io.Raw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
@@ -221,7 +221,7 @@ class EEGPTFeatureExtractor:
                 # If (batch, n_windows, dim) with batch > 1, reshape
                 embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
 
-        return embeddings.astype(np.float32)  # type: ignore[no-any-return]
+        return embeddings.astype(np.float32)
 
     def _compute_cache_key(self, raw: mne.io.Raw) -> str:
         """Compute cache key for raw data.
