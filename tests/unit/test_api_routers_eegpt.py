@@ -22,13 +22,11 @@ class TestEEGPTRouterClean:
     @pytest.fixture(autouse=True)
     def clear_globals(self):
         """Clear global state between tests."""
-        import brain_go_brrr.api.routers.eegpt as eegpt_module
+        from brain_go_brrr.api.routers.eegpt import _reset_state_for_tests
 
-        eegpt_module._eegpt_model = None
-        eegpt_module._probes = {}
+        _reset_state_for_tests()
         yield
-        eegpt_module._eegpt_model = None
-        eegpt_module._probes = {}
+        _reset_state_for_tests()
 
     @pytest.fixture
     def mock_eegpt_model(self):

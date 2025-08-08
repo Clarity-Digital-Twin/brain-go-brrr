@@ -264,6 +264,7 @@ test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
+		--cov-fail-under=55 \
 		-m "not benchmark" \
 		--ignore=tests/benchmarks
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"

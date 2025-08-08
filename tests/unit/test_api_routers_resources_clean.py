@@ -1,20 +1,12 @@
-"""Clean tests for resources router - test real logic without torch import issues."""
+"""Clean tests for resources router - test real logic."""
 
-import importlib.util
 from unittest.mock import MagicMock
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-
-def load_resources_module():
-    """Load resources module directly without triggering torch import."""
-    spec = importlib.util.spec_from_file_location(
-        "resources", "src/brain_go_brrr/api/routers/resources.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+# Import directly now that __init__.py doesn't import everything
+from brain_go_brrr.api.routers import resources
 
 
 class TestResourcesRouter:
@@ -22,7 +14,6 @@ class TestResourcesRouter:
 
     def test_get_memory_resources(self):
         """Test memory resources endpoint returns system memory info."""
-        resources = load_resources_module()
         app = FastAPI()
         app.include_router(resources.router)
         client = TestClient(app)
@@ -46,8 +37,6 @@ class TestResourcesRouter:
 
     def test_get_gpu_resources_no_gputil(self):
         """Test GPU endpoint when GPUtil is not installed."""
-        resources = load_resources_module()
-
         # Mock HAS_GPUTIL as False
         resources.HAS_GPUTIL = False
 
@@ -65,8 +54,6 @@ class TestResourcesRouter:
 
     def test_get_gpu_resources_with_gpus(self):
         """Test GPU endpoint when GPUs are available."""
-        resources = load_resources_module()
-
         # Create mock GPU
         mock_gpu = MagicMock()
         mock_gpu.id = 0
@@ -106,8 +93,6 @@ class TestResourcesRouter:
 
     def test_get_gpu_resources_error(self):
         """Test GPU endpoint handles errors gracefully."""
-        resources = load_resources_module()
-
         # Mock GPUtil to raise error
         mock_gputil = MagicMock()
         mock_gputil.getGPUs.side_effect = RuntimeError("NVIDIA driver not found")
@@ -131,8 +116,6 @@ class TestResourcesRouter:
 
     def test_get_gpu_resources_empty_list(self):
         """Test GPU endpoint when no GPUs found."""
-        resources = load_resources_module()
-
         # Mock GPUtil to return empty list
         mock_gputil = MagicMock()
         mock_gputil.getGPUs.return_value = []

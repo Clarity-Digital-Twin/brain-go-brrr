@@ -366,7 +366,7 @@ async def analyze_batch(
 
 
 def _reset_state_for_tests() -> None:
-    """Reset global state for testing. Only use in tests\!"""
+    """Reset global state for testing. Only use in tests!"""
     global _eegpt_model, _probes
     _eegpt_model = None
     _probes = {}
