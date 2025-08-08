@@ -1,0 +1,96 @@
+....................................................ss.....ss........... [  9%]
+...........................s..........ssssssssssssssssssssssssssssssssss [ 19%]
+ssssssssssssssssssssssssssssssssssssssss................................ [ 28%]
+.........sssssssssssssss.........s...................................... [ 38%]
+........................................................................ [ 48%]
+.............s........................s..sssssssssss.................... [ 57%]
+......ssssssssssss...ss......................ss...ssssss................ [ 67%]
+..sssssss.s.s......................................................sssss [ 77%]
+ssss.ss.....ss.......................................................... [ 86%]
+.............ss................ssssss................................... [ 96%]
+..................ssss......                                             [100%]
+
+------------------------------------------------------- benchmark: 1 tests -------------------------------------------------------
+Name (time in us)               Min         Max      Mean    StdDev    Median      IQR  Outliers  OPS (Kops/s)  Rounds  Iterations
+----------------------------------------------------------------------------------------------------------------------------------
+test_api_response_time     691.2720  3,042.1960  948.2915  159.4646  937.6560  90.8256     71;42        1.0545     683           1
+----------------------------------------------------------------------------------------------------------------------------------
+
+Legend:
+  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.
+  OPS: Operations Per Second, computed as 1 / Mean
+============================= slowest 10 durations =============================
+17.49s call     tests/unit/test_train_sleep_probe.py::TestSleepProbeTraining::test_training_step
+15.73s call     tests/test_yasa_channel_aliasing.py::test_process_sleep_edf_method
+5.00s call     tests/unit/test_encoder_raw_output.py::test_encoder_raw_output
+3.00s call     tests/unit/test_redis_pool.py::TestRedisConnectionPool::test_execute_with_retry
+2.72s setup    tests/test_yasa_channel_aliasing.py::test_channel_aliasing_applied
+2.08s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+2.01s call     tests/api/test_api.py::TestAPIEndpoints::test_detailed_endpoint_exists
+1.97s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+1.95s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_preprocessing_pipeline_order
+1.65s call     tests/benchmarks/test_performance.py::TestPerformanceBenchmarks::test_api_response_time
+=========================== short test summary info ============================
+SKIPPED [1] tests/api/test_api_linear_probe.py:76: integration test (run with --run-integration)
+SKIPPED [1] tests/api/test_api_linear_probe.py:121: integration test (run with --run-integration)
+SKIPPED [1] tests/api/test_api_sleep_edf.py:47: integration test (run with --run-integration)
+SKIPPED [1] tests/api/test_api_sleep_edf.py:229: integration test (run with --run-integration)
+SKIPPED [1] tests/api/test_sleep_analysis_api.py:131: integration test (run with --run-integration)
+SKIPPED [8] tests/integration/test_autoreject_pipeline.py: integration test (run with --run-integration)
+SKIPPED [1] tests/integration/test_autoreject_pipeline.py:336: integration test (run with --run-integration)
+SKIPPED [5] tests/integration/test_data_pipeline_integration.py: integration test (run with --run-integration)
+SKIPPED [10] tests/integration/test_eegpt_integration.py: integration test (run with --run-integration)
+SKIPPED [4] tests/integration/test_eegpt_streaming_integration.py: integration test (run with --run-integration)
+SKIPPED [5] tests/integration/test_eegpt_streaming_integration.py:117: integration test (run with --run-integration)
+SKIPPED [16] tests/integration/test_hierarchical_pipeline.py: integration test (run with --run-integration)
+SKIPPED [1] tests/integration/test_hierarchical_pipeline.py:376: integration test (run with --run-integration)
+SKIPPED [3] tests/integration/test_parallel_pipeline.py: integration test (run with --run-integration)
+SKIPPED [1] tests/integration/test_parallel_pipeline.py:109: integration test (run with --run-integration)
+SKIPPED [7] tests/integration/test_pdf_report_integration.py: integration test (run with --run-integration)
+SKIPPED [3] tests/integration/test_pdf_report_integration.py:253: integration test (run with --run-integration)
+SKIPPED [6] tests/integration/test_tuab_autoreject_integration.py: integration test (run with --run-integration)
+SKIPPED [4] tests/integration/test_yasa_integration.py: integration test (run with --run-integration)
+SKIPPED [10] tests/unit/test_abnormality_accuracy.py: integration test (run with --run-integration)
+SKIPPED [5] tests/unit/test_abnormality_accuracy.py:283: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_abnormality_preprocessor.py:342: Test data too short for Autoreject cross-validation
+SKIPPED [1] tests/unit/test_chunked_autoreject.py:321: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_commands.py:44: Stream command may not be implemented
+SKIPPED [1] tests/unit/test_cli_streaming.py:64: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:105: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:131: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:162: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:193: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:204: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:262: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:286: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:319: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py:336: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_cli_streaming.py: integration test (run with --run-integration)
+SKIPPED [9] tests/unit/test_core_preprocessing.py: Preprocessing API changed - needs update
+SKIPPED [1] tests/unit/test_core_preprocessing.py:66: minmax normalization not implemented
+SKIPPED [1] tests/unit/test_data_tuab_cached_dataset.py: TUABCachedDataset imports MNE - causes collection errors
+SKIPPED [1] tests/unit/test_data_tuab_dataset.py: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_edf_loader.py:59: validate_edf_path function not implemented
+SKIPPED [1] tests/unit/test_edf_loader.py:81: validate_edf_path function not implemented
+SKIPPED [1] tests/unit/test_eegpt_extreme_discrimination.py:9: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_eegpt_extreme_discrimination.py:78: integration test (run with --run-integration)
+SKIPPED [6] tests/unit/test_eegpt_model_loading.py: integration test (run with --run-integration)
+SKIPPED [4] tests/unit/test_eegpt_summary_tokens.py: integration test (run with --run-integration)
+SKIPPED [3] tests/unit/test_eegpt_summary_tokens.py:180: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_eegpt_summary_tokens.py:250: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_encoder_raw_output.py:70: integration test (run with --run-integration)
+SKIPPED [9] tests/unit/test_models_eegpt_model.py: EEGPTConfig API changed - needs update
+SKIPPED [1] tests/unit/test_models_eegpt_wrapper.py:24: EEGPTWrapper forward method needs update
+SKIPPED [1] tests/unit/test_models_eegpt_wrapper.py:43: EEGPTWrapper normalize method needs update
+SKIPPED [1] tests/unit/test_models_linear_probe.py:135: TwoLayerProbe not implemented
+SKIPPED [1] tests/unit/test_models_linear_probe.py:168: TwoLayerProbe not implemented
+SKIPPED [2] tests/unit/test_redis_pool.py: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:57: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:64: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:75: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:89: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:116: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_sleep_analysis.py:144: YASA requires >= 5 minutes of data; this test uses only 10 seconds
+SKIPPED [1] tests/unit/test_yasa_compliance.py:68: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_yasa_compliance.py:100: integration test (run with --run-integration)
+SKIPPED [1] tests/unit/test_y
