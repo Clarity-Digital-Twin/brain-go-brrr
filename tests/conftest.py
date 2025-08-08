@@ -16,6 +16,7 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 
 import random
+import socket
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -37,11 +38,25 @@ random.seed(1337)
 np.random.seed(1337)
 
 
+def can_connect_to_redis(host="localhost", port=6379, timeout=0.5):
+    """Check if Redis is available for integration tests."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
+
+
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "integration: needs large models or datasets")
     config.addinivalue_line("markers", "slow: test takes > 5 seconds")
     config.addinivalue_line("markers", "external: requires external services or data")
+    config.addinivalue_line("markers", "redis: requires Redis server")
+    config.addinivalue_line("markers", "gpu: requires CUDA GPU")
 
 
 def pytest_collection_modifyitems(config, items):
