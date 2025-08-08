@@ -1,7 +1,13 @@
 """Mock EEG data generators for testing."""
 
-import mne
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
+
+if TYPE_CHECKING:
+    import mne
 
 
 class MockEEGGenerator:
@@ -38,7 +44,7 @@ class MockEEGGenerator:
         ch_names: list[str] | None = None,
         add_artifacts: bool = True,
         seed: int | None = None,
-    ) -> mne.io.RawArray:
+    ) -> "mne.io.RawArray":
         """Create mock raw EEG data.
 
         Args:
@@ -80,6 +86,7 @@ class MockEEGGenerator:
             data = MockEEGGenerator._add_artifacts(data, sfreq)
 
         # Create MNE Raw object
+        import mne
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
@@ -135,7 +142,7 @@ class MockEEGGenerator:
         epoch_duration: float = 10.0,
         sfreq: int = 256,
         ch_names: list[str] | None = None,
-    ) -> mne.Epochs:
+    ) -> "mne.Epochs":
         """Create mock epochs directly."""
         # Create longer raw data
         raw = MockEEGGenerator.create_raw(
@@ -143,6 +150,7 @@ class MockEEGGenerator:
         )
 
         # Create epochs
+        import mne
         events = mne.make_fixed_length_events(raw, duration=epoch_duration)
         epochs = mne.Epochs(
             raw, events, tmin=0, tmax=epoch_duration, baseline=None, preload=True, verbose=False
