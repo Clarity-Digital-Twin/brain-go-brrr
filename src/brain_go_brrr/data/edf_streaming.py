@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Generator
+from typing import Any
 from pathlib import Path
 
 import numpy as np

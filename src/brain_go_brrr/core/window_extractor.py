@@ -59,7 +59,7 @@ class WindowExtractor:
 
     def extract_with_timestamps(
         self, data: npt.NDArray[np.float64], sfreq: float
-    ) -> tuple[list[np.ndarray], list[tuple[float, float]]]:
+    ) -> tuple[list[npt.NDArray[np.float64]], list[tuple[float, float]]]:
         """Extract windows with their timestamps.
 
         Args:
@@ -129,7 +129,7 @@ class BatchWindowExtractor:
 
     def extract_batch(
         self, recordings: list[npt.NDArray[np.float64]], sfreq: float
-    ) -> tuple[list[np.ndarray], list[int]]:
+    ) -> tuple[list[npt.NDArray[np.float64]], list[int]]:
         """Extract windows from multiple recordings.
 
         Args:

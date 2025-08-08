@@ -139,7 +139,7 @@ class EnhancedSleepAnalyzer:
         except ImportError as e:
             raise ImportError("YASA required: pip install yasa") from e
 
-    def find_best_channels(self, raw: mne.io.Raw, channel_type: str = "eeg") -> str | None:
+    def find_best_channels(self, raw: mne.io.Raw, channel_type: str = "eeg") -> str | None:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         """Find best available channel based on preferences.
 
         Args:
@@ -191,7 +191,7 @@ class EnhancedSleepAnalyzer:
 
         return None
 
-    def preprocess_for_staging(self, raw: mne.io.Raw, copy: bool = True) -> mne.io.Raw:
+    def preprocess_for_staging(self, raw: mne.io.Raw, copy: bool = True) -> mne.io.Raw:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         """Preprocess data for YASA staging.
 
         CRITICAL: Per YASA paper, do NOT filter before staging!
@@ -210,7 +210,7 @@ class EnhancedSleepAnalyzer:
 
         return raw
 
-    def _set_channel_types(self, raw: mne.io.Raw) -> None:
+    def _set_channel_types(self, raw: mne.io.Raw) -> None:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         """Automatically set channel types based on names."""
         channel_types = {}
 
@@ -229,7 +229,7 @@ class EnhancedSleepAnalyzer:
         if channel_types:
             raw.set_channel_types(channel_types)
 
-    def stage_sleep_flexible(
+    def stage_sleep_flexible(  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         self, raw: mne.io.Raw, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Perform sleep staging with flexible channel selection.
@@ -334,7 +334,7 @@ class EnhancedSleepAnalyzer:
 
         return result
 
-    def _extract_staging_features(
+    def _extract_staging_features(  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         self, raw: mne.io.Raw, eeg_ch: str, eog_ch: str | None, emg_ch: str | None
     ) -> dict[str, float]:
         """Extract key features used for staging (based on YASA paper).
@@ -452,7 +452,7 @@ class EnhancedSleepAnalyzer:
                     entropy_val -= p * np.log2(p)
             return entropy_val
 
-    def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:
+    def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
         """Simple rule-based fallback when YASA fails."""
         logger.warning("Using fallback staging method")
 
