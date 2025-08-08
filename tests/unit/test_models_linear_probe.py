@@ -115,57 +115,50 @@ class TestLinearProbe:
 class TestTwoLayerProbe:
     """Test two-layer probe variant."""
 
+    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented - see issue #XXX")
     def test_two_layer_initialization(self):
         """Test two-layer probe initialization."""
-        # Try importing if it exists
-        try:
-            from brain_go_brrr.models.eegpt_two_layer_probe import (
-                TwoLayerProbeHead as TwoLayerProbe,
-            )
+        from brain_go_brrr.models.eegpt_two_layer_probe import (
+            TwoLayerProbeHead as TwoLayerProbe,
+        )
 
-            probe = TwoLayerProbe(input_dim=768, hidden_dim=256, num_classes=2, dropout=0.1)
+        probe = TwoLayerProbe(input_dim=768, hidden_dim=256, num_classes=2, dropout=0.1)
 
-            # Check layers
-            assert hasattr(probe, "fc1")
-            assert hasattr(probe, "fc2")
-            assert probe.fc1.out_features == 256
-            assert probe.fc2.out_features == 2
+        # Check layers
+        assert hasattr(probe, "fc1")
+        assert hasattr(probe, "fc2")
+        assert probe.fc1.out_features == 256
+        assert probe.fc2.out_features == 2
 
-        except ImportError:
-            pytest.skip("TwoLayerProbe not implemented")
-
+    @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented - see issue #XXX")
     def test_two_layer_forward(self):
         """Test two-layer forward pass."""
-        try:
-            from brain_go_brrr.models.eegpt_two_layer_probe import (
-                TwoLayerProbeHead as TwoLayerProbe,
-            )
+        from brain_go_brrr.models.eegpt_two_layer_probe import (
+            TwoLayerProbeHead as TwoLayerProbe,
+        )
 
-            probe = TwoLayerProbe(input_dim=768, hidden_dim=128, num_classes=2)
+        probe = TwoLayerProbe(input_dim=768, hidden_dim=128, num_classes=2)
 
-            x = torch.randn(32, 768)
-            out = probe(x)
+        x = torch.randn(32, 768)
+        out = probe(x)
 
-            assert out.shape == (32, 2)
+        assert out.shape == (32, 2)
 
-            # Check intermediate activations exist
-            probe.eval()
-            with torch.no_grad():
-                # Hook to capture intermediate
-                activations = []
+        # Check intermediate activations exist
+        probe.eval()
+        with torch.no_grad():
+            # Hook to capture intermediate
+            activations = []
 
-                def hook(module, input, output):
-                    activations.append(output)
+            def hook(module, input, output):
+                activations.append(output)
 
-                handle = probe.fc1.register_forward_hook(hook)
-                _ = probe(x)
-                handle.remove()
+            handle = probe.fc1.register_forward_hook(hook)
+            _ = probe(x)
+            handle.remove()
 
-                assert len(activations) == 1
-                assert activations[0].shape == (32, 128)
-
-        except ImportError:
-            pytest.skip("TwoLayerProbe not implemented")
+            assert len(activations) == 1
+            assert activations[0].shape == (32, 128)
 
 
 class TestProbeTraining:
