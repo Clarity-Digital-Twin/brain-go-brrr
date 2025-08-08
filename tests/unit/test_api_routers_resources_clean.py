@@ -91,7 +91,7 @@ class TestResourcesRouter:
         assert gpu_info["gpu_load"] == 15.0
         assert gpu_info["temperature"] == 45
 
-    def test_get_gpu_resources_error(self):
+    def test_get_gpu_resources_error(self, monkeypatch):
         """Test GPU endpoint handles errors gracefully."""
         # Mock GPUtil to raise error
         mock_gputil = MagicMock()
@@ -114,7 +114,7 @@ class TestResourcesRouter:
         assert "GPU not available" in data["error"]
         assert "NVIDIA driver not found" in data["error"]
 
-    def test_get_gpu_resources_empty_list(self):
+    def test_get_gpu_resources_empty_list(self, monkeypatch):
         """Test GPU endpoint when no GPUs found."""
         # Mock GPUtil to return empty list
         mock_gputil = MagicMock()

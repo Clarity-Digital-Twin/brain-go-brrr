@@ -166,7 +166,6 @@ class TestSingleWindowBenchmarks:
             )
 
     @pytest.mark.gpu
-    @pytest.mark.gpu
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
     def test_single_window_gpu_inference_speed(

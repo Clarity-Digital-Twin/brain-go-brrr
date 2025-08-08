@@ -171,9 +171,8 @@ ignore = [
     "B008",   # Do not perform function calls in argument defaults
     "RUF012", # Mutable class attributes should be annotated
     # Type annotation exceptions
-    "ANN101", # Missing type annotation for self in method
-    "ANN102", # Missing type annotation for cls in classmethod
-    "ANN204", # Missing return type annotation for special method __init__
+    "ANN204", # Missing return type annotation for special method __init__ (46 instances)
+    "ANN401", # Dynamically typed expressions (Any) - TODO: fix these gradually
     # Docstring exceptions for now (will fix incrementally)
     "D100",   # Missing docstring in public module
     "D101",   # Missing docstring in public class
