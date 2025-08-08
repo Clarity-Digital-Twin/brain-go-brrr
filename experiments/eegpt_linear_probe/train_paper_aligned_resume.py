@@ -136,7 +136,7 @@ def create_dataloaders(config):
 
 def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config):
     """Train for one epoch."""
-    model.eval()  # Backbone stays frozen
+    # model is EEGPTModel - doesn't need .eval(), already frozen
     probe.train()
     
     losses = []
@@ -193,7 +193,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
 def validate(model, probe, val_loader, device):
     """Validate the model."""
-    model.eval()
+    # model is EEGPTModel - doesn't need .eval()
     probe.eval()
     
     losses = []
@@ -270,7 +270,7 @@ def main():
     logger.info("Loading EEGPT backbone...")
     checkpoint_path = Path(os.path.expandvars(config['model']['backbone']['checkpoint_path']))
     model = EEGPTModel(checkpoint_path=checkpoint_path, device=device)
-    model.eval()  # Freeze backbone
+    # EEGPTModel doesn't have .eval() - it's already frozen
     
     # Initialize probe
     if config['model']['probe']['type'] == 'linear':
