@@ -38,33 +38,31 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 class LinearProbe(nn.Module):
-    """Simple linear probe for EEGPT."""
+    """Linear probe matching the original training structure."""
     
-    def __init__(self, input_dim=512, n_classes=2, dropout=0.1):
+    def __init__(self, input_dim=512, hidden_dim=128, n_classes=2, dropout=0.1, probe_type='linear'):
         super().__init__()
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(input_dim, n_classes)
+        
+        if probe_type == 'linear':
+            # Single layer probe
+            self.probe = nn.Sequential(
+                nn.Dropout(dropout),
+                nn.Linear(input_dim, n_classes)
+            )
+        else:
+            # Two-layer probe - THIS IS WHAT WAS USED!
+            self.probe = nn.Sequential(
+                nn.Linear(input_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_dim, n_classes)
+            )
         
     def forward(self, x):
-        x = self.dropout(x)
-        return self.fc(x)
-
-
-class TwoLayerProbe(nn.Module):
-    """Two-layer probe with hidden layer."""
-    
-    def __init__(self, input_dim=512, hidden_dim=128, n_classes=2, dropout=0.1):
-        super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(dropout)
-        self.fc2 = nn.Linear(hidden_dim, n_classes)
-        
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.dropout(x)
-        return self.fc2(x)
+        # Average pool if needed (depends on input shape)
+        if len(x.shape) == 3:
+            x = x.mean(dim=1)  # Average over summary tokens
+        return self.probe(x)
 
 
 def collate_eeg_batch_fixed(batch):
@@ -272,20 +270,14 @@ def main():
     model = EEGPTModel(checkpoint_path=checkpoint_path, device=device)
     # EEGPTModel doesn't have .eval() - it's already frozen
     
-    # Initialize probe
-    if config['model']['probe']['type'] == 'linear':
-        probe = LinearProbe(
-            input_dim=config['model']['probe']['input_dim'],
-            n_classes=config['model']['probe']['n_classes'],
-            dropout=config['model']['probe']['dropout']
-        )
-    else:
-        probe = TwoLayerProbe(
-            input_dim=config['model']['probe']['input_dim'],
-            hidden_dim=config['model']['probe']['hidden_dim'],
-            n_classes=config['model']['probe']['n_classes'],
-            dropout=config['model']['probe']['dropout']
-        )
+    # Initialize probe - matching the saved model structure
+    probe = LinearProbe(
+        input_dim=config['model']['probe']['input_dim'],
+        hidden_dim=config['model']['probe']['hidden_dim'],
+        n_classes=config['model']['probe']['n_classes'],
+        dropout=config['model']['probe']['dropout'],
+        probe_type='two_layer'  # The saved model used two-layer probe!
+    )
     probe = probe.to(device)
     
     # Initialize optimizer
