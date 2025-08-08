@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ModelConfig(BaseModel):
@@ -129,8 +129,13 @@ class Config(BaseSettings):
     data: DataConfig = Field(default_factory=DataConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
 
-    # Using dict for pydantic-settings compatibility
-    model_config = {"extra": "ignore"}  # type: ignore[misc]
+    # Proper pydantic-settings v2 configuration
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     def model_post_init(self, __context: Any) -> None:
         """Post-initialization setup."""
