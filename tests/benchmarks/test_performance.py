@@ -5,13 +5,16 @@ in CI to avoid slowing down the main test suite.
 """
 
 import os
+from typing import TYPE_CHECKING
 
-import mne
 import numpy as np
 import psutil
 import pytest
 
 from brain_go_brrr.models.eegpt_model import EEGPTModel
+
+if TYPE_CHECKING:
+    import mne
 
 
 @pytest.mark.perf
@@ -41,6 +44,8 @@ class TestPerformanceBenchmarks:
     @pytest.mark.slow
     def test_inference_speed(self, eegpt_model, benchmark):
         """Test inference speed meets requirements."""
+        import mne
+        
         # Test with 2-minute recording (sufficient to measure performance)
         # Full 20-minute test would be done in dedicated benchmarks
         duration = 2 * 60  # seconds
@@ -65,6 +70,8 @@ class TestPerformanceBenchmarks:
     @pytest.mark.slow
     def test_memory_usage(self, eegpt_model, benchmark):
         """Test memory usage is reasonable."""
+        import mne
+        
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 
