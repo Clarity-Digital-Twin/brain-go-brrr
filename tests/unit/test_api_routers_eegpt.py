@@ -245,11 +245,10 @@ class TestEEGPTRouterClean:
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
         
-        # Make request
+        # Make request - analysis_type as query param
         response = test_client.post(
-            "/eeg/eegpt/analyze",
-            files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
-            data={"analysis_type": "sleep_probe"}
+            "/eeg/eegpt/analyze?analysis_type=sleep_probe",
+            files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")}
         )
         
         assert response.status_code == 200
@@ -384,11 +383,11 @@ class TestEEGPTRouterClean:
         mock_raw.info = {"sfreq": 256}
         mock_load_edf.return_value = mock_raw
         
-        # Make request
+        # Make request - batch_size is a query param, not form data
         response = test_client.post(
-            "/eeg/eegpt/analyze/batch",
+            "/eeg/eegpt/analyze/batch?batch_size=2",
             files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
-            data={"analysis_type": "abnormality", "batch_size": 2}  # Pass as int, not string
+            data={"analysis_type": "abnormality"}
         )
         
         assert response.status_code == 200
@@ -422,11 +421,11 @@ class TestEEGPTRouterClean:
             mock_probe = MagicMock(spec=[])  # No methods
             mock_get_probe.return_value = mock_probe
             
-            # Make request
+            # Make request - batch_size as query param
             response = test_client.post(
-                "/eeg/eegpt/analyze/batch",
+                "/eeg/eegpt/analyze/batch?batch_size=2",
                 files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
-                data={"analysis_type": "custom", "batch_size": 2}
+                data={"analysis_type": "custom"}
             )
             
             assert response.status_code == 200
