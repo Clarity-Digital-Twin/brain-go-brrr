@@ -35,10 +35,10 @@ class TestResourcesRouter:
         assert data["used"] > 0
         assert 0 <= data["percent"] <= 100
 
-    def test_get_gpu_resources_no_gputil(self):
+    def test_get_gpu_resources_no_gputil(self, monkeypatch):
         """Test GPU endpoint when GPUtil is not installed."""
-        # Mock HAS_GPUTIL as False
-        resources.HAS_GPUTIL = False
+        # Use monkeypatch for clean state management
+        monkeypatch.setattr(resources, "HAS_GPUTIL", False)
 
         app = FastAPI()
         app.include_router(resources.router)
@@ -52,7 +52,7 @@ class TestResourcesRouter:
         assert data["gpus"] == []
         assert data["message"] == "GPUtil not installed"
 
-    def test_get_gpu_resources_with_gpus(self):
+    def test_get_gpu_resources_with_gpus(self, monkeypatch):
         """Test GPU endpoint when GPUs are available."""
         # Create mock GPU
         mock_gpu = MagicMock()
@@ -64,12 +64,12 @@ class TestResourcesRouter:
         mock_gpu.load = 0.15
         mock_gpu.temperature = 45
 
-        # Mock GPUtil
+        # Mock GPUtil using monkeypatch
         mock_gputil = MagicMock()
         mock_gputil.getGPUs.return_value = [mock_gpu]
 
-        resources.HAS_GPUTIL = True
-        resources.GPUtil = mock_gputil
+        monkeypatch.setattr(resources, "HAS_GPUTIL", True)
+        monkeypatch.setattr(resources, "GPUtil", mock_gputil)
 
         app = FastAPI()
         app.include_router(resources.router)
@@ -97,8 +97,8 @@ class TestResourcesRouter:
         mock_gputil = MagicMock()
         mock_gputil.getGPUs.side_effect = RuntimeError("NVIDIA driver not found")
 
-        resources.HAS_GPUTIL = True
-        resources.GPUtil = mock_gputil
+        monkeypatch.setattr(resources, "HAS_GPUTIL", True)
+        monkeypatch.setattr(resources, "GPUtil", mock_gputil)
 
         app = FastAPI()
         app.include_router(resources.router)
@@ -120,8 +120,8 @@ class TestResourcesRouter:
         mock_gputil = MagicMock()
         mock_gputil.getGPUs.return_value = []
 
-        resources.HAS_GPUTIL = True
-        resources.GPUtil = mock_gputil
+        monkeypatch.setattr(resources, "HAS_GPUTIL", True)
+        monkeypatch.setattr(resources, "GPUtil", mock_gputil)
 
         app = FastAPI()
         app.include_router(resources.router)

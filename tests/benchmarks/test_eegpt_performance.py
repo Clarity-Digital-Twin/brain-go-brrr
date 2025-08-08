@@ -165,6 +165,8 @@ class TestSingleWindowBenchmarks:
                 f"budget is {budget:.1f}ms (2x for mock model)"
             )
 
+    @pytest.mark.gpu
+    @pytest.mark.gpu
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
     def test_single_window_gpu_inference_speed(
@@ -490,6 +492,7 @@ class TestMemoryBenchmarks:
         assert "abnormal_probability" in result
         assert result["n_windows"] > 0
 
+    @pytest.mark.gpu
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
     def test_gpu_memory_usage(self, eegpt_model_gpu, realistic_batch_windows):
@@ -521,6 +524,7 @@ class TestMemoryBenchmarks:
 class TestPerformanceComparison:
     """Compare performance between CPU and GPU."""
 
+    @pytest.mark.gpu
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
     def test_cpu_vs_gpu_single_window(
@@ -576,6 +580,7 @@ class TestPerformanceComparison:
                 "Deterministic model produces different results on CPU vs GPU"
             )
 
+    @pytest.mark.gpu
     @pytest.mark.benchmark
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU not available")
     def test_cpu_vs_gpu_batch_processing(
