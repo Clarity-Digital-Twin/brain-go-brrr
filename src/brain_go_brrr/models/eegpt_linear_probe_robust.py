@@ -116,7 +116,7 @@ class RobustEEGPTLinearProbe(nn.Module):
         # Check for NaN/Inf
         if torch.isnan(x).any() or torch.isinf(x).any():
             self.nan_count.add_(1)
-            logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")  
+            logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")
             x = torch.nan_to_num(
                 x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value
             )

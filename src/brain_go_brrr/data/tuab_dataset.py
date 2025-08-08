@@ -11,6 +11,7 @@ from typing import Any
 
 import mne
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 

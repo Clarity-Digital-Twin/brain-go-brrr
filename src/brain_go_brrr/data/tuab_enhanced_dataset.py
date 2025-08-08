@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 import mne
