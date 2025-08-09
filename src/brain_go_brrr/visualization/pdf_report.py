@@ -8,7 +8,7 @@ Generates professional PDF reports with:
 
 import io
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import matplotlib
 
@@ -21,6 +21,9 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 logger = logging.getLogger(__name__)
 
@@ -346,7 +349,7 @@ def create_electrode_heatmap(
         Matplotlib figure
     """
     fig: Figure
-    ax: plt.Axes
+    ax: Axes
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # Normalize positions
@@ -398,7 +401,7 @@ def create_artifact_examples(
 
     n_artifacts = min(len(artifacts), 5)
     fig: Figure
-    axes: list[plt.Axes] | plt.Axes
+    axes: list[Axes] | Axes
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
     if n_artifacts == 1:

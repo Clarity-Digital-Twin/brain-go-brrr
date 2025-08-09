@@ -169,8 +169,8 @@ class EEGPTTwoLayerProbe(nn.Module):
         logits = self.linear_probe2(h_flat)  # [B, n_classes]
 
         if return_features:
-            return logits  # type: ignore[no-any-return], h  # type: ignore[return-value]
-        return logits  # type: ignore[no-any-return]
+            return logits, h
+        return logits
 
 
 class EEGPTChannelAdapter(nn.Module):

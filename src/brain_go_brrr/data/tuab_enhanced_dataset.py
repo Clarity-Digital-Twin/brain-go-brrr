@@ -292,7 +292,7 @@ class TUABEnhancedDataset(TUABDataset):
         # Get data and convert to float32
         data = raw.get_data().astype(np.float32)
         
-        return data  # type: ignore[no-any-return]
+        return data
     
     def _preprocess_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Preprocess raw data matching paper specifications.

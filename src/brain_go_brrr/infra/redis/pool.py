@@ -178,7 +178,7 @@ class RedisConnectionPool:
             raise
 
     @contextmanager
-    def get_client(self) -> Generator["redis.Redis[Any]", None, None]:  # type: ignore[type-arg]
+    def get_client(self) -> Generator["redis.Redis[Any]", None, None]:
         """Get Redis client from pool with automatic cleanup.
 
         Usage:

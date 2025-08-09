@@ -51,7 +51,7 @@ class BandpassFilter:
             Filtered data with same shape
         """
         if data.ndim == 1:
-            return signal.sosfiltfilt(self.sos, data)  # type: ignore[no-any-return]
+            return signal.sosfiltfilt(self.sos, data)
         else:
             # Apply to each channel
             filtered = np.zeros_like(data)
@@ -96,7 +96,7 @@ class NotchFilter:
             Filtered data with same shape
         """
         if data.ndim == 1:
-            return signal.sosfiltfilt(self.sos, data)  # type: ignore[no-any-return]
+            return signal.sosfiltfilt(self.sos, data)
         else:
             # Apply to each channel
             filtered = np.zeros_like(data)
@@ -130,7 +130,7 @@ class Normalizer:
                 std = np.std(data)
                 if std == 0:
                     return data - mean
-                return (data - mean) / std  # type: ignore[no-any-return]
+                return (data - mean) / std
             else:
                 # Normalize each channel independently
                 normalized = np.zeros_like(data)
@@ -149,7 +149,7 @@ class Normalizer:
                 mad = median_abs_deviation(data, scale="normal")
                 if mad == 0:
                     return data - median
-                return (data - median) / mad  # type: ignore[no-any-return]
+                return (data - median) / mad
             else:
                 # Robust normalization per channel
                 normalized = np.zeros_like(data)
@@ -189,7 +189,7 @@ class Resampler:
         """
         if data.ndim == 1:
             n_samples_new = int(len(data) * self.ratio)
-            return signal.resample(data, n_samples_new)  # type: ignore[no-any-return]
+            return signal.resample(data, n_samples_new)
         else:
             # Resample each channel
             n_samples_new = int(data.shape[1] * self.ratio)
