@@ -173,10 +173,15 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--tb=short \
 		-q
 
-test-integration: ## Run integration tests without coverage (includes MNE/YASA)
-	@echo "$(GREEN)Running integration tests (no coverage)...$(NC)"
-	$(PYTEST) tests/integration -m "not slow" --no-cov -v
+test-integration: ## Run integration tests with GPU and local data
+	@echo "$(GREEN)Running integration tests with GPU (no coverage)...$(NC)"
+	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -m "integration or gpu" --no-cov -v --tb=short
 	@echo "$(GREEN)Integration tests complete!$(NC)"
+
+test-all: ## Run ALL tests including integration (full suite)
+	@echo "$(GREEN)Running full test suite with integration tests...$(NC)"
+	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -v --tb=short
+	@echo "$(GREEN)Full test suite complete!$(NC)"
 
 test-slow: ## Run slow tests (nightly CI only)
 	@echo "$(YELLOW)Running slow tests (this may take a while)...$(NC)"

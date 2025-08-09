@@ -210,3 +210,51 @@ class EEGPTChannelAdapter(nn.Module):
         x = self.expand(x)
         x = self.reduce(x)
         return x
+
+
+class TwoLayerProbeHead(nn.Module):
+    """Simple two-layer MLP probe head for EEGPT tests."""
+    
+    def __init__(
+        self,
+        input_dim: int = 768,
+        hidden_dim: int = 256,
+        num_classes: int = 2,
+        dropout: float = 0.1,
+    ):
+        """Initialize two-layer probe.
+        
+        Args:
+            input_dim: Input feature dimension
+            hidden_dim: Hidden layer dimension
+            num_classes: Number of output classes
+            dropout: Dropout probability
+        """
+        super().__init__()
+        
+        # First layer with activation
+        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+        
+        # Second layer (output)
+        self.fc2 = nn.Linear(hidden_dim, num_classes)
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+        
+        Args:
+            x: Input features [batch_size, input_dim]
+            
+        Returns:
+            Logits [batch_size, num_classes]
+        """
+        # First layer
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.dropout(x)
+        
+        # Output layer
+        x = self.fc2(x)
+        
+        return x
