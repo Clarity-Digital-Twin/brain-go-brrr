@@ -145,8 +145,8 @@ class TestPreprocessingPipeline:
 
         # Create pipeline
         config = PreprocessingConfig(
-            bandpass_low=0.5, 
-            bandpass_high=40.0, 
+            bandpass_low=0.5,
+            bandpass_high=40.0,
             notch_freq=50.0,
             original_sampling_rate=sfreq
         )
@@ -168,8 +168,8 @@ class TestPreprocessingPipeline:
 
         # Create empty config (all operations disabled)
         config = PreprocessingConfig(
-            bandpass_low=None, 
-            bandpass_high=None, 
+            bandpass_low=None,
+            bandpass_high=None,
             notch_freq=None,
             original_sampling_rate=sfreq
         )

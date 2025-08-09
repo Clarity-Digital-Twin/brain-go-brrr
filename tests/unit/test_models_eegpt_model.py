@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 import torch
 import torch.nn as nn
 
@@ -42,7 +41,7 @@ class TestEEGPTConfig:
         """Test window samples calculation."""
         config = EEGPTConfig(sampling_rate=256, window_duration=4.0)
         assert config.window_samples == 1024
-        
+
     def test_n_patches_calculation(self):
         """Test patches per window calculation."""
         config = EEGPTConfig(sampling_rate=256, window_duration=4.0, patch_size=64)

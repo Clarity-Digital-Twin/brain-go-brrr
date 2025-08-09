@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import torch
 
 
@@ -55,12 +54,12 @@ class TestEEGPTWrapper:
 
         # Test that normalization is enabled by default
         assert wrapper.normalize == True
-        
+
         # Test setting normalization parameters
         wrapper.set_normalization_params(mean=0.5, std=2.0)
         assert wrapper.input_mean.item() == 0.5
         assert wrapper.input_std.item() == 2.0
-        
+
         # Test estimating normalization from data
         test_data = torch.randn(1, 20, 1024)
         wrapper.estimate_normalization_params(test_data)

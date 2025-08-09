@@ -194,7 +194,7 @@ class Resampler:
         # If the rates are the same, return the original data
         if self.original_rate == self.target_rate:
             return data
-            
+
         if data.ndim == 1:
             n_samples_new = int(len(data) * self.ratio)
             out = signal.resample(data, n_samples_new)

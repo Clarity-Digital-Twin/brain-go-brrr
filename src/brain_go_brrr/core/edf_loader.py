@@ -27,19 +27,19 @@ def validate_edf_path(file_path: Path | str) -> Path:
         PermissionError: If file is not readable
     """
     path = Path(file_path)
-    
+
     # Check if file exists
     if not path.exists():
         raise FileNotFoundError(f"EDF file not found: {path}")
-    
+
     # Check if it's a file (not directory)
     if not path.is_file():
         raise ValueError(f"Path is not a file: {path}")
-    
+
     # Check file extension
     if path.suffix.lower() not in [".edf", ".bdf"]:
         raise ValueError(f"File must be .edf or .bdf, got: {path.suffix}")
-    
+
     # Check if readable
     try:
         with open(path, "rb") as f:
@@ -49,7 +49,7 @@ def validate_edf_path(file_path: Path | str) -> Path:
         raise PermissionError(f"Cannot read file: {path}")
     except Exception as e:
         raise ValueError(f"Cannot access file: {e}")
-    
+
     return path
 
 
