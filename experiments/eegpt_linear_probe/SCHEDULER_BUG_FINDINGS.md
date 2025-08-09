@@ -1,9 +1,10 @@
-# OneCycleLR Scheduler Bug Analysis & Fix
+# OneCycleLR Scheduler Bug Analysis & Fix - COMPLETE ANALYSIS
 
-**Date**: 2025-08-09
+**Date**: 2025-08-09  
+**Updated**: After deep review and external feedback
 **Issue**: Training plateaued with constant learning rate despite OneCycleLR configuration
 
-## 🔴 CRITICAL BUG IDENTIFIED
+## 🔴 MULTIPLE CRITICAL BUGS IDENTIFIED
 
 ### The Problem
 Training run showed constant learning rate of 2.84e-03 throughout 77% of training (45,114/58,285 steps), causing:
@@ -12,20 +13,38 @@ Training run showed constant learning rate of 2.84e-03 throughout 77% of trainin
 - No annealing phase (should end at ~0.000003)
 - Model stuck in local minimum due to high LR
 
-### Root Cause
-**Scheduler stepping per epoch instead of per batch!**
+### Root Causes (Multiple Issues Found!)
 
-Current implementation in `train_paper_aligned.py` and `train_paper_aligned_resume.py`:
-```python
-# Line 179-180 (WRONG):
-scheduler.step()  # Called OUTSIDE the batch loop!
-```
+1. **Scheduler stepping per epoch instead of per batch** (train_paper_aligned_resume.py)
+   ```python
+   # Line 179 (WRONG):
+   scheduler.step()  # Called OUTSIDE the batch loop!
+   ```
 
-This causes OneCycleLR to advance only ~20 times instead of ~58,000 times!
+2. **start_epoch reset bug** (train_paper_aligned_resume.py line 318):
+   ```python
+   steps_completed = start_epoch * steps_per_epoch  # Line 299
+   # ... scheduler created with steps_completed ...
+   start_epoch = 0  # Line 318 - RESETS IT! Breaking resume!
+   ```
 
-## ✅ THE FIX
+3. **Missing gradient accumulation awareness**:
+   ```python
+   # WRONG: Doesn't account for accumulation
+   total_steps = len(train_loader) * max_epochs
+   
+   # CORRECT:
+   accum_steps = config.get('gradient_accumulation_steps', 1)
+   steps_per_epoch = math.ceil(len(train_loader) / accum_steps)
+   total_steps = steps_per_epoch * max_epochs
+   ```
 
-### Correct Implementation
+4. **No global_step tracking** for proper resume
+5. **Using scheduler.get_last_lr()** instead of optimizer LR
+
+## ✅ COMPREHENSIVE FIX
+
+### Complete Fixed Implementation (train_paper_aligned_FINAL.py)
 ```python
 def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config):
     """Train for one epoch."""
@@ -59,14 +78,24 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         
         optimizer.step()
         
-        # ✅ CRITICAL FIX: Step scheduler after EACH optimizer step
-        scheduler.step()
+        # Gradient accumulation aware stepping
+        should_step = ((batch_idx + 1) % accum_steps == 0) or (batch_idx + 1 == len(train_loader))
         
-        # Update progress bar with CURRENT learning rate
-        current_lr = scheduler.get_last_lr()[0]
+        if should_step:
+            torch.nn.utils.clip_grad_norm_(probe.parameters(), clip_val)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            
+            # ✅ CRITICAL: Step scheduler ONLY when optimizer steps
+            scheduler.step()
+            global_step += 1
+        
+        # ✅ Use OPTIMIZER LR (not scheduler)
+        current_lr = optimizer.param_groups[0]['lr']
         pbar.set_postfix({
             'loss': f'{loss.item():.4f}',
-            'lr': f'{current_lr:.2e}'  # Should change every batch!
+            'lr': f'{current_lr:.2e}',
+            'step': global_step
         })
 ```
 
@@ -96,40 +125,70 @@ With proper per-batch stepping:
 | Peak (40%) | 5,829-29,142 | 0.003 | Maximum learning |
 | Annealing (50%) | 29,143-58,285 | 0.003 → 0.000003 | Fine-tuning |
 
-## 🔧 Scheduler Configuration
+## 🔧 Fixed Scheduler Configuration
 
-Correct OneCycleLR setup:
+Complete setup with all fixes:
 ```python
-# Calculate total steps correctly
-steps_per_epoch = len(train_loader)
+# CRITICAL: Calculate total steps with accumulation awareness
+import math
+
+accum_steps = config['training'].get('gradient_accumulation_steps', 1)
+steps_per_epoch = math.ceil(len(train_loader) / accum_steps)
 total_steps = steps_per_epoch * config['training']['max_epochs']
 
-# For gradient accumulation:
-# total_steps = (steps_per_epoch // accumulation_steps) * max_epochs
+# Initialize tracking BEFORE resume logic
+start_epoch = 0
+global_step = 0
+best_auroc = 0.0
+
+# Resume logic (BEFORE scheduler creation)
+if resume_checkpoint:
+    checkpoint = torch.load(resume_path)
+    start_epoch = checkpoint.get('epoch', 0) + 1
+    global_step = checkpoint.get('global_step', start_epoch * steps_per_epoch)
+    best_auroc = checkpoint.get('val_auroc', 0.0)
+    # DO NOT reset start_epoch after this!
 
 scheduler = torch.optim.lr_scheduler.OneCycleLR(
     optimizer,
     max_lr=config['training']['scheduler']['max_lr'],  # 0.003
-    total_steps=total_steps,  # ~58,285 for 20 epochs
+    total_steps=total_steps,  # Adjusted for accumulation!
     pct_start=0.1,  # 10% warmup
     anneal_strategy='cos',
     div_factor=25,  # initial_lr = max_lr/25 = 0.00012
     final_div_factor=1000,  # final_lr = max_lr/1000 = 0.000003
+    last_epoch=global_step - 1 if global_step > 0 else -1  # Resume support!
 )
 ```
 
-## 🔍 Debugging & Verification
+## 🔍 Critical Validation Checks
 
-Add these checks to ensure scheduler works:
+Essential validation to ensure everything works:
 ```python
-# Log every N steps
-if batch_idx % 100 == 0:
-    current_lr = scheduler.get_last_lr()[0]
-    logger.info(f"Step {scheduler._step_count}: LR = {current_lr:.6f}")
-    
-    # Verify LR is changing
-    if batch_idx > 0 and abs(current_lr - prev_lr) < 1e-8:
-        logger.warning("LR not changing! Check scheduler.step() placement")
+# 1. Use optimizer LR (more reliable)
+current_lr = optimizer.param_groups[0]['lr']
+
+# 2. Track LR changes
+if global_step > 10 and global_step % 100 == 0:
+    if not hasattr(train_epoch, 'last_lr'):
+        train_epoch.last_lr = current_lr
+    elif abs(current_lr - train_epoch.last_lr) < 1e-10:
+        logger.warning(f"⚠️ LR not changing! Stuck at {current_lr:.2e}")
+    train_epoch.last_lr = current_lr
+
+# 3. Verify total steps
+if global_step > total_steps:
+    logger.warning(f"global_step {global_step} > total_steps {total_steps}")
+
+# 4. Save global_step in checkpoint
+torch.save({
+    'epoch': epoch,
+    'global_step': global_step,  # CRITICAL!
+    'probe_state_dict': probe.state_dict(),
+    'optimizer_state_dict': optimizer.state_dict(),
+    'scheduler_state_dict': scheduler.state_dict(),
+    # ... other fields
+}, checkpoint_path)
 ```
 
 ## 📈 Resume Support
@@ -171,27 +230,69 @@ scheduler = OneCycleLR(
 3. **Verify**: Check LR changes every batch in logs
 4. **Monitor**: Track AUROC improvement with proper annealing
 
-## 📝 Testing the Fix
+## 🎯 Key Findings from Deep Review
 
-Quick test to verify scheduler:
+### From EEGPT Paper
+- Paper uses OneCycleLR with batch_size=64, 200 epochs
+- Initial LR: 2.5e-4, Max: 5e-4, Min: 3.13e-5
+- Linear probe only updates probe weights (backbone frozen)
+- 4-second windows at 256Hz (1024 samples)
+- Target AUROC for TUAB: 0.8718 ± 0.005
+
+### Critical Implementation Details
+1. **Scheduler must step per optimizer step** (not per batch if using accumulation)
+2. **Total steps = optimizer steps** (not dataloader iterations)
+3. **Track global_step** for proper resume
+4. **Never reset start_epoch** after calculating resume position
+5. **Use optimizer.param_groups[0]['lr']** for accurate LR monitoring
+
+## 📝 Complete Verification Checklist
+
 ```python
-# Test scheduler behavior
-optimizer = torch.optim.AdamW([torch.randn(10, 10)], lr=0.003)
-scheduler = OneCycleLR(optimizer, max_lr=0.003, total_steps=1000)
+# 1. Dry run test (before training)
+def test_scheduler_dry_run(config, train_loader):
+    """Test scheduler behavior without training."""
+    import math
+    
+    # Setup
+    accum = config.get('gradient_accumulation_steps', 1)
+    steps_per_epoch = math.ceil(len(train_loader) / accum)
+    total_steps = steps_per_epoch * config['max_epochs']
+    
+    # Create dummy optimizer
+    optimizer = torch.optim.AdamW([torch.randn(10, 10)], lr=0.003)
+    scheduler = OneCycleLR(optimizer, max_lr=0.003, total_steps=total_steps)
+    
+    # Simulate training
+    lrs = []
+    for step in range(min(200, total_steps)):  # First 200 steps
+        optimizer.step()
+        scheduler.step()
+        lr = optimizer.param_groups[0]['lr']
+        lrs.append(lr)
+        if step % 10 == 0:
+            print(f"Step {step}: LR = {lr:.6f}")
+    
+    # Verify warmup is happening
+    assert lrs[0] < lrs[50], "No warmup detected!"
+    print("✅ Scheduler warmup verified")
+    return lrs
 
-lrs = []
-for i in range(1000):
-    optimizer.step()
-    scheduler.step()
-    lrs.append(scheduler.get_last_lr()[0])
+# 2. Runtime verification
+if epoch == 0 and batch_idx < 5:
+    logger.info(f"Early training check - Step {global_step}: LR = {current_lr:.6f}")
+    # Should see LR increasing from ~0.00012
 
-# Plot should show: rise → plateau → decay
-import matplotlib.pyplot as plt
-plt.plot(lrs)
-plt.ylabel('Learning Rate')
-plt.xlabel('Step')
-plt.title('OneCycleLR Schedule')
-plt.show()
+# 3. Mid-training check
+if global_step == total_steps // 2:
+    expected_lr = config['scheduler']['max_lr']  # Should be at peak
+    if abs(current_lr - expected_lr) > 0.0001:
+        logger.warning(f"Mid-training LR mismatch: {current_lr:.6f} vs expected {expected_lr:.6f}")
+
+# 4. Final sanity check
+if global_step >= total_steps - 10:
+    final_expected = config['scheduler']['max_lr'] / config['scheduler']['final_div_factor']
+    logger.info(f"Near end - LR should be approaching {final_expected:.6f}, actual: {current_lr:.6f}")
 ```
 
 ---
