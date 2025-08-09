@@ -227,23 +227,32 @@ class SleepAnalyzer:
 
                 if eeg_ch is None:
                     # Check for Sleep-EDF montage (Fpz-Cz, Pz-Oz)
-                    available_channels = [
-                        ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"
-                    ]
-
-                    # Accept Sleep-EDF montage
-                    if "EEG Fpz-Cz" in available_channels or "Fpz-Cz" in available_channels:
-                        eeg_ch = "EEG Fpz-Cz" if "EEG Fpz-Cz" in available_channels else "Fpz-Cz"
+                    # First check ALL channels, not just those marked as EEG
+                    all_channels = raw.ch_names
+                    
+                    # Accept Sleep-EDF montage - check in ALL channels first
+                    if "EEG Fpz-Cz" in all_channels:
+                        eeg_ch = "EEG Fpz-Cz"
                         logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
-                    elif "EEG Pz-Oz" in available_channels or "Pz-Oz" in available_channels:
-                        eeg_ch = "EEG Pz-Oz" if "EEG Pz-Oz" in available_channels else "Pz-Oz"
+                    elif "Fpz-Cz" in all_channels:
+                        eeg_ch = "Fpz-Cz"
+                        logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
+                    elif "EEG Pz-Oz" in all_channels:
+                        eeg_ch = "EEG Pz-Oz"
+                        logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
+                    elif "Pz-Oz" in all_channels:
+                        eeg_ch = "Pz-Oz"
                         logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
                     else:
                         # No acceptable channels found - raise error
+                        available_eeg = [
+                            ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"
+                        ]
                         raise UnsupportedMontageError(
                             f"Unsupported EEG montage for sleep staging. "
                             f"Required channels {sleep_channels} or Sleep-EDF montage (Fpz-Cz, Pz-Oz) not found. "
-                            f"Available EEG channels: {available_channels}"
+                            f"Available channels: {all_channels[:10]}... "
+                            f"(EEG-typed: {available_eeg})"
                         )
 
         try:

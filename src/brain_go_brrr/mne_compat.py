@@ -132,15 +132,16 @@ def update_data_inplace(raw: MNERaw, data: npt.NDArray[np.float64]) -> MNERaw:
     """
     # Create new raw with updated data
     info = raw.info.copy()
-    raw_new = mne.io.RawArray(data, info, verbose=False)
+    
+    # Get first_samp value if it exists (don't try to set it)
+    first_samp = getattr(raw, 'first_samp', 0)
+    
+    # Create new RawArray with proper first_samp
+    raw_new = mne.io.RawArray(data, info, first_samp=first_samp, verbose=False)
 
     # Preserve annotations if present
     if hasattr(raw, "annotations") and raw.annotations is not None:
         raw_new.set_annotations(raw.annotations.copy())
-
-    # Preserve other metadata
-    if hasattr(raw, "first_samp"):
-        raw_new.first_samp = raw.first_samp
 
     return raw_new
 
