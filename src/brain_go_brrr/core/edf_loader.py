@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import Any
 
 import mne
+from brain_go_brrr._typing import MNERaw
 
 from brain_go_brrr.core.exceptions import EdfLoadError
 
 logger = logging.getLogger(__name__)
 
 
-def load_edf_safe(file_path: Path | str, **kwargs: Any) -> mne.io.Raw:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
+def load_edf_safe(file_path: Path | str, **kwargs: Any) -> MNERaw:
     """Load EDF file with proper error translation.
 
     This wrapper provides consistent error handling for EDF loading,

@@ -139,7 +139,7 @@ class ChunkedAutoRejectProcessor:
 
         logger.info("AutoReject fitting completed and cached")
 
-    def transform_raw(self, raw: MNERaw, window_adapter: Any) -> mne.io.Raw:
+    def transform_raw(self, raw: MNERaw, window_adapter: Any) -> MNERaw:
         """Apply fitted AutoReject to raw data.
 
         Args:

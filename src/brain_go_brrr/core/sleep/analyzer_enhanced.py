@@ -192,7 +192,7 @@ class EnhancedSleepAnalyzer:
 
         return None
 
-    def preprocess_for_staging(self, raw: MNERaw, copy: bool = True) -> mne.io.Raw:  # type: ignore[no-any-unimported]  # type: ignore[no-any-unimported]
+    def preprocess_for_staging(self, raw: MNERaw, copy: bool = True) -> MNERaw:
         """Preprocess data for YASA staging.
 
         CRITICAL: Per YASA paper, do NOT filter before staging!

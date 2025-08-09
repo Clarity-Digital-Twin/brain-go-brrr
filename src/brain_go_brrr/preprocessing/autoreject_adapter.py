@@ -88,7 +88,7 @@ class WindowEpochAdapter:
 
     def epochs_to_continuous(
         self, epochs_clean: MNEEpochs, original_raw: MNERaw
-    ) -> mne.io.Raw:
+    ) -> MNERaw:
         """Reconstruct continuous data from cleaned epochs.
 
         Handles overlapping windows by averaging in overlap regions.
@@ -175,7 +175,7 @@ class SyntheticPositionGenerator:
         "O2": np.array([0.0270, -0.0866, 0.0150]),
     }
 
-    def add_positions_to_raw(self, raw: MNERaw) -> mne.io.Raw:
+    def add_positions_to_raw(self, raw: MNERaw) -> MNERaw:
         """Add synthetic but anatomically valid positions to raw data.
 
         Args:

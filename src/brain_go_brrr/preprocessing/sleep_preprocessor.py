@@ -95,7 +95,7 @@ class SleepPreprocessor:
         eeg_channels: list[str] | None = None,
         eog_channels: list[str] | None = None,
         emg_channels: list[str] | None = None,
-    ) -> mne.io.BaseRaw:
+    ) -> MNERaw:
         """Preprocess and prepare channels for YASA sleep staging.
 
         This method ensures channel types are properly set for YASA.

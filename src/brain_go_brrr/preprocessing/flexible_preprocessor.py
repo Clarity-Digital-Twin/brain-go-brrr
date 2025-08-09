@@ -156,7 +156,7 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _standardize_channel_names(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _standardize_channel_names(self, raw: MNERaw) -> MNERaw:
         """Standardize channel names to 10-20 system."""
         mapping = self._map_channel_names(raw.ch_names)
         if mapping:
@@ -178,7 +178,7 @@ class FlexibleEEGPreprocessor:
                         break
         return mapping
 
-    def _select_channels(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _select_channels(self, raw: MNERaw) -> MNERaw:
         """Select channels based on task."""
         # First pick only EEG channels (and EOG/EMG for sleep)
         if self.mode == "sleep":
@@ -233,7 +233,7 @@ class FlexibleEEGPreprocessor:
 
         return selected
 
-    def _add_montage_if_possible(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _add_montage_if_possible(self, raw: MNERaw) -> MNERaw:
         """Add standard montage if channels match standard names."""
         if raw.get_montage() is not None:
             return raw
@@ -276,7 +276,7 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _apply_filters(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _apply_filters(self, raw: MNERaw) -> MNERaw:
         """Apply frequency filters."""
         # High-pass filter
         if self.highpass_freq > 0:
@@ -300,14 +300,14 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _resample(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _resample(self, raw: MNERaw) -> MNERaw:
         """Resample to target frequency if needed."""
         if self.target_sfreq and raw.info["sfreq"] != self.target_sfreq:
             raw.resample(sfreq=self.target_sfreq, verbose=False)
             logger.info(f"Resampled to {self.target_sfreq} Hz")
         return raw
 
-    def _apply_artifact_rejection(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _apply_artifact_rejection(self, raw: MNERaw) -> MNERaw:
         """Apply artifact rejection with fallback methods."""
         if not self.use_autoreject:
             return raw
@@ -343,7 +343,7 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _fallback_artifact_rejection(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _fallback_artifact_rejection(self, raw: MNERaw) -> MNERaw:
         """Simple amplitude-based artifact rejection."""
         # Find and interpolate bad segments
         data = raw.get_data(picks="eeg")
@@ -361,7 +361,7 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _apply_reference(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def _apply_reference(self, raw: MNERaw) -> MNERaw:
         """Apply appropriate reference."""
         # Average reference if we have enough channels
         if len(raw.ch_names) >= 10:

@@ -92,7 +92,7 @@ class EnhancedYASASleepStager:
 
     def _prepare_channels_for_yasa(
         self, raw: MNERaw, channel_map: dict[str, str] | None = None
-    ) -> mne.io.Raw:
+    ) -> MNERaw:
         """Prepare channels for YASA by aliasing if needed.
 
         This method intelligently aliases non-standard channel names to
