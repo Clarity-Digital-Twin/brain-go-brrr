@@ -90,11 +90,12 @@ def pytest_configure(config):
 def pytest_sessionstart(session):
     """Set seeds for reproducibility at session start."""
     import random
+
     import numpy as np
-    
+
     random.seed(1337)
     np.random.seed(1337)
-    
+
     try:
         import torch
         torch.manual_seed(1337)
