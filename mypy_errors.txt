@@ -1,0 +1,201 @@
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:133: error: "MNERaw"
+has no attribute "get_montage"  [attr-defined]
+            if self.require_positions and raw.get_montage() is None:
+                                          ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:190: error: "MNERaw"
+has no attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+    ...        eeg_channels = [ch for ch in ch_names if raw.get_channel_types...
+                                                        ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:210: error: "MNERaw"
+has no attribute "pick_types"  [attr-defined]
+                    raw.pick_types(eeg=True, exclude="bads")
+                    ^~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:238: error: "MNERaw"
+has no attribute "get_montage"  [attr-defined]
+            if raw.get_montage() is not None:
+               ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:272: error: "MNERaw"
+has no attribute "set_montage"  [attr-defined]
+                    raw.set_montage(montage, match_case=False, on_missing=...
+                    ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:284: error: Argument
+"picks" to "filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+    ...   l_freq=self.highpass_freq, h_freq=None, picks="eeg", method="fir", ...
+                                                        ^~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:290: error: Argument
+"picks" to "filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+    ...    l_freq=None, h_freq=self.lowpass_freq, picks="eeg", method="fir", ...
+                                                        ^~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:299: error: Argument
+"picks" to "notch_filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+    ...   raw.notch_filter(freqs=self.notch_freq, picks="eeg", verbose=False)
+                                                        ^~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:315: error: "MNERaw"
+has no attribute "get_montage"  [attr-defined]
+            has_positions = raw.get_montage() is not None
+                            ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:349: error: Argument
+"picks" to "get_data" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+            data = raw.get_data(picks="eeg")
+                                      ^~~~~
+src/brain_go_brrr/preprocessing/flexible_preprocessor.py:357: error: "MNERaw"
+has no attribute "_data"; maybe "get_data"?  [attr-defined]
+                raw._data[:, bad_times] = np.clip(raw._data[:, bad_times],...
+                ^~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:212: error: "MNERaw" has no
+attribute "get_montage"  [attr-defined]
+            montage = raw.get_montage()
+                      ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:261: error: "MNERaw" has no
+attribute "annotations"  [attr-defined]
+            if raw.annotations is not None:
+               ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:262: error: "MNERaw" has no
+attribute "annotations"  [attr-defined]
+                raw_clean.set_annotations(raw.annotations.copy())
+                                          ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:265: error: Unsupported
+right operand type for in ("MNEInfo")  [operator]
+            if "meas_date" in raw.info and raw.info["meas_date"] is not No...
+               ^~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:269: error: Unsupported
+right operand type for in ("MNEInfo")  [operator]
+                if key in raw.info:
+                   ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:319: error: "MNERaw" has no
+attribute "set_annotations"  [attr-defined]
+                raw.set_annotations(raw.annotations + annotations)
+                ^~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:319: error: "MNERaw" has no
+attribute "annotations"  [attr-defined]
+                raw.set_annotations(raw.annotations + annotations)
+                                    ^~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:334: error: Argument
+"picks" to "filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+                picks="eeg",
+                      ^~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:347: error: Argument
+"picks" to "filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+                picks="eeg",
+                      ^~~~~
+src/brain_go_brrr/preprocessing/eeg_preprocessor.py:356: error: Argument
+"picks" to "notch_filter" of "MNERaw" has incompatible type "str"; expected
+"list[str] | None"  [arg-type]
+    ...   raw.notch_filter(freqs=self.notch_freq, picks="eeg", method="iir", ...
+                                                        ^~~~~
+src/brain_go_brrr/preprocessing/autoreject_adapter.py:130: error: "MNEInfo" has
+no attribute "copy"  [attr-defined]
+    ...      raw_clean = mne.io.RawArray(reconstructed, original_raw.info.cop...
+                                                        ^~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/preprocessing/autoreject_adapter.py:208: error: "MNERaw" has
+no attribute "set_montage"  [attr-defined]
+            raw.set_montage(montage, on_missing="ignore")
+            ^~~~~~~~~~~~~~~
+src/brain_go_brrr/models/eegpt_model.py:568: error: "MNERaw" has no attribute
+"pick_types"  [attr-defined]
+        raw.pick_types(meg=False, eeg=True, eog=False, exclude="bads")
+        ^~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:142: error: Unused
+"type: ignore" comment  [unused-ignore]
+        def find_best_channels(self, raw: MNERaw, channel_type: str = "eeg...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:186: error: "MNERaw" has no
+attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+            ch_types = raw.get_channel_types()
+                       ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:213: error: Unused
+"type: ignore" comment  [unused-ignore]
+        def _set_channel_types(self, raw: MNERaw) -> None:  # type: ignore...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:223: error: "MNERaw" has no
+attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+                elif raw.get_channel_types([ch])[0] == "misc" and any(
+                     ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:232: error: Unused
+"type: ignore" comment  [unused-ignore]
+        def stage_sleep_flexible(  # type: ignore[no-any-unimported]  # ty...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:337: error: Unused
+"type: ignore" comment  [unused-ignore]
+        def _extract_staging_features(  # type: ignore[no-any-unimported] ...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/sleep/analyzer_enhanced.py:455: error: Unused
+"type: ignore" comment  [unused-ignore]
+        def _fallback_staging(self, raw: MNERaw, eeg_ch: str) -> dict[str,...
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/services/hierarchical_pipeline.py:196: error: Unused
+"type: ignore" comment  [unused-ignore]
+                    return self.yasa_adapter.stage(eeg)  # type: ignore[no...
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/quality/controller.py:217: error: "MNERaw" has no
+attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+                for i, ch_type in enumerate(raw.get_channel_types()):
+                                            ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:265: error: "MNERaw" has no
+attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+                    if raw.get_channel_types()[i] not in ["eeg", "eog"]:
+                       ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:309: error: "MNERaw" has no
+attribute "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+                ch_types = set(raw.get_channel_types())
+                               ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:351: error: "MNEEpochs" has no
+attribute "get_channel_types"  [attr-defined]
+                for i, ch_type in enumerate(epochs.get_channel_types()):
+                                            ^~~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:436: error: "MNEInfo" has no
+attribute "copy"  [attr-defined]
+                    info = epochs.info.copy()
+                           ^~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:550: error: Unsupported target for
+indexed assignment ("MNEInfo")  [index]
+            raw.info["bads"] = bad_channels
+            ^~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/quality/controller.py:556: error: "MNEEpochs" object is
+not iterable  [misc]
+            epochs_clean, reject_log = self.auto_reject_epochs(epochs, ret...
+                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~...
+src/brain_go_brrr/core/abnormal/detector.py:418: error: Unsupported right
+operand type for in ("MNEInfo")  [operator]
+                "bads" in info
+                ^~~~~~~~~~~~~~
+src/brain_go_brrr/core/abnormal/detector.py:454: error: "MNERaw" has no
+attribute "_data"; maybe "get_data"?  [attr-defined]
+            raw._data = data
+            ^~~~~~~~~
+src/brain_go_brrr/tasks/enhanced_abnormality_detection.py:146: error: Unused
+"type: ignore" comment  [unused-ignore]
+            return logits  # type: ignore[no-any-return]
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/tasks/enhanced_abnormality_detection.py:186: error: Unused
+"type: ignore" comment  [unused-ignore]
+            return loss  # type: ignore[no-any-return]
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer.py:192: error: "MNERaw" has no attribute
+"get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+    ...    eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types...
+                                                        ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer.py:198: error: Incompatible types in
+assignment (expression has type "str | None", variable has type "str") 
+[assignment]
+                eeg_ch = picks[0] if picks[0] in raw.ch_names else None
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/core/sleep/analyzer.py:228: error: "MNERaw" has no attribute
+"get_channel_types"; maybe "set_channel_types"?  [attr-defined]
+    ...                    ch for ch in raw.ch_names if raw.get_channel_types...
+                                                        ^~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/api/app.py:112: error: Unused "type: ignore" comment 
+[unused-ignore]
+                    route.endpoint,  # type: ignore[attr-defined]
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/brain_go_brrr/api/app.py:113: error: Unused "type: ignore" comment 
+[unused-ignore]
+                    methods=route.methods,  # type: ignore[attr-defined]
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Found 48 errors in 11 files (checked 91 source files)
