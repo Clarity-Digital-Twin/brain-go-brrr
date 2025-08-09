@@ -1,5 +1,23 @@
 # EEGPT Linear Probe Training
 
+## 🔴 CRITICAL: OneCycleLR Scheduler Bug Fixed (2025-08-09)
+
+**Previous Issue**: Training plateaued at 77% due to scheduler stepping per epoch instead of per batch.
+- Symptom: Constant learning rate (2.84e-03) throughout training
+- Impact: AUROC stuck at ~0.85 instead of target 0.869
+- Root cause: `scheduler.step()` called outside batch loop
+
+**Fix Applied**: 
+- ✅ `train_paper_aligned.py` - Already correct (scheduler steps per batch)
+- ✅ `train_paper_aligned_resume.py` - Fixed (moved scheduler.step() into batch loop)
+- 📄 See `SCHEDULER_BUG_FINDINGS.md` for full analysis
+
+**Verification**: Monitor LR changes during training:
+```bash
+tail -f logs/*.log | grep 'LR:'
+# Should see: 0.00012 → 0.003 → 0.000003 over training
+```
+
 ## 🎯 Mission: Achieve Paper-Level Performance
 
 Train a linear probe on frozen EEGPT features for EEG abnormality detection using the TUAB dataset.
