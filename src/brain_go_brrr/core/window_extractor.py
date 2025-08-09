@@ -10,7 +10,7 @@ import numpy.typing as npt
 class WindowExtractor:
     """Extract sliding windows from continuous EEG data."""
 
-    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0):
+    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0) -> None:
         """Initialize window extractor.
 
         Args:
@@ -84,7 +84,7 @@ class WindowExtractor:
 class WindowValidator:
     """Validate extracted windows for quality."""
 
-    def __init__(self, expected_channels: int, expected_samples: int):
+    def __init__(self, expected_channels: int, expected_samples: int) -> None:
         """Initialize validator.
 
         Args:
@@ -118,7 +118,7 @@ class WindowValidator:
 class BatchWindowExtractor:
     """Extract windows from multiple recordings."""
 
-    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0):
+    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0) -> None:
         """Initialize batch extractor.
 
         Args:

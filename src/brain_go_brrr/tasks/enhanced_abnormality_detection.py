@@ -53,6 +53,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     - Proper warmup handling
     - Channel adaptation
     """
+    
+    hparams: HParams  # Type annotation for Lightning hparams
 
     def __init__(
         self,
