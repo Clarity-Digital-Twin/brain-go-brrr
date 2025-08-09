@@ -113,7 +113,7 @@ def pytest_collection_modifyitems(config, items):
     """Deselect integration tests unless --run-integration is passed."""
     if config.getoption("--run-integration", default=False):
         return
-    
+
     # Deselect instead of skip for cleaner output
     drop = [it for it in items if "integration" in it.keywords]
     if drop:
