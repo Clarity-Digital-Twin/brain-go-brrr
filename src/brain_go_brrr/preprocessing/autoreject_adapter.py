@@ -5,9 +5,12 @@ sliding windows and MNE epochs for AutoReject compatibility.
 """
 
 import logging
+from typing import Any, cast
 
 import mne
 import numpy as np
+
+from brain_go_brrr._typing import MNEEpochs, MNERaw
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +33,7 @@ class WindowEpochAdapter:
         self.window_stride = window_stride
         self.overlap = 1.0 - (window_stride / window_duration)
 
-    def raw_to_windowed_epochs(self, raw: mne.io.Raw) -> mne.Epochs:
+    def raw_to_windowed_epochs(self, raw: MNERaw) -> mne.Epochs:
         """Convert raw data to epochs matching our windowing scheme.
 
         Args:
@@ -83,9 +86,7 @@ class WindowEpochAdapter:
 
         return epochs
 
-    def epochs_to_continuous(
-        self, epochs_clean: mne.Epochs, original_raw: mne.io.Raw
-    ) -> mne.io.Raw:
+    def epochs_to_continuous(self, epochs_clean: MNEEpochs, original_raw: MNERaw) -> MNERaw:
         """Reconstruct continuous data from cleaned epochs.
 
         Handles overlapping windows by averaging in overlap regions.
@@ -124,13 +125,15 @@ class WindowEpochAdapter:
         reconstructed /= counts
 
         # Create new raw object
-        raw_clean = mne.io.RawArray(reconstructed, original_raw.info.copy(), verbose=False)
+        # Use public API to create raw
+        info = original_raw.info.copy() if hasattr(original_raw.info, 'copy') else original_raw.info
+        raw_clean = mne.io.RawArray(reconstructed, info, verbose=False)
 
         logger.debug(
             f"Reconstructed {total_samples / original_raw.info['sfreq']:.1f}s of continuous data"
         )
 
-        return raw_clean
+        return cast("MNERaw", raw_clean)
 
 
 class SyntheticPositionGenerator:
@@ -172,7 +175,7 @@ class SyntheticPositionGenerator:
         "O2": np.array([0.0270, -0.0866, 0.0150]),
     }
 
-    def add_positions_to_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
+    def add_positions_to_raw(self, raw: MNERaw) -> MNERaw:
         """Add synthetic but anatomically valid positions to raw data.
 
         Args:
@@ -202,11 +205,11 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        raw.set_montage(montage, on_missing="ignore")
+        raw.set_montage(montage, on_missing="ignore")  # type: ignore[attr-defined]
 
         return raw
 
-    def _create_circular_positions(self, ch_names: list) -> dict:
+    def _create_circular_positions(self, ch_names: list[str]) -> dict[str, Any]:
         """Create evenly spaced positions on a circle as fallback.
 
         Simple circular arrangement at head level.

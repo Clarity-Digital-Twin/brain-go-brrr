@@ -12,6 +12,8 @@ from typing import Any
 
 import mne
 
+from brain_go_brrr._typing import MNEEpochs, MNERaw
+
 # Only import if available
 try:
     from autoreject import AutoReject
@@ -137,7 +139,7 @@ class ChunkedAutoRejectProcessor:
 
         logger.info("AutoReject fitting completed and cached")
 
-    def transform_raw(self, raw: mne.io.Raw, window_adapter: Any) -> mne.io.Raw:
+    def transform_raw(self, raw: MNERaw, window_adapter: Any) -> MNERaw:
         """Apply fitted AutoReject to raw data.
 
         Args:
@@ -163,9 +165,10 @@ class ChunkedAutoRejectProcessor:
         # Convert back
         raw_clean = window_adapter.epochs_to_continuous(epochs_clean, raw)
 
-        return raw_clean
+        from typing import cast
+        return cast("MNERaw", raw_clean)
 
-    def _apply_autoreject(self, epochs: mne.Epochs) -> mne.Epochs:
+    def _apply_autoreject(self, epochs: MNEEpochs) -> mne.Epochs:
         """Apply AutoReject with cached parameters.
 
         Simple transform using pre-fitted thresholds.

@@ -24,7 +24,7 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 job_store = get_job_store()
 
 
-@router.post("/create", response_model=JobResponse, status_code=201)  # type: ignore[misc]
+@router.post("/create", response_model=JobResponse, status_code=201)
 async def create_job(request: JobCreateRequest) -> JobResponse:
     """Create a new analysis job."""
     job_id = str(uuid.uuid4())
@@ -62,7 +62,7 @@ async def create_job(request: JobCreateRequest) -> JobResponse:
     )
 
 
-@router.get("/{job_id}/status", response_model=JobResponse)  # type: ignore[misc]
+@router.get("/{job_id}/status", response_model=JobResponse)
 async def get_job_status(job_id: str) -> JobResponse:
     """Get the status of a specific job."""
     job = job_store.get(job_id)
@@ -84,7 +84,7 @@ async def get_job_status(job_id: str) -> JobResponse:
     )
 
 
-@router.get("/{job_id}/results")  # type: ignore[misc]
+@router.get("/{job_id}/results")
 async def get_job_results(job_id: str) -> dict[str, Any]:
     """Get the results of a completed job."""
     job = job_store.get(job_id)
@@ -108,7 +108,7 @@ async def get_job_results(job_id: str) -> dict[str, Any]:
     }
 
 
-@router.delete("/{job_id}")  # type: ignore[misc]
+@router.delete("/{job_id}")
 async def cancel_job(job_id: str) -> dict[str, str]:
     """Cancel a running job."""
     job = job_store.get(job_id)
@@ -129,7 +129,7 @@ async def cancel_job(job_id: str) -> dict[str, str]:
     return {"message": f"Job {job_id} cancelled"}
 
 
-@router.get("", response_model=JobListResponse, name="list_jobs")  # type: ignore[misc]
+@router.get("", response_model=JobListResponse, name="list_jobs")
 async def list_jobs(
     status: JobStatus | None = None,
     limit: int = 100,
@@ -174,7 +174,7 @@ async def list_jobs(
     )
 
 
-@router.get("/{job_id}/progress")  # type: ignore[misc]
+@router.get("/{job_id}/progress")
 async def get_job_progress(job_id: str) -> dict[str, Any]:
     """Get detailed progress for a specific job."""
     job = job_store.get(job_id)
@@ -190,7 +190,7 @@ async def get_job_progress(job_id: str) -> dict[str, Any]:
     }
 
 
-@router.get("/{job_id}/logs")  # type: ignore[misc]
+@router.get("/{job_id}/logs")
 async def get_job_logs(job_id: str) -> dict[str, Any]:
     """Get execution logs for a specific job."""
     job = job_store.get(job_id)
@@ -201,7 +201,7 @@ async def get_job_logs(job_id: str) -> dict[str, Any]:
     return {"job_id": job_id, "logs": getattr(job, "logs", [])}
 
 
-@router.get("/{job_id}/stream")  # type: ignore[misc]
+@router.get("/{job_id}/stream")
 async def stream_job_updates(job_id: str) -> None:
     """Stream real-time job updates (placeholder)."""
     job = job_store.get(job_id)
@@ -215,7 +215,7 @@ async def stream_job_updates(job_id: str) -> None:
     )
 
 
-@router.get("/history")  # type: ignore[misc]
+@router.get("/history")
 async def get_job_history(limit: int = 100, offset: int = 0) -> dict[str, Any]:
     """Get historical job data."""
     all_jobs = job_store.list_all()

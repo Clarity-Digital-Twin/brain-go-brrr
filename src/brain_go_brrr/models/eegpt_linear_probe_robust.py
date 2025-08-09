@@ -6,6 +6,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
+from torch import Tensor
 
 from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.modules.constraints import LinearWithConstraint
@@ -103,9 +104,12 @@ class RobustEEGPTLinearProbe(nn.Module):
         self.input_clip_value = input_clip_value
         self.normalization_eps = normalization_eps
 
-        # Statistics tracking
-        self.register_buffer("nan_count", torch.tensor(0))
-        self.register_buffer("clip_count", torch.tensor(0))
+        # Statistics tracking with proper buffer registration
+        # Declare types for mypy
+        self.nan_count: Tensor
+        self.clip_count: Tensor
+        self.register_buffer("nan_count", torch.zeros((), dtype=torch.long))
+        self.register_buffer("clip_count", torch.zeros((), dtype=torch.long))
 
         logger.info(
             f"Initialized RobustEEGPTLinearProbe: {n_input_channels} channels -> {n_classes} classes"
@@ -115,8 +119,8 @@ class RobustEEGPTLinearProbe(nn.Module):
         """Validate and clean input tensor."""
         # Check for NaN/Inf
         if torch.isnan(x).any() or torch.isinf(x).any():
-            self.nan_count += 1
-            logger.warning(f"Found NaN/Inf in input (count: {self.nan_count.item()})")
+            self.nan_count.add_(1)
+            logger.warning(f"Found NaN/Inf in input (count: {int(self.nan_count.item())})")
             x = torch.nan_to_num(
                 x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value
             )
@@ -125,8 +129,8 @@ class RobustEEGPTLinearProbe(nn.Module):
         before_clip = x
         x = torch.clamp(x, min=-self.input_clip_value, max=self.input_clip_value)
         if not torch.equal(before_clip, x):
-            self.clip_count += 1
-            logger.debug(f"Clipped input values (count: {self.clip_count.item()})")
+            self.clip_count.add_(1)
+            logger.debug(f"Clipped input values (count: {int(self.clip_count.item())})")
 
         return x
 
@@ -231,8 +235,8 @@ class RobustEEGPTLinearProbe(nn.Module):
                 "normalization_eps": self.normalization_eps,
             },
             "statistics": {
-                "nan_count": self.nan_count.item(),
-                "clip_count": self.clip_count.item(),
+                "nan_count": int(self.nan_count.item()),
+                "clip_count": int(self.clip_count.item()),
             },
         }
         torch.save(probe_state, path)
@@ -246,7 +250,7 @@ class RobustEEGPTLinearProbe(nn.Module):
 
         # Load statistics if available
         if "statistics" in checkpoint:
-            self.nan_count.fill_(checkpoint["statistics"]["nan_count"])
-            self.clip_count.fill_(checkpoint["statistics"]["clip_count"])
+            self.nan_count.fill_(int(checkpoint["statistics"]["nan_count"]))
+            self.clip_count.fill_(int(checkpoint["statistics"]["clip_count"]))
 
         logger.info(f"Loaded probe weights from {path}")

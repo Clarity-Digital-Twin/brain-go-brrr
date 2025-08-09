@@ -28,6 +28,8 @@ PYTHON := $(UV) run python
 PIP := $(UV) pip
 PYTEST := $(UV) run pytest
 RUFF := $(UV) run ruff
+# Add explicit plugin loading when autoload is disabled
+PYTEST_WITH_COV := PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(UV) run pytest -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
@@ -43,6 +45,13 @@ help: ## Show this help message
 	@echo "$(YELLOW)================================================$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "$(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo ""
+	@echo "$(RED)⚠️  IMPORTANT: Testing Performance Notes$(NC)"
+	@echo "  • $(YELLOW)NEVER$(NC) run coverage on benchmarks - they will hang!"
+	@echo "  • Use '$(GREEN)make test-benchmarks$(NC)' for benchmark tests (no coverage)"
+	@echo "  • Use '$(GREEN)make test-fast-cov$(NC)' for quick coverage (~1 min)"
+	@echo "  • Use '$(GREEN)make test-unit-cov$(NC)' for thorough coverage (~2 min)"
+	@echo "  • The '$(CYAN)make test-all-cov$(NC)' now excludes benchmarks automatically"
 	@echo ""
 	@echo "$(BLUE)Development Workflow:$(NC)"
 	@echo "  1. $(GREEN)make install$(NC)     - Install dependencies"
@@ -143,6 +152,37 @@ test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
 	$(PYTEST) tests/unit $(PYTEST_BASE_OPTS) -q $(PYTEST_NO_PLUGINS)
 
+test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
+	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
+	$(PYTEST_WITH_COV) tests/unit -m "not integration and not slow" \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--cov-report=term-missing:skip-covered \
+		--cov-report=html \
+		--no-cov-on-fail \
+		--timeout=600
+	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
+
+test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
+	@echo "$(CYAN)Running FAST tests with coverage (no benchmarks, no slow tests)...$(NC)"
+	$(PYTEST_WITH_COV) tests/unit tests/api \
+		-m "not integration and not slow and not benchmark" \
+		--cov=brain_go_brrr \
+		--cov-config=.coveragerc \
+		--cov-report=term-missing:skip-covered \
+		--tb=short \
+		-q
+
+test-integration: ## Run integration tests without coverage (includes MNE/YASA)
+	@echo "$(GREEN)Running integration tests (no coverage)...$(NC)"
+	$(PYTEST) tests/integration -m "not slow" --no-cov -v
+	@echo "$(GREEN)Integration tests complete!$(NC)"
+
+test-slow: ## Run slow tests (nightly CI only)
+	@echo "$(YELLOW)Running slow tests (this may take a while)...$(NC)"
+	$(PYTEST) -m "slow" --no-cov -v
+	@echo "$(GREEN)Slow tests complete!$(NC)"
+
 test-perf: ## Run performance benchmarks
 	@echo "$(GREEN)Running performance benchmarks...$(NC)"
 	$(PYTEST) tests/benchmarks $(PYTEST_BASE_OPTS) -m perf -p pytest_benchmark
@@ -158,7 +198,7 @@ test-fast: ## Run tests in parallel without coverage (fastest)
 test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
 	@echo "$(YELLOW)Note: Using single process for accurate coverage. This takes longer than parallel tests.$(NC)"
-	$(PYTEST) $(TEST_DIR) \
+	$(PYTEST_WITH_COV) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing:skip-covered \
 		--cov-report= \
@@ -190,7 +230,7 @@ coverage-report: ## Display coverage report summary
 
 cov: ## Quick coverage check - shows TOTAL coverage percentage
 	@echo "$(GREEN)Running quick coverage check...$(NC)"
-	@$(PYTEST) tests \
+	@$(PYTEST_WITH_COV) tests \
 		--cov=brain_go_brrr \
 		--cov-report=term \
 		-m "not slow and not external and not gpu and not integration" \
@@ -211,25 +251,33 @@ test-ci: ## Run tests for CI with coverage and XML report
 	@$(UV) run coverage report
 	@echo "$(GREEN)CI test results: test-results.xml, coverage.xml$(NC)"
 
-test-integration: ## Run integration tests with timeout
-	@echo "$(GREEN)Running integration tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) -v -m "integration" --timeout=900 --tb=short
+# Duplicate removed - see line 157 for test-integration target
 
 test-all: ## Run ALL tests including slow/external/gpu
 	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
 	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "" --ignore=tests/benchmarks
 
-test-all-cov: ## Run ALL tests with coverage report
-	@echo "$(GREEN)Running all tests with full coverage...$(NC)"
-	$(PYTEST) $(TEST_DIR) \
+test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
+	@echo "$(GREEN)Running all tests with full coverage (excluding slow benchmarks)...$(NC)"
+	$(PYTEST_WITH_COV) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		-m ""
+		--cov-fail-under=55 \
+		-m "not benchmark" \
+		--ignore=tests/benchmarks
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(UV) run coverage html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
+	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
+	$(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
+
+test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
+	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
+	CI_BENCHMARKS=1 $(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"

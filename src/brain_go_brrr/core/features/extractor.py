@@ -9,10 +9,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
 import torch
 
+from brain_go_brrr._typing import FloatArray, MNERaw
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
@@ -40,7 +40,7 @@ class EEGPTFeatureExtractor:
         self.device = device
         self.enable_cache = enable_cache
         self.cache_size = cache_size
-        self._cache: dict[str, np.ndarray] = {}
+        self._cache: dict[str, FloatArray] = {}
         self.model: EEGPTModel | None
 
         # Initialize model
@@ -58,7 +58,7 @@ class EEGPTFeatureExtractor:
         # Initialize preprocessor for EEGPT mode
         self.preprocessor = FlexibleEEGPreprocessor(mode="abnormality")
 
-    def extract_embeddings(self, raw: mne.io.Raw) -> np.ndarray:
+    def extract_embeddings(self, raw: MNERaw) -> FloatArray:
         """Extract EEGPT embeddings from raw EEG data.
 
         Args:
@@ -84,18 +84,19 @@ class EEGPTFeatureExtractor:
         if self.model is None:
             # Return random embeddings for testing
             logger.warning("Using random embeddings (model not loaded)")
-            embeddings = np.random.randn(len(windows), 512).astype(np.float32)
+            embeddings = np.random.randn(len(windows), 512).astype(np.float64)
         else:
             # Run EEGPT inference
             embeddings = self._run_inference(windows, preprocessed.ch_names)
 
         # Cache if enabled
         if self.enable_cache and len(self._cache) < self.cache_size:
-            self._cache[cache_key] = embeddings
+            emb64 = np.asarray(embeddings, dtype=np.float64)
+            self._cache[cache_key] = emb64
 
-        return embeddings  # type: ignore[no-any-return]
+        return np.asarray(embeddings, dtype=np.float64)
 
-    def extract_embeddings_with_metadata(self, raw: mne.io.Raw) -> dict[str, Any]:
+    def extract_embeddings_with_metadata(self, raw: MNERaw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
 
         Args:
@@ -120,7 +121,7 @@ class EEGPTFeatureExtractor:
             "embedding_dim": embeddings.shape[1],
         }
 
-    def extract_batch_embeddings(self, raws: list[mne.io.Raw]) -> list[np.ndarray]:
+    def extract_batch_embeddings(self, raws: list[MNERaw]) -> list[FloatArray]:
         """Extract embeddings for multiple recordings.
 
         Args:
@@ -137,7 +138,7 @@ class EEGPTFeatureExtractor:
 
         return embeddings_list
 
-    def _preprocess_for_eegpt(self, raw: mne.io.Raw) -> mne.io.Raw:
+    def _preprocess_for_eegpt(self, raw: MNERaw) -> MNERaw:
         """Preprocess raw data for EEGPT.
 
         Args:
@@ -151,8 +152,8 @@ class EEGPTFeatureExtractor:
         return preprocessed
 
     def _extract_windows(
-        self, raw: mne.io.Raw, window_size: float = 4.0, overlap: float = 0.0
-    ) -> list[np.ndarray]:
+        self, raw: MNERaw, window_size: float = 4.0, overlap: float = 0.0
+    ) -> list[FloatArray]:
         """Extract windows from raw data.
 
         Args:
@@ -176,7 +177,7 @@ class EEGPTFeatureExtractor:
 
         return windows
 
-    def _run_inference(self, windows: list[np.ndarray], channel_names: list[str]) -> np.ndarray:
+    def _run_inference(self, windows: list[FloatArray], channel_names: list[str]) -> FloatArray:
         """Run EEGPT inference on windows.
 
         Args:
@@ -221,9 +222,9 @@ class EEGPTFeatureExtractor:
                 # If (batch, n_windows, dim) with batch > 1, reshape
                 embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
 
-        return embeddings.astype(np.float32)  # type: ignore[no-any-return]
+        return embeddings.astype(np.float64)
 
-    def _compute_cache_key(self, raw: mne.io.Raw) -> str:
+    def _compute_cache_key(self, raw: MNERaw) -> str:
         """Compute cache key for raw data.
 
         Args:

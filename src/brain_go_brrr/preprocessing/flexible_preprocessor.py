@@ -6,6 +6,9 @@ from typing import Literal
 import mne
 import numpy as np
 
+from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
+
 logger = logging.getLogger(__name__)
 
 # Channel name mappings for common EEG datasets
@@ -115,7 +118,7 @@ class FlexibleEEGPreprocessor:
 
         self.notch_freq = notch_freq
 
-    def preprocess(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def preprocess(self, raw: MNERaw) -> MNERaw:
         """Preprocess EEG data with flexible handling.
 
         Args:
@@ -128,7 +131,7 @@ class FlexibleEEGPreprocessor:
         raw = raw.copy()
 
         # Check positions if required
-        if self.require_positions and raw.get_montage() is None:
+        if self.require_positions and not mne_compat.has_montage(raw):
             raise ValueError("Channel positions required but not found in data")
 
         # Step 1: Map channel names to standard
@@ -154,7 +157,7 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _standardize_channel_names(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _standardize_channel_names(self, raw: MNERaw) -> MNERaw:
         """Standardize channel names to 10-20 system."""
         mapping = self._map_channel_names(raw.ch_names)
         if mapping:
@@ -176,7 +179,7 @@ class FlexibleEEGPreprocessor:
                         break
         return mapping
 
-    def _select_channels(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _select_channels(self, raw: MNERaw) -> MNERaw:
         """Select channels based on task."""
         # First pick only EEG channels (and EOG/EMG for sleep)
         if self.mode == "sleep":
@@ -185,7 +188,8 @@ class FlexibleEEGPreprocessor:
             ch_names = [raw.ch_names[i] for i in picks]
 
             # Keep all EEG channels for sleep analysis
-            eeg_channels = [ch for ch in ch_names if raw.get_channel_types([ch])[0] == "eeg"]
+            ch_types = mne_compat.get_channel_types(raw)
+            eeg_channels = [ch for i, ch in enumerate(ch_names) if ch_types[i] == "eeg"]
             if eeg_channels:
                 raw.pick_channels(ch_names, ordered=True)
                 logger.info(f"Selected {len(ch_names)} channels for sleep (EEG+EOG+EMG)")
@@ -205,7 +209,8 @@ class FlexibleEEGPreprocessor:
                     logger.info(f"Selected {len(selected)} channels for {self.mode}")
             elif ch_names:
                 # Just pick EEG channels
-                raw.pick_types(eeg=True, exclude="bads")
+                picks = mne_compat.get_eeg_picks(raw)
+                raw.pick(picks)
 
         return raw
 
@@ -231,9 +236,9 @@ class FlexibleEEGPreprocessor:
 
         return selected
 
-    def _add_montage_if_possible(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _add_montage_if_possible(self, raw: MNERaw) -> MNERaw:
         """Add standard montage if channels match standard names."""
-        if raw.get_montage() is not None:
+        if mne_compat.has_montage(raw):
             return raw
 
         # Try to add standard montage
@@ -267,25 +272,25 @@ class FlexibleEEGPreprocessor:
 
             if len(matches) >= 3:  # Need at least 3 standard channels
                 montage = mne.channels.make_standard_montage("standard_1020")
-                raw.set_montage(montage, match_case=False, on_missing="ignore")
+                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[attr-defined]
                 logger.info("Added standard 10-20 montage")
         except Exception as e:
             logger.debug(f"Could not add montage: {e}")
 
         return raw
 
-    def _apply_filters(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_filters(self, raw: MNERaw) -> MNERaw:
         """Apply frequency filters."""
         # High-pass filter
         if self.highpass_freq > 0:
-            raw.filter(
-                l_freq=self.highpass_freq, h_freq=None, picks="eeg", method="fir", verbose=False
+            mne_compat.filter_raw(
+                raw, l_freq=self.highpass_freq, h_freq=None, picks="eeg", method="fir", verbose=False
             )
 
         # Low-pass filter
         if self.lowpass_freq and self.lowpass_freq < raw.info["sfreq"] / 2:
-            raw.filter(
-                l_freq=None, h_freq=self.lowpass_freq, picks="eeg", method="fir", verbose=False
+            mne_compat.filter_raw(
+                raw, l_freq=None, h_freq=self.lowpass_freq, picks="eeg", method="fir", verbose=False
             )
 
         # Notch filter
@@ -294,23 +299,23 @@ class FlexibleEEGPreprocessor:
             self.notch_freq = 50 if raw.info.get("line_freq", 50) == 50 else 60
 
         if self.notch_freq < raw.info["sfreq"] / 2:
-            raw.notch_filter(freqs=self.notch_freq, picks="eeg", verbose=False)
+            mne_compat.notch_filter_raw(raw, freqs=self.notch_freq, picks="eeg", verbose=False)
 
         return raw
 
-    def _resample(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _resample(self, raw: MNERaw) -> MNERaw:
         """Resample to target frequency if needed."""
         if self.target_sfreq and raw.info["sfreq"] != self.target_sfreq:
             raw.resample(sfreq=self.target_sfreq, verbose=False)
             logger.info(f"Resampled to {self.target_sfreq} Hz")
         return raw
 
-    def _apply_artifact_rejection(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_artifact_rejection(self, raw: MNERaw) -> MNERaw:
         """Apply artifact rejection with fallback methods."""
         if not self.use_autoreject:
             return raw
 
-        has_positions = raw.get_montage() is not None
+        has_positions = mne_compat.has_montage(raw)
 
         if has_positions:
             # Try to use Autoreject
@@ -341,10 +346,11 @@ class FlexibleEEGPreprocessor:
 
         return raw
 
-    def _fallback_artifact_rejection(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _fallback_artifact_rejection(self, raw: MNERaw) -> MNERaw:
         """Simple amplitude-based artifact rejection."""
         # Find and interpolate bad segments
-        data = raw.get_data(picks="eeg")
+        # Get all data for clipping
+        data = raw.get_data()
 
         # Detect high amplitude artifacts
         threshold = 150e-6  # 150 μV
@@ -352,14 +358,17 @@ class FlexibleEEGPreprocessor:
 
         if np.any(bad_times):
             # Simple clipping for now
-            raw._data[:, bad_times] = np.clip(raw._data[:, bad_times], -threshold, threshold)
+            data[:, bad_times] = np.clip(data[:, bad_times], -threshold, threshold)
+            # Rebuild raw with clipped data using public API
+            from brain_go_brrr.mne_compat import update_data_inplace
+            raw = update_data_inplace(raw, data)
             logger.info(
                 f"Clipped {np.sum(bad_times)} samples with amplitude > {threshold * 1e6:.0f} μV"
             )
 
         return raw
 
-    def _apply_reference(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_reference(self, raw: MNERaw) -> MNERaw:
         """Apply appropriate reference."""
         # Average reference if we have enough channels
         if len(raw.ch_names) >= 10:

@@ -6,6 +6,14 @@ omit =
     */tests/*
     */__init__.py
     */__main__.py
+    # Skip MNE-importing modules to prevent hangs
+    */services/yasa_adapter*.py
+    */core/edf_loader.py
+    */core/sleep.py
+    */api/routers/sleep.py
+    # Skip heavy integration modules
+    */models/eegpt_architecture.py
+    */data/tuab_enhanced_dataset.py
 
 [report]
 precision = 2

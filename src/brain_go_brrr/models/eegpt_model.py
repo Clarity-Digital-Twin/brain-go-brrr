@@ -24,6 +24,8 @@ import torch
 import torch.nn as nn
 from scipy import signal
 
+from brain_go_brrr._typing import FloatArray, MNERaw
+
 from ..core.config import ModelConfig
 from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 
@@ -118,14 +120,22 @@ class EEGPTModel:
             except Exception as e:
                 self.logger.warning(f"Auto-load failed: {e}")
 
+    def _enc_core(self) -> Any:
+        """Get the core encoder model, handling both wrapped and raw encoders.
+
+        Returns the wrapped model if encoder has .model attribute,
+        otherwise returns the encoder itself.
+        """
+        if self.encoder is None:
+            raise RuntimeError("Encoder not loaded")
+        return getattr(self.encoder, "model", self.encoder)
+
     def _get_cached_channel_ids(self, channel_names: list[str]) -> torch.Tensor:
         """Get channel IDs with caching for performance."""
         key = tuple(channel_names)
         if key not in self._ch_idx_cache:
-            if self.encoder is None:
-                raise RuntimeError("Encoder not loaded")
-            # Create and cache the channel IDs
-            chan_ids = self.encoder.model.prepare_chan_ids(channel_names)
+            # Create and cache the channel IDs - use _enc_core() for compatibility
+            chan_ids = self._enc_core().prepare_chan_ids(channel_names)
             self._ch_idx_cache[key] = chan_ids.to(self.device)
         return self._ch_idx_cache[key]
 
@@ -149,6 +159,15 @@ class EEGPTModel:
         """Backward compatibility property."""
         return self.config.window_samples
 
+    def _create_abnormality_head(self) -> nn.Module:
+        """Create default abnormality detection head."""
+        return nn.Sequential(
+            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 2),  # Binary classification
+        ).to(self.device)
+
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""
         if not self.config.model_path.exists():
@@ -169,12 +188,7 @@ class EEGPTModel:
         self.encoder.eval()
 
         # Initialize abnormality detection head (trainable on top of frozen EEGPT)
-        self.abnormality_head = nn.Sequential(
-            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(512, 2),  # Binary classification
-        ).to(self.device)
+        self.abnormality_head = self._create_abnormality_head()
 
         self.is_loaded = True
         self.logger.info(f"✅ Loaded real EEGPT model from {self.config.model_path}")
@@ -207,7 +221,12 @@ class EEGPTModel:
                 data = np.pad(data, ((0, 0), (0, padding)), mode="constant")
 
         # Convert to tensor with shape (1, n_channels, time_samples)
-        data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
+        # Check if data is already a tensor (from extract_features_batch)
+        if isinstance(data, torch.Tensor):
+            data_tensor = data.unsqueeze(0) if data.dim() == 2 else data
+            data_tensor = data_tensor.to(self.device)
+        else:
+            data_tensor = torch.FloatTensor(data).unsqueeze(0).to(self.device)
 
         # Estimate normalization parameters from this data if not already done
         if (
@@ -235,7 +254,7 @@ class EEGPTModel:
         # This should never be reached due to the encoder None check above
         return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)
 
-    def predict_abnormality(self, raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
+    def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:
         """Predict abnormality from raw EEG data with streaming support."""
         if not self.is_loaded:
             try:
@@ -310,11 +329,11 @@ class EEGPTModel:
                 "abnormal_probability": float(abnormality_score),
                 "confidence": float(confidence),
                 "window_scores": window_scores,
-                "n_windows": len(window_scores),
+                "n_windows": n_windows_processed,  # Count actual windows processed, not scored
                 "mean_score": float(abnormality_score),
                 "std_score": float(np.std(window_scores)) if window_scores else 0.0,
                 "used_streaming": True,
-                "n_windows_processed": n_windows_processed,
+                "n_windows_scored": len(window_scores),  # Keep track of scored windows separately
                 "metadata": {
                     "duration": duration,
                     "n_channels": len(channel_names),
@@ -375,7 +394,7 @@ class EEGPTModel:
                 },
             }
 
-    def analyze(self, raw: "mne.io.Raw", analysis_type: str = "abnormality") -> dict[str, Any]:
+    def analyze(self, raw: MNERaw, analysis_type: str = "abnormality") -> dict[str, Any]:
         """Analyze an MNE Raw object.
 
         Args:
@@ -393,8 +412,13 @@ class EEGPTModel:
     def process_recording(
         self,
         file_path: str | Path | None = None,
-        raw: "mne.io.Raw | None" = None,
+        raw: MNERaw | None = None,
         analysis_type: str = "abnormality",
+        # Legacy backward compatibility args
+        data: npt.NDArray[np.float64] | None = None,
+        sampling_rate: float | None = None,
+        batch_size: int | None = None,  # noqa: ARG002
+        **kwargs: Any,  # noqa: ARG002
     ) -> dict[str, Any]:
         """Process a complete EEG recording from file or Raw object.
 
@@ -402,13 +426,39 @@ class EEGPTModel:
             file_path: Path to EDF file (optional if raw provided)
             raw: MNE Raw object (optional if file_path provided)
             analysis_type: Type of analysis to perform
+            data: Legacy - raw data array (deprecated, use raw instead)
+            sampling_rate: Legacy - sampling rate for data (deprecated)
+            batch_size: Legacy - batch size (ignored)
+            **kwargs: Additional legacy arguments (ignored)
 
         Returns:
             Analysis results dictionary
         """
+        # Backward compatibility: construct Raw from legacy data/sampling_rate
+        if raw is None and data is not None:
+            import warnings
+
+            warnings.warn(
+                "Passing 'data' and 'sampling_rate' to process_recording is deprecated. "
+                "Please pass an MNE Raw object instead via the 'raw' parameter.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if sampling_rate is None:
+                raise ValueError("sampling_rate required when using legacy 'data=' input")
+
+            # Create MNE Raw from data
+            import mne
+
+            n_channels = data.shape[0]
+            # Use standard channel names that match expected patterns
+            ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
+            info = mne.create_info(ch_names=ch_names, sfreq=float(sampling_rate), ch_types="eeg")
+            raw = mne.io.RawArray(data, info)
+
         if raw is None:
             if file_path is None:
-                raise ValueError("Must provide either file_path or raw")
+                raise ValueError("Must provide either file_path, raw, or data")
 
             try:
                 import mne
@@ -422,7 +472,7 @@ class EEGPTModel:
 
         return self.analyze(raw, analysis_type)
 
-    def extract_windows(self, data: np.ndarray, sampling_rate: int) -> list[np.ndarray]:
+    def extract_windows(self, data: FloatArray, sampling_rate: int) -> list[FloatArray]:
         """Extract non-overlapping windows from continuous data.
 
         Args:
@@ -451,8 +501,10 @@ class EEGPTModel:
         return windows
 
     def extract_features_batch(
-        self, windows: np.ndarray, channel_names: list[str] | None = None
-    ) -> np.ndarray:
+        self,
+        windows: npt.NDArray[np.float64] | torch.Tensor,
+        channel_names: list[str] | None = None,
+    ) -> npt.NDArray[np.float64]:
         """Extract features from batch of windows.
 
         Args:
@@ -462,14 +514,19 @@ class EEGPTModel:
         Returns:
             Features (batch, n_summary_tokens, feature_dim)
         """
-        batch_size, n_channels, n_samples = windows.shape
+        # Handle both numpy and torch tensors
+        if isinstance(windows, torch.Tensor):
+            batch_size, n_channels, n_samples = windows.shape
+        else:
+            batch_size, n_channels, n_samples = windows.shape
 
         # Process each window individually for now
         # TODO: Optimize for true batch processing
         batch_features = []
 
         for i in range(batch_size):
-            window = windows[i]
+            window = windows[i].cpu().numpy() if isinstance(windows, torch.Tensor) else windows[i]
+
             if channel_names is None:
                 ch_names = [f"EEG{j:03d}" for j in range(n_channels)]
             else:
@@ -478,7 +535,7 @@ class EEGPTModel:
             features = self.extract_features(window, ch_names)
             batch_features.append(features)
 
-        return np.stack(batch_features, axis=0)  # type: ignore[no-any-return]
+        return np.stack(batch_features, axis=0)
 
     def cleanup(self) -> None:
         """Clean up GPU memory if using CUDA."""
@@ -489,12 +546,12 @@ class EEGPTModel:
 
 
 def preprocess_for_eegpt(
-    raw: "mne.io.Raw",  # Use string annotation for untyped module
+    raw: MNERaw,
     target_sfreq: int = 256,
     l_freq: float = 0.5,
     h_freq: float = 50.0,
-    notch_freq: float | list | None = None,
-) -> "mne.io.Raw":  # Use string annotation
+    notch_freq: float | list[float] | None = None,
+) -> MNERaw:
     """Preprocess EEG data for EEGPT model."""
     # Mark unused parameters as intentionally unused for now
     _ = l_freq
@@ -511,7 +568,8 @@ def preprocess_for_eegpt(
     raw.set_eeg_reference("average", projection=False)
 
     # Ensure proper channel types
-    raw.pick_types(meg=False, eeg=True, eog=False, exclude="bads")
+    picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, exclude="bads")
+    raw.pick(picks)
 
     # Limit to max channels if needed
     if len(raw.ch_names) > 58:
@@ -520,7 +578,7 @@ def preprocess_for_eegpt(
     return raw
 
 
-def extract_features_from_raw(raw: mne.io.Raw, model_path: str | Path) -> dict[str, Any]:
+def extract_features_from_raw(raw: MNERaw, model_path: str | Path) -> dict[str, Any]:
     """High-level function to extract features from raw EEG.
 
     Args:

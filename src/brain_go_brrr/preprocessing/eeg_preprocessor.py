@@ -5,9 +5,14 @@ that prepares recordings for abnormality detection using EEGPT.
 """
 
 import logging
+from typing import cast
 
 import mne
 import numpy as np
+import numpy.typing as npt
+
+from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +168,7 @@ class EEGPreprocessor:
         self.use_standard_montage = use_standard_montage
         self.use_autoreject = use_autoreject and AUTOREJECT_AVAILABLE
 
-    def preprocess(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def preprocess(self, raw: MNERaw) -> MNERaw:
         """Apply full preprocessing pipeline.
 
         Args:
@@ -191,7 +196,7 @@ class EEGPreprocessor:
 
         return raw
 
-    def _apply_autoreject(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_autoreject(self, raw: MNERaw) -> MNERaw:
         """Apply Autoreject for artifact rejection.
 
         This uses local+global thresholding to detect bad segments via K-fold CV,
@@ -206,8 +211,8 @@ class EEGPreprocessor:
             return raw
 
         # Check if we have valid channel positions
-        montage = raw.get_montage()
-        if montage is None:
+        has_montage = mne_compat.has_montage(raw)
+        if not has_montage:
             logger.warning(
                 "No channel positions found - using amplitude-based rejection instead of AutoReject"
             )
@@ -255,20 +260,20 @@ class EEGPreprocessor:
         )
 
         # Preserve all critical metadata from original
-        if raw.annotations is not None:
+        if hasattr(raw, "annotations") and raw.annotations is not None:
             raw_clean.set_annotations(raw.annotations.copy())
 
         # Preserve other important info fields
-        if "meas_date" in raw.info and raw.info["meas_date"] is not None:
+        if "meas_date" in raw.info and raw.info["meas_date"] is not None:  # type: ignore[operator]
             raw_clean.set_meas_date(raw.info["meas_date"])
         # Note: dig (digitization) info is preserved automatically through epochs
         for key in ["line_freq", "device_info", "subject_info"]:
-            if key in raw.info:
+            if key in raw.info:  # type: ignore[operator]
                 raw_clean.info[key] = raw.info[key]
 
-        return raw_clean
+        return cast("MNERaw", raw_clean)
 
-    def _amplitude_based_rejection(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _amplitude_based_rejection(self, raw: MNERaw) -> MNERaw:
         """Simple amplitude-based artifact rejection when positions are not available.
 
         This fallback method uses amplitude thresholds to detect and mark bad channels
@@ -313,7 +318,8 @@ class EEGPreprocessor:
             annotations = mne.Annotations(
                 onsets, durations, descriptions, orig_time=raw.info["meas_date"]
             )
-            raw.set_annotations(raw.annotations + annotations)
+            if hasattr(raw, "annotations"):
+                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(
@@ -322,10 +328,11 @@ class EEGPreprocessor:
 
         return raw
 
-    def _apply_highpass_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_highpass_filter(self, raw: MNERaw) -> MNERaw:
         """Apply 0.5 Hz high-pass filter to remove DC and drift."""
         # Use higher order filter for better attenuation (>40dB requirement)
-        raw.filter(
+        mne_compat.filter_raw(
+            raw,
             l_freq=self.highpass_freq,
             h_freq=None,
             picks="eeg",
@@ -335,10 +342,11 @@ class EEGPreprocessor:
         )
         return raw
 
-    def _apply_lowpass_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_lowpass_filter(self, raw: MNERaw) -> MNERaw:
         """Apply 45 Hz low-pass filter to remove high-frequency noise."""
         # Use higher order filter for better attenuation
-        raw.filter(
+        mne_compat.filter_raw(
+            raw,
             l_freq=None,
             h_freq=self.lowpass_freq,
             picks="eeg",
@@ -348,23 +356,29 @@ class EEGPreprocessor:
         )
         return raw
 
-    def _apply_notch_filter(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_notch_filter(self, raw: MNERaw) -> MNERaw:
         """Apply notch filter to remove powerline interference."""
-        raw.notch_filter(freqs=self.notch_freq, picks="eeg", method="iir", verbose=False)
+        mne_compat.notch_filter_raw(
+            raw,
+            freqs=self.notch_freq,
+            picks="eeg",
+            method="iir",
+            verbose=False,
+        )
         return raw
 
-    def _resample_to_target(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _resample_to_target(self, raw: MNERaw) -> MNERaw:
         """Resample to target frequency (128 Hz for BioSerenity-E1)."""
         if raw.info["sfreq"] != self.target_sfreq:
             raw.resample(sfreq=self.target_sfreq, verbose=False)
         return raw
 
-    def _apply_average_reference(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _apply_average_reference(self, raw: MNERaw) -> MNERaw:
         """Apply average re-referencing."""
         raw.set_eeg_reference("average", projection=False, verbose=False)
         return raw
 
-    def _select_channel_subset(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def _select_channel_subset(self, raw: MNERaw) -> MNERaw:
         """Select 16-channel subset as per BioSerenity-E1."""
         # If we already have 16 or fewer channels, return as is
         if len(raw.ch_names) <= self.channel_subset_size:
@@ -426,8 +440,8 @@ class EEGPreprocessor:
         return raw
 
     def extract_windows(
-        self, raw: mne.io.BaseRaw, window_duration: float = 16.0, overlap: float = 0.0
-    ) -> list[np.ndarray]:
+        self, raw: MNERaw, window_duration: float = 16.0, overlap: float = 0.0
+    ) -> list[npt.NDArray[np.float64]]:
         """Extract windows from EEG data.
 
         Args:

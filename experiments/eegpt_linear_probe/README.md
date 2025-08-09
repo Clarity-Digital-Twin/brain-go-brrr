@@ -1,33 +1,49 @@
-# EEGPT Linear Probe Training
+# EEGPT Linear Probe Training - BULLETPROOF VERSION
+
+## 🔴 STATUS: 10 CRITICAL BUGS FIXED (2025-08-09)
+
+**Complete audit found and fixed ALL issues:**
+1. ✅ `cycle_momentum=False` for AdamW (CRITICAL!)
+2. ✅ Per-batch scheduler stepping
+3. ✅ No start_epoch reset bug
+4. ✅ Accumulation-aware total_steps
+5. ✅ Global step tracking
+6. ✅ Optimizer LR logging
+7. ✅ RNG state saving
+8. ✅ Extensive sanity checks
+9. ✅ Non-blocking transfers
+10. ✅ Gradient norm monitoring
+
+**Use ONLY:** `train_paper_aligned_BULLETPROOF.py`
+
+See `COMPLETE_AUDIT_FINDINGS.md` for full details.
 
 ## 🎯 Mission: Achieve Paper-Level Performance
 
-Train a linear probe on frozen EEGPT features for EEG abnormality detection using the TUAB dataset.
-
 **Target**: AUROC ≥ 0.869 (paper performance with 4-second windows)
 
-## 🟢 Current Status
-
-**TRAINING ACTIVE**: 4-second window configuration running
-- Session: `tmux attach -t eegpt_4s_final`
-- Expected completion: ~3-4 hours
-- Monitor: `tail -f output/tuab_4s_paper_aligned_20250805_181351/training.log`
-
-## ⚡ Quick Start
+## 🚀 Quick Start (BULLETPROOF VERSION)
 
 ```bash
-# Set environment
-export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
+# 1. Test scheduler (dry run)
+python train_paper_aligned_BULLETPROOF.py --dry_run
 
-# Run smoke test to verify setup
-python smoke_test_paper_aligned.py
+# 2. Launch bulletproof training
+./LAUNCH_BULLETPROOF.sh
 
-# Launch training (4-second windows - CORRECT)
-bash launch_paper_aligned_training.sh
+# 3. Monitor progress
+tmux attach -t eegpt_bulletproof
 
-# Monitor progress
-tmux attach -t eegpt_4s_final
+# 4. Verify LR is changing
+tail -f logs/BULLETPROOF_*.log | grep 'LR:'
 ```
+
+**Expected LR progression:**
+- Step 1: ~0.00012 (initial)
+- Step 100: Increasing (warmup)
+- Step 500: ~0.003 (peak)
+- Step 2900+: Decreasing (annealing)
+- Final: ~0.000003
 
 ## 📁 Clean Directory Structure
 

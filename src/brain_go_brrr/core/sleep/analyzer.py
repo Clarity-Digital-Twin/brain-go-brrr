@@ -9,11 +9,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+from brain_go_brrr._typing import MNERaw, StrArray
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
 # Add reference repos to path
@@ -67,12 +67,12 @@ class SleepAnalyzer:
 
     def preprocess_for_sleep(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         eeg_channels: list[str] | None = None,
         eog_channels: list[str] | None = None,
         emg_channels: list[str] | None = None,
         resample_freq: float = 100.0,
-    ) -> mne.io.Raw:
+    ) -> MNERaw:
         """Preprocess EEG data for sleep staging.
 
         NOTE: Following YASA documentation, we do NOT filter the data
@@ -158,7 +158,7 @@ class SleepAnalyzer:
 
     def stage_sleep(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         eeg_name: str = "C3-A2",
         eog_name: str = "EOG",
         emg_name: str = "EMG",
@@ -187,9 +187,12 @@ class SleepAnalyzer:
                 where probability_matrix has shape (n_epochs, 5) for stages W,N1,N2,N3,REM
         """
         # Handle picks parameter
+        eeg_ch: str | None
+        from brain_go_brrr import mne_compat
+        ch_types = mne_compat.get_channel_types(raw)
         if picks == "eeg":
             # Get all EEG channels
-            eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"]
+            eeg_channels = [ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"]
             if not eeg_channels:
                 raise ValueError("No EEG channels found for sleep staging")
             eeg_ch = eeg_channels[0]  # Use first EEG channel
@@ -223,15 +226,25 @@ class SleepAnalyzer:
                         break
 
                 if eeg_ch is None:
-                    # No acceptable channels found - raise error
+                    # Check for Sleep-EDF montage (Fpz-Cz, Pz-Oz)
                     available_channels = [
-                        ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
+                        ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"
                     ]
-                    raise UnsupportedMontageError(
-                        f"Unsupported EEG montage for sleep staging. "
-                        f"Required channels {sleep_channels} not found. "
-                        f"Available EEG channels: {available_channels}"
-                    )
+
+                    # Accept Sleep-EDF montage
+                    if "EEG Fpz-Cz" in available_channels or "Fpz-Cz" in available_channels:
+                        eeg_ch = "EEG Fpz-Cz" if "EEG Fpz-Cz" in available_channels else "Fpz-Cz"
+                        logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
+                    elif "EEG Pz-Oz" in available_channels or "Pz-Oz" in available_channels:
+                        eeg_ch = "EEG Pz-Oz" if "EEG Pz-Oz" in available_channels else "Pz-Oz"
+                        logger.info(f"Using Sleep-EDF montage channel: {eeg_ch}")
+                    else:
+                        # No acceptable channels found - raise error
+                        raise UnsupportedMontageError(
+                            f"Unsupported EEG montage for sleep staging. "
+                            f"Required channels {sleep_channels} or Sleep-EDF montage (Fpz-Cz, Pz-Oz) not found. "
+                            f"Available EEG channels: {available_channels}"
+                        )
 
         try:
             # Perform sleep staging using YASA
@@ -272,7 +285,8 @@ class SleepAnalyzer:
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
             # Return just the array for simple interface
-            return y_pred
+            y_pred_typed: npt.NDArray[np.str_] = y_pred
+            return y_pred_typed
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback (always return strings)
@@ -288,20 +302,21 @@ class SleepAnalyzer:
             return dummy_stages
 
     def calculate_sleep_metrics(
-        self, raw_or_hypnogram: mne.io.BaseRaw | npt.NDArray[np.str_], epoch_length: float = 30.0
+        self, raw_or_hypnogram: MNERaw | StrArray, epoch_length: float = 30.0
     ) -> dict[str, Any]:
         """Calculate sleep metrics from Raw object or hypnogram array.
 
         This method provides compatibility with tests expecting calculate_sleep_metrics.
 
         Args:
-            raw_or_hypnogram: Either mne.io.Raw object or hypnogram array
+            raw_or_hypnogram: Either MNERaw object or hypnogram array
             epoch_length: Epoch duration in seconds
         """
         # Handle both Raw object and hypnogram array for compatibility
         if hasattr(raw_or_hypnogram, "get_data"):
             # It's a Raw object, stage it first
-            staging_result = self.stage_sleep(raw_or_hypnogram)
+            # Can't use isinstance with Protocol, use duck typing
+            staging_result = self.stage_sleep(raw_or_hypnogram)  # type: ignore[arg-type]
             # Handle both tuple and array return types
             hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:
@@ -370,7 +385,7 @@ class SleepAnalyzer:
 
     def detect_sleep_events(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         hypnogram: npt.NDArray[np.str_],
         include_spindles: bool = True,
         include_so: bool = True,
@@ -626,7 +641,7 @@ class SleepAnalyzer:
         else:
             return "F"
 
-    def run_full_sleep_analysis(self, raw: mne.io.Raw, **kwargs: Any) -> dict[str, Any]:
+    def run_full_sleep_analysis(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
         """Run complete sleep analysis pipeline.
 
         Args:

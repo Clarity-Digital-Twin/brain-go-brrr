@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 import mne
@@ -264,7 +265,7 @@ class TUABEnhancedDataset(TUABDataset):
         
         return raw
     
-    def _load_edf_file(self, file_path: Path) -> np.ndarray:
+    def _load_edf_file(self, file_path: Path) -> npt.NDArray[np.float64]:
         """Load and preprocess EDF file with enhanced preprocessing.
         
         Args:
@@ -291,7 +292,7 @@ class TUABEnhancedDataset(TUABDataset):
         # Get data and convert to float32
         data = raw.get_data().astype(np.float32)
         
-        return data  # type: ignore[no-any-return]
+        return data
     
     def _preprocess_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Preprocess raw data matching paper specifications.
@@ -398,11 +399,12 @@ class TUABEnhancedDataset(TUABDataset):
         
         return torch.tensor(sample_weights, dtype=torch.float32)
     
-    def _extract_windows(self, raw: mne.io.Raw) -> List[Tuple[np.ndarray, int]]:
+    def _extract_windows(self, raw: mne.io.Raw, label: int = 0) -> List[Tuple[npt.NDArray[np.float64], int]]:
         """Extract windows with proper overlap.
         
         Args:
             raw: Preprocessed raw object
+            label: Label for the windows (0=normal, 1=abnormal)
             
         Returns:
             List of (window_data, label) tuples
@@ -429,7 +431,7 @@ class TUABEnhancedDataset(TUABDataset):
             
             # Ensure correct shape
             if window.shape[1] == window_samples:
-                windows.append((window, self.current_label))
+                windows.append((window, label))
         
         return windows
     

@@ -10,10 +10,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol
 
-import mne
 import numpy as np
+import numpy.typing as npt
 import torch
 
+from brain_go_brrr._typing import FloatArray, MNERaw
 from brain_go_brrr.core.abnormality_config import AbnormalityConfig
 from brain_go_brrr.core.config import ModelConfig
 from brain_go_brrr.core.logger import get_logger
@@ -32,7 +33,7 @@ class EEGBackbone(Protocol):
         """Number of summary tokens."""
         ...
 
-    def extract_features(self, data: np.ndarray, channel_names: list[str]) -> np.ndarray:
+    def extract_features(self, data: FloatArray, channel_names: list[str]) -> FloatArray:
         """Extract features from EEG data."""
         ...
 
@@ -258,7 +259,7 @@ class AbnormalityDetector:
                     f"This should not happen - please report this as a bug."
                 )
 
-    def detect_abnormality(self, raw: mne.io.Raw) -> AbnormalityResult:
+    def detect_abnormality(self, raw: MNERaw) -> AbnormalityResult:
         """Detect abnormalities in EEG recording.
 
         Args:
@@ -375,7 +376,7 @@ class AbnormalityDetector:
             model_version=self.model_version,
         )
 
-    def detect_abnormality_batch(self, recordings: list[mne.io.Raw]) -> list[AbnormalityResult]:
+    def detect_abnormality_batch(self, recordings: list[MNERaw]) -> list[AbnormalityResult]:
         """Process multiple recordings in batch.
 
         Args:
@@ -396,7 +397,7 @@ class AbnormalityDetector:
 
         return results
 
-    def _validate_input(self, raw: mne.io.Raw) -> None:
+    def _validate_input(self, raw: MNERaw) -> None:
         """Validate input EEG data."""
         # Check duration
         duration = raw.times[-1]
@@ -414,14 +415,14 @@ class AbnormalityDetector:
         # Check for bad channels
         info = raw.info
         if (
-            "bads" in info
+            "bads" in info  # type: ignore[operator]
             and len(info["bads"]) > n_channels * self.config.processing.max_bad_channel_ratio
         ):
             raise ValueError(
                 f"Too many bad channels: {len(info['bads'])} > {self.config.processing.max_bad_channel_ratio * 100:.0f}% of total"
             )
 
-    def _detect_bad_channels_raw(self, raw: mne.io.Raw) -> list[str]:
+    def _detect_bad_channels_raw(self, raw: MNERaw) -> list[str]:
         """Detect bad channels in raw data before preprocessing."""
         data = raw.get_data()
         bad_channels = []
@@ -438,7 +439,7 @@ class AbnormalityDetector:
 
         return bad_channels
 
-    def _apply_normalization(self, raw: mne.io.Raw) -> mne.io.Raw:
+    def _apply_normalization(self, raw: MNERaw) -> MNERaw:
         """Apply z-score normalization to preprocessed data."""
         data = raw.get_data()
         channel_means = data.mean(axis=1, keepdims=True)
@@ -450,10 +451,12 @@ class AbnormalityDetector:
             (data - channel_means) / (channel_stds + self.config.processing.channel_std_epsilon),
             0.0,
         )
-        raw._data = data
+        # Rebuild raw with normalized data using public API
+        from brain_go_brrr.mne_compat import update_data_inplace
+        raw = update_data_inplace(raw, data)
         return raw
 
-    def _extract_windows(self, raw: mne.io.Raw) -> list[np.ndarray]:
+    def _extract_windows(self, raw: MNERaw) -> list[FloatArray]:
         """Extract sliding windows from EEG data."""
         data = raw.get_data()
         sfreq = raw.info["sfreq"]
@@ -473,9 +476,11 @@ class AbnormalityDetector:
                 f"Too few windows: {len(windows)} < {self.config.processing.min_windows_for_prediction} minimum"
             )
 
-        return windows
+        # Cast to float64 for type safety
+        windows_float64 = [w.astype(np.float64) for w in windows]
+        return windows_float64
 
-    def _assess_window_quality(self, window: np.ndarray) -> float:
+    def _assess_window_quality(self, window: npt.NDArray[np.float64]) -> float:
         """Assess quality of a single window."""
         # Check for flat channels
         flat_channels: int = int(
@@ -504,7 +509,7 @@ class AbnormalityDetector:
 
         return float(max(0.0, min(1.0, quality)))
 
-    def _predict_window(self, window: np.ndarray) -> float:
+    def _predict_window(self, window: npt.NDArray[np.float64]) -> float:
         """Get abnormality prediction for a single window."""
         # Convert to tensor
         window_tensor = torch.from_numpy(window).float().unsqueeze(0).to(self.device)
@@ -611,7 +616,7 @@ class AbnormalityDetector:
 
     def _compute_quality_metrics(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         window_qualities: list[float],
         bad_channels_pre: list[str],
     ) -> dict[str, Any]:

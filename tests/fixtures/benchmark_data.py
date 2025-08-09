@@ -7,11 +7,15 @@ This module provides realistic EEG data samples for benchmarking:
 """
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import pytest
+
+# Type checking imports only
+if TYPE_CHECKING:
+    import mne
 
 
 @pytest.fixture(scope="session")
@@ -28,12 +32,14 @@ def benchmark_edf_path() -> Path | None:
 
 
 @pytest.fixture(scope="session")
-def benchmark_raw_data(benchmark_edf_path) -> mne.io.Raw | None:
+def benchmark_raw_data(benchmark_edf_path) -> "mne.io.Raw | None":
     """Load benchmark EEG data if available."""
     if benchmark_edf_path is None:
         return None
 
     # Load and preprocess to standard format
+    import mne
+
     raw = mne.io.read_raw_edf(benchmark_edf_path, preload=True)
 
     # Standardize to common sampling rate

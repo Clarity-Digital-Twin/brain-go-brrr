@@ -8,13 +8,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import yasa
 from scipy import signal
 from scipy.stats import kurtosis, skew
 
+from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
 logger = logging.getLogger(__name__)
@@ -139,7 +140,7 @@ class EnhancedSleepAnalyzer:
         except ImportError as e:
             raise ImportError("YASA required: pip install yasa") from e
 
-    def find_best_channels(self, raw: mne.io.Raw, channel_type: str = "eeg") -> str | None:
+    def find_best_channels(self, raw: MNERaw, channel_type: str = "eeg") -> str | None:
         """Find best available channel based on preferences.
 
         Args:
@@ -183,7 +184,7 @@ class EnhancedSleepAnalyzer:
                     return str(available_channels[idx])
 
         # Fallback: any channel of the right type
-        ch_types = raw.get_channel_types()
+        ch_types = mne_compat.get_channel_types(raw)
         for i, ch in enumerate(available_channels):
             if ch_types[i] == channel_type:
                 logger.warning(f"Using fallback {channel_type} channel: {ch}")
@@ -191,7 +192,7 @@ class EnhancedSleepAnalyzer:
 
         return None
 
-    def preprocess_for_staging(self, raw: mne.io.Raw, copy: bool = True) -> mne.io.Raw:
+    def preprocess_for_staging(self, raw: MNERaw, copy: bool = True) -> MNERaw:
         """Preprocess data for YASA staging.
 
         CRITICAL: Per YASA paper, do NOT filter before staging!
@@ -210,7 +211,7 @@ class EnhancedSleepAnalyzer:
 
         return raw
 
-    def _set_channel_types(self, raw: mne.io.Raw) -> None:
+    def _set_channel_types(self, raw: MNERaw) -> None:
         """Automatically set channel types based on names."""
         channel_types = {}
 
@@ -220,7 +221,7 @@ class EnhancedSleepAnalyzer:
                 channel_types[ch] = "eog"
             elif any(emg in ch_lower for emg in ["emg", "chin", "submental"]):
                 channel_types[ch] = "emg"
-            elif raw.get_channel_types([ch])[0] == "misc" and any(
+            elif mne_compat.get_channel_type(raw, ch) == "misc" and any(
                 eeg in ch_lower for eeg in ["fp", "f", "c", "t", "p", "o", "a", "m"]
             ):
                 # Default misc to eeg if it looks like EEG
@@ -230,7 +231,7 @@ class EnhancedSleepAnalyzer:
             raw.set_channel_types(channel_types)
 
     def stage_sleep_flexible(
-        self, raw: mne.io.Raw, metadata: dict[str, Any] | None = None
+        self, raw: MNERaw, metadata: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Perform sleep staging with flexible channel selection.
 
@@ -335,7 +336,7 @@ class EnhancedSleepAnalyzer:
         return result
 
     def _extract_staging_features(
-        self, raw: mne.io.Raw, eeg_ch: str, eog_ch: str | None, emg_ch: str | None
+        self, raw: MNERaw, eeg_ch: str, eog_ch: str | None, emg_ch: str | None
     ) -> dict[str, float]:
         """Extract key features used for staging (based on YASA paper).
 
@@ -398,7 +399,7 @@ class EnhancedSleepAnalyzer:
 
         return features
 
-    def _compute_fractal_dimension(self, data: npt.NDArray) -> float:
+    def _compute_fractal_dimension(self, data: npt.NDArray[np.float64]) -> float:
         """Compute Higuchi fractal dimension (from YASA)."""
         try:
             from yasa import higuchi_fd
@@ -427,7 +428,7 @@ class EnhancedSleepAnalyzer:
 
             return float(fd)
 
-    def _compute_permutation_entropy(self, data: npt.NDArray) -> float:
+    def _compute_permutation_entropy(self, data: npt.NDArray[np.float64]) -> float:
         """Compute permutation entropy (nonlinear feature)."""
         try:
             from yasa import petrosian_fd
@@ -452,7 +453,7 @@ class EnhancedSleepAnalyzer:
                     entropy_val -= p * np.log2(p)
             return entropy_val
 
-    def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:
+    def _fallback_staging(self, raw: MNERaw, eeg_ch: str) -> dict[str, Any]:
         """Simple rule-based fallback when YASA fails."""
         logger.warning("Using fallback staging method")
 

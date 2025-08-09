@@ -164,11 +164,15 @@ select = [
     "PTH",  # flake8-use-pathlib
     "N",    # pep8-naming
     "D",    # pydocstyle (docstring conventions)
+    "ANN",  # flake8-annotations - CHECK FOR MISSING TYPE HINTS!
 ]
 ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Do not perform function calls in argument defaults
     "RUF012", # Mutable class attributes should be annotated
+    # Type annotation exceptions
+    "ANN204", # Missing return type annotation for special method __init__ (46 instances)
+    "ANN401", # Dynamically typed expressions (Any) - TODO: fix these gradually
     # Docstring exceptions for now (will fix incrementally)
     "D100",   # Missing docstring in public module
     "D101",   # Missing docstring in public class
@@ -179,8 +183,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ARG", "D417"]  # Don't require self in docstrings for test mocks
-"scripts/*.py" = ["E402"]  # Allow imports after env var setup in scripts
+"tests/*" = ["ARG", "D417", "ANN"]  # Tests don't need strict type annotations
+"scripts/*.py" = ["E402", "ANN"]  # Allow imports after env var setup, relaxed types
+"tests/conftest.py" = ["TC004"]  # Allow type-checking imports with future annotations
+"tests/fixtures/mock_eeg_generator.py" = ["TC004"]  # Allow type-checking imports with future annotations
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"  # Use Google-style docstrings
@@ -267,6 +273,7 @@ omit = ["*/tests/*", "*/test_*.py"]
 precision = 2
 show_missing = true
 skip_covered = false
+fail_under = 70.0  # Enforce minimum coverage threshold
 
 [tool.hatch.version]
 path = "src/brain_go_brrr/__init__.py"

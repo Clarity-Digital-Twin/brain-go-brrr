@@ -60,7 +60,7 @@ def cleanup_temp_file(file_path: Path) -> None:
         )  # Warning, not error - cleanup is non-critical
 
 
-@router.post("/analyze", response_model=QCResponse)  # type: ignore[misc]
+@router.post("/analyze", response_model=QCResponse)
 async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
@@ -204,7 +204,7 @@ async def analyze_eeg(
         )
 
 
-@router.post("/analyze/detailed", response_class=JSONResponse)  # type: ignore[misc]
+@router.post("/analyze/detailed", response_class=JSONResponse)
 async def analyze_eeg_detailed(
     edf_file: UploadFile = File(...),
     include_report: bool = True,

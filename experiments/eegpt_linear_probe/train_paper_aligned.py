@@ -300,17 +300,28 @@ def main():
         weight_decay=config['training']['optimizer']['weight_decay']
     )
     
-    # Create scheduler
+    # Create scheduler with proper configuration
+    steps_per_epoch = len(train_loader)
+    total_steps = steps_per_epoch * config['training']['max_epochs']
+    
     scheduler = OneCycleLR(
         optimizer,
         max_lr=float(config['training']['scheduler']['max_lr']),
-        epochs=config['training']['scheduler']['epochs'],
-        steps_per_epoch=config['training']['scheduler']['steps_per_epoch'],
+        total_steps=total_steps,  # Use total_steps instead of epochs/steps_per_epoch
         pct_start=config['training']['scheduler']['pct_start'],
         anneal_strategy=config['training']['scheduler']['anneal_strategy'],
         div_factor=config['training']['scheduler']['div_factor'],
         final_div_factor=config['training']['scheduler']['final_div_factor']
     )
+    
+    logger.info(f"\n{'='*60}")
+    logger.info(f"OneCycleLR Scheduler Configuration:")
+    logger.info(f"  Total steps: {total_steps} ({steps_per_epoch} batches/epoch * {config['training']['max_epochs']} epochs)")
+    logger.info(f"  Max LR: {config['training']['scheduler']['max_lr']:.6f}")
+    logger.info(f"  Initial LR: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['div_factor']:.6f}")
+    logger.info(f"  Final LR: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['final_div_factor']:.6f}")
+    logger.info(f"  Warmup: {config['training']['scheduler']['pct_start']*100:.1f}% ({int(total_steps*config['training']['scheduler']['pct_start'])} steps)")
+    logger.info(f"{'='*60}\n")
     
     # Training loop
     best_val_auroc = 0

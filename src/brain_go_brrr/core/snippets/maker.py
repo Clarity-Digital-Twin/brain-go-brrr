@@ -4,11 +4,13 @@ Creates and manages EEG snippets for analysis, featuring extraction, processing,
 and integration with EEGPT for comprehensive snippet analysis.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import mne
 import numpy as np
@@ -16,6 +18,11 @@ import numpy.typing as npt
 import pandas as pd
 
 from brain_go_brrr.utils import utc_now
+
+if TYPE_CHECKING:
+    from brain_go_brrr._typing import MNERaw
+
+Float64ND = npt.NDArray[np.float64]
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT"))
@@ -74,7 +81,7 @@ class EEGSnippetMaker:
 
     def extract_fixed_snippets(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         snippet_length: float | None = None,
         overlap: float | None = None,
         start_time: float = 0.0,
@@ -144,7 +151,7 @@ class EEGSnippetMaker:
 
     def extract_event_snippets(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         events: npt.NDArray[np.float64],
         event_id: dict[str, int],
         tmin: float = -1.0,
@@ -224,7 +231,7 @@ class EEGSnippetMaker:
 
     def extract_anomaly_snippets(
         self,
-        raw: mne.io.Raw,
+        raw: MNERaw,
         anomaly_scores: npt.NDArray[np.float64],
         score_threshold: float = 0.8,
         snippet_length: float = 5.0,
@@ -356,7 +363,7 @@ class EEGSnippetMaker:
             # Convert to dictionary
             features_dict = features.iloc[0].to_dict()
 
-            return features_dict  # type: ignore[no-any-return]
+            return cast("dict[str, Any]", features_dict)
 
         except Exception as e:
             logger.error(f"Feature extraction failed: {e}")
@@ -395,7 +402,7 @@ class EEGSnippetMaker:
             return {"error": str(e)}
 
     def classify_snippet(
-        self, snippet: dict[str, Any], features: dict[str, Any], eegpt_results: dict
+        self, snippet: dict[str, Any], features: dict[str, Any], eegpt_results: dict[str, Any]
     ) -> dict[str, Any]:
         """Classify snippet based on features and EEGPT results.
 

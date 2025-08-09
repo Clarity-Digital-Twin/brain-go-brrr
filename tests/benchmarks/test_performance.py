@@ -6,7 +6,6 @@ in CI to avoid slowing down the main test suite.
 
 import os
 
-import mne
 import numpy as np
 import psutil
 import pytest
@@ -22,19 +21,27 @@ class TestPerformanceBenchmarks:
     def eegpt_model(self):
         """Load EEGPT model for performance tests."""
         from brain_go_brrr.core.config import ModelConfig
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+        from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
 
         config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)
-        # Create architecture without checkpoint
-        model.encoder = create_eegpt_model(checkpoint_path=None)
+        # Create architecture without checkpoint - use wrapper for proper API
+        model.encoder = create_normalized_eegpt(checkpoint_path=None, normalize=False)
         model.encoder.to(model.device)
+
+        # Initialize abnormality head using helper (required for predict_abnormality)
+        if model.abnormality_head is None:
+            model.abnormality_head = model._create_abnormality_head()
+        model.abnormality_head.eval()  # Set to eval mode
+
         model.is_loaded = True
         return model
 
     @pytest.mark.slow
     def test_inference_speed(self, eegpt_model, benchmark):
         """Test inference speed meets requirements."""
+        import mne
+
         # Test with 2-minute recording (sufficient to measure performance)
         # Full 20-minute test would be done in dedicated benchmarks
         duration = 2 * 60  # seconds
@@ -59,6 +66,8 @@ class TestPerformanceBenchmarks:
     @pytest.mark.slow
     def test_memory_usage(self, eegpt_model, benchmark):
         """Test memory usage is reasonable."""
+        import mne
+
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss / 1024 / 1024  # MB
 

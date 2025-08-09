@@ -2,12 +2,14 @@
 """Preprocessing components for EEG data - TDD implementation."""
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy import signal
 from scipy.stats import median_abs_deviation
+
+from brain_go_brrr._typing import FloatArray
 
 
 @dataclass
@@ -41,7 +43,7 @@ class BandpassFilter:
         high = high_freq / nyquist
         self.sos = signal.butter(order, [low, high], btype="band", output="sos")
 
-    def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def apply(self, data: FloatArray) -> FloatArray:
         """Apply bandpass filter to data.
 
         Args:
@@ -51,10 +53,11 @@ class BandpassFilter:
             Filtered data with same shape
         """
         if data.ndim == 1:
-            return signal.sosfiltfilt(self.sos, data)
+            out = signal.sosfiltfilt(self.sos, data)
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Apply to each channel
-            filtered = np.zeros_like(data)
+            filtered = np.zeros_like(data, dtype=np.float64)
             for ch in range(data.shape[0]):
                 filtered[ch] = signal.sosfiltfilt(self.sos, data[ch])
             return filtered
@@ -86,7 +89,7 @@ class NotchFilter:
         # Use butterworth bandstop for better attenuation
         self.sos = signal.butter(4, [low, high], btype="bandstop", output="sos")
 
-    def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def apply(self, data: FloatArray) -> FloatArray:
         """Apply notch filter to data.
 
         Args:
@@ -96,10 +99,11 @@ class NotchFilter:
             Filtered data with same shape
         """
         if data.ndim == 1:
-            return signal.sosfiltfilt(self.sos, data)
+            out = signal.sosfiltfilt(self.sos, data)
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Apply to each channel
-            filtered = np.zeros_like(data)
+            filtered = np.zeros_like(data, dtype=np.float64)
             for ch in range(data.shape[0]):
                 filtered[ch] = signal.sosfiltfilt(self.sos, data[ch])
             return filtered
@@ -115,7 +119,7 @@ class Normalizer:
         """Initialize normalizer with specified method."""
         self.method = method
 
-    def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def apply(self, data: FloatArray) -> FloatArray:
         """Normalize data to zero mean and unit variance.
 
         Args:
@@ -130,7 +134,7 @@ class Normalizer:
                 std = np.std(data)
                 if std == 0:
                     return data - mean
-                return (data - mean) / std
+                return cast("FloatArray", np.asarray((data - mean) / std, dtype=np.float64))
             else:
                 # Normalize each channel independently
                 normalized = np.zeros_like(data)
@@ -149,7 +153,7 @@ class Normalizer:
                 mad = median_abs_deviation(data, scale="normal")
                 if mad == 0:
                     return data - median
-                return (data - median) / mad
+                return cast("FloatArray", np.asarray((data - median) / mad, dtype=np.float64))
             else:
                 # Robust normalization per channel
                 normalized = np.zeros_like(data)
@@ -178,7 +182,7 @@ class Resampler:
         self.target_rate = target_rate
         self.ratio = target_rate / original_rate
 
-    def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def apply(self, data: FloatArray) -> FloatArray:
         """Resample data to target rate.
 
         Args:
@@ -189,7 +193,8 @@ class Resampler:
         """
         if data.ndim == 1:
             n_samples_new = int(len(data) * self.ratio)
-            return signal.resample(data, n_samples_new)
+            out = signal.resample(data, n_samples_new)
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Resample each channel
             n_samples_new = int(data.shape[1] * self.ratio)
@@ -234,7 +239,7 @@ class PreprocessingPipeline:
         ):
             self.steps.append(Resampler(config.original_sampling_rate, config.target_sampling_rate))
 
-    def apply(self, data: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    def apply(self, data: FloatArray) -> FloatArray:
         """Apply full preprocessing pipeline.
 
         Args:

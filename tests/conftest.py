@@ -1,5 +1,7 @@
 """Shared test fixtures and configuration."""
 
+from __future__ import annotations
+
 import os
 
 # MUST disable multiprocessing BEFORE any imports to prevent hangs
@@ -14,14 +16,19 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 
 import random
+import socket
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import mne
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+
+# Type checking imports only - don't trigger actual imports
+if TYPE_CHECKING:
+    import mne
 
 # Import benchmark fixtures to make them available
 pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
@@ -31,11 +38,25 @@ random.seed(1337)
 np.random.seed(1337)
 
 
+def can_connect_to_redis(host="localhost", port=6379, timeout=0.5):
+    """Check if Redis is available for integration tests."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        result = sock.connect_ex((host, port))
+        sock.close()
+        return result == 0
+    except Exception:
+        return False
+
+
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line("markers", "integration: needs large models or datasets")
     config.addinivalue_line("markers", "slow: test takes > 5 seconds")
     config.addinivalue_line("markers", "external: requires external services or data")
+    config.addinivalue_line("markers", "redis: requires Redis server")
+    config.addinivalue_line("markers", "gpu: requires CUDA GPU")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -70,17 +91,20 @@ def force_seq_joblib(monkeypatch):
     monkeypatch.setenv("LOKY_MAX_CPU_COUNT", "1")
 
 
-@pytest.fixture(scope="session", autouse=True)
-def test_environment_setup():
-    """Set up test environment - silence MNE logging and replace Redis."""
-    # Silence MNE filter design messages
+@pytest.fixture(scope="session")
+def mne_mod():
+    """Import MNE and silence its logging - safe runtime import."""
     import mne
 
+    os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
     mne.set_log_level("WARNING")
+    return mne
 
-    # Also set environment variable for any subprocesses
-    import os
 
+@pytest.fixture(scope="session", autouse=True)
+def test_environment_setup():
+    """Set up test environment - configure logging levels."""
+    # Set environment variable for any subprocesses
     os.environ["MNE_LOGGING_LEVEL"] = "WARNING"
 
 
@@ -178,8 +202,9 @@ def sleep_edf_path(project_root) -> Path:
 
 
 @pytest.fixture
-def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
+def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> mne.io.Raw:
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
+    mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     raw.crop(tmax=60)  # 1-minute slice for CI speed
     yield raw
@@ -189,8 +214,9 @@ def sleep_edf_raw_cropped(sleep_edf_path) -> mne.io.Raw:
 
 
 @pytest.fixture
-def sleep_edf_raw_full(sleep_edf_path) -> mne.io.Raw:
+def sleep_edf_raw_full(sleep_edf_path, mne_mod) -> mne.io.Raw:
     """Load full Sleep-EDF file (for slow tests only)."""
+    mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
     yield raw
     # Cleanup: explicitly delete to free memory
@@ -346,12 +372,14 @@ def mock_abnormality_detector():
 
 
 @pytest.fixture
-def channel_shuffled_raw(mock_eeg_data):
+def channel_shuffled_raw(mock_eeg_data, mne_mod):
     """Create mock EEG data with shuffled channel order.
 
     This fixture creates EEG data with channels in a randomized order
     to test robustness of algorithms to different channel arrangements.
     """
+    mne = mne_mod
+
     # Set seed for reproducible shuffling
     np.random.seed(42)
 
@@ -379,7 +407,7 @@ def channel_shuffled_raw(mock_eeg_data):
     return shuffled_raw
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=False)  # DISABLED - causes import hangs
 def mock_eegpt_model(monkeypatch):
     """Auto-mock EEGPT model loading for all unit tests."""
     if os.environ.get("EEGPT_MODEL_PATH"):
@@ -387,7 +415,7 @@ def mock_eegpt_model(monkeypatch):
         return
 
     # Use centralized mocks
-    from ._mocks import mock_eegpt_model_loading
+    from tests._mocks import mock_eegpt_model_loading
 
     mock_eegpt_model_loading(monkeypatch)
 

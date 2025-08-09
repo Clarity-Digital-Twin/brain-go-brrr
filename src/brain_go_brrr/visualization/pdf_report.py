@@ -19,13 +19,16 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 
 logger = logging.getLogger(__name__)
 
 
-def generate_qc_report(qc_results: dict[str, Any], eeg_data: npt.NDArray | None = None) -> bytes:
+def generate_qc_report(
+    qc_results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None
+) -> bytes:
     """Generate a QC report from results.
 
     Args:
@@ -48,7 +51,7 @@ class PDFReportGenerator:
         self.dpi = 100
 
     def generate_report(
-        self, results: dict[str, Any], eeg_data: npt.NDArray | None = None
+        self, results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None
     ) -> bytes:
         """Generate complete PDF report.
 
@@ -300,7 +303,7 @@ class PDFReportGenerator:
 
     def _create_artifact_page(
         self,
-        eeg_data: npt.NDArray,
+        eeg_data: npt.NDArray[np.float64],
         artifacts: list[dict[str, Any]],
         results: dict[str, Any],
     ) -> Figure:
@@ -346,7 +349,7 @@ def create_electrode_heatmap(
         Matplotlib figure
     """
     fig: Figure
-    ax: plt.Axes
+    ax: Axes
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # Normalize positions
@@ -381,7 +384,7 @@ def create_electrode_heatmap(
 
 
 def create_artifact_examples(
-    eeg_data: npt.NDArray, artifacts: list[dict[str, Any]], sampling_rate: int
+    eeg_data: npt.NDArray[np.float64], artifacts: list[dict[str, Any]], sampling_rate: int
 ) -> Figure | None:
     """Create visualization of artifact examples.
 
@@ -398,13 +401,12 @@ def create_artifact_examples(
 
     n_artifacts = min(len(artifacts), 5)
     fig: Figure
-    axes: list[plt.Axes] | plt.Axes
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
-    if n_artifacts == 1:
-        axes = [axes]
+    # Properly handle axes typing
+    axes_list: list[Axes] = [axes] if isinstance(axes, Axes) else list(axes.ravel())
 
-    for i, (ax, artifact) in enumerate(zip(axes, artifacts[:n_artifacts], strict=False)):
+    for i, (ax, artifact) in enumerate(zip(axes_list, artifacts[:n_artifacts], strict=False)):
         # Extract segment
         start_sample = int(artifact["start"] * sampling_rate)
         end_sample = int(artifact["end"] * sampling_rate)

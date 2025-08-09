@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.optim import Adam
@@ -21,12 +22,12 @@ from brain_go_brrr.models.linear_probe import SleepStageProbe
 logger = logging.getLogger(__name__)
 
 
-class SleepDataset(Dataset):
+class SleepDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     """PyTorch dataset for sleep EEG windows."""
 
     def __init__(
         self,
-        windows: list[np.ndarray],
+        windows: list[npt.NDArray[np.float64]],
         labels: list[int],
         augment: bool = False,
     ):
@@ -169,7 +170,7 @@ def evaluate_probe(
     eegpt_model: EEGPTModel,
     dataset: SleepDataset,
     batch_size: int = 32,
-) -> tuple[float, np.ndarray]:
+) -> tuple[float, npt.NDArray[np.float64]]:
     """Evaluate probe on dataset.
 
     Args:
@@ -215,7 +216,7 @@ def evaluate_probe(
 
 def load_sleep_edf_data(
     data_dir: Path, max_files: int | None = None
-) -> tuple[list[np.ndarray], list[int]]:
+) -> tuple[list[npt.NDArray[np.float64]], list[int]]:
     """Load Sleep-EDF dataset.
 
     Args:
@@ -257,7 +258,9 @@ def load_sleep_edf_data(
     return windows, labels
 
 
-def extract_windows_from_raw(raw: Any, window_duration: float = 4.0) -> list[np.ndarray]:
+def extract_windows_from_raw(
+    raw: Any, window_duration: float = 4.0
+) -> list[npt.NDArray[np.float64]]:
     """Extract fixed-duration windows from Raw object.
 
     Args:
@@ -280,11 +283,11 @@ def extract_windows_from_raw(raw: Any, window_duration: float = 4.0) -> list[np.
 
 
 def split_train_val(
-    windows: list[np.ndarray],
+    windows: list[npt.NDArray[np.float64]],
     labels: list[int],
     val_split: float = 0.2,
     random_seed: int = 42,
-) -> tuple[tuple[list, list], tuple[list, list]]:
+) -> tuple[tuple[list[Any], list[Any]], tuple[list[Any], list[Any]]]:
     """Split data into train and validation sets.
 
     Args:

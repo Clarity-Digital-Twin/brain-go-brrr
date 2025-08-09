@@ -6,6 +6,7 @@ and Reliable Representation of EEG Signals"
 
 import logging
 from pathlib import Path
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -135,7 +136,7 @@ class EEGPTLinearProbe(nn.Module):
         # Classify
         logits = self.classifier(features)
 
-        return logits
+        return cast("torch.Tensor", logits)
 
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
         """Get class probabilities.

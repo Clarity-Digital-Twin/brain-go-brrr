@@ -18,7 +18,7 @@ console = Console()
 logger = get_logger(__name__)
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def train(
     config_file: Path | None = typer.Option(
         None, "--config", "-c", help="Path to configuration file"
@@ -47,7 +47,7 @@ def train(
     console.print("[yellow]Training logic not implemented yet[/yellow]")
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def preprocess(
     data_path: Path = typer.Argument(..., help="Path to raw EEG data"),
     output_path: Path = typer.Argument(..., help="Path to save preprocessed data"),
@@ -66,7 +66,7 @@ def preprocess(
     console.print("[yellow]Preprocessing logic not implemented yet[/yellow]")
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def evaluate(
     model_path: Path = typer.Argument(..., help="Path to trained model"),
     data_path: Path = typer.Argument(..., help="Path to evaluation data"),
@@ -86,7 +86,7 @@ def evaluate(
     console.print("[yellow]Evaluation logic not implemented yet[/yellow]")
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def serve(
     model_path: Path = typer.Argument(..., help="Path to trained model"),
     host: str = typer.Option("127.0.0.1", help="Host address"),
@@ -100,7 +100,7 @@ def serve(
     console.print("[yellow]Serving logic not implemented yet[/yellow]")
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def stream(
     edf_path: Path = typer.Argument(..., help="Path to EDF file to stream"),
     window_size: float = typer.Option(4.0, "--window-size", "-w", help="Window size in seconds"),
@@ -185,7 +185,7 @@ def stream(
         raise
 
 
-@app.command()  # type: ignore[misc]
+@app.command()
 def version() -> None:
     """Show version information."""
     from brain_go_brrr import __version__

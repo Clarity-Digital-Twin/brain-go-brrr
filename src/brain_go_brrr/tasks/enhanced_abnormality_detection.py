@@ -7,9 +7,10 @@ See experiments/eegpt_linear_probe/LIGHTNING_BUG_REPORT.md for details.
 """
 
 import logging
-from typing import Any
+from typing import Any, TypedDict, cast
 
 import numpy as np
+import numpy.typing as npt
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -30,6 +31,19 @@ from ..models.eegpt_wrapper import create_normalized_eegpt
 logger = logging.getLogger(__name__)
 
 
+class HParams(TypedDict, total=False):
+    """Typed hyperparameters for Lightning module."""
+
+    learning_rate: float
+    weight_decay: float
+    scheduler_type: str  # "onecycle" | "cosine" | "none"
+    warmup_epochs: int
+    total_epochs: int
+    layer_decay: float
+    batch_size: int
+    max_epochs: int
+
+
 class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     """Enhanced Lightning module for EEGPT abnormality detection.
 
@@ -40,6 +54,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     - Proper warmup handling
     - Channel adaptation
     """
+
+    # Lightning's hparams is a MutableMapping, not our HParams type
+    # We access it dynamically via self.hparams
 
     def __init__(
         self,
@@ -116,10 +133,6 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         Returns:
             Logits [B, n_classes]
         """
-        # Apply channel adaptation if needed
-        if hasattr(self.probe, "adapt_channels"):
-            x = self.probe.adapt_channels(x)
-
         # Extract features with backbone
         if self.backbone_frozen:
             self.backbone.eval()
@@ -131,7 +144,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Apply probe
         logits = self.probe(features)
 
-        return logits
+        return cast("torch.Tensor", logits)
 
     def training_step(
         self,
@@ -171,7 +184,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
         )
 
-        return loss
+        return cast("torch.Tensor", loss)
 
     def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
@@ -230,7 +243,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         self.val_outputs.clear()
 
     def _calculate_metrics(
-        self, labels: np.ndarray, preds: np.ndarray, probs: np.ndarray
+        self,
+        labels: npt.NDArray[np.float64],
+        preds: npt.NDArray[np.float64],
+        probs: npt.NDArray[np.float64],
     ) -> dict[str, float]:
         """Calculate classification metrics."""
         metrics = {}
@@ -250,8 +266,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return metrics
 
-    def configure_optimizers(self) -> dict[str, Any]:
+    def configure_optimizers(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
+        from torch.optim.lr_scheduler import CosineAnnealingLR
+
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()
 
@@ -263,49 +281,40 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         )
 
         # Create scheduler based on type
-        if self.hparams.scheduler_type == "onecycle":
-            scheduler = OneCycleLR(
+        scheduler_type = self.hparams.get("scheduler_type", "none")
+
+        sched: Any
+        if scheduler_type == "onecycle":
+            sched = OneCycleLR(
                 optimizer,
-                max_lr=self.hparams.learning_rate,
-                total_steps=self.trainer.estimated_stepping_batches,
-                pct_start=self.hparams.warmup_epochs / self.hparams.total_epochs,
+                max_lr=self.hparams.get("learning_rate", 1e-3),
+                total_steps=int(self.trainer.estimated_stepping_batches),
+                pct_start=self.hparams.get("warmup_epochs", 5)
+                / max(1, self.hparams.get("total_epochs", 50)),
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000
             )
-
             return {
                 "optimizer": optimizer,
                 "lr_scheduler": {
-                    "scheduler": scheduler,
+                    "scheduler": sched,
                     "interval": "step",
                 },
             }
-        else:
-            # Simple warmup + cosine annealing
-            from torch.optim.lr_scheduler import CosineAnnealingLR
 
-            def warmup_lambda(epoch: int) -> float:
-                if epoch < self.hparams.warmup_epochs:
-                    return float(epoch) / float(self.hparams.warmup_epochs)
-                return 1.0
-
-            # Use only cosine scheduler (warmup is handled by OneCycleLR-like behavior)
-            scheduler = CosineAnnealingLR(
+        elif scheduler_type == "cosine":
+            sched = CosineAnnealingLR(
                 optimizer,
-                T_max=self.trainer.estimated_stepping_batches,
+                T_max=int(self.trainer.estimated_stepping_batches),
                 eta_min=1e-6,
             )
+            return [optimizer], [sched]
 
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "interval": "step",
-                },
-            }
+        # No scheduler
+        return optimizer
 
-    def _get_param_groups(self) -> list:
+    def _get_param_groups(self) -> list[dict[str, Any]]:
         """Get parameter groups with layer decay."""
         param_groups = []
 
@@ -318,8 +327,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         param_groups.append(
             {
                 "params": probe_params,
-                "lr": self.hparams.learning_rate,
-                "weight_decay": self.hparams.weight_decay,
+                "lr": self.hparams.get("learning_rate", 1e-3),
+                "weight_decay": self.hparams.get("weight_decay", 0.01),
                 "name": "probe",
             }
         )
@@ -333,12 +342,12 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                         layer_params.append(param)
 
                 if layer_params:
-                    lr_scale = self.hparams.layer_decay ** (11 - layer_id)
+                    lr_scale = self.hparams.get("layer_decay", 0.75) ** (11 - layer_id)
                     param_groups.append(
                         {
                             "params": layer_params,
-                            "lr": self.hparams.learning_rate * lr_scale,
-                            "weight_decay": self.hparams.weight_decay,
+                            "lr": self.hparams.get("learning_rate", 1e-3) * lr_scale,
+                            "weight_decay": self.hparams.get("weight_decay", 0.01),
                             "name": f"backbone_layer_{layer_id}",
                         }
                     )

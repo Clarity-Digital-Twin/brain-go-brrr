@@ -4,12 +4,13 @@ Implements 8-second windows with configurable overlap.
 """
 
 import numpy as np
+import numpy.typing as npt
 
 
 class WindowExtractor:
     """Extract sliding windows from continuous EEG data."""
 
-    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0):
+    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0) -> None:
         """Initialize window extractor.
 
         Args:
@@ -20,7 +21,7 @@ class WindowExtractor:
         self.overlap_seconds = overlap_seconds
         self.stride_seconds = window_seconds - overlap_seconds
 
-    def extract(self, data: np.ndarray, sfreq: float) -> list[np.ndarray]:
+    def extract(self, data: npt.NDArray[np.float64], sfreq: float) -> list[npt.NDArray[np.float64]]:
         """Extract sliding windows from continuous data.
 
         Args:
@@ -57,8 +58,8 @@ class WindowExtractor:
         return windows
 
     def extract_with_timestamps(
-        self, data: np.ndarray, sfreq: float
-    ) -> tuple[list[np.ndarray], list[tuple[float, float]]]:
+        self, data: npt.NDArray[np.float64], sfreq: float
+    ) -> tuple[list[npt.NDArray[np.float64]], list[tuple[float, float]]]:
         """Extract windows with their timestamps.
 
         Args:
@@ -83,7 +84,7 @@ class WindowExtractor:
 class WindowValidator:
     """Validate extracted windows for quality."""
 
-    def __init__(self, expected_channels: int, expected_samples: int):
+    def __init__(self, expected_channels: int, expected_samples: int) -> None:
         """Initialize validator.
 
         Args:
@@ -93,7 +94,7 @@ class WindowValidator:
         self.expected_channels = expected_channels
         self.expected_samples = expected_samples
 
-    def is_valid(self, window: np.ndarray) -> bool:
+    def is_valid(self, window: npt.NDArray[np.float64]) -> bool:
         """Check if window is valid.
 
         Args:
@@ -117,7 +118,7 @@ class WindowValidator:
 class BatchWindowExtractor:
     """Extract windows from multiple recordings."""
 
-    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0):
+    def __init__(self, window_seconds: float = 8.0, overlap_seconds: float = 4.0) -> None:
         """Initialize batch extractor.
 
         Args:
@@ -127,8 +128,8 @@ class BatchWindowExtractor:
         self.extractor = WindowExtractor(window_seconds, overlap_seconds)
 
     def extract_batch(
-        self, recordings: list[np.ndarray], sfreq: float
-    ) -> tuple[list[np.ndarray], list[int]]:
+        self, recordings: list[npt.NDArray[np.float64]], sfreq: float
+    ) -> tuple[list[npt.NDArray[np.float64]], list[int]]:
         """Extract windows from multiple recordings.
 
         Args:
