@@ -322,10 +322,10 @@ class SleepAnalyzer:
             epoch_length: Epoch duration in seconds
         """
         # Handle both Raw object and hypnogram array for compatibility
-        if hasattr(raw_or_hypnogram, "get_data"):
+        from brain_go_brrr import mne_compat
+        if mne_compat.is_mne_raw(raw_or_hypnogram):
             # It's a Raw object, stage it first
-            # Can't use isinstance with Protocol, use duck typing
-            staging_result = self.stage_sleep(raw_or_hypnogram)  # type: ignore[arg-type]
+            staging_result = self.stage_sleep(raw_or_hypnogram)
             # Handle both tuple and array return types
             hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:

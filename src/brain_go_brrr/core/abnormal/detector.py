@@ -414,8 +414,9 @@ class AbnormalityDetector:
 
         # Check for bad channels
         info = raw.info
+        from brain_go_brrr import mne_compat
         if (
-            "bads" in info  # type: ignore[operator]
+            mne_compat.info_has_field(info, "bads")
             and len(info["bads"]) > n_channels * self.config.processing.max_bad_channel_ratio
         ):
             raise ValueError(

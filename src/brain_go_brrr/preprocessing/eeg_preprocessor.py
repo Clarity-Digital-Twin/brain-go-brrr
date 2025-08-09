@@ -264,11 +264,11 @@ class EEGPreprocessor:
             raw_clean.set_annotations(raw.annotations.copy())
 
         # Preserve other important info fields
-        if "meas_date" in raw.info and raw.info["meas_date"] is not None:  # type: ignore[operator]
+        if mne_compat.info_has_field(raw.info, "meas_date") and raw.info["meas_date"] is not None:
             raw_clean.set_meas_date(raw.info["meas_date"])
         # Note: dig (digitization) info is preserved automatically through epochs
         for key in ["line_freq", "device_info", "subject_info"]:
-            if key in raw.info:  # type: ignore[operator]
+            if mne_compat.info_has_field(raw.info, key):
                 raw_clean.info[key] = raw.info[key]
 
         return cast("MNERaw", raw_clean)
@@ -319,7 +319,8 @@ class EEGPreprocessor:
                 onsets, durations, descriptions, orig_time=raw.info["meas_date"]
             )
             if hasattr(raw, "annotations"):
-                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
+                # MNE Raw objects have set_annotations method
+                raw.set_annotations(raw.annotations + annotations)
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(

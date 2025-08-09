@@ -272,7 +272,7 @@ class FlexibleEEGPreprocessor:
 
             if len(matches) >= 3:  # Need at least 3 standard channels
                 montage = mne.channels.make_standard_montage("standard_1020")
-                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[attr-defined]
+                raw.set_montage(montage, match_case=False, on_missing="ignore")
                 logger.info("Added standard 10-20 montage")
         except Exception as e:
             logger.debug(f"Could not add montage: {e}")

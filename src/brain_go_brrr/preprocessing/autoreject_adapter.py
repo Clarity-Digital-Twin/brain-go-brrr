@@ -205,7 +205,7 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        raw.set_montage(montage, on_missing="ignore")  # type: ignore[attr-defined]
+        raw.set_montage(montage, on_missing="ignore")
 
         return raw
 

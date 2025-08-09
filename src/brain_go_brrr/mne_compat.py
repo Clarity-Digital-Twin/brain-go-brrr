@@ -5,12 +5,32 @@ API differences and type issues in one place rather than scattering
 type: ignore comments throughout the codebase.
 """
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import mne
 import numpy as np
 import numpy.typing as npt
 from mne.io import BaseRaw as MNERaw
+
+if TYPE_CHECKING:
+    from typing import TypeGuard
+
+
+def is_mne_raw(obj: Any) -> "TypeGuard[MNERaw]":
+    """Check if object is an MNE Raw object.
+    
+    Args:
+        obj: Object to check
+        
+    Returns:
+        True if object is MNE Raw
+    """
+    return (
+        hasattr(obj, "get_data") 
+        and hasattr(obj, "info") 
+        and hasattr(obj, "ch_names")
+        and hasattr(obj, "times")
+    )
 
 
 def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:

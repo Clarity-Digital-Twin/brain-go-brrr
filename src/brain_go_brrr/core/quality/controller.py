@@ -553,13 +553,16 @@ class EEGQualityController:
 
         # Bad channel detection
         bad_channels = self.detect_bad_channels(raw)
-        raw.info["bads"] = bad_channels  # type: ignore[index]
+        raw.info["bads"] = bad_channels
 
         # Create epochs
         epochs = self.create_epochs(raw)
 
         # Auto-reject epochs
-        epochs_clean, reject_log = self.auto_reject_epochs(epochs, return_log=True)  # type: ignore[misc]
+        from typing import cast, Any
+        result = self.auto_reject_epochs(epochs, return_log=True)
+        epochs_clean = cast(Any, result[0])
+        reject_log = cast(Any, result[1]) if len(result) > 1 else None
 
         # Compute abnormality score
         abnormality_result = self.compute_abnormality_score(epochs_clean)
