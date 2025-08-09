@@ -117,7 +117,7 @@ class FlexibleEEGPreprocessor:
 
         self.notch_freq = notch_freq
 
-    def preprocess(self, raw: MNERaw) -> mne.io.BaseRaw:
+    def preprocess(self, raw: MNERaw) -> MNERaw:
         """Preprocess EEG data with flexible handling.
 
         Args:

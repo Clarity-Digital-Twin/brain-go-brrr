@@ -84,7 +84,7 @@ class EEGPTFeatureExtractor:
         if self.model is None:
             # Return random embeddings for testing
             logger.warning("Using random embeddings (model not loaded)")
-            embeddings = np.random.randn(len(windows), 512).astype(np.float32)
+            embeddings = np.random.randn(len(windows), 512).astype(np.float64)
         else:
             # Run EEGPT inference
             embeddings = self._run_inference(windows, preprocessed.ch_names)

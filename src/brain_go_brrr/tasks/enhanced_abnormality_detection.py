@@ -54,7 +54,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     - Channel adaptation
     """
 
-    hparams: HParams  # Type annotation for Lightning hparams
+    # Lightning's hparams is a MutableMapping, not our HParams type
+    # We access it dynamically via self.hparams
 
     def __init__(
         self,
@@ -261,7 +262,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return metrics
 
-    def configure_optimizers(self) -> dict[str, Any] | list[Any] | Any:
+    def configure_optimizers(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
         from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 
@@ -279,10 +280,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         scheduler_type = self.hparams.get("scheduler_type", "none")
 
         if scheduler_type == "onecycle":
-            sched: _LRScheduler = OneCycleLR(
+            sched = OneCycleLR(
                 optimizer,
                 max_lr=self.hparams.get("learning_rate", 1e-3),
-                total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
+                total_steps=int(self.trainer.estimated_stepping_batches),
                 pct_start=self.hparams.get("warmup_epochs", 5) / max(1, self.hparams.get("total_epochs", 50)),
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
@@ -299,7 +300,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
                 optimizer,
-                T_max=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
+                T_max=int(self.trainer.estimated_stepping_batches),
                 eta_min=1e-6,
             )
             return [optimizer], [sched]
