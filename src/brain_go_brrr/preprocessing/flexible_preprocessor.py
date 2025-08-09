@@ -130,7 +130,7 @@ class FlexibleEEGPreprocessor:
         raw = raw.copy()
 
         # Check positions if required
-        if self.require_positions and raw.get_montage() is None:
+        if self.require_positions and raw.info.get_montage() is None:
             raise ValueError("Channel positions required but not found in data")
 
         # Step 1: Map channel names to standard
@@ -187,7 +187,8 @@ class FlexibleEEGPreprocessor:
             ch_names = [raw.ch_names[i] for i in picks]
 
             # Keep all EEG channels for sleep analysis
-            eeg_channels = [ch for ch in ch_names if raw.get_channel_types([ch])[0] == "eeg"]
+            ch_types = raw.get_channel_types()
+        eeg_channels = [ch for i, ch in enumerate(ch_names) if ch_types[i] == "eeg"]
             if eeg_channels:
                 raw.pick_channels(ch_names, ordered=True)
                 logger.info(f"Selected {len(ch_names)} channels for sleep (EEG+EOG+EMG)")
@@ -207,7 +208,8 @@ class FlexibleEEGPreprocessor:
                     logger.info(f"Selected {len(selected)} channels for {self.mode}")
             elif ch_names:
                 # Just pick EEG channels
-                raw.pick_types(eeg=True, exclude="bads")
+                picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
+                raw.pick(picks)
 
         return raw
 
@@ -235,7 +237,7 @@ class FlexibleEEGPreprocessor:
 
     def _add_montage_if_possible(self, raw: MNERaw) -> MNERaw:
         """Add standard montage if channels match standard names."""
-        if raw.get_montage() is not None:
+        if raw.info.get_montage() is not None:
             return raw
 
         # Try to add standard montage
@@ -269,7 +271,7 @@ class FlexibleEEGPreprocessor:
 
             if len(matches) >= 3:  # Need at least 3 standard channels
                 montage = mne.channels.make_standard_montage("standard_1020")
-                raw.set_montage(montage, match_case=False, on_missing="ignore")
+                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[call-arg]
                 logger.info("Added standard 10-20 montage")
         except Exception as e:
             logger.debug(f"Could not add montage: {e}")
@@ -280,14 +282,16 @@ class FlexibleEEGPreprocessor:
         """Apply frequency filters."""
         # High-pass filter
         if self.highpass_freq > 0:
+            picks = mne.pick_types(raw.info, eeg=True)
             raw.filter(
-                l_freq=self.highpass_freq, h_freq=None, picks="eeg", method="fir", verbose=False
+                l_freq=self.highpass_freq, h_freq=None, picks=picks, method="fir", verbose=False
             )
 
         # Low-pass filter
         if self.lowpass_freq and self.lowpass_freq < raw.info["sfreq"] / 2:
+            picks = mne.pick_types(raw.info, eeg=True)
             raw.filter(
-                l_freq=None, h_freq=self.lowpass_freq, picks="eeg", method="fir", verbose=False
+                l_freq=None, h_freq=self.lowpass_freq, picks=picks, method="fir", verbose=False
             )
 
         # Notch filter
@@ -296,7 +300,8 @@ class FlexibleEEGPreprocessor:
             self.notch_freq = 50 if raw.info.get("line_freq", 50) == 50 else 60
 
         if self.notch_freq < raw.info["sfreq"] / 2:
-            raw.notch_filter(freqs=self.notch_freq, picks="eeg", verbose=False)
+            picks = mne.pick_types(raw.info, eeg=True)
+            raw.notch_filter(freqs=self.notch_freq, picks=picks, verbose=False)
 
         return raw
 
@@ -312,7 +317,7 @@ class FlexibleEEGPreprocessor:
         if not self.use_autoreject:
             return raw
 
-        has_positions = raw.get_montage() is not None
+        has_positions = raw.info.get_montage() is not None
 
         if has_positions:
             # Try to use Autoreject
@@ -346,7 +351,8 @@ class FlexibleEEGPreprocessor:
     def _fallback_artifact_rejection(self, raw: MNERaw) -> MNERaw:
         """Simple amplitude-based artifact rejection."""
         # Find and interpolate bad segments
-        data = raw.get_data(picks="eeg")
+        picks = mne.pick_types(raw.info, eeg=True)
+        data = raw.get_data(picks=picks)
 
         # Detect high amplitude artifacts
         threshold = 150e-6  # 150 μV
@@ -354,7 +360,8 @@ class FlexibleEEGPreprocessor:
 
         if np.any(bad_times):
             # Simple clipping for now
-            raw._data[:, bad_times] = np.clip(raw._data[:, bad_times], -threshold, threshold)
+            data[:, bad_times] = np.clip(data[:, bad_times], -threshold, threshold)
+            raw._data = data  # type: ignore[attr-defined]
             logger.info(
                 f"Clipped {np.sum(bad_times)} samples with amplitude > {threshold * 1e6:.0f} μV"
             )

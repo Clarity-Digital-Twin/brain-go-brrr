@@ -209,7 +209,7 @@ class EEGPreprocessor:
             return raw
 
         # Check if we have valid channel positions
-        montage = raw.get_montage()
+        montage = raw.info.get_montage()
         if montage is None:
             logger.warning(
                 "No channel positions found - using amplitude-based rejection instead of AutoReject"
@@ -258,15 +258,15 @@ class EEGPreprocessor:
         )
 
         # Preserve all critical metadata from original
-        if raw.annotations is not None:
-            raw_clean.set_annotations(raw.annotations.copy())
+        if hasattr(raw, "annotations") and raw.annotations is not None:
+            raw_clean.set_annotations(raw.annotations.copy())  # type: ignore[attr-defined]
 
         # Preserve other important info fields
-        if "meas_date" in raw.info and raw.info["meas_date"] is not None:
+        if "meas_date" in raw.info and raw.info["meas_date"] is not None:  # type: ignore[operator]
             raw_clean.set_meas_date(raw.info["meas_date"])
         # Note: dig (digitization) info is preserved automatically through epochs
         for key in ["line_freq", "device_info", "subject_info"]:
-            if key in raw.info:
+            if key in raw.info:  # type: ignore[operator]
                 raw_clean.info[key] = raw.info[key]
 
         return raw_clean
@@ -316,7 +316,8 @@ class EEGPreprocessor:
             annotations = mne.Annotations(
                 onsets, durations, descriptions, orig_time=raw.info["meas_date"]
             )
-            raw.set_annotations(raw.annotations + annotations)
+            if hasattr(raw, "annotations"):
+                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(
@@ -331,7 +332,7 @@ class EEGPreprocessor:
         raw.filter(
             l_freq=self.highpass_freq,
             h_freq=None,
-            picks="eeg",
+            picks=mne.pick_types(raw.info, eeg=True),
             method="iir",
             iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,
@@ -344,7 +345,7 @@ class EEGPreprocessor:
         raw.filter(
             l_freq=None,
             h_freq=self.lowpass_freq,
-            picks="eeg",
+            picks=mne.pick_types(raw.info, eeg=True),
             method="iir",
             iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,
@@ -353,7 +354,7 @@ class EEGPreprocessor:
 
     def _apply_notch_filter(self, raw: MNERaw) -> MNERaw:
         """Apply notch filter to remove powerline interference."""
-        raw.notch_filter(freqs=self.notch_freq, picks="eeg", method="iir", verbose=False)
+        raw.notch_filter(freqs=self.notch_freq, picks=mne.pick_types(raw.info, eeg=True), method="iir", verbose=False)
         return raw
 
     def _resample_to_target(self, raw: MNERaw) -> MNERaw:

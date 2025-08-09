@@ -565,7 +565,8 @@ def preprocess_for_eegpt(
     raw.set_eeg_reference("average", projection=False)
 
     # Ensure proper channel types
-    raw.pick_types(meg=False, eeg=True, eog=False, exclude="bads")
+    picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, exclude="bads")
+    raw.pick(picks)
 
     # Limit to max channels if needed
     if len(raw.ch_names) > 58:

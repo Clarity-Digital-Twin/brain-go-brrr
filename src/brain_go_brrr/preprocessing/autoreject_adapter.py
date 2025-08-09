@@ -127,7 +127,7 @@ class WindowEpochAdapter:
         reconstructed /= counts
 
         # Create new raw object
-        raw_clean = mne.io.RawArray(reconstructed, original_raw.info.copy(), verbose=False)
+        raw_clean = mne.io.RawArray(reconstructed, original_raw.info.copy(), verbose=False)  # type: ignore[attr-defined]
 
         logger.debug(
             f"Reconstructed {total_samples / original_raw.info['sfreq']:.1f}s of continuous data"
@@ -205,7 +205,7 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        raw.set_montage(montage, on_missing="ignore")
+        raw.set_montage(montage, on_missing="ignore")  # type: ignore[call-arg]
 
         return raw
 
