@@ -144,9 +144,9 @@ check: test-fast quality ## Run all tests and quality checks
 
 ##@ Testing
 
-test: ## Run fast tests only (excludes slow, external, gpu) with parallel execution
+test: ## Run fast tests only (excludes integration, slow, external, gpu) with parallel execution
 	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -213,7 +213,7 @@ test-parallel: ## Run tests in parallel (with xdist)
 
 test-fast: ## Run tests in parallel without coverage (fastest)
 	@echo "$(GREEN)Running tests in parallel (fast mode)...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
 
 test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
@@ -274,15 +274,15 @@ test-ci: ## Run tests for CI with coverage and XML report
 # Duplicate removed - see line 157 for test-integration target
 
 
-test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
-	@echo "$(GREEN)Running all tests with full coverage (excluding slow benchmarks)...$(NC)"
+test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchmarks)
+	@echo "$(GREEN)Running all tests with full coverage (excluding integration/benchmarks)...$(NC)"
 	$(PYTEST_WITH_COV) $(TEST_DIR) \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
 		--cov-fail-under=55 \
-		-m "not benchmark" \
+		-m "not integration and not benchmark" \
 		--ignore=tests/benchmarks
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(UV) run coverage html
