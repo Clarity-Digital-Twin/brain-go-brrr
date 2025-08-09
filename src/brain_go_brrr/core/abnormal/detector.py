@@ -33,7 +33,7 @@ class EEGBackbone(Protocol):
         """Number of summary tokens."""
         ...
 
-    def extract_features(self, data: npt.NDArray[np.float64], channel_names: list[str]) -> np.ndarray:
+    def extract_features(self, data: npt.NDArray[np.float64], channel_names: list[str]) -> np.ndarray[Any, Any]:
         """Extract features from EEG data."""
         ...
 

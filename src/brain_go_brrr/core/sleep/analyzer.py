@@ -282,7 +282,7 @@ class SleepAnalyzer:
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
             # Return just the array for simple interface
-            return y_pred
+            return y_pred  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback (always return strings)

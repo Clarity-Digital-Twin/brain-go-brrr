@@ -428,8 +428,8 @@ class EEGTransformer(nn.Module):
         # Map channel names to indices
         chan_ids = []
         for name in channel_names:
-            if name in self.n_channels:
-                chan_ids.append(self.n_channels.index(name))
+            if name in self.n_channels:  # type: ignore[comparison-overlap]
+                chan_ids.append(self.n_channels.index(name))  # type: ignore[arg-type]
             else:
                 chan_ids.append(0)  # Default channel
         return torch.tensor(chan_ids, dtype=torch.long)

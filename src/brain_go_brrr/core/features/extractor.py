@@ -92,9 +92,9 @@ class EEGPTFeatureExtractor:
 
         # Cache if enabled
         if self.enable_cache and len(self._cache) < self.cache_size:
-            self._cache[cache_key] = embeddings
+            self._cache[cache_key] = embeddings.astype(np.float64)  # type: ignore[assignment]
 
-        return embeddings
+        return embeddings.astype(np.float64)  # type: ignore[return-value]
 
     def extract_embeddings_with_metadata(self, raw: mne.io.Raw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
@@ -177,7 +177,7 @@ class EEGPTFeatureExtractor:
 
         return windows
 
-    def _run_inference(self, windows: list[npt.NDArray[np.float64]], channel_names: list[str]) -> np.ndarray:
+    def _run_inference(self, windows: list[npt.NDArray[np.float64]], channel_names: list[str]) -> np.ndarray[Any, Any]:
         """Run EEGPT inference on windows.
 
         Args:

@@ -127,7 +127,7 @@ class EEGPTTwoLayerProbe(nn.Module):
             x = self.chan_conv(x)  # [B, 22, T] -> [B, 19, T]
         return x
 
-    def forward(self, features: torch.Tensor, return_features: bool = False) -> torch.Tensor:
+    def forward(self, features: torch.Tensor, return_features: bool = False) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         """Forward pass matching paper implementation.
 
         Args:
@@ -169,8 +169,8 @@ class EEGPTTwoLayerProbe(nn.Module):
         logits = self.linear_probe2(h_flat)  # [B, n_classes]
 
         if return_features:
-            return logits, h
-        return logits
+            return logits, h  # type: ignore[return-value]
+        return logits  # type: ignore[no-any-return]
 
 
 class EEGPTChannelAdapter(nn.Module):

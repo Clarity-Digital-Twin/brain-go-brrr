@@ -405,9 +405,9 @@ def create_artifact_examples(
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
     if n_artifacts == 1:
-        axes = [axes]
+        axes = [axes]  # type: ignore[list-item]
 
-    for i, (ax, artifact) in enumerate(zip(axes, artifacts[:n_artifacts], strict=False)):
+    for i, (ax, artifact) in enumerate(zip(axes, artifacts[:n_artifacts], strict=False)):  # type: ignore[arg-type]
         # Extract segment
         start_sample = int(artifact["start"] * sampling_rate)
         end_sample = int(artifact["end"] * sampling_rate)

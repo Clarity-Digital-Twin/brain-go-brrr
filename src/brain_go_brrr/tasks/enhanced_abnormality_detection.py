@@ -276,7 +276,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             scheduler = OneCycleLR(
                 optimizer,
                 max_lr=self.hparams.get("learning_rate", 1e-3),
-                total_steps=self.trainer.estimated_stepping_batches,
+                total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
                 pct_start=self.hparams.get("warmup_epochs", 5) / self.hparams.get("total_epochs", 50),
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
@@ -300,9 +300,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 return 1.0
 
             # Use only cosine scheduler (warmup is handled by OneCycleLR-like behavior)
-            scheduler = CosineAnnealingLR(
+            scheduler = CosineAnnealingLR(  # type: ignore[assignment]
                 optimizer,
-                T_max=self.trainer.estimated_stepping_batches,
+                T_max=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
                 eta_min=1e-6,
             )
 

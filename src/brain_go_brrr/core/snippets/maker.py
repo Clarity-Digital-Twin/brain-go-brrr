@@ -356,7 +356,7 @@ class EEGSnippetMaker:
             # Convert to dictionary
             features_dict = features.iloc[0].to_dict()
 
-            return features_dict
+            return features_dict  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Feature extraction failed: {e}")

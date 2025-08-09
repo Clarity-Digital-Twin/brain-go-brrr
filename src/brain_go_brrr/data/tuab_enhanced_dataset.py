@@ -399,11 +399,12 @@ class TUABEnhancedDataset(TUABDataset):
         
         return torch.tensor(sample_weights, dtype=torch.float32)
     
-    def _extract_windows(self, raw: mne.io.Raw) -> List[Tuple[npt.NDArray[np.float64], int]]:
+    def _extract_windows(self, raw: mne.io.Raw, label: int = 0) -> List[Tuple[npt.NDArray[np.float64], int]]:
         """Extract windows with proper overlap.
         
         Args:
             raw: Preprocessed raw object
+            label: Label for the windows (0=normal, 1=abnormal)
             
         Returns:
             List of (window_data, label) tuples

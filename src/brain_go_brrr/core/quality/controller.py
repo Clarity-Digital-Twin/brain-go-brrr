@@ -277,7 +277,7 @@ class EEGQualityController:
                     bad_channels.append(ch_name)
 
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
-        return bad_channels
+        return bad_channels  # type: ignore[no-any-return]
 
     def create_epochs(
         self,

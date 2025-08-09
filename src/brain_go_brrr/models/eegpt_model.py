@@ -470,7 +470,7 @@ class EEGPTModel:
 
         return self.analyze(raw, analysis_type)
 
-    def extract_windows(self, data: npt.NDArray[np.float64], sampling_rate: int) -> list[np.ndarray]:
+    def extract_windows(self, data: npt.NDArray[np.float64], sampling_rate: int) -> list[np.ndarray[Any, Any]]:
         """Extract non-overlapping windows from continuous data.
 
         Args:
