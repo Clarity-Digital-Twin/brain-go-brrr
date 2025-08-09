@@ -6,17 +6,17 @@ import torch.nn as nn
 
 class DummyEEGPTModel(nn.Module):
     """Minimal EEGPT model for testing."""
-    
+
     def __init__(self):
         super().__init__()
         self.linear = nn.Linear(1024, 512)  # Just for having params
-        
+
     def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
         """Return fixed-size summary tokens."""
         batch_size = x.shape[0]
         # Return 4 summary tokens of 512 dimensions
         return torch.zeros((batch_size, 4, 512), dtype=x.dtype, device=x.device)
-    
+
     def prepare_chan_ids(self, channel_names: list[str]) -> torch.Tensor:
         """Mock channel ID preparation."""
         return torch.arange(len(channel_names))
@@ -27,13 +27,12 @@ class TestEEGPTWrapper:
 
     def test_wrapper_initialization(self):
         """Test wrapper can be initialized."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        
         # Monkey-patch create_eegpt_model for this test
         import brain_go_brrr.models.eegpt_wrapper
+        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
         original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
         brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
-        
+
         try:
             wrapper = EEGPTWrapper(checkpoint_path=None)
             assert wrapper.model is not None
@@ -44,13 +43,12 @@ class TestEEGPTWrapper:
 
     def test_wrapper_forward(self):
         """Test wrapper forward pass."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        
         # Monkey-patch create_eegpt_model
         import brain_go_brrr.models.eegpt_wrapper
+        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
         original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
         brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
-        
+
         try:
             wrapper = EEGPTWrapper()
 
@@ -66,13 +64,12 @@ class TestEEGPTWrapper:
 
     def test_wrapper_normalization(self):
         """Test input normalization parameters."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        
         # Monkey-patch
         import brain_go_brrr.models.eegpt_wrapper
+        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
         original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
         brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
-        
+
         try:
             wrapper = EEGPTWrapper()
 

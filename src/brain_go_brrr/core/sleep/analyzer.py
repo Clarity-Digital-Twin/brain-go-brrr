@@ -322,9 +322,10 @@ class SleepAnalyzer:
             epoch_length: Epoch duration in seconds
         """
         # Handle both Raw object and hypnogram array for compatibility
-        from brain_go_brrr import mne_compat
         from typing import cast
-        
+
+        from brain_go_brrr import mne_compat
+
         hypnogram: npt.NDArray[np.str_]
         if mne_compat.is_mne_raw(raw_or_hypnogram):
             # It's a Raw object, stage it first
