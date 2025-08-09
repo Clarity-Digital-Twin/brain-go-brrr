@@ -12,8 +12,8 @@ from brain_go_brrr.core.preprocessing import (
     Resampler,
 )
 
-# Skip all tests - Preprocessing API has changed
-pytestmark = pytest.mark.skip(reason="Preprocessing API changed - needs update")
+# These tests should work now - API is stable
+# pytestmark = pytest.mark.skip(reason="Preprocessing API changed - needs update")
 
 
 class TestBandpassFilter:
@@ -144,9 +144,14 @@ class TestPreprocessingPipeline:
         data = np.random.randn(4, sfreq * 2)
 
         # Create pipeline
-        config = PreprocessingConfig(bandpass_low=0.5, bandpass_high=40.0, notch_freq=50.0)
+        config = PreprocessingConfig(
+            bandpass_low=0.5, 
+            bandpass_high=40.0, 
+            notch_freq=50.0,
+            original_sampling_rate=sfreq
+        )
 
-        pipeline = PreprocessingPipeline(config, sfreq=sfreq)
+        pipeline = PreprocessingPipeline(config)
         processed = pipeline.apply(data)
 
         # Check output shape preserved
@@ -162,9 +167,14 @@ class TestPreprocessingPipeline:
         data = np.random.randn(4, 1000)
 
         # Create empty config (all operations disabled)
-        config = PreprocessingConfig(bandpass_low=None, bandpass_high=None, notch_freq=None)
+        config = PreprocessingConfig(
+            bandpass_low=None, 
+            bandpass_high=None, 
+            notch_freq=None,
+            original_sampling_rate=sfreq
+        )
 
-        pipeline = PreprocessingPipeline(config, sfreq=sfreq)
+        pipeline = PreprocessingPipeline(config)
         processed = pipeline.apply(data)
 
         # Should return unchanged data

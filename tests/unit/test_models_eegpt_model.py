@@ -13,9 +13,6 @@ from brain_go_brrr.models.eegpt_model import (
     preprocess_for_eegpt,
 )
 
-# Skip all tests - EEGPTConfig API has changed
-pytestmark = pytest.mark.skip(reason="EEGPTConfig API changed - needs update")
-
 
 class TestEEGPTConfig:
     """Test EEGPT configuration."""
@@ -24,27 +21,32 @@ class TestEEGPTConfig:
         """Test default configuration values."""
         config = EEGPTConfig()
 
-        assert config.n_channels == 20
-        assert config.sampling_rate == 256
-        assert config.window_size == 4.0
-        assert config.patch_size == 64
+        # Test based on actual defaults in dataclass
+        assert config.model_size == "large"
+        assert config.n_summary_tokens == 4
         assert config.embed_dim == 512
-        assert config.n_heads == 8
-        assert config.n_layers == 12
+        assert config.sampling_rate == 256
+        assert config.window_duration == 4.0
+        assert config.patch_size == 64
+        assert config.max_channels == 58
 
     def test_custom_config(self):
         """Test custom configuration."""
-        config = EEGPTConfig(n_channels=19, embed_dim=768, n_heads=12)
+        config = EEGPTConfig(model_size="xlarge", embed_dim=768, window_duration=8.0)
 
-        assert config.n_channels == 19
+        assert config.model_size == "xlarge"
         assert config.embed_dim == 768
-        assert config.n_heads == 12
+        assert config.window_duration == 8.0
 
-    def test_config_validation(self):
-        """Test configuration validation."""
-        # embed_dim must be divisible by n_heads
-        with pytest.raises(ValueError):
-            EEGPTConfig(embed_dim=512, n_heads=7)  # 512 % 7 != 0
+    def test_window_samples_calculation(self):
+        """Test window samples calculation."""
+        config = EEGPTConfig(sampling_rate=256, window_duration=4.0)
+        assert config.window_samples == 1024
+        
+    def test_n_patches_calculation(self):
+        """Test patches per window calculation."""
+        config = EEGPTConfig(sampling_rate=256, window_duration=4.0, patch_size=64)
+        assert config.n_patches_per_window == 16  # 1024 / 64
 
 
 class TestEEGPTModel:
