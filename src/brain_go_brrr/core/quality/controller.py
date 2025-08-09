@@ -16,6 +16,7 @@ import numpy as np
 from brain_go_brrr._typing import MNEEpochs, MNERaw
 from brain_go_brrr.core.exceptions import QualityCheckError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr import mne_compat
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autoreject"))

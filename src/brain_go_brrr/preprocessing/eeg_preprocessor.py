@@ -11,6 +11,7 @@ import numpy as np
 import numpy.typing as npt
 
 from brain_go_brrr._typing import MNERaw
+from brain_go_brrr import mne_compat
 
 logger = logging.getLogger(__name__)
 
@@ -354,9 +355,10 @@ class EEGPreprocessor:
 
     def _apply_notch_filter(self, raw: MNERaw) -> MNERaw:
         """Apply notch filter to remove powerline interference."""
-        raw.notch_filter(
+        mne_compat.notch_filter_raw(
+            raw,
             freqs=self.notch_freq,
-            picks=mne.pick_types(raw.info, eeg=True),
+            picks="eeg",
             method="iir",
             verbose=False,
         )

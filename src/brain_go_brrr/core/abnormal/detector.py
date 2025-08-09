@@ -451,7 +451,9 @@ class AbnormalityDetector:
             (data - channel_means) / (channel_stds + self.config.processing.channel_std_epsilon),
             0.0,
         )
-        raw._data = data  # type: ignore[attr-defined]
+        # Rebuild raw with normalized data using public API
+        from brain_go_brrr.mne_compat import update_data_inplace
+        raw = update_data_inplace(raw, data)
         return raw
 
     def _extract_windows(self, raw: MNERaw) -> list[FloatArray]:

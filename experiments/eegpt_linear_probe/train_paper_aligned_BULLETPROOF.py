@@ -448,8 +448,23 @@ def main():
     logger.info(f"  Final LR: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['final_div_factor']:.6f}")
     logger.info(f"  Warmup: {config['training']['scheduler']['pct_start']*100:.1f}% ({int(total_steps*config['training']['scheduler']['pct_start'])} steps)")
     logger.info(f"  cycle_momentum: False (AdamW compatibility)")
+    
+    # Sanity log for LR progression
+    pct_start = float(config['training']['scheduler']['pct_start'])
+    warmup_end = int(pct_start * total_steps)
+    logger.info(f"📊 OneCycle LR Schedule:")
+    logger.info(f"  total_steps={total_steps}, pct_start={pct_start:.2f}")
+    logger.info(f"  warmup_end={warmup_end} (peak LR at this step)")
+    logger.info(f"  Expected LR progression:")
+    logger.info(f"    Step 0-{warmup_end}: 0.00012 → 0.003 (warmup)")
+    logger.info(f"    Step {warmup_end}-{total_steps}: 0.003 → 0.000003 (annealing)")
+    
     if global_step > 0:
         logger.info(f"  Progress: {global_step}/{total_steps} ({global_step/total_steps*100:.1f}% complete)")
+        if global_step < warmup_end:
+            logger.info(f"  ⬆️ Currently in WARMUP phase")
+        else:
+            logger.info(f"  ⬇️ Currently in ANNEALING phase")
     logger.info(f"{'='*60}\n")
     
     # Dry run test
