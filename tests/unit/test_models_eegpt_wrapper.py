@@ -74,7 +74,7 @@ class TestEEGPTWrapper:
             wrapper = EEGPTWrapper()
 
             # Test that normalization is enabled by default
-            assert wrapper.normalize == True
+            assert wrapper.normalize
 
             # Test setting normalization parameters
             wrapper.set_normalization_params(mean=0.5, std=2.0)

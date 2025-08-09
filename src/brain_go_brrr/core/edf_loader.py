@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 
 def validate_edf_path(file_path: Path | str) -> Path:
     """Validate EDF file path exists and is readable.
-    
+
     Args:
         file_path: Path to the EDF file
-        
+
     Returns:
         Validated Path object
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist
         ValueError: If file is not .edf or .bdf

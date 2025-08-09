@@ -106,7 +106,7 @@ def set_montage_safe(
 
 def set_bad_channels(raw: MNERaw, bad_channels: list[str]) -> None:
     """Set bad channels using public API.
-    
+
     Args:
         raw: MNE Raw object
         bad_channels: List of bad channel names
