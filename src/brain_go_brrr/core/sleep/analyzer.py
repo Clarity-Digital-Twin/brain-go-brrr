@@ -229,7 +229,7 @@ class SleepAnalyzer:
                     # Check for Sleep-EDF montage (Fpz-Cz, Pz-Oz)
                     # First check ALL channels, not just those marked as EEG
                     all_channels = raw.ch_names
-                    
+
                     # Accept Sleep-EDF montage - check in ALL channels first
                     if "EEG Fpz-Cz" in all_channels:
                         eeg_ch = "EEG Fpz-Cz"

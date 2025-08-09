@@ -132,10 +132,10 @@ def update_data_inplace(raw: MNERaw, data: npt.NDArray[np.float64]) -> MNERaw:
     """
     # Create new raw with updated data
     info = raw.info.copy()
-    
+
     # Get first_samp value if it exists (don't try to set it)
     first_samp = getattr(raw, 'first_samp', 0)
-    
+
     # Create new RawArray with proper first_samp
     raw_new = mne.io.RawArray(data, info, first_samp=first_samp, verbose=False)
 

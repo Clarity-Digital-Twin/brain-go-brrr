@@ -248,6 +248,9 @@ class PreprocessingPipeline:
         Returns:
             Preprocessed data
         """
+        # Store original dtype to preserve it
+        original_dtype = data.dtype
+
         # Handle NaN if configured
         if self.config.handle_nan == "interpolate" and np.any(np.isnan(data)):
             data = self._interpolate_nan(data)
@@ -264,6 +267,10 @@ class PreprocessingPipeline:
         # Apply each step
         for step in self.steps:
             data = step.apply(data)
+
+        # Preserve original dtype
+        if data.dtype != original_dtype:
+            data = data.astype(original_dtype)
 
         return data
 
