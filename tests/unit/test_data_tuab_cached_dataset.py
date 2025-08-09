@@ -1,10 +1,9 @@
-"""Tests for TUAB cached dataset - SKIPPED due to MNE imports."""
+"""Tests for TUAB cached dataset - requires MNE."""
 
 import pytest
 
-# The tuab_cached_dataset module imports MNE which causes test collection issues
-# These tests should be moved to integration tests
-pytestmark = pytest.mark.skip(reason="TUABCachedDataset imports MNE - causes collection errors")
+# Mark as integration since it requires MNE and potentially large datasets
+pytestmark = pytest.mark.integration
 
 
 class TestTUABCachedDataset:

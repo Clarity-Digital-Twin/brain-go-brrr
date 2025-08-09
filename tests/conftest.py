@@ -87,6 +87,23 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "gpu: requires CUDA GPU")
 
 
+def pytest_sessionstart(session):
+    """Set seeds for reproducibility at session start."""
+    import random
+    import numpy as np
+    
+    random.seed(1337)
+    np.random.seed(1337)
+    
+    try:
+        import torch
+        torch.manual_seed(1337)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(1337)
+    except ImportError:
+        pass  # torch not required for all tests
+
+
 def pytest_collection_modifyitems(config, items):
     """Skip integration tests unless --run-integration is passed."""
     if config.getoption("--run-integration", default=False):

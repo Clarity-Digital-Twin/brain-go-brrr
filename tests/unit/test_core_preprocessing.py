@@ -63,11 +63,11 @@ class TestNormalizer:
         assert np.allclose(normalized.mean(axis=1), 0, atol=1e-6)
         assert np.allclose(normalized.std(axis=1), 1, atol=1e-6)
 
-    @pytest.mark.skip(reason="minmax normalization not implemented")
+    @pytest.mark.integration  # MinMax normalization feature not yet implemented
     def test_minmax_normalization(self):
         """Test min-max normalization."""
-        # Minmax method not implemented in current API
-        pass
+        # TODO: Implement when MinMax normalization is added to API
+        pytest.skip("MinMax normalization not yet implemented in API")
 
 
 class TestResampler:

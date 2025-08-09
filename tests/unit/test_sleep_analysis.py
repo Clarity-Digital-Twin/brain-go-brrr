@@ -138,20 +138,11 @@ class TestSleepAnalyzer:
         assert all(stage in valid_stages for stage in hypnogram)
 
     @pytest.mark.unit
-    def test_handles_short_recordings(self, sleep_controller):
+    def test_handles_short_recordings(self, sleep_controller, synthetic_sleep_raw):
         """Test handling of recordings shorter than epoch length."""
-        # YASA requires at least 5 minutes of data for reliable staging
-        pytest.skip("YASA requires >= 5 minutes of data; this test uses only 10 seconds")
-
-        # Original test code kept for reference:
-        # Create 10-second recording (shorter than 30s epoch)
-        sfreq = 256
-        duration = 10
-        n_samples = int(sfreq * duration)
-
-        short_signal = np.random.randn(1, n_samples) * 20e-6
-        info = mne.create_info(["C3"], sfreq, ch_types=["eeg"])
-        raw = mne.io.RawArray(short_signal, info)
+        # Use synthetic 5-minute data cropped to 10 seconds
+        raw = synthetic_sleep_raw.copy()
+        raw.crop(tmax=10)  # Crop to 10 seconds
 
         # Should handle gracefully (may return empty or raise informative error)
         try:
