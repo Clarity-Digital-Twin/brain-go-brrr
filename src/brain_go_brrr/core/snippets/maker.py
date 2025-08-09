@@ -10,15 +10,17 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import mne
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.utils import utc_now
+
+if TYPE_CHECKING:
+    from brain_go_brrr._typing import MNERaw
 
 Float64ND = npt.NDArray[np.float64]
 

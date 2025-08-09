@@ -268,7 +268,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def configure_optimizers(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
-        from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
+        from torch.optim.lr_scheduler import CosineAnnealingLR, OneCycleLR
 
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()
@@ -283,6 +283,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Create scheduler based on type
         scheduler_type = self.hparams.get("scheduler_type", "none")
 
+        sched: Any
         if scheduler_type == "onecycle":
             sched = OneCycleLR(
                 optimizer,
@@ -303,7 +304,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
 
         elif scheduler_type == "cosine":
-            sched: _LRScheduler = CosineAnnealingLR(
+            sched = CosineAnnealingLR(
                 optimizer,
                 T_max=int(self.trainer.estimated_stepping_batches),
                 eta_min=1e-6,

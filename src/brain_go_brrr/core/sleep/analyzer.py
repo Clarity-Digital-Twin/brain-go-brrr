@@ -315,10 +315,8 @@ class SleepAnalyzer:
         # Handle both Raw object and hypnogram array for compatibility
         if hasattr(raw_or_hypnogram, "get_data"):
             # It's a Raw object, stage it first
-            if isinstance(raw_or_hypnogram, MNERaw):
-                staging_result = self.stage_sleep(raw_or_hypnogram)
-            else:
-                raise ValueError("Invalid input type for calculate_sleep_metrics")
+            # Can't use isinstance with Protocol, use duck typing
+            staging_result = self.stage_sleep(raw_or_hypnogram)  # type: ignore[arg-type]
             # Handle both tuple and array return types
             hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:
