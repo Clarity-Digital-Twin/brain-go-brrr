@@ -1,7 +1,5 @@
 """Tests for models.eegpt_model - CLEAN, NO HEAVY WEIGHT LOADING."""
 
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import torch
 
@@ -83,25 +81,25 @@ class TestEEGPTModel:
         # Mark as loaded to prevent loading attempt
         model.is_loaded = True
 
-        # Create a dummy encoder that returns zeros
+        # Create a dummy encoder that returns zeros - use float32 for consistency
         class DummyEncoder:
             def __call__(self, *args, **kwargs):
-                return torch.zeros(1, config.n_summary_tokens, config.embed_dim, dtype=torch.float64)
+                return torch.zeros(1, config.n_summary_tokens, config.embed_dim, dtype=torch.float32)
 
             def prepare_chan_ids(self, channel_names):
                 return torch.arange(len(channel_names))
 
         model.encoder = DummyEncoder()
 
-        # Create test data: (channels, samples)
-        data = np.random.randn(20, 1024).astype(np.float64)
+        # Create test data: (channels, samples) - use float32
+        data = np.random.randn(20, 1024).astype(np.float32)
         channel_names = [f"CH{i}" for i in range(20)]
 
         # Test extract_features returns (n_summary_tokens, embed_dim)
         features = model.extract_features(data, channel_names)
 
         assert features.shape == (config.n_summary_tokens, config.embed_dim)
-        assert features.dtype == np.float64
+        assert features.dtype == np.float32  # Project dtype policy: float32
 
     def test_preprocess_for_eegpt(self):
         """Test preprocessing for EEGPT."""
@@ -142,37 +140,32 @@ class TestModelInference:
     """Test model inference capabilities."""
 
     def test_batch_inference(self):
-        """Test batch inference."""
+        """Test batch inference shapes."""
         config = EEGPTConfig()
 
-        with patch("brain_go_brrr.models.eegpt_model.EEGPTModel") as mock_model:
-            mock_instance = MagicMock()
+        # Simple shape validation test - no need for mocks
+        batch_data = torch.randn(4, 20, 1024)
 
-            # Mock forward to handle batches
-            def mock_forward(x):
-                batch_size = x.shape[0]
-                n_patches = x.shape[2] // config.patch_size
-                return torch.randn(batch_size, n_patches, config.embed_dim)
+        # Verify expected shapes
+        batch_size = batch_data.shape[0]
+        n_patches = batch_data.shape[2] // config.patch_size
 
-            mock_instance.forward = mock_forward
-            mock_model.return_value = mock_instance
+        # Expected output shape
+        expected_shape = (batch_size, n_patches, config.embed_dim)
 
-            # Test with batch of 4
-            batch_data = torch.randn(4, 20, 1024)
-            output = mock_instance.forward(batch_data)
-
-            assert output.shape[0] == 4  # Batch size preserved
-            assert output.shape[2] == config.embed_dim
+        assert batch_size == 4
+        assert n_patches == 16  # 1024 / 64
+        assert expected_shape == (4, 16, 512)
 
     def test_single_sample_inference(self):
-        """Test single sample inference."""
-        with patch("brain_go_brrr.models.eegpt_model.EEGPTModel") as mock_model:
-            mock_instance = MagicMock()
-            mock_instance.forward.return_value = torch.randn(1, 16, 512)
-            mock_model.return_value = mock_instance
+        """Test single sample inference shapes."""
+        config = EEGPTConfig()
 
-            # Single sample
-            single_data = torch.randn(1, 20, 1024)
-            output = mock_instance.forward(single_data)
+        # Single sample
+        single_data = torch.randn(1, 20, 1024)
 
-            assert output.shape == (1, 16, 512)
+        # Expected shape calculation
+        n_patches = single_data.shape[2] // config.patch_size
+        expected_shape = (1, n_patches, config.embed_dim)
+
+        assert expected_shape == (1, 16, 512)

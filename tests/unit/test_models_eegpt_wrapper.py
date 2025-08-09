@@ -27,66 +27,49 @@ class TestEEGPTWrapper:
     """Test EEGPT wrapper basic functionality."""
 
     def test_wrapper_initialization(self):
-        """Test wrapper can be initialized."""
-        # Monkey-patch create_eegpt_model for this test
-        import brain_go_brrr.models.eegpt_wrapper
+        """Test wrapper can be initialized with injected model."""
         from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
-        brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
 
-        try:
-            wrapper = EEGPTWrapper(checkpoint_path=None)
-            assert wrapper.model is not None
-            assert isinstance(wrapper.model, DummyEEGPTModel)
-        finally:
-            # Restore original
-            brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = original_create
+        # Use dependency injection - no monkey-patching needed
+        dummy_model = DummyEEGPTModel()
+        wrapper = EEGPTWrapper(checkpoint_path=None, model=dummy_model)
+
+        assert wrapper.model is not None
+        assert isinstance(wrapper.model, DummyEEGPTModel)
+        assert wrapper.model is dummy_model  # Same instance
 
     def test_wrapper_forward(self):
         """Test wrapper forward pass."""
-        # Monkey-patch create_eegpt_model
-        import brain_go_brrr.models.eegpt_wrapper
         from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
-        brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
 
-        try:
-            wrapper = EEGPTWrapper()
+        # Clean dependency injection
+        wrapper = EEGPTWrapper(model=DummyEEGPTModel())
 
-            # Test forward with correct input shape
-            x = torch.randn(1, 20, 1024)  # batch, channels, time
-            output = wrapper.forward(x)
+        # Test forward with correct input shape
+        x = torch.randn(1, 20, 1024)  # batch, channels, time
+        output = wrapper.forward(x)
 
-            assert output is not None
-            assert output.shape == (1, 4, 512)  # 4 summary tokens, 512 embed dim
-            assert output.dtype == x.dtype
-        finally:
-            brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = original_create
+        assert output is not None
+        assert output.shape == (1, 4, 512)  # 4 summary tokens, 512 embed dim
+        assert output.dtype == x.dtype
 
     def test_wrapper_normalization(self):
         """Test input normalization parameters."""
-        # Monkey-patch
-        import brain_go_brrr.models.eegpt_wrapper
         from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-        original_create = brain_go_brrr.models.eegpt_wrapper.create_eegpt_model
-        brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = lambda _: DummyEEGPTModel()
 
-        try:
-            wrapper = EEGPTWrapper()
+        wrapper = EEGPTWrapper(model=DummyEEGPTModel())
 
-            # Test that normalization is enabled by default
-            assert wrapper.normalize
+        # Test that normalization is enabled by default
+        assert wrapper.normalize
 
-            # Test setting normalization parameters
-            wrapper.set_normalization_params(mean=0.5, std=2.0)
-            assert wrapper.input_mean.item() == 0.5
-            assert wrapper.input_std.item() == 2.0
+        # Test setting normalization parameters
+        wrapper.set_normalization_params(mean=0.5, std=2.0)
+        assert wrapper.input_mean.item() == 0.5
+        assert wrapper.input_std.item() == 2.0
 
-            # Test estimating normalization from data
-            test_data = torch.randn(1, 20, 1024)
-            wrapper.estimate_normalization_params(test_data)
-            # After estimation, mean and std should be updated
-            assert wrapper.input_mean is not None
-            assert wrapper.input_std is not None
-        finally:
-            brain_go_brrr.models.eegpt_wrapper.create_eegpt_model = original_create
+        # Test estimating normalization from data
+        test_data = torch.randn(1, 20, 1024)
+        wrapper.estimate_normalization_params(test_data)
+        # After estimation, mean and std should be updated
+        assert wrapper.input_mean is not None
+        assert wrapper.input_std is not None

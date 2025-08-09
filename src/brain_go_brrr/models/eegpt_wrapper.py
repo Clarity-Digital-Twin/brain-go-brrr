@@ -21,15 +21,22 @@ logger = logging.getLogger(__name__)
 class EEGPTWrapper(nn.Module):
     """EEGPT model with proper input preprocessing."""
 
-    def __init__(self, checkpoint_path: str | None = None, normalization_path: str | None = None):
+    def __init__(
+        self,
+        checkpoint_path: str | None = None,
+        normalization_path: str | None = None,
+        model: nn.Module | None = None,
+    ):
         """Initialize EEGPT with preprocessing.
 
         Args:
             checkpoint_path: Path to pretrained checkpoint
             normalization_path: Path to normalization stats JSON
+            model: Optional pre-initialized model (for testing/DI)
         """
         super().__init__()
-        self.model = create_eegpt_model(checkpoint_path)
+        # Allow dependency injection for better testability
+        self.model = model if model is not None else create_eegpt_model(checkpoint_path)
 
         # Load normalization parameters from file if available
         if normalization_path and Path(normalization_path).exists():
