@@ -41,7 +41,7 @@ class TestCLICommands:
         assert result.exit_code == 0
         assert "serve" in result.stdout.lower()
 
-    @pytest.mark.skip(reason="Stream command may not be implemented")
+    @pytest.mark.integration  # Stream command requires full implementation
     def test_stream_help(self):
         """Test stream command help."""
         result = runner.invoke(app, ["stream", "--help"])
