@@ -1,0 +1,31 @@
+#!/bin/bash
+# Pre-push hook to ensure code quality
+set -e
+
+echo "🔍 Running pre-push quality checks..."
+
+# Lint check
+echo "📝 Running linter..."
+make lint
+if [ $? -ne 0 ]; then
+    echo "❌ Lint failed! Fix issues before pushing."
+    exit 1
+fi
+
+# Type check
+echo "🔎 Running type checker..."
+make type-check
+if [ $? -ne 0 ]; then
+    echo "❌ Type check failed! Fix issues before pushing."
+    exit 1
+fi
+
+# Fast tests only (not integration)
+echo "🧪 Running fast tests..."
+uv run pytest tests -m "not integration and not slow" -q --tb=short
+if [ $? -ne 0 ]; then
+    echo "❌ Tests failed! Fix issues before pushing."
+    exit 1
+fi
+
+echo "✅ All checks passed! Pushing..."

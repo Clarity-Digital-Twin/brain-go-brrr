@@ -188,6 +188,11 @@ test-coverage: ## Run tests with full coverage report
 	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
 	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
 
+coverage: ## Run unit tests with coverage enforcement
+	@echo "$(GREEN)Running coverage analysis...$(NC)"
+	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=70 -m "not integration and not slow" -rs -q
+	@echo "$(CYAN)Coverage report generated$(NC)"
+
 test-integration-local: ## Run integration tests with local resources
 	@echo "$(GREEN)Running integration tests with local data...$(NC)"
 	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests -m integration --run-integration -v --tb=short
