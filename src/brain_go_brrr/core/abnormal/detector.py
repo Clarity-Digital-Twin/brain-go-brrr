@@ -415,6 +415,7 @@ class AbnormalityDetector:
         # Check for bad channels
         info = raw.info
         from brain_go_brrr import mne_compat
+
         if (
             mne_compat.info_has_field(info, "bads")
             and len(info["bads"]) > n_channels * self.config.processing.max_bad_channel_ratio
@@ -454,6 +455,7 @@ class AbnormalityDetector:
         )
         # Rebuild raw with normalized data using public API
         from brain_go_brrr.mne_compat import update_data_inplace
+
         raw = update_data_inplace(raw, data)
         return raw
 

@@ -59,11 +59,13 @@ def redis_client():
     """Provide Redis client - real if available, fake otherwise."""
     if can_connect_to_redis():
         import redis
-        client = redis.Redis(host='localhost', port=6379, db=0)
+
+        client = redis.Redis(host="localhost", port=6379, db=0)
         yield client
         client.flushdb()  # Clean up after test
     else:
         import fakeredis
+
         client = fakeredis.FakeRedis()
         yield client
         client.flushdb()
@@ -73,6 +75,7 @@ def redis_client():
 def fake_redis():
     """Always provide fake Redis for unit tests."""
     import fakeredis
+
     client = fakeredis.FakeRedis()
     yield client
     client.flushdb()
@@ -98,6 +101,7 @@ def pytest_sessionstart(session):
 
     try:
         import torch
+
         torch.manual_seed(1337)
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(1337)

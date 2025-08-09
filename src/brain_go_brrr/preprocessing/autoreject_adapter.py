@@ -126,7 +126,7 @@ class WindowEpochAdapter:
 
         # Create new raw object
         # Use public API to create raw
-        info = original_raw.info.copy() if hasattr(original_raw.info, 'copy') else original_raw.info
+        info = original_raw.info.copy() if hasattr(original_raw.info, "copy") else original_raw.info
         raw_clean = mne.io.RawArray(reconstructed, info, verbose=False)
 
         logger.debug(

@@ -84,7 +84,9 @@ class TestEEGPTModel:
         # Create a dummy encoder that returns zeros - use float32 for consistency
         class DummyEncoder:
             def __call__(self, *args, **kwargs):
-                return torch.zeros(1, config.n_summary_tokens, config.embed_dim, dtype=torch.float32)
+                return torch.zeros(
+                    1, config.n_summary_tokens, config.embed_dim, dtype=torch.float32
+                )
 
             def prepare_chan_ids(self, channel_names):
                 return torch.arange(len(channel_names))
@@ -111,7 +113,7 @@ class TestEEGPTModel:
         n_samples = 1024
         data = np.random.randn(n_channels, n_samples) * 1e-6  # microvolts
         ch_names = [f"CH{i}" for i in range(n_channels)]
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Preprocess
@@ -119,7 +121,7 @@ class TestEEGPTModel:
 
         # Should return MNE Raw object
         assert isinstance(processed, mne.io.BaseRaw)
-        assert processed.info['sfreq'] == 256
+        assert processed.info["sfreq"] == 256
         assert len(processed.ch_names) <= 58  # Max channels for EEGPT
 
     def test_patch_embedding_dimension(self):

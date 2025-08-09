@@ -94,6 +94,7 @@ class EEGPTFeatureExtractor:
         # Cache if enabled (cache as float32 for memory efficiency)
         if self.enable_cache and len(self._cache) < self.cache_size:
             from typing import cast
+
             emb32 = cast("FloatArray", np.asarray(embeddings, dtype=np.float32))
             self._cache[cache_key] = emb32
 

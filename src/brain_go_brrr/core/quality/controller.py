@@ -437,7 +437,7 @@ class EEGQualityController:
                 # Reshape to (n_channels, n_samples)
                 n_epochs, n_channels, n_times = data.shape
                 concatenated_data = data.transpose(1, 0, 2).reshape(n_channels, -1)
-                info = epochs.info.copy() if hasattr(epochs.info, 'copy') else epochs.info
+                info = epochs.info.copy() if hasattr(epochs.info, "copy") else epochs.info
                 raw_from_epochs = mne.io.RawArray(concatenated_data, info)
 
                 # Get abnormality prediction
@@ -555,6 +555,7 @@ class EEGQualityController:
         bad_channels = self.detect_bad_channels(raw)
         # Use public API to set bad channels
         from brain_go_brrr import mne_compat
+
         mne_compat.set_bad_channels(raw, bad_channels)
 
         # Create epochs
@@ -562,6 +563,7 @@ class EEGQualityController:
 
         # Auto-reject epochs
         from typing import cast
+
         result = self.auto_reject_epochs(epochs, return_log=True)
         epochs_clean = cast("Any", result[0])
         reject_log = cast("Any", result[1]) if len(result) > 1 else None

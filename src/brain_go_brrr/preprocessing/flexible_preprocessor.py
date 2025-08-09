@@ -284,7 +284,12 @@ class FlexibleEEGPreprocessor:
         # High-pass filter
         if self.highpass_freq > 0:
             mne_compat.filter_raw(
-                raw, l_freq=self.highpass_freq, h_freq=None, picks="eeg", method="fir", verbose=False
+                raw,
+                l_freq=self.highpass_freq,
+                h_freq=None,
+                picks="eeg",
+                method="fir",
+                verbose=False,
             )
 
         # Low-pass filter
@@ -361,6 +366,7 @@ class FlexibleEEGPreprocessor:
             data[:, bad_times] = np.clip(data[:, bad_times], -threshold, threshold)
             # Rebuild raw with clipped data using public API
             from brain_go_brrr.mne_compat import update_data_inplace
+
             raw = update_data_inplace(raw, data)
             logger.info(
                 f"Clipped {np.sum(bad_times)} samples with amplitude > {threshold * 1e6:.0f} μV"
