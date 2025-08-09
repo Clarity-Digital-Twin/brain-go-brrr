@@ -6,8 +6,8 @@ from typing import Literal
 import mne
 import numpy as np
 
-from brain_go_brrr._typing import MNERaw
 from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +272,7 @@ class FlexibleEEGPreprocessor:
 
             if len(matches) >= 3:  # Need at least 3 standard channels
                 montage = mne.channels.make_standard_montage("standard_1020")
-                mne_compat.set_montage_safe(raw, "standard_1020", match_case=False)
+                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[attr-defined]
                 logger.info("Added standard 10-20 montage")
         except Exception as e:
             logger.debug(f"Could not add montage: {e}")

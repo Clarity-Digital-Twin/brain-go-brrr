@@ -10,8 +10,8 @@ import mne
 import numpy as np
 import numpy.typing as npt
 
-from brain_go_brrr._typing import MNERaw
 from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 
@@ -210,8 +210,8 @@ class EEGPreprocessor:
             return raw
 
         # Check if we have valid channel positions
-        montage = raw.get_montage()  # type: ignore[attr-defined]
-        if montage is None:
+        has_montage = mne_compat.has_montage(raw)
+        if not has_montage:
             logger.warning(
                 "No channel positions found - using amplitude-based rejection instead of AutoReject"
             )
@@ -318,7 +318,7 @@ class EEGPreprocessor:
                 onsets, durations, descriptions, orig_time=raw.info["meas_date"]
             )
             if hasattr(raw, "annotations"):
-                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
+                raw.set_annotations(raw.annotations + annotations)
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(
@@ -330,10 +330,11 @@ class EEGPreprocessor:
     def _apply_highpass_filter(self, raw: MNERaw) -> MNERaw:
         """Apply 0.5 Hz high-pass filter to remove DC and drift."""
         # Use higher order filter for better attenuation (>40dB requirement)
-        raw.filter(
+        mne_compat.filter_raw(
+            raw,
             l_freq=self.highpass_freq,
             h_freq=None,
-            picks=mne.pick_types(raw.info, eeg=True),
+            picks="eeg",
             method="iir",
             iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,
@@ -343,10 +344,11 @@ class EEGPreprocessor:
     def _apply_lowpass_filter(self, raw: MNERaw) -> MNERaw:
         """Apply 45 Hz low-pass filter to remove high-frequency noise."""
         # Use higher order filter for better attenuation
-        raw.filter(
+        mne_compat.filter_raw(
+            raw,
             l_freq=None,
             h_freq=self.lowpass_freq,
-            picks=mne.pick_types(raw.info, eeg=True),
+            picks="eeg",
             method="iir",
             iir_params={"order": 8, "ftype": "butter", "output": "sos"},
             verbose=False,

@@ -5,7 +5,7 @@ API differences and type issues in one place rather than scattering
 type: ignore comments throughout the codebase.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 import mne
 import numpy as np
@@ -15,11 +15,11 @@ from mne.io import BaseRaw as MNERaw
 
 def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:
     """Get indices of EEG channels.
-    
+
     Args:
         raw: MNE Raw object
         exclude_bads: Whether to exclude bad channels
-        
+
     Returns:
         List of channel indices
     """
@@ -29,13 +29,13 @@ def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:
 
 def get_all_picks(raw: MNERaw, eeg: bool = True, eog: bool = False, emg: bool = False) -> list[int]:
     """Get indices of specified channel types.
-    
+
     Args:
         raw: MNE Raw object
         eeg: Include EEG channels
         eog: Include EOG channels
         emg: Include EMG channels
-        
+
     Returns:
         List of channel indices
     """
@@ -44,10 +44,10 @@ def get_all_picks(raw: MNERaw, eeg: bool = True, eog: bool = False, emg: bool = 
 
 def has_montage(raw: MNERaw) -> bool:
     """Check if raw data has channel positions.
-    
+
     Args:
         raw: MNE Raw object
-        
+
     Returns:
         True if positions exist
     """
@@ -63,13 +63,13 @@ def has_montage(raw: MNERaw) -> bool:
 
 
 def set_montage_safe(
-    raw: MNERaw, 
+    raw: MNERaw,
     montage_name: str = "standard_1020",
     match_case: bool = False,
-    on_missing: str = "ignore"
+    on_missing: str = "ignore",
 ) -> None:
     """Safely set montage on raw data.
-    
+
     Args:
         raw: MNE Raw object
         montage_name: Name of standard montage
@@ -86,23 +86,24 @@ def set_montage_safe(
 
 def get_channel_types(raw: MNERaw) -> list[str]:
     """Get channel types for all channels.
-    
+
     Args:
         raw: MNE Raw object
-        
+
     Returns:
         List of channel types
     """
-    return raw.get_channel_types()
+    types = raw.get_channel_types()
+    return list(types)
 
 
 def get_channel_type(raw: MNERaw, channel: str | int) -> str:
     """Get type of a specific channel.
-    
+
     Args:
         raw: MNE Raw object
         channel: Channel name or index
-        
+
     Returns:
         Channel type string
     """
@@ -112,44 +113,44 @@ def get_channel_type(raw: MNERaw, channel: str | int) -> str:
         idx = raw.ch_names.index(channel)
     else:
         idx = channel
-    
+
     types = raw.get_channel_types()
-    return types[idx]
+    return str(types[idx])
 
 
 def update_data_inplace(raw: MNERaw, data: npt.NDArray[np.float64]) -> MNERaw:
     """Update raw data array safely using public API.
-    
+
     This replaces direct writes to raw._data which is private API.
-    
+
     Args:
         raw: MNE Raw object to update
         data: New data array (n_channels, n_samples)
-        
+
     Returns:
         New Raw object with updated data
     """
     # Create new raw with updated data
     info = raw.info.copy()
     raw_new = mne.io.RawArray(data, info, verbose=False)
-    
+
     # Preserve annotations if present
     if hasattr(raw, "annotations") and raw.annotations is not None:
         raw_new.set_annotations(raw.annotations.copy())
-    
+
     # Preserve other metadata
     if hasattr(raw, "first_samp"):
         raw_new.first_samp = raw.first_samp
-        
+
     return raw_new
 
 
 def has_annotations(raw: MNERaw) -> bool:
     """Check if raw has annotations.
-    
+
     Args:
         raw: MNE Raw object
-        
+
     Returns:
         True if annotations exist
     """
@@ -158,7 +159,7 @@ def has_annotations(raw: MNERaw) -> bool:
 
 def copy_annotations(source: MNERaw, target: MNERaw) -> None:
     """Copy annotations from source to target.
-    
+
     Args:
         source: Source Raw object
         target: Target Raw object
@@ -169,11 +170,11 @@ def copy_annotations(source: MNERaw, target: MNERaw) -> None:
 
 def info_has_field(info: Any, field: str) -> bool:
     """Check if info dict has a field.
-    
+
     Args:
         info: MNE Info object
         field: Field name to check
-        
+
     Returns:
         True if field exists
     """
@@ -185,18 +186,18 @@ def info_has_field(info: Any, field: str) -> bool:
 
 def filter_raw(
     raw: MNERaw,
-    l_freq: Optional[float] = None,
-    h_freq: Optional[float] = None,
-    picks: Optional[str | list[int]] = None,
+    l_freq: float | None = None,
+    h_freq: float | None = None,
+    picks: str | list[int] | None = None,
     method: str = "fir",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """Apply frequency filter with proper picks handling.
-    
+
     Args:
         raw: MNE Raw object
         l_freq: Low frequency cutoff
-        h_freq: High frequency cutoff  
+        h_freq: High frequency cutoff
         picks: Channels to filter ('eeg', 'all', or list of indices)
         method: Filter method
         **kwargs: Additional filter arguments
@@ -209,18 +210,18 @@ def filter_raw(
         picks_idx = picks
     else:
         picks_idx = None
-        
+
     raw.filter(l_freq=l_freq, h_freq=h_freq, picks=picks_idx, method=method, **kwargs)
 
 
 def notch_filter_raw(
     raw: MNERaw,
     freqs: float | list[float],
-    picks: Optional[str | list[int]] = None,
-    **kwargs: Any
+    picks: str | list[int] | None = None,
+    **kwargs: Any,
 ) -> None:
     """Apply notch filter with proper picks handling.
-    
+
     Args:
         raw: MNE Raw object
         freqs: Frequencies to notch
@@ -235,13 +236,13 @@ def notch_filter_raw(
         picks_idx = picks
     else:
         picks_idx = None
-        
+
     raw.notch_filter(freqs=freqs, picks=picks_idx, **kwargs)
 
 
 def pick_channels(raw: MNERaw, picks: str | list[str] | list[int]) -> None:
     """Pick channels from raw data.
-    
+
     Args:
         raw: MNE Raw object
         picks: Channel selection ('eeg', channel names, or indices)

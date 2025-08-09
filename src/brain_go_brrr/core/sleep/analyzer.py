@@ -188,7 +188,8 @@ class SleepAnalyzer:
         """
         # Handle picks parameter
         eeg_ch: str | None
-        ch_types = raw.get_channel_types()  # type: ignore[attr-defined]
+        from brain_go_brrr import mne_compat
+        ch_types = mne_compat.get_channel_types(raw)
         if picks == "eeg":
             # Get all EEG channels
             eeg_channels = [ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"]

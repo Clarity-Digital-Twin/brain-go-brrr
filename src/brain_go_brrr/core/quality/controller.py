@@ -13,10 +13,10 @@ from typing import Any
 import mne
 import numpy as np
 
+from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNEEpochs, MNERaw
 from brain_go_brrr.core.exceptions import QualityCheckError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr import mne_compat
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autoreject"))
@@ -215,7 +215,8 @@ class EEGQualityController:
         has_positions = False
         try:
             # Check if any EEG channel has valid position data
-            for i, ch_type in enumerate(raw.get_channel_types()):  # type: ignore[attr-defined]
+            ch_types = mne_compat.get_channel_types(raw)
+            for i, ch_type in enumerate(ch_types):
                 if ch_type == "eeg":
                     loc = raw.info["chs"][i]["loc"][:3]
                     if np.any(loc):  # If any position coordinate is non-zero
@@ -263,7 +264,8 @@ class EEGQualityController:
             for i, ch_name in enumerate(raw.ch_names):
                 ch_data = data[i]
                 # Skip non-EEG channels
-                if raw.get_channel_types()[i] not in ["eeg", "eog"]:  # type: ignore[attr-defined]
+                ch_types_check = mne_compat.get_channel_types(raw)
+                if ch_types_check[i] not in ["eeg", "eog"]:
                     continue
 
                 # Check for flat channels or extreme amplitudes
@@ -307,7 +309,7 @@ class EEGQualityController:
             reject_criteria = {}
 
             # Check what channel types are present
-            ch_types = set(raw.get_channel_types())  # type: ignore[attr-defined]
+            ch_types = set(mne_compat.get_channel_types(raw))
 
             if "eeg" in ch_types:
                 reject_criteria["eeg"] = 150e-6  # 150 µV
@@ -349,7 +351,8 @@ class EEGQualityController:
         # Check if we have channel positions
         has_positions = False
         try:
-            for i, ch_type in enumerate(epochs.get_channel_types()):  # type: ignore[attr-defined]
+            epoch_ch_types = mne_compat.get_channel_types(epochs)
+            for i, ch_type in enumerate(epoch_ch_types):
                 if ch_type == "eeg":
                     loc = epochs.info["chs"][i]["loc"][:3]
                     if np.any(loc):
@@ -434,7 +437,7 @@ class EEGQualityController:
                 # Reshape to (n_channels, n_samples)
                 n_epochs, n_channels, n_times = data.shape
                 concatenated_data = data.transpose(1, 0, 2).reshape(n_channels, -1)
-                info = epochs.info.copy()  # type: ignore[attr-defined]
+                info = epochs.info.copy() if hasattr(epochs.info, 'copy') else epochs.info
                 raw_from_epochs = mne.io.RawArray(concatenated_data, info)
 
                 # Get abnormality prediction

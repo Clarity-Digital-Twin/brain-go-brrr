@@ -14,6 +14,7 @@ import yasa
 from scipy import signal
 from scipy.stats import kurtosis, skew
 
+from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
@@ -183,7 +184,7 @@ class EnhancedSleepAnalyzer:
                     return str(available_channels[idx])
 
         # Fallback: any channel of the right type
-        ch_types = raw.get_channel_types()  # type: ignore[attr-defined]
+        ch_types = mne_compat.get_channel_types(raw)
         for i, ch in enumerate(available_channels):
             if ch_types[i] == channel_type:
                 logger.warning(f"Using fallback {channel_type} channel: {ch}")
@@ -220,7 +221,7 @@ class EnhancedSleepAnalyzer:
                 channel_types[ch] = "eog"
             elif any(emg in ch_lower for emg in ["emg", "chin", "submental"]):
                 channel_types[ch] = "emg"
-            elif raw.get_channel_types([ch])[0] == "misc" and any(  # type: ignore[attr-defined]
+            elif mne_compat.get_channel_type(raw, ch) == "misc" and any(
                 eeg in ch_lower for eeg in ["fp", "f", "c", "t", "p", "o", "a", "m"]
             ):
                 # Default misc to eeg if it looks like EEG

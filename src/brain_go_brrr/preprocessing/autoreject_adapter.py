@@ -11,7 +11,6 @@ import mne
 import numpy as np
 
 from brain_go_brrr._typing import MNEEpochs, MNERaw
-from brain_go_brrr import mne_compat
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +133,7 @@ class WindowEpochAdapter:
             f"Reconstructed {total_samples / original_raw.info['sfreq']:.1f}s of continuous data"
         )
 
-        return raw_clean
+        return raw_clean  # type: ignore[no-any-return]
 
 
 class SyntheticPositionGenerator:
@@ -206,8 +205,7 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        mne_compat.set_montage_safe(raw, on_missing="ignore")
-        # Note: montage is already created above, but compat function creates standard
+        raw.set_montage(montage, on_missing="ignore")  # type: ignore[attr-defined]
 
         return raw
 
