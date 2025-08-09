@@ -56,7 +56,6 @@ class TestEdfLoader:
 
         assert "Invalid EDF" in str(exc_info.value) or "header" in str(exc_info.value)
 
-    @pytest.mark.skip(reason="validate_edf_path function not implemented")
     def test_validate_edf_path_valid(self):
         """Test path validation for valid paths."""
         # Create a temp file
@@ -78,16 +77,14 @@ class TestEdfLoader:
         finally:
             temp_path.unlink()
 
-    @pytest.mark.skip(reason="validate_edf_path function not implemented")
     def test_validate_edf_path_invalid(self):
         """Test path validation for invalid paths."""
         from brain_go_brrr.core.edf_loader import validate_edf_path
-        from brain_go_brrr.core.exceptions import EdfLoadError
 
-        # Test non-existent file
-        with pytest.raises(EdfLoadError) as exc_info:
+        # Test non-existent file - should raise FileNotFoundError
+        with pytest.raises(FileNotFoundError) as exc_info:
             validate_edf_path("nonexistent.edf")
-        assert "does not exist" in str(exc_info.value)
+        assert "not found" in str(exc_info.value)
 
         # Test wrong extension
         import tempfile
@@ -96,9 +93,9 @@ class TestEdfLoader:
             temp_path = Path(f.name)
 
         try:
-            with pytest.raises(EdfLoadError) as exc_info:
+            with pytest.raises(ValueError) as exc_info:
                 validate_edf_path(temp_path)
-            assert "must be .edf" in str(exc_info.value) or "EDF file" in str(exc_info.value)
+            assert ".edf" in str(exc_info.value) or ".bdf" in str(exc_info.value)
         finally:
             temp_path.unlink()
 

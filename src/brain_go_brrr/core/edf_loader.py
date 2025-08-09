@@ -12,6 +12,47 @@ from brain_go_brrr.core.exceptions import EdfLoadError
 logger = logging.getLogger(__name__)
 
 
+def validate_edf_path(file_path: Path | str) -> Path:
+    """Validate EDF file path exists and is readable.
+    
+    Args:
+        file_path: Path to the EDF file
+        
+    Returns:
+        Validated Path object
+        
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        ValueError: If file is not .edf or .bdf
+        PermissionError: If file is not readable
+    """
+    path = Path(file_path)
+    
+    # Check if file exists
+    if not path.exists():
+        raise FileNotFoundError(f"EDF file not found: {path}")
+    
+    # Check if it's a file (not directory)
+    if not path.is_file():
+        raise ValueError(f"Path is not a file: {path}")
+    
+    # Check file extension
+    if path.suffix.lower() not in [".edf", ".bdf"]:
+        raise ValueError(f"File must be .edf or .bdf, got: {path.suffix}")
+    
+    # Check if readable
+    try:
+        with open(path, "rb") as f:
+            # Try to read first byte to verify access
+            f.read(1)
+    except PermissionError:
+        raise PermissionError(f"Cannot read file: {path}")
+    except Exception as e:
+        raise ValueError(f"Cannot access file: {e}")
+    
+    return path
+
+
 def load_edf_safe(file_path: Path | str, **kwargs: Any) -> MNERaw:
     """Load EDF file with proper error translation.
 
