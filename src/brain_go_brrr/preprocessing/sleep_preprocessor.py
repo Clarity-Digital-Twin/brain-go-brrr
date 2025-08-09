@@ -8,6 +8,7 @@ reference implementation.
 import logging
 
 import mne
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class SleepPreprocessor:
         self.target_sfreq = target_sfreq
         self.reference = reference
 
-    def preprocess(self, raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
+    def preprocess(self, raw: MNERaw) -> MNERaw:
         """Apply minimal preprocessing for sleep analysis.
 
         Args:
@@ -89,7 +90,7 @@ class SleepPreprocessor:
 
     def preprocess_for_yasa(
         self,
-        raw: mne.io.BaseRaw,
+        raw: MNERaw,
         eeg_channels: list[str] | None = None,
         eog_channels: list[str] | None = None,
         emg_channels: list[str] | None = None,

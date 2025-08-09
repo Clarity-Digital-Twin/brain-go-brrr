@@ -369,7 +369,7 @@ class EEGTransformer(nn.Module):
 
     def __init__(
         self,
-        n_channels: list[int | str] | None = None,
+        n_channels: list[str] | None = None,
         patch_size: int = 64,
         embed_dim: int = 768,
         embed_num: int = 4,  # Number of summary tokens
@@ -383,10 +383,18 @@ class EEGTransformer(nn.Module):
     ) -> None:
         """Initialize EEG Transformer model."""
         super().__init__()
-        self.n_channels = n_channels or list(range(58))  # Default to 58 channels
+        # Use string channel names for cleaner typing
+        if n_channels is None:
+            self.n_channels = [str(i) for i in range(58)]  # Default to 58 channels as strings
+        else:
+            self.n_channels = n_channels
+        
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.embed_num = embed_num
+        
+        # Build channel index map once
+        self.channel_index: dict[str, int] = {name: i for i, name in enumerate(self.n_channels)}
 
         # Patch embedding using PatchEmbed module to match checkpoint
         self.patch_embed = PatchEmbed(
@@ -425,13 +433,8 @@ class EEGTransformer(nn.Module):
 
     def prepare_chan_ids(self, channel_names: list[str]) -> Tensor:
         """Prepare channel IDs for the model."""
-        # Map channel names to indices
-        chan_ids = []
-        for name in channel_names:
-            if isinstance(self.n_channels, list) and name in self.n_channels:
-                chan_ids.append(self.n_channels.index(name))
-            else:
-                chan_ids.append(0)  # Default channel
+        # Map channel names to indices using pre-built index
+        chan_ids = [self.channel_index.get(name, 0) for name in channel_names]
         return torch.tensor(chan_ids, dtype=torch.long)
 
     def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:

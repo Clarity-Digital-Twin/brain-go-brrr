@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
-from brain_go_brrr._typing import FloatArray, MNE_Raw
+from brain_go_brrr._typing import FloatArray, MNERaw
 from brain_go_brrr.core.abnormality_config import AbnormalityConfig
 from brain_go_brrr.core.config import ModelConfig
 from brain_go_brrr.core.logger import get_logger
@@ -260,7 +260,7 @@ class AbnormalityDetector:
                     f"This should not happen - please report this as a bug."
                 )
 
-    def detect_abnormality(self, raw: MNE_Raw) -> AbnormalityResult:
+    def detect_abnormality(self, raw: MNERaw) -> AbnormalityResult:
         """Detect abnormalities in EEG recording.
 
         Args:
@@ -377,7 +377,7 @@ class AbnormalityDetector:
             model_version=self.model_version,
         )
 
-    def detect_abnormality_batch(self, recordings: list[MNE_Raw]) -> list[AbnormalityResult]:
+    def detect_abnormality_batch(self, recordings: list[MNERaw]) -> list[AbnormalityResult]:
         """Process multiple recordings in batch.
 
         Args:
@@ -398,7 +398,7 @@ class AbnormalityDetector:
 
         return results
 
-    def _validate_input(self, raw: MNE_Raw) -> None:
+    def _validate_input(self, raw: MNERaw) -> None:
         """Validate input EEG data."""
         # Check duration
         duration = raw.times[-1]
@@ -423,7 +423,7 @@ class AbnormalityDetector:
                 f"Too many bad channels: {len(info['bads'])} > {self.config.processing.max_bad_channel_ratio * 100:.0f}% of total"
             )
 
-    def _detect_bad_channels_raw(self, raw: MNE_Raw) -> list[str]:
+    def _detect_bad_channels_raw(self, raw: MNERaw) -> list[str]:
         """Detect bad channels in raw data before preprocessing."""
         data = raw.get_data()
         bad_channels = []
@@ -440,7 +440,7 @@ class AbnormalityDetector:
 
         return bad_channels
 
-    def _apply_normalization(self, raw: MNE_Raw) -> MNE_Raw:
+    def _apply_normalization(self, raw: MNERaw) -> MNERaw:
         """Apply z-score normalization to preprocessed data."""
         data = raw.get_data()
         channel_means = data.mean(axis=1, keepdims=True)
@@ -455,7 +455,7 @@ class AbnormalityDetector:
         raw._data = data
         return raw
 
-    def _extract_windows(self, raw: MNE_Raw) -> list[FloatArray]:
+    def _extract_windows(self, raw: MNERaw) -> list[FloatArray]:
         """Extract sliding windows from EEG data."""
         data = raw.get_data()
         sfreq = raw.info["sfreq"]
@@ -613,7 +613,7 @@ class AbnormalityDetector:
 
     def _compute_quality_metrics(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         window_qualities: list[float],
         bad_channels_pre: list[str],
     ) -> dict[str, Any]:

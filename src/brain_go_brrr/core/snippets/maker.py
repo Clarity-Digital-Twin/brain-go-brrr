@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brain_go_brrr._typing import FloatArray, MNE_Raw
+from brain_go_brrr._typing import FloatArray, MNERaw
 from brain_go_brrr.utils import utc_now
 
 # Add reference repos to path
@@ -75,7 +75,7 @@ class EEGSnippetMaker:
 
     def extract_fixed_snippets(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         snippet_length: float | None = None,
         overlap: float | None = None,
         start_time: float = 0.0,
@@ -145,7 +145,7 @@ class EEGSnippetMaker:
 
     def extract_event_snippets(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         events: npt.NDArray[np.float64],
         event_id: dict[str, int],
         tmin: float = -1.0,
@@ -225,7 +225,7 @@ class EEGSnippetMaker:
 
     def extract_anomaly_snippets(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         anomaly_scores: npt.NDArray[np.float64],
         score_threshold: float = 0.8,
         snippet_length: float = 5.0,

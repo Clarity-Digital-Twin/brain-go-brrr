@@ -14,7 +14,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brain_go_brrr._typing import FloatArray, MNE_Raw, StrArray
+from brain_go_brrr._typing import FloatArray, MNERaw, StrArray
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
 # Add reference repos to path
@@ -68,12 +68,12 @@ class SleepAnalyzer:
 
     def preprocess_for_sleep(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         eeg_channels: list[str] | None = None,
         eog_channels: list[str] | None = None,
         emg_channels: list[str] | None = None,
         resample_freq: float = 100.0,
-    ) -> MNE_Raw:
+    ) -> MNERaw:
         """Preprocess EEG data for sleep staging.
 
         NOTE: Following YASA documentation, we do NOT filter the data
@@ -159,7 +159,7 @@ class SleepAnalyzer:
 
     def stage_sleep(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         eeg_name: str = "C3-A2",
         eog_name: str = "EOG",
         emg_name: str = "EMG",
@@ -299,14 +299,14 @@ class SleepAnalyzer:
             return dummy_stages
 
     def calculate_sleep_metrics(
-        self, raw_or_hypnogram: MNE_Raw | StrArray, epoch_length: float = 30.0
+        self, raw_or_hypnogram: MNERaw | StrArray, epoch_length: float = 30.0
     ) -> dict[str, Any]:
         """Calculate sleep metrics from Raw object or hypnogram array.
 
         This method provides compatibility with tests expecting calculate_sleep_metrics.
 
         Args:
-            raw_or_hypnogram: Either MNE_Raw object or hypnogram array
+            raw_or_hypnogram: Either MNERaw object or hypnogram array
             epoch_length: Epoch duration in seconds
         """
         # Handle both Raw object and hypnogram array for compatibility
@@ -381,7 +381,7 @@ class SleepAnalyzer:
 
     def detect_sleep_events(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         hypnogram: npt.NDArray[np.str_],
         include_spindles: bool = True,
         include_so: bool = True,
@@ -637,7 +637,7 @@ class SleepAnalyzer:
         else:
             return "F"
 
-    def run_full_sleep_analysis(self, raw: MNE_Raw, **kwargs: Any) -> dict[str, Any]:
+    def run_full_sleep_analysis(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
         """Run complete sleep analysis pipeline.
 
         Args:

@@ -18,7 +18,7 @@ IntArray: TypeAlias = npt.NDArray[np.int_]
 
 
 
-class MNE_Info(Protocol):
+class MNEInfo(Protocol):
     """Protocol for MNE Info objects."""
 
     def __getitem__(self, key: str) -> Any: ...
@@ -29,13 +29,13 @@ class MNE_Info(Protocol):
     def sfreq(self) -> float: ...
 
 
-class MNE_Raw(Protocol):
+class MNERaw(Protocol):
     """Protocol for MNE Raw objects."""
 
-    info: MNE_Info
+    info: MNEInfo
     ch_names: list[str]
 
-    def copy(self) -> MNE_Raw: ...
+    def copy(self) -> MNERaw: ...
     def get_data(
         self,
         picks: list[str] | None = None,
@@ -62,10 +62,10 @@ class MNE_Raw(Protocol):
         phase: str = "zero",
         fir_window: str = "hamming",
         fir_design: str = "firwin",
-        skip_by_annotation: str | list[str] = ("edge", "bad_acq_skip"),
+        skip_by_annotation: str | list[str] | tuple[str, ...] = ("edge", "bad_acq_skip"),
         pad: str = "edge",
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def resample(
         self,
         sfreq: float,
@@ -76,22 +76,22 @@ class MNE_Raw(Protocol):
         events: IntArray | None = None,
         pad: str = "edge",
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def pick(
         self,
         picks: list[str] | list[int] | str | None = None,
         exclude: list[str] | str = "bads",
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def pick_channels(
         self,
         ch_names: list[str],
         ordered: bool = False,
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def rename_channels(
         self,
-        mapping: dict[str, str] | callable,
+        mapping: dict[str, str] | Any,
         allow_duplicates: bool = False,
         verbose: bool | str | int | None = None
     ) -> None: ...
@@ -99,13 +99,13 @@ class MNE_Raw(Protocol):
         self,
         mapping: dict[str, str],
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def load_data(self, verbose: bool | str | int | None = None) -> MNE_Raw: ...
     def drop_channels(
         self,
         ch_names: list[str],
         on_missing: str = "raise"
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     def set_eeg_reference(
         self,
         ref_channels: str | list[str] = "average",
@@ -113,7 +113,7 @@ class MNE_Raw(Protocol):
         ch_type: str = "auto",
         forward: Any = None,
         verbose: bool | str | int | None = None
-    ) -> tuple[MNE_Raw, FloatArray]: ...
+    ) -> tuple[MNERaw, FloatArray]: ...
     def notch_filter(
         self,
         freqs: float | list[float],
@@ -131,22 +131,22 @@ class MNE_Raw(Protocol):
         fir_design: str = "firwin",
         pad: str = "edge",
         verbose: bool | str | int | None = None
-    ) -> MNE_Raw: ...
+    ) -> MNERaw: ...
     @property
     def times(self) -> FloatArray: ...
     @property
     def n_times(self) -> int: ...
 
 
-class MNE_Epochs(Protocol):
+class MNEEpochs(Protocol):
     """Protocol for MNE Epochs objects."""
 
-    info: MNE_Info
+    info: MNEInfo
     ch_names: list[str]
     events: IntArray
     event_id: dict[str, int] | None
 
-    def copy(self) -> MNE_Epochs: ...
+    def copy(self) -> MNEEpochs: ...
     def get_data(
         self,
         picks: list[str] | None = None,
@@ -161,7 +161,7 @@ class MNE_Epochs(Protocol):
         reject: dict[str, float] | None = None,
         flat: dict[str, float] | None = None,
         verbose: bool | str | int | None = None
-    ) -> MNE_Epochs: ...
+    ) -> MNEEpochs: ...
     def __len__(self) -> int: ...
     def __getitem__(self, idx: int) -> FloatArray: ...
     @property

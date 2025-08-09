@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 import mne
+from brain_go_brrr._typing import MNERaw, MNEEpochs
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class WindowEpochAdapter:
         self.window_stride = window_stride
         self.overlap = 1.0 - (window_stride / window_duration)
 
-    def raw_to_windowed_epochs(self, raw: mne.io.Raw) -> mne.Epochs:
+    def raw_to_windowed_epochs(self, raw: MNERaw) -> mne.Epochs:
         """Convert raw data to epochs matching our windowing scheme.
 
         Args:
@@ -85,7 +86,7 @@ class WindowEpochAdapter:
         return epochs
 
     def epochs_to_continuous(
-        self, epochs_clean: mne.Epochs, original_raw: mne.io.Raw
+        self, epochs_clean: MNEEpochs, original_raw: MNERaw
     ) -> mne.io.Raw:
         """Reconstruct continuous data from cleaned epochs.
 
@@ -173,7 +174,7 @@ class SyntheticPositionGenerator:
         "O2": np.array([0.0270, -0.0866, 0.0150]),
     }
 
-    def add_positions_to_raw(self, raw: mne.io.Raw) -> mne.io.Raw:
+    def add_positions_to_raw(self, raw: MNERaw) -> mne.io.Raw:
         """Add synthetic but anatomically valid positions to raw data.
 
         Args:

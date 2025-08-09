@@ -13,7 +13,7 @@ from typing import Any
 import mne
 import numpy as np
 
-from brain_go_brrr._typing import FloatArray, MNE_Epochs, MNE_Raw
+from brain_go_brrr._typing import FloatArray, MNEEpochs, MNERaw
 from brain_go_brrr.core.exceptions import QualityCheckError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 
@@ -105,12 +105,12 @@ class EEGQualityController:
 
     def preprocess_raw(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         l_freq: float = 0.5,
         h_freq: float = 50.0,
         notch_freq: float = 50.0,
         resample_freq: float | None = None,
-    ) -> MNE_Raw:
+    ) -> MNERaw:
         """Basic preprocessing of raw EEG data.
 
         Args:
@@ -200,7 +200,7 @@ class EEGQualityController:
 
         return raw_copy
 
-    def detect_bad_channels(self, raw: MNE_Raw, method: str = "autoreject") -> list[str]:
+    def detect_bad_channels(self, raw: MNERaw, method: str = "autoreject") -> list[str]:
         """Detect bad channels using specified method.
 
         Args:
@@ -282,11 +282,11 @@ class EEGQualityController:
 
     def create_epochs(
         self,
-        raw: MNE_Raw,
+        raw: MNERaw,
         epoch_length: float = 2.0,
         overlap: float = 0.0,
         reject_criteria: dict[str, Any] | None = None,
-    ) -> MNE_Epochs:
+    ) -> MNEEpochs:
         """Create epochs from raw data.
 
         Args:
@@ -330,8 +330,8 @@ class EEGQualityController:
         return epochs
 
     def auto_reject_epochs(
-        self, epochs: MNE_Epochs, return_log: bool = False
-    ) -> MNE_Epochs | tuple[MNE_Epochs, object]:
+        self, epochs: MNEEpochs, return_log: bool = False
+    ) -> MNEEpochs | tuple[MNEEpochs, object]:
         """Apply autoreject to epochs.
 
         Args:
@@ -398,7 +398,7 @@ class EEGQualityController:
                 raise
 
     def compute_abnormality_score(
-        self, epochs: MNE_Epochs, return_details: bool = False
+        self, epochs: MNEEpochs, return_details: bool = False
     ) -> float | dict[str, Any]:
         """Compute abnormality score using EEGPT.
 
@@ -460,8 +460,8 @@ class EEGQualityController:
 
     def generate_qc_report(
         self,
-        raw: MNE_Raw,
-        epochs: MNE_Epochs,
+        raw: MNERaw,
+        epochs: MNEEpochs,
         bad_channels: list[str],
         abnormality_score: float,
         reject_log: object | None = None,
@@ -513,7 +513,7 @@ class EEGQualityController:
         return report
 
     def _compute_quality_grade(
-        self, abnormality_score: float, bad_channels: list[str], raw: mne.io.Raw
+        self, abnormality_score: float, bad_channels: list[str], raw: MNERaw
     ) -> str:
         """Compute overall quality grade."""
         bad_channel_ratio = len(bad_channels) / len(raw.ch_names)
@@ -527,7 +527,7 @@ class EEGQualityController:
         else:
             return "EXCELLENT"
 
-    def run_full_qc_pipeline(self, raw: MNE_Raw, preprocess: bool = True, **kwargs: Any) -> dict[str, Any]:
+    def run_full_qc_pipeline(self, raw: MNERaw, preprocess: bool = True, **kwargs: Any) -> dict[str, Any]:
         """Run the complete QC pipeline.
 
         Args:

@@ -401,13 +401,16 @@ def create_artifact_examples(
 
     n_artifacts = min(len(artifacts), 5)
     fig: Figure
-    axes: list[Axes] | Axes
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
+    
+    # Properly handle axes typing
+    axes_list: list[Axes]
+    if isinstance(axes, Axes):
+        axes_list = [axes]
+    else:
+        axes_list = list(axes.ravel())
 
-    if n_artifacts == 1:
-        axes = [axes]  # type: ignore[list-item]
-
-    for i, (ax, artifact) in enumerate(zip(axes, artifacts[:n_artifacts], strict=False)):  # type: ignore[arg-type]
+    for i, (ax, artifact) in enumerate(zip(axes_list, artifacts[:n_artifacts], strict=False)):
         # Extract segment
         start_sample = int(artifact["start"] * sampling_rate)
         end_sample = int(artifact["end"] * sampling_rate)

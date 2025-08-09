@@ -261,6 +261,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def configure_optimizers(self) -> dict[str, Any] | list[Any] | Any:
         """Configure optimizer with layer decay and scheduler."""
+        from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
+        
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()
 
@@ -272,47 +274,36 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         )
 
         # Create scheduler based on type
-        if self.hparams.get("scheduler_type", "none") == "onecycle":
-            scheduler = OneCycleLR(
+        scheduler_type = self.hparams.get("scheduler_type", "none")
+        
+        if scheduler_type == "onecycle":
+            sched: _LRScheduler = OneCycleLR(
                 optimizer,
                 max_lr=self.hparams.get("learning_rate", 1e-3),
                 total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
-                pct_start=self.hparams.get("warmup_epochs", 5) / self.hparams.get("total_epochs", 50),
+                pct_start=self.hparams.get("warmup_epochs", 5) / max(1, self.hparams.get("total_epochs", 50)),
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000
             )
-
             return {
                 "optimizer": optimizer,
                 "lr_scheduler": {
-                    "scheduler": scheduler,
+                    "scheduler": sched,
                     "interval": "step",
                 },
             }
-        else:
-            # Simple warmup + cosine annealing
-            from torch.optim.lr_scheduler import CosineAnnealingLR
-
-            def warmup_lambda(epoch: int) -> float:
-                if epoch < self.hparams.get("warmup_epochs", 5):
-                    return float(epoch) / float(self.hparams.get("warmup_epochs", 5))
-                return 1.0
-
-            # Use only cosine scheduler (warmup is handled by OneCycleLR-like behavior)
-            scheduler = CosineAnnealingLR(  # type: ignore[assignment]
+        
+        elif scheduler_type == "cosine":
+            sched = CosineAnnealingLR(
                 optimizer,
                 T_max=int(self.trainer.estimated_stepping_batches),  # type: ignore[arg-type]
                 eta_min=1e-6,
             )
-
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "interval": "step",
-                },
-            }
+            return [optimizer], [sched]
+        
+        # No scheduler
+        return optimizer
 
     def _get_param_groups(self) -> list[dict[str, Any]]:
         """Get parameter groups with layer decay."""

@@ -14,7 +14,7 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
-from brain_go_brrr._typing import FloatArray, MNE_Raw
+from brain_go_brrr._typing import FloatArray, MNERaw
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
@@ -60,7 +60,7 @@ class EEGPTFeatureExtractor:
         # Initialize preprocessor for EEGPT mode
         self.preprocessor = FlexibleEEGPreprocessor(mode="abnormality")
 
-    def extract_embeddings(self, raw: MNE_Raw) -> FloatArray:
+    def extract_embeddings(self, raw: MNERaw) -> FloatArray:
         """Extract EEGPT embeddings from raw EEG data.
 
         Args:
@@ -98,7 +98,7 @@ class EEGPTFeatureExtractor:
 
         return np.asarray(embeddings, dtype=np.float64)
 
-    def extract_embeddings_with_metadata(self, raw: MNE_Raw) -> dict[str, Any]:
+    def extract_embeddings_with_metadata(self, raw: MNERaw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
 
         Args:
@@ -123,7 +123,7 @@ class EEGPTFeatureExtractor:
             "embedding_dim": embeddings.shape[1],
         }
 
-    def extract_batch_embeddings(self, raws: list[MNE_Raw]) -> list[FloatArray]:
+    def extract_batch_embeddings(self, raws: list[MNERaw]) -> list[FloatArray]:
         """Extract embeddings for multiple recordings.
 
         Args:
@@ -140,7 +140,7 @@ class EEGPTFeatureExtractor:
 
         return embeddings_list
 
-    def _preprocess_for_eegpt(self, raw: MNE_Raw) -> MNE_Raw:
+    def _preprocess_for_eegpt(self, raw: MNERaw) -> MNERaw:
         """Preprocess raw data for EEGPT.
 
         Args:
@@ -154,7 +154,7 @@ class EEGPTFeatureExtractor:
         return preprocessed
 
     def _extract_windows(
-        self, raw: MNE_Raw, window_size: float = 4.0, overlap: float = 0.0
+        self, raw: MNERaw, window_size: float = 4.0, overlap: float = 0.0
     ) -> list[FloatArray]:
         """Extract windows from raw data.
 
@@ -224,9 +224,9 @@ class EEGPTFeatureExtractor:
                 # If (batch, n_windows, dim) with batch > 1, reshape
                 embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
 
-        return embeddings.astype(np.float32)
+        return embeddings.astype(np.float64)
 
-    def _compute_cache_key(self, raw: MNE_Raw) -> str:
+    def _compute_cache_key(self, raw: MNERaw) -> str:
         """Compute cache key for raw data.
 
         Args:

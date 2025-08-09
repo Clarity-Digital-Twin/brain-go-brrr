@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import mne
+from brain_go_brrr._typing import MNERaw, MNEEpochs
 
 # Only import if available
 try:
@@ -137,7 +138,7 @@ class ChunkedAutoRejectProcessor:
 
         logger.info("AutoReject fitting completed and cached")
 
-    def transform_raw(self, raw: mne.io.Raw, window_adapter: Any) -> mne.io.Raw:
+    def transform_raw(self, raw: MNERaw, window_adapter: Any) -> mne.io.Raw:
         """Apply fitted AutoReject to raw data.
 
         Args:
@@ -165,7 +166,7 @@ class ChunkedAutoRejectProcessor:
 
         return raw_clean
 
-    def _apply_autoreject(self, epochs: mne.Epochs) -> mne.Epochs:
+    def _apply_autoreject(self, epochs: MNEEpochs) -> mne.Epochs:
         """Apply AutoReject with cached parameters.
 
         Simple transform using pre-fitted thresholds.

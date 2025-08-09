@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import mne
+from brain_go_brrr._typing import MNERaw
 import numpy as np
 import numpy.typing as npt
 import yasa
@@ -85,7 +86,7 @@ class YASASleepStager:
             self.config.eeg_backend = "perceptron"
 
     def _prepare_channels_for_yasa(
-        self, raw: mne.io.Raw, channel_map: dict[str, str] | None = None
+        self, raw: MNERaw, channel_map: dict[str, str] | None = None
     ) -> mne.io.Raw:
         """Prepare channels for YASA by aliasing if needed.
 
