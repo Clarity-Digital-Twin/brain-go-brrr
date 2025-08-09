@@ -553,7 +553,9 @@ class EEGQualityController:
 
         # Bad channel detection
         bad_channels = self.detect_bad_channels(raw)
-        raw.info["bads"] = bad_channels
+        # Use public API to set bad channels
+        from brain_go_brrr import mne_compat
+        mne_compat.set_bad_channels(raw, bad_channels)
 
         # Create epochs
         epochs = self.create_epochs(raw)

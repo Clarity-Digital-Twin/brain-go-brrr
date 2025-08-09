@@ -320,7 +320,7 @@ class EEGPreprocessor:
             )
             if hasattr(raw, "annotations"):
                 # MNE Raw objects have set_annotations method
-                raw.set_annotations(raw.annotations + annotations)
+                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(

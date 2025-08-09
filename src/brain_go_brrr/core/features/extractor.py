@@ -86,12 +86,15 @@ class EEGPTFeatureExtractor:
             logger.warning("Using random embeddings (model not loaded)")
             embeddings = np.random.randn(len(windows), 512).astype(np.float32)
         else:
-            # Run EEGPT inference
-            embeddings = self._run_inference(windows, preprocessed.ch_names)
+            # Run EEGPT inference (returns float64)
+            embeddings_f64 = self._run_inference(windows, preprocessed.ch_names)
+            # Convert to float32 for consistency
+            embeddings = np.asarray(embeddings_f64, dtype=np.float32)
 
         # Cache if enabled (cache as float32 for memory efficiency)
         if self.enable_cache and len(self._cache) < self.cache_size:
-            emb32 = np.asarray(embeddings, dtype=np.float32)
+            from typing import cast
+            emb32 = cast("FloatArray", np.asarray(embeddings, dtype=np.float32))
             self._cache[cache_key] = emb32
 
         return np.asarray(embeddings, dtype=np.float32)

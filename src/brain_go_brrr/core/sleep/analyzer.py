@@ -323,14 +323,17 @@ class SleepAnalyzer:
         """
         # Handle both Raw object and hypnogram array for compatibility
         from brain_go_brrr import mne_compat
+        from typing import cast
+        
+        hypnogram: npt.NDArray[np.str_]
         if mne_compat.is_mne_raw(raw_or_hypnogram):
             # It's a Raw object, stage it first
             staging_result = self.stage_sleep(raw_or_hypnogram)
             # Handle both tuple and array return types
             hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:
-            # It's already a hypnogram array
-            hypnogram = raw_or_hypnogram
+            # It's already a hypnogram array - cast for type checker
+            hypnogram = cast("npt.NDArray[np.str_]", raw_or_hypnogram)
 
         return self.compute_sleep_statistics(hypnogram, epoch_length)
 

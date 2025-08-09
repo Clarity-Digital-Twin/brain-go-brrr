@@ -51,73 +51,90 @@ class TestEEGPTConfig:
 class TestEEGPTModel:
     """Test EEGPT model without loading weights."""
 
-    @patch("brain_go_brrr.models.eegpt_model.load_checkpoint")
-    def test_model_initialization(self, mock_load):
-        """Test model initialization with mocked weights."""
-        # Mock checkpoint loading
-        mock_load.return_value = {}
-
-        config = EEGPTConfig()
-        model = EEGPTModel(config, load_weights=False)
+    def test_model_initialization(self):
+        """Test model initialization without loading weights."""
+        from brain_go_brrr.core.config import ModelConfig
+        from pathlib import Path
+        
+        # Create config with non-existent model path so it doesn't try to load
+        config = ModelConfig()
+        config.model_path = Path("/tmp/nonexistent_model.ckpt")
+        
+        # Initialize model without auto-loading
+        model = EEGPTModel(config=config, auto_load=False)
 
         assert model.config == config
         assert hasattr(model, "encoder")
-        assert hasattr(model, "patch_embed")
+        assert hasattr(model, "device")
 
     def test_forward_pass_shape(self):
-        """Test forward pass output shape."""
-        config = EEGPTConfig(n_channels=20, embed_dim=512)
-
-        # Create lightweight mock model
-        with patch.object(EEGPTModel, "__init__", lambda x, y, z: None):
-            model = EEGPTModel.__new__(EEGPTModel)
-            model.config = config
-
-            # Mock the encoder with simple linear layer
-            model.encoder = nn.Linear(512, 512)
-            model.patch_embed = nn.Linear(config.n_channels * config.patch_size, 512)
-
-            # Create input: batch=2, channels=20, time=1024 samples (4s at 256Hz)
-            batch_size = 2
-            input_data = torch.randn(batch_size, config.n_channels, 1024)
-
-            # Mock forward to return correct shape
-            with patch.object(model, "forward") as mock_forward:
-                # Output should be [batch, n_patches, embed_dim]
-                n_patches = 1024 // config.patch_size  # 16 patches
-                mock_forward.return_value = torch.randn(batch_size, n_patches, config.embed_dim)
-
-                output = model.forward(input_data)
-
-                assert output.shape == (batch_size, n_patches, config.embed_dim)
+        """Test that extract_features returns correct shape."""
+        from brain_go_brrr.core.config import ModelConfig
+        from pathlib import Path
+        
+        config = ModelConfig()
+        config.model_path = Path("/tmp/nonexistent_model.ckpt")
+        config.embed_dim = 512
+        config.n_summary_tokens = 4
+        
+        model = EEGPTModel(config=config, auto_load=False)
+        
+        # Mark as loaded to prevent loading attempt
+        model.is_loaded = True
+        
+        # Create a dummy encoder that returns zeros
+        class DummyEncoder:
+            def __call__(self, *args, **kwargs):
+                return torch.zeros(1, config.n_summary_tokens, config.embed_dim, dtype=torch.float64)
+            
+            def prepare_chan_ids(self, channel_names):
+                return torch.arange(len(channel_names))
+        
+        model.encoder = DummyEncoder()
+        
+        # Create test data: (channels, samples)
+        data = np.random.randn(20, 1024).astype(np.float64)
+        channel_names = [f"CH{i}" for i in range(20)]
+        
+        # Test extract_features returns (n_summary_tokens, embed_dim)
+        features = model.extract_features(data, channel_names)
+        
+        assert features.shape == (config.n_summary_tokens, config.embed_dim)
+        assert features.dtype == np.float64
 
     def test_preprocess_for_eegpt(self):
         """Test preprocessing for EEGPT."""
-        # Test data preprocessing
-        data = np.random.randn(20, 1024).astype(np.float32)
-
+        import mne
+        
+        # Create MNE Raw object
+        sfreq = 256
+        n_channels = 20
+        n_samples = 1024
+        data = np.random.randn(n_channels, n_samples) * 1e-6  # microvolts
+        ch_names = [f"CH{i}" for i in range(n_channels)]
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+        raw = mne.io.RawArray(data, info)
+        
         # Preprocess
-        processed = preprocess_for_eegpt(data, sampling_rate=256, target_rate=256)
-
-        # Should return normalized data
-        assert processed.shape == data.shape
-        assert processed.dtype == np.float32
+        processed = preprocess_for_eegpt(raw, target_sfreq=256)
+        
+        # Should return MNE Raw object
+        assert isinstance(processed, mne.io.BaseRaw)
+        assert processed.info['sfreq'] == 256
+        assert len(processed.ch_names) <= 58  # Max channels for EEGPT
 
     def test_patch_embedding_dimension(self):
         """Test patch embedding dimensions."""
-        config = EEGPTConfig(n_channels=20, patch_size=64, embed_dim=512)
-
-        # Patch embed input size = n_channels * patch_size
-        input_dim = config.n_channels * config.patch_size
-        assert input_dim == 1280
-
-        # Output should be embed_dim
-        patch_embed = nn.Linear(input_dim, config.embed_dim)
-
-        # Test shape
-        patch_input = torch.randn(10, input_dim)  # 10 patches
-        patch_output = patch_embed(patch_input)
-        assert patch_output.shape == (10, config.embed_dim)
+        config = EEGPTConfig(patch_size=64, embed_dim=512)
+        
+        # For EEGPT, patches are computed from time dimension
+        # Each patch is 64 samples (250ms at 256Hz)
+        # A 4-second window has 1024 samples = 16 patches
+        
+        assert config.patch_size == 64
+        assert config.embed_dim == 512
+        assert config.window_samples == 1024  # 4s * 256Hz
+        assert config.n_patches_per_window == 16  # 1024 / 64
 
 
 class TestModelInference:
