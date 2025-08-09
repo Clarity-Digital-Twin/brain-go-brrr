@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
 from brain_go_brrr.core.logger import get_logger
@@ -104,16 +105,17 @@ def create_app() -> FastAPI:
 
     # Copy all routes from the original router
     for route in eegpt.router.routes:
-        if hasattr(route, "path"):
-            # Remove the /eeg/eegpt prefix and add to compat router
-            new_path = str(route.path).replace("/eeg/eegpt", "")  # type: ignore[attr-defined]
-            eegpt_compat_router.add_api_route(
-                new_path,
-                route.endpoint,  # type: ignore[attr-defined]
-                methods=list(route.methods) if hasattr(route, "methods") else ["GET"],  # type: ignore[attr-defined]
-                name=f"{route.name}_compat" if hasattr(route, "name") else None,  # type: ignore[attr-defined]
-                deprecated=True,
-            )
+        if not isinstance(route, APIRoute):
+            continue
+        # Remove the /eeg/eegpt prefix and add to compat router
+        new_path = route.path.replace("/eeg/eegpt", "")
+        eegpt_compat_router.add_api_route(
+            new_path,
+            route.endpoint,
+            methods=list(route.methods),
+            name=f"{route.name}_compat" if route.name else None,
+            deprecated=True,
+        )
 
     app.include_router(eegpt_compat_router, prefix="/api/v1")
 

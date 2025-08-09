@@ -5,6 +5,7 @@ that prepares recordings for abnormality detection using EEGPT.
 """
 
 import logging
+from typing import cast
 
 import mne
 import numpy as np
@@ -270,7 +271,7 @@ class EEGPreprocessor:
             if key in raw.info:  # type: ignore[operator]
                 raw_clean.info[key] = raw.info[key]
 
-        return raw_clean
+        return cast("MNERaw", raw_clean)
 
     def _amplitude_based_rejection(self, raw: MNERaw) -> MNERaw:
         """Simple amplitude-based artifact rejection when positions are not available.
@@ -318,7 +319,7 @@ class EEGPreprocessor:
                 onsets, durations, descriptions, orig_time=raw.info["meas_date"]
             )
             if hasattr(raw, "annotations"):
-                raw.set_annotations(raw.annotations + annotations)
+                raw.set_annotations(raw.annotations + annotations)  # type: ignore[attr-defined]
             logger.info(f"Marked {len(onsets)} bad segments using amplitude criteria")
         elif len(bad_starts) != len(bad_ends):
             logger.warning(

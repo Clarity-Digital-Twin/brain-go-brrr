@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import mne
 
@@ -29,7 +29,7 @@ def load_edf_safe(file_path: Path | str, **kwargs: Any) -> MNERaw:
         EdfLoadError: If the file cannot be loaded for any reason
     """
     try:
-        return mne.io.read_raw_edf(file_path, **kwargs)
+        return cast("MNERaw", mne.io.read_raw_edf(file_path, **kwargs))
     except FileNotFoundError as e:
         raise EdfLoadError(f"EDF file not found: {file_path}") from e
     except ValueError as e:

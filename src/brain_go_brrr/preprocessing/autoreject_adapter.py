@@ -5,7 +5,7 @@ sliding windows and MNE epochs for AutoReject compatibility.
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import mne
 import numpy as np
@@ -133,7 +133,7 @@ class WindowEpochAdapter:
             f"Reconstructed {total_samples / original_raw.info['sfreq']:.1f}s of continuous data"
         )
 
-        return raw_clean  # type: ignore[no-any-return]
+        return cast("MNERaw", raw_clean)
 
 
 class SyntheticPositionGenerator:

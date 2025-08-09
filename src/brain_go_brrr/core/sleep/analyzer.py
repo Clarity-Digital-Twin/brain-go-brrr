@@ -285,7 +285,8 @@ class SleepAnalyzer:
                 f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
             )
             # Return just the array for simple interface
-            return y_pred
+            y_pred_typed: npt.NDArray[np.str_] = y_pred
+            return y_pred_typed
         except Exception as e:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback (always return strings)
@@ -314,7 +315,10 @@ class SleepAnalyzer:
         # Handle both Raw object and hypnogram array for compatibility
         if hasattr(raw_or_hypnogram, "get_data"):
             # It's a Raw object, stage it first
-            staging_result = self.stage_sleep(raw_or_hypnogram)
+            if isinstance(raw_or_hypnogram, MNERaw):
+                staging_result = self.stage_sleep(raw_or_hypnogram)
+            else:
+                raise ValueError("Invalid input type for calculate_sleep_metrics")
             # Handle both tuple and array return types
             hypnogram = staging_result[0] if isinstance(staging_result, tuple) else staging_result
         else:

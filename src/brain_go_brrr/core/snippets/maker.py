@@ -4,11 +4,13 @@ Creates and manages EEG snippets for analysis, featuring extraction, processing,
 and integration with EEGPT for comprehensive snippet analysis.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import mne
 import numpy as np
@@ -17,6 +19,8 @@ import pandas as pd
 
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.utils import utc_now
+
+Float64ND = npt.NDArray[np.float64]
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT"))
@@ -357,7 +361,7 @@ class EEGSnippetMaker:
             # Convert to dictionary
             features_dict = features.iloc[0].to_dict()
 
-            return features_dict
+            return cast("dict[str, Any]", features_dict)
 
         except Exception as e:
             logger.error(f"Feature extraction failed: {e}")

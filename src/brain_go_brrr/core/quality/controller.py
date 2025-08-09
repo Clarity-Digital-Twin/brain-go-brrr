@@ -8,7 +8,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import mne
 import numpy as np
@@ -281,7 +281,7 @@ class EEGQualityController:
                     bad_channels.append(ch_name)
 
         logger.info(f"Detected {len(bad_channels)} bad channels using {method}: {bad_channels}")
-        return bad_channels
+        return cast("list[str]", bad_channels)
 
     def create_epochs(
         self,
@@ -330,7 +330,7 @@ class EEGQualityController:
             verbose=False,
         )
 
-        return epochs
+        return cast("MNEEpochs", epochs)
 
     def auto_reject_epochs(
         self, epochs: MNEEpochs, return_log: bool = False

@@ -7,7 +7,7 @@ See experiments/eegpt_linear_probe/LIGHTNING_BUG_REPORT.md for details.
 """
 
 import logging
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -144,7 +144,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Apply probe
         logits = self.probe(features)
 
-        return logits
+        return cast("torch.Tensor", logits)
 
     def training_step(
         self,
@@ -184,7 +184,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
         )
 
-        return loss
+        return cast("torch.Tensor", loss)
 
     def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
@@ -268,7 +268,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def configure_optimizers(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
-        from torch.optim.lr_scheduler import CosineAnnealingLR
+        from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
 
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()
@@ -303,7 +303,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
 
         elif scheduler_type == "cosine":
-            sched = CosineAnnealingLR(
+            sched: _LRScheduler = CosineAnnealingLR(
                 optimizer,
                 T_max=int(self.trainer.estimated_stepping_batches),
                 eta_min=1e-6,

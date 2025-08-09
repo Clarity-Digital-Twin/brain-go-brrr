@@ -476,7 +476,9 @@ class AbnormalityDetector:
                 f"Too few windows: {len(windows)} < {self.config.processing.min_windows_for_prediction} minimum"
             )
 
-        return windows
+        # Cast to float64 for type safety
+        windows_float64 = [w.astype(np.float64) for w in windows]
+        return windows_float64
 
     def _assess_window_quality(self, window: npt.NDArray[np.float64]) -> float:
         """Assess quality of a single window."""

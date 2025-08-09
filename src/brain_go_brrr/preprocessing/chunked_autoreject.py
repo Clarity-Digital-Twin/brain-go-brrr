@@ -165,7 +165,8 @@ class ChunkedAutoRejectProcessor:
         # Convert back
         raw_clean = window_adapter.epochs_to_continuous(epochs_clean, raw)
 
-        return raw_clean
+        from typing import cast
+        return cast("MNERaw", raw_clean)
 
     def _apply_autoreject(self, epochs: MNEEpochs) -> mne.Epochs:
         """Apply AutoReject with cached parameters.
