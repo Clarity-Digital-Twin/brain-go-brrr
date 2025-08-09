@@ -14,6 +14,7 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
+from brain_go_brrr._typing import FloatArray, MNE_Raw
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
@@ -41,7 +42,7 @@ class EEGPTFeatureExtractor:
         self.device = device
         self.enable_cache = enable_cache
         self.cache_size = cache_size
-        self._cache: dict[str, npt.NDArray[np.float64]] = {}
+        self._cache: dict[str, FloatArray] = {}
         self.model: EEGPTModel | None
 
         # Initialize model
@@ -59,7 +60,7 @@ class EEGPTFeatureExtractor:
         # Initialize preprocessor for EEGPT mode
         self.preprocessor = FlexibleEEGPreprocessor(mode="abnormality")
 
-    def extract_embeddings(self, raw: mne.io.Raw) -> npt.NDArray[np.float64]:
+    def extract_embeddings(self, raw: MNE_Raw) -> FloatArray:
         """Extract EEGPT embeddings from raw EEG data.
 
         Args:
@@ -92,11 +93,12 @@ class EEGPTFeatureExtractor:
 
         # Cache if enabled
         if self.enable_cache and len(self._cache) < self.cache_size:
-            self._cache[cache_key] = embeddings.astype(np.float64)  # type: ignore[assignment]
+            emb64 = np.asarray(embeddings, dtype=np.float64)
+            self._cache[cache_key] = emb64
 
-        return embeddings.astype(np.float64)  # type: ignore[return-value]
+        return np.asarray(embeddings, dtype=np.float64)
 
-    def extract_embeddings_with_metadata(self, raw: mne.io.Raw) -> dict[str, Any]:
+    def extract_embeddings_with_metadata(self, raw: MNE_Raw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
 
         Args:
@@ -121,7 +123,7 @@ class EEGPTFeatureExtractor:
             "embedding_dim": embeddings.shape[1],
         }
 
-    def extract_batch_embeddings(self, raws: list[mne.io.Raw]) -> list[npt.NDArray[np.float64]]:
+    def extract_batch_embeddings(self, raws: list[MNE_Raw]) -> list[FloatArray]:
         """Extract embeddings for multiple recordings.
 
         Args:
@@ -138,7 +140,7 @@ class EEGPTFeatureExtractor:
 
         return embeddings_list
 
-    def _preprocess_for_eegpt(self, raw: mne.io.Raw) -> mne.io.Raw:
+    def _preprocess_for_eegpt(self, raw: MNE_Raw) -> MNE_Raw:
         """Preprocess raw data for EEGPT.
 
         Args:
@@ -152,8 +154,8 @@ class EEGPTFeatureExtractor:
         return preprocessed
 
     def _extract_windows(
-        self, raw: mne.io.Raw, window_size: float = 4.0, overlap: float = 0.0
-    ) -> list[npt.NDArray[np.float64]]:
+        self, raw: MNE_Raw, window_size: float = 4.0, overlap: float = 0.0
+    ) -> list[FloatArray]:
         """Extract windows from raw data.
 
         Args:
@@ -177,7 +179,7 @@ class EEGPTFeatureExtractor:
 
         return windows
 
-    def _run_inference(self, windows: list[npt.NDArray[np.float64]], channel_names: list[str]) -> np.ndarray[Any, Any]:
+    def _run_inference(self, windows: list[FloatArray], channel_names: list[str]) -> FloatArray:
         """Run EEGPT inference on windows.
 
         Args:
@@ -224,7 +226,7 @@ class EEGPTFeatureExtractor:
 
         return embeddings.astype(np.float32)
 
-    def _compute_cache_key(self, raw: mne.io.Raw) -> str:
+    def _compute_cache_key(self, raw: MNE_Raw) -> str:
         """Compute cache key for raw data.
 
         Args:

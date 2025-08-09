@@ -11,6 +11,7 @@ from typing import Any
 import mne
 import numpy as np
 
+from brain_go_brrr._typing import MNE_Raw
 from brain_go_brrr.core.features import EEGPTFeatureExtractor
 from brain_go_brrr.core.sleep import SleepAnalyzer
 
@@ -33,7 +34,7 @@ class ParallelEEGPipeline:
 
         logger.info("Initialized parallel EEG pipeline")
 
-    def process(self, raw: mne.io.Raw) -> dict[str, Any]:
+    def process(self, raw: MNE_Raw) -> dict[str, Any]:
         """Process EEG data through both pipelines.
 
         Args:

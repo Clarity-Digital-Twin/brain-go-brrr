@@ -369,7 +369,7 @@ class EEGTransformer(nn.Module):
 
     def __init__(
         self,
-        n_channels: list[int] | None = None,
+        n_channels: list[int | str] | None = None,
         patch_size: int = 64,
         embed_dim: int = 768,
         embed_num: int = 4,  # Number of summary tokens
@@ -428,8 +428,8 @@ class EEGTransformer(nn.Module):
         # Map channel names to indices
         chan_ids = []
         for name in channel_names:
-            if name in self.n_channels:  # type: ignore[comparison-overlap]
-                chan_ids.append(self.n_channels.index(name))  # type: ignore[arg-type]
+            if isinstance(self.n_channels, list) and name in self.n_channels:
+                chan_ids.append(self.n_channels.index(name))
             else:
                 chan_ids.append(0)  # Default channel
         return torch.tensor(chan_ids, dtype=torch.long)

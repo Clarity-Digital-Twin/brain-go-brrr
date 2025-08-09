@@ -1,6 +1,7 @@
 """Two-layer probe for EEGPT matching paper implementation."""
 
 import logging
+from typing import Literal, overload
 
 import torch
 import torch.nn as nn
@@ -127,6 +128,12 @@ class EEGPTTwoLayerProbe(nn.Module):
             x = self.chan_conv(x)  # [B, 22, T] -> [B, 19, T]
         return x
 
+    @overload
+    def forward(self, features: torch.Tensor, return_features: Literal[True]) -> tuple[torch.Tensor, torch.Tensor]: ...
+    
+    @overload
+    def forward(self, features: torch.Tensor, return_features: Literal[False] = False) -> torch.Tensor: ...
+    
     def forward(self, features: torch.Tensor, return_features: bool = False) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         """Forward pass matching paper implementation.
 
@@ -169,8 +176,8 @@ class EEGPTTwoLayerProbe(nn.Module):
         logits = self.linear_probe2(h_flat)  # [B, n_classes]
 
         if return_features:
-            return logits, h  # type: ignore[return-value]
-        return logits  # type: ignore[no-any-return]
+            return logits, h
+        return logits
 
 
 class EEGPTChannelAdapter(nn.Module):

@@ -193,7 +193,8 @@ class Resampler:
         """
         if data.ndim == 1:
             n_samples_new = int(len(data) * self.ratio)
-            return signal.resample(data, n_samples_new)  # type: ignore[no-any-return]
+            out = signal.resample(data, n_samples_new)
+            return cast(FloatArray, np.asarray(out, dtype=np.float64))
         else:
             # Resample each channel
             n_samples_new = int(data.shape[1] * self.ratio)

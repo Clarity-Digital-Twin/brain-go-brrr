@@ -24,6 +24,7 @@ import torch
 import torch.nn as nn
 from scipy import signal
 
+from brain_go_brrr._typing import FloatArray, MNE_Raw
 from ..core.config import ModelConfig
 from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 
@@ -252,7 +253,7 @@ class EEGPTModel:
         # This should never be reached due to the encoder None check above
         return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)
 
-    def predict_abnormality(self, raw: "mne.io.Raw") -> dict[str, Any]:  # Use string annotation
+    def predict_abnormality(self, raw: MNE_Raw) -> dict[str, Any]:
         """Predict abnormality from raw EEG data with streaming support."""
         if not self.is_loaded:
             try:
@@ -392,7 +393,7 @@ class EEGPTModel:
                 },
             }
 
-    def analyze(self, raw: "mne.io.Raw", analysis_type: str = "abnormality") -> dict[str, Any]:
+    def analyze(self, raw: MNE_Raw, analysis_type: str = "abnormality") -> dict[str, Any]:
         """Analyze an MNE Raw object.
 
         Args:
@@ -410,7 +411,7 @@ class EEGPTModel:
     def process_recording(
         self,
         file_path: str | Path | None = None,
-        raw: "mne.io.Raw | None" = None,
+        raw: MNE_Raw | None = None,
         analysis_type: str = "abnormality",
         # Legacy backward compatibility args
         data: npt.NDArray[np.float64] | None = None,
@@ -470,7 +471,7 @@ class EEGPTModel:
 
         return self.analyze(raw, analysis_type)
 
-    def extract_windows(self, data: npt.NDArray[np.float64], sampling_rate: int) -> list[np.ndarray[Any, Any]]:
+    def extract_windows(self, data: FloatArray, sampling_rate: int) -> list[FloatArray]:
         """Extract non-overlapping windows from continuous data.
 
         Args:
@@ -542,12 +543,12 @@ class EEGPTModel:
 
 
 def preprocess_for_eegpt(
-    raw: "mne.io.Raw",  # Use string annotation for untyped module
+    raw: MNE_Raw,
     target_sfreq: int = 256,
     l_freq: float = 0.5,
     h_freq: float = 50.0,
     notch_freq: float | list[float] | None = None,
-) -> "mne.io.Raw":  # Use string annotation
+) -> MNE_Raw:
     """Preprocess EEG data for EEGPT model."""
     # Mark unused parameters as intentionally unused for now
     _ = l_freq
@@ -573,7 +574,7 @@ def preprocess_for_eegpt(
     return raw
 
 
-def extract_features_from_raw(raw: mne.io.Raw, model_path: str | Path) -> dict[str, Any]:
+def extract_features_from_raw(raw: MNE_Raw, model_path: str | Path) -> dict[str, Any]:
     """High-level function to extract features from raw EEG.
 
     Args:
