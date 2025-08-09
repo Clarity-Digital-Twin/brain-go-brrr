@@ -8,6 +8,7 @@ class DummyEEGPTModel(nn.Module):
     """Minimal EEGPT model for testing."""
 
     def __init__(self):
+        """Initialize dummy model with minimal parameters."""
         super().__init__()
         self.linear = nn.Linear(1024, 512)  # Just for having params
 

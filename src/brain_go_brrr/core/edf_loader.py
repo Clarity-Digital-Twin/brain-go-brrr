@@ -42,13 +42,13 @@ def validate_edf_path(file_path: Path | str) -> Path:
 
     # Check if readable
     try:
-        with open(path, "rb") as f:
+        with path.open("rb") as f:
             # Try to read first byte to verify access
             f.read(1)
-    except PermissionError:
-        raise PermissionError(f"Cannot read file: {path}")
+    except PermissionError as err:
+        raise PermissionError(f"Cannot read file: {path}") from err
     except Exception as e:
-        raise ValueError(f"Cannot access file: {e}")
+        raise ValueError(f"Cannot access file: {e}") from e
 
     return path
 
