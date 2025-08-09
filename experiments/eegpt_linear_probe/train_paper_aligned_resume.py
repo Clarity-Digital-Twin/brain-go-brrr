@@ -162,21 +162,22 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         torch.nn.utils.clip_grad_norm_(probe.parameters(), config['training']['gradient_clip_val'])
         optimizer.step()
         
+        # CRITICAL FIX: Step scheduler after EACH optimizer step (per-batch, not per-epoch!)
+        scheduler.step()
+        
         # Store for metrics
         losses.append(loss.item())
         preds = torch.softmax(logits, dim=1)[:, 1].detach().cpu().numpy()
         all_preds.extend(preds)
         all_labels.extend(labels.cpu().numpy())
         
-        # Update progress bar
-        pbar.set_postfix({'loss': f'{loss.item():.4f}', 'lr': f'{scheduler.get_last_lr()[0]:.2e}'})
+        # Update progress bar with CURRENT learning rate (should change each batch)
+        current_lr = scheduler.get_last_lr()[0]
+        pbar.set_postfix({'loss': f'{loss.item():.4f}', 'lr': f'{current_lr:.2e}'})
         
-        # Log periodically
+        # Log periodically with LR verification
         if batch_idx % config['logging']['log_every_n_steps'] == 0:
-            logger.info(f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f}")
-    
-    # Step scheduler
-    scheduler.step()
+            logger.info(f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f} - LR: {current_lr:.2e}")
     
     # Compute metrics
     auroc = roc_auc_score(all_labels, all_preds)
@@ -290,16 +291,28 @@ def main():
     # Create dataloaders
     train_loader, val_loader = create_dataloaders(config)
     
-    # Initialize scheduler
+    # Initialize scheduler with CORRECT total steps and resume support
+    steps_per_epoch = len(train_loader)
+    total_steps = steps_per_epoch * config['training']['max_epochs']
+    
+    # Calculate steps already completed if resuming
+    steps_completed = start_epoch * steps_per_epoch if start_epoch > 0 else 0
+    
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=config['training']['scheduler']['max_lr'],
-        total_steps=len(train_loader) * config['training']['max_epochs'],
+        total_steps=total_steps,  # Total BATCH steps, not epoch steps!
         pct_start=config['training']['scheduler']['pct_start'],
         anneal_strategy=config['training']['scheduler']['anneal_strategy'],
         div_factor=config['training']['scheduler']['div_factor'],
-        final_div_factor=config['training']['scheduler']['final_div_factor']
+        final_div_factor=config['training']['scheduler']['final_div_factor'],
+        last_epoch=steps_completed - 1 if steps_completed > 0 else -1  # Resume from correct position
     )
+    
+    logger.info(f"OneCycleLR initialized: {total_steps} total steps ({steps_per_epoch} steps/epoch * {config['training']['max_epochs']} epochs)")
+    if steps_completed > 0:
+        logger.info(f"Resuming from step {steps_completed} / {total_steps} ({steps_completed/total_steps*100:.1f}% complete)")
+    logger.info(f"LR schedule: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['div_factor']:.6f} → {config['training']['scheduler']['max_lr']:.6f} → {config['training']['scheduler']['max_lr']/config['training']['scheduler']['final_div_factor']:.6f}")
     
     # 🚀 RESUME LOGIC - THE MAGIC HAPPENS HERE!
     start_epoch = 0
