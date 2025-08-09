@@ -84,17 +84,17 @@ class EEGPTFeatureExtractor:
         if self.model is None:
             # Return random embeddings for testing
             logger.warning("Using random embeddings (model not loaded)")
-            embeddings = np.random.randn(len(windows), 512).astype(np.float64)
+            embeddings = np.random.randn(len(windows), 512).astype(np.float32)
         else:
             # Run EEGPT inference
             embeddings = self._run_inference(windows, preprocessed.ch_names)
 
-        # Cache if enabled
+        # Cache if enabled (cache as float32 for memory efficiency)
         if self.enable_cache and len(self._cache) < self.cache_size:
-            emb64 = np.asarray(embeddings, dtype=np.float64)
-            self._cache[cache_key] = emb64
+            emb32 = np.asarray(embeddings, dtype=np.float32)
+            self._cache[cache_key] = emb32
 
-        return np.asarray(embeddings, dtype=np.float64)
+        return np.asarray(embeddings, dtype=np.float32)
 
     def extract_embeddings_with_metadata(self, raw: MNERaw) -> dict[str, Any]:
         """Extract embeddings with additional metadata.
@@ -205,7 +205,7 @@ class EEGPTFeatureExtractor:
         with torch.no_grad():
             for window in batch:
                 # EEGPT expects numpy array (channels, time)
-                window_np = window.astype(np.float64)
+                window_np = window.astype(np.float32)
                 embedding = self.model.extract_features(window_np, channel_names)
                 embeddings_list.append(embedding)
 
@@ -222,7 +222,7 @@ class EEGPTFeatureExtractor:
                 # If (batch, n_windows, dim) with batch > 1, reshape
                 embeddings = embeddings.reshape(-1, embeddings.shape[-1])[: len(windows)]
 
-        return embeddings.astype(np.float64)
+        return embeddings.astype(np.float32)
 
     def _compute_cache_key(self, raw: MNERaw) -> str:
         """Compute cache key for raw data.
