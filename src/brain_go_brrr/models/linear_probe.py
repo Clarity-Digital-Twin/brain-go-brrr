@@ -1,6 +1,8 @@
 """Linear probe classifier for EEGPT downstream tasks."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Literal
 
 import torch
 import torch.nn as nn
