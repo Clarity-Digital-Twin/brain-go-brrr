@@ -559,10 +559,10 @@ class EEGQualityController:
         epochs = self.create_epochs(raw)
 
         # Auto-reject epochs
-        from typing import cast, Any
+        from typing import cast
         result = self.auto_reject_epochs(epochs, return_log=True)
-        epochs_clean = cast(Any, result[0])
-        reject_log = cast(Any, result[1]) if len(result) > 1 else None
+        epochs_clean = cast("Any", result[0])
+        reject_log = cast("Any", result[1]) if len(result) > 1 else None
 
         # Compute abnormality score
         abnormality_result = self.compute_abnormality_score(epochs_clean)
