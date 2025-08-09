@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 import mne
-from brain_go_brrr._typing import MNERaw
 
+from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.core.exceptions import EdfLoadError
 
 logger = logging.getLogger(__name__)

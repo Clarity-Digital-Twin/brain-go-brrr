@@ -264,7 +264,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
     def configure_optimizers(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
-        from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
+        from torch.optim.lr_scheduler import CosineAnnealingLR
 
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()

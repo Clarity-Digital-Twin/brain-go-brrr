@@ -54,7 +54,7 @@ class BandpassFilter:
         """
         if data.ndim == 1:
             out = signal.sosfiltfilt(self.sos, data)
-            return cast(FloatArray, np.asarray(out, dtype=np.float64))
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Apply to each channel
             filtered = np.zeros_like(data, dtype=np.float64)
@@ -100,7 +100,7 @@ class NotchFilter:
         """
         if data.ndim == 1:
             out = signal.sosfiltfilt(self.sos, data)
-            return cast(FloatArray, np.asarray(out, dtype=np.float64))
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Apply to each channel
             filtered = np.zeros_like(data, dtype=np.float64)
@@ -134,7 +134,7 @@ class Normalizer:
                 std = np.std(data)
                 if std == 0:
                     return data - mean
-                return cast(FloatArray, np.asarray((data - mean) / std, dtype=np.float64))
+                return cast("FloatArray", np.asarray((data - mean) / std, dtype=np.float64))
             else:
                 # Normalize each channel independently
                 normalized = np.zeros_like(data)
@@ -153,7 +153,7 @@ class Normalizer:
                 mad = median_abs_deviation(data, scale="normal")
                 if mad == 0:
                     return data - median
-                return cast(FloatArray, np.asarray((data - median) / mad, dtype=np.float64))
+                return cast("FloatArray", np.asarray((data - median) / mad, dtype=np.float64))
             else:
                 # Robust normalization per channel
                 normalized = np.zeros_like(data)
@@ -194,7 +194,7 @@ class Resampler:
         if data.ndim == 1:
             n_samples_new = int(len(data) * self.ratio)
             out = signal.resample(data, n_samples_new)
-            return cast(FloatArray, np.asarray(out, dtype=np.float64))
+            return cast("FloatArray", np.asarray(out, dtype=np.float64))
         else:
             # Resample each channel
             n_samples_new = int(data.shape[1] * self.ratio)

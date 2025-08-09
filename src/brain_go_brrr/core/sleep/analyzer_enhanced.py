@@ -8,7 +8,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import yasa
