@@ -110,14 +110,15 @@ def pytest_sessionstart(session):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip integration tests unless --run-integration is passed."""
+    """Deselect integration tests unless --run-integration is passed."""
     if config.getoption("--run-integration", default=False):
         return
-
-    skip_integration = pytest.mark.skip(reason="integration test (run with --run-integration)")
-    for item in items:
-        if "integration" in item.keywords:
-            item.add_marker(skip_integration)
+    
+    # Deselect instead of skip for cleaner output
+    drop = [it for it in items if "integration" in it.keywords]
+    if drop:
+        config.hook.pytest_deselected(items=drop)
+        items[:] = [it for it in items if it not in drop]
 
 
 def pytest_addoption(parser):
