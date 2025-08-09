@@ -183,6 +183,16 @@ test-all: ## Run ALL tests including integration (full suite)
 	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -v --tb=short
 	@echo "$(GREEN)Full test suite complete!$(NC)"
 
+test-coverage: ## Run tests with full coverage report
+	@echo "$(GREEN)Running tests with coverage...$(NC)"
+	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
+	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
+
+test-integration-local: ## Run integration tests with local resources
+	@echo "$(GREEN)Running integration tests with local data...$(NC)"
+	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests -m integration --run-integration -v --tb=short
+	@echo "$(GREEN)Integration tests complete!$(NC)"
+
 test-slow: ## Run slow tests (nightly CI only)
 	@echo "$(YELLOW)Running slow tests (this may take a while)...$(NC)"
 	$(PYTEST) -m "slow" --no-cov -v
@@ -258,9 +268,6 @@ test-ci: ## Run tests for CI with coverage and XML report
 
 # Duplicate removed - see line 157 for test-integration target
 
-test-all: ## Run ALL tests including slow/external/gpu
-	@echo "$(YELLOW)Running ALL tests (including slow/external)...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "" --ignore=tests/benchmarks
 
 test-all-cov: ## Run ALL tests with coverage report (excludes slow benchmarks)
 	@echo "$(GREEN)Running all tests with full coverage (excluding slow benchmarks)...$(NC)"

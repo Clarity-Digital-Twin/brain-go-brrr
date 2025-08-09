@@ -149,6 +149,75 @@ class MotorImageryProbe(LinearProbeHead):
         self.class_to_idx = {name: i for i, name in enumerate(self.class_names)}
 
 
+class TwoLayerProbe(nn.Module):
+    """Simple MLP probe for linear evaluation.
+
+    Accepts (B, D) or (B, T, D). If 3D, pools across T.
+    """
+
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        dropout: float = 0.0,
+        pool: Literal["mean", "max", "cls"] = "mean",
+    ):
+        """Initialize two-layer probe.
+
+        Args:
+            input_dim: Input feature dimension
+            hidden_dim: Hidden layer dimension
+            output_dim: Number of output classes
+            dropout: Dropout probability
+            pool: Pooling strategy for 3D inputs
+        """
+        super().__init__()
+        if input_dim <= 0 or hidden_dim <= 0 or output_dim <= 0:
+            raise ValueError("dims must be > 0")
+        if not (0.0 <= dropout < 1.0):
+            raise ValueError("dropout must be in [0,1)")
+        self.pool = pool
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim),
+        )
+        self._reset_parameters()
+
+    def _reset_parameters(self) -> None:
+        """Initialize weights properly."""
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass.
+
+        Args:
+            x: Input tensor (B, D) or (B, T, D)
+
+        Returns:
+            Output logits (B, output_dim)
+        """
+        # x: (B, D) or (B, T, D)
+        if x.dim() == 3:
+            if self.pool == "mean":
+                x = x.mean(dim=1)
+            elif self.pool == "max":
+                x, _ = x.max(dim=1)
+            elif self.pool == "cls":
+                x = x[:, 0, :]
+            else:
+                raise ValueError(f"unknown pool: {self.pool}")
+        elif x.dim() != 2:
+            raise ValueError("expected (B, D) or (B, T, D)")
+        output: torch.Tensor = self.net(x)
+        return output
+
+
 def create_probe_for_task(
     task: str, input_dim: int = 2048, dropout: float = 0.1, **kwargs: Any
 ) -> LinearProbeHead:

@@ -31,7 +31,11 @@ if TYPE_CHECKING:
     import mne
 
 # Import benchmark fixtures to make them available
-pytest_plugins = ["tests.fixtures.benchmark_data", "tests.fixtures.cache_fixtures"]
+pytest_plugins = [
+    "tests.fixtures.benchmark_data",
+    "tests.fixtures.cache_fixtures",
+    "tests.fixtures.synthetic_data",
+]
 
 # Set deterministic random seeds for reproducible tests
 random.seed(1337)
@@ -48,6 +52,30 @@ def can_connect_to_redis(host="localhost", port=6379, timeout=0.5):
         return result == 0
     except Exception:
         return False
+
+
+@pytest.fixture
+def redis_client():
+    """Provide Redis client - real if available, fake otherwise."""
+    if can_connect_to_redis():
+        import redis
+        client = redis.Redis(host='localhost', port=6379, db=0)
+        yield client
+        client.flushdb()  # Clean up after test
+    else:
+        import fakeredis
+        client = fakeredis.FakeRedis()
+        yield client
+        client.flushdb()
+
+
+@pytest.fixture
+def fake_redis():
+    """Always provide fake Redis for unit tests."""
+    import fakeredis
+    client = fakeredis.FakeRedis()
+    yield client
+    client.flushdb()
 
 
 def pytest_configure(config):

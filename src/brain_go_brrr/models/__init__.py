@@ -9,10 +9,13 @@ from .eegpt_model import (
     extract_features_from_raw,
     preprocess_for_eegpt,
 )
+from .linear_probe import LinearProbeHead, TwoLayerProbe
 
 __all__ = [
     "EEGPTConfig",
     "EEGPTModel",
+    "LinearProbeHead",
+    "TwoLayerProbe",
     "extract_features_from_raw",
     "preprocess_for_eegpt",
 ]

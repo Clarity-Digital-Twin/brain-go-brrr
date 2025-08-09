@@ -223,7 +223,7 @@ class TwoLayerProbeHead(nn.Module):
         dropout: float = 0.1,
     ):
         """Initialize two-layer probe.
-        
+
         Args:
             input_dim: Input feature dimension
             hidden_dim: Hidden layer dimension
@@ -242,10 +242,10 @@ class TwoLayerProbeHead(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
-        
+
         Args:
             x: Input features [batch_size, input_dim]
-            
+
         Returns:
             Logits [batch_size, num_classes]
         """
