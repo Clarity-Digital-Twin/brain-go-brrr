@@ -415,7 +415,7 @@ class AbnormalityDetector:
         # Check for bad channels
         info = raw.info
         if (
-            "bads" in info
+            "bads" in info  # type: ignore[operator]
             and len(info["bads"]) > n_channels * self.config.processing.max_bad_channel_ratio
         ):
             raise ValueError(
@@ -451,7 +451,7 @@ class AbnormalityDetector:
             (data - channel_means) / (channel_stds + self.config.processing.channel_std_epsilon),
             0.0,
         )
-        raw._data = data
+        raw._data = data  # type: ignore[attr-defined]
         return raw
 
     def _extract_windows(self, raw: MNERaw) -> list[FloatArray]:

@@ -193,7 +193,7 @@ class SleepStager:
         """Classify sleep stage."""
         if self.use_yasa and self.yasa_adapter:
             try:
-                return self.yasa_adapter.stage(eeg)  # type: ignore[no-any-return]
+                return self.yasa_adapter.stage(eeg)
             except Exception as e:
                 logger.error(f"YASA staging failed: {e}, falling back to mock")
 

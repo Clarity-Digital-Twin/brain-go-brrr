@@ -109,8 +109,8 @@ def create_app() -> FastAPI:
             new_path = route.path.replace("/eeg/eegpt", "")
             eegpt_compat_router.add_api_route(
                 new_path,
-                route.endpoint,  # type: ignore[attr-defined]
-                methods=route.methods,  # type: ignore[attr-defined]
+                route.endpoint,
+                methods=route.methods,
                 name=f"{route.name}_compat" if hasattr(route, "name") else None,
                 deprecated=True,
             )

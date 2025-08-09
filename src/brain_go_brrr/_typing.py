@@ -3,6 +3,7 @@
 This module provides clean type annotations without requiring mypy to resolve
 external libraries like MNE that don't have type stubs.
 """
+
 from __future__ import annotations
 
 from typing import Any, Protocol, TypeAlias
@@ -15,7 +16,6 @@ FloatArray: TypeAlias = npt.NDArray[np.float64]
 Float32Array: TypeAlias = npt.NDArray[np.float32]
 StrArray: TypeAlias = npt.NDArray[np.str_]
 IntArray: TypeAlias = npt.NDArray[np.int_]
-
 
 
 class MNEInfo(Protocol):
@@ -46,7 +46,7 @@ class MNERaw(Protocol):
         units: str | dict[str, str] | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> FloatArray: ...
     def filter(
         self,
@@ -64,7 +64,7 @@ class MNERaw(Protocol):
         fir_design: str = "firwin",
         skip_by_annotation: str | list[str] | tuple[str, ...] = ("edge", "bad_acq_skip"),
         pad: str = "edge",
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> MNERaw: ...
     def resample(
         self,
@@ -75,44 +75,35 @@ class MNERaw(Protocol):
         n_jobs: int | str = 1,
         events: IntArray | None = None,
         pad: str = "edge",
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> MNERaw: ...
     def pick(
         self,
         picks: list[str] | list[int] | str | None = None,
         exclude: list[str] | str = "bads",
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> MNERaw: ...
     def pick_channels(
-        self,
-        ch_names: list[str],
-        ordered: bool = False,
-        verbose: bool | str | int | None = None
+        self, ch_names: list[str], ordered: bool = False, verbose: bool | str | int | None = None
     ) -> MNERaw: ...
     def rename_channels(
         self,
         mapping: dict[str, str] | Any,
         allow_duplicates: bool = False,
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> None: ...
     def set_channel_types(
-        self,
-        mapping: dict[str, str],
-        verbose: bool | str | int | None = None
+        self, mapping: dict[str, str], verbose: bool | str | int | None = None
     ) -> MNERaw: ...
     def load_data(self, verbose: bool | str | int | None = None) -> MNERaw: ...
-    def drop_channels(
-        self,
-        ch_names: list[str],
-        on_missing: str = "raise"
-    ) -> MNERaw: ...
+    def drop_channels(self, ch_names: list[str], on_missing: str = "raise") -> MNERaw: ...
     def set_eeg_reference(
         self,
         ref_channels: str | list[str] = "average",
         projection: bool = False,
         ch_type: str = "auto",
         forward: Any = None,
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> tuple[MNERaw, FloatArray]: ...
     def notch_filter(
         self,
@@ -130,7 +121,7 @@ class MNERaw(Protocol):
         fir_window: str = "hamming",
         fir_design: str = "firwin",
         pad: str = "edge",
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> MNERaw: ...
     @property
     def times(self) -> FloatArray: ...
@@ -154,13 +145,13 @@ class MNEEpochs(Protocol):
         units: str | dict[str, str] | None = None,
         tmin: float | None = None,
         tmax: float | None = None,
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> FloatArray: ...
     def drop_bad(
         self,
         reject: dict[str, float] | None = None,
         flat: dict[str, float] | None = None,
-        verbose: bool | str | int | None = None
+        verbose: bool | str | int | None = None,
     ) -> MNEEpochs: ...
     def __len__(self) -> int: ...
     def __getitem__(self, idx: int) -> FloatArray: ...

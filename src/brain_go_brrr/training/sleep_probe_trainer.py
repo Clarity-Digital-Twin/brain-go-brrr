@@ -258,7 +258,9 @@ def load_sleep_edf_data(
     return windows, labels
 
 
-def extract_windows_from_raw(raw: Any, window_duration: float = 4.0) -> list[npt.NDArray[np.float64]]:
+def extract_windows_from_raw(
+    raw: Any, window_duration: float = 4.0
+) -> list[npt.NDArray[np.float64]]:
     """Extract fixed-duration windows from Raw object.
 
     Args:

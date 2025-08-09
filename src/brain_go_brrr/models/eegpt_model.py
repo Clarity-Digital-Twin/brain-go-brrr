@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import mne
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -500,7 +501,9 @@ class EEGPTModel:
         return windows
 
     def extract_features_batch(
-        self, windows: npt.NDArray[np.float64] | torch.Tensor, channel_names: list[str] | None = None
+        self,
+        windows: npt.NDArray[np.float64] | torch.Tensor,
+        channel_names: list[str] | None = None,
     ) -> npt.NDArray[np.float64]:
         """Extract features from batch of windows.
 

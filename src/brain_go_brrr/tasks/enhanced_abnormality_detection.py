@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class HParams(TypedDict, total=False):
     """Typed hyperparameters for Lightning module."""
+
     learning_rate: float
     weight_decay: float
     scheduler_type: str  # "onecycle" | "cosine" | "none"
@@ -143,7 +144,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Apply probe
         logits = self.probe(features)
 
-        return logits  # type: ignore[no-any-return]
+        return logits
 
     def training_step(
         self,
@@ -183,7 +184,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             }
         )
 
-        return loss  # type: ignore[no-any-return]
+        return loss
 
     def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
@@ -242,7 +243,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         self.val_outputs.clear()
 
     def _calculate_metrics(
-        self, labels: npt.NDArray[np.float64], preds: npt.NDArray[np.float64], probs: npt.NDArray[np.float64]
+        self,
+        labels: npt.NDArray[np.float64],
+        preds: npt.NDArray[np.float64],
+        probs: npt.NDArray[np.float64],
     ) -> dict[str, float]:
         """Calculate classification metrics."""
         metrics = {}
@@ -284,7 +288,8 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 optimizer,
                 max_lr=self.hparams.get("learning_rate", 1e-3),
                 total_steps=int(self.trainer.estimated_stepping_batches),
-                pct_start=self.hparams.get("warmup_epochs", 5) / max(1, self.hparams.get("total_epochs", 50)),
+                pct_start=self.hparams.get("warmup_epochs", 5)
+                / max(1, self.hparams.get("total_epochs", 50)),
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000

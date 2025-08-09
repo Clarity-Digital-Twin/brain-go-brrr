@@ -86,9 +86,7 @@ class WindowEpochAdapter:
 
         return epochs
 
-    def epochs_to_continuous(
-        self, epochs_clean: MNEEpochs, original_raw: MNERaw
-    ) -> MNERaw:
+    def epochs_to_continuous(self, epochs_clean: MNEEpochs, original_raw: MNERaw) -> MNERaw:
         """Reconstruct continuous data from cleaned epochs.
 
         Handles overlapping windows by averaging in overlap regions.
@@ -205,7 +203,7 @@ class SyntheticPositionGenerator:
 
         # Create and set montage
         montage = mne.channels.make_dig_montage(ch_pos=ch_pos)
-        raw.set_montage(montage, on_missing="ignore")  # type: ignore[call-arg]
+        raw.set_montage(montage, on_missing="ignore")  # type: ignore[attr-defined]
 
         return raw
 

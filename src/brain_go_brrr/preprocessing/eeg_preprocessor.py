@@ -209,7 +209,7 @@ class EEGPreprocessor:
             return raw
 
         # Check if we have valid channel positions
-        montage = raw.info.get_montage()
+        montage = raw.get_montage()  # type: ignore[attr-defined]
         if montage is None:
             logger.warning(
                 "No channel positions found - using amplitude-based rejection instead of AutoReject"
@@ -259,7 +259,7 @@ class EEGPreprocessor:
 
         # Preserve all critical metadata from original
         if hasattr(raw, "annotations") and raw.annotations is not None:
-            raw_clean.set_annotations(raw.annotations.copy())  # type: ignore[attr-defined]
+            raw_clean.set_annotations(raw.annotations.copy())
 
         # Preserve other important info fields
         if "meas_date" in raw.info and raw.info["meas_date"] is not None:  # type: ignore[operator]
@@ -354,7 +354,12 @@ class EEGPreprocessor:
 
     def _apply_notch_filter(self, raw: MNERaw) -> MNERaw:
         """Apply notch filter to remove powerline interference."""
-        raw.notch_filter(freqs=self.notch_freq, picks=mne.pick_types(raw.info, eeg=True), method="iir", verbose=False)
+        raw.notch_filter(
+            freqs=self.notch_freq,
+            picks=mne.pick_types(raw.info, eeg=True),
+            method="iir",
+            verbose=False,
+        )
         return raw
 
     def _resample_to_target(self, raw: MNERaw) -> MNERaw:

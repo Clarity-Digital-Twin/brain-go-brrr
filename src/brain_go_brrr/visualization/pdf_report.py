@@ -8,7 +8,7 @@ Generates professional PDF reports with:
 
 import io
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import matplotlib
 
@@ -19,16 +19,16 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
-
-if TYPE_CHECKING:
-    from matplotlib.axes import Axes
 
 logger = logging.getLogger(__name__)
 
 
-def generate_qc_report(qc_results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None) -> bytes:
+def generate_qc_report(
+    qc_results: dict[str, Any], eeg_data: npt.NDArray[np.float64] | None = None
+) -> bytes:
     """Generate a QC report from results.
 
     Args:
@@ -404,11 +404,7 @@ def create_artifact_examples(
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
 
     # Properly handle axes typing
-    axes_list: list[Axes]
-    if isinstance(axes, Axes):
-        axes_list = [axes]
-    else:
-        axes_list = list(axes.ravel())
+    axes_list: list[Axes] = [axes] if isinstance(axes, Axes) else list(axes.ravel())
 
     for i, (ax, artifact) in enumerate(zip(axes_list, artifacts[:n_artifacts], strict=False)):
         # Extract segment

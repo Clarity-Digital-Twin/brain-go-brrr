@@ -187,9 +187,11 @@ class SleepAnalyzer:
                 where probability_matrix has shape (n_epochs, 5) for stages W,N1,N2,N3,REM
         """
         # Handle picks parameter
+        eeg_ch: str | None
+        ch_types = raw.get_channel_types()  # type: ignore[attr-defined]
         if picks == "eeg":
             # Get all EEG channels
-            eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"]
+            eeg_channels = [ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"]
             if not eeg_channels:
                 raise ValueError("No EEG channels found for sleep staging")
             eeg_ch = eeg_channels[0]  # Use first EEG channel
@@ -225,7 +227,7 @@ class SleepAnalyzer:
                 if eeg_ch is None:
                     # Check for Sleep-EDF montage (Fpz-Cz, Pz-Oz)
                     available_channels = [
-                        ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"
+                        ch for i, ch in enumerate(raw.ch_names) if ch_types[i] == "eeg"
                     ]
 
                     # Accept Sleep-EDF montage

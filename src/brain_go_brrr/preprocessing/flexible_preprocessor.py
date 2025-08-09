@@ -130,7 +130,7 @@ class FlexibleEEGPreprocessor:
         raw = raw.copy()
 
         # Check positions if required
-        if self.require_positions and raw.info.get_montage() is None:
+        if self.require_positions and raw.get_montage() is None:  # type: ignore[attr-defined]
             raise ValueError("Channel positions required but not found in data")
 
         # Step 1: Map channel names to standard
@@ -187,8 +187,8 @@ class FlexibleEEGPreprocessor:
             ch_names = [raw.ch_names[i] for i in picks]
 
             # Keep all EEG channels for sleep analysis
-            ch_types = raw.get_channel_types()
-        eeg_channels = [ch for i, ch in enumerate(ch_names) if ch_types[i] == "eeg"]
+            ch_types = raw.get_channel_types()  # type: ignore[attr-defined]
+            eeg_channels = [ch for i, ch in enumerate(ch_names) if ch_types[i] == "eeg"]
             if eeg_channels:
                 raw.pick_channels(ch_names, ordered=True)
                 logger.info(f"Selected {len(ch_names)} channels for sleep (EEG+EOG+EMG)")
@@ -237,7 +237,7 @@ class FlexibleEEGPreprocessor:
 
     def _add_montage_if_possible(self, raw: MNERaw) -> MNERaw:
         """Add standard montage if channels match standard names."""
-        if raw.info.get_montage() is not None:
+        if raw.get_montage() is not None:  # type: ignore[attr-defined]
             return raw
 
         # Try to add standard montage
@@ -271,7 +271,7 @@ class FlexibleEEGPreprocessor:
 
             if len(matches) >= 3:  # Need at least 3 standard channels
                 montage = mne.channels.make_standard_montage("standard_1020")
-                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[call-arg]
+                raw.set_montage(montage, match_case=False, on_missing="ignore")  # type: ignore[attr-defined]
                 logger.info("Added standard 10-20 montage")
         except Exception as e:
             logger.debug(f"Could not add montage: {e}")
@@ -317,7 +317,7 @@ class FlexibleEEGPreprocessor:
         if not self.use_autoreject:
             return raw
 
-        has_positions = raw.info.get_montage() is not None
+        has_positions = raw.get_montage() is not None  # type: ignore[attr-defined]
 
         if has_positions:
             # Try to use Autoreject

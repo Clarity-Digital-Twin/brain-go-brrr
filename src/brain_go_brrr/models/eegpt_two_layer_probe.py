@@ -129,12 +129,18 @@ class EEGPTTwoLayerProbe(nn.Module):
         return x
 
     @overload
-    def forward(self, features: torch.Tensor, return_features: Literal[True]) -> tuple[torch.Tensor, torch.Tensor]: ...
+    def forward(
+        self, features: torch.Tensor, return_features: Literal[True]
+    ) -> tuple[torch.Tensor, torch.Tensor]: ...
 
     @overload
-    def forward(self, features: torch.Tensor, return_features: Literal[False] = False) -> torch.Tensor: ...
+    def forward(
+        self, features: torch.Tensor, return_features: Literal[False] = False
+    ) -> torch.Tensor: ...
 
-    def forward(self, features: torch.Tensor, return_features: bool = False) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, features: torch.Tensor, return_features: bool = False
+    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         """Forward pass matching paper implementation.
 
         Args:
