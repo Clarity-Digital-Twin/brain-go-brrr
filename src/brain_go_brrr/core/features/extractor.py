@@ -9,9 +9,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
-import numpy.typing as npt
 import torch
 
 from brain_go_brrr._typing import FloatArray, MNERaw

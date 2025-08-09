@@ -53,7 +53,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     - Proper warmup handling
     - Channel adaptation
     """
-    
+
     hparams: HParams  # Type annotation for Lightning hparams
 
     def __init__(
@@ -264,7 +264,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     def configure_optimizers(self) -> dict[str, Any] | list[Any] | Any:
         """Configure optimizer with layer decay and scheduler."""
         from torch.optim.lr_scheduler import CosineAnnealingLR, _LRScheduler
-        
+
         # Build parameter groups with layer decay
         param_groups = self._get_param_groups()
 
@@ -277,7 +277,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Create scheduler based on type
         scheduler_type = self.hparams.get("scheduler_type", "none")
-        
+
         if scheduler_type == "onecycle":
             sched: _LRScheduler = OneCycleLR(
                 optimizer,
@@ -295,7 +295,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                     "interval": "step",
                 },
             }
-        
+
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
                 optimizer,
@@ -303,7 +303,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 eta_min=1e-6,
             )
             return [optimizer], [sched]
-        
+
         # No scheduler
         return optimizer
 

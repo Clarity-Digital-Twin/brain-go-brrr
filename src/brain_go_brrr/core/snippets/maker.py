@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brain_go_brrr._typing import FloatArray, MNERaw
+from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.utils import utc_now
 
 # Add reference repos to path

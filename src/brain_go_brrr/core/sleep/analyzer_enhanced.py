@@ -9,13 +9,13 @@ from dataclasses import dataclass
 from typing import Any
 
 import mne
-from brain_go_brrr._typing import MNERaw
 import numpy as np
 import numpy.typing as npt
 import yasa
 from scipy import signal
 from scipy.stats import kurtosis, skew
 
+from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
 logger = logging.getLogger(__name__)

@@ -402,7 +402,7 @@ def create_artifact_examples(
     n_artifacts = min(len(artifacts), 5)
     fig: Figure
     fig, axes = plt.subplots(n_artifacts, 1, figsize=(10, 2 * n_artifacts))
-    
+
     # Properly handle axes typing
     axes_list: list[Axes]
     if isinstance(axes, Axes):

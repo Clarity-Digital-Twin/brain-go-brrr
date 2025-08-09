@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import torch
@@ -25,6 +24,7 @@ import torch.nn as nn
 from scipy import signal
 
 from brain_go_brrr._typing import FloatArray, MNERaw
+
 from ..core.config import ModelConfig
 from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 

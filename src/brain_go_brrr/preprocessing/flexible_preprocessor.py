@@ -4,8 +4,9 @@ import logging
 from typing import Literal
 
 import mne
-from brain_go_brrr._typing import MNERaw
 import numpy as np
+
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 

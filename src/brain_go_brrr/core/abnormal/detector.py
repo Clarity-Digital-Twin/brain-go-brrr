@@ -10,7 +10,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Protocol
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import torch

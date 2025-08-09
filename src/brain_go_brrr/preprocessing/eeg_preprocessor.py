@@ -7,9 +7,10 @@ that prepares recordings for abnormality detection using EEGPT.
 import logging
 
 import mne
-from brain_go_brrr._typing import MNERaw
 import numpy as np
 import numpy.typing as npt
+
+from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 

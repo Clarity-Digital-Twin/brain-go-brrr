@@ -8,8 +8,9 @@ import logging
 from typing import Any
 
 import mne
-from brain_go_brrr._typing import MNERaw, MNEEpochs
 import numpy as np
+
+from brain_go_brrr._typing import MNEEpochs, MNERaw
 
 logger = logging.getLogger(__name__)
 

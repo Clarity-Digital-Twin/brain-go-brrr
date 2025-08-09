@@ -9,12 +9,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
-from brain_go_brrr._typing import FloatArray, MNERaw, StrArray
+from brain_go_brrr._typing import MNERaw, StrArray
 from brain_go_brrr.core.exceptions import UnsupportedMontageError
 
 # Add reference repos to path

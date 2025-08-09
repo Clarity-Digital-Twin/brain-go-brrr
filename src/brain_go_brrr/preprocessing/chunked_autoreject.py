@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import mne
-from brain_go_brrr._typing import MNERaw, MNEEpochs
+
+from brain_go_brrr._typing import MNEEpochs, MNERaw
 
 # Only import if available
 try:

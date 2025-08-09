@@ -13,7 +13,7 @@ from typing import Any
 import mne
 import numpy as np
 
-from brain_go_brrr._typing import FloatArray, MNEEpochs, MNERaw
+from brain_go_brrr._typing import MNEEpochs, MNERaw
 from brain_go_brrr.core.exceptions import QualityCheckError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 

@@ -388,11 +388,11 @@ class EEGTransformer(nn.Module):
             self.n_channels = [str(i) for i in range(58)]  # Default to 58 channels as strings
         else:
             self.n_channels = n_channels
-        
+
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.embed_num = embed_num
-        
+
         # Build channel index map once
         self.channel_index: dict[str, int] = {name: i for i, name in enumerate(self.n_channels)}
 

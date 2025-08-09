@@ -8,6 +8,7 @@ reference implementation.
 import logging
 
 import mne
+
 from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
