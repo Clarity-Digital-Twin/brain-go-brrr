@@ -205,9 +205,9 @@ def test_abnormal_detector_detects_abnormalities():
         result = detector.detect_abnormality(fake_raw)
 
         # Assert: Result has expected structure
-        assert result.prediction in ["normal", "abnormal"]
-        assert 0 <= result.confidence <= 1.0
-        assert result.triage_level in ["NORMAL", "ROUTINE", "EXPEDITE", "URGENT"]
+        assert result.label in ["normal", "abnormal"]
+        assert 0 <= result.mean_confidence <= 1.0
+        assert result.priority in ["NORMAL", "ROUTINE", "EXPEDITE", "URGENT"]
 
 
 def test_redis_cache_stores_and_retrieves():
