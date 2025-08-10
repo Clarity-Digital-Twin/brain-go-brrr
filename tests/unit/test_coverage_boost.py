@@ -11,8 +11,8 @@ def test_parallel_pipeline_basic():
     """Test parallel pipeline initialization."""
     from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
     
-    # Mock the model that's imported inside the module
-    with patch("brain_go_brrr.models.eegpt_model.EEGPTModel"):
+    # Mock the model at the correct import location
+    with patch("brain_go_brrr.core.pipeline.parallel.EEGPTModel"):
         pipeline = ParallelEEGPipeline(device="cpu")
         assert pipeline.device == "cpu"
 
@@ -21,11 +21,12 @@ def test_snippet_maker_basic():
     """Test snippet maker initialization."""
     from brain_go_brrr.core.snippets.maker import EEGSnippetMaker
     
-    # Patch model import - use correct parameter names
-    with patch("brain_go_brrr.models.eegpt_model.EEGPTModel"):
-        maker = EEGSnippetMaker()  # No params needed for default init
-        # Check for actual attribute
-        assert hasattr(maker, "model") or hasattr(maker, "window_duration")
+    # Patch model import at correct location
+    with patch("brain_go_brrr.core.snippets.maker.EEGPTModel"):
+        # EEGSnippetMaker doesn't take window_duration in __init__
+        maker = EEGSnippetMaker()
+        # Check for actual attributes that exist
+        assert hasattr(maker, "window_size_sec") or hasattr(maker, "_model")
 
 
 def test_tuab_dataset_empty():
@@ -42,10 +43,10 @@ def test_tuab_dataset_empty():
 
 def test_job_store_operations():
     """Test job store basic operations."""
-    from brain_go_brrr.core.jobs.store import ThreadSafeJobStore
+    from brain_go_brrr.core.jobs.store import InMemoryJobStore
     from brain_go_brrr.api.schemas import JobData, JobStatus, JobPriority
     
-    store = ThreadSafeJobStore()
+    store = InMemoryJobStore()
     
     # Create a job using the actual API
     job_id = "test-123"
@@ -101,25 +102,29 @@ def test_abnormal_detector_init():
     # Create a Path object
     fake_path = Path("/fake/model.ckpt")
     
-    # Mock path validation
-    with patch.object(Path, "exists", return_value=True):
-        with patch.object(Path, "is_file", return_value=True):
-            with patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"):
-                detector = AbnormalityDetector(model_path=fake_path)
-                assert hasattr(detector, "detect")
+    # Mock the entire initialization including model validation
+    with patch("brain_go_brrr.core.abnormal.detector.Path") as mock_path_cls:
+        # Make Path() return our mock that always exists
+        mock_path_inst = Mock()
+        mock_path_inst.exists.return_value = True
+        mock_path_inst.is_file.return_value = True
+        mock_path_inst.resolve.return_value = fake_path
+        mock_path_cls.return_value = mock_path_inst
+        mock_path_cls.side_effect = lambda x: mock_path_inst if str(x) == "/fake/model.ckpt" else Path(x)
+        
+        with patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"):
+            detector = AbnormalityDetector(model_path=fake_path)
+            assert hasattr(detector, "detect")
 
 
 def test_cache_redis_init():
     """Test Redis cache initialization."""
-    from brain_go_brrr.infra.cache import RedisCache
+    from brain_go_brrr.infra.cache import EmbeddingCache
     
-    # Mock redis module
-    with patch("redis.Redis") as mock_redis:
-        mock_client = Mock()
-        mock_redis.return_value = mock_client
-        
-        cache = RedisCache(host="localhost", port=6379)
-        assert cache is not None
+    # EmbeddingCache uses TTL cache, not Redis directly
+    cache = EmbeddingCache(max_size=100, ttl_seconds=300)
+    assert cache is not None
+    assert hasattr(cache, "get") and hasattr(cache, "set")
 
 
 def test_eeg_preprocessor_init():
@@ -175,10 +180,10 @@ def test_two_layer_probe_basic():
     mock_backbone.forward = Mock(return_value=torch.randn(4, 4, 512))
     
     with patch("brain_go_brrr.models.eegpt_two_layer_probe.create_normalized_eegpt", return_value=mock_backbone):
-        # Use correct initialization
+        # Use correct parameters - no input_dim, it's inferred from backbone
         probe = EEGPTTwoLayerProbe(
             checkpoint_path="/fake/path.ckpt",
-            n_classes=2
+            output_dim=2  # Changed from n_classes
         )
         
         # Test forward pass
@@ -196,7 +201,13 @@ def test_edf_streaming_basic():
     
     with patch.object(Path, "exists", return_value=True):
         with patch.object(Path, "suffix", ".edf"):
-            with patch("pyedflib.EdfReader"):
+            with patch("pyedflib.EdfReader") as mock_reader:
+                # Mock the reader to avoid actual file operations
+                mock_instance = Mock()
+                mock_instance.getNSamples.return_value = [1000]
+                mock_instance.getSampleFrequency.return_value = [256]
+                mock_reader.return_value = mock_instance
+                
                 streamer = EDFStreamer(fake_path)
-                # Check for actual attributes that exist
-                assert hasattr(streamer, "file_path") or hasattr(streamer, "_reader")
+                # Check for actual method that exists
+                assert hasattr(streamer, "stream_windows")
