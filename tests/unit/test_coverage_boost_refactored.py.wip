@@ -58,13 +58,18 @@ def test_snippet_maker_creates_snippets():
 
     # Act: Create snippets from fake data
     fake_raw = FakeMNERaw(n_channels=19, duration=10.0, sfreq=256.0)
-    snippets = maker.make_snippets(fake_raw)
+    snippets = maker.extract_fixed_snippets(
+        raw=fake_raw,
+        snippet_length=4.0,
+        overlap=0.5
+    )
 
     # Assert: Verify snippet properties
     assert len(snippets) > 0
     # Each snippet should be 4 seconds (4 * 256 = 1024 samples)
     if len(snippets) > 0:
-        assert snippets[0].shape[1] == 1024 or snippets[0].shape[1] == 4.0 * 256
+        assert "data" in snippets[0]
+        assert snippets[0]["data"].shape[1] == 4.0 * 256  # 4 seconds at 256Hz
 
 
 def test_tuab_dataset_handles_empty_directory():
@@ -116,7 +121,19 @@ def test_job_store_manages_jobs():
     assert retrieved.options["threshold"] == 0.8
 
     # Behavior: Update job status
-    store.update_status(job_id, JobStatus.PROCESSING)
+    # Create new job data with updated status (JobData is frozen)
+    updated_data = JobData(
+        job_id=job_id,
+        analysis_type=job_data.analysis_type,
+        file_path=job_data.file_path,
+        status=JobStatus.PROCESSING,  # Updated status
+        priority=job_data.priority,
+        created_at=job_data.created_at,
+        updated_at=datetime.now(),
+        options=job_data.options,
+        progress=job_data.progress
+    )
+    store.update(job_id, updated_data)
     updated = store.get(job_id)
     assert updated.status == JobStatus.PROCESSING
 
@@ -219,7 +236,7 @@ def test_redis_cache_stores_and_retrieves():
 
 def test_eeg_preprocessor_preprocesses_data():
     """Test EEG preprocessor transforms data correctly."""
-    from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+    from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor as EEGPreprocessor
 
     # Arrange
     preprocessor = EEGPreprocessor(
