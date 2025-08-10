@@ -11,8 +11,8 @@ def test_parallel_pipeline_basic():
     """Test parallel pipeline initialization."""
     from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
     
-    # Mock the model at the correct import location
-    with patch("brain_go_brrr.core.pipeline.parallel.EEGPTModel"):
+    # Mock the feature extractor that's actually imported
+    with patch("brain_go_brrr.core.pipeline.parallel.EEGPTFeatureExtractor"):
         pipeline = ParallelEEGPipeline(device="cpu")
         assert pipeline.device == "cpu"
 
@@ -21,12 +21,11 @@ def test_snippet_maker_basic():
     """Test snippet maker initialization."""
     from brain_go_brrr.core.snippets.maker import EEGSnippetMaker
     
-    # Patch model import at correct location
-    with patch("brain_go_brrr.core.snippets.maker.EEGPTModel"):
-        # EEGSnippetMaker doesn't take window_duration in __init__
+    # Patch the actual import used in the module
+    with patch("brain_go_brrr.core.snippets.maker.EEGPTFeatureExtractor"):
         maker = EEGSnippetMaker()
         # Check for actual attributes that exist
-        assert hasattr(maker, "window_size_sec") or hasattr(maker, "_model")
+        assert hasattr(maker, "window_size_sec") or hasattr(maker, "extractor")
 
 
 def test_tuab_dataset_empty():
@@ -99,21 +98,16 @@ def test_abnormal_detector_init():
     from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
     from pathlib import Path
     
-    # Create a Path object
-    fake_path = Path("/fake/model.ckpt")
-    
-    # Mock the entire initialization including model validation
-    with patch("brain_go_brrr.core.abnormal.detector.Path") as mock_path_cls:
-        # Make Path() return our mock that always exists
-        mock_path_inst = Mock()
-        mock_path_inst.exists.return_value = True
-        mock_path_inst.is_file.return_value = True
-        mock_path_inst.resolve.return_value = fake_path
-        mock_path_cls.return_value = mock_path_inst
-        mock_path_cls.side_effect = lambda x: mock_path_inst if str(x) == "/fake/model.ckpt" else Path(x)
+    # Mock the ModelConfig validator that checks path existence
+    with patch("brain_go_brrr.core.config.ModelConfig.model_validate") as mock_validate:
+        # Make it return a valid config
+        mock_config = Mock()
+        mock_config.model_path = Path("/fake/model.ckpt")
+        mock_config.device = "cpu"
+        mock_validate.return_value = mock_config
         
         with patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"):
-            detector = AbnormalityDetector(model_path=fake_path)
+            detector = AbnormalityDetector(model_path="/fake/model.ckpt")
             assert hasattr(detector, "detect")
 
 
