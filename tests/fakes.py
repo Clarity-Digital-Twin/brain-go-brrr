@@ -153,6 +153,20 @@ class FakeFeatureExtractor:
     def extract_embeddings(self, data: np.ndarray) -> np.ndarray:
         """Alias for extract."""
         return self.extract(data)
+    
+    def extract_embeddings_with_metadata(self, raw: Any) -> Dict[str, Any]:
+        """Extract embeddings with metadata for pipeline."""
+        # Fake some embeddings
+        n_windows = 10
+        return {
+            "embeddings": np.zeros((n_windows, self.feature_dim), dtype=np.float32),
+            "window_times": np.arange(n_windows) * 4.0,
+            "metadata": {
+                "n_windows": n_windows,
+                "feature_dim": self.feature_dim,
+                "sampling_rate": 256.0
+            }
+        }
 
 
 class FakeSleepAnalyzer:
@@ -176,6 +190,10 @@ class FakeSleepAnalyzer:
             }
         }
     
+    def stage_sleep(self, raw: Any) -> Dict[str, Any]:
+        """Stage sleep for pipeline compatibility."""
+        return self.run_full_sleep_analysis(raw)
+    
     def predict_proba(self, raw: Any) -> np.ndarray:
         """Return fake sleep stage probabilities."""
         n_epochs = 100  # Fake number of epochs
@@ -191,7 +209,8 @@ class FakeMNERaw:
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
         self.n_channels = n_channels
         self.duration = duration
-        self.info = {'sfreq': sfreq, 'ch_names': [f'EEG{i}' for i in range(n_channels)]}
+        self.ch_names = [f'EEG{i}' for i in range(n_channels)]  # Add as attribute
+        self.info = {'sfreq': sfreq, 'ch_names': self.ch_names}
         self.times = np.arange(0, duration, 1/sfreq)
         self._data = np.random.randn(n_channels, len(self.times)) * 1e-6  # μV scale
     
