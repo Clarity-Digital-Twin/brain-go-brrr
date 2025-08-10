@@ -22,7 +22,17 @@ from brain_go_brrr.core.config import ModelConfig
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 # Import complexity budget calculator
-from .conftest import channel_complexity_budget
+try:
+    from .conftest import channel_complexity_budget
+except ImportError:
+    # Fallback if conftest not available or running standalone
+    channel_complexity_budget = {
+        20: 1.0,   # Standard 10-20 system  
+        32: 1.5,   # Extended montage
+        64: 2.0,   # High-density EEG
+        128: 3.0,  # Research-grade HD-EEG
+        256: 5.0,  # Ultra high-density
+    }
 
 # Set deterministic seeds for reproducibility
 random.seed(0)
