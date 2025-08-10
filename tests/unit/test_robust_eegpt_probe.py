@@ -11,6 +11,23 @@ from brain_go_brrr.models.eegpt_linear_probe_robust import RobustEEGPTLinearProb
 
 class TestRobustEEGPTLinearProbeClean:
     """Test RobustEEGPTLinearProbe with dependency injection and real logic."""
+    
+    @pytest.fixture
+    def mock_backbone(self):
+        """Create a mock EEGPT backbone."""
+        class MockBackbone(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.dummy_param = nn.Parameter(torch.randn(1))
+            
+            def forward(self, x):
+                batch_size = x.shape[0] if x.dim() > 0 else 1
+                return torch.randn(batch_size, 4, 512)
+            
+            def extract_features(self, x):
+                return self.forward(x)
+        
+        return MockBackbone()
 
     @pytest.fixture
     def fake_checkpoint_path(self, tmp_path):
@@ -45,10 +62,11 @@ class TestRobustEEGPTLinearProbeClean:
 
         return data.float()
 
-    def test_init_creates_probe(self, fake_checkpoint_path):
+    def test_init_creates_probe(self, mock_backbone):
         """Test initialization of RobustEEGPTLinearProbe."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
             freeze_backbone=True
@@ -60,10 +78,11 @@ class TestRobustEEGPTLinearProbeClean:
         assert probe.embed_dim == 512
         assert probe.n_summary_tokens == 4
 
-    def test_validate_and_clean_input(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_validate_and_clean_input(self, mock_backbone, synthetic_eeg_batch):
         """Test input validation and cleaning."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
@@ -81,10 +100,11 @@ class TestRobustEEGPTLinearProbeClean:
         assert not torch.isnan(validated).any()
         assert not torch.isinf(validated).any()
 
-    def test_robust_normalize(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_robust_normalize(self, mock_backbone, synthetic_eeg_batch):
         """Test robust normalization."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
@@ -100,22 +120,15 @@ class TestRobustEEGPTLinearProbeClean:
         assert not torch.isnan(normalized).any()
         assert not torch.isinf(normalized).any()
 
-    def test_forward_pass_shape(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_forward_pass_shape(self, mock_backbone, synthetic_eeg_batch):
         """Test forward pass produces correct output shape."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=3,  # 3-class classification
             freeze_backbone=True
         )
-
-        # Mock the EEGPT backbone to avoid loading real weights
-        class FakeBackbone(nn.Module):
-            def forward(self, x):
-                batch_size = x.shape[0]
-                return torch.randn(batch_size, 4, 512).float()  # 4 summary tokens, 512 dim
-
-        probe.eegpt_backbone = FakeBackbone()
 
         # Forward pass
         output = probe(synthetic_eeg_batch)
@@ -123,16 +136,14 @@ class TestRobustEEGPTLinearProbeClean:
         assert output.shape == (4, 3)  # batch_size=4, n_classes=3
         assert output.dtype == torch.float32
 
-    def test_predict_proba(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_predict_proba(self, mock_backbone, synthetic_eeg_batch):
         """Test probability prediction."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
-
-        # Mock backbone
-        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
         # Get probabilities
         probs = probe.predict_proba(synthetic_eeg_batch)
@@ -143,10 +154,11 @@ class TestRobustEEGPTLinearProbeClean:
         # Check probabilities are in [0, 1]
         assert (probs >= 0).all() and (probs <= 1).all()
 
-    def test_get_num_trainable_params(self, fake_checkpoint_path):
+    def test_get_num_trainable_params(self, mock_backbone):
         """Test counting trainable parameters."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
             freeze_backbone=True
@@ -157,10 +169,11 @@ class TestRobustEEGPTLinearProbeClean:
         assert isinstance(num_params, int)
         assert num_params > 0  # Should have some trainable params in probe head
 
-    def test_save_and_load_probe(self, fake_checkpoint_path, tmp_path):
+    def test_save_and_load_probe(self, mock_backbone, tmp_path):
         """Test saving and loading probe state."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
@@ -173,7 +186,8 @@ class TestRobustEEGPTLinearProbeClean:
 
         # Create new probe and load state
         probe2 = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
@@ -183,10 +197,11 @@ class TestRobustEEGPTLinearProbeClean:
         for p1, p2 in zip(probe.parameters(), probe2.parameters(), strict=False):
             assert torch.allclose(p1, p2)
 
-    def test_forward_with_nan_input(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_forward_with_nan_input(self, mock_backbone, synthetic_eeg_batch):
         """Test forward pass handles NaN input gracefully."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
@@ -195,13 +210,6 @@ class TestRobustEEGPTLinearProbeClean:
         bad_data = synthetic_eeg_batch.clone()
         bad_data[0, :, 100:200] = float('nan')
 
-        # Mock backbone
-        probe.eegpt_backbone = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(20 * 1024, 4 * 512),
-            nn.Unflatten(1, (4, 512))
-        )
-
         # Should handle NaN without crashing
         with torch.no_grad():
             output = probe(bad_data)
@@ -209,10 +217,11 @@ class TestRobustEEGPTLinearProbeClean:
         assert not torch.isnan(output).any()
         assert output.shape == (4, 2)
 
-    def test_freeze_backbone_parameters(self, fake_checkpoint_path):
+    def test_freeze_backbone_parameters(self, mock_backbone):
         """Test that backbone parameters are frozen when specified."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
             freeze_backbone=True
@@ -222,21 +231,19 @@ class TestRobustEEGPTLinearProbeClean:
         for param in probe.eegpt_backbone.parameters():
             assert not param.requires_grad
 
-        # Check probe head params are trainable
-        for param in probe.probe_head.parameters():
+        # Check classifier params are trainable
+        for param in probe.classifier.parameters():
             assert param.requires_grad
 
-    def test_multi_class_classification(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_multi_class_classification(self, mock_backbone, synthetic_eeg_batch):
         """Test multi-class classification setup."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=5,  # 5-class problem
             freeze_backbone=True
         )
-
-        # Mock backbone
-        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
         # Forward pass
         output = probe(synthetic_eeg_batch)
@@ -246,16 +253,14 @@ class TestRobustEEGPTLinearProbeClean:
         assert probs.shape == (4, 5)
         assert torch.allclose(probs.sum(dim=1), torch.ones(4), atol=1e-6)
 
-    def test_mixed_precision_compatibility(self, fake_checkpoint_path, synthetic_eeg_batch):
+    def test_mixed_precision_compatibility(self, mock_backbone, synthetic_eeg_batch):
         """Test compatibility with mixed precision."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
-
-        # Mock backbone
-        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
         # Test with float16 input (mixed precision)
         half_data = synthetic_eeg_batch.half()
@@ -266,16 +271,14 @@ class TestRobustEEGPTLinearProbeClean:
         assert output.dtype in [torch.float16, torch.float32]
         assert not torch.isnan(output).any()
 
-    def test_different_batch_sizes(self, fake_checkpoint_path):
+    def test_different_batch_sizes(self, mock_backbone):
         """Test probe with different batch sizes."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
-
-        # Mock backbone
-        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
         # Test different batch sizes
         for batch_size in [1, 4, 16, 32]:
@@ -283,19 +286,20 @@ class TestRobustEEGPTLinearProbeClean:
             output = probe(data)
             assert output.shape == (batch_size, 2)
 
-    def test_probe_head_architecture(self, fake_checkpoint_path):
+    def test_probe_head_architecture(self, mock_backbone):
         """Test probe head has expected architecture."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
+            checkpoint_path=None,
+            backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2
         )
 
-        # Check probe head structure
-        assert hasattr(probe, 'probe_head')
-        assert isinstance(probe.probe_head, nn.Module)
+        # Check classifier structure (the actual probe head)
+        assert hasattr(probe, 'classifier')
+        assert isinstance(probe.classifier, nn.Module)
 
         # Check it has expected layers
-        modules = list(probe.probe_head.modules())
-        assert any(isinstance(m, nn.Linear) for m in modules)
+        modules = list(probe.classifier.modules())
+        assert any(isinstance(m, nn.Linear) or 'LinearWithConstraint' in m.__class__.__name__ for m in modules)
 

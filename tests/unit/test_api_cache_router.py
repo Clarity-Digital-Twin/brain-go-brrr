@@ -169,10 +169,14 @@ class TestCacheRouterClean:
     def test_warmup_cache_not_implemented(self, client, app, mock_cache):
         """Test cache warmup endpoint (not implemented)."""
         from brain_go_brrr.api.schemas import CacheWarmupRequest
+        import base64
 
+        # Create dummy file content
+        dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
+        
         request = CacheWarmupRequest(
-            analysis_types=["qc", "sleep"],
-            file_patterns=["*.edf"]
+            file_content=dummy_content,
+            analysis_types=["qc", "sleep"]
         )
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
@@ -186,13 +190,17 @@ class TestCacheRouterClean:
     def test_warmup_cache_disconnected(self, client, app):
         """Test warmup when cache is disconnected."""
         from brain_go_brrr.api.schemas import CacheWarmupRequest
+        import base64
 
         mock_cache = MagicMock()
         mock_cache.connected = False
 
+        # Create dummy file content
+        dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
+        
         request = CacheWarmupRequest(
-            analysis_types=["qc"],
-            file_patterns=["test.edf"]
+            file_content=dummy_content,
+            analysis_types=["qc"]
         )
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
@@ -229,10 +237,14 @@ class TestCacheRouterClean:
     def test_warmup_cache_with_no_cache(self, client, app):
         """Test warmup when cache is None."""
         from brain_go_brrr.api.schemas import CacheWarmupRequest
+        import base64
 
+        # Create dummy file content
+        dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
+        
         request = CacheWarmupRequest(
-            analysis_types=["qc"],
-            file_patterns=["*.edf"]
+            file_content=dummy_content,
+            analysis_types=["qc"]
         )
 
         app.dependency_overrides[get_cache] = lambda: None
