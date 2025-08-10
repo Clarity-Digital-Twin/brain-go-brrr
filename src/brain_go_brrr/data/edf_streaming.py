@@ -22,15 +22,22 @@ logger = logging.getLogger(__name__)
 class EDFStreamer:
     """Streaming interface for EDF files to handle large recordings efficiently."""
 
-    def __init__(self, file_path: str | Path, chunk_duration: float = 30.0) -> None:
+    def __init__(
+        self, 
+        file_path: str | Path, 
+        chunk_duration: float = 30.0,
+        reader_factory: Any | None = None
+    ) -> None:
         """Initialize the EDF streamer.
 
         Args:
             file_path: Path to the EDF file
             chunk_duration: Duration of chunks for streaming in seconds
+            reader_factory: Optional EDF reader factory (for testing)
         """
         self.file_path = Path(file_path)
         self.chunk_duration = chunk_duration
+        self.reader_factory = reader_factory
         self._raw: mne.io.Raw | None = None
         self._sfreq: float | None = None
         self._duration: float | None = None

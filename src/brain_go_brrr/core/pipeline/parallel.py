@@ -21,16 +21,24 @@ logger = logging.getLogger(__name__)
 class ParallelEEGPipeline:
     """Run EEGPT and YASA in parallel, return both outputs."""
 
-    def __init__(self, eegpt_model_path: Path | None = None, device: str = "cpu"):
+    def __init__(
+        self, 
+        eegpt_model_path: Path | None = None, 
+        device: str = "cpu",
+        extractor: Any | None = None,
+        sleep_analyzer: Any | None = None
+    ):
         """Initialize parallel pipeline.
 
         Args:
             eegpt_model_path: Path to EEGPT model checkpoint
             device: Device for EEGPT inference
+            extractor: Optional feature extractor (for testing)
+            sleep_analyzer: Optional sleep analyzer (for testing)
         """
-        # Initialize both services
-        self.eegpt_extractor = EEGPTFeatureExtractor(model_path=eegpt_model_path, device=device)
-        self.sleep_analyzer = SleepAnalyzer()
+        # Initialize both services (with dependency injection support)
+        self.eegpt_extractor = extractor or EEGPTFeatureExtractor(model_path=eegpt_model_path, device=device)
+        self.sleep_analyzer = sleep_analyzer or SleepAnalyzer()
 
         logger.info("Initialized parallel EEG pipeline")
 

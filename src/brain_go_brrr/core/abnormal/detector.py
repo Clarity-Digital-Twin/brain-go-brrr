@@ -113,6 +113,7 @@ class AbnormalityDetector:
         target_sfreq: int | None = None,
         model_version: str | None = None,
         config: AbnormalityConfig | None = None,
+        classifier: torch.nn.Module | None = None,
     ):
         """Initialize abnormality detector.
 
@@ -124,6 +125,7 @@ class AbnormalityDetector:
             target_sfreq: Target sampling frequency (overrides config)
             model_version: Version identifier for tracking (overrides config)
             config: Complete configuration object (defaults to spec-compliant config)
+            classifier: Optional pre-built classifier (for testing)
         """
         # Use provided config or create default
         self.config = config or AbnormalityConfig.from_spec()
@@ -146,8 +148,12 @@ class AbnormalityDetector:
         # Initialize model
         self._init_model(model_path)
 
-        # Initialize classification head
-        self._init_classification_head()
+        # Initialize classification head (use provided or create new)
+        if classifier is not None:
+            self.classifier = classifier.to(self.device)
+            logger.info("Using provided classifier for abnormality detection")
+        else:
+            self._init_classification_head()
 
         logger.info(f"AbnormalityDetector initialized on {self.device}")
 
