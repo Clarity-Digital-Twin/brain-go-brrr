@@ -327,8 +327,9 @@ class TestEpileptiformDetector:
         closest_spike = min(spike_events, key=lambda e: abs(e["time_ms"] - expected_time_ms))
         # The detector uses simple thresholding across all channels,
         # so it may detect peaks from noise before the injected spike
-        # In integration tests with mock detector, timing can be very off
-        spike_detection_tolerance_ms = 3000  # Very lenient for mock detector
+        # Tolerance based on window size and sampling rate
+        window_ms = 1000 * (30 / 256)  # Spike is 30 samples long
+        spike_detection_tolerance_ms = max(250, window_ms * 2)  # At least 250ms or 2x spike width
         assert abs(closest_spike["time_ms"] - expected_time_ms) < spike_detection_tolerance_ms
 
     def test_spike_wave_complex_detection(self):

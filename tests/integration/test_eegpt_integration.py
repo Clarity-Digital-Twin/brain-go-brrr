@@ -71,6 +71,16 @@ class TestEEGPTModel:
         # Create architecture without checkpoint
         model.encoder = create_eegpt_model(checkpoint_path=None)
         model.encoder.to(model.device)
+        
+        # Add a mock abnormality head that returns valid probabilities
+        import torch.nn as nn
+        class MockAbnormalityHead(nn.Module):
+            def forward(self, x):
+                # Return consistent valid logits
+                torch.manual_seed(42)
+                return torch.tensor([[0.2, 0.8]])  # Slight bias toward abnormal
+        
+        model.abnormality_head = MockAbnormalityHead()
         model.is_loaded = True
         return model
 
@@ -175,16 +185,9 @@ class TestEEGPTModel:
         assert "confidence" in result
         assert "window_scores" in result
 
-        # Check value ranges - handle NaN from mock model
-        import math
-        abnormal_prob = result["abnormal_probability"]
-        confidence = result["confidence"]
-        
-        # Mock model may return NaN, which is acceptable for integration test
-        if not math.isnan(abnormal_prob):
-            assert 0 <= abnormal_prob <= 1
-        if not math.isnan(confidence):
-            assert 0 <= confidence <= 1
+        # Check value ranges - should always be valid
+        assert 0 <= result["abnormal_probability"] <= 1
+        assert 0 <= result["confidence"] <= 1
         # With 4s windows and 50% overlap: 20s gives us (20-4)/2 + 1 = 9 windows
         assert len(result["window_scores"]) >= 5  # At least 5 windows in 20s
 
