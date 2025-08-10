@@ -62,12 +62,13 @@ class RobustEEGPTLinearProbe(nn.Module):
         self.n_summary_tokens = n_summary_tokens
 
         # Load or use provided backbone
+        self.backbone: Any  # Type annotation for backbone
         if backbone is not None:
             logger.debug("Using provided backbone (test mode)")  # Changed to DEBUG
-            self.backbone: Any = backbone
+            self.backbone = backbone
         elif checkpoint_path is not None:
             logger.info(f"Loading EEGPT from {checkpoint_path}")
-            self.backbone: Any = create_normalized_eegpt(
+            self.backbone = create_normalized_eegpt(
                 checkpoint_path=str(checkpoint_path), normalize=True
             )
         else:
@@ -282,4 +283,4 @@ class RobustEEGPTLinearProbe(nn.Module):
             DeprecationWarning,
             stacklevel=2
         )
-        return self.backbone
+        return self.backbone  # type: ignore[no-any-return]
