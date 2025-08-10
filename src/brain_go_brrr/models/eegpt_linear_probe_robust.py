@@ -274,7 +274,7 @@ class RobustEEGPTLinearProbe(nn.Module):
         logger.info(f"Loaded probe weights from {path}")
 
     @property
-    def eegpt_backbone(self):
+    def eegpt_backbone(self) -> nn.Module:
         """Deprecated alias for backbone. Use .backbone instead."""
         warnings.warn(
             "eegpt_backbone is deprecated and will be removed in v2.0. Use .backbone instead.",

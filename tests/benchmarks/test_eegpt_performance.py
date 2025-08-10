@@ -583,16 +583,14 @@ class TestPerformanceComparison:
         cpu_result2 = eegpt_model_cpu.extract_features(data, ch_names)
         cpu_result2_np = cpu_result2.numpy() if hasattr(cpu_result2, "numpy") else cpu_result2
 
-        if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6):
+        if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6) and not np.allclose(cpu_result_np, gpu_result_np, rtol=1e-3, atol=1e-5):
             # Model is deterministic, so CPU and GPU should match
             # However, CPU vs GPU can have numerical differences due to different implementations
-            # Use more relaxed tolerance for CPU vs GPU comparison
-            if not np.allclose(cpu_result_np, gpu_result_np, rtol=1e-3, atol=1e-5):
-                # Log warning but don't fail - numerical differences are expected
-                pytest.skip(
-                    "CPU and GPU produce different results due to numerical precision differences. "
-                    "This is expected with mock models or different backend implementations."
-                )
+            # Log warning but don't fail - numerical differences are expected
+            pytest.skip(
+                "CPU and GPU produce different results due to numerical precision differences. "
+                "This is expected with mock models or different backend implementations."
+            )
 
     @pytest.mark.gpu
     @pytest.mark.benchmark

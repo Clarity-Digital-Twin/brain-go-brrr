@@ -71,7 +71,7 @@ class TestEEGPTModel:
         # Create architecture without checkpoint
         model.encoder = create_eegpt_model(checkpoint_path=None)
         model.encoder.to(model.device)
-        
+
         # Add a mock abnormality head that returns valid probabilities
         import torch.nn as nn
         class MockAbnormalityHead(nn.Module):
@@ -79,7 +79,7 @@ class TestEEGPTModel:
                 # Return consistent valid logits
                 torch.manual_seed(42)
                 return torch.tensor([[0.2, 0.8]])  # Slight bias toward abnormal
-        
+
         model.abnormality_head = MockAbnormalityHead()
         model.is_loaded = True
         return model
