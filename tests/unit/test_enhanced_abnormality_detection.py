@@ -1,14 +1,14 @@
 """CLEAN tests for Enhanced Abnormality Detection - no Lightning, pure logic."""
 
-import torch
+from unittest.mock import MagicMock
+
 import numpy as np
 import pytest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+import torch
 
 from brain_go_brrr.tasks.enhanced_abnormality_detection import (
     EnhancedAbnormalityDetectionProbe,
-    HParams
+    HParams,
 )
 
 
@@ -34,15 +34,15 @@ class TestEnhancedAbnormalityDetectionClean:
         """Create synthetic EEG batch."""
         np.random.seed(1337)
         torch.manual_seed(1337)
-        
+
         batch_size = 8
         n_channels = 20
         n_samples = 2048  # 8 seconds at 256 Hz
-        
+
         # Create batch
         x = torch.randn(batch_size, n_channels, n_samples) * 20e-6
         y = torch.randint(0, 2, (batch_size,))  # Binary labels
-        
+
         return x.float(), y.long()
 
     @pytest.fixture
@@ -70,7 +70,7 @@ class TestEnhancedAbnormalityDetectionClean:
             sampling_rate=256,
             hparams=hparams
         )
-        
+
         assert probe is not None
         assert probe.n_channels == 20
         assert probe.n_classes == 2
@@ -86,20 +86,20 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Mock the probe parameters
         probe.probe = MagicMock()
         probe.probe.parameters = MagicMock(return_value=[
             torch.nn.Parameter(torch.randn(10, 10)),
             torch.nn.Parameter(torch.randn(5, 5))
         ])
-        
+
         # Configure optimizers
         opt_config = probe.configure_optimizers()
-        
+
         assert "optimizer" in opt_config
         assert "lr_scheduler" in opt_config
-        
+
         optimizer = opt_config["optimizer"]
         assert isinstance(optimizer, torch.optim.AdamW)
         assert optimizer.param_groups[0]["lr"] == 1e-4
@@ -113,14 +113,14 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Mock the underlying probe
         probe.probe = MagicMock()
         probe.probe.return_value = torch.randn(8, 2)  # batch_size=8, n_classes=2
-        
+
         x, _ = synthetic_batch
         output = probe(x)
-        
+
         assert output.shape == (8, 2)
         probe.probe.assert_called_once()
 
@@ -132,17 +132,17 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Mock the probe forward
         probe.probe = MagicMock()
         probe.probe.return_value = torch.randn(8, 2)
-        
+
         batch = synthetic_batch
         batch_idx = 0
-        
+
         # Execute training step
         loss = probe.training_step(batch, batch_idx)
-        
+
         assert isinstance(loss, torch.Tensor)
         assert loss.requires_grad
         assert loss.ndim == 0  # Scalar
@@ -155,7 +155,7 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Mock probe
         logits = torch.tensor([
             [2.0, -1.0],
@@ -168,17 +168,17 @@ class TestEnhancedAbnormalityDetectionClean:
             [-1.0, 2.0],
         ])
         probe.probe = MagicMock(return_value=logits)
-        
+
         x, y = synthetic_batch
         batch = (x, y)
         batch_idx = 0
-        
+
         # Mock the logging
         probe.log = MagicMock()
-        
+
         # Execute validation step
         result = probe.validation_step(batch, batch_idx)
-        
+
         assert "val_loss" in result
         assert "val_acc" in result
         assert "val_auroc" in result
@@ -192,7 +192,7 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Create predictions and targets
         preds = torch.tensor([0, 1, 1, 0, 1, 0, 1, 0])
         targets = torch.tensor([0, 1, 0, 0, 1, 1, 1, 0])
@@ -206,15 +206,15 @@ class TestEnhancedAbnormalityDetectionClean:
             [0.2, 0.8],
             [0.9, 0.1],
         ])
-        
+
         metrics = probe.compute_metrics(preds, targets, probs)
-        
+
         assert "accuracy" in metrics
         assert "balanced_accuracy" in metrics
         assert "f1_score" in metrics
         assert "auroc" in metrics
         assert "cohen_kappa" in metrics
-        
+
         # Check metric ranges
         for metric_name, value in metrics.items():
             assert value >= 0 and value <= 1, f"{metric_name} out of range"
@@ -222,19 +222,19 @@ class TestEnhancedAbnormalityDetectionClean:
     def test_layer_wise_decay(self, fake_checkpoint_path, hparams):
         """Test layer-wise learning rate decay."""
         hparams["layer_decay"] = 0.8
-        
+
         probe = EnhancedAbnormalityDetectionProbe(
             checkpoint_path=fake_checkpoint_path,
             n_channels=20,
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Create mock layers
         probe.probe = MagicMock()
         probe.probe.eegpt_backbone = MagicMock()
         probe.probe.probe_head = MagicMock()
-        
+
         # Mock parameters for different layers
         backbone_params = [
             torch.nn.Parameter(torch.randn(10, 10)),
@@ -244,13 +244,13 @@ class TestEnhancedAbnormalityDetectionClean:
             torch.nn.Parameter(torch.randn(2, 512)),
             torch.nn.Parameter(torch.randn(2))
         ]
-        
+
         probe.probe.eegpt_backbone.parameters = MagicMock(return_value=backbone_params)
         probe.probe.probe_head.parameters = MagicMock(return_value=head_params)
-        
+
         # Apply layer-wise decay
         param_groups = probe.get_parameter_groups_with_decay()
-        
+
         assert len(param_groups) >= 2
         # Backbone should have lower LR due to decay
         assert param_groups[0]["lr"] < param_groups[-1]["lr"]
@@ -258,7 +258,7 @@ class TestEnhancedAbnormalityDetectionClean:
     def test_class_weight_handling(self, fake_checkpoint_path, hparams):
         """Test handling of class weights for imbalanced data."""
         class_weights = torch.tensor([1.0, 3.0])  # Weight abnormal class more
-        
+
         probe = EnhancedAbnormalityDetectionProbe(
             checkpoint_path=fake_checkpoint_path,
             n_channels=20,
@@ -266,13 +266,13 @@ class TestEnhancedAbnormalityDetectionClean:
             class_weights=class_weights,
             hparams=hparams
         )
-        
+
         assert torch.allclose(probe.class_weights, class_weights)
-        
+
         # Test loss computation with weights
         logits = torch.randn(8, 2)
         targets = torch.tensor([0, 1, 1, 0, 1, 0, 0, 1])
-        
+
         loss = probe.compute_loss(logits, targets)
         assert loss > 0
 
@@ -285,13 +285,13 @@ class TestEnhancedAbnormalityDetectionClean:
             early_stopping_patience=3,
             hparams=hparams
         )
-        
+
         # Simulate validation losses
         val_losses = [0.5, 0.4, 0.35, 0.36, 0.37, 0.38]  # Starts improving then degrades
-        
+
         for epoch, loss in enumerate(val_losses):
             should_stop = probe.check_early_stopping(loss, epoch)
-            
+
             if epoch < 3:
                 assert not should_stop  # Should not stop while improving
             elif epoch >= 5:
@@ -306,7 +306,7 @@ class TestEnhancedAbnormalityDetectionClean:
             confidence_threshold=0.7,
             hparams=hparams
         )
-        
+
         # Create predictions with varying confidence
         probs = torch.tensor([
             [0.9, 0.1],   # High confidence normal
@@ -314,9 +314,9 @@ class TestEnhancedAbnormalityDetectionClean:
             [0.2, 0.8],   # High confidence abnormal
             [0.45, 0.55], # Low confidence abnormal
         ])
-        
+
         preds, confidences = probe.predict_with_confidence(probs)
-        
+
         # Low confidence predictions should be marked uncertain
         assert preds[1] == -1  # Uncertain due to low confidence
         assert preds[3] == -1  # Uncertain due to low confidence
@@ -333,16 +333,16 @@ class TestEnhancedAbnormalityDetectionClean:
             mixup_alpha=0.2,
             hparams=hparams
         )
-        
+
         x, y = synthetic_batch
-        
+
         # Apply mixup
         mixed_x, mixed_y = probe.apply_mixup(x, y)
-        
+
         assert mixed_x.shape == x.shape
         assert mixed_y.shape[0] == y.shape[0]
         assert mixed_y.shape[1] == 2  # One-hot encoded
-        
+
         # Check that mixing occurred
         assert not torch.allclose(mixed_x, x)
 
@@ -355,9 +355,9 @@ class TestEnhancedAbnormalityDetectionClean:
             gradient_accumulation_steps=4,
             hparams=hparams
         )
-        
+
         assert probe.gradient_accumulation_steps == 4
-        
+
         # Check that effective batch size is computed correctly
         effective_batch = probe.get_effective_batch_size(batch_size=8)
         assert effective_batch == 32  # 8 * 4
@@ -371,13 +371,13 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams={**hparams, "scheduler_type": "onecycle"}
         )
-        
+
         scheduler = probe_onecycle.get_scheduler(
             optimizer=torch.optim.AdamW(probe_onecycle.parameters(), lr=1e-4),
             total_steps=1000
         )
         assert scheduler is not None
-        
+
         # Test Cosine
         probe_cosine = EnhancedAbnormalityDetectionProbe(
             checkpoint_path=fake_checkpoint_path,
@@ -385,7 +385,7 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams={**hparams, "scheduler_type": "cosine"}
         )
-        
+
         scheduler = probe_cosine.get_scheduler(
             optimizer=torch.optim.AdamW(probe_cosine.parameters(), lr=1e-4),
             total_steps=1000
@@ -400,13 +400,13 @@ class TestEnhancedAbnormalityDetectionClean:
             n_classes=2,
             hparams=hparams
         )
-        
+
         # Save checkpoint
         save_path = tmp_path / "checkpoint.pt"
         probe.save_checkpoint(save_path, epoch=5, val_loss=0.3)
-        
+
         assert save_path.exists()
-        
+
         # Load checkpoint
         checkpoint = torch.load(save_path)
         assert "epoch" in checkpoint
