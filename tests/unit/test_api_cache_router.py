@@ -168,12 +168,13 @@ class TestCacheRouterClean:
 
     def test_warmup_cache_not_implemented(self, client, app, mock_cache):
         """Test cache warmup endpoint (not implemented)."""
-        from brain_go_brrr.api.schemas import CacheWarmupRequest
         import base64
+
+        from brain_go_brrr.api.schemas import CacheWarmupRequest
 
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
-        
+
         request = CacheWarmupRequest(
             file_content=dummy_content,
             analysis_types=["qc", "sleep"]
@@ -189,15 +190,16 @@ class TestCacheRouterClean:
 
     def test_warmup_cache_disconnected(self, client, app):
         """Test warmup when cache is disconnected."""
-        from brain_go_brrr.api.schemas import CacheWarmupRequest
         import base64
+
+        from brain_go_brrr.api.schemas import CacheWarmupRequest
 
         mock_cache = MagicMock()
         mock_cache.connected = False
 
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
-        
+
         request = CacheWarmupRequest(
             file_content=dummy_content,
             analysis_types=["qc"]
@@ -236,12 +238,13 @@ class TestCacheRouterClean:
 
     def test_warmup_cache_with_no_cache(self, client, app):
         """Test warmup when cache is None."""
-        from brain_go_brrr.api.schemas import CacheWarmupRequest
         import base64
+
+        from brain_go_brrr.api.schemas import CacheWarmupRequest
 
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
-        
+
         request = CacheWarmupRequest(
             file_content=dummy_content,
             analysis_types=["qc"]

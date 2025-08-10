@@ -11,7 +11,7 @@ from brain_go_brrr.models.eegpt_linear_probe_robust import RobustEEGPTLinearProb
 
 class TestRobustEEGPTLinearProbeClean:
     """Test RobustEEGPTLinearProbe with dependency injection and real logic."""
-    
+
     @pytest.fixture
     def mock_backbone(self):
         """Create a deterministic mock EEGPT backbone for testing."""
@@ -21,16 +21,16 @@ class TestRobustEEGPTLinearProbeClean:
                 # Fixed seed for deterministic tests
                 torch.manual_seed(42)
                 self.dummy_param = nn.Parameter(torch.randn(1))
-            
+
             def forward(self, x):
                 # Deterministic output based on input shape
                 torch.manual_seed(42)  # Ensure reproducibility
                 batch_size = x.shape[0] if x.dim() > 0 else 1
                 return torch.randn(batch_size, 4, 512, dtype=torch.float32)
-            
+
             def extract_features(self, x):
                 return self.forward(x)
-        
+
         return MockBackbone()
 
     @pytest.fixture

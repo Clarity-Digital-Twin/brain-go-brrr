@@ -153,7 +153,7 @@ class TestEEGQualityControllerClean:
 
         # Create epochs first (compute_abnormality_score takes epochs, not raw)
         epochs = controller.create_epochs(synthetic_raw)
-        
+
         # Compute score
         score = controller.compute_abnormality_score(epochs)
 
@@ -168,7 +168,7 @@ class TestEEGQualityControllerClean:
         epochs = controller.create_epochs(synthetic_raw)
         bad_channels = controller.detect_bad_channels(synthetic_raw)
         abnormality_score = controller.compute_abnormality_score(synthetic_raw)
-        
+
         report = controller.generate_qc_report(
             raw=synthetic_raw,
             epochs=epochs,
@@ -202,7 +202,7 @@ class TestEEGQualityControllerClean:
         epochs = controller.create_epochs(raw_with_artifacts)
         bad_channels = controller.detect_bad_channels(raw_with_artifacts)
         abnormality_score = controller.compute_abnormality_score(raw_with_artifacts)
-        
+
         report = controller.generate_qc_report(
             raw=raw_with_artifacts,
             epochs=epochs,
@@ -272,7 +272,7 @@ class TestEEGQualityControllerClean:
         """Test abnormality computation with EEGPT model."""
         controller = EEGQualityController()
         controller.eegpt_model = mock_eegpt_model
-        
+
         # Mock the predict_abnormality method (which is what's actually called)
         mock_eegpt_model.predict_abnormality = MagicMock(
             return_value={
@@ -297,7 +297,7 @@ class TestEEGQualityControllerClean:
         epochs = controller.create_epochs(synthetic_raw)
         bad_channels = controller.detect_bad_channels(synthetic_raw)
         abnormality_score = controller.compute_abnormality_score(synthetic_raw)
-        
+
         report = controller.generate_qc_report(
             raw=synthetic_raw,
             epochs=epochs,
@@ -358,7 +358,7 @@ class TestEEGQualityControllerClean:
         epochs = controller.create_epochs(raw_subset)
         bad_channels = controller.detect_bad_channels(raw_subset)
         abnormality_score = controller.compute_abnormality_score(raw_subset)
-        
+
         report = controller.generate_qc_report(
             raw=raw_subset,
             epochs=epochs,

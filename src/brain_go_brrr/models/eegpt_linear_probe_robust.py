@@ -52,7 +52,7 @@ class RobustEEGPTLinearProbe(nn.Module):
             backbone: Optional pre-initialized backbone model for testing
         """
         super().__init__()
-        
+
         # Store config for tests
         self.n_input_channels = n_input_channels
         self.n_classes = n_classes

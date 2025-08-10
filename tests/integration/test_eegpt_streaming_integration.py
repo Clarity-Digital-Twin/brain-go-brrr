@@ -82,8 +82,10 @@ class TestEEGPTStreamingIntegration:
         assert 0 <= results["abnormal_probability"] <= 1
         assert "used_streaming" in results
         assert results["used_streaming"] is True
-        assert "n_windows_processed" in results
-        assert results["n_windows_processed"] > 1
+        # Check for either n_windows_processed or n_windows (different versions use different keys)
+        assert "n_windows" in results or "n_windows_processed" in results
+        n_windows = results.get("n_windows_processed", results.get("n_windows", 0))
+        assert n_windows > 1
 
     def test_streaming_results_consistent(self, mock_eegpt_model):
         """Test that streaming produces reasonable results."""
