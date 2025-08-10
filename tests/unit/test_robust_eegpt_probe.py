@@ -18,15 +18,17 @@ class TestRobustEEGPTLinearProbeClean:
         class MockBackbone(nn.Module):
             def __init__(self):
                 super().__init__()
-                # Fixed seed for deterministic tests
-                torch.manual_seed(42)
-                self.dummy_param = nn.Parameter(torch.randn(1))
+                # Create deterministic template without affecting global RNG
+                generator = torch.Generator().manual_seed(42)
+                template = torch.randn(4, 512, generator=generator, dtype=torch.float32)
+                self.register_buffer("template", template)
+                # Dummy param for parameter iteration tests
+                self.dummy_param = nn.Parameter(torch.zeros(1))
 
             def forward(self, x):
-                # Deterministic output based on input shape
-                torch.manual_seed(42)  # Ensure reproducibility
+                # Return expanded template without touching global RNG
                 batch_size = x.shape[0] if x.dim() > 0 else 1
-                return torch.randn(batch_size, 4, 512, dtype=torch.float32)
+                return self.template.unsqueeze(0).expand(batch_size, -1, -1).contiguous()
 
             def extract_features(self, x):
                 return self.forward(x)
@@ -231,8 +233,8 @@ class TestRobustEEGPTLinearProbeClean:
             freeze_backbone=True
         )
 
-        # Check backbone params are frozen
-        for param in probe.eegpt_backbone.parameters():
+        # Check backbone params are frozen (use .backbone, not deprecated alias)
+        for param in probe.backbone.parameters():
             assert not param.requires_grad
 
         # Check classifier params are trainable

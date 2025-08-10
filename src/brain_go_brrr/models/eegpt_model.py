@@ -265,7 +265,8 @@ class EEGPTModel:
                     "abnormal_probability": 0.5,  # Unknown
                     "confidence": 0.0,
                     "window_scores": [],
-                    "n_windows": 0,
+                    "n_windows_processed": 0,
+                    "n_windows": 0,  # Deprecated - use n_windows_processed
                     "used_streaming": False,
                     "error": str(e),
                 }
@@ -329,7 +330,8 @@ class EEGPTModel:
                 "abnormal_probability": float(abnormality_score),
                 "confidence": float(confidence),
                 "window_scores": window_scores,
-                "n_windows": n_windows_processed,  # Count actual windows processed, not scored
+                "n_windows_processed": n_windows_processed,
+                "n_windows": n_windows_processed,  # Deprecated - use n_windows_processed
                 "mean_score": float(abnormality_score),
                 "std_score": float(np.std(window_scores)) if window_scores else 0.0,
                 "used_streaming": True,
@@ -350,7 +352,8 @@ class EEGPTModel:
                     "abnormal_probability": 0.0,
                     "confidence": 0.0,
                     "window_scores": [],
-                    "n_windows": 0,
+                    "n_windows_processed": 0,
+                    "n_windows": 0,  # Deprecated - use n_windows_processed
                     "used_streaming": False,
                     "error": "No valid windows extracted",
                 }
@@ -384,7 +387,8 @@ class EEGPTModel:
                 "abnormal_probability": float(abnormality_score),
                 "confidence": float(confidence),
                 "window_scores": window_scores,
-                "n_windows": len(windows),
+                "n_windows_processed": len(windows),
+                "n_windows": len(windows),  # Deprecated - use n_windows_processed
                 "used_streaming": False,
                 "channels_used": channel_names,
                 "metadata": {

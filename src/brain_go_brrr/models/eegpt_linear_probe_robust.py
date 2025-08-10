@@ -1,6 +1,7 @@
 """Robust EEGPT Linear Probe with comprehensive NaN prevention."""
 
 import logging
+import warnings
 from pathlib import Path
 
 import torch
@@ -61,15 +62,13 @@ class RobustEEGPTLinearProbe(nn.Module):
 
         # Load or use provided backbone
         if backbone is not None:
-            logger.info("Using provided backbone (test mode)")
+            logger.debug("Using provided backbone (test mode)")  # Changed to DEBUG
             self.backbone = backbone
-            self.eegpt_backbone = backbone  # Deprecated alias for compatibility
         elif checkpoint_path is not None:
             logger.info(f"Loading EEGPT from {checkpoint_path}")
             self.backbone = create_normalized_eegpt(
                 checkpoint_path=str(checkpoint_path), normalize=True
             )
-            self.eegpt_backbone = self.backbone  # Deprecated alias
         else:
             raise ValueError(
                 "Either checkpoint_path or backbone must be provided. "
@@ -273,3 +272,13 @@ class RobustEEGPTLinearProbe(nn.Module):
             self.clip_count.fill_(int(checkpoint["statistics"]["clip_count"]))
 
         logger.info(f"Loaded probe weights from {path}")
+
+    @property
+    def eegpt_backbone(self):
+        """Deprecated alias for backbone. Use .backbone instead."""
+        warnings.warn(
+            "eegpt_backbone is deprecated and will be removed in v2.0. Use .backbone instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.backbone
