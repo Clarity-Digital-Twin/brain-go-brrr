@@ -150,7 +150,7 @@ class AbnormalityDetector:
 
         # Initialize classification head (use provided or create new)
         if classifier is not None:
-            self.classifier = classifier.to(self.device)
+            self.classifier = torch.nn.Sequential(classifier).to(self.device)
             logger.info("Using provided classifier for abnormality detection")
         else:
             self._init_classification_head()

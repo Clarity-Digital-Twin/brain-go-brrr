@@ -17,6 +17,7 @@ class FakeEEGPTBackbone:
     """Lightweight fake for EEGPT backbone model."""
 
     def __init__(self, feature_dim: int = 2048, n_summary_tokens: int = 1):
+        """Initialize fake EEGPT backbone."""
         self.feature_dim = feature_dim
         self._n_summary_tokens = n_summary_tokens
         self.is_loaded = True
@@ -56,6 +57,7 @@ class FakeClassifierHead(nn.Module):
     """Lightweight fake classifier for abnormality detection."""
 
     def __init__(self, input_dim: int = 2048, n_classes: int = 2, deterministic: bool = True):
+        """Initialize fake classifier head."""
         super().__init__()
         self.input_dim = input_dim
         self.n_classes = n_classes
@@ -87,6 +89,7 @@ class FakeRedis:
     """In-memory fake Redis for testing cache behavior."""
 
     def __init__(self):
+        """Initialize fake Redis storage."""
         self.storage: dict[str, bytes] = {}
         self.call_count = {'get': 0, 'set': 0, 'delete': 0, 'exists': 0}
 
@@ -124,6 +127,7 @@ class FakeEdfReader:
     """Fake EDF reader for testing without real files."""
 
     def __init__(self, n_channels: int = 19, n_samples: int = 10000, sfreq: float = 256.0):
+        """Initialize fake EDF reader."""
         self.n_channels = n_channels
         self.n_samples = n_samples
         self.sfreq = sfreq
@@ -137,21 +141,21 @@ class FakeEdfReader:
     def __exit__(self, *args):
         self.is_open = False
 
-    def getNSamples(self) -> list[int]:
+    def getNSamples(self) -> list[int]:  # noqa: N802
         """Return sample counts per channel."""
         return [self.n_samples] * self.n_channels
 
-    def getSampleFrequency(self, channel: int | None = None) -> list[float]:
+    def getSampleFrequency(self, channel: int | None = None) -> list[float]:  # noqa: N802
         """Return sampling frequency."""
         if channel is not None:
             return self.sfreq
         return [self.sfreq] * self.n_channels
 
-    def getSignalLabels(self) -> list[str]:
+    def getSignalLabels(self) -> list[str]:  # noqa: N802
         """Return channel labels."""
         return self.channel_labels
 
-    def readSignal(self, channel: int, start: int = 0, n: int | None = None) -> np.ndarray:
+    def readSignal(self, channel: int, start: int = 0, n: int | None = None) -> np.ndarray:  # noqa: N802
         """Return fake signal data."""
         if n is None:
             n = self.n_samples - start
@@ -163,6 +167,7 @@ class FakeFeatureExtractor:
     """Fake feature extractor for pipeline tests."""
 
     def __init__(self, feature_dim: int = 128):
+        """Initialize fake feature extractor."""
         self.feature_dim = feature_dim
         self.device = "cpu"
 
@@ -194,6 +199,7 @@ class FakeSleepAnalyzer:
     """Fake sleep analyzer for pipeline tests."""
 
     def __init__(self):
+        """Initialize fake sleep analyzer."""
         self.yasa_version = "0.6.0"
 
     def run_full_sleep_analysis(self, raw: Any) -> dict[str, Any]:
@@ -232,6 +238,7 @@ class FakeMNERaw:
     """Minimal fake for MNE Raw object."""
 
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
+        """Initialize fake MNE Raw object."""
         import mne
         self.n_channels = n_channels
         self.duration = duration

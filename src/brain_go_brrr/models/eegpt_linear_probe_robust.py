@@ -3,6 +3,7 @@
 import logging
 import warnings
 from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -63,10 +64,10 @@ class RobustEEGPTLinearProbe(nn.Module):
         # Load or use provided backbone
         if backbone is not None:
             logger.debug("Using provided backbone (test mode)")  # Changed to DEBUG
-            self.backbone = backbone
+            self.backbone: Any = backbone
         elif checkpoint_path is not None:
             logger.info(f"Loading EEGPT from {checkpoint_path}")
-            self.backbone = create_normalized_eegpt(
+            self.backbone: Any = create_normalized_eegpt(
                 checkpoint_path=str(checkpoint_path), normalize=True
             )
         else:
