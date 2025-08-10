@@ -288,3 +288,7 @@ class FakeMNERaw:
     def set_eeg_reference(self, *args, **kwargs):
         """Fake EEG reference setting."""
         return self
+    
+    def pick_channels(self, channels, **kwargs):
+        """Fake channel picking."""
+        return self
