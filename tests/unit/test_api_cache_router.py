@@ -180,7 +180,7 @@ class TestCacheRouterClean:
         )
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
-        response = client.post("/cache/warmup", json=request.dict())
+        response = client.post("/cache/warmup", json=request.model_dump())
 
         assert response.status_code == 200
         data = response.json()
@@ -204,7 +204,7 @@ class TestCacheRouterClean:
         )
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
-        response = client.post("/cache/warmup", json=request.dict())
+        response = client.post("/cache/warmup", json=request.model_dump())
 
         assert response.status_code == 200
         data = response.json()
@@ -248,7 +248,7 @@ class TestCacheRouterClean:
         )
 
         app.dependency_overrides[get_cache] = lambda: None
-        response = client.post("/cache/warmup", json=request.dict())
+        response = client.post("/cache/warmup", json=request.model_dump())
 
         assert response.status_code == 200
         data = response.json()

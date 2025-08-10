@@ -61,33 +61,20 @@ class RobustEEGPTLinearProbe(nn.Module):
 
         # Load or use provided backbone
         if backbone is not None:
-            logger.info("Using provided backbone")
+            logger.info("Using provided backbone (test mode)")
             self.backbone = backbone
-            self.eegpt_backbone = backbone  # Alias for compatibility
+            self.eegpt_backbone = backbone  # Deprecated alias for compatibility
         elif checkpoint_path is not None:
             logger.info(f"Loading EEGPT from {checkpoint_path}")
-            try:
-                self.backbone = create_normalized_eegpt(
-                    checkpoint_path=str(checkpoint_path), normalize=True
-                )
-                self.eegpt_backbone = self.backbone  # Alias
-            except Exception as e:
-                logger.warning(f"Failed to load EEGPT: {e}. Using dummy backbone.")
-                # Create a dummy backbone for testing
-                class DummyBackbone(nn.Module):
-                    def forward(self, x):
-                        batch_size = x.shape[0]
-                        return torch.randn(batch_size, 4, 512)
-                self.backbone = DummyBackbone()
-                self.eegpt_backbone = self.backbone
+            self.backbone = create_normalized_eegpt(
+                checkpoint_path=str(checkpoint_path), normalize=True
+            )
+            self.eegpt_backbone = self.backbone  # Deprecated alias
         else:
-            # Default dummy backbone for testing
-            class DummyBackbone(nn.Module):
-                def forward(self, x):
-                    batch_size = x.shape[0]
-                    return torch.randn(batch_size, 4, 512)
-            self.backbone = DummyBackbone()
-            self.eegpt_backbone = self.backbone
+            raise ValueError(
+                "Either checkpoint_path or backbone must be provided. "
+                "checkpoint_path is required for production use."
+            )
 
         # Freeze backbone if requested
         if freeze_backbone:

@@ -14,15 +14,19 @@ class TestRobustEEGPTLinearProbeClean:
     
     @pytest.fixture
     def mock_backbone(self):
-        """Create a mock EEGPT backbone."""
+        """Create a deterministic mock EEGPT backbone for testing."""
         class MockBackbone(nn.Module):
             def __init__(self):
                 super().__init__()
+                # Fixed seed for deterministic tests
+                torch.manual_seed(42)
                 self.dummy_param = nn.Parameter(torch.randn(1))
             
             def forward(self, x):
+                # Deterministic output based on input shape
+                torch.manual_seed(42)  # Ensure reproducibility
                 batch_size = x.shape[0] if x.dim() > 0 else 1
-                return torch.randn(batch_size, 4, 512)
+                return torch.randn(batch_size, 4, 512, dtype=torch.float32)
             
             def extract_features(self, x):
                 return self.forward(x)
