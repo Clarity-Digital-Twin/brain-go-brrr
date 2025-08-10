@@ -28,8 +28,8 @@ PYTHON := $(UV) run python
 PIP := $(UV) pip
 PYTEST := $(UV) run pytest
 RUFF := $(UV) run ruff
-# Add explicit plugin loading when autoload is disabled
-PYTEST_WITH_COV := PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(UV) run pytest -p pytest_cov
+# Use pytest with coverage - no need to disable autoload
+PYTEST_WITH_COV := $(UV) run pytest
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
