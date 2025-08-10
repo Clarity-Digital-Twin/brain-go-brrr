@@ -6,7 +6,7 @@ without coupling tests to implementation details.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import torch
@@ -15,22 +15,22 @@ import torch.nn as nn
 
 class FakeEEGPTBackbone:
     """Lightweight fake for EEGPT backbone model."""
-    
+
     def __init__(self, feature_dim: int = 2048, n_summary_tokens: int = 1):
         self.feature_dim = feature_dim
         self._n_summary_tokens = n_summary_tokens
         self.is_loaded = True
         self.config = type('Config', (), {'model_path': Path('/fake/model.ckpt')})()
-    
+
     @property
     def n_summary_tokens(self) -> int:
         return self._n_summary_tokens
-    
-    def extract_features(self, data: np.ndarray, channel_names: Optional[List[str]] = None) -> np.ndarray:
+
+    def extract_features(self, data: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
         """Return consistent fake features for testing."""
         batch_size = data.shape[0] if len(data.shape) > 1 else 1
         return np.ones((batch_size, self.feature_dim), dtype=np.float32) * 0.5
-    
+
     def to(self, device: str):
         """Fake device movement."""
         return self
@@ -38,7 +38,7 @@ class FakeEEGPTBackbone:
 
 class FakeClassifierHead(nn.Module):
     """Lightweight fake classifier for abnormality detection."""
-    
+
     def __init__(self, input_dim: int = 2048, n_classes: int = 2, deterministic: bool = True):
         super().__init__()
         self.input_dim = input_dim
@@ -51,7 +51,7 @@ class FakeClassifierHead(nn.Module):
             with torch.no_grad():
                 self.linear.weight.fill_(0.1)
                 self.linear.bias.fill_(0.0)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Return consistent predictions for testing."""
         if self.deterministic:
@@ -64,22 +64,22 @@ class FakeClassifierHead(nn.Module):
 
 class FakeRedis:
     """In-memory fake Redis for testing cache behavior."""
-    
+
     def __init__(self):
-        self.storage: Dict[str, bytes] = {}
+        self.storage: dict[str, bytes] = {}
         self.call_count = {'get': 0, 'set': 0, 'delete': 0, 'exists': 0}
-    
-    def get(self, key: str) -> Optional[bytes]:
+
+    def get(self, key: str) -> bytes | None:
         """Get value from fake storage."""
         self.call_count['get'] += 1
         return self.storage.get(key)
-    
-    def set(self, key: str, value: bytes, ex: Optional[int] = None) -> bool:
+
+    def set(self, key: str, value: bytes, ex: int | None = None) -> bool:
         """Set value in fake storage."""
         self.call_count['set'] += 1
         self.storage[key] = value
         return True
-    
+
     def delete(self, key: str) -> int:
         """Delete key from fake storage."""
         self.call_count['delete'] += 1
@@ -87,12 +87,12 @@ class FakeRedis:
             del self.storage[key]
             return 1
         return 0
-    
+
     def exists(self, key: str) -> int:
         """Check if key exists."""
         self.call_count['exists'] += 1
         return 1 if key in self.storage else 0
-    
+
     def flushdb(self) -> bool:
         """Clear all storage."""
         self.storage.clear()
@@ -101,36 +101,36 @@ class FakeRedis:
 
 class FakeEdfReader:
     """Fake EDF reader for testing without real files."""
-    
+
     def __init__(self, n_channels: int = 19, n_samples: int = 10000, sfreq: float = 256.0):
         self.n_channels = n_channels
         self.n_samples = n_samples
         self.sfreq = sfreq
         self.is_open = False
         self.channel_labels = [f"EEG{i}" for i in range(n_channels)]
-    
+
     def __enter__(self):
         self.is_open = True
         return self
-    
+
     def __exit__(self, *args):
         self.is_open = False
-    
-    def getNSamples(self) -> List[int]:
+
+    def getNSamples(self) -> list[int]:
         """Return sample counts per channel."""
         return [self.n_samples] * self.n_channels
-    
-    def getSampleFrequency(self, channel: Optional[int] = None) -> List[float]:
+
+    def getSampleFrequency(self, channel: int | None = None) -> list[float]:
         """Return sampling frequency."""
         if channel is not None:
             return self.sfreq
         return [self.sfreq] * self.n_channels
-    
-    def getSignalLabels(self) -> List[str]:
+
+    def getSignalLabels(self) -> list[str]:
         """Return channel labels."""
         return self.channel_labels
-    
-    def readSignal(self, channel: int, start: int = 0, n: Optional[int] = None) -> np.ndarray:
+
+    def readSignal(self, channel: int, start: int = 0, n: int | None = None) -> np.ndarray:
         """Return fake signal data."""
         if n is None:
             n = self.n_samples - start
@@ -140,21 +140,21 @@ class FakeEdfReader:
 
 class FakeFeatureExtractor:
     """Fake feature extractor for pipeline tests."""
-    
+
     def __init__(self, feature_dim: int = 128):
         self.feature_dim = feature_dim
         self.device = "cpu"
-    
+
     def extract(self, data: np.ndarray) -> np.ndarray:
         """Extract fake features."""
         batch_size = len(data) if isinstance(data, list) else data.shape[0]
         return np.zeros((batch_size, self.feature_dim), dtype=np.float32)
-    
+
     def extract_embeddings(self, data: np.ndarray) -> np.ndarray:
         """Alias for extract."""
         return self.extract(data)
-    
-    def extract_embeddings_with_metadata(self, raw: Any) -> Dict[str, Any]:
+
+    def extract_embeddings_with_metadata(self, raw: Any) -> dict[str, Any]:
         """Extract embeddings with metadata for pipeline."""
         # Fake some embeddings
         n_windows = 10
@@ -171,11 +171,11 @@ class FakeFeatureExtractor:
 
 class FakeSleepAnalyzer:
     """Fake sleep analyzer for pipeline tests."""
-    
+
     def __init__(self):
         self.yasa_version = "0.6.0"
-    
-    def run_full_sleep_analysis(self, raw: Any) -> Dict[str, Any]:
+
+    def run_full_sleep_analysis(self, raw: Any) -> dict[str, Any]:
         """Return fake sleep analysis results."""
         return {
             'hypnogram': ['W', 'N1', 'N2', 'N3', 'N2', 'REM'],
@@ -189,11 +189,17 @@ class FakeSleepAnalyzer:
                 'REM': 15.0
             }
         }
-    
-    def stage_sleep(self, raw: Any, **kwargs) -> Dict[str, Any]:
-        """Stage sleep for pipeline compatibility."""
-        return self.run_full_sleep_analysis(raw)
-    
+
+    def stage_sleep(self, raw: Any, **kwargs):
+        """Stage sleep for pipeline compatibility - returns tuple."""
+        n_epochs = 100
+        stages = np.zeros(n_epochs, dtype=np.int64)  # integer labels
+        probs = np.zeros((n_epochs, 5), dtype=np.float32)  # probability matrix
+        # If return_proba kwarg is True, return both
+        if kwargs.get('return_proba', False):
+            return stages, probs
+        return {'hypnogram': stages, 'proba': probs}
+
     def predict_proba(self, raw: Any) -> np.ndarray:
         """Return fake sleep stage probabilities."""
         n_epochs = 100  # Fake number of epochs
@@ -205,7 +211,7 @@ class FakeSleepAnalyzer:
 
 class FakeMNERaw:
     """Minimal fake for MNE Raw object."""
-    
+
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
         self.n_channels = n_channels
         self.duration = duration
@@ -213,7 +219,7 @@ class FakeMNERaw:
         self.info = {'sfreq': sfreq, 'ch_names': self.ch_names}
         self.times = np.arange(0, duration, 1/sfreq)
         self._data = np.random.randn(n_channels, len(self.times)) * 1e-6  # μV scale
-    
+
     def get_data(self, picks=None, start=0, stop=None) -> np.ndarray:
         """Return fake EEG data."""
         if stop is None:
@@ -221,15 +227,15 @@ class FakeMNERaw:
         if picks is None:
             return self._data[:, start:stop]
         return self._data[picks, start:stop]
-    
+
     def copy(self):
         """Return a copy of self."""
         return FakeMNERaw(self.n_channels, self.duration, self.info['sfreq'])
-    
+
     def filter(self, l_freq, h_freq, **kwargs):
         """Fake filtering."""
         return self
-    
+
     def resample(self, sfreq, **kwargs):
         """Fake resampling."""
         self.info['sfreq'] = sfreq

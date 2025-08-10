@@ -2,6 +2,7 @@
 """Run test directly without pytest to check if tests work."""
 
 import sys
+
 sys.path.insert(0, 'src')
 
 # Import the exceptions
@@ -9,8 +10,6 @@ from brain_go_brrr.core.exceptions import (
     BrainGoBrrrError,
     ConfigurationError,
     EdfLoadError,
-    ProcessingError,
-    ModelLoadError,
 )
 
 print("Testing exceptions...")
@@ -47,6 +46,7 @@ print("\nNow testing if we can get coverage...")
 
 # Try to run with coverage
 import subprocess
+
 result = subprocess.run(
     ["uv", "run", "python", "-m", "coverage", "run", "--source=src/brain_go_brrr/core/exceptions", __file__],
     capture_output=True,

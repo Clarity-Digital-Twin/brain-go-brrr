@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 """Analyze test coverage and identify gaps."""
 
-import os
 from pathlib import Path
+
 
 def analyze_coverage():
     """Analyze which modules have tests and which don't."""
-    
     src_dir = Path("src/brain_go_brrr")
     test_dir = Path("tests")
-    
+
     # Get all source modules
     source_modules = set()
     for py_file in src_dir.rglob("*.py"):
@@ -18,7 +17,7 @@ def analyze_coverage():
             module = str(rel_path).replace(".py", "").replace("/", ".")
             if module != "__init__":
                 source_modules.add(module)
-    
+
     # Get all test files
     test_modules = set()
     for py_file in test_dir.rglob("test_*.py"):
@@ -27,7 +26,7 @@ def analyze_coverage():
             # Extract what's being tested from the name
             test_name = str(rel_path.name).replace("test_", "").replace(".py", "")
             test_modules.add(test_name)
-    
+
     # Categorize modules
     api_modules = {m for m in source_modules if m.startswith("api.")}
     core_modules = {m for m in source_modules if m.startswith("core.")}
@@ -36,14 +35,14 @@ def analyze_coverage():
     data_modules = {m for m in source_modules if m.startswith("data.")}
     utils_modules = {m for m in source_modules if m.startswith("utils.")}
     cli_modules = {m for m in source_modules if m == "cli" or m.startswith("cli.")}
-    
+
     print("=" * 60)
     print("TEST COVERAGE ANALYSIS")
     print("=" * 60)
-    
+
     print(f"\nTotal source modules: {len(source_modules)}")
     print(f"Total test files: {len(list(test_dir.rglob('test_*.py')))}")
-    
+
     print("\n📊 MODULE BREAKDOWN:")
     print(f"  API:      {len(api_modules)} modules")
     print(f"  Core:     {len(core_modules)} modules")
@@ -52,10 +51,10 @@ def analyze_coverage():
     print(f"  Data:     {len(data_modules)} modules")
     print(f"  Utils:    {len(utils_modules)} modules")
     print(f"  CLI:      {len(cli_modules)} modules")
-    
+
     # Find modules without tests
     print("\n❌ MODULES WITHOUT DIRECT TESTS:")
-    
+
     # Check each category
     for category, modules in [
         ("Core", core_modules),
@@ -74,14 +73,14 @@ def analyze_coverage():
                 test_path = test_dir / "integration" / f"test_{module_name}.py"
                 if not test_path.exists():
                     missing.append(module)
-        
+
         if missing:
             print(f"\n{category}:")
             for m in missing[:10]:  # Show first 10
                 print(f"  - {m}")
             if len(missing) > 10:
                 print(f"  ... and {len(missing) - 10} more")
-    
+
     # Prioritize what to test
     print("\n🎯 PRIORITY MODULES TO TEST (critical path):")
     priority = [
@@ -95,7 +94,7 @@ def analyze_coverage():
         "data.cache_manager",
         "utils.preprocessing",
     ]
-    
+
     for module in priority:
         if module in source_modules:
             test_exists = (test_dir / "unit" / f"test_{module.split('.')[-1]}.py").exists()

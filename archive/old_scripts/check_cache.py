@@ -9,10 +9,10 @@ if cache_files:
     # Check first file
     with open(cache_files[0], 'rb') as f:
         data = pickle.load(f)
-    
+
     print(f"\nFirst file: {cache_files[0].name}")
     print(f"Type: {type(data)}")
-    
+
     if isinstance(data, tuple):
         print(f"Tuple length: {len(data)}")
         for i, item in enumerate(data):

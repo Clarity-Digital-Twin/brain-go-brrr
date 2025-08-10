@@ -22,8 +22,8 @@ class ParallelEEGPipeline:
     """Run EEGPT and YASA in parallel, return both outputs."""
 
     def __init__(
-        self, 
-        eegpt_model_path: Path | None = None, 
+        self,
+        eegpt_model_path: Path | None = None,
         device: str = "cpu",
         extractor: Any | None = None,
         sleep_analyzer: Any | None = None

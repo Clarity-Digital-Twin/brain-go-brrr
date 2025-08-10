@@ -20,16 +20,16 @@ def run_coverage_chunk(test_paths, cov_append=False):
         "--no-cov-on-fail",
         "-q"
     ]
-    
+
     if cov_append:
         cmd.append("--cov-append")
-    
+
     print(f"Running: {' '.join(test_paths)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
-    
+
     if result.returncode != 0:
         print(f"Warning: Some tests failed in {test_paths}")
-    
+
     return result.returncode == 0
 
 
@@ -50,12 +50,12 @@ def main():
         ["tests/api"],  # All API tests
         ["tests/benchmarks"],  # Benchmarks (without coverage ideally)
     ]
-    
+
     # Clean previous coverage data
     coverage_file = Path(".coverage")
     if coverage_file.exists():
         coverage_file.unlink()
-    
+
     # Run coverage on each chunk
     all_passed = True
     for i, chunk in enumerate(test_chunks):
@@ -65,20 +65,20 @@ def main():
             test_path = Path(path)
             if test_path.exists():
                 existing_paths.append(path)
-        
+
         if not existing_paths:
             print(f"Skipping {chunk} - paths don't exist")
             continue
-        
+
         # First chunk creates .coverage, rest append
         success = run_coverage_chunk(existing_paths, cov_append=(i > 0))
         all_passed = all_passed and success
-    
+
     # Generate final report
     print("\n" + "="*60)
     print("Generating coverage report...")
     print("="*60 + "\n")
-    
+
     # Show terminal report
     subprocess.run([
         "uv", "run", "coverage", "report",
@@ -86,23 +86,23 @@ def main():
         "--show-missing",
         "--precision=2"
     ])
-    
+
     # Generate HTML report
     subprocess.run(["uv", "run", "coverage", "html"])
     print("\nHTML report generated at: htmlcov/index.html")
-    
+
     # Get total coverage
     result = subprocess.run(
         ["uv", "run", "coverage", "report", "--format=total"],
         capture_output=True,
         text=True
     )
-    
+
     try:
         total_coverage = float(result.stdout.strip())
         print(f"\n{'='*60}")
         print(f"TOTAL COVERAGE: {total_coverage:.2f}%")
-        
+
         if total_coverage >= 55:
             print("✅ Coverage meets minimum threshold (55%)")
         else:
@@ -110,7 +110,7 @@ def main():
             return 1
     except:
         print("Could not determine total coverage")
-    
+
     return 0 if all_passed else 1
 
 

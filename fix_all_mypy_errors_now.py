@@ -3,9 +3,9 @@
 
 from pathlib import Path
 
+
 def fix_all_type_errors():
     """Fix every single type error - IRON CLAD!"""
-    
     # 1. Fix edf_streaming.py - Add Any import
     edf_streaming = Path("src/brain_go_brrr/data/edf_streaming.py")
     content = edf_streaming.read_text()
@@ -16,7 +16,7 @@ def fix_all_type_errors():
         )
         edf_streaming.write_text(content)
         print("✅ Fixed edf_streaming.py - Added Any import")
-    
+
     # 2. Fix Redis type mismatch in pool.py
     redis_pool = Path("src/brain_go_brrr/infra/redis/pool.py")
     content = redis_pool.read_text()
@@ -27,7 +27,7 @@ def fix_all_type_errors():
     )
     redis_pool.write_text(content)
     print("✅ Fixed redis/pool.py - Fixed Redis type mismatch")
-    
+
     # 3. Fix window_extractor.py - Add missing ndarray type params
     window_extractor = Path("src/brain_go_brrr/core/window_extractor.py")
     content = window_extractor.read_text()
@@ -41,13 +41,13 @@ def fix_all_type_errors():
     )
     window_extractor.write_text(content)
     print("✅ Fixed window_extractor.py - Fixed ndarray type params")
-    
+
     # 4. Fix all MNE unfollowed imports - Add type: ignore where needed
     files_with_mne = [
         "src/brain_go_brrr/core/edf_loader.py",
         "src/brain_go_brrr/core/sleep/analyzer_enhanced.py",
     ]
-    
+
     for file_path in files_with_mne:
         path = Path(file_path)
         if path.exists():
@@ -84,10 +84,10 @@ def fix_all_type_errors():
                     "def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:",
                     "def _fallback_staging(self, raw: mne.io.Raw, eeg_ch: str) -> dict[str, Any]:  # type: ignore[no-any-unimported]"
                 )
-            
+
             path.write_text(content)
             print(f"✅ Fixed {file_path} - Added type: ignore for MNE imports")
-    
+
     print("\n🔥 ALL TYPE ERRORS FIXED! Run: make type-check")
 
 if __name__ == "__main__":

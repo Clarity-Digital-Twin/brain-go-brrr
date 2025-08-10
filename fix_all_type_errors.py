@@ -3,9 +3,9 @@
 
 import re
 from pathlib import Path
-from typing import List, Tuple
 
-def fix_file(file_path: Path, replacements: List[Tuple[str, str]]) -> None:
+
+def fix_file(file_path: Path, replacements: list[tuple[str, str]]) -> None:
     """Apply replacements to a file."""
     content = file_path.read_text()
     for old, new in replacements:
@@ -15,12 +15,11 @@ def fix_file(file_path: Path, replacements: List[Tuple[str, str]]) -> None:
 
 def main():
     """Fix all type errors systematically."""
-    
     # Fix missing type parameters for generic types
     fixes = {
         # Fix dict without type parameters
         "src/brain_go_brrr/api/cache.py": [
-            ("def get(self, key: str) -> dict | None:", 
+            ("def get(self, key: str) -> dict | None:",
              "def get(self, key: str) -> dict[str, Any] | None:"),
             ("def set(self, key: str, value: dict, ttl: int = 3600) -> bool:",
              "def set(self, key: str, value: dict[str, Any], ttl: int = 3600) -> bool:"),
@@ -29,25 +28,25 @@ def main():
             ("def health_check(self) -> dict:",
              "def health_check(self) -> dict[str, Any]:"),
         ],
-        
+
         # Fix list without type parameters
         "src/brain_go_brrr/preprocessing/autoreject_adapter.py": [
             ("def _create_circular_positions(self, ch_names: list) -> dict:",
              "def _create_circular_positions(self, ch_names: list[str]) -> dict[str, Any]:"),
         ],
-        
+
         # Fix ndarray without type parameters
         "src/brain_go_brrr/preprocessing/eeg_preprocessor.py": [
             (") -> list[np.ndarray]:",
              ") -> list[npt.NDArray[np.float64]]:"),
         ],
-        
+
         # Fix Redis type
         "src/brain_go_brrr/infra/redis/pool.py": [
             ("def get_client(self) -> Generator[redis.Redis, None, None]:",
              "def get_client(self) -> Generator[redis.Redis[str], None, None]:"),
         ],
-        
+
         # Fix dict in edf_streaming
         "src/brain_go_brrr/data/edf_streaming.py": [
             ("def get_info(self) -> dict:",
@@ -57,7 +56,7 @@ def main():
             ("-> dict:",
              "-> dict[str, Any]:"),
         ],
-        
+
         # Fix ndarray in window_extractor
         "src/brain_go_brrr/core/window_extractor.py": [
             ("def extract(self, data: np.ndarray, sfreq: float)",
@@ -71,15 +70,15 @@ def main():
             ("self, recordings: list[np.ndarray], sfreq: float",
              "self, recordings: list[npt.NDArray[np.float64]], sfreq: float"),
         ],
-        
-        # Fix dependencies 
+
+        # Fix dependencies
         "src/brain_go_brrr/api/dependencies.py": [
             ("job_store: dict[str, dict] = {}",
              "job_store: dict[str, dict[str, Any]] = {}"),
             ("async def get_job_store() -> dict[str, dict]:",
              "async def get_job_store() -> dict[str, dict[str, Any]]:"),
         ],
-        
+
         # Fix visualization
         "src/brain_go_brrr/visualization/pdf_report.py": [
             ("eeg_data: npt.NDArray | None",
@@ -91,7 +90,7 @@ def main():
             ("axes: list[plt.Axes] | plt.Axes",
              'axes: list["plt.Axes"] | "plt.Axes"'),
         ],
-        
+
         # Fix hierarchical_pipeline
         "src/brain_go_brrr/services/hierarchical_pipeline.py": [
             ("async def run_parallel(self, tasks: list) -> list[Any]:",
@@ -99,19 +98,19 @@ def main():
             ("def run_tasks(self, tasks: list) -> list[Any]:",
              "def run_tasks(self, tasks: list[Any]) -> list[Any]:"),
         ],
-        
+
         # Fix auth
         "src/brain_go_brrr/api/auth.py": [
             ("def verify_jwt_token(token: str) -> dict:",
              "def verify_jwt_token(token: str) -> dict[str, Any]:"),
         ],
-        
+
         # Fix snippets/maker
         "src/brain_go_brrr/core/snippets/maker.py": [
             ("eegpt_results: dict",
              "eegpt_results: dict[str, Any]"),
         ],
-        
+
         # Fix models
         "src/brain_go_brrr/models/eegpt_architecture.py": [
             ("n_channels: list | None = None,",
@@ -119,7 +118,7 @@ def main():
             ("def prepare_chan_ids(self, channel_names: list) -> Tensor:",
              "def prepare_chan_ids(self, channel_names: list[str]) -> Tensor:"),
         ],
-        
+
         # Fix tuab_dataset
         "src/brain_go_brrr/data/tuab_dataset.py": [
             ("class TUABDataset(Dataset):",
@@ -129,7 +128,7 @@ def main():
             ("def _load_edf_file(self, file_path: Path) -> np.ndarray:",
              "def _load_edf_file(self, file_path: Path) -> npt.NDArray[np.float64]:"),
         ],
-        
+
         # Fix tuab_enhanced_dataset
         "src/brain_go_brrr/data/tuab_enhanced_dataset.py": [
             ("def _load_edf_file(self, file_path: Path) -> np.ndarray:",
@@ -137,7 +136,7 @@ def main():
             ("-> List[Tuple[np.ndarray, int]]:",
              "-> List[Tuple[npt.NDArray[np.float64], int]]:"),
         ],
-        
+
         # Fix models/eegpt_model
         "src/brain_go_brrr/models/eegpt_model.py": [
             ("def extract_windows(self, data: np.ndarray, sampling_rate: int)",
@@ -149,7 +148,7 @@ def main():
             ("notch_freq: float | list | None = None,",
              "notch_freq: float | list[float] | None = None,"),
         ],
-        
+
         # Fix training
         "src/brain_go_brrr/training/sleep_probe_trainer.py": [
             ("class SleepDataset(Dataset):",
@@ -165,7 +164,7 @@ def main():
             (") -> tuple[tuple[list, list], tuple[list, list]]:",
              ") -> tuple[tuple[list[Any], list[Any]], tuple[list[Any], list[Any]]]:"),
         ],
-        
+
         # Fix quality controller
         "src/brain_go_brrr/core/quality/controller.py": [
             ("reject_criteria: dict | None = None,",
@@ -175,7 +174,7 @@ def main():
             (") -> dict:",
              ") -> dict[str, Any]:"),
         ],
-        
+
         # Fix features extractor
         "src/brain_go_brrr/core/features/extractor.py": [
             ("self._cache: dict[str, np.ndarray] = {}",
@@ -189,7 +188,7 @@ def main():
             ("self, windows: list[np.ndarray],",
              "self, windows: list[npt.NDArray[np.float64]],"),
         ],
-        
+
         # Fix abnormal detector
         "src/brain_go_brrr/core/abnormal/detector.py": [
             ("def extract_features(self, data: np.ndarray,",
@@ -201,7 +200,7 @@ def main():
             ("def _predict_window(self, window: np.ndarray) -> float:",
              "def _predict_window(self, window: npt.NDArray[np.float64]) -> float:"),
         ],
-        
+
         # Fix tasks/enhanced_abnormality_detection
         "src/brain_go_brrr/tasks/enhanced_abnormality_detection.py": [
             ("self, labels: np.ndarray, preds: np.ndarray, probs: np.ndarray",
@@ -209,7 +208,7 @@ def main():
             ("def _get_param_groups(self) -> list:",
              "def _get_param_groups(self) -> list[dict[str, Any]]:"),
         ],
-        
+
         # Fix sleep analyzer enhanced
         "src/brain_go_brrr/core/sleep/analyzer_enhanced.py": [
             ("def _compute_fractal_dimension(self, data: npt.NDArray) -> float:",
@@ -218,13 +217,13 @@ def main():
              "def _compute_permutation_entropy(self, data: npt.NDArray[np.float64]) -> float:"),
         ],
     }
-    
+
     # Apply fixes to each file
     for file_path, replacements in fixes.items():
         path = Path(file_path)
         if path.exists():
             fix_file(path, replacements)
-    
+
     # Remove unused type: ignore comments
     files_with_unused_ignores = [
         "src/brain_go_brrr/core/config.py",
@@ -240,7 +239,7 @@ def main():
         "src/brain_go_brrr/cli.py",
         "src/brain_go_brrr/data/tuab_dataset.py",
     ]
-    
+
     for file_path in files_with_unused_ignores:
         path = Path(file_path)
         if path.exists():
@@ -251,7 +250,7 @@ def main():
             content = re.sub(r'  # type: ignore\[no-any-return\]', '', content)
             path.write_text(content)
             print(f"Removed unused ignores from {path}")
-    
+
     print("\n✅ All type error fixes applied!")
     print("Now run: make lint && make type-check")
 
