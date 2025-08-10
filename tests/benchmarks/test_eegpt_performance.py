@@ -27,7 +27,7 @@ try:
 except ImportError:
     # Fallback if conftest not available or running standalone
     channel_complexity_budget = {
-        20: 1.0,   # Standard 10-20 system  
+        20: 1.0,   # Standard 10-20 system
         32: 1.5,   # Extended montage
         64: 2.0,   # High-density EEG
         128: 3.0,  # Research-grade HD-EEG
