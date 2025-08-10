@@ -308,6 +308,7 @@ def mock_eeg_data():
 
     data = np.random.randn(n_channels, n_times) * 20e-6  # ~20 μV
 
+    import mne
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     return mne.io.RawArray(data, info)
 
