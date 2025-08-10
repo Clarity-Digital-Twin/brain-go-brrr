@@ -190,7 +190,7 @@ class FakeSleepAnalyzer:
             }
         }
     
-    def stage_sleep(self, raw: Any) -> Dict[str, Any]:
+    def stage_sleep(self, raw: Any, **kwargs) -> Dict[str, Any]:
         """Stage sleep for pipeline compatibility."""
         return self.run_full_sleep_analysis(raw)
     
