@@ -34,19 +34,19 @@ class FakeEEGPTBackbone:
     def to(self, device: str):
         """Fake device movement."""
         return self
-    
+
     def eval(self):
         """Fake eval mode."""
         return self
-    
+
     def train(self, mode: bool = True):
         """Fake train mode."""
         return self
-    
+
     def load_model(self, path):
         """Fake model loading."""
         pass
-    
+
     def parameters(self):
         """Fake parameters for optimizer."""
         return []
@@ -76,7 +76,7 @@ class FakeClassifierHead(nn.Module):
             # Normal class gets 0.3, abnormal gets 0.7 confidence
             return torch.tensor([[0.7, 0.3]] * batch_size, dtype=torch.float32)
         return self.linear(x)
-    
+
     def __getitem__(self, index):
         """Make classifier subscriptable for validation checks."""
         # Return a fake layer for validation
@@ -264,7 +264,7 @@ class FakeMNERaw:
         """Fake resampling."""
         self.info['sfreq'] = sfreq
         return self
-    
+
     def get_channel_types(self):
         """Return channel types."""
         return ['eeg'] * self.n_channels
