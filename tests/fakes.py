@@ -212,14 +212,12 @@ class FakeSleepAnalyzer:
         }
 
     def stage_sleep(self, raw: Any, **kwargs):
-        """Stage sleep for pipeline compatibility - returns tuple."""
+        """Stage sleep for pipeline compatibility - ALWAYS returns tuple."""
         n_epochs = 100
         stages = np.zeros(n_epochs, dtype=np.int64)  # integer labels
         probs = np.zeros((n_epochs, 5), dtype=np.float32)  # probability matrix
-        # If return_proba kwarg is True, return both
-        if kwargs.get('return_proba', False):
-            return stages, probs
-        return {'hypnogram': stages, 'proba': probs}
+        # Always return tuple for consistency
+        return stages, probs
 
     def predict_proba(self, raw: Any) -> np.ndarray:
         """Return fake sleep stage probabilities."""
@@ -234,10 +232,15 @@ class FakeMNERaw:
     """Minimal fake for MNE Raw object."""
 
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
+        import mne
         self.n_channels = n_channels
         self.duration = duration
-        self.ch_names = [f'EEG{i}' for i in range(n_channels)]  # Add as attribute
-        self.info = {'sfreq': sfreq, 'ch_names': self.ch_names}
+        # Use valid channel names for sleep staging
+        standard_channels = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
+                           'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
+        self.ch_names = standard_channels[:n_channels] if n_channels <= 19 else standard_channels + [f'EEG{i}' for i in range(n_channels - 19)]
+        # Create proper MNE Info object
+        self.info = mne.create_info(ch_names=self.ch_names, sfreq=sfreq, ch_types='eeg')
         self.times = np.arange(0, duration, 1/sfreq)
         self._data = np.random.randn(n_channels, len(self.times)) * 1e-6  # μV scale
 

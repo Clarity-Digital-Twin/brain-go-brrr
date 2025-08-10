@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import numpy as np
+import pytest
 import torch
 
 from tests.fakes import (
@@ -121,21 +122,16 @@ def test_job_store_manages_jobs():
     assert retrieved.options["threshold"] == 0.8
 
     # Behavior: Update job status
-    # Create new job data with updated status (JobData is frozen)
-    updated_data = JobData(
-        job_id=job_id,
-        analysis_type=job_data.analysis_type,
-        file_path=job_data.file_path,
-        status=JobStatus.PROCESSING,  # Updated status
-        priority=job_data.priority,
-        created_at=job_data.created_at,
-        updated_at=datetime.now(),
-        options=job_data.options,
-        progress=job_data.progress
-    )
-    store.update(job_id, updated_data)
+    # Update expects a dict, not a JobData object
+    updates = {
+        "status": JobStatus.PROCESSING,
+        "updated_at": datetime.now(),
+        "progress": 0.5
+    }
+    store.update(job_id, updates)
     updated = store.get(job_id)
     assert updated.status == JobStatus.PROCESSING
+    assert updated.progress == 0.5
 
 
 def test_linear_probe_produces_predictions():
@@ -236,13 +232,13 @@ def test_redis_cache_stores_and_retrieves():
 
 def test_eeg_preprocessor_preprocesses_data():
     """Test EEG preprocessor transforms data correctly."""
-    from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor as EEGPreprocessor
+    from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
-    # Arrange
-    preprocessor = EEGPreprocessor(
+    # Arrange - use correct parameter names
+    preprocessor = FlexibleEEGPreprocessor(
         target_sfreq=256,
-        lowpass=50,
-        highpass=0.5
+        l_freq=0.5,  # highpass
+        h_freq=50    # lowpass
     )
     fake_raw = FakeMNERaw(n_channels=19, sfreq=500)  # Different sampling rate
 
@@ -283,8 +279,8 @@ def test_chunked_autoreject_processes_chunks():
     processor = ChunkedAutoRejectProcessor(chunk_size=5)
     fake_raw = FakeMNERaw(n_channels=19, duration=300)  # 5 minutes
 
-    # Act: Process with autoreject
-    cleaned = processor.process(fake_raw)
+    # Act: Transform (not process)
+    cleaned = processor.transform_raw(fake_raw)
 
     # Assert: Returns cleaned data
     assert cleaned is not None
@@ -357,10 +353,11 @@ def test_edf_streamer_streams_windows():
             reader_factory=FakeEdfReader
         )
 
-        # Act: Stream windows
-        windows = list(streamer.stream_epochs(
-            window_sec=4.0,
-            overlap=0.5
+        # Act: Use process_in_windows (correct method)
+        windows = list(streamer.process_in_windows(
+            window_duration=4.0,
+            overlap_ratio=0.5,
+            process_func=lambda x: x  # Identity function
         ))
 
         # Assert: Windows were streamed

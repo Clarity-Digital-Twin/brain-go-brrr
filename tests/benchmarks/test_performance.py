@@ -110,6 +110,8 @@ class TestPerformanceBenchmarks:
         benchmark(test_client.get, "/api/v1/health")
 
         # Should respond in <100ms (allow some buffer for test environment)
-        assert benchmark.stats["mean"] < 0.1, (
-            f"API response too slow: {benchmark.stats['mean'] * 1000:.2f}ms mean time"
-        )
+        # Guard for --benchmark-disable mode
+        if hasattr(benchmark, 'stats') and benchmark.stats:
+            assert benchmark.stats["mean"] < 0.1, (
+                f"API response too slow: {benchmark.stats['mean'] * 1000:.2f}ms mean time"
+            )
