@@ -27,10 +27,13 @@ class FakeEEGPTBackbone:
     def n_summary_tokens(self) -> int:
         return self._n_summary_tokens
 
-    def extract_features(self, data: np.ndarray, channel_names: list[str] | None = None) -> np.ndarray:
+    def extract_features(self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
         """Return consistent fake features for testing."""
-        batch_size = data.shape[0] if len(data.shape) > 1 else 1
-        return np.ones((batch_size, self.feature_dim), dtype=np.float32) * 0.5
+        if isinstance(data, np.ndarray):
+            batch_size = data.shape[0] if len(data.shape) > 1 else 1
+        else:
+            batch_size = data.shape[0] if len(data.shape) > 1 else 1
+        return torch.ones((batch_size, self.feature_dim), dtype=torch.float32) * 0.5
 
     def to(self, device: str):
         """Fake device movement."""
@@ -269,9 +272,19 @@ class FakeMNERaw:
 
     def resample(self, sfreq, **kwargs):
         """Fake resampling."""
-        self.info['sfreq'] = sfreq
-        return self
+        # Create a new fake with new sfreq
+        new_fake = FakeMNERaw(self.n_channels, self.duration, sfreq)
+        new_fake._data = self._data
+        return new_fake
 
     def get_channel_types(self):
         """Return channel types."""
         return ['eeg'] * self.n_channels
+    
+    def notch_filter(self, **kwargs):
+        """Fake notch filter."""
+        return self
+    
+    def set_eeg_reference(self, *args, **kwargs):
+        """Fake EEG reference setting."""
+        return self
