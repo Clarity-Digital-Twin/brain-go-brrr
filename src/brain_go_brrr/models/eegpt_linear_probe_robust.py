@@ -264,7 +264,7 @@ class RobustEEGPTLinearProbe(nn.Module):
 
     def load_probe(self, path: Path) -> None:
         """Load probe weights."""
-        checkpoint = torch.load(path, map_location="cpu")
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
         self.channel_adapter.load_state_dict(checkpoint["channel_adapter"])
         self.classifier.load_state_dict(checkpoint["classifier"])
 

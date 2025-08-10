@@ -5,6 +5,7 @@ No fusion, no complexity - just both engines running side by side.
 """
 
 import logging
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -65,8 +66,8 @@ class ParallelEEGPipeline:
             }
             logger.info(f"EEGPT extracted {eegpt_result['embeddings'].shape[0]} embeddings")
         except Exception as e:
-            logger.error(f"EEGPT extraction failed: {e}")
-            results["eegpt"] = {"status": "failed", "error": str(e)}
+            logger.error(f"EEGPT extraction failed: {e}", exc_info=True)
+            results["eegpt"] = {"status": "failed", "error": str(e), "traceback": traceback.format_exc()}
 
         # Run YASA sleep analysis
         logger.info("Running YASA sleep analysis...")
@@ -88,8 +89,8 @@ class ParallelEEGPipeline:
             }
             logger.info(f"YASA staged {len(hypnogram)} epochs")
         except Exception as e:
-            logger.error(f"YASA sleep analysis failed: {e}")
-            results["yasa"] = {"status": "failed", "error": str(e)}
+            logger.error(f"YASA sleep analysis failed: {e}", exc_info=True)
+            results["yasa"] = {"status": "failed", "error": str(e), "traceback": traceback.format_exc()}
 
         # Add metadata
         results["metadata"] = {
