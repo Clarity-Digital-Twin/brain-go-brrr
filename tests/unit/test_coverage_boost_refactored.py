@@ -177,7 +177,6 @@ def test_sleep_analyzer_analyzes_sleep():
     assert results["total_sleep_time"] >= 0
 
 
-@pytest.mark.xfail(strict=True, reason="FakeMNERaw needs full MNE API implementation")
 def test_abnormal_detector_detects_abnormalities():
     """Test abnormality detector produces valid predictions."""
     from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
