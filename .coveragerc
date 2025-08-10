@@ -1,6 +1,6 @@
 [run]
 source = brain_go_brrr
-branch = False
+branch = True
 parallel = False
 omit = 
     */tests/*

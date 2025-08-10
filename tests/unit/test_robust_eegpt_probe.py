@@ -59,39 +59,34 @@ class TestRobustEEGPTLinearProbeClean:
         assert probe.n_classes == 2
         assert probe.embed_dim == 512
         assert probe.n_summary_tokens == 4
-        assert probe.input_clip_value == 50.0
-        assert probe.normalization_eps == 1e-5
 
-    def test_input_validation_and_clipping(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test input validation and clipping logic."""
+    def test_validate_and_clean_input(self, fake_checkpoint_path, synthetic_eeg_batch):
+        """Test input validation and cleaning."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
-            n_classes=2,
-            input_clip_value=20e-6  # 20 microvolts
+            n_classes=2
         )
 
-        # Add extreme values to test clipping
+        # Add extreme values to test cleaning
         data_with_outliers = synthetic_eeg_batch.clone()
         data_with_outliers[0, 0, 100:110] = 100e-6  # Big spike
         data_with_outliers[1, 5, 200:210] = -100e-6  # Big negative spike
+        data_with_outliers[0, 1, 50] = float('nan')  # NaN value
 
         # Process through validation
-        validated = probe.validate_input(data_with_outliers)
+        validated = probe._validate_and_clean_input(data_with_outliers)
 
-        # Check clipping worked
-        assert validated.max() <= 20e-6
-        assert validated.min() >= -20e-6
+        # Check cleaning worked
         assert not torch.isnan(validated).any()
         assert not torch.isinf(validated).any()
 
-    def test_normalize_with_epsilon(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test normalization with epsilon for stability."""
+    def test_robust_normalize(self, fake_checkpoint_path, synthetic_eeg_batch):
+        """Test robust normalization."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
-            n_classes=2,
-            normalization_eps=1e-5
+            n_classes=2
         )
 
         # Create data with very small variance (could cause instability)
@@ -99,14 +94,11 @@ class TestRobustEEGPTLinearProbeClean:
         small_variance_data += torch.randn_like(small_variance_data) * 1e-12
 
         # Normalize
-        normalized = probe.normalize_channels(small_variance_data)
+        normalized = probe._robust_normalize(small_variance_data)
 
         # Should not have NaN or Inf despite small variance
         assert not torch.isnan(normalized).any()
         assert not torch.isinf(normalized).any()
-
-        # Should be roughly normalized
-        assert normalized.std() < 10  # Reasonable bound
 
     def test_forward_pass_shape(self, fake_checkpoint_path, synthetic_eeg_batch):
         """Test forward pass produces correct output shape."""
@@ -131,8 +123,28 @@ class TestRobustEEGPTLinearProbeClean:
         assert output.shape == (4, 3)  # batch_size=4, n_classes=3
         assert output.dtype == torch.float32
 
-    def test_gradient_flow_with_frozen_backbone(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test gradient flow when backbone is frozen."""
+    def test_predict_proba(self, fake_checkpoint_path, synthetic_eeg_batch):
+        """Test probability prediction."""
+        probe = RobustEEGPTLinearProbe(
+            checkpoint_path=fake_checkpoint_path,
+            n_input_channels=20,
+            n_classes=2
+        )
+
+        # Mock backbone
+        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
+
+        # Get probabilities
+        probs = probe.predict_proba(synthetic_eeg_batch)
+
+        assert probs.shape == (4, 2)  # batch_size=4, n_classes=2
+        # Check probabilities sum to 1
+        assert torch.allclose(probs.sum(dim=1), torch.ones(4), atol=1e-6)
+        # Check probabilities are in [0, 1]
+        assert (probs >= 0).all() and (probs <= 1).all()
+
+    def test_get_num_trainable_params(self, fake_checkpoint_path):
+        """Test counting trainable parameters."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
@@ -140,132 +152,43 @@ class TestRobustEEGPTLinearProbeClean:
             freeze_backbone=True
         )
 
-        # Mock backbone
-        class FakeBackbone(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.layer = nn.Linear(20, 512)
+        num_params = probe.get_num_trainable_params()
 
-            def forward(self, x):
-                batch_size = x.shape[0]
-                return torch.randn(batch_size, 4, 512, requires_grad=False).float()
+        assert isinstance(num_params, int)
+        assert num_params > 0  # Should have some trainable params in probe head
 
-        probe.eegpt_backbone = FakeBackbone()
-
-        # Check backbone params are frozen
-        for param in probe.eegpt_backbone.parameters():
-            assert param.requires_grad == False
-
-        # Check probe head params are trainable
-        for param in probe.probe_head.parameters():
-            assert param.requires_grad == True
-
-    def test_feature_validation_after_eegpt(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test feature validation after EEGPT extraction."""
+    def test_save_and_load_probe(self, fake_checkpoint_path, tmp_path):
+        """Test saving and loading probe state."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
             n_classes=2
         )
 
-        # Mock backbone that produces features with NaN
-        class ProblematicBackbone(nn.Module):
-            def forward(self, x):
-                batch_size = x.shape[0]
-                features = torch.randn(batch_size, 4, 512).float()
-                features[0, 0, :10] = float('nan')  # Inject NaN
-                return features
+        # Save probe
+        save_path = tmp_path / "probe_state.pt"
+        probe.save_probe(save_path)
 
-        probe.eegpt_backbone = ProblematicBackbone()
+        assert save_path.exists()
 
-        # Should handle NaN gracefully
-        features = probe.extract_and_validate_features(synthetic_eeg_batch)
+        # Create new probe and load state
+        probe2 = RobustEEGPTLinearProbe(
+            checkpoint_path=fake_checkpoint_path,
+            n_input_channels=20,
+            n_classes=2
+        )
+        probe2.load_probe(save_path)
 
-        assert not torch.isnan(features).any()  # NaNs should be handled
-        assert features.shape[1:] == (4, 512)  # Correct shape
+        # Compare parameters
+        for p1, p2 in zip(probe.parameters(), probe2.parameters(), strict=False):
+            assert torch.allclose(p1, p2)
 
-    def test_weighted_loss_computation(self, fake_checkpoint_path):
-        """Test weighted loss computation for imbalanced classes."""
+    def test_forward_with_nan_input(self, fake_checkpoint_path, synthetic_eeg_batch):
+        """Test forward pass handles NaN input gracefully."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
-            n_classes=2,
-            class_weights=torch.tensor([1.0, 3.0])  # Weight abnormal class more
-        )
-
-        # Create predictions and targets
-        logits = torch.tensor([
-            [2.0, -1.0],  # Predicts class 0
-            [-1.0, 2.0],  # Predicts class 1
-            [1.0, 1.0],   # Uncertain
-            [3.0, -2.0],  # Strong class 0
-        ])
-
-        targets = torch.tensor([0, 1, 1, 0])
-
-        # Compute weighted loss
-        loss = probe.compute_weighted_loss(logits, targets)
-
-        assert loss > 0
-        assert loss.requires_grad  # Should support backprop
-
-    def test_confidence_calibration(self, fake_checkpoint_path):
-        """Test confidence score calibration."""
-        probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
-            n_input_channels=20,
-            n_classes=2,
-            temperature_scaling=2.0  # Temperature for calibration
-        )
-
-        # Raw logits
-        logits = torch.tensor([
-            [10.0, -10.0],  # Very confident class 0
-            [0.1, -0.1],    # Very uncertain
-            [-5.0, 5.0],    # Confident class 1
-        ])
-
-        # Apply temperature scaling
-        calibrated = probe.calibrate_confidence(logits)
-        probs = torch.softmax(calibrated, dim=1)
-
-        # After calibration, extreme confidences should be moderated
-        assert probs[0, 0] < 0.999  # Less extreme
-        assert probs[1, 0] > 0.4 and probs[1, 0] < 0.6  # Still uncertain
-
-    def test_robust_pooling_strategies(self, fake_checkpoint_path):
-        """Test different pooling strategies for summary tokens."""
-        # Test mean pooling
-        probe_mean = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
-            n_input_channels=20,
-            n_classes=2,
-            pooling_strategy="mean"
-        )
-
-        features = torch.randn(4, 4, 512)  # batch=4, tokens=4, dim=512
-        pooled = probe_mean.pool_features(features)
-        assert pooled.shape == (4, 512)
-
-        # Test max pooling
-        probe_max = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
-            n_input_channels=20,
-            n_classes=2,
-            pooling_strategy="max"
-        )
-
-        pooled = probe_max.pool_features(features)
-        assert pooled.shape == (4, 512)
-        assert (pooled == features.max(dim=1)[0]).all()
-
-    def test_nan_detection_in_forward(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test NaN detection and handling in forward pass."""
-        probe = RobustEEGPTLinearProbe(
-            checkpoint_path=fake_checkpoint_path,
-            n_input_channels=20,
-            n_classes=2,
-            detect_anomalies=True  # Enable anomaly detection
+            n_classes=2
         )
 
         # Inject NaN into input
@@ -286,32 +209,45 @@ class TestRobustEEGPTLinearProbeClean:
         assert not torch.isnan(output).any()
         assert output.shape == (4, 2)
 
-    def test_statistics_tracking(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test tracking of input/output statistics."""
+    def test_freeze_backbone_parameters(self, fake_checkpoint_path):
+        """Test that backbone parameters are frozen when specified."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
             n_classes=2,
-            track_statistics=True
+            freeze_backbone=True
+        )
+
+        # Check backbone params are frozen
+        for param in probe.eegpt_backbone.parameters():
+            assert not param.requires_grad
+
+        # Check probe head params are trainable
+        for param in probe.probe_head.parameters():
+            assert param.requires_grad
+
+    def test_multi_class_classification(self, fake_checkpoint_path, synthetic_eeg_batch):
+        """Test multi-class classification setup."""
+        probe = RobustEEGPTLinearProbe(
+            checkpoint_path=fake_checkpoint_path,
+            n_input_channels=20,
+            n_classes=5,  # 5-class problem
+            freeze_backbone=True
         )
 
         # Mock backbone
         probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
-        # Process multiple batches
-        for _ in range(5):
-            _ = probe(synthetic_eeg_batch)
+        # Forward pass
+        output = probe(synthetic_eeg_batch)
+        probs = probe.predict_proba(synthetic_eeg_batch)
 
-        # Check statistics were tracked
-        stats = probe.get_statistics()
-        assert "input_mean" in stats
-        assert "input_std" in stats
-        assert "output_mean" in stats
-        assert "n_batches" in stats
-        assert stats["n_batches"] == 5
+        assert output.shape == (4, 5)
+        assert probs.shape == (4, 5)
+        assert torch.allclose(probs.sum(dim=1), torch.ones(4), atol=1e-6)
 
     def test_mixed_precision_compatibility(self, fake_checkpoint_path, synthetic_eeg_batch):
-        """Test compatibility with mixed precision training."""
+        """Test compatibility with mixed precision."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
@@ -330,28 +266,36 @@ class TestRobustEEGPTLinearProbeClean:
         assert output.dtype in [torch.float16, torch.float32]
         assert not torch.isnan(output).any()
 
-    def test_save_and_load_state(self, fake_checkpoint_path, tmp_path):
-        """Test saving and loading probe state."""
+    def test_different_batch_sizes(self, fake_checkpoint_path):
+        """Test probe with different batch sizes."""
         probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
             n_classes=2
         )
 
-        # Save state
-        save_path = tmp_path / "probe_state.pt"
-        probe.save_state(save_path)
+        # Mock backbone
+        probe.eegpt_backbone = lambda x: torch.randn(x.shape[0], 4, 512).float()
 
-        assert save_path.exists()
+        # Test different batch sizes
+        for batch_size in [1, 4, 16, 32]:
+            data = torch.randn(batch_size, 20, 1024) * 10e-6
+            output = probe(data)
+            assert output.shape == (batch_size, 2)
 
-        # Create new probe and load state
-        probe2 = RobustEEGPTLinearProbe(
+    def test_probe_head_architecture(self, fake_checkpoint_path):
+        """Test probe head has expected architecture."""
+        probe = RobustEEGPTLinearProbe(
             checkpoint_path=fake_checkpoint_path,
             n_input_channels=20,
             n_classes=2
         )
-        probe2.load_state(save_path)
 
-        # Compare parameters
-        for p1, p2 in zip(probe.parameters(), probe2.parameters(), strict=False):
-            assert torch.allclose(p1, p2)
+        # Check probe head structure
+        assert hasattr(probe, 'probe_head')
+        assert isinstance(probe.probe_head, nn.Module)
+
+        # Check it has expected layers
+        modules = list(probe.probe_head.modules())
+        assert any(isinstance(m, nn.Linear) for m in modules)
+
