@@ -171,7 +171,7 @@ def test_abnormality_config_defaults():
     # Check that config has expected attributes
     assert hasattr(config, "classification")
     assert hasattr(config, "quality")
-    assert hasattr(config, "preprocessing")
+    assert hasattr(config, "processing")  # Fixed: processing not preprocessing
 
 
 def test_sleep_stage_mapping():
