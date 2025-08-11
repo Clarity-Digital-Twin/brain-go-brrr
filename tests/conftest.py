@@ -36,14 +36,27 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed(SEED)
 
 def pytest_collection_modifyitems(config, items):
-    """Automatically skip network tests when BGB_ALLOW_NET is not set."""
-    # Read env at collection time, not import time
+    """Modify test collection based on markers and options.
+    
+    Handles:
+    1. Skip network tests when BGB_ALLOW_NET is not set
+    2. Deselect integration tests unless --run-integration is passed
+    """
+    # Handle network tests
     allow_network = os.environ.get("BGB_ALLOW_NET", "0") == "1"
     if not allow_network:
         skip_network = pytest.mark.skip(reason="Network disabled (set BGB_ALLOW_NET=1)")
         for item in items:
             if "network" in item.keywords:
                 item.add_marker(skip_network)
+
+    # Handle integration tests
+    if not config.getoption("--run-integration", default=False):
+        # Deselect instead of skip for cleaner output
+        drop = [it for it in items if "integration" in it.keywords]
+        if drop:
+            config.hook.pytest_deselected(items=drop)
+            items[:] = [it for it in items if it not in drop]
 
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:
@@ -126,18 +139,6 @@ def pytest_sessionstart(session):
             torch.cuda.manual_seed_all(1337)
     except ImportError:
         pass  # torch not required for all tests
-
-
-def pytest_collection_modifyitems(config, items):
-    """Deselect integration tests unless --run-integration is passed."""
-    if config.getoption("--run-integration", default=False):
-        return
-
-    # Deselect instead of skip for cleaner output
-    drop = [it for it in items if "integration" in it.keywords]
-    if drop:
-        config.hook.pytest_deselected(items=drop)
-        items[:] = [it for it in items if it not in drop]
 
 
 def pytest_addoption(parser):
