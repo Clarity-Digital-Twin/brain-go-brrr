@@ -280,15 +280,15 @@ class FakeMNERaw:
     def get_channel_types(self):
         """Return channel types."""
         return ['eeg'] * self.n_channels
-    
+
     def notch_filter(self, **kwargs):
         """Fake notch filter."""
         return self
-    
+
     def set_eeg_reference(self, *args, **kwargs):
         """Fake EEG reference setting."""
         return self
-    
+
     def pick_channels(self, channels, **kwargs):
         """Fake channel picking."""
         return self

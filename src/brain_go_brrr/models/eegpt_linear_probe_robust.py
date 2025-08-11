@@ -1,5 +1,6 @@
 """Robust EEGPT Linear Probe with comprehensive NaN prevention."""
 
+import inspect
 import logging
 import warnings
 from pathlib import Path
@@ -264,7 +265,11 @@ class RobustEEGPTLinearProbe(nn.Module):
 
     def load_probe(self, path: Path) -> None:
         """Load probe weights."""
-        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
+        # Guard for older PyTorch versions
+        kwargs = {"map_location": "cpu"}
+        if "weights_only" in inspect.signature(torch.load).parameters:
+            kwargs["weights_only"] = True
+        checkpoint = torch.load(path, **kwargs)
         self.channel_adapter.load_state_dict(checkpoint["channel_adapter"])
         self.classifier.load_state_dict(checkpoint["classifier"])
 
