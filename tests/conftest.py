@@ -35,6 +35,15 @@ torch.manual_seed(SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(SEED)
 
+# Network access gate for integration tests
+ALLOW_NETWORK = os.environ.get("BGB_ALLOW_NET", "0") == "1"
+
+@pytest.fixture
+def requires_network():
+    """Skip test if network access is not allowed."""
+    if not ALLOW_NETWORK:
+        pytest.skip("Network access disabled. Set BGB_ALLOW_NET=1 to enable.")
+
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:
     import mne

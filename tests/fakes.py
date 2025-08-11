@@ -29,7 +29,7 @@ class FakeEEGPTBackbone:
 
     def extract_features(self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
         """Return consistent fake features for testing.
-        
+
         Returns torch.Tensor to match production EEGPT model behavior.
         """
         if isinstance(data, np.ndarray):
@@ -295,5 +295,26 @@ class FakeMNERaw:
         return self
 
     def pick_channels(self, channels, **kwargs):
-        """Fake channel picking."""
-        return self
+        """Fake channel picking - actually subset the data."""
+        import mne
+
+        # Find indices of requested channels
+        indices = []
+        for ch in channels:
+            if ch not in self.ch_names:
+                raise ValueError(f"Channel {ch} not found in data")
+            indices.append(self.ch_names.index(ch))
+
+        # Create new instance with subset data
+        new_fake = FakeMNERaw(len(channels), self.duration, self.info['sfreq'])
+        new_fake.ch_names = [self.ch_names[i] for i in indices]
+        new_fake._data = self._data[indices, :].copy()
+
+        # Update info object
+        new_fake.info = mne.create_info(
+            ch_names=new_fake.ch_names,
+            sfreq=self.info['sfreq'],
+            ch_types='eeg'
+        )
+
+        return new_fake

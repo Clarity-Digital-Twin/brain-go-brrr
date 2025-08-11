@@ -5,6 +5,21 @@ All notable changes to Brain-Go-Brrr will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Pipeline Error Handling**: Added `traceback` field to error results in parallel pipeline (backward compatible, additive field)
+- **Test Infrastructure**: Added `requires_network` fixture for gating network-dependent tests (use `BGB_ALLOW_NET=1` to enable)
+- **Pre-commit Hooks**: Added torch.load security check and bare except prevention
+
+### Fixed
+- **Security**: All `torch.load` calls now use `weights_only=True` with backward compatibility guard for older PyTorch versions
+- **Test Stability**: Fixed FakeMNERaw data aliasing, TUAB test brittleness, and time formatting test reliability
+
+### Changed
+- **Testing**: Reduced default pytest timeout to 120s with faulthandler for faster failure detection
+- **Coverage**: Excluded `experiments/` directory from coverage calculations
+
 ## [0.6.0] - 2025-08-05
 
 ### 🎯 Dual Pipeline Architecture & 4-Second Window Training

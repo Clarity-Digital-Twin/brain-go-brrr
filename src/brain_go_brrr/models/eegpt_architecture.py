@@ -535,10 +535,10 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         # Load pretrained weights
         # NOTE: weights_only=False needed for EEGPT checkpoint format compatibility
         # This is safe as we only load from trusted model checkpoints
-        kwargs = {"map_location": "cpu"}
+        load_kwargs: dict[str, Any] = {"map_location": "cpu"}
         if "weights_only" in inspect.signature(torch.load).parameters:
-            kwargs["weights_only"] = False  # nosec B614 - EEGPT checkpoint format requires this
-        checkpoint = torch.load(checkpoint_path, **kwargs)
+            load_kwargs["weights_only"] = False  # nosec B614 - EEGPT checkpoint format requires this
+        checkpoint = torch.load(checkpoint_path, **load_kwargs)
 
         # Extract encoder weights
         encoder_state = {}

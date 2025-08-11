@@ -213,7 +213,7 @@ class AbnormalityDetector:
             RuntimeError: If classifier dimensions don't match config
         """
         # Guard for older PyTorch versions
-        kwargs = {"map_location": self.device}
+        kwargs: dict[str, Any] = {"map_location": self.device}
         if "weights_only" in inspect.signature(torch.load).parameters:
             kwargs["weights_only"] = True
         state = torch.load(classifier_path, **kwargs)

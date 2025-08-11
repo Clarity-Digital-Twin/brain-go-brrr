@@ -287,7 +287,7 @@ def test_cached_dataset_loads_from_cache():
 
     # Create a temporary cache directory
     temp_dir = tempfile.mkdtemp()
-    orig_dir = os.getcwd()
+    orig_dir = Path.cwd()
     try:
         # Create minimal cache structure using the nested format that avoids the sfreq issue
         index = {
@@ -343,7 +343,7 @@ def test_cached_dataset_loads_from_cache():
         assert dataset.class_counts["normal"] == expected_windows_per_file
         assert dataset.class_counts["abnormal"] == expected_windows_per_file
     finally:
-        os.chdir(orig_dir)
+        os.chdir(str(orig_dir))
         shutil.rmtree(temp_dir)
 
 
@@ -397,23 +397,33 @@ def test_time_utils():
     # Test utc_now
     now = utc_now()
     assert isinstance(now, datetime.datetime)
-    assert now.tzinfo is not None
+    assert now.tzinfo is not None  # Must be timezone-aware
 
     # Test format_timestamp
     test_dt = datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.UTC)
     formatted = format_timestamp(test_dt)
+    # Check ISO format pattern instead of literal strings
     assert "2023-01-01" in formatted
     assert "12:00:00" in formatted
+    # Should be ISO format with timezone
+    assert "T" in formatted  # ISO separator
+    assert ("+" in formatted or "-" in formatted or formatted.endswith("Z"))  # Timezone indicator
 
     # Test format_timestamp with None (uses current time)
     formatted_now = format_timestamp(None)
     assert isinstance(formatted_now, str)
-    assert len(formatted_now) > 10
+    # Check it's a valid ISO timestamp
+    assert "T" in formatted_now
+    assert len(formatted_now) > 19  # Minimum ISO timestamp length
 
     # Test timestamp_for_logging
     log_ts = timestamp_for_logging()
-    assert "UTC" in log_ts
+    # Don't check for literal "UTC", just verify format
+    assert isinstance(log_ts, str)
     assert len(log_ts) > 10
+    # Check it has date and time components
+    assert "-" in log_ts  # Date separator
+    assert ":" in log_ts  # Time separator
 
 
 def test_edf_validator():

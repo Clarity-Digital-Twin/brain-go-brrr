@@ -7,7 +7,7 @@ and Reliable Representation of EEG Signals"
 import inspect
 import logging
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import torch
 import torch.nn as nn
@@ -182,7 +182,7 @@ class EEGPTLinearProbe(nn.Module):
             path: Path to checkpoint
         """
         # Guard for older PyTorch versions
-        kwargs = {"map_location": "cpu"}
+        kwargs: dict[str, Any] = {"map_location": "cpu"}
         if "weights_only" in inspect.signature(torch.load).parameters:
             kwargs["weights_only"] = True
         checkpoint = torch.load(path, **kwargs)
