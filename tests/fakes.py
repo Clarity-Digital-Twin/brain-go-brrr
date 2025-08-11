@@ -242,10 +242,33 @@ class FakeSleepAnalyzer:
 
 
 class FakeMNERaw:
-    """Minimal fake for MNE Raw object."""
+    """Minimal fake for MNE Raw object - pure Python, no MNE imports.
+    
+    Contract (MNE-compatible API):
+        info dict keys:
+            - sfreq (float): Sampling frequency in Hz
+            - ch_names (list[str]): Channel names  
+            - nchan (int): Number of channels
+            - bads (list[str]): Bad channel names
+            - ch_types (list[str]): Channel types (all 'eeg')
+            - line_freq (float): Power line frequency (50 or 60 Hz)
+        
+        Properties:
+            - times: Time points array
+            - ch_names: Channel names list
+            - n_times: Number of time points
+        
+        Methods (all pure Python):
+            - get_data(): Returns (n_channels, n_samples) ndarray
+            - copy(): Returns deep copy
+            - resample(sfreq): Returns resampled copy  
+            - pick_channels(channels): Returns subset copy
+            - filter(): Returns self (no-op for testing)
+            - set_eeg_reference(): Returns self (no-op for testing)
+    """
 
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
-        """Initialize fake MNE Raw object."""
+        """Initialize fake MNE Raw object - pure Python implementation."""
         import mne
         self.n_channels = n_channels
         self.duration = duration

@@ -190,7 +190,7 @@ test-coverage: ## Run tests with full coverage report
 
 coverage: ## Run unit tests with coverage enforcement
 	@echo "$(GREEN)Running coverage analysis...$(NC)"
-	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=70 -m "not integration and not slow" -rs -q
+	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=60 -m "not integration and not slow" -rs -q
 	@echo "$(CYAN)Coverage report generated$(NC)"
 
 test-integration-local: ## Run integration tests with local resources

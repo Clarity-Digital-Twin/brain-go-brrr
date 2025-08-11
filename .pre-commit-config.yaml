@@ -71,15 +71,11 @@ repos:
         exclude: ^tests/fixtures/.*\.(csv|edf)$
 
       - id: check-torch-load
-        name: check torch.load has weights_only
-        language: pygrep
-        types: [python]
-        args: ['--multiline']
-        # Match torch.load without weights_only (unless marked nosec)
+        name: check torch.load has weights_only (AST-based)
+        language: python
+        entry: .pre-commit-hooks/safe_torch_load.py
         files: \.py$
-        exclude: ^(tests/|reference_repos/)
-        # Pattern: torch.load( without weights_only or nosec comment
-        entry: 'torch\.load\((?![^)]*weights_only)(?![^)]*#\s*nosec)[^)]*\)'
+        exclude: ^(tests/|reference_repos/|\.pre-commit-hooks/)
       
       - id: check-bare-except
         name: check no bare except
