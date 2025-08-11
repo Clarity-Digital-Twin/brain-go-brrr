@@ -1,19 +1,18 @@
 """Final tests to push coverage over 60%."""
 
-import pytest
 from brain_go_brrr.core.exceptions import (
+    AbnormalityDetectionError,
+    FeatureExtractionError,
     FileFormatError,
+    GPUNotAvailableError,
     InsufficientDataError,
+    InsufficientMemoryError,
+    ModelInferenceError,
+    ModelLoadError,
+    ModelNotInitializedError,
     QualityCheckError,
     SleepAnalysisError,
     UnsupportedMontageError,
-    FeatureExtractionError,
-    AbnormalityDetectionError,
-    ModelNotInitializedError,
-    ModelLoadError,
-    ModelInferenceError,
-    InsufficientMemoryError,
-    GPUNotAvailableError
 )
 
 
@@ -33,7 +32,7 @@ def test_all_exceptions_instantiate():
         InsufficientMemoryError("memory error"),
         GPUNotAvailableError("no gpu")
     ]
-    
+
     for exc in exceptions:
         assert isinstance(exc, Exception)
         assert len(str(exc)) > 0
@@ -44,20 +43,20 @@ def test_exception_inheritance_chain():
     from brain_go_brrr.core.exceptions import (
         BrainGoBrrrError,
         EdfLoadError,
-        ProcessingError,
         ModelError,
-        ResourceError
+        ProcessingError,
+        ResourceError,
     )
-    
+
     # Test inheritance chains
     assert issubclass(FileFormatError, EdfLoadError)
     assert issubclass(EdfLoadError, BrainGoBrrrError)
-    
+
     assert issubclass(QualityCheckError, ProcessingError)
     assert issubclass(ProcessingError, BrainGoBrrrError)
-    
+
     assert issubclass(ModelLoadError, ModelError)
     assert issubclass(ModelError, BrainGoBrrrError)
-    
+
     assert issubclass(GPUNotAvailableError, ResourceError)
     assert issubclass(ResourceError, BrainGoBrrrError)
