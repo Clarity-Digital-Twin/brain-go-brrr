@@ -319,14 +319,14 @@ class FakeMNERaw:
 
     def pick_channels(self, channels, **kwargs):
         """Fake channel picking - pure fake, no heavy deps."""
-        # Find indices of requested channels - raises if missing  
+        # Find indices of requested channels - raises if missing
         indices = [self.ch_names.index(c) for c in channels]
-        
+
         # Create new instance with subset data
         new_fake = FakeMNERaw(len(channels), self.duration, self.info['sfreq'])
         new_fake.ch_names = [self.ch_names[i] for i in indices]
         new_fake._data = self._data[indices, :].copy()
-        
+
         # Update info as plain dict - no mne import needed
         new_fake.info = {
             "sfreq": self.info["sfreq"],
@@ -335,5 +335,5 @@ class FakeMNERaw:
             "bads": [],  # Reset bad channels
             "ch_types": ["eeg"] * len(new_fake.ch_names)
         }
-        
+
         return new_fake

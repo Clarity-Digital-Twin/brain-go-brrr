@@ -31,17 +31,17 @@ def safe_load(
     """
     # Build kwargs dict
     load_kwargs: dict[str, Any] = {}
-    
+
     # Add map_location if specified
     if map_location is not None:
         load_kwargs["map_location"] = map_location
-    
+
     # Add weights_only if supported by this PyTorch version
     if "weights_only" in inspect.signature(torch.load).parameters:
         load_kwargs["weights_only"] = weights_only
-    
+
     # Add any additional kwargs
     load_kwargs.update(kwargs)
-    
+
     # Load checkpoint
     return torch.load(path, **load_kwargs)
