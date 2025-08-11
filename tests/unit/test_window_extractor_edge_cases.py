@@ -127,6 +127,7 @@ class TestSerializationFallback:
     class WeirdClass:
         """A class that's not serializable."""
         def __init__(self):
+            """Initialize with test data."""
             self.data = "weird"
 
     def test_serialize_unknown_type_raises(self):
