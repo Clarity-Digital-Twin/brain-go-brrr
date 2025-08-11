@@ -37,7 +37,7 @@ if torch.cuda.is_available():
 
 def pytest_collection_modifyitems(config, items):
     """Modify test collection based on markers and options.
-    
+
     Handles:
     1. Skip network tests when BGB_ALLOW_NET is not set
     2. Deselect integration tests unless --run-integration is passed
