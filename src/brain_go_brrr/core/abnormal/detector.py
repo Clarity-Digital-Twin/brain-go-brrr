@@ -4,6 +4,7 @@ This module implements a production-ready abnormality detection system
 using EEGPT foundation model with clinical-grade accuracy requirements.
 """
 
+import inspect
 import time
 from dataclasses import asdict, dataclass
 from enum import Enum
@@ -211,7 +212,11 @@ class AbnormalityDetector:
         Raises:
             RuntimeError: If classifier dimensions don't match config
         """
-        state = torch.load(classifier_path, map_location=self.device, weights_only=True)
+        # Guard for older PyTorch versions
+        kwargs = {"map_location": self.device}
+        if "weights_only" in inspect.signature(torch.load).parameters:
+            kwargs["weights_only"] = True
+        state = torch.load(classifier_path, **kwargs)
 
         # Check dimension compatibility before loading
         first_layer_key = "0.weight"  # First Linear layer in Sequential
