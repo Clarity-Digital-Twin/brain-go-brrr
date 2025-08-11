@@ -146,12 +146,12 @@ class TestConfigOverrides:
         config = EEGPTConfig(
             window_duration=8.0,
             sampling_rate=512,
-            n_channels=32
+            model_size="xlarge"
         )
         
         assert config.window_duration == 8.0
         assert config.sampling_rate == 512
-        assert config.n_channels == 32
+        assert config.model_size == "xlarge"
         assert config.window_samples == 8 * 512  # Computed property updates
     
     def test_model_config_device_selection(self):
