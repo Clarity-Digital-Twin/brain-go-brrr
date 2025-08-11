@@ -72,7 +72,6 @@ repos:
 
       - id: check-torch-load
         name: check torch.load has weights_only
-        entry: 'torch.load must use weights_only parameter for security'
         language: pygrep
         types: [python]
         args: ['--multiline']
@@ -80,11 +79,10 @@ repos:
         files: \.py$
         exclude: ^(tests/|reference_repos/)
         # Pattern: torch.load( without weights_only or nosec comment
-        entry: 'torch\.load\([^)]*\)(?!.*nosec)(?!.*weights_only)'
+        entry: 'torch\.load\((?![^)]*weights_only)(?![^)]*#\s*nosec)[^)]*\)'
       
       - id: check-bare-except
         name: check no bare except
-        entry: 'Use specific exception types, not bare except'
         language: pygrep
         types: [python]
         files: \.py$
