@@ -15,16 +15,16 @@ def safe_load(
     **kwargs: Any
 ) -> Any:
     """Safe wrapper for torch.load with backward compatibility.
-    
+
     Args:
         path: Path to checkpoint file
         weights_only: Whether to restrict unpickling to tensors/primitives (safer)
         map_location: Device to map tensors to
         **kwargs: Additional arguments for torch.load
-    
+
     Returns:
         Loaded checkpoint data
-        
+
     Note:
         For EEGPT checkpoints which require weights_only=False, use:
         `safe_load(path, weights_only=False)  # nosec:weights_only - EEGPT format`
