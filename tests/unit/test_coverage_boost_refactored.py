@@ -333,11 +333,11 @@ def test_cached_dataset_loads_from_cache():
         window_duration = dataset.window_duration  # Read from dataset
         window_stride = dataset.window_stride      # Read from dataset
         file_duration = 600  # 10 minutes as set in test
-        
+
         # Calculate expected windows per file
         expected_windows_per_file = int((file_duration - window_duration) / window_stride) + 1
         expected_total_windows = expected_windows_per_file * 2  # 2 files
-        
+
         assert len(dataset) == expected_total_windows
         assert len(dataset.file_list) == 2
         assert dataset.class_counts["normal"] == expected_windows_per_file
@@ -471,9 +471,10 @@ def test_eegpt_config():
 
 def test_api_422_validation_error():
     """Test API 422 validation error handling."""
-    from brain_go_brrr.api.schemas import AnalysisRequest
     from pydantic import ValidationError
-    
+
+    from brain_go_brrr.api.schemas import AnalysisRequest
+
     # Test invalid analysis type
     with pytest.raises(ValidationError) as exc_info:
         AnalysisRequest(
@@ -481,7 +482,7 @@ def test_api_422_validation_error():
             analysis_type="invalid_type",  # Invalid enum value
             options={}
         )
-    
+
     # Should raise validation error
     assert exc_info.value is not None
     errors = exc_info.value.errors()
@@ -492,32 +493,32 @@ def test_api_422_validation_error():
 def test_pipeline_error_path_with_traceback():
     """Test pipeline error handling includes traceback in result."""
     from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
-    
+
     # Create pipeline with broken extractor
     class BrokenExtractor:
         def extract_embeddings_with_metadata(self, raw):
             raise RuntimeError("Simulated extraction failure")
-    
+
     class BrokenAnalyzer:
         def stage_sleep(self, raw, **kwargs):
             raise ValueError("Simulated sleep analysis failure")
-    
+
     pipeline = ParallelEEGPipeline(
         extractor=BrokenExtractor(),
         sleep_analyzer=BrokenAnalyzer()
     )
-    
+
     # Process with fake data
     fake_raw = FakeMNERaw(n_channels=19, duration=30.0)
     results = pipeline.process(fake_raw)
-    
+
     # Assert error results include traceback
     assert results["eegpt"]["status"] == "failed"
     assert "error" in results["eegpt"]
     assert "traceback" in results["eegpt"]  # New field we added
     assert "RuntimeError" in results["eegpt"]["traceback"]
     assert "Simulated extraction failure" in results["eegpt"]["traceback"]
-    
+
     assert results["yasa"]["status"] == "failed"
     assert "error" in results["yasa"]
     assert "traceback" in results["yasa"]  # New field we added
