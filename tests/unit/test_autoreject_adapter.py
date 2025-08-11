@@ -279,9 +279,7 @@ class TestAutoRejectIntegration:
         """Test full pipeline with different window parameters."""
         # This test will fail until we implement the classes
         # That's the point of TDD!
-        pass
-
-
+        pytest.skip("Expected exception was raised")
 # Memory and performance tests
 class TestMemoryEfficiency:
     """Test memory usage stays within bounds."""

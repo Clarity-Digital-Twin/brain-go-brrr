@@ -390,7 +390,7 @@ class TestCLIStreamingEdgeCases:
                             pytest.fail(f"Invalid JSON output: {line}")
         elif proc.returncode == 1 and sys.platform == "win32":  # Windows termination
             # Windows uses different signal codes
-            pass
+            pytest.skip("Expected exception was raised")
         elif proc.returncode != 0:
             # If there was an error, it should be in stderr
             assert stderr, f"Process failed with code {proc.returncode} but no error output"

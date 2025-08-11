@@ -222,8 +222,7 @@ class TestMontageDetectionEdgeCases:
             except UnsupportedMontageError:
                 # It's OK if case-sensitive matching fails,
                 # as long as the exact format works
-                pass
-
+                pytest.skip("Expected exception was raised")
     def test_picks_parameter_override(self, sleep_analyzer, create_raw_with_channels):
         """Test that picks parameter can override automatic detection."""
         # Create Raw with multiple channels

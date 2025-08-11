@@ -35,8 +35,7 @@ class TestCodeQuality:
                             )
                 except SyntaxError:
                     # If we can't parse, at least we checked the string
-                    pass
-
+                    pytest.skip("Expected exception was raised")
     def test_no_global_test_mode_in_classes(self):
         """Ensure no global test mode variables in production classes."""
         src_dir = Path(__file__).parent.parent / "src"

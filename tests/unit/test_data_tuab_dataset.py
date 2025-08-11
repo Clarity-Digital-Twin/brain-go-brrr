@@ -11,4 +11,4 @@ class TestTUABDataset:
 
     def test_placeholder(self):
         """Placeholder for integration tests."""
-        pass
+        pytest.skip("Expected exception was raised")

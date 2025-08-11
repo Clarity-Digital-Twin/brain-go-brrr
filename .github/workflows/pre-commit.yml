@@ -1,0 +1,28 @@
+name: Pre-commit Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, development]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install pre-commit
+        run: pip install pre-commit
+      
+      - name: Run pre-commit hooks
+        run: pre-commit run --all-files --show-diff-on-failure
+      
+      - name: Check for unsafe torch.load
+        run: |
+          echo "Checking for unsafe torch.load usage..."
+          python .pre-commit-hooks/safe_torch_load.py $(find src tests -name "*.py" | grep -v safe_load.py)
