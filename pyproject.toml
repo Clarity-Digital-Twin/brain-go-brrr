@@ -267,7 +267,11 @@ timeout = 120
 
 [tool.coverage.run]
 source = ["src/brain_go_brrr"]
-omit = ["*/tests/*", "*/test_*.py"]
+omit = [
+    "*/tests/*", 
+    "*/test_*.py",
+    "experiments/*",  # Exclude experimental code from coverage
+]
 
 [tool.coverage.report]
 precision = 2

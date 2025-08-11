@@ -24,7 +24,16 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+import torch
 from fastapi.testclient import TestClient
+
+# Seed randomness once for reproducible tests
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(SEED)
 
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:

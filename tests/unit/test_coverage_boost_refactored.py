@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 import torch
 
 from tests.fakes import (
@@ -328,11 +329,19 @@ def test_cached_dataset_loads_from_cache():
         )
 
         # Assert: Dataset loaded index correctly
-        # With 10 min files and 30s windows, each file has (600-30)/30 + 1 = 20 windows
-        assert len(dataset) == 40  # 20 windows per file * 2 files
+        # Calculate expected windows based on dataset's actual window parameters
+        window_duration = dataset.window_duration  # Read from dataset
+        window_stride = dataset.window_stride      # Read from dataset
+        file_duration = 600  # 10 minutes as set in test
+        
+        # Calculate expected windows per file
+        expected_windows_per_file = int((file_duration - window_duration) / window_stride) + 1
+        expected_total_windows = expected_windows_per_file * 2  # 2 files
+        
+        assert len(dataset) == expected_total_windows
         assert len(dataset.file_list) == 2
-        assert dataset.class_counts["normal"] == 20
-        assert dataset.class_counts["abnormal"] == 20
+        assert dataset.class_counts["normal"] == expected_windows_per_file
+        assert dataset.class_counts["abnormal"] == expected_windows_per_file
     finally:
         os.chdir(orig_dir)
         shutil.rmtree(temp_dir)
@@ -458,3 +467,59 @@ def test_eegpt_config():
     config = EEGPTConfig(window_duration=8.0)
     assert config.window_duration == 8.0
     assert config.window_samples == 2048  # 8 * 256
+
+
+def test_api_422_validation_error():
+    """Test API 422 validation error handling."""
+    from brain_go_brrr.api.schemas import AnalysisRequest
+    from pydantic import ValidationError
+    
+    # Test invalid analysis type
+    with pytest.raises(ValidationError) as exc_info:
+        AnalysisRequest(
+            file_id="test123",
+            analysis_type="invalid_type",  # Invalid enum value
+            options={}
+        )
+    
+    # Should raise validation error
+    assert exc_info.value is not None
+    errors = exc_info.value.errors()
+    assert len(errors) > 0
+    assert any("analysis_type" in str(e) for e in errors)
+
+
+def test_pipeline_error_path_with_traceback():
+    """Test pipeline error handling includes traceback in result."""
+    from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
+    
+    # Create pipeline with broken extractor
+    class BrokenExtractor:
+        def extract_embeddings_with_metadata(self, raw):
+            raise RuntimeError("Simulated extraction failure")
+    
+    class BrokenAnalyzer:
+        def stage_sleep(self, raw, **kwargs):
+            raise ValueError("Simulated sleep analysis failure")
+    
+    pipeline = ParallelEEGPipeline(
+        extractor=BrokenExtractor(),
+        sleep_analyzer=BrokenAnalyzer()
+    )
+    
+    # Process with fake data
+    fake_raw = FakeMNERaw(n_channels=19, duration=30.0)
+    results = pipeline.process(fake_raw)
+    
+    # Assert error results include traceback
+    assert results["eegpt"]["status"] == "failed"
+    assert "error" in results["eegpt"]
+    assert "traceback" in results["eegpt"]  # New field we added
+    assert "RuntimeError" in results["eegpt"]["traceback"]
+    assert "Simulated extraction failure" in results["eegpt"]["traceback"]
+    
+    assert results["yasa"]["status"] == "failed"
+    assert "error" in results["yasa"]
+    assert "traceback" in results["yasa"]  # New field we added
+    assert "ValueError" in results["yasa"]["traceback"]
+    assert "Simulated sleep analysis failure" in results["yasa"]["traceback"]

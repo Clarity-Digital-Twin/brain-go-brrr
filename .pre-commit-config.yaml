@@ -70,6 +70,28 @@ repos:
         # Allow small test fixtures
         exclude: ^tests/fixtures/.*\.(csv|edf)$
 
+      - id: check-torch-load
+        name: check torch.load has weights_only
+        entry: 'torch.load must use weights_only parameter for security'
+        language: pygrep
+        types: [python]
+        args: ['--multiline']
+        # Match torch.load without weights_only (unless marked nosec)
+        files: \.py$
+        exclude: ^(tests/|reference_repos/)
+        # Pattern: torch.load( without weights_only or nosec comment
+        entry: 'torch\.load\([^)]*\)(?!.*nosec)(?!.*weights_only)'
+      
+      - id: check-bare-except
+        name: check no bare except
+        entry: 'Use specific exception types, not bare except'
+        language: pygrep
+        types: [python]
+        files: \.py$
+        exclude: ^(tests/|reference_repos/)
+        # Pattern: except: or except BaseException:
+        entry: '^\s*except(\s+BaseException)?:'
+
 # Configuration
 default_language_version:
   python: python3.11

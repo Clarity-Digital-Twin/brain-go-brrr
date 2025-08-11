@@ -28,11 +28,15 @@ class FakeEEGPTBackbone:
         return self._n_summary_tokens
 
     def extract_features(self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
-        """Return consistent fake features for testing."""
+        """Return consistent fake features for testing.
+        
+        Returns torch.Tensor to match production EEGPT model behavior.
+        """
         if isinstance(data, np.ndarray):
             batch_size = data.shape[0] if len(data.shape) > 1 else 1
         else:
             batch_size = data.shape[0] if len(data.shape) > 1 else 1
+        # Return torch.Tensor as production EEGPT does
         return torch.ones((batch_size, self.feature_dim), dtype=torch.float32) * 0.5
 
     def to(self, device: str):
@@ -274,7 +278,8 @@ class FakeMNERaw:
         """Fake resampling."""
         # Create a new fake with new sfreq
         new_fake = FakeMNERaw(self.n_channels, self.duration, sfreq)
-        new_fake._data = self._data
+        # Avoid data aliasing - copy the data
+        new_fake._data = self._data.copy()
         return new_fake
 
     def get_channel_types(self):

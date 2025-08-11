@@ -4,6 +4,7 @@ Based on the official EEGPT paper and reference implementation.
 Vision Transformer architecture adapted for EEG signals.
 """
 
+import inspect
 import logging
 from typing import Any
 
@@ -534,7 +535,10 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         # Load pretrained weights
         # NOTE: weights_only=False needed for EEGPT checkpoint format compatibility
         # This is safe as we only load from trusted model checkpoints
-        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)  # nosec B614 - Loading pretrained EEGPT model weights from trusted source
+        kwargs = {"map_location": "cpu"}
+        if "weights_only" in inspect.signature(torch.load).parameters:
+            kwargs["weights_only"] = False  # nosec B614 - EEGPT checkpoint format requires this
+        checkpoint = torch.load(checkpoint_path, **kwargs)
 
         # Extract encoder weights
         encoder_state = {}
