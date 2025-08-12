@@ -230,7 +230,7 @@ class TestAPIEndpoints:
     def test_error_handling_corrupted_file(self, client):
         """Test graceful error handling for corrupted EDF files."""
         with patch(
-            "brain_go_brrr.core.edf_loader.load_edf_safe", side_effect=Exception("Corrupted EDF")
+            "brain_go_brrr.data.edf_loader.load_edf_safe", side_effect=Exception("Corrupted EDF")
         ):
             files = {"edf_file": ("bad.edf", b"corrupted", "application/octet-stream")}
             response = client.post("/api/v1/eeg/analyze", files=files)
