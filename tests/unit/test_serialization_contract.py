@@ -140,9 +140,8 @@ def test_malformed_dataclass_json():
 
     result = deserialize_value(bad_json)
 
-    # Should return the decoded dict since it has _dataclass_type but can't instantiate
-    assert isinstance(result, dict)
-    assert result["_dataclass_type"] == "MiniSerializable"
+    # Should return original string when KeyError occurs (missing "data" field)
+    assert result == bad_json
 
 
 def test_registry_contains_registered():
