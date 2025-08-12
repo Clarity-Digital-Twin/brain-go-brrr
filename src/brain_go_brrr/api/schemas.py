@@ -15,9 +15,15 @@ from brain_go_brrr.infra.serialization import register_serializable
 JobStatus = CoreJobStatus
 JobPriority = CoreJobPriority
 
+# Import core JobData and use it directly
+from brain_go_brrr.core.jobs.models import JobData as CoreJobData
+
+# For backwards compatibility, create an alias
+JobData = CoreJobData
+
 
 @dataclass(frozen=True)
-class JobData:
+class APIJobData:
     """Immutable job data structure for internal storage.
 
     This is a frozen dataclass to prevent accidental mutations.
