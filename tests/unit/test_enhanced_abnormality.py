@@ -107,7 +107,7 @@ class TestEnhancedAbnormalityDetection:
         try:
             loss = probe.training_step(batch, 0)
             assert loss is not None
-            assert isinstance(loss, (torch.Tensor, dict))
+            assert isinstance(loss, torch.Tensor | dict)
         except (AttributeError, RuntimeError):
             pass
 

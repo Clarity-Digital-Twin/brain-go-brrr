@@ -125,7 +125,7 @@ class TestEnhancedSleepAnalyzer:
                 assert isinstance(result, dict)
                 # Should have hypnogram key
                 if 'hypnogram' in result:
-                    assert isinstance(result['hypnogram'], (list, np.ndarray))
+                    assert isinstance(result['hypnogram'], list | np.ndarray)
         except (AttributeError, NotImplementedError, ValueError):
             pass
 

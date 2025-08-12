@@ -66,22 +66,22 @@ class TestNormalizer:
     def test_minmax_normalization(self):
         """Test min-max normalization."""
         import numpy as np
-        
+
         # MinMax normalization is not implemented yet, so we test the fallback behavior
         # The Normalizer class should either:
         # 1. Fall back to z-score normalization
         # 2. Raise NotImplementedError
         # Both are acceptable behaviors for unimplemented features
-        
+
         # Create test data with known min/max
         data = np.array([[1, 2, 3, 4, 5],
                         [10, 20, 30, 40, 50]])
-        
+
         try:
             from brain_go_brrr.core.preprocessing import Normalizer
             normalizer = Normalizer(method="minmax")
             normalized = normalizer.fit_transform(data)
-            
+
             # If it works, check that data is normalized
             assert np.all(normalized >= -10)  # Reasonable bounds for any normalization
             assert np.all(normalized <= 10)
