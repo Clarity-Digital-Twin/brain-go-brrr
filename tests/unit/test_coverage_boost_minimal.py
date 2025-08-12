@@ -62,9 +62,10 @@ def test_register_requires_contract():
             # Missing to_dict method
 
 
+# Use a unique name to avoid conflicts
 @register_serializable
 @dataclass
-class MiniSerializable:
+class MinimalTestSerializable:
     """Minimal serializable class for testing."""
     x: int
 
@@ -78,10 +79,10 @@ class MiniSerializable:
 
 def test_roundtrip_registered_class():
     """Test roundtrip serialization of registered class."""
-    obj = MiniSerializable(7)
+    obj = MinimalTestSerializable(7)
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    assert isinstance(out, MiniSerializable)
+    assert isinstance(out, MinimalTestSerializable)
     assert out.x == 7
 
 
