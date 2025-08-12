@@ -116,8 +116,8 @@ def test_malformed_dataclass_json():
     
     result = deserialize_value(bad_json)
     
-    # Should return dict when can't deserialize
-    assert isinstance(result, dict)
+    # Should return original string when can't deserialize
+    assert result == bad_json
 
 
 def test_registry_contains_registered():
