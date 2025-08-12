@@ -23,7 +23,7 @@ class JobData:
 
     This is a frozen dataclass to prevent accidental mutations.
     Use JobStore.update() or JobStore.patch() for modifications.
-    
+
     Maps to core.jobs.models.JobData but uses API-specific field names
     for backwards compatibility (job_id vs id, analysis_type vs type).
     """
@@ -77,8 +77,8 @@ class JobData:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JobData":
         """Create from dictionary (e.g., from storage).
-        
-        Handles both API field names (job_id, analysis_type) and 
+
+        Handles both API field names (job_id, analysis_type) and
         core field names (id, type) for compatibility.
         """
         # Convert string timestamps back to datetime

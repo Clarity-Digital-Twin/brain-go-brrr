@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class APIJobStore:
     """Thread-safe job store for API layer.
-    
+
     This store uses the API JobData model with job_id and analysis_type fields,
     providing compatibility with the existing API endpoints.
     """

@@ -19,6 +19,7 @@ class MemoryCache:
     """
 
     def __init__(self) -> None:
+        """Initialize in-memory cache."""
         self._store: dict[str, Any] = {}
         self._ttls: dict[str, float] = {}
 
