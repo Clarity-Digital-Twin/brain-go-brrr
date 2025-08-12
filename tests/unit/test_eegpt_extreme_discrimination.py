@@ -55,8 +55,7 @@ def test_extreme_pattern_discrimination():
     for _i, (_name, feat) in enumerate(
         [("zeros", feat_zeros), ("ones", feat_ones), ("noise", feat_noise), ("spikes", feat_spikes)]
     ):
-        for _j in range(4):
-            pytest.skip("Expected exception was raised")
+        # This loop was doing nothing - removed
         # Check if all tokens are identical
         for j in range(1, 4):
             if not np.allclose(feat[0], feat[j]):
