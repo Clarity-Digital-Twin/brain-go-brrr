@@ -16,19 +16,20 @@ warnings.warn(
 
 # Re-export everything from the new location
 from brain_go_brrr.preprocessing.basic import (
-    PreprocessingConfig,
     BandpassFilter,
-    NotchFilter,
     Normalizer,
-    Resampler,
+    NotchFilter,
+    PreprocessingConfig,
     PreprocessingPipeline,
+    Resampler,
 )
 
 __all__ = [
-    "PreprocessingConfig",
     "BandpassFilter",
-    "NotchFilter",
     "Normalizer",
-    "Resampler",
+    "NotchFilter",
+    "PreprocessingConfig",
     "PreprocessingPipeline",
+    "Resampler",
 ]
+
