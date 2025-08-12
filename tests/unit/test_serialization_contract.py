@@ -1,6 +1,5 @@
 """Test serialization contract enforcement - REAL tests, no bullshit."""
 
-import contextlib
 import json
 from dataclasses import dataclass
 from typing import Any

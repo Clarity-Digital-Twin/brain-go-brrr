@@ -66,14 +66,15 @@ class TestNormalizer:
     def test_minmax_normalization(self):
         """Test min-max normalization."""
         import numpy as np
+
         from brain_go_brrr.core.preprocessing import Normalizer
-        
+
         # Create test data with known min/max
         data = np.array([[1, 2, 3, 4, 5],
                         [10, 20, 30, 40, 50]])
-        
+
         normalizer = Normalizer(method="minmax")
-        
+
         # If MinMax not implemented, it should use z-score as fallback
         # or raise NotImplementedError
         try:

@@ -278,34 +278,34 @@ class TestAutoRejectIntegration:
     def test_full_pipeline_with_parameters(self, window_duration, stride):
         """Test full pipeline with different window parameters."""
         from brain_go_brrr.preprocessing.autoreject_adapter import WindowEpochAdapter
-        
+
         # Create adapter with parameters
         adapter = WindowEpochAdapter(window_duration=window_duration, window_stride=stride)
-        
+
         # Create mock raw data
         sfreq = 256
         n_channels = 19
         duration = 60  # 60 seconds
         data = np.random.randn(n_channels, int(sfreq * duration)) * 1e-6
-        
+
         info = mne.create_info(
             ch_names=[f"EEG{i:03d}" for i in range(n_channels)],
             sfreq=sfreq,
             ch_types="eeg"
         )
         raw = mne.io.RawArray(data, info)
-        
+
         # Convert to windowed epochs
         epochs = adapter.raw_to_windowed_epochs(raw)
-        
+
         # Verify epochs properties
         assert epochs is not None
         assert isinstance(epochs, mne.Epochs)
-        
+
         # Check window duration matches
         expected_samples = int(window_duration * sfreq)
         assert epochs.get_data().shape[-1] == expected_samples
-        
+
         # Check number of epochs based on stride
         total_duration = duration
         if stride <= window_duration:
