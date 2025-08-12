@@ -22,7 +22,7 @@ class TestEnhancedAbnormalityDetection:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
             mock_create.return_value = mock_backbone
-            
+
             return EnhancedAbnormalityDetectionProbe(
                 checkpoint_path="mock_checkpoint.ckpt",
                 n_channels=20,
@@ -79,7 +79,7 @@ class TestEnhancedAbnormalityDetection:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
             mock_create.return_value = mock_backbone
-            
+
             probe_unfrozen = EnhancedAbnormalityDetectionProbe(
                 checkpoint_path="test.ckpt",
                 freeze_backbone=False
@@ -93,12 +93,12 @@ class TestEnhancedAbnormalityDetection:
                 # The probe already has a backbone and probe head from initialization
                 # Just check that forward pass doesn't crash
                 # We can't easily mock torch.nn.Module children after init
-                
+
                 # Instead, test that the probe has the expected structure
                 assert hasattr(probe, 'backbone')
                 assert hasattr(probe, 'probe')
                 assert hasattr(probe, 'forward')
-                
+
                 # The actual forward pass would require a real model
                 # which we don't have in unit tests
             except (AttributeError, RuntimeError):
@@ -164,7 +164,7 @@ class TestEnhancedAbnormalityDetection:
                 mock_backbone = Mock()
                 mock_backbone.parameters.return_value = []  # Empty list of parameters
                 mock_create.return_value = mock_backbone
-                
+
                 probe = EnhancedAbnormalityDetectionProbe(
                     checkpoint_path="test.ckpt",
                     scheduler_type=scheduler_type
@@ -177,7 +177,7 @@ class TestEnhancedAbnormalityDetection:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
             mock_create.return_value = mock_backbone
-            
+
             probe = EnhancedAbnormalityDetectionProbe(
                 checkpoint_path="test.ckpt",
                 layer_decay=0.65
@@ -190,7 +190,7 @@ class TestEnhancedAbnormalityDetection:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
             mock_create.return_value = mock_backbone
-            
+
             probe = EnhancedAbnormalityDetectionProbe(
                 checkpoint_path="test.ckpt",
                 warmup_epochs=5,
