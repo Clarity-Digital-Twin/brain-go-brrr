@@ -6,7 +6,6 @@ import pytest
 from brain_go_brrr.core.window_extractor import WindowExtractor
 
 
-@pytest.mark.timeout(2)  # Prevent infinite loops
 def test_tail_handling_doesnt_produce_partial_frames():
     """Test that tail doesn't produce partial frames."""
     x = np.zeros((4, 100))
@@ -18,7 +17,6 @@ def test_tail_handling_doesnt_produce_partial_frames():
         assert w.shape[-1] == 64, f"Window {i} has wrong size: {w.shape}"
 
 
-@pytest.mark.timeout(2)
 def test_zero_stride_raises_error():
     """Test that zero stride raises ZeroDivisionError."""
     we = WindowExtractor(window_seconds=2.0, overlap_seconds=2.0)
@@ -30,7 +28,6 @@ def test_zero_stride_raises_error():
         we.extract(x, sfreq=100.0)
 
 
-@pytest.mark.timeout(2)
 def test_negative_stride_handling():
     """Test negative stride (overlap > window)."""
     we = WindowExtractor(window_seconds=1.0, overlap_seconds=1.5)

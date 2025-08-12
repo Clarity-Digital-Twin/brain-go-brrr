@@ -249,6 +249,8 @@ markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
     "unit: marks tests as unit tests",
     "benchmark: marks tests as performance benchmarks (deselect with '-m \"not benchmark\"')",
+    "timeout: marks tests with timeout limits (requires pytest-timeout plugin)",
+    "gpu: marks tests that require GPU",
 ]
 addopts = [
     "-v",
