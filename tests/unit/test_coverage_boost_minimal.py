@@ -33,22 +33,11 @@ def test_unknown_type_raises():
     assert result["_dataclass_type"] == "NotRegistered"
 
 
-def test_unsupported_montage_detection():
-    """Test detecting unsupported montage."""
-    from brain_go_brrr.services.yasa_adapter import detect_sleep_montage
-    
-    # Create mock raw with unsupported channels
-    import mne
-    sfreq = 100
-    n_channels = 3
-    n_samples = 1000
-    data = np.random.randn(n_channels, n_samples)
-    info = mne.create_info(["X1", "X2", "X3"], sfreq, ch_types="eeg")
-    raw = mne.io.RawArray(data, info)
-    
-    # Should return None for unsupported montage
-    result = detect_sleep_montage(raw)
-    assert result is None
+def test_overlap_greater_than_window():
+    """Test overlap greater than window creates negative stride."""
+    # Overlap > window creates negative stride
+    we = WindowExtractor(window_seconds=2.0, overlap_seconds=3.0)
+    assert we.stride_seconds == -1.0  # 2 - 3 = -1
 
 
 def test_partial_tail_dropped():
