@@ -11,4 +11,4 @@ class TestTUABDataset:
 
     def test_placeholder(self):
         """Placeholder for integration tests."""
-        pytest.skip("Expected exception was raised")
+        pytest.skip("Integration tests not yet implemented")
