@@ -183,6 +183,7 @@ class TestEnhancedAbnormalityDetection:
         targets = torch.tensor([0, 1, 0, 0, 1])
 
         try:
+            from sklearn.metrics import accuracy_score, balanced_accuracy_score
             # Compute metrics manually
             acc = accuracy_score(targets.numpy(), preds.numpy())
             bacc = balanced_accuracy_score(targets.numpy(), preds.numpy())
