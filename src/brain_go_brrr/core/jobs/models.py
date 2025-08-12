@@ -14,6 +14,7 @@ class JobStatus(str, Enum):
     """Job execution status."""
 
     PENDING = "pending"
+    PROCESSING = "processing"  # Alias for RUNNING (API compatibility)
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
