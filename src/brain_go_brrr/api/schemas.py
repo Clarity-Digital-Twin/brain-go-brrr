@@ -15,7 +15,6 @@ JobStatus = CoreJobStatus
 JobPriority = CoreJobPriority
 
 # Import core JobData but don't alias it directly since it has different fields
-from brain_go_brrr.core.jobs.models import JobData as CoreJobData
 
 
 @dataclass(frozen=True)
@@ -102,7 +101,7 @@ class JobData:
         # Handle both field name conventions
         job_id = data.get("job_id") or data.get("id")
         analysis_type = data.get("analysis_type") or data.get("type")
-        
+
         return cls(
             job_id=job_id,
             analysis_type=analysis_type,

@@ -13,7 +13,7 @@ from brain_go_brrr.api.schemas import (
     JobResponse,
     JobStatus,
 )
-from brain_go_brrr.core.jobs import get_job_store
+from brain_go_brrr.api.job_store import get_api_job_store
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 # Get thread-safe job store instance
-job_store = get_job_store()
+job_store = get_api_job_store()
 
 
 @router.post("/create", response_model=JobResponse, status_code=201)
