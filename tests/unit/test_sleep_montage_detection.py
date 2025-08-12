@@ -216,13 +216,9 @@ class TestMontageDetectionEdgeCases:
         for channels in test_cases:
             raw = create_raw_with_channels(channels)
             # Should handle case variations gracefully
-            try:
-                hypnogram = sleep_analyzer.stage_sleep(raw)
-                assert hypnogram is not None
-            except UnsupportedMontageError:
-                # It's OK if case-sensitive matching fails,
-                # as long as the exact format works
-                pytest.skip("Expected exception was raised")
+            # This should raise UnsupportedMontageError for case-sensitive mismatch
+            with pytest.raises(UnsupportedMontageError):
+                sleep_analyzer.stage_sleep(raw)
     def test_picks_parameter_override(self, sleep_analyzer, create_raw_with_channels):
         """Test that picks parameter can override automatic detection."""
         # Create Raw with multiple channels

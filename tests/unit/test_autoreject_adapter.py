@@ -277,9 +277,8 @@ class TestAutoRejectIntegration:
     )
     def test_full_pipeline_with_parameters(self, window_duration, stride):
         """Test full pipeline with different window parameters."""
-        # This test will fail until we implement the classes
-        # That's the point of TDD!
-        pytest.skip("Expected exception was raised")
+        # This test should be marked as expected to fail if classes not implemented
+        pytest.skip("Classes not yet implemented - TDD placeholder")
 # Memory and performance tests
 class TestMemoryEfficiency:
     """Test memory usage stays within bounds."""

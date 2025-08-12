@@ -79,7 +79,7 @@ class MetricsRecorder:
             if history:
                 return history[-1]["value"]
         except KeyError:
-            pytest.skip("Expected exception was raised")
+            pass  # Return None below
         return None
 
     def check_regression(
@@ -123,7 +123,7 @@ class MetricsRecorder:
             if result.returncode == 0:
                 return result.stdout.strip()[:8]
         except Exception:
-            pytest.skip("Expected exception was raised")
+            pass  # Return None below
         return None
 
 

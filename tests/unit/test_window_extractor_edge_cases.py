@@ -148,13 +148,9 @@ class TestSerializationFallback:
         d['self'] = d  # Circular reference
         # serialize_value uses json.dumps which will raise on circular refs
         # So we test that it handles this gracefully
-        try:
-            result = serialize_value(d)
-            # If it succeeds, should be a string
-            assert isinstance(result, str)
-        except (ValueError, TypeError):
-            # Expected for circular references
-            pytest.skip("Expected exception was raised")
+        with pytest.raises((ValueError, TypeError)):
+            # Should raise for circular references
+            serialize_value(d)
 class TestEDFValidatorEdgeCases:
     """Test EDF validator with edge cases."""
 
