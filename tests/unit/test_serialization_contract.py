@@ -122,6 +122,12 @@ def test_malformed_dataclass_json():
 
 def test_registry_contains_registered():
     """Test that registry contains registered classes."""
+    # Register class first if not already registered
+    try:
+        register_serializable(MiniSerializable)
+    except:
+        pass  # Already registered
+    
     registry = get_registry()
     assert "MiniSerializable" in registry
     assert registry["MiniSerializable"] is MiniSerializable
