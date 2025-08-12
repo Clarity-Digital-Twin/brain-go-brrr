@@ -1,5 +1,6 @@
 """Test serialization contract enforcement - REAL tests, no bullshit."""
 
+import contextlib
 import json
 from dataclasses import dataclass
 from typing import Any
@@ -7,6 +8,7 @@ from typing import Any
 import pytest
 
 from brain_go_brrr.infra.serialization import (
+    _SERIALIZATION_REGISTRY,
     deserialize_value,
     get_registry,
     register_serializable,
@@ -53,43 +55,27 @@ def test_register_requires_dataclass():
                 return cls(**d)
 
 
-# Try to register, but don't fail if already registered
-try:
-    @register_serializable
-    @dataclass
-    class MiniSerializable:
-        """Minimal serializable class for testing."""
-        x: int
-        y: str = "default"
+# Define the class at module level
+@dataclass
+class MiniSerializable:
+    """Minimal serializable class for testing."""
+    x: int
+    y: str = "default"
 
-        def to_dict(self) -> dict[str, Any]:
-            return {"x": self.x, "y": self.y}
+    def to_dict(self) -> dict[str, Any]:
+        return {"x": self.x, "y": self.y}
 
-        @classmethod
-        def from_dict(cls, d: dict[str, Any]) -> "MiniSerializable":
-            return cls(**d)
-except Exception:
-    # Already registered from another test
-    from brain_go_brrr.infra.serialization import get_registry
-    MiniSerializable = get_registry().get("MiniSerializable")
-    if not MiniSerializable:
-        # If not in registry, define without decorator
-        @dataclass
-        class MiniSerializable:
-            """Minimal serializable class for testing."""
-            x: int
-            y: str = "default"
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "MiniSerializable":
+        return cls(**d)
 
-            def to_dict(self) -> dict[str, Any]:
-                return {"x": self.x, "y": self.y}
 
-            @classmethod
-            def from_dict(cls, d: dict[str, Any]) -> "MiniSerializable":
-                return cls(**d)
-        
-        # Manually register
-        from brain_go_brrr.infra.serialization import _SERIALIZATION_REGISTRY
-        _SERIALIZATION_REGISTRY["MiniSerializable"] = MiniSerializable
+@pytest.fixture(autouse=True)
+def ensure_test_classes_registered():
+    """Ensure test classes are registered before each test."""
+    # Always register the module-level class
+    _SERIALIZATION_REGISTRY["MiniSerializable"] = MiniSerializable
+    yield
 
 
 def test_roundtrip_basic():
@@ -146,11 +132,7 @@ def test_malformed_dataclass_json():
 
 def test_registry_contains_registered():
     """Test that registry contains registered classes."""
-    # Register class first if not already registered
-    try:
-        register_serializable(MiniSerializable)
-    except:
-        pass  # Already registered
+    # MiniSerializable already registered by fixture
 
     registry = get_registry()
     assert "MiniSerializable" in registry
