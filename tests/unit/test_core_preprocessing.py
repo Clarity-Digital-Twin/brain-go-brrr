@@ -155,8 +155,7 @@ class TestPreprocessingPipeline:
         assert processed.shape == data.shape
 
         # Normalization is separate from config now
-        # Just check shape preserved
-        pytest.skip("Expected exception was raised")
+        # Shape preservation check done above
     def test_empty_pipeline(self):
         """Test pipeline with no operations."""
         sfreq = 256

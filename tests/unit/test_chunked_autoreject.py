@@ -195,7 +195,7 @@ class TestChunkedAutoRejectProcessor:
             assert ar is not None
         except ImportError:
             # AutoReject not available in test environment
-            pytest.skip("Expected exception was raised")
+            pytest.skip("AutoReject not available")
     def test_transform_raw(self, temp_cache_dir):
         """Test transforming raw data with fitted parameters."""
         # Given: Fitted processor
@@ -361,7 +361,8 @@ class TestChunkedProcessingIntegration:
             new_processor.ar_params["thresholds"], processor.ar_params["thresholds"]
         )
 
+    @pytest.mark.benchmark
     def test_performance_benchmarks(self):
         """Benchmark processing speed."""
         # Will add performance benchmarks
-        pytest.skip("Expected exception was raised")
+        pytest.skip("Performance benchmarks not yet implemented")
