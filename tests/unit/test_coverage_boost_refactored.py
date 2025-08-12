@@ -93,7 +93,7 @@ def test_job_store_manages_jobs():
     from datetime import datetime
 
     from brain_go_brrr.api.schemas import JobData, JobPriority, JobStatus
-    from brain_go_brrr.core.jobs.store import ThreadSafeJobStore as JobStore
+    from brain_go_brrr.api.job_store import APIJobStore as JobStore
 
     # Arrange
     store = JobStore()
