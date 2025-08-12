@@ -219,4 +219,4 @@ if __name__ == "__main__":
         with contextlib.suppress(Exception):
             test.test_model_device_compatibility(checkpoint_path)
     else:
-        pytest.skip("Expected exception was raised")
+        pytest.skip("EEGPT checkpoint not found")
