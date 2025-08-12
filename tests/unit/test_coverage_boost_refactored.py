@@ -92,8 +92,8 @@ def test_job_store_manages_jobs():
     """Test job store can create, retrieve, and update jobs."""
     from datetime import datetime
 
-    from brain_go_brrr.api.schemas import JobData, JobPriority, JobStatus
     from brain_go_brrr.api.job_store import APIJobStore as JobStore
+    from brain_go_brrr.api.schemas import JobData, JobPriority, JobStatus
 
     # Arrange
     store = JobStore()

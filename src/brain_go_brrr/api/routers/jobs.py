@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from brain_go_brrr.api.job_store import get_api_job_store
 from brain_go_brrr.api.schemas import (
     JobCreateRequest,
     JobData,
@@ -13,7 +14,6 @@ from brain_go_brrr.api.schemas import (
     JobResponse,
     JobStatus,
 )
-from brain_go_brrr.api.job_store import get_api_job_store
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
