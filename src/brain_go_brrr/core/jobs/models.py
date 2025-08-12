@@ -12,7 +12,7 @@ from typing import Any
 
 class JobStatus(str, Enum):
     """Job execution status."""
-    
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -22,7 +22,7 @@ class JobStatus(str, Enum):
 
 class JobPriority(str, Enum):
     """Job priority levels."""
-    
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -36,7 +36,7 @@ class JobData:
     This is the domain entity for jobs. The API layer should map
     from this to its own DTOs/schemas for external communication.
     """
-    
+
     id: str
     type: str
     status: JobStatus
@@ -50,4 +50,4 @@ class JobData:
     metadata: dict[str, Any] | None = None
 
 
-__all__ = ["JobStatus", "JobPriority", "JobData"]
+__all__ = ["JobData", "JobPriority", "JobStatus"]

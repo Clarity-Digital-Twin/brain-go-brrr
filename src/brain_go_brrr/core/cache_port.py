@@ -16,7 +16,7 @@ class CachePort(Protocol, Generic[T]):
     implementation must provide. Following ISP, we keep it small
     and focused on essential operations only.
     """
-    
+
     def get(self, key: str) -> T | None:
         """Retrieve value from cache.
         
@@ -27,7 +27,7 @@ class CachePort(Protocol, Generic[T]):
             Cached value or None if not found/expired
         """
         ...
-    
+
     def set(self, key: str, value: T, ttl_seconds: int | None = None) -> None:
         """Store value in cache.
         
@@ -37,7 +37,7 @@ class CachePort(Protocol, Generic[T]):
             ttl_seconds: Time to live in seconds (None = no expiry)
         """
         ...
-    
+
     def delete(self, key: str) -> bool:
         """Remove value from cache.
         
@@ -48,7 +48,7 @@ class CachePort(Protocol, Generic[T]):
             True if key was deleted, False if key didn't exist
         """
         ...
-    
+
     def exists(self, key: str) -> bool:
         """Check if key exists in cache.
         
@@ -59,7 +59,7 @@ class CachePort(Protocol, Generic[T]):
             True if key exists and hasn't expired
         """
         ...
-    
+
     def clear(self) -> None:
         """Clear all cached values."""
         ...
@@ -67,7 +67,7 @@ class CachePort(Protocol, Generic[T]):
 
 class AsyncCachePort(Protocol, Generic[T]):
     """Async version of cache interface for high-performance scenarios."""
-    
+
     async def get(self, key: str) -> T | None: ...
     async def set(self, key: str, value: T, ttl_seconds: int | None = None) -> None: ...
     async def delete(self, key: str) -> bool: ...
@@ -75,4 +75,4 @@ class AsyncCachePort(Protocol, Generic[T]):
     async def clear(self) -> None: ...
 
 
-__all__ = ["CachePort", "AsyncCachePort"]
+__all__ = ["AsyncCachePort", "CachePort"]

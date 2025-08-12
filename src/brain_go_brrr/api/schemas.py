@@ -7,9 +7,8 @@ from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field
 
-from brain_go_brrr.core.jobs.models import JobPriority as CoreJobPriority
-from brain_go_brrr.core.jobs.models import JobStatus as CoreJobStatus
 from brain_go_brrr.infra.serialization import register_serializable
+
 
 # Re-export core models with API-specific extensions
 class JobStatus(str, Enum):

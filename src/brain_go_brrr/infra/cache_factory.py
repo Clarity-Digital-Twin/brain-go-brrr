@@ -17,34 +17,34 @@ class MemoryCache:
     
     Implements the CachePort protocol for testing and development.
     """
-    
+
     def __init__(self) -> None:
         self._store: dict[str, Any] = {}
         self._ttls: dict[str, float] = {}
-    
+
     def get(self, key: str) -> Any | None:
         """Get value from memory cache."""
         # TODO: Check TTL expiry
         return self._store.get(key)
-    
+
     def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
         """Set value in memory cache."""
         self._store[key] = value
         if ttl_seconds:
             import time
             self._ttls[key] = time.time() + ttl_seconds
-    
+
     def delete(self, key: str) -> bool:
         """Delete from memory cache."""
         existed = key in self._store
         self._store.pop(key, None)
         self._ttls.pop(key, None)
         return existed
-    
+
     def exists(self, key: str) -> bool:
         """Check if key exists in memory cache."""
         return key in self._store
-    
+
     def clear(self) -> None:
         """Clear memory cache."""
         self._store.clear()
@@ -67,7 +67,7 @@ def get_cache(backend: str | None = None) -> CachePort[bytes]:
     """
     if backend is None:
         backend = os.getenv("CACHE_BACKEND", "memory").lower()
-    
+
     if backend == "redis":
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
         return InfraRedisCache(url=redis_url)  # type: ignore
@@ -77,4 +77,4 @@ def get_cache(backend: str | None = None) -> CachePort[bytes]:
         raise ValueError(f"Unknown cache backend: {backend}")
 
 
-__all__ = ["get_cache", "MemoryCache"]
+__all__ = ["MemoryCache", "get_cache"]
