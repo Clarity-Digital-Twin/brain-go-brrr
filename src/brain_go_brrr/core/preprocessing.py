@@ -22,7 +22,6 @@ from brain_go_brrr.preprocessing.basic import (
     Normalizer,
     Resampler,
     PreprocessingPipeline,
-    NaNHandler,
 )
 
 __all__ = [
@@ -32,5 +31,4 @@ __all__ = [
     "Normalizer",
     "Resampler",
     "PreprocessingPipeline",
-    "NaNHandler",
 ]
