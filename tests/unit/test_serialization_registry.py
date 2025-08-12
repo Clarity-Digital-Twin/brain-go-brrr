@@ -82,7 +82,7 @@ class TestSerializationRegistry:
         # Given: A regular class (not dataclass)
         class NotADataclass:
             pass
-        
+
         # When/Then: Should raise TypeError
         with pytest.raises(TypeError, match="must be a dataclass"):
             register_serializable(NotADataclass)
