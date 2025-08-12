@@ -16,16 +16,16 @@ from .chunked_autoreject import ChunkedAutoRejectProcessor
 from .eeg_preprocessor import EEGPreprocessor
 
 __all__ = [
-    # Basic preprocessing
-    "PreprocessingConfig",
     "BandpassFilter",
-    "NotchFilter",
-    "Normalizer",
-    "Resampler",
-    "PreprocessingPipeline",
     # Advanced preprocessing
     "ChunkedAutoRejectProcessor",
     "EEGPreprocessor",
+    "Normalizer",
+    "NotchFilter",
+    # Basic preprocessing
+    "PreprocessingConfig",
+    "PreprocessingPipeline",
+    "Resampler",
     "SyntheticPositionGenerator",
     "WindowEpochAdapter",
 ]

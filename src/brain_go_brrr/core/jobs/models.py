@@ -32,7 +32,7 @@ class JobPriority(str, Enum):
 @dataclass
 class JobData:
     """Core job data model.
-    
+
     This is the domain entity for jobs. The API layer should map
     from this to its own DTOs/schemas for external communication.
     """
@@ -48,7 +48,7 @@ class JobData:
     error: str | None = None
     result: Any = None
     metadata: dict[str, Any] | None = None
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JobData":
         """Create JobData from dictionary (for deserialization)."""
@@ -65,7 +65,7 @@ class JobData:
             result=data.get("result"),
             metadata=data.get("metadata"),
         )
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert JobData to dictionary (for serialization)."""
         return {

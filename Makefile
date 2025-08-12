@@ -102,6 +102,11 @@ lint-ci: ## Run linter exactly as CI does (no auto-fix)
 	$(RUFF) check $(SRC_DIR) $(TEST_DIR)
 	@echo "$(GREEN)CI lint check passed!$(NC)"
 
+import-lint: ## Check import boundaries with import-linter
+	@echo "$(CYAN)Checking import boundaries...$(NC)"
+	$(UV) run lint-imports
+	@echo "$(GREEN)Import boundaries check complete!$(NC)"
+
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
 	$(RUFF) format $(SRC_DIR) $(TEST_DIR)

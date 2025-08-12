@@ -14,7 +14,7 @@ from brain_go_brrr.infra.cache import RedisCache as InfraRedisCache
 
 class MemoryCache:
     """Simple in-memory cache implementation.
-    
+
     Implements the CachePort protocol for testing and development.
     """
 
@@ -53,15 +53,15 @@ class MemoryCache:
 
 def get_cache(backend: str | None = None) -> CachePort[bytes]:
     """Factory function to get appropriate cache implementation.
-    
+
     This follows the Factory pattern and Dependency Inversion Principle:
     - The application depends on CachePort (abstraction)
     - This factory decides which concrete implementation to provide
     - Configuration is handled here, not in the application layer
-    
+
     Args:
         backend: Cache backend to use ("redis", "memory", or None for env-based)
-        
+
     Returns:
         Cache implementation conforming to CachePort protocol
     """
