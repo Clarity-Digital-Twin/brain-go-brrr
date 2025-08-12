@@ -11,4 +11,4 @@ class TestTUABCachedDataset:
 
     def test_placeholder(self):
         """Placeholder to keep file valid."""
-        pytest.skip("Expected exception was raised")
+        pytest.skip("Integration tests not yet implemented")
