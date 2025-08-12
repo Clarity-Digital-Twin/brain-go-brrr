@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
 from typing import Any, TypedDict
 
 from pydantic import BaseModel, Field
@@ -15,19 +14,19 @@ from brain_go_brrr.infra.serialization import register_serializable
 JobStatus = CoreJobStatus
 JobPriority = CoreJobPriority
 
-# Import core JobData and use it directly
+# Import core JobData but don't alias it directly since it has different fields
 from brain_go_brrr.core.jobs.models import JobData as CoreJobData
-
-# For backwards compatibility, create an alias
-JobData = CoreJobData
 
 
 @dataclass(frozen=True)
-class APIJobData:
-    """Immutable job data structure for internal storage.
+class JobData:
+    """Immutable job data structure for API layer.
 
     This is a frozen dataclass to prevent accidental mutations.
     Use JobStore.update() or JobStore.patch() for modifications.
+    
+    Maps to core.jobs.models.JobData but uses API-specific field names
+    for backwards compatibility (job_id vs id, analysis_type vs type).
     """
 
     job_id: str
@@ -78,7 +77,11 @@ class APIJobData:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "JobData":
-        """Create from dictionary (e.g., from storage)."""
+        """Create from dictionary (e.g., from storage).
+        
+        Handles both API field names (job_id, analysis_type) and 
+        core field names (id, type) for compatibility.
+        """
         # Convert string timestamps back to datetime
         created_at = data.get("created_at")
         if isinstance(created_at, str):
@@ -96,9 +99,13 @@ class APIJobData:
         if completed_at and isinstance(completed_at, str):
             completed_at = datetime.fromisoformat(completed_at)
 
+        # Handle both field name conventions
+        job_id = data.get("job_id") or data.get("id")
+        analysis_type = data.get("analysis_type") or data.get("type")
+        
         return cls(
-            job_id=data["job_id"],
-            analysis_type=data["analysis_type"],
+            job_id=job_id,
+            analysis_type=analysis_type,
             file_path=data["file_path"],
             options=data.get("options", {}),
             status=JobStatus(data["status"]) if isinstance(data["status"], str) else data["status"],

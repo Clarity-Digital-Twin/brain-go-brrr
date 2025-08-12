@@ -29,8 +29,8 @@ class TestEdfLoader:
     @patch("brain_go_brrr.data.edf_loader.mne")
     def test_load_edf_safe_file_not_found(self, mock_mne):
         """Test handling of missing file."""
-        from brain_go_brrr.data.edf_loader import load_edf_safe
         from brain_go_brrr.core.exceptions import EdfLoadError
+        from brain_go_brrr.data.edf_loader import load_edf_safe
 
         # Setup mock to raise FileNotFoundError
         mock_mne.io.read_raw_edf.side_effect = FileNotFoundError("File not found")
@@ -44,8 +44,8 @@ class TestEdfLoader:
     @patch("brain_go_brrr.data.edf_loader.mne")
     def test_load_edf_safe_invalid_format(self, mock_mne):
         """Test handling of invalid EDF format."""
-        from brain_go_brrr.data.edf_loader import load_edf_safe
         from brain_go_brrr.core.exceptions import EdfLoadError
+        from brain_go_brrr.data.edf_loader import load_edf_safe
 
         # Setup mock to raise ValueError (invalid format)
         mock_mne.io.read_raw_edf.side_effect = ValueError("Invalid EDF header")
