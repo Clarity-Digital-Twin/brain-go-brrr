@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -31,7 +31,7 @@ def test_register_requires_from_dict():
         @dataclass
         class BadNoFromDict:
             x: int
-            
+
             def to_dict(self):
                 return {"x": self.x}
             # Missing from_dict method
@@ -44,10 +44,10 @@ def test_register_requires_dataclass():
         class NotADataclass:
             def __init__(self, x: int):
                 self.x = x
-            
+
             def to_dict(self):
                 return {"x": self.x}
-            
+
             @classmethod
             def from_dict(cls, d):
                 return cls(**d)
@@ -59,12 +59,12 @@ class MiniSerializable:
     """Minimal serializable class for testing."""
     x: int
     y: str = "default"
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         return {"x": self.x, "y": self.y}
-    
+
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "MiniSerializable":
+    def from_dict(cls, d: dict[str, Any]) -> "MiniSerializable":
         return cls(**d)
 
 
@@ -73,7 +73,7 @@ def test_roundtrip_basic():
     obj = MiniSerializable(x=7, y="test")
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    
+
     assert isinstance(out, MiniSerializable)
     assert out.x == 7
     assert out.y == "test"
@@ -84,7 +84,7 @@ def test_roundtrip_with_defaults():
     obj = MiniSerializable(x=42)  # Use default y
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    
+
     assert isinstance(out, MiniSerializable)
     assert out.x == 42
     assert out.y == "default"
@@ -97,9 +97,9 @@ def test_unknown_type_passthrough():
         "_dataclass_type": "NotRegistered",
         "data": {"x": 1, "y": "value"}
     })
-    
+
     result = deserialize_value(unknown_json)
-    
+
     # Should return the dict since type not registered
     assert isinstance(result, dict)
     assert result["_dataclass_type"] == "NotRegistered"
@@ -113,9 +113,9 @@ def test_malformed_dataclass_json():
         "_dataclass_type": "MiniSerializable",
         # Missing "data" field
     })
-    
+
     result = deserialize_value(bad_json)
-    
+
     # Should return original string when can't deserialize
     assert result == bad_json
 
@@ -127,7 +127,7 @@ def test_registry_contains_registered():
         register_serializable(MiniSerializable)
     except:
         pass  # Already registered
-    
+
     registry = get_registry()
     assert "MiniSerializable" in registry
     assert registry["MiniSerializable"] is MiniSerializable
@@ -138,13 +138,13 @@ def test_serialize_unregistered_with_to_dict():
     @dataclass
     class UnregisteredButSerializable:
         value: int
-        
+
         def to_dict(self):
             return {"value": self.value}
-    
+
     obj = UnregisteredButSerializable(value=99)
     blob = serialize_value(obj)
-    
+
     # Should serialize using to_dict
     assert "99" in blob
 
@@ -154,15 +154,15 @@ def test_complex_nested_serialization():
     @register_serializable
     @dataclass
     class Nested:
-        data: Dict[str, Any]
-        
+        data: dict[str, Any]
+
         def to_dict(self):
             return {"data": self.data}
-        
+
         @classmethod
         def from_dict(cls, d):
             return cls(**d)
-    
+
     obj = Nested(data={
         "level1": {
             "level2": {
@@ -171,10 +171,10 @@ def test_complex_nested_serialization():
             }
         }
     })
-    
+
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    
+
     assert isinstance(out, Nested)
     assert out.data["level1"]["level2"]["values"] == [1, 2, 3]
     assert out.data["level1"]["level2"]["flag"] is True
@@ -187,15 +187,15 @@ def test_empty_dataclass():
     class Empty:
         def to_dict(self):
             return {}
-        
+
         @classmethod
         def from_dict(cls, d):
             return cls()
-    
+
     obj = Empty()
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    
+
     assert isinstance(out, Empty)
 
 
@@ -206,18 +206,18 @@ def test_dataclass_with_none_values():
     class WithOptional:
         required: int
         optional: Any = None
-        
+
         def to_dict(self):
             return {"required": self.required, "optional": self.optional}
-        
+
         @classmethod
         def from_dict(cls, d):
             return cls(**d)
-    
+
     obj = WithOptional(required=5, optional=None)
     blob = serialize_value(obj)
     out = deserialize_value(blob)
-    
+
     assert isinstance(out, WithOptional)
     assert out.required == 5
     assert out.optional is None

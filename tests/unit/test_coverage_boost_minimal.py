@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.exceptions import UnsupportedMontageError
 from brain_go_brrr.core.window_extractor import WindowExtractor
 from brain_go_brrr.infra.serialization import (
     deserialize_value,
@@ -26,7 +25,7 @@ def test_unknown_type_raises():
     """Test deserializing unknown type raises exception."""
     # Create JSON with unknown type
     unknown_json = json.dumps({"_dataclass_type": "NotRegistered", "data": {"x": 1}})
-    
+
     # Should return the dict since type not registered
     result = deserialize_value(unknown_json)
     assert isinstance(result, dict)
@@ -44,7 +43,7 @@ def test_partial_tail_dropped():
     """Test that partial tail windows are handled."""
     x = np.zeros((4, 100))
     we = WindowExtractor(
-        window_seconds=1.0, 
+        window_seconds=1.0,
         overlap_seconds=0.5
     )
     # Extract windows at 64Hz
@@ -68,10 +67,10 @@ def test_register_requires_contract():
 class MiniSerializable:
     """Minimal serializable class for testing."""
     x: int
-    
+
     def to_dict(self):
         return {"x": self.x}
-    
+
     @classmethod
     def from_dict(cls, d):
         return cls(**d)
@@ -113,11 +112,11 @@ def test_serialization_empty_registry_lookup():
 def test_window_extractor_data_shorter_than_window():
     """Test window extraction when data is shorter than window."""
     we = WindowExtractor(window_seconds=2.0)
-    
+
     # Data shorter than window (150 samples < 200 needed at 100Hz)
     short_data = np.zeros((4, 150))
     windows = we.extract(short_data, sfreq=100.0)
-    
+
     # Should return no windows
     assert len(windows) == 0
 
@@ -125,14 +124,14 @@ def test_window_extractor_data_shorter_than_window():
 def test_window_extractor_exact_fit():
     """Test window extraction when data fits exactly."""
     we = WindowExtractor(
-        window_seconds=1.0, 
+        window_seconds=1.0,
         overlap_seconds=0.0  # No overlap
     )
-    
+
     # Exactly 3 windows worth of data
     data = np.zeros((4, 300))
     windows = we.extract(data, sfreq=100.0)
-    
+
     # Should get exactly 3 windows
     assert len(windows) == 3
     assert all(w.shape == (4, 100) for w in windows)
