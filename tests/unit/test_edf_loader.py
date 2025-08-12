@@ -12,7 +12,7 @@ class TestEdfLoader:
     @patch("brain_go_brrr.core.edf_loader.mne")
     def test_load_edf_safe_success(self, mock_mne):
         """Test successful EDF loading."""
-        from brain_go_brrr.core.edf_loader import load_edf_safe
+        from brain_go_brrr.data.edf_loader import load_edf_safe
 
         # Setup mock
         mock_raw = MagicMock()
@@ -29,7 +29,7 @@ class TestEdfLoader:
     @patch("brain_go_brrr.core.edf_loader.mne")
     def test_load_edf_safe_file_not_found(self, mock_mne):
         """Test handling of missing file."""
-        from brain_go_brrr.core.edf_loader import load_edf_safe
+        from brain_go_brrr.data.edf_loader import load_edf_safe
         from brain_go_brrr.core.exceptions import EdfLoadError
 
         # Setup mock to raise FileNotFoundError
@@ -44,7 +44,7 @@ class TestEdfLoader:
     @patch("brain_go_brrr.core.edf_loader.mne")
     def test_load_edf_safe_invalid_format(self, mock_mne):
         """Test handling of invalid EDF format."""
-        from brain_go_brrr.core.edf_loader import load_edf_safe
+        from brain_go_brrr.data.edf_loader import load_edf_safe
         from brain_go_brrr.core.exceptions import EdfLoadError
 
         # Setup mock to raise ValueError (invalid format)
@@ -61,7 +61,7 @@ class TestEdfLoader:
         # Create a temp file
         import tempfile
 
-        from brain_go_brrr.core.edf_loader import validate_edf_path
+        from brain_go_brrr.data.edf_loader import validate_edf_path
 
         with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as f:
             temp_path = Path(f.name)
@@ -79,7 +79,7 @@ class TestEdfLoader:
 
     def test_validate_edf_path_invalid(self):
         """Test path validation for invalid paths."""
-        from brain_go_brrr.core.edf_loader import validate_edf_path
+        from brain_go_brrr.data.edf_loader import validate_edf_path
 
         # Test non-existent file - should raise FileNotFoundError
         with pytest.raises(FileNotFoundError) as exc_info:
@@ -102,7 +102,7 @@ class TestEdfLoader:
     @patch("brain_go_brrr.core.edf_loader.mne")
     def test_load_with_kwargs(self, mock_mne):
         """Test that kwargs are passed through correctly."""
-        from brain_go_brrr.core.edf_loader import load_edf_safe
+        from brain_go_brrr.data.edf_loader import load_edf_safe
 
         mock_raw = MagicMock()
         mock_mne.io.read_raw_edf.return_value = mock_raw

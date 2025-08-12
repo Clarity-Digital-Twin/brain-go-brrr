@@ -13,7 +13,7 @@ import mne
 import numpy as np
 
 from brain_go_brrr._typing import MNERaw
-from brain_go_brrr.core.features import EEGPTFeatureExtractor
+from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 from brain_go_brrr.core.sleep import SleepAnalyzer
 
 logger = logging.getLogger(__name__)

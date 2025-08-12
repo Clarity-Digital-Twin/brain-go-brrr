@@ -54,7 +54,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_feature_extractor_initialization(self):
         """Test feature extractor can be initialized."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         extractor = EEGPTFeatureExtractor()
         assert extractor is not None
@@ -62,7 +62,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_extract_embeddings_shape(self, sample_raw, mock_eegpt_model):
         """Test that embeddings have correct shape."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         with patch(
             "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
@@ -76,7 +76,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_caching_embeddings(self, sample_raw, mock_eegpt_model, tmp_path, monkeypatch):
         """Test that embeddings are cached for efficiency."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         # Use a temporary directory for cache to ensure isolation
         cache_dir = tmp_path / "test_cache"
@@ -103,7 +103,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_window_extraction(self, sample_raw):
         """Test window extraction for EEGPT processing."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         extractor = EEGPTFeatureExtractor()
         windows = extractor._extract_windows(sample_raw, window_size=4.0, overlap=0.0)
@@ -116,7 +116,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_overlapping_windows(self, sample_raw):
         """Test extraction with overlapping windows."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         extractor = EEGPTFeatureExtractor()
         windows = extractor._extract_windows(sample_raw, window_size=4.0, overlap=2.0)
@@ -126,7 +126,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_preprocessing_for_eegpt(self, sample_raw):
         """Test preprocessing matches EEGPT requirements."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         extractor = EEGPTFeatureExtractor()
         preprocessed = extractor._preprocess_for_eegpt(sample_raw)
@@ -140,7 +140,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_embedding_metadata(self, sample_raw, mock_eegpt_model):
         """Test that metadata is returned with embeddings."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         with patch(
             "brain_go_brrr.core.features.extractor.EEGPTModel", return_value=mock_eegpt_model
@@ -161,7 +161,7 @@ class TestEEGPTFeatureExtractor:
 
     def test_batch_processing(self, mock_eegpt_model):
         """Test batch processing of multiple recordings."""
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         # Create multiple recordings
         raws = []
@@ -193,7 +193,7 @@ class TestEEGPTFeatureExtractor:
         if not model_path.exists():
             pytest.skip("EEGPT model not found")
 
-        from brain_go_brrr.core.features import EEGPTFeatureExtractor
+        from brain_go_brrr.preprocessing.features import EEGPTFeatureExtractor
 
         extractor = EEGPTFeatureExtractor(model_path=model_path)
         assert extractor.model is not None

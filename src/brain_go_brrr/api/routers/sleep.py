@@ -20,7 +20,7 @@ from brain_go_brrr.api.schemas import (
     JobStatus,
     SleepAnalysisResponse,
 )
-from brain_go_brrr.core.edf_loader import load_edf_safe
+from brain_go_brrr.data.edf_loader import load_edf_safe
 from brain_go_brrr.core.exceptions import EdfLoadError, SleepAnalysisError, UnsupportedMontageError
 from brain_go_brrr.core.sleep import SleepAnalyzer
 from brain_go_brrr.models.eegpt_model import EEGPTModel

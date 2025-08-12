@@ -15,7 +15,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 
-from brain_go_brrr.core.edf_loader import load_edf_safe
+from brain_go_brrr.data.edf_loader import load_edf_safe
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.models.linear_probe import SleepStageProbe
 

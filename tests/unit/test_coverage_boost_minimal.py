@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.window_extractor import WindowExtractor
+from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
 from brain_go_brrr.infra.serialization import (
     deserialize_value,
     register_serializable,

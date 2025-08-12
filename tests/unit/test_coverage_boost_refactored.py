@@ -52,7 +52,7 @@ def test_parallel_pipeline_processes_data():
 
 def test_snippet_maker_creates_snippets():
     """Test that snippet maker creates EEG snippets with correct properties."""
-    from brain_go_brrr.core.snippets.maker import EEGSnippetMaker
+    from brain_go_brrr.preprocessing.snippets.maker import EEGSnippetMaker
 
     # Arrange
     maker = EEGSnippetMaker(snippet_length=4.0, overlap=0.5)
@@ -428,7 +428,7 @@ def test_time_utils():
 
 def test_edf_validator():
     """Test EDF file validation."""
-    from brain_go_brrr.core.edf_validator import EDFValidator
+    from brain_go_brrr.data.edf_validator import EDFValidator
 
     validator = EDFValidator()
 

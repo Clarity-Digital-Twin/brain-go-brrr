@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.window_extractor import WindowExtractor
+from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
 
 
 def test_tail_handling_doesnt_produce_partial_frames():

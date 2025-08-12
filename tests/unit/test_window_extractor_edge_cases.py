@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 import torch
 
-from brain_go_brrr.core.edf_validator import EDFValidator
-from brain_go_brrr.core.window_extractor import WindowExtractor
+from brain_go_brrr.data.edf_validator import EDFValidator
+from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
 from brain_go_brrr.infra.serialization import serialize_value
 from brain_go_brrr.models.linear_probe import LinearProbeHead
 from brain_go_brrr.utils.time import format_timestamp, timestamp_for_logging, utc_now
