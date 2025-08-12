@@ -110,8 +110,7 @@ def test_check_averaging_bug():
     # and equal to the mean of 0-18 = 9
     np.mean(range(19))  # Should be 9
 
-    for _i in range(4):
-        pytest.skip("Expected exception was raised")
+    # This loop was doing nothing - removed
     # Check if tokens are just copies
     for i in range(1, 4):
         np.allclose(features[0], features[i])
