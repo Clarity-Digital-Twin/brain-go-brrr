@@ -11,4 +11,5 @@ class TestTUABCachedDataset:
 
     def test_placeholder(self):
         """Placeholder to keep file valid."""
-        pytest.skip("Integration tests not yet implemented")
+        # Will be deselected by pytest markers, not skipped
+        pass
