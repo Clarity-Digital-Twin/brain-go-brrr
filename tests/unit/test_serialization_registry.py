@@ -15,7 +15,7 @@ from brain_go_brrr.infra.serialization import (
 
 
 @dataclass
-class TestData1:
+class SampleData1:
     """Test dataclass with basic fields."""
 
     name: str
@@ -27,13 +27,13 @@ class TestData1:
         return {"name": self.name, "value": self.value, "metadata": self.metadata}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TestData1":
+    def from_dict(cls, data: dict[str, Any]) -> "SampleData1":
         """Create from dictionary."""
         return cls(name=data["name"], value=data["value"], metadata=data.get("metadata", {}))
 
 
 @dataclass
-class TestData2:
+class SampleData2:
     """Another test dataclass to verify multiple registrations."""
 
     id: str
@@ -45,7 +45,7 @@ class TestData2:
         return {"id": self.id, "items": self.items, "active": self.active}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TestData2":
+    def from_dict(cls, data: dict[str, Any]) -> "SampleData2":
         """Create from dictionary."""
         return cls(id=data["id"], items=data.get("items", []), active=data.get("active", True))
 
