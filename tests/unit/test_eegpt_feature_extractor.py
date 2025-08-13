@@ -71,8 +71,9 @@ class TestEEGPTFeatureExtractor:
             extractor = EEGPTFeatureExtractor()
             embeddings = extractor.extract_embeddings(sample_raw)
 
-            # Should return (n_windows, 512) for single recording
-            assert embeddings.shape == (3, 512)
+            # Should return (n_windows, n_summary_tokens, embed_dim) for single recording
+            # EEGPT uses 4 summary tokens
+            assert embeddings.shape == (3, 4, 512)
             assert embeddings.dtype == np.float32
 
     def test_caching_embeddings(self, sample_raw, mock_eegpt_model, tmp_path, monkeypatch):
