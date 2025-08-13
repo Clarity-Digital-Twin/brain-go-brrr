@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 
 @runtime_checkable
@@ -13,7 +13,7 @@ class CachePort(Protocol):
         """Get value from cache."""
         ...
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set value in cache."""
         ...
 
@@ -34,7 +34,7 @@ class AsyncCachePort(Protocol):
         """Get value from cache."""
         ...
 
-    async def aset(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
+    async def aset(self, key: str, value: Any, ttl: int | None = None) -> None:
         """Set value in cache."""
         ...
 
