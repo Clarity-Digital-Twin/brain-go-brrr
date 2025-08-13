@@ -178,7 +178,7 @@ class SleepStager:
 
         if use_yasa:
             try:
-                from brain_go_brrr.services.yasa_adapter import HierarchicalPipelineYASAAdapter
+                from brain_go_brrr.infra.external.yasa_adapter import HierarchicalPipelineYASAAdapter
 
                 self.yasa_adapter = HierarchicalPipelineYASAAdapter()
                 logger.info("Using YASA for sleep staging")

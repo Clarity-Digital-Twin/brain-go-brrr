@@ -26,7 +26,7 @@ from scipy import signal
 
 from brain_go_brrr._typing import FloatArray, MNERaw
 
-from ..core.config import ModelConfig
+from ..config import ModelConfig
 from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 
 logger = logging.getLogger(__name__)

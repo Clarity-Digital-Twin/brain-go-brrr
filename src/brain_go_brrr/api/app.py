@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
-from brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.infra.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -16,7 +16,7 @@ from scipy.stats import kurtosis, skew
 
 from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNERaw
-from brain_go_brrr.core.exceptions import UnsupportedMontageError
+from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 
 logger = logging.getLogger(__name__)
 

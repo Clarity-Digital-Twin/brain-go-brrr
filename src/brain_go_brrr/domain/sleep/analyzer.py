@@ -14,7 +14,7 @@ import numpy.typing as npt
 import pandas as pd
 
 from brain_go_brrr._typing import MNERaw, StrArray
-from brain_go_brrr.core.exceptions import UnsupportedMontageError
+from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "yasa"))

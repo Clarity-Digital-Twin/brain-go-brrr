@@ -5,8 +5,8 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from brain_go_brrr.core.config import Config
-from brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.config import Config
+from brain_go_brrr.infra.logger import get_logger
 
 app = typer.Typer(
     name="brain-go-brrr",
@@ -113,7 +113,7 @@ def stream(
     """Stream EDF file and extract features in real-time."""
     import json
 
-    from brain_go_brrr.core.config import ModelConfig
+    from brain_go_brrr.config import ModelConfig
     from brain_go_brrr.data.edf_streaming import EDFStreamer
     from brain_go_brrr.models.eegpt_model import EEGPTModel
 

@@ -1,12 +1,11 @@
 """Centralized configuration module for brain_go_brrr."""
 
 from .abnormality_config import AbnormalityConfig
-from .base import APIConfig, Config, ModelConfig, ProcessingConfig
+from .base import Config, DataConfig, ModelConfig
 
 __all__ = [
     "Config",
     "ModelConfig", 
-    "ProcessingConfig",
-    "APIConfig",
+    "DataConfig",
     "AbnormalityConfig",
 ]

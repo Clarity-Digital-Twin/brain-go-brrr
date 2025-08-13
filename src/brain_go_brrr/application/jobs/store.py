@@ -5,7 +5,7 @@ import threading
 from datetime import datetime
 from typing import Any
 
-from brain_go_brrr.core.jobs.models import JobData, JobPriority, JobStatus
+from brain_go_brrr.application.jobs.models import JobData, JobPriority, JobStatus
 
 logger = logging.getLogger(__name__)
 

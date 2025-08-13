@@ -16,9 +16,9 @@ import numpy.typing as npt
 import torch
 
 from brain_go_brrr._typing import FloatArray, MNERaw
-from brain_go_brrr.core.abnormality_config import AbnormalityConfig
-from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.core.logger import get_logger
+from brain_go_brrr.config import AbnormalityConfig
+from brain_go_brrr.config import ModelConfig
+from brain_go_brrr.infra.logger import get_logger
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
 
