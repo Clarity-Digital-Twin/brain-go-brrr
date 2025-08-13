@@ -1,6 +1,6 @@
 """Domain layer - pure business logic with no external dependencies."""
 
-from .channels import CHANNEL_GROUPS, ChannelConfig, StandardChannels
+from .channels import ChannelMapper, ChannelProcessor, ChannelValidator
 from .exceptions import (
     AbnormalityDetectionError,
     BrainGoBrrrError,
@@ -13,9 +13,9 @@ from .exceptions import (
 
 __all__ = [
     # Channels
-    "StandardChannels",
-    "ChannelConfig",
-    "CHANNEL_GROUPS",
+    "ChannelMapper",
+    "ChannelProcessor",
+    "ChannelValidator",
     # Exceptions
     "BrainGoBrrrError",
     "ConfigurationError",
