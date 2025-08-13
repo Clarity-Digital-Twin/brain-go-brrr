@@ -99,8 +99,8 @@ class JobData:
             completed_at = datetime.fromisoformat(completed_at)
 
         # Handle both field name conventions
-        job_id = data.get("job_id") or data.get("id")
-        analysis_type = data.get("analysis_type") or data.get("type")
+        job_id = data.get("job_id") or data.get("id") or ""
+        analysis_type = data.get("analysis_type") or data.get("type") or ""
 
         return cls(
             job_id=job_id,

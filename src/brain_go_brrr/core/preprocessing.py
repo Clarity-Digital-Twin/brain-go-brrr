@@ -15,7 +15,7 @@ warnings.warn(
 )
 
 # Re-export everything from the new location
-from brain_go_brrr.preprocessing.basic import (
+from brain_go_brrr.preprocessing.basic import (  # noqa: E402
     BandpassFilter,
     Normalizer,
     NotchFilter,

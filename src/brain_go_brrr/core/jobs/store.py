@@ -228,7 +228,11 @@ class ThreadSafeJobStore:
         """
         with self._lock:
             # Sort jobs by updated_at timestamp
-            sorted_jobs = sorted(self._jobs.items(), key=lambda x: x[1].updated_at, reverse=True)
+            sorted_jobs = sorted(
+                self._jobs.items(),
+                key=lambda x: x[1].updated_at or datetime.min,
+                reverse=True
+            )
 
             completed_count = 0
             failed_count = 0

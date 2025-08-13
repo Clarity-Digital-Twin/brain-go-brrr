@@ -73,7 +73,7 @@ def get_cache(backend: str | None = None) -> CachePort[bytes]:
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
         return InfraRedisCache(url=redis_url)  # type: ignore
     elif backend == "memory":
-        return MemoryCache()  # type: ignore
+        return MemoryCache()
     else:
         raise ValueError(f"Unknown cache backend: {backend}")
 
