@@ -65,7 +65,7 @@ class TestEEGPTFeatureExtractor:
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
 
         with patch(
-            "brain_go_brrr.preprocessing.features.extractor.EEGPTModel",
+            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
             return_value=mock_eegpt_model,
         ):
             extractor = EEGPTFeatureExtractor()
@@ -86,7 +86,7 @@ class TestEEGPTFeatureExtractor:
         monkeypatch.setenv("BGB_CACHE_DIR", str(cache_dir))
 
         with patch(
-            "brain_go_brrr.preprocessing.features.extractor.EEGPTModel",
+            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
             return_value=mock_eegpt_model,
         ):
             extractor = EEGPTFeatureExtractor(enable_cache=True)
@@ -146,7 +146,7 @@ class TestEEGPTFeatureExtractor:
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
 
         with patch(
-            "brain_go_brrr.preprocessing.features.extractor.EEGPTModel",
+            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
             return_value=mock_eegpt_model,
         ):
             extractor = EEGPTFeatureExtractor()
@@ -180,7 +180,7 @@ class TestEEGPTFeatureExtractor:
         # The mock will return single embeddings per window call
 
         with patch(
-            "brain_go_brrr.preprocessing.features.extractor.EEGPTModel",
+            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
             return_value=mock_eegpt_model,
         ):
             extractor = EEGPTFeatureExtractor()
