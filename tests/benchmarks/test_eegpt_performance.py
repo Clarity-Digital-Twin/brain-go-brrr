@@ -27,9 +27,9 @@ try:
 except ImportError:
     # Fallback if conftest not available or running standalone
     channel_complexity_budget = {
-        20: 1.0,   # Standard 10-20 system
-        32: 1.5,   # Extended montage
-        64: 2.0,   # High-density EEG
+        20: 1.0,  # Standard 10-20 system
+        32: 1.5,  # Extended montage
+        64: 2.0,  # High-density EEG
         128: 3.0,  # Research-grade HD-EEG
         256: 5.0,  # Ultra high-density
     }
@@ -583,7 +583,9 @@ class TestPerformanceComparison:
         cpu_result2 = eegpt_model_cpu.extract_features(data, ch_names)
         cpu_result2_np = cpu_result2.numpy() if hasattr(cpu_result2, "numpy") else cpu_result2
 
-        if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6) and not np.allclose(cpu_result_np, gpu_result_np, rtol=1e-3, atol=1e-5):
+        if np.allclose(cpu_result_np, cpu_result2_np, rtol=1e-6) and not np.allclose(
+            cpu_result_np, gpu_result_np, rtol=1e-3, atol=1e-5
+        ):
             # Model is deterministic, so CPU and GPU should match
             # However, CPU vs GPU can have numerical differences due to different implementations
             # Log warning but don't fail - numerical differences are expected

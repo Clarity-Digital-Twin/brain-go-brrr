@@ -219,6 +219,7 @@ class TestMontageDetectionEdgeCases:
             # This should raise UnsupportedMontageError for case-sensitive mismatch
             with pytest.raises(UnsupportedMontageError):
                 sleep_analyzer.stage_sleep(raw)
+
     def test_picks_parameter_override(self, sleep_analyzer, create_raw_with_channels):
         """Test that picks parameter can override automatic detection."""
         # Create Raw with multiple channels

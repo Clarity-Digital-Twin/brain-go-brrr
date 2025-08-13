@@ -39,12 +39,16 @@ def test_preprocessing_imports():
     # Note: The deprecation warning is emitted at module import time
     # If the module was already imported, we won't see the warning again
     import sys
-    if 'brain_go_brrr.core.preprocessing' in sys.modules:
+
+    if "brain_go_brrr.core.preprocessing" in sys.modules:
         # Module already imported, can't test warning
         pass
     else:
-        with pytest.warns(DeprecationWarning, match="brain_go_brrr.core.preprocessing is deprecated"):
+        with pytest.warns(
+            DeprecationWarning, match="brain_go_brrr.core.preprocessing is deprecated"
+        ):
             from brain_go_brrr.core.preprocessing import PreprocessingConfig as OldConfig
+
             assert OldConfig is PreprocessingConfig  # Same class
 
 

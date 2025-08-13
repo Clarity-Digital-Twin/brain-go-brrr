@@ -22,10 +22,25 @@ class TestEEGQualityControllerClean:
         n_channels = 19  # Standard 10-20 subset
 
         ch_names = [
-            "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
-            "T3", "C3", "CZ", "C4", "T4",
-            "T5", "P3", "PZ", "P4", "T6",
-            "O1", "O2"
+            "FP1",
+            "FP2",
+            "F7",
+            "F3",
+            "FZ",
+            "F4",
+            "F8",
+            "T3",
+            "C3",
+            "CZ",
+            "C4",
+            "T4",
+            "T5",
+            "P3",
+            "PZ",
+            "P4",
+            "T6",
+            "O1",
+            "O2",
         ]
 
         n_samples = int(sfreq * duration)
@@ -58,7 +73,7 @@ class TestEEGQualityControllerClean:
         # Add eye blink artifacts
         for i in range(10):
             start = i * 600 + 100
-            data[1:3, start:start+50] += 100e-6 * np.sin(np.linspace(0, np.pi, 50))
+            data[1:3, start : start + 50] += 100e-6 * np.sin(np.linspace(0, np.pi, 50))
 
         # Add muscle artifacts
         data[5, 5000:5500] += 150e-6 * np.random.randn(500)
@@ -79,9 +94,7 @@ class TestEEGQualityControllerClean:
     def test_init_controller(self):
         """Test initialization of quality controller."""
         controller = EEGQualityController(
-            rejection_threshold=0.1,
-            interpolation_threshold=0.8,
-            random_state=42
+            rejection_threshold=0.1, interpolation_threshold=0.8, random_state=42
         )
 
         assert controller is not None
@@ -96,9 +109,7 @@ class TestEEGQualityControllerClean:
         checkpoint_path = tmp_path / "eegpt.ckpt"
         checkpoint_path.touch()
 
-        controller = EEGQualityController(
-            eegpt_model_path=checkpoint_path
-        )
+        controller = EEGQualityController(eegpt_model_path=checkpoint_path)
 
         # Controller creates an EEGPTModel object even with fake checkpoint
         # (it just won't have loaded weights properly)
@@ -107,8 +118,8 @@ class TestEEGQualityControllerClean:
         assert controller.eegpt_model is not None  # Model object exists
         assert isinstance(controller.eegpt_model, EEGPTModel)  # Correct type
         # Verify expected methods exist
-        assert hasattr(controller.eegpt_model, 'predict_abnormality')
-        assert hasattr(controller.eegpt_model, 'extract_features')
+        assert hasattr(controller.eegpt_model, "predict_abnormality")
+        assert hasattr(controller.eegpt_model, "extract_features")
 
     def test_detect_bad_channels(self, raw_with_artifacts):
         """Test bad channel detection."""
@@ -178,7 +189,7 @@ class TestEEGQualityControllerClean:
             raw=synthetic_raw,
             epochs=epochs,
             bad_channels=bad_channels,
-            abnormality_score=abnormality_score
+            abnormality_score=abnormality_score,
         )
 
         assert isinstance(report, dict)
@@ -212,7 +223,7 @@ class TestEEGQualityControllerClean:
             raw=raw_with_artifacts,
             epochs=epochs,
             bad_channels=bad_channels,
-            abnormality_score=abnormality_score
+            abnormality_score=abnormality_score,
         )
 
         assert isinstance(report, dict)
@@ -245,7 +256,7 @@ class TestEEGQualityControllerClean:
         processed = controller.preprocess_raw(
             synthetic_raw,
             l_freq=0.5,  # High-pass
-            h_freq=None  # No low-pass
+            h_freq=None,  # No low-pass
         )
         assert processed is not None
 
@@ -257,7 +268,7 @@ class TestEEGQualityControllerClean:
         epochs = controller.create_epochs(
             synthetic_raw,
             epoch_length=2.0,  # 2-second epochs
-            overlap=0.5    # 50% overlap
+            overlap=0.5,  # 50% overlap
         )
 
         assert epochs is not None
@@ -280,10 +291,7 @@ class TestEEGQualityControllerClean:
 
         # Mock the predict_abnormality method (which is what's actually called)
         mock_eegpt_model.predict_abnormality = MagicMock(
-            return_value={
-                "abnormality_score": 0.3,
-                "confidence": 0.9
-            }
+            return_value={"abnormality_score": 0.3, "confidence": 0.9}
         )
 
         # Create epochs first (compute_abnormality_score takes epochs, not raw)
@@ -307,7 +315,7 @@ class TestEEGQualityControllerClean:
             raw=synthetic_raw,
             epochs=epochs,
             bad_channels=bad_channels,
-            abnormality_score=abnormality_score
+            abnormality_score=abnormality_score,
         )
 
         assert isinstance(report, dict)
@@ -317,15 +325,10 @@ class TestEEGQualityControllerClean:
 
     def test_full_pipeline_with_options(self, synthetic_raw):
         """Test full pipeline with custom options."""
-        controller = EEGQualityController(
-            rejection_threshold=0.1,
-            interpolation_threshold=0.8
-        )
+        controller = EEGQualityController(rejection_threshold=0.1, interpolation_threshold=0.8)
 
         results = controller.run_full_qc_pipeline(
-            synthetic_raw,
-            apply_autoreject=True,
-            compute_abnormality=True
+            synthetic_raw, apply_autoreject=True, compute_abnormality=True
         )
 
         assert isinstance(results, dict)
@@ -338,9 +341,7 @@ class TestEEGQualityControllerClean:
         sfreq = 64
         data = np.random.randn(5, 640).astype(np.float32) * 20e-6
         info = mne.create_info(
-            ch_names=["C3", "C4", "O1", "O2", "EOG"],
-            sfreq=sfreq,
-            ch_types=["eeg"] * 4 + ["eog"]
+            ch_names=["C3", "C4", "O1", "O2", "EOG"], sfreq=sfreq, ch_types=["eeg"] * 4 + ["eog"]
         )
         raw = mne.io.RawArray(data, info)
 
@@ -353,9 +354,7 @@ class TestEEGQualityControllerClean:
     def test_controller_with_missing_channels(self, synthetic_raw):
         """Test controller with subset of channels."""
         # Drop some channels
-        raw_subset = synthetic_raw.copy().pick_channels(
-            synthetic_raw.ch_names[:10]
-        )
+        raw_subset = synthetic_raw.copy().pick_channels(synthetic_raw.ch_names[:10])
 
         controller = EEGQualityController()
 
@@ -368,7 +367,6 @@ class TestEEGQualityControllerClean:
             raw=raw_subset,
             epochs=epochs,
             bad_channels=bad_channels,
-            abnormality_score=abnormality_score
+            abnormality_score=abnormality_score,
         )
         assert report is not None
-

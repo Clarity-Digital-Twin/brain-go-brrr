@@ -74,11 +74,11 @@ class TestNormalizer:
         # Both are acceptable behaviors for unimplemented features
 
         # Create test data with known min/max
-        data = np.array([[1, 2, 3, 4, 5],
-                        [10, 20, 30, 40, 50]])
+        data = np.array([[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]])
 
         try:
             from brain_go_brrr.core.preprocessing import Normalizer
+
             normalizer = Normalizer(method="minmax")
             normalized = normalizer.fit_transform(data)
 
@@ -177,6 +177,7 @@ class TestPreprocessingPipeline:
 
         # Normalization is separate from config now
         # Shape preservation check done above
+
     def test_empty_pipeline(self):
         """Test pipeline with no operations."""
         sfreq = 256

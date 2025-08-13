@@ -30,7 +30,7 @@ def test_all_exceptions_instantiate():
         ModelLoadError("load error"),
         ModelInferenceError("inference error"),
         InsufficientMemoryError("memory error"),
-        GPUNotAvailableError("no gpu")
+        GPUNotAvailableError("no gpu"),
     ]
 
     for exc in exceptions:

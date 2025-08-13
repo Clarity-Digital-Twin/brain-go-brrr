@@ -11,7 +11,7 @@ warnings.warn(
     "brain_go_brrr.core.preprocessing is deprecated. "
     "Use brain_go_brrr.preprocessing.basic instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Re-export everything from the new location
@@ -32,4 +32,3 @@ __all__ = [
     "PreprocessingPipeline",
     "Resampler",
 ]
-

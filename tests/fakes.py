@@ -21,13 +21,15 @@ class FakeEEGPTBackbone:
         self.feature_dim = feature_dim
         self._n_summary_tokens = n_summary_tokens
         self.is_loaded = True
-        self.config = type('Config', (), {'model_path': Path('/fake/model.ckpt')})()
+        self.config = type("Config", (), {"model_path": Path("/fake/model.ckpt")})()
 
     @property
     def n_summary_tokens(self) -> int:
         return self._n_summary_tokens
 
-    def extract_features(self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
+    def extract_features(
+        self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None
+    ) -> torch.Tensor:
         """Return consistent fake features for testing.
 
         Returns torch.Tensor to match production EEGPT model behavior.
@@ -98,22 +100,22 @@ class FakeRedis:
     def __init__(self):
         """Initialize fake Redis storage."""
         self.storage: dict[str, bytes] = {}
-        self.call_count = {'get': 0, 'set': 0, 'delete': 0, 'exists': 0}
+        self.call_count = {"get": 0, "set": 0, "delete": 0, "exists": 0}
 
     def get(self, key: str) -> bytes | None:
         """Get value from fake storage."""
-        self.call_count['get'] += 1
+        self.call_count["get"] += 1
         return self.storage.get(key)
 
     def set(self, key: str, value: bytes, ex: int | None = None) -> bool:
         """Set value in fake storage."""
-        self.call_count['set'] += 1
+        self.call_count["set"] += 1
         self.storage[key] = value
         return True
 
     def delete(self, key: str) -> int:
         """Delete key from fake storage."""
-        self.call_count['delete'] += 1
+        self.call_count["delete"] += 1
         if key in self.storage:
             del self.storage[key]
             return 1
@@ -121,7 +123,7 @@ class FakeRedis:
 
     def exists(self, key: str) -> int:
         """Check if key exists."""
-        self.call_count['exists'] += 1
+        self.call_count["exists"] += 1
         return 1 if key in self.storage else 0
 
     def flushdb(self) -> bool:
@@ -197,8 +199,8 @@ class FakeFeatureExtractor:
             "metadata": {
                 "n_windows": n_windows,
                 "feature_dim": self.feature_dim,
-                "sampling_rate": 256.0
-            }
+                "sampling_rate": 256.0,
+            },
         }
 
 
@@ -212,16 +214,10 @@ class FakeSleepAnalyzer:
     def run_full_sleep_analysis(self, raw: Any) -> dict[str, Any]:
         """Return fake sleep analysis results."""
         return {
-            'hypnogram': ['W', 'N1', 'N2', 'N3', 'N2', 'REM'],
-            'sleep_efficiency': 85.5,
-            'total_sleep_time': 420,  # minutes
-            'sleep_stages': {
-                'W': 15.0,
-                'N1': 5.0,
-                'N2': 45.0,
-                'N3': 20.0,
-                'REM': 15.0
-            }
+            "hypnogram": ["W", "N1", "N2", "N3", "N2", "REM"],
+            "sleep_efficiency": 85.5,
+            "total_sleep_time": 420,  # minutes
+            "sleep_stages": {"W": 15.0, "N1": 5.0, "N2": 45.0, "N3": 20.0, "REM": 15.0},
         }
 
     def stage_sleep(self, raw: Any, **kwargs):
@@ -270,15 +266,39 @@ class FakeMNERaw:
     def __init__(self, n_channels: int = 19, duration: float = 20.0, sfreq: float = 256.0):
         """Initialize fake MNE Raw object - pure Python implementation."""
         import mne
+
         self.n_channels = n_channels
         self.duration = duration
         # Use valid channel names for sleep staging
-        standard_channels = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2',
-                           'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
-        self.ch_names = standard_channels[:n_channels] if n_channels <= 19 else standard_channels + [f'EEG{i}' for i in range(n_channels - 19)]
+        standard_channels = [
+            "Fp1",
+            "Fp2",
+            "F3",
+            "F4",
+            "C3",
+            "C4",
+            "P3",
+            "P4",
+            "O1",
+            "O2",
+            "F7",
+            "F8",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "Fz",
+            "Cz",
+            "Pz",
+        ]
+        self.ch_names = (
+            standard_channels[:n_channels]
+            if n_channels <= 19
+            else standard_channels + [f"EEG{i}" for i in range(n_channels - 19)]
+        )
         # Create proper MNE Info object
-        self.info = mne.create_info(ch_names=self.ch_names, sfreq=sfreq, ch_types='eeg')
-        self.times = np.arange(0, duration, 1/sfreq)
+        self.info = mne.create_info(ch_names=self.ch_names, sfreq=sfreq, ch_types="eeg")
+        self.times = np.arange(0, duration, 1 / sfreq)
         self._data = np.random.randn(n_channels, len(self.times)) * 1e-6  # μV scale
 
     def get_data(self, picks=None, start=0, stop=None) -> np.ndarray:
@@ -291,7 +311,7 @@ class FakeMNERaw:
 
     def copy(self):
         """Return a copy of self."""
-        return FakeMNERaw(self.n_channels, self.duration, self.info['sfreq'])
+        return FakeMNERaw(self.n_channels, self.duration, self.info["sfreq"])
 
     def filter(self, l_freq, h_freq, **kwargs):
         """Fake filtering."""
@@ -307,7 +327,7 @@ class FakeMNERaw:
 
     def get_channel_types(self):
         """Return channel types."""
-        return ['eeg'] * self.n_channels
+        return ["eeg"] * self.n_channels
 
     def notch_filter(self, **kwargs):
         """Fake notch filter."""
@@ -323,7 +343,7 @@ class FakeMNERaw:
         indices = [self.ch_names.index(c) for c in channels]
 
         # Create new instance with subset data
-        new_fake = FakeMNERaw(len(channels), self.duration, self.info['sfreq'])
+        new_fake = FakeMNERaw(len(channels), self.duration, self.info["sfreq"])
         new_fake.ch_names = [self.ch_names[i] for i in indices]
         new_fake._data = self._data[indices, :].copy()
 
@@ -333,7 +353,7 @@ class FakeMNERaw:
             "ch_names": new_fake.ch_names,
             "nchan": len(new_fake.ch_names),
             "bads": [],  # Reset bad channels
-            "ch_types": ["eeg"] * len(new_fake.ch_names)
+            "ch_types": ["eeg"] * len(new_fake.ch_names),
         }
 
         return new_fake

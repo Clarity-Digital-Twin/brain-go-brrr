@@ -17,7 +17,7 @@ class TestLinearProbeHead:
         probe = LinearProbeHead(input_dim=2048, num_classes=2)
         assert probe.input_dim == 2048
         assert probe.num_classes == 2
-        assert hasattr(probe, 'classifier')
+        assert hasattr(probe, "classifier")
 
         # Test forward pass
         x = torch.randn(16, 2048)
@@ -32,7 +32,7 @@ class TestLinearProbeHead:
         probe = LinearProbeHead(input_dim=512, num_classes=5, dropout=0.3)
         assert probe.input_dim == 512
         assert probe.num_classes == 5
-        assert hasattr(probe, 'dropout')
+        assert hasattr(probe, "dropout")
 
     def test_dropout_behavior_in_training(self):
         """Test that dropout is active in training mode."""
@@ -86,13 +86,16 @@ class TestLinearProbeHead:
         assert probe.classifier.weight.grad is not None
         assert probe.classifier.bias.grad is not None
 
-    @pytest.mark.parametrize("input_dim,num_classes", [
-        (128, 2),
-        (256, 5),
-        (512, 10),
-        (1024, 2),
-        (2048, 3),
-    ])
+    @pytest.mark.parametrize(
+        "input_dim,num_classes",
+        [
+            (128, 2),
+            (256, 5),
+            (512, 10),
+            (1024, 2),
+            (2048, 3),
+        ],
+    )
     def test_various_dimensions(self, input_dim, num_classes):
         """Test LinearProbeHead with various input/output dimensions."""
         from brain_go_brrr.models.linear_probe import LinearProbeHead

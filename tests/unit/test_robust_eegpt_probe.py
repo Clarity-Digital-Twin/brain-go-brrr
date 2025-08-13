@@ -1,6 +1,5 @@
 """CLEAN tests for Robust EEGPT Linear Probe - no mocks, real logic."""
 
-
 import numpy as np
 import pytest
 import torch
@@ -15,6 +14,7 @@ class TestRobustEEGPTLinearProbeClean:
     @pytest.fixture
     def mock_backbone(self):
         """Create a deterministic mock EEGPT backbone for testing."""
+
         class MockBackbone(nn.Module):
             def __init__(self):
                 super().__init__()
@@ -40,10 +40,7 @@ class TestRobustEEGPTLinearProbeClean:
         """Create a fake checkpoint file for testing."""
         checkpoint_path = tmp_path / "fake_eegpt.ckpt"
         # Create minimal checkpoint with required keys
-        checkpoint = {
-            "state_dict": {},
-            "config": {"embed_dim": 512, "n_summary_tokens": 4}
-        }
+        checkpoint = {"state_dict": {}, "config": {"embed_dim": 512, "n_summary_tokens": 4}}
         torch.save(checkpoint, checkpoint_path)
         return checkpoint_path
 
@@ -75,7 +72,7 @@ class TestRobustEEGPTLinearProbeClean:
             backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
-            freeze_backbone=True
+            freeze_backbone=True,
         )
 
         assert probe is not None
@@ -87,17 +84,14 @@ class TestRobustEEGPTLinearProbeClean:
     def test_validate_and_clean_input(self, mock_backbone, synthetic_eeg_batch):
         """Test input validation and cleaning."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Add extreme values to test cleaning
         data_with_outliers = synthetic_eeg_batch.clone()
         data_with_outliers[0, 0, 100:110] = 100e-6  # Big spike
         data_with_outliers[1, 5, 200:210] = -100e-6  # Big negative spike
-        data_with_outliers[0, 1, 50] = float('nan')  # NaN value
+        data_with_outliers[0, 1, 50] = float("nan")  # NaN value
 
         # Process through validation
         validated = probe._validate_and_clean_input(data_with_outliers)
@@ -109,10 +103,7 @@ class TestRobustEEGPTLinearProbeClean:
     def test_robust_normalize(self, mock_backbone, synthetic_eeg_batch):
         """Test robust normalization."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Create data with very small variance (could cause instability)
@@ -133,7 +124,7 @@ class TestRobustEEGPTLinearProbeClean:
             backbone=mock_backbone,
             n_input_channels=20,
             n_classes=3,  # 3-class classification
-            freeze_backbone=True
+            freeze_backbone=True,
         )
 
         # Forward pass
@@ -145,10 +136,7 @@ class TestRobustEEGPTLinearProbeClean:
     def test_predict_proba(self, mock_backbone, synthetic_eeg_batch):
         """Test probability prediction."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Get probabilities
@@ -167,7 +155,7 @@ class TestRobustEEGPTLinearProbeClean:
             backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
-            freeze_backbone=True
+            freeze_backbone=True,
         )
 
         num_params = probe.get_num_trainable_params()
@@ -178,10 +166,7 @@ class TestRobustEEGPTLinearProbeClean:
     def test_save_and_load_probe(self, mock_backbone, tmp_path):
         """Test saving and loading probe state."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Save probe
@@ -192,10 +177,7 @@ class TestRobustEEGPTLinearProbeClean:
 
         # Create new probe and load state
         probe2 = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
         probe2.load_probe(save_path)
 
@@ -206,15 +188,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_forward_with_nan_input(self, mock_backbone, synthetic_eeg_batch):
         """Test forward pass handles NaN input gracefully."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Inject NaN into input
         bad_data = synthetic_eeg_batch.clone()
-        bad_data[0, :, 100:200] = float('nan')
+        bad_data[0, :, 100:200] = float("nan")
 
         # Should handle NaN without crashing
         with torch.no_grad():
@@ -230,7 +209,7 @@ class TestRobustEEGPTLinearProbeClean:
             backbone=mock_backbone,
             n_input_channels=20,
             n_classes=2,
-            freeze_backbone=True
+            freeze_backbone=True,
         )
 
         # Check backbone params are frozen (use .backbone, not deprecated alias)
@@ -248,7 +227,7 @@ class TestRobustEEGPTLinearProbeClean:
             backbone=mock_backbone,
             n_input_channels=20,
             n_classes=5,  # 5-class problem
-            freeze_backbone=True
+            freeze_backbone=True,
         )
 
         # Forward pass
@@ -262,16 +241,13 @@ class TestRobustEEGPTLinearProbeClean:
     def test_mixed_precision_compatibility(self, mock_backbone, synthetic_eeg_batch):
         """Test compatibility with mixed precision."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Test with float16 input (mixed precision)
         half_data = synthetic_eeg_batch.half()
 
-        with torch.autocast(device_type='cpu', dtype=torch.float16):
+        with torch.autocast(device_type="cpu", dtype=torch.float16):
             output = probe(half_data)
 
         assert output.dtype in [torch.float16, torch.float32]
@@ -280,10 +256,7 @@ class TestRobustEEGPTLinearProbeClean:
     def test_different_batch_sizes(self, mock_backbone):
         """Test probe with different batch sizes."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Test different batch sizes
@@ -295,17 +268,16 @@ class TestRobustEEGPTLinearProbeClean:
     def test_probe_head_architecture(self, mock_backbone):
         """Test probe head has expected architecture."""
         probe = RobustEEGPTLinearProbe(
-            checkpoint_path=None,
-            backbone=mock_backbone,
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2
         )
 
         # Check classifier structure (the actual probe head)
-        assert hasattr(probe, 'classifier')
+        assert hasattr(probe, "classifier")
         assert isinstance(probe.classifier, nn.Module)
 
         # Check it has expected layers
         modules = list(probe.classifier.modules())
-        assert any(isinstance(m, nn.Linear) or 'LinearWithConstraint' in m.__class__.__name__ for m in modules)
-
+        assert any(
+            isinstance(m, nn.Linear) or "LinearWithConstraint" in m.__class__.__name__
+            for m in modules
+        )

@@ -30,12 +30,9 @@ class TestCacheRouterClean:
         """Create mock cache client with DI."""
         cache = MagicMock()
         cache.connected = True
-        cache.get_stats = MagicMock(return_value={
-            "hits": 100,
-            "misses": 20,
-            "memory_used": "1.2MB",
-            "keys_count": 50
-        })
+        cache.get_stats = MagicMock(
+            return_value={"hits": 100, "misses": 20, "memory_used": "1.2MB", "keys_count": 50}
+        )
         cache.clear_pattern = MagicMock(return_value=15)
         cache.health_check = MagicMock(return_value={"status": "healthy"})
         return cache
@@ -175,10 +172,7 @@ class TestCacheRouterClean:
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
 
-        request = CacheWarmupRequest(
-            file_content=dummy_content,
-            analysis_types=["qc", "sleep"]
-        )
+        request = CacheWarmupRequest(file_content=dummy_content, analysis_types=["qc", "sleep"])
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
         response = client.post("/cache/warmup", json=request.model_dump())
@@ -200,10 +194,7 @@ class TestCacheRouterClean:
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
 
-        request = CacheWarmupRequest(
-            file_content=dummy_content,
-            analysis_types=["qc"]
-        )
+        request = CacheWarmupRequest(file_content=dummy_content, analysis_types=["qc"])
 
         app.dependency_overrides[get_cache] = lambda: mock_cache
         response = client.post("/cache/warmup", json=request.model_dump())
@@ -245,10 +236,7 @@ class TestCacheRouterClean:
         # Create dummy file content
         dummy_content = base64.b64encode(b"dummy edf content").decode("utf-8")
 
-        request = CacheWarmupRequest(
-            file_content=dummy_content,
-            analysis_types=["qc"]
-        )
+        request = CacheWarmupRequest(file_content=dummy_content, analysis_types=["qc"])
 
         app.dependency_overrides[get_cache] = lambda: None
         response = client.post("/cache/warmup", json=request.model_dump())
@@ -257,4 +245,3 @@ class TestCacheRouterClean:
         data = response.json()
         assert data["status"] == "unavailable"
         assert data["warmed"] == 0
-

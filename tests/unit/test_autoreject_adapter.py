@@ -289,9 +289,7 @@ class TestAutoRejectIntegration:
         data = np.random.randn(n_channels, int(sfreq * duration)) * 1e-6
 
         info = mne.create_info(
-            ch_names=[f"EEG{i:03d}" for i in range(n_channels)],
-            sfreq=sfreq,
-            ch_types="eeg"
+            ch_names=[f"EEG{i:03d}" for i in range(n_channels)], sfreq=sfreq, ch_types="eeg"
         )
         raw = mne.io.RawArray(data, info)
 
@@ -312,6 +310,8 @@ class TestAutoRejectIntegration:
             expected_epochs = int((total_duration - window_duration) / stride) + 1
             # Allow some tolerance for edge cases
             assert abs(len(epochs) - expected_epochs) <= 1
+
+
 # Memory and performance tests
 class TestMemoryEfficiency:
     """Test memory usage stays within bounds."""

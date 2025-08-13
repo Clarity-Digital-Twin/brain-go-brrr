@@ -16,10 +16,13 @@ from brain_go_brrr.utils.time import format_timestamp, timestamp_for_logging, ut
 class TestWindowExtractorEdgeCases:
     """Test edge cases for WindowExtractor."""
 
-    @pytest.mark.parametrize("overlap,expected", [
-        (0.0, 2),  # No overlap: 10s with 4s window = 2 complete windows (0-4s, 4-8s)
-        (2.0, 4),  # 2s overlap: more windows (0-4s, 2-6s, 4-8s, 6-10s)
-    ])
+    @pytest.mark.parametrize(
+        "overlap,expected",
+        [
+            (0.0, 2),  # No overlap: 10s with 4s window = 2 complete windows (0-4s, 4-8s)
+            (2.0, 4),  # 2s overlap: more windows (0-4s, 2-6s, 4-8s, 6-10s)
+        ],
+    )
     def test_windows_count_with_overlap(self, overlap, expected):
         """Test window count with different overlaps."""
         ext = WindowExtractor(window_seconds=4.0, overlap_seconds=overlap)
@@ -126,6 +129,7 @@ class TestSerializationFallback:
 
     class WeirdClass:
         """A class that's not serializable."""
+
         def __init__(self):
             """Initialize with test data."""
             self.data = "weird"
@@ -145,12 +149,14 @@ class TestSerializationFallback:
     def test_serialize_circular_reference(self):
         """Test handling of circular references."""
         d = {}
-        d['self'] = d  # Circular reference
+        d["self"] = d  # Circular reference
         # serialize_value uses json.dumps which will raise on circular refs
         # So we test that it handles this gracefully
         with pytest.raises((ValueError, TypeError)):
             # Should raise for circular references
             serialize_value(d)
+
+
 class TestEDFValidatorEdgeCases:
     """Test EDF validator with edge cases."""
 
@@ -184,7 +190,7 @@ class TestEDFValidatorEdgeCases:
         assert not result.is_valid
         # Check errors list instead of error attribute
         assert len(result.errors) > 0
-        error_text = ' '.join(result.errors).lower()
+        error_text = " ".join(result.errors).lower()
         assert "not found" in error_text or "exist" in error_text
 
     def test_edf_validator_directory_input(self, tmp_path):
@@ -195,5 +201,5 @@ class TestEDFValidatorEdgeCases:
         assert not result.is_valid
         # Check errors list
         assert len(result.errors) > 0
-        error_text = ' '.join(result.errors).lower()
+        error_text = " ".join(result.errors).lower()
         assert "directory" in error_text or "file" in error_text or "not" in error_text

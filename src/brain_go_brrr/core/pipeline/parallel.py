@@ -27,7 +27,7 @@ class ParallelEEGPipeline:
         eegpt_model_path: Path | None = None,
         device: str = "cpu",
         extractor: Any | None = None,
-        sleep_analyzer: Any | None = None
+        sleep_analyzer: Any | None = None,
     ):
         """Initialize parallel pipeline.
 
@@ -38,7 +38,9 @@ class ParallelEEGPipeline:
             sleep_analyzer: Optional sleep analyzer (for testing)
         """
         # Initialize both services (with dependency injection support)
-        self.eegpt_extractor = extractor or EEGPTFeatureExtractor(model_path=eegpt_model_path, device=device)
+        self.eegpt_extractor = extractor or EEGPTFeatureExtractor(
+            model_path=eegpt_model_path, device=device
+        )
         self.sleep_analyzer = sleep_analyzer or SleepAnalyzer()
 
         logger.info("Initialized parallel EEG pipeline")
@@ -67,7 +69,11 @@ class ParallelEEGPipeline:
             logger.info(f"EEGPT extracted {eegpt_result['embeddings'].shape[0]} embeddings")
         except Exception as e:
             logger.error(f"EEGPT extraction failed: {e}", exc_info=True)
-            results["eegpt"] = {"status": "failed", "error": str(e), "traceback": traceback.format_exc()}
+            results["eegpt"] = {
+                "status": "failed",
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            }
 
         # Run YASA sleep analysis
         logger.info("Running YASA sleep analysis...")
@@ -90,7 +96,11 @@ class ParallelEEGPipeline:
             logger.info(f"YASA staged {len(hypnogram)} epochs")
         except Exception as e:
             logger.error(f"YASA sleep analysis failed: {e}", exc_info=True)
-            results["yasa"] = {"status": "failed", "error": str(e), "traceback": traceback.format_exc()}
+            results["yasa"] = {
+                "status": "failed",
+                "error": str(e),
+                "traceback": traceback.format_exc(),
+            }
 
         # Add metadata
         results["metadata"] = {

@@ -9,7 +9,7 @@ import warnings
 warnings.warn(
     "brain_go_brrr.core.edf_validator has moved to brain_go_brrr.data.edf_validator",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Re-export everything from the new location

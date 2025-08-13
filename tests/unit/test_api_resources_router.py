@@ -62,7 +62,7 @@ class TestResourcesRouterClean:
 
         with (
             patch("brain_go_brrr.api.routers.resources.HAS_GPUTIL", True),
-            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil
+            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil,
         ):
             mock_gputil.getGPUs.return_value = [mock_gpu]
             response = client.get("/resources/gpu")
@@ -97,7 +97,7 @@ class TestResourcesRouterClean:
         """Test GPU resources when GPU access fails."""
         with (
             patch("brain_go_brrr.api.routers.resources.HAS_GPUTIL", True),
-            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil
+            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil,
         ):
             mock_gputil.getGPUs.side_effect = RuntimeError("No GPU available")
             response = client.get("/resources/gpu")
@@ -151,7 +151,7 @@ class TestResourcesRouterClean:
 
         with (
             patch("brain_go_brrr.api.routers.resources.HAS_GPUTIL", True),
-            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil
+            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil,
         ):
             mock_gputil.getGPUs.return_value = [mock_gpu1, mock_gpu2]
             response = client.get("/resources/gpu")
@@ -186,7 +186,7 @@ class TestResourcesRouterClean:
         """Test GPU resources when GPUtil has attribute issues."""
         with (
             patch("brain_go_brrr.api.routers.resources.HAS_GPUTIL", True),
-            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil
+            patch("brain_go_brrr.api.routers.resources.GPUtil") as mock_gputil,
         ):
             mock_gputil.getGPUs.side_effect = AttributeError("getGPUs not found")
             response = client.get("/resources/gpu")
@@ -195,4 +195,3 @@ class TestResourcesRouterClean:
         data = response.json()
         assert data["gpus"] == []
         assert "error" in data
-

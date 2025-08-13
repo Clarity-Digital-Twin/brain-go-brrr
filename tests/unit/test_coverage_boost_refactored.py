@@ -30,10 +30,7 @@ def test_parallel_pipeline_processes_data():
     # Arrange: Create pipeline with fake dependencies
     fake_extractor = FakeFeatureExtractor(feature_dim=128)
     fake_analyzer = FakeSleepAnalyzer()
-    pipeline = ParallelEEGPipeline(
-        extractor=fake_extractor,
-        sleep_analyzer=fake_analyzer
-    )
+    pipeline = ParallelEEGPipeline(extractor=fake_extractor, sleep_analyzer=fake_analyzer)
 
     # Act: Process fake EEG data
     fake_raw = FakeMNERaw(n_channels=19, duration=30.0)
@@ -59,11 +56,7 @@ def test_snippet_maker_creates_snippets():
 
     # Act: Create snippets from fake data
     fake_raw = FakeMNERaw(n_channels=19, duration=10.0, sfreq=256.0)
-    snippets = maker.extract_fixed_snippets(
-        raw=fake_raw,
-        snippet_length=4.0,
-        overlap=0.5
-    )
+    snippets = maker.extract_fixed_snippets(raw=fake_raw, snippet_length=4.0, overlap=0.5)
 
     # Assert: Verify snippet properties
     assert len(snippets) > 0
@@ -123,11 +116,7 @@ def test_job_store_manages_jobs():
 
     # Behavior: Update job status
     # Update expects a dict, not a JobData object
-    updates = {
-        "status": JobStatus.PROCESSING,
-        "updated_at": datetime.now(),
-        "progress": 0.5
-    }
+    updates = {"status": JobStatus.PROCESSING, "updated_at": datetime.now(), "progress": 0.5}
     store.update(job_id, updates)
     updated = store.get(job_id)
     assert updated.status == JobStatus.PROCESSING
@@ -144,9 +133,7 @@ def test_linear_probe_produces_predictions():
         mock_create.return_value = fake_backbone
 
         probe = EEGPTLinearProbe(
-            checkpoint_path="/fake/path.ckpt",
-            n_input_channels=20,
-            n_classes=2
+            checkpoint_path="/fake/path.ckpt", n_input_channels=20, n_classes=2
         )
 
         # Act: Forward pass with batch of EEG windows
@@ -185,17 +172,15 @@ def test_abnormal_detector_detects_abnormalities():
     fake_path = Path("/fake/model.ckpt")
     fake_classifier = FakeClassifierHead(input_dim=2048, n_classes=2)
 
-    with patch("brain_go_brrr.core.config.Path.exists", return_value=True), \
-         patch("brain_go_brrr.core.config.Path.is_file", return_value=True), \
-         patch("brain_go_brrr.core.abnormal.detector.AbnormalityDetector._init_model") as mock_init:
-
+    with (
+        patch("brain_go_brrr.core.config.Path.exists", return_value=True),
+        patch("brain_go_brrr.core.config.Path.is_file", return_value=True),
+        patch("brain_go_brrr.core.abnormal.detector.AbnormalityDetector._init_model") as mock_init,
+    ):
         # Skip model init
         mock_init.return_value = None
 
-        detector = AbnormalityDetector(
-            model_path=fake_path,
-            classifier=fake_classifier
-        )
+        detector = AbnormalityDetector(model_path=fake_path, classifier=fake_classifier)
 
         # Mock the model attribute
         detector.model = FakeEEGPTBackbone()
@@ -263,7 +248,7 @@ def test_chunked_autoreject_processes_chunks():
 
     # Create minimal valid epochs
     sfreq = 256
-    info = mne.create_info(["Fz","Cz","Pz","Oz"], sfreq, ch_types="eeg")
+    info = mne.create_info(["Fz", "Cz", "Pz", "Oz"], sfreq, ch_types="eeg")
     data = np.random.randn(4, sfreq * 60) * 1e-6
     raw = mne.io.RawArray(data, info)
 
@@ -272,6 +257,7 @@ def test_chunked_autoreject_processes_chunks():
 
     # Test that we can process epochs
     from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+
     processor = ChunkedAutoRejectProcessor(chunk_size=5)
 
     # Assert: Basic properties
@@ -298,7 +284,7 @@ def test_cached_dataset_loads_from_cache():
                             "path": "train/normal/file1.edf",
                             "duration": 600,  # 10 minutes
                             "n_channels": 20,
-                            "sfreq": 256
+                            "sfreq": 256,
                         }
                     ],
                     "abnormal": [
@@ -306,14 +292,14 @@ def test_cached_dataset_loads_from_cache():
                             "path": "train/abnormal/file2.edf",
                             "duration": 600,
                             "n_channels": 20,
-                            "sfreq": 256
+                            "sfreq": 256,
                         }
-                    ]
+                    ],
                 }
             },
             "splits": ["train"],  # This triggers nested format handling
             "n_files": 2,
-            "metadata": {"split": "train"}
+            "metadata": {"split": "train"},
         }
 
         # Write index to temp dir
@@ -322,16 +308,13 @@ def test_cached_dataset_loads_from_cache():
 
         # Test loading
         from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
-        dataset = TUABCachedDataset(
-            root_dir=temp_dir,
-            split="train",
-            cache_index_path=index_path
-        )
+
+        dataset = TUABCachedDataset(root_dir=temp_dir, split="train", cache_index_path=index_path)
 
         # Assert: Dataset loaded index correctly
         # Calculate expected windows based on dataset's actual window parameters
         window_duration = dataset.window_duration  # Read from dataset
-        window_stride = dataset.window_stride      # Read from dataset
+        window_stride = dataset.window_stride  # Read from dataset
         file_duration = 600  # 10 minutes as set in test
 
         # Calculate expected windows per file
@@ -407,7 +390,7 @@ def test_time_utils():
     assert "12:00:00" in formatted
     # Should be ISO format with timezone
     assert "T" in formatted  # ISO separator
-    assert ("+" in formatted or "-" in formatted or formatted.endswith("Z"))  # Timezone indicator
+    assert "+" in formatted or "-" in formatted or formatted.endswith("Z")  # Timezone indicator
 
     # Test format_timestamp with None (uses current time)
     formatted_now = format_timestamp(None)
@@ -490,7 +473,7 @@ def test_api_422_validation_error():
         AnalysisRequest(
             file_id="test123",
             analysis_type="invalid_type",  # Invalid enum value
-            options={}
+            options={},
         )
 
     # Should raise validation error
@@ -513,10 +496,7 @@ def test_pipeline_error_path_with_traceback():
         def stage_sleep(self, raw, **kwargs):
             raise ValueError("Simulated sleep analysis failure")
 
-    pipeline = ParallelEEGPipeline(
-        extractor=BrokenExtractor(),
-        sleep_analyzer=BrokenAnalyzer()
-    )
+    pipeline = ParallelEEGPipeline(extractor=BrokenExtractor(), sleep_analyzer=BrokenAnalyzer())
 
     # Process with fake data
     fake_raw = FakeMNERaw(n_channels=19, duration=30.0)

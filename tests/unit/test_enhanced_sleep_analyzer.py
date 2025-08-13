@@ -1,6 +1,5 @@
 """Test enhanced sleep analyzer - targeting 0% coverage module."""
 
-
 import numpy as np
 import pytest
 
@@ -36,8 +35,8 @@ class TestEnhancedSleepAnalyzer:
     def test_analyzer_initialization(self, analyzer):
         """Test analyzer initializes correctly."""
         assert analyzer is not None
-        assert hasattr(analyzer, 'preprocess_for_staging')
-        assert hasattr(analyzer, 'find_best_channels')
+        assert hasattr(analyzer, "preprocess_for_staging")
+        assert hasattr(analyzer, "find_best_channels")
         assert analyzer.config is not None
 
     def test_yasa_config(self):
@@ -48,7 +47,7 @@ class TestEnhancedSleepAnalyzer:
             epoch_length=30.0,
             resample_freq=100.0,
             apply_smoothing=True,
-            min_confidence=0.5
+            min_confidence=0.5,
         )
 
         assert config.use_consensus is True
@@ -80,10 +79,7 @@ class TestEnhancedSleepAnalyzer:
         custom_eeg = ["Cz", "Fz", "Pz"]
         custom_eog = ["LOC", "ROC"]
 
-        config = YASAConfig(
-            eeg_channels_preference=custom_eeg,
-            eog_channels_preference=custom_eog
-        )
+        config = YASAConfig(eeg_channels_preference=custom_eeg, eog_channels_preference=custom_eog)
 
         assert config.eeg_channels_preference == custom_eeg
         assert config.eog_channels_preference == custom_eog
@@ -95,7 +91,7 @@ class TestEnhancedSleepAnalyzer:
 
             assert processed is not None
             # Should be resampled to 100Hz (YASA requirement)
-            assert processed.info['sfreq'] == 100.0
+            assert processed.info["sfreq"] == 100.0
         except (AttributeError, NotImplementedError, ValueError):
             # Module might not be fully implemented or channels missing
             pass
@@ -124,8 +120,8 @@ class TestEnhancedSleepAnalyzer:
             if result is not None:
                 assert isinstance(result, dict)
                 # Should have hypnogram key
-                if 'hypnogram' in result:
-                    assert isinstance(result['hypnogram'], list | np.ndarray)
+                if "hypnogram" in result:
+                    assert isinstance(result["hypnogram"], list | np.ndarray)
         except (AttributeError, NotImplementedError, ValueError):
             pass
 
@@ -165,20 +161,14 @@ class TestEnhancedSleepAnalyzer:
 
     def test_single_channel_mode(self):
         """Test single channel mode configuration."""
-        config = YASAConfig(
-            use_single_channel=True,
-            use_consensus=False
-        )
+        config = YASAConfig(use_single_channel=True, use_consensus=False)
 
         assert config.use_single_channel is True
         assert config.use_consensus is False
 
     def test_smoothing_configuration(self):
         """Test smoothing parameters."""
-        config = YASAConfig(
-            apply_smoothing=True,
-            smoothing_window_min=7.5
-        )
+        config = YASAConfig(apply_smoothing=True, smoothing_window_min=7.5)
 
         assert config.apply_smoothing is True
         assert config.smoothing_window_min == 7.5
@@ -186,11 +176,11 @@ class TestEnhancedSleepAnalyzer:
     def test_calculate_quality_score(self, analyzer):
         """Test quality score calculation."""
         metrics = {
-            'sleep_efficiency': 85.0,
-            'n3_percent': 20.0,
-            'rem_percent': 22.0,
-            'waso': 30.0,
-            'n_transitions': 50
+            "sleep_efficiency": 85.0,
+            "n3_percent": 20.0,
+            "rem_percent": 22.0,
+            "waso": 30.0,
+            "n_transitions": 50,
         }
 
         try:
@@ -221,11 +211,11 @@ class TestEnhancedSleepAnalyzer:
     def test_generate_clinical_flags(self, analyzer):
         """Test clinical flag generation."""
         metrics = {
-            'sleep_efficiency': 50.0,  # Low efficiency
-            'n3_percent': 5.0,  # Low deep sleep
-            'rem_percent': 10.0,  # Low REM
-            'waso': 120.0,  # High WASO
-            'sleep_onset_latency': 60.0  # High SOL
+            "sleep_efficiency": 50.0,  # Low efficiency
+            "n3_percent": 5.0,  # Low deep sleep
+            "rem_percent": 10.0,  # Low REM
+            "waso": 120.0,  # High WASO
+            "sleep_onset_latency": 60.0,  # High SOL
         }
 
         try:

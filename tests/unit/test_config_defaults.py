@@ -25,7 +25,7 @@ class TestConfigSimple:
 
     def test_model_config_window_samples(self):
         """Test ModelConfig window samples calculation."""
-        with tempfile.NamedTemporaryFile(suffix='.ckpt') as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".ckpt") as tmp:
             model_config = ModelConfig(model_path=Path(tmp.name))
             # 4.0 seconds * 256 Hz = 1024 samples
             assert model_config.window_samples == 1024

@@ -196,6 +196,7 @@ class TestChunkedAutoRejectProcessor:
         except ImportError:
             # AutoReject not available in test environment
             pytest.skip("AutoReject not available")
+
     def test_transform_raw(self, temp_cache_dir):
         """Test transforming raw data with fitted parameters."""
         # Given: Fitted processor

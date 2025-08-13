@@ -34,11 +34,13 @@ np.random.seed(SEED)
 # Only import and seed torch if available
 try:
     import torch
+
     torch.manual_seed(SEED)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(SEED)
 except ImportError:
     torch = None
+
 
 def pytest_collection_modifyitems(config, items):
     """Modify test collection based on markers and options.
@@ -62,6 +64,7 @@ def pytest_collection_modifyitems(config, items):
         if drop:
             config.hook.pytest_deselected(items=drop)
             items[:] = [it for it in items if it not in drop]
+
 
 # Type checking imports only - don't trigger actual imports
 if TYPE_CHECKING:
@@ -334,6 +337,7 @@ def mock_eeg_data():
     data = np.random.randn(n_channels, n_times) * 20e-6  # ~20 μV
 
     import mne
+
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     return mne.io.RawArray(data, info)
 

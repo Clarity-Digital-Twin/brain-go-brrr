@@ -18,16 +18,16 @@ def test_serialize_basic_types():
     assert serialize_value("test") == '"test"'
 
     # Number
-    assert serialize_value(42) == '42'
+    assert serialize_value(42) == "42"
 
     # Boolean
-    assert serialize_value(True) == 'true'
+    assert serialize_value(True) == "true"
 
     # None
-    assert serialize_value(None) == 'null'
+    assert serialize_value(None) == "null"
 
     # List
-    assert serialize_value([1, 2, 3]) == '[1, 2, 3]'
+    assert serialize_value([1, 2, 3]) == "[1, 2, 3]"
 
     # Dict
     assert serialize_value({"key": "value"}) == '{"key": "value"}'
@@ -41,7 +41,7 @@ def test_deserialize_basic_types():
 
     # JSON strings
     assert deserialize_value('{"key": "value"}') == {"key": "value"}
-    assert deserialize_value('[1, 2, 3]') == [1, 2, 3]
+    assert deserialize_value("[1, 2, 3]") == [1, 2, 3]
 
     # Invalid JSON returns as-is
     assert deserialize_value("not json") == "not json"
@@ -83,14 +83,7 @@ def test_serializable_registry():
 
 def test_serialize_complex_nested():
     """Test serialization of nested structures."""
-    data = {
-        "level1": {
-            "level2": {
-                "values": [1, 2, 3],
-                "flag": True
-            }
-        }
-    }
+    data = {"level1": {"level2": {"values": [1, 2, 3], "flag": True}}}
 
     serialized = serialize_value(data)
     assert isinstance(serialized, str)

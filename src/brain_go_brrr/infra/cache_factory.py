@@ -33,6 +33,7 @@ class MemoryCache:
         self._store[key] = value
         if ttl_seconds:
             import time
+
             self._ttls[key] = time.time() + ttl_seconds
 
     def delete(self, key: str) -> bool:

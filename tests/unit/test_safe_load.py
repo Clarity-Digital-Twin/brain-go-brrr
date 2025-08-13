@@ -21,7 +21,7 @@ class TestSafeLoad:
             "epoch": 42,
             "model_state": {"weight": [1.0, 2.0, 3.0]},
             "optimizer": "adam",
-            "loss": 0.123
+            "loss": 0.123,
         }
 
         # Save with regular torch
@@ -73,7 +73,7 @@ class TestSafeLoad:
         test_data = {
             "weights": torch.randn(10, 5),
             "bias": torch.zeros(5),
-            "mask": torch.ones(10, dtype=torch.bool)
+            "mask": torch.ones(10, dtype=torch.bool),
         }
 
         torch.save(test_data, checkpoint_path)

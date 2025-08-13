@@ -12,7 +12,7 @@ def safe_load(
     *,
     weights_only: bool = True,
     map_location: str | torch.device | None = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Any:
     """Safe wrapper for torch.load with backward compatibility.
 

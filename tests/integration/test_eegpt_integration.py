@@ -74,6 +74,7 @@ class TestEEGPTModel:
 
         # Add a mock abnormality head that returns valid probabilities
         import torch.nn as nn
+
         class MockAbnormalityHead(nn.Module):
             def forward(self, x):
                 # Return consistent valid logits

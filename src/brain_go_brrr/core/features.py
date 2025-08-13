@@ -10,7 +10,7 @@ import warnings
 warnings.warn(
     "brain_go_brrr.core.features has moved to brain_go_brrr.preprocessing.features",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Re-export everything from the new location
@@ -22,4 +22,4 @@ from brain_go_brrr.preprocessing.features import (  # noqa: E402
     extractor,
 )
 
-sys.modules['brain_go_brrr.core.features.extractor'] = extractor
+sys.modules["brain_go_brrr.core.features.extractor"] = extractor

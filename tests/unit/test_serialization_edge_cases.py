@@ -112,9 +112,9 @@ class TestSerializationEdgeCases:
             -1,
             2**31 - 1,  # Max 32-bit int
             2**63 - 1,  # Max 64-bit int
-            -2**63,  # Min 64-bit int
-            1.7976931348623157e+308,  # Near max float
-            -1.7976931348623157e+308,  # Near min float
+            -(2**63),  # Min 64-bit int
+            1.7976931348623157e308,  # Near max float
+            -1.7976931348623157e308,  # Near min float
             1e-308,  # Very small positive
         ]
 
@@ -229,6 +229,7 @@ class TestSerializationEdgeCases:
 
     def test_registry_duplicate_registration(self):
         """Test duplicate registration handling."""
+
         @dataclass
         class DuplicateTest:
             value: int
@@ -298,10 +299,10 @@ class TestSerializationEdgeCases:
     def test_serialize_inf_and_nan(self):
         """Test serializing infinity and NaN (should fail)."""
         test_cases = [
-            float('inf'),
-            float('-inf'),
-            float('nan'),
-            {"value": float('inf')},
+            float("inf"),
+            float("-inf"),
+            float("nan"),
+            {"value": float("inf")},
         ]
 
         for value in test_cases:
@@ -369,6 +370,7 @@ class TestSerializationEdgeCases:
 
     def test_dataclass_missing_from_dict(self):
         """Test dataclass without from_dict method."""
+
         @dataclass
         class NoFromDict:
             value: int
@@ -382,6 +384,7 @@ class TestSerializationEdgeCases:
 
     def test_dataclass_missing_to_dict(self):
         """Test dataclass without to_dict method."""
+
         @dataclass
         class NoToDict:
             value: int

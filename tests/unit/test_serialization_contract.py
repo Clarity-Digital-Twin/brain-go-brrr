@@ -18,6 +18,7 @@ from brain_go_brrr.infra.serialization import (
 def test_register_requires_to_dict():
     """Test that register requires to_dict method."""
     with pytest.raises(TypeError, match="to_dict"):
+
         @register_serializable
         @dataclass
         class BadNoToDict:
@@ -28,6 +29,7 @@ def test_register_requires_to_dict():
 def test_register_requires_from_dict():
     """Test that register requires from_dict method."""
     with pytest.raises(TypeError, match="from_dict"):
+
         @register_serializable
         @dataclass
         class BadNoFromDict:
@@ -35,12 +37,14 @@ def test_register_requires_from_dict():
 
             def to_dict(self):
                 return {"x": self.x}
+
             # Missing from_dict method
 
 
 def test_register_requires_dataclass():
     """Test that register requires a dataclass."""
     with pytest.raises(TypeError, match="must be a dataclass"):
+
         @register_serializable
         class NotADataclass:
             def __init__(self, x: int):
@@ -58,6 +62,7 @@ def test_register_requires_dataclass():
 @dataclass
 class MiniSerializable:
     """Minimal serializable class for testing."""
+
     x: int
     y: str = "default"
 
@@ -105,10 +110,7 @@ def test_roundtrip_with_defaults():
 def test_unknown_type_passthrough():
     """Test that unknown types pass through as dicts."""
     # Create JSON with unregistered type
-    unknown_json = json.dumps({
-        "_dataclass_type": "NotRegistered",
-        "data": {"x": 1, "y": "value"}
-    })
+    unknown_json = json.dumps({"_dataclass_type": "NotRegistered", "data": {"x": 1, "y": "value"}})
 
     result = deserialize_value(unknown_json)
 
@@ -121,10 +123,12 @@ def test_unknown_type_passthrough():
 def test_malformed_dataclass_json():
     """Test handling of malformed dataclass JSON."""
     # Missing data field
-    bad_json = json.dumps({
-        "_dataclass_type": "MiniSerializable",
-        # Missing "data" field
-    })
+    bad_json = json.dumps(
+        {
+            "_dataclass_type": "MiniSerializable",
+            # Missing "data" field
+        }
+    )
 
     result = deserialize_value(bad_json)
 
@@ -143,6 +147,7 @@ def test_registry_contains_registered():
 
 def test_serialize_unregistered_with_to_dict():
     """Test serializing unregistered class with to_dict."""
+
     @dataclass
     class UnregisteredButSerializable:
         value: int
@@ -159,6 +164,7 @@ def test_serialize_unregistered_with_to_dict():
 
 def test_complex_nested_serialization():
     """Test complex nested serialization."""
+
     @register_serializable
     @dataclass
     class NestedTestClass:
@@ -171,14 +177,7 @@ def test_complex_nested_serialization():
         def from_dict(cls, d):
             return cls(**d)
 
-    obj = NestedTestClass(data={
-        "level1": {
-            "level2": {
-                "values": [1, 2, 3],
-                "flag": True
-            }
-        }
-    })
+    obj = NestedTestClass(data={"level1": {"level2": {"values": [1, 2, 3], "flag": True}}})
 
     blob = serialize_value(obj)
     out = deserialize_value(blob)
@@ -190,6 +189,7 @@ def test_complex_nested_serialization():
 
 def test_empty_dataclass():
     """Test empty dataclass serialization."""
+
     @register_serializable
     @dataclass
     class EmptyTestClass:
@@ -209,6 +209,7 @@ def test_empty_dataclass():
 
 def test_dataclass_with_none_values():
     """Test dataclass with None values."""
+
     @register_serializable
     @dataclass
     class WithOptionalTest:

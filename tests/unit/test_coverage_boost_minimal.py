@@ -42,10 +42,7 @@ def test_overlap_greater_than_window():
 def test_partial_tail_dropped():
     """Test that partial tail windows are handled."""
     x = np.zeros((4, 100))
-    we = WindowExtractor(
-        window_seconds=1.0,
-        overlap_seconds=0.5
-    )
+    we = WindowExtractor(window_seconds=1.0, overlap_seconds=0.5)
     # Extract windows at 64Hz
     wins = we.extract(x, sfreq=64.0)
     # Check we get some windows
@@ -55,6 +52,7 @@ def test_partial_tail_dropped():
 def test_register_requires_contract():
     """Test that register requires to_dict/from_dict methods."""
     with pytest.raises(TypeError, match="to_dict"):
+
         @register_serializable
         @dataclass
         class BadNoToDict:
@@ -67,6 +65,7 @@ def test_register_requires_contract():
 @dataclass
 class MinimalTestSerializable:
     """Minimal serializable class for testing."""
+
     x: int
 
     def to_dict(self):
@@ -127,7 +126,7 @@ def test_window_extractor_exact_fit():
     """Test window extraction when data fits exactly."""
     we = WindowExtractor(
         window_seconds=1.0,
-        overlap_seconds=0.0  # No overlap
+        overlap_seconds=0.0,  # No overlap
     )
 
     # Exactly 3 windows worth of data

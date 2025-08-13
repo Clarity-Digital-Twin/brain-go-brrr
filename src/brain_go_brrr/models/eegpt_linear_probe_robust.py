@@ -286,6 +286,6 @@ class RobustEEGPTLinearProbe(nn.Module):
         warnings.warn(
             "eegpt_backbone is deprecated and will be removed in v2.0. Use .backbone instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         return self.backbone  # type: ignore[no-any-return]

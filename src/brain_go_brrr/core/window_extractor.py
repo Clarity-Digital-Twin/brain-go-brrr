@@ -9,7 +9,7 @@ import warnings
 warnings.warn(
     "brain_go_brrr.core.window_extractor has moved to brain_go_brrr.preprocessing.window_extractor",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Re-export everything from the new location

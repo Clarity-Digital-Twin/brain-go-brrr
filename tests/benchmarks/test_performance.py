@@ -111,7 +111,7 @@ class TestPerformanceBenchmarks:
 
         # Should respond in <100ms (allow some buffer for test environment)
         # Guard for --benchmark-disable mode
-        if hasattr(benchmark, 'stats') and benchmark.stats:
+        if hasattr(benchmark, "stats") and benchmark.stats:
             assert benchmark.stats["mean"] < 0.1, (
                 f"API response too slow: {benchmark.stats['mean'] * 1000:.2f}ms mean time"
             )
