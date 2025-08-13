@@ -9,7 +9,7 @@ import pytest
 class TestEdfLoader:
     """Test EDF loading functions."""
 
-    @patch("brain_go_brrr.data.edf_loader.mne")
+    @patch("brain_go_brrr.infra.data.edf_loader.mne")
     def test_load_edf_safe_success(self, mock_mne):
         """Test successful EDF loading."""
         from brain_go_brrr.infra.data.edf_loader import load_edf_safe
@@ -26,10 +26,10 @@ class TestEdfLoader:
         assert result == mock_raw
         mock_mne.io.read_raw_edf.assert_called_once()
 
-    @patch("brain_go_brrr.data.edf_loader.mne")
+    @patch("brain_go_brrr.infra.data.edf_loader.mne")
     def test_load_edf_safe_file_not_found(self, mock_mne):
         """Test handling of missing file."""
-        from brain_go_brrr.core.exceptions import EdfLoadError
+        from brain_go_brrr.domain.exceptions import EdfLoadError
         from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 
         # Setup mock to raise FileNotFoundError
@@ -41,10 +41,10 @@ class TestEdfLoader:
 
         assert "not found" in str(exc_info.value).lower()
 
-    @patch("brain_go_brrr.data.edf_loader.mne")
+    @patch("brain_go_brrr.infra.data.edf_loader.mne")
     def test_load_edf_safe_invalid_format(self, mock_mne):
         """Test handling of invalid EDF format."""
-        from brain_go_brrr.core.exceptions import EdfLoadError
+        from brain_go_brrr.domain.exceptions import EdfLoadError
         from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 
         # Setup mock to raise ValueError (invalid format)
@@ -99,7 +99,7 @@ class TestEdfLoader:
         finally:
             temp_path.unlink()
 
-    @patch("brain_go_brrr.data.edf_loader.mne")
+    @patch("brain_go_brrr.infra.data.edf_loader.mne")
     def test_load_with_kwargs(self, mock_mne):
         """Test that kwargs are passed through correctly."""
         from brain_go_brrr.infra.data.edf_loader import load_edf_safe

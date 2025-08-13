@@ -3,14 +3,22 @@
 # Infrastructure preprocessing: brain_go_brrr.infra.preprocessing
 
 # For backward compatibility, export common items from both
-from brain_go_brrr.domain.preprocessing.basic import BasicEEGPreprocessor
+from brain_go_brrr.domain.preprocessing import BasicEEGPreprocessor
+from brain_go_brrr.domain.preprocessing.basic import (
+    BandpassFilter,
+    PreprocessingConfig,
+    PreprocessingPipeline,
+)
 from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 from brain_go_brrr.infra.preprocessing.autoreject_adapter import AutorejectAdapter
 from brain_go_brrr.infra.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
 __all__ = [
     "AutorejectAdapter",
+    "BandpassFilter",
     "BasicEEGPreprocessor",
     "FlexibleEEGPreprocessor",
+    "PreprocessingConfig",
+    "PreprocessingPipeline",
     "WindowExtractor",
 ]

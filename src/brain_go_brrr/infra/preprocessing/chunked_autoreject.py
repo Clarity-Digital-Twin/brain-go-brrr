@@ -253,3 +253,7 @@ class ChunkedAutoRejectProcessor:
         n_samples = min(n_samples, len(file_paths))
 
         return random.sample(file_paths, n_samples)
+
+
+# Compatibility alias
+ChunkedAutorejectPipeline = ChunkedAutoRejectProcessor

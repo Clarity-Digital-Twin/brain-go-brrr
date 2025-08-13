@@ -7,13 +7,13 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
-from brain_go_brrr.training.sleep_probe_trainer import (
+from brain_go_brrr.application.training.sleep_probe_trainer import (
     SleepDataset,
     SleepProbeTrainer,
     evaluate_probe,
     train_sleep_probe,
 )
+from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 
 
 class TestSleepProbeTraining:
@@ -139,7 +139,7 @@ class TestSleepProbeTraining:
         edf_file.write_bytes(b"mock edf data")
 
         # Mock the EDF loading
-        with patch("brain_go_brrr.training.sleep_probe_trainer.load_sleep_edf_data") as mock_load:
+        with patch("brain_go_brrr.application.training.sleep_probe_trainer.load_sleep_edf_data") as mock_load:
             # Return mock windows and labels
             mock_load.return_value = (
                 [np.random.randn(19, 1024) for _ in range(100)],
@@ -250,7 +250,7 @@ Sleep stage REM: 2400-3000
         annotation_file.write_text(annotation_content)
 
         with patch(
-            "brain_go_brrr.training.sleep_probe_trainer.parse_sleep_annotations"
+            "brain_go_brrr.application.training.sleep_probe_trainer.parse_sleep_annotations"
         ) as mock_parse:
             mock_parse.return_value = {
                 0: "W",
@@ -265,7 +265,9 @@ Sleep stage REM: 2400-3000
                 9: "REM",
             }
 
-            from brain_go_brrr.training.sleep_probe_trainer import load_sleep_annotations
+            from brain_go_brrr.application.training.sleep_probe_trainer import (
+                load_sleep_annotations,
+            )
 
             annotations = load_sleep_annotations(annotation_file)
 
@@ -276,7 +278,7 @@ Sleep stage REM: 2400-3000
 
     def test_window_extraction_from_edf(self):
         """Test extracting 4-second windows from EDF data."""
-        from brain_go_brrr.training.sleep_probe_trainer import extract_windows_from_raw
+        from brain_go_brrr.application.training.sleep_probe_trainer import extract_windows_from_raw
 
         # Create mock Raw object
         mock_raw = Mock()
@@ -305,7 +307,7 @@ Sleep stage REM: 2400-3000
             label = i % 5  # 0=W, 1=N1, 2=N2, 3=N3, 4=REM
             labels.append(label)
 
-        from brain_go_brrr.training.sleep_probe_trainer import split_train_val
+        from brain_go_brrr.application.training.sleep_probe_trainer import split_train_val
 
         train_data, val_data = split_train_val(windows, labels, val_split=0.2, random_seed=42)
 

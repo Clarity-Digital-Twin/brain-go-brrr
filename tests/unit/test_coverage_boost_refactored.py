@@ -70,7 +70,7 @@ def test_tuab_dataset_handles_empty_directory():
     """Test TUAB dataset correctly handles empty directory."""
     from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
 
-    with patch("brain_go_brrr.data.tuab_dataset.Path") as mock_path:
+    with patch("brain_go_brrr.infra.data.tuab_dataset.Path") as mock_path:
         mock_path.return_value.exists.return_value = True
         mock_path.return_value.glob.return_value = []
 
@@ -127,7 +127,7 @@ def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
     from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
 
-    with patch("brain_go_brrr.models.eegpt_linear_probe.create_normalized_eegpt") as mock_create:
+    with patch("brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt") as mock_create:
         # Mock the backbone creation
         fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
         mock_create.return_value = fake_backbone

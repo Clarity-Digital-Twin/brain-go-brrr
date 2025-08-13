@@ -8,11 +8,11 @@ import numpy as np
 import pytest
 
 from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
-from brain_go_brrr.preprocessing import (
-    ChunkedAutoRejectProcessor,
+from brain_go_brrr.infra.preprocessing.autoreject_adapter import (
     SyntheticPositionGenerator,
     WindowEpochAdapter,
 )
+from brain_go_brrr.infra.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
 
 logger = logging.getLogger(__name__)
 

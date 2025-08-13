@@ -227,3 +227,7 @@ class SyntheticPositionGenerator:
             ch_pos[ch_name] = np.array([x, y, z_level])
 
         return ch_pos
+
+
+# Compatibility alias
+AutorejectAdapter = WindowEpochAdapter

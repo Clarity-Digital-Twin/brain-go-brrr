@@ -18,7 +18,7 @@ class TestEnhancedAbnormalityDetection:
     def probe(self):
         """Create probe instance."""
         with patch(
-            "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+            "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
         ) as mock_create:
             # Create a proper mock with parameters() method
             mock_backbone = Mock()
@@ -38,7 +38,7 @@ class TestEnhancedAbnormalityDetection:
     def test_probe_initialization(self):
         """Test probe initializes correctly."""
         with patch(
-            "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+            "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
         ) as mock_create:
             # Create a proper mock with parameters() method that returns an empty list
             mock_backbone = Mock()
@@ -76,7 +76,7 @@ class TestEnhancedAbnormalityDetection:
 
         # Test unfrozen backbone
         with patch(
-            "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+            "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
         ) as mock_create:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
@@ -162,7 +162,7 @@ class TestEnhancedAbnormalityDetection:
         """Test different scheduler types."""
         for scheduler_type in ["onecycle", "cosine", "none"]:
             with patch(
-                "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+                "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
             ) as mock_create:
                 mock_backbone = Mock()
                 mock_backbone.parameters.return_value = []  # Empty list of parameters
@@ -176,7 +176,7 @@ class TestEnhancedAbnormalityDetection:
     def test_layer_decay_configuration(self):
         """Test layer-wise learning rate decay."""
         with patch(
-            "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+            "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
         ) as mock_create:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
@@ -188,7 +188,7 @@ class TestEnhancedAbnormalityDetection:
     def test_warmup_configuration(self):
         """Test warmup epochs configuration."""
         with patch(
-            "brain_go_brrr.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
+            "brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection.create_normalized_eegpt"
         ) as mock_create:
             mock_backbone = Mock()
             mock_backbone.parameters.return_value = []  # Empty list of parameters
