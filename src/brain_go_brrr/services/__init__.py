@@ -5,6 +5,7 @@ from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
     HierarchicalEEGAnalyzer,
     PipelineConfig,
 )
+
 # Alias for backward compatibility
 HierarchicalPipeline = HierarchicalEEGAnalyzer
 
