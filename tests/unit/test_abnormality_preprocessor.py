@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from scipy import signal
 
-from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr.infra.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class TestEEGPreprocessor:

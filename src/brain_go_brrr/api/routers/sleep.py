@@ -20,15 +20,15 @@ from brain_go_brrr.api.schemas import (
     JobStatus,
     SleepAnalysisResponse,
 )
-from brain_go_brrr.data.edf_loader import load_edf_safe
 from brain_go_brrr.domain.exceptions import (
     EdfLoadError,
     SleepAnalysisError,
     UnsupportedMontageError,
 )
 from brain_go_brrr.domain.sleep import SleepAnalyzer
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.models.linear_probe import SleepStageProbe
+from brain_go_brrr.infra.data.edf_loader import load_edf_safe
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)

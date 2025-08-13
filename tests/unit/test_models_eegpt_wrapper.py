@@ -28,7 +28,7 @@ class TestEEGPTWrapper:
 
     def test_wrapper_initialization(self):
         """Test wrapper can be initialized with injected model."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+        from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
         # Use dependency injection - no monkey-patching needed
         dummy_model = DummyEEGPTModel()
@@ -40,7 +40,7 @@ class TestEEGPTWrapper:
 
     def test_wrapper_forward(self):
         """Test wrapper forward pass."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+        from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
         # Clean dependency injection
         wrapper = EEGPTWrapper(model=DummyEEGPTModel())
@@ -55,7 +55,7 @@ class TestEEGPTWrapper:
 
     def test_wrapper_normalization(self):
         """Test input normalization parameters."""
-        from brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+        from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
         wrapper = EEGPTWrapper(model=DummyEEGPTModel())
 

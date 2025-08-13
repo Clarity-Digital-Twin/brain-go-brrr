@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import torch
 
-from brain_go_brrr.models.eegpt_model import (
+from brain_go_brrr.infra.ml_models.eegpt_model import (
     EEGPTConfig,
     EEGPTModel,
     extract_features_from_raw,
@@ -64,7 +64,7 @@ class TestEEGPTModel:
         """Initialize EEGPT model."""
         # Create model without checkpoint for testing
         from brain_go_brrr.core.config import ModelConfig
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+        from brain_go_brrr.infra.ml_models.eegpt_architecture import create_eegpt_model
 
         config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)
@@ -89,7 +89,7 @@ class TestEEGPTModel:
         """Test model loads from checkpoint."""
         # For testing, create model without requiring actual checkpoint
         from brain_go_brrr.core.config import ModelConfig
-        from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
+        from brain_go_brrr.infra.ml_models.eegpt_architecture import create_eegpt_model
 
         config = ModelConfig(device="cpu")
         model = EEGPTModel(config=config, auto_load=False)

@@ -41,8 +41,8 @@ class TestDataPipelineIntegration:
 
         # When - process through pipeline
         from brain_go_brrr.core.channels import ChannelProcessor
-        from brain_go_brrr.data.edf_validator import EDFValidator
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         # Step 1: Validate EDF
         validator = EDFValidator()
@@ -83,7 +83,7 @@ class TestDataPipelineIntegration:
 
         # When
         from brain_go_brrr.core.channels import ChannelProcessor
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         # Validate EDF structure
         validator = EDFValidator()
@@ -127,8 +127,8 @@ class TestDataPipelineIntegration:
         )
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         # Validation should fail (too short)
         validator = EDFValidator(min_duration_seconds=60)
@@ -176,8 +176,11 @@ class TestDataPipelineIntegration:
         mock_edf.data[7, :] = np.random.randn(mock_edf.data.shape[1]) * 0.002 + 0.003  # ~3-5mV
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor, WindowValidator
+        from brain_go_brrr.domain.preprocessing.window_extractor import (
+            WindowExtractor,
+            WindowValidator,
+        )
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         validation_result = validator.validate_data(mock_edf)
@@ -230,8 +233,8 @@ class TestDataPipelineIntegration:
 
         # When - process batch
         from brain_go_brrr.core.channels import ChannelProcessor
-        from brain_go_brrr.data.edf_validator import EDFValidator
-        from brain_go_brrr.preprocessing.window_extractor import BatchWindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import BatchWindowExtractor
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         channel_processor = ChannelProcessor()
         validator = EDFValidator()

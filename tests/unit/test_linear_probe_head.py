@@ -12,7 +12,7 @@ class TestLinearProbeHead:
 
     def test_default_initialization(self):
         """Test LinearProbeHead with default initialization."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=2048, num_classes=2)
         assert probe.input_dim == 2048
@@ -27,7 +27,7 @@ class TestLinearProbeHead:
 
     def test_custom_initialization(self):
         """Test LinearProbeHead with custom parameters."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=512, num_classes=5, dropout=0.3)
         assert probe.input_dim == 512
@@ -36,7 +36,7 @@ class TestLinearProbeHead:
 
     def test_dropout_behavior_in_training(self):
         """Test that dropout is active in training mode."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=256, num_classes=3, dropout=0.5)
         probe.train()
@@ -57,7 +57,7 @@ class TestLinearProbeHead:
 
     def test_no_dropout_in_eval_mode(self):
         """Test that dropout is disabled in eval mode."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=128, num_classes=2, dropout=0.5)
         probe.eval()
@@ -72,7 +72,7 @@ class TestLinearProbeHead:
 
     def test_gradient_flow(self):
         """Test that gradients flow through the model."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=256, num_classes=2)
         x = torch.randn(4, 256, requires_grad=True)
@@ -98,7 +98,7 @@ class TestLinearProbeHead:
     )
     def test_various_dimensions(self, input_dim, num_classes):
         """Test LinearProbeHead with various input/output dimensions."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=input_dim, num_classes=num_classes)
 
@@ -112,7 +112,7 @@ class TestLinearProbeHead:
 
     def test_dimension_mismatch_error(self):
         """Test that dimension mismatch raises appropriate error."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=256, num_classes=2)
 
@@ -126,7 +126,7 @@ class TestLinearProbeHead:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
     def test_gpu_compatibility(self):
         """Test LinearProbeHead works on GPU."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead
 
         probe = LinearProbeHead(input_dim=512, num_classes=2)
         probe = probe.cuda()

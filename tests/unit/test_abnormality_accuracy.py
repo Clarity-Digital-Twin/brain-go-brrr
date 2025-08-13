@@ -353,6 +353,6 @@ class TestModelBenchmarks:
         assert sum(tuh_test_subset["labels"]) == 5  # 5 abnormal
 
         # TODO: Once model is stable, add actual predictions
-        # from brain_go_brrr.models.eegpt_model import EEGPTModel
+        # from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
         # model = EEGPTModel()
         # ... run predictions and check accuracy >= 0.65

@@ -4,7 +4,7 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
+from brain_go_brrr.infra.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
 
 class TestFlexibleEEGPreprocessor:

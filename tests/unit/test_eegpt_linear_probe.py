@@ -2,7 +2,7 @@
 
 import torch
 
-from brain_go_brrr.modules.constraints import LinearWithConstraint
+from brain_go_brrr.domain.constraints import LinearWithConstraint
 from brain_go_brrr.tasks.abnormality_detection import AbnormalityDetectionProbe
 
 

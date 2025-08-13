@@ -16,7 +16,7 @@ import numpy as np
 from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNEEpochs, MNERaw
 from brain_go_brrr.domain.exceptions import QualityCheckError
-from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
 
 # Add reference repos to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "autoreject"))
@@ -90,7 +90,7 @@ class EEGQualityController:
     def _load_eegpt_model(self, model_path: Path) -> None:
         """Load pretrained EEGPT model."""
         try:
-            from brain_go_brrr.models.eegpt_model import EEGPTModel
+            from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
 
             if not model_path.exists():
                 logger.warning(f"EEGPT model not found at {model_path}")

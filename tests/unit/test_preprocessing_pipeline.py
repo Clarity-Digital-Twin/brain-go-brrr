@@ -4,7 +4,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from brain_go_brrr.preprocessing.basic import (
+from brain_go_brrr.domain.preprocessing.basic import (
     BandpassFilter,
     Normalizer,
     NotchFilter,

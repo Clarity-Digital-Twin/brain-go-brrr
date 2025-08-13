@@ -7,7 +7,7 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
 
 class TestAutoRejectFallbacksSimple:

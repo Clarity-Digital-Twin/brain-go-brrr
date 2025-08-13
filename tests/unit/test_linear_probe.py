@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from brain_go_brrr.models.linear_probe import (
+from brain_go_brrr.infra.ml_models.linear_probe import (
     AbnormalityProbe,
     LinearProbeHead,
     SleepStageProbe,

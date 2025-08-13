@@ -16,10 +16,10 @@ import numpy.typing as npt
 import torch
 
 from brain_go_brrr._typing import FloatArray, MNERaw
-from brain_go_brrr.config import AbnormalityConfig, ModelConfig
+from brain_go_brrr.application.config import AbnormalityConfig, ModelConfig
 from brain_go_brrr.infra.logger import get_logger
-from brain_go_brrr.models.eegpt_model import EEGPTModel
-from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 class EEGBackbone(Protocol):

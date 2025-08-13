@@ -7,7 +7,7 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-from brain_go_brrr.models.linear_probe import SleepStageProbe
+from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 from brain_go_brrr.training.sleep_probe_trainer import (
     SleepDataset,
     SleepProbeTrainer,

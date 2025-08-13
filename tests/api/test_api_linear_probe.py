@@ -8,7 +8,7 @@ import torch
 from fastapi.testclient import TestClient
 
 from brain_go_brrr.api.main import app
-from brain_go_brrr.models.linear_probe import AbnormalityProbe, SleepStageProbe
+from brain_go_brrr.infra.ml_models.linear_probe import AbnormalityProbe, SleepStageProbe
 
 
 class TestAPILinearProbeIntegration:

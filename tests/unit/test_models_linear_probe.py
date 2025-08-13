@@ -11,7 +11,7 @@ class TestLinearProbe:
 
     def test_linear_probe_initialization(self):
         """Test linear probe initialization."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         probe = LinearProbe(input_dim=768, num_classes=2, dropout=0.1)
 
@@ -27,7 +27,7 @@ class TestLinearProbe:
 
     def test_linear_probe_forward(self):
         """Test forward pass through probe."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         probe = LinearProbe(input_dim=512, num_classes=2)
 
@@ -48,7 +48,7 @@ class TestLinearProbe:
 
     def test_linear_probe_dropout(self):
         """Test dropout is applied in training mode."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         probe = LinearProbe(input_dim=256, num_classes=2, dropout=0.5)
 
@@ -75,7 +75,7 @@ class TestLinearProbe:
 
     def test_linear_probe_multiclass(self):
         """Test probe with multiple classes."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         # 5-class classification
         probe = LinearProbe(input_dim=768, num_classes=5)
@@ -91,7 +91,7 @@ class TestLinearProbe:
 
     def test_linear_probe_binary_decision(self):
         """Test binary classification decision boundary."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         probe = LinearProbe(input_dim=128, num_classes=2)
 
@@ -124,7 +124,7 @@ class TestTwoLayerProbe:
 
     def test_two_layer_initialization(self):
         """Test two-layer probe initialization."""
-        from brain_go_brrr.models.eegpt_two_layer_probe import (
+        from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import (
             TwoLayerProbeHead as TwoLayerProbe,
         )
 
@@ -138,7 +138,7 @@ class TestTwoLayerProbe:
 
     def test_two_layer_forward(self):
         """Test two-layer forward pass."""
-        from brain_go_brrr.models.eegpt_two_layer_probe import (
+        from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import (
             TwoLayerProbeHead as TwoLayerProbe,
         )
 
@@ -172,7 +172,7 @@ class TestProbeTraining:
     @pytest.mark.slow
     def test_probe_learning(self):
         """Test that probe can learn simple pattern."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         # Seed for reproducibility and speed
         torch.manual_seed(0)
@@ -226,7 +226,7 @@ class TestProbeTraining:
 
     def test_probe_gradient_flow(self):
         """Test gradient flows through probe."""
-        from brain_go_brrr.models.linear_probe import LinearProbeHead as LinearProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead as LinearProbe
 
         probe = LinearProbe(input_dim=256, num_classes=3)
 

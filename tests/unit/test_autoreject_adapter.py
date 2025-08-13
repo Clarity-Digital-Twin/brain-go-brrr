@@ -4,7 +4,7 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.preprocessing.autoreject_adapter import (
+from brain_go_brrr.infra.preprocessing.autoreject_adapter import (
     SyntheticPositionGenerator,
     WindowEpochAdapter,
 )
@@ -277,7 +277,7 @@ class TestAutoRejectIntegration:
     )
     def test_full_pipeline_with_parameters(self, window_duration, stride):
         """Test full pipeline with different window parameters."""
-        from brain_go_brrr.preprocessing.autoreject_adapter import WindowEpochAdapter
+        from brain_go_brrr.infra.preprocessing.autoreject_adapter import WindowEpochAdapter
 
         # Create adapter with parameters
         adapter = WindowEpochAdapter(window_duration=window_duration, window_stride=stride)

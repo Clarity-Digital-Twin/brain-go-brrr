@@ -5,7 +5,7 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from brain_go_brrr.config import Config
+from brain_go_brrr.application.config import Config
 from brain_go_brrr.infra.logger import get_logger
 
 app = typer.Typer(
@@ -113,9 +113,9 @@ def stream(
     """Stream EDF file and extract features in real-time."""
     import json
 
-    from brain_go_brrr.config import ModelConfig
-    from brain_go_brrr.data.edf_streaming import EDFStreamer
-    from brain_go_brrr.models.eegpt_model import EEGPTModel
+    from brain_go_brrr.application.config import ModelConfig
+    from brain_go_brrr.infra.data.edf_streaming import EDFStreamer
+    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
 
     console.print(f"[green]Starting EDF streaming from {edf_path}[/green]")
 
@@ -128,7 +128,7 @@ def stream(
     model = EEGPTModel(config=model_config, auto_load=False)
 
     # Use mock model for now
-    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+    from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
     model.encoder = create_normalized_eegpt(checkpoint_path=None)
     if model.encoder is not None:

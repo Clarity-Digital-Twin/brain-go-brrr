@@ -64,7 +64,7 @@ class TestEEGPTRouterClean:
     @pytest.fixture
     def mock_abnormality_probe(self):
         """Create minimal mock of abnormality probe."""
-        from brain_go_brrr.models.linear_probe import AbnormalityProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import AbnormalityProbe
 
         probe = MagicMock(spec=AbnormalityProbe)
 
@@ -78,7 +78,7 @@ class TestEEGPTRouterClean:
     @pytest.fixture
     def mock_sleep_probe(self):
         """Create minimal mock of sleep probe."""
-        from brain_go_brrr.models.linear_probe import SleepStageProbe
+        from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 
         probe = MagicMock(spec=SleepStageProbe)
 

@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from brain_go_brrr.preprocessing.basic import (
+from brain_go_brrr.domain.preprocessing.basic import (
     BandpassFilter,
     Normalizer,
     NotchFilter,
@@ -77,7 +77,7 @@ class TestNormalizer:
         data = np.array([[1, 2, 3, 4, 5], [10, 20, 30, 40, 50]])
 
         try:
-            from brain_go_brrr.preprocessing.basic import Normalizer
+            from brain_go_brrr.domain.preprocessing.basic import Normalizer
 
             normalizer = Normalizer(method="minmax")
             normalized = normalizer.fit_transform(data)

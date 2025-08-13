@@ -25,8 +25,8 @@ from sklearn.metrics import (
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
-from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
-from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 logger = logging.getLogger(__name__)
 

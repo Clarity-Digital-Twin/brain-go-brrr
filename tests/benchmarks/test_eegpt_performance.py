@@ -19,7 +19,7 @@ import pytest
 import torch
 
 from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
 
 # Import complexity budget calculator
 try:
@@ -83,7 +83,7 @@ PERF_MULTIPLIER = 2.0 if STRICT else 3.0  # More lenient locally
 def eegpt_model_cpu():
     """Create EEGPT model for CPU benchmarks."""
     # Use mock model if no checkpoint available to avoid dependency issues
-    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+    from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
     config = ModelConfig(device="cpu")
     model = EEGPTModel(config=config, auto_load=False)
@@ -107,7 +107,7 @@ def eegpt_model_gpu():
     if not torch.cuda.is_available():
         pytest.skip("GPU not available for testing")
 
-    from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+    from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
     config = ModelConfig(device="cuda")
     model = EEGPTModel(config=config, auto_load=False)

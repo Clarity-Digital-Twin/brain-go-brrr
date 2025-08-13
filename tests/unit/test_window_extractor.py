@@ -19,7 +19,7 @@ class TestWindowExtractor:
         data = np.random.randn(n_channels, n_samples)
 
         # When - extract 8-second windows
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
         extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         windows = extractor.extract(data, sfreq)
@@ -45,7 +45,7 @@ class TestWindowExtractor:
             data = np.random.randn(20, duration * sfreq)
 
             # When
-            from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+            from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
             extractor = WindowExtractor(window_seconds=window_size, overlap_seconds=overlap)
             windows = extractor.extract(data, sfreq)
@@ -63,7 +63,7 @@ class TestWindowExtractor:
         data = np.arange(20 * sfreq).reshape(1, -1)  # Single channel, incrementing values
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
         extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         windows = extractor.extract(data, sfreq)
@@ -83,7 +83,7 @@ class TestWindowExtractor:
         data = np.random.randn(20, 5 * sfreq)
 
         # When - try to extract 8-second windows
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
         extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         windows = extractor.extract(data, sfreq)
@@ -102,7 +102,7 @@ class TestWindowExtractor:
             data[i, :] = i  # Each channel has constant value = channel index
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
         extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         windows = extractor.extract(data, sfreq)
@@ -121,7 +121,7 @@ class TestWindowExtractor:
             data = np.random.randn(20, 16 * sfreq)  # 16 seconds
 
             # When
-            from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+            from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
             extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
             windows = extractor.extract(data, sfreq)
@@ -138,7 +138,7 @@ class TestWindowExtractor:
         data = np.random.randn(20, duration * sfreq)
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 
         extractor = WindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         windows, timestamps = extractor.extract_with_timestamps(data, sfreq)
@@ -161,7 +161,7 @@ class TestWindowValidator:
         invalid_window = np.random.randn(20, 1024)  # Wrong number of samples
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import WindowValidator
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowValidator
 
         validator = WindowValidator(expected_channels=20, expected_samples=2048)
 
@@ -179,7 +179,7 @@ class TestWindowValidator:
         window_with_inf[10, 500] = np.inf
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import WindowValidator
+        from brain_go_brrr.domain.preprocessing.window_extractor import WindowValidator
 
         validator = WindowValidator(expected_channels=20, expected_samples=2048)
 
@@ -201,7 +201,7 @@ class TestBatchWindowExtractor:
         ]
 
         # When
-        from brain_go_brrr.preprocessing.window_extractor import BatchWindowExtractor
+        from brain_go_brrr.domain.preprocessing.window_extractor import BatchWindowExtractor
 
         extractor = BatchWindowExtractor(window_seconds=8.0, overlap_seconds=4.0)
         all_windows, recording_indices = extractor.extract_batch(recordings, sfreq=256)

@@ -5,7 +5,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from brain_go_brrr.models.eegpt_linear_probe_robust import RobustEEGPTLinearProbe
+from brain_go_brrr.infra.ml_models.eegpt_linear_probe_robust import RobustEEGPTLinearProbe
 
 
 class TestRobustEEGPTLinearProbeClean:

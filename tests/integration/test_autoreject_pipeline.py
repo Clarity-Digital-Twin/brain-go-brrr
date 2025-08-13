@@ -9,12 +9,12 @@ import pytest
 import yaml
 
 # These will fail until implemented - TDD!
-from brain_go_brrr.data.tuab_enhanced_dataset import TUABEnhancedDataset
-from brain_go_brrr.preprocessing.autoreject_adapter import (
+from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
+from brain_go_brrr.infra.preprocessing.autoreject_adapter import (
     SyntheticPositionGenerator,
     WindowEpochAdapter,
 )
-from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+from brain_go_brrr.infra.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
 
 
 class TestAutoRejectEEGPTIntegration:

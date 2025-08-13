@@ -18,7 +18,7 @@ class TestEDFValidator:
         non_existent = Path("/tmp/does_not_exist.edf")
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate(non_existent)
@@ -34,7 +34,7 @@ class TestEDFValidator:
             wrong_extension = Path(f.name)
 
             # When
-            from brain_go_brrr.data.edf_validator import EDFValidator
+            from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
             validator = EDFValidator()
             result = validator.validate(wrong_extension)
@@ -49,7 +49,7 @@ class TestEDFValidator:
         mock_edf_data = MockEDFData(duration_seconds=30, sfreq=256, n_channels=20)
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator(min_duration_seconds=60)
         result = validator.validate_data(mock_edf_data)
@@ -65,7 +65,7 @@ class TestEDFValidator:
         mock_edf_data = MockEDFData(duration_seconds=300, sfreq=333, n_channels=20)
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf_data)
@@ -84,7 +84,7 @@ class TestEDFValidator:
             mock_edf = MockEDFData(duration_seconds=300, sfreq=sfreq, n_channels=20)
 
             # When
-            from brain_go_brrr.data.edf_validator import EDFValidator
+            from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
             validator = EDFValidator()
             result = validator.validate_data(mock_edf)
@@ -98,7 +98,7 @@ class TestEDFValidator:
         mock_edf_data = MockEDFData(duration_seconds=300, sfreq=256, n_channels=5)
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator(min_channels=19)
         result = validator.validate_data(mock_edf_data)
@@ -116,7 +116,7 @@ class TestEDFValidator:
         mock_edf.data[5, 1000:1100] = np.nan  # Inject NaNs
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
@@ -132,7 +132,7 @@ class TestEDFValidator:
         mock_edf.data[10, 500] = np.inf
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
@@ -148,7 +148,7 @@ class TestEDFValidator:
         mock_edf.data[0, :] = 5000e-6  # 5mV - very high for EEG
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
@@ -166,7 +166,7 @@ class TestEDFValidator:
         mock_edf.data[7, :] = 1e-6  # Constant non-zero
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
@@ -188,7 +188,7 @@ class TestEDFValidator:
         )
 
         # When
-        from brain_go_brrr.data.edf_validator import EDFValidator
+        from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         validator = EDFValidator()
         result = validator.validate_data(mock_edf)
@@ -207,7 +207,7 @@ class TestValidationResult:
     def test_result_contains_all_fields(self):
         """Validation result should have all necessary fields."""
         # Given/When
-        from brain_go_brrr.data.edf_validator import ValidationResult
+        from brain_go_brrr.infra.data.edf_validator import ValidationResult
 
         result = ValidationResult(
             is_valid=True,

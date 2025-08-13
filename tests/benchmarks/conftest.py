@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from brain_go_brrr.preprocessing.eeg_preprocessor import EEGPreprocessor
+from brain_go_brrr.infra.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 
 def channel_complexity_budget(n_channels: int, base_ms: float = 65.0, factor: float = 1.0) -> float:

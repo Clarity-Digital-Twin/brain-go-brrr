@@ -6,12 +6,12 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
+from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
 from brain_go_brrr.infra.serialization import (
     deserialize_value,
     register_serializable,
     serialize_value,
 )
-from brain_go_brrr.preprocessing.window_extractor import WindowExtractor
 
 
 def test_overlap_equals_window_zero_stride():

@@ -5,7 +5,7 @@ Following TDD approach - test first, then fix implementation.
 
 import torch
 
-from brain_go_brrr.models.eegpt_architecture import (
+from brain_go_brrr.infra.ml_models.eegpt_architecture import (
     Attention,
     EEGTransformer,
     RoPE,

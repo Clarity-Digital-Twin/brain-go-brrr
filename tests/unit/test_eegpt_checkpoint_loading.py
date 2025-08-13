@@ -15,8 +15,8 @@ import numpy as np
 import pytest
 import torch
 
-from brain_go_brrr.models.eegpt_architecture import create_eegpt_model
-from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr.infra.ml_models.eegpt_architecture import create_eegpt_model
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 
 class TestEEGPTCheckpointLoading:

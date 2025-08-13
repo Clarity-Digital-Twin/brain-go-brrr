@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 
-from brain_go_brrr.models.eegpt_model import (
+from brain_go_brrr.infra.ml_models.eegpt_model import (
     EEGPTConfig,
     EEGPTModel,
     preprocess_for_eegpt,

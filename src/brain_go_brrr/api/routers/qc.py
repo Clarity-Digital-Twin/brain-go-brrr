@@ -14,9 +14,9 @@ from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.schemas import QCResponse
-from brain_go_brrr.data.edf_loader import load_edf_safe
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.domain.quality import EEGQualityController
+from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -282,7 +282,7 @@ async def analyze_eeg_detailed(
             # Generate report if requested
             report_base64 = None
             if include_report:
-                from brain_go_brrr.visualization.pdf_report import PDFReportGenerator
+                from brain_go_brrr.presentation.visualization.pdf_report import PDFReportGenerator
 
                 report_gen = PDFReportGenerator()
                 report_bytes = report_gen.generate_report(results)

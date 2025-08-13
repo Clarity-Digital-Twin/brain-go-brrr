@@ -60,7 +60,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_report_structure(self):
         """Test that markdown report has required structure."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             generate_markdown_report,
         )
 
@@ -69,7 +69,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_contains_warning_section(self, qc_results):
         """Test markdown contains warning section for abnormal EEGs."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -87,7 +87,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_summary_statistics(self, qc_results):
         """Test markdown includes summary statistics section."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -102,7 +102,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_channel_quality_table(self, qc_results):
         """Test markdown includes channel quality table."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -117,7 +117,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_artifact_summary(self, qc_results):
         """Test markdown includes artifact summary."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -132,7 +132,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_for_normal_eeg(self):
         """Test markdown report for normal EEG (no warning)."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -162,7 +162,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_file_save(self, qc_results, tmp_path):
         """Test saving markdown report to file."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -180,7 +180,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_metadata_section(self, qc_results):
         """Test markdown includes metadata section."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -195,7 +195,7 @@ class TestMarkdownReportGeneration:
 
     def test_triage_flag_formatting(self):
         """Test different triage flags have appropriate formatting."""
-        from brain_go_brrr.visualization.markdown_report import get_triage_emoji
+        from brain_go_brrr.presentation.visualization.markdown_report import get_triage_emoji
 
         assert get_triage_emoji("URGENT") == "🚨"
         assert get_triage_emoji("EXPEDITE") == "⚠️"
@@ -206,7 +206,7 @@ class TestMarkdownReportGeneration:
         """Test markdown generation is fast (<1 second)."""
         import time
 
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -221,7 +221,7 @@ class TestMarkdownReportGeneration:
 
     def test_markdown_ascii_electrode_map(self, qc_results):
         """Test markdown includes ASCII representation of electrode map."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             MarkdownReportGenerator,
         )
 
@@ -234,7 +234,7 @@ class TestMarkdownReportGeneration:
 
     def test_convert_pdf_results_to_markdown(self, qc_results):
         """Test converting existing PDF results to markdown."""
-        from brain_go_brrr.visualization.markdown_report import (
+        from brain_go_brrr.presentation.visualization.markdown_report import (
             convert_results_to_markdown,
         )
 

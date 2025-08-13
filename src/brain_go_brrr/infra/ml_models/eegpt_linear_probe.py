@@ -13,8 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as functional
 
-from brain_go_brrr.models.eegpt_wrapper import create_normalized_eegpt
-from brain_go_brrr.modules.constraints import LinearWithConstraint
+from brain_go_brrr.domain.constraints import LinearWithConstraint
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 logger = logging.getLogger(__name__)
 

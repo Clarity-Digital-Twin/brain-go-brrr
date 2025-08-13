@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from brain_go_brrr.data.tuab_dataset import TUABDataset
+from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
 
 
 @pytest.fixture(scope="session")

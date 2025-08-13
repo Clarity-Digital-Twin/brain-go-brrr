@@ -49,7 +49,7 @@ def test_parallel_pipeline_processes_data():
 
 def test_snippet_maker_creates_snippets():
     """Test that snippet maker creates EEG snippets with correct properties."""
-    from brain_go_brrr.preprocessing.snippets.maker import EEGSnippetMaker
+    from brain_go_brrr.infra.preprocessing.snippets.maker import EEGSnippetMaker
 
     # Arrange
     maker = EEGSnippetMaker(snippet_length=4.0, overlap=0.5)
@@ -68,7 +68,7 @@ def test_snippet_maker_creates_snippets():
 
 def test_tuab_dataset_handles_empty_directory():
     """Test TUAB dataset correctly handles empty directory."""
-    from brain_go_brrr.data.tuab_dataset import TUABDataset
+    from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
 
     with patch("brain_go_brrr.data.tuab_dataset.Path") as mock_path:
         mock_path.return_value.exists.return_value = True
@@ -125,7 +125,7 @@ def test_job_store_manages_jobs():
 
 def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
-    from brain_go_brrr.models.eegpt_linear_probe import EEGPTLinearProbe
+    from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
 
     with patch("brain_go_brrr.models.eegpt_linear_probe.create_normalized_eegpt") as mock_create:
         # Mock the backbone creation
@@ -258,7 +258,7 @@ def test_chunked_autoreject_processes_chunks():
     epochs = mne.make_fixed_length_epochs(raw, duration=2.0, preload=True)
 
     # Test that we can process epochs
-    from brain_go_brrr.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
+    from brain_go_brrr.infra.preprocessing.chunked_autoreject import ChunkedAutoRejectProcessor
 
     processor = ChunkedAutoRejectProcessor(chunk_size=5)
 
@@ -309,7 +309,7 @@ def test_cached_dataset_loads_from_cache():
         index_path.write_text(json.dumps(index))
 
         # Test loading
-        from brain_go_brrr.data.tuab_cached_dataset import TUABCachedDataset
+        from brain_go_brrr.infra.data.tuab_cached_dataset import TUABCachedDataset
 
         dataset = TUABCachedDataset(root_dir=temp_dir, split="train", cache_index_path=index_path)
 
@@ -334,7 +334,7 @@ def test_cached_dataset_loads_from_cache():
 
 def test_two_layer_probe_forward_pass():
     """Test two-layer probe produces correct outputs."""
-    from brain_go_brrr.models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+    from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
 
     # Arrange
     probe = EEGPTTwoLayerProbe(n_classes=3, hidden_dim=512)
@@ -413,7 +413,7 @@ def test_time_utils():
 
 def test_edf_validator():
     """Test EDF file validation."""
-    from brain_go_brrr.data.edf_validator import EDFValidator
+    from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
     validator = EDFValidator()
 
@@ -449,7 +449,7 @@ def test_model_config():
 
 def test_eegpt_config():
     """Test EEGPT configuration."""
-    from brain_go_brrr.models.eegpt_model import EEGPTConfig
+    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTConfig
 
     # Test default config
     config = EEGPTConfig()

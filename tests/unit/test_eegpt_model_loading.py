@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from brain_go_brrr.models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
 
 
 @pytest.mark.integration  # Tests require model file interactions

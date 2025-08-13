@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from brain_go_brrr.preprocessing.basic import (
+from brain_go_brrr.domain.preprocessing.basic import (
     BandpassFilter,
     Normalizer,
     NotchFilter,
