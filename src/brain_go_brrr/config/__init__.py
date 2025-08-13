@@ -4,8 +4,8 @@ from .abnormality_config import AbnormalityConfig
 from .base import Config, DataConfig, ModelConfig
 
 __all__ = [
-    "Config",
-    "ModelConfig", 
-    "DataConfig",
     "AbnormalityConfig",
+    "Config",
+    "DataConfig",
+    "ModelConfig",
 ]

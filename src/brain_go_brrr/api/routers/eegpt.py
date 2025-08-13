@@ -11,8 +11,8 @@ import torch
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from brain_go_brrr.domain.exceptions import EdfLoadError
 from brain_go_brrr.data.edf_loader import load_edf_safe
+from brain_go_brrr.domain.exceptions import EdfLoadError
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 from brain_go_brrr.models.linear_probe import (
     AbnormalityProbe,
