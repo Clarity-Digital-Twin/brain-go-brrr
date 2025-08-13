@@ -3,7 +3,7 @@
 # Import shims for moved modules
 class _ServiceShim:
     """Lazy import shim for services."""
-    
+
     def __getattr__(self, name):
         # Try to import from new locations
         if name == "hierarchical_pipeline":
@@ -15,6 +15,7 @@ class _ServiceShim:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 import sys
+
 sys.modules[__name__] = _ServiceShim()
 
 # Re-export from new locations for direct imports
