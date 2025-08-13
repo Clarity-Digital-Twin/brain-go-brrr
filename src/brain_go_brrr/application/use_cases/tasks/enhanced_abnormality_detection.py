@@ -171,9 +171,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         preds = torch.argmax(logits, dim=1)
         acc = (preds == y).float().mean()
 
-        # Log metrics
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+        # Log metrics (only if trainer is attached to avoid warnings in tests)
+        if getattr(self, "trainer", None) is not None:
+            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
 
         # Store outputs for epoch-level metrics
         self.train_outputs.append(
