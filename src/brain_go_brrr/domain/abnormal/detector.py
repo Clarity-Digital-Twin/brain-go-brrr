@@ -214,7 +214,7 @@ class AbnormalityDetector:
         # Guard for older PyTorch versions
         kwargs: dict[str, Any] = {"map_location": self.device}
         if "weights_only" in inspect.signature(torch.load).parameters:
-            kwargs["weights_only"] = True
+            kwargs["weights_only"] = False  # Changed from True to handle numpy arrays in checkpoint
         state = torch.load(classifier_path, **kwargs)
 
         # Check dimension compatibility before loading
