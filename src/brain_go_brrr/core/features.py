@@ -1,19 +1,8 @@
-"""Compatibility shim for moved features module.
-
-DEPRECATED: Use brain_go_brrr.preprocessing.features instead.
-This shim will be removed in version 2.0.0.
-"""
-
+# DEPRECATED: use brain_go_brrr.preprocessing.features instead. Removed in v2.0.0.
 from brain_go_brrr.utils.deprecated_redirect import redirect
-
-# Clean redirect to new location
 redirect(
-    __name__,
-    "brain_go_brrr.preprocessing.features",
-    submods=("extractor",),
-    removal_version="2.0.0"
+    old="brain_go_brrr.core.features",
+    new="brain_go_brrr.preprocessing.features",
+    globals_dict=globals(),
+    warn_on_import=False,
 )
-
-# Re-export for compatibility
-from brain_go_brrr.preprocessing.features import *  # noqa: F403, E402
-from brain_go_brrr.preprocessing.features import __all__  # noqa: F401, E402
