@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.preprocessing import (
+from brain_go_brrr.preprocessing.basic import (
     BandpassFilter,
     Normalizer,
     NotchFilter,
