@@ -250,41 +250,12 @@ class TestApplicationBehavior:
         print(f"   - PDF size: {len(results['pdf'])} bytes")
 
 
-def test_behavior_summary():
-    """Run all behavior tests and print summary."""
-    import subprocess
-    import sys
-
-    # Run pytest and capture results
-    result = subprocess.run(
-        [sys.executable, "-m", "pytest", __file__, "-v", "--tb=short"],
-        capture_output=True,
-        text=True,
-    )
-
-    print("\n" + "=" * 60)
-    print("📋 BEHAVIOR TEST SUMMARY")
-    print("=" * 60)
-
-    # Parse output for pass/fail
-    lines = result.stdout.split("\n")
-    for line in lines:
-        if "PASSED" in line:
-            print(f"✅ {line.split('::')[-1].split('[')[0]}")
-        elif "FAILED" in line:
-            print(f"❌ {line.split('::')[-1].split('[')[0]}")
-        elif "SKIPPED" in line:
-            print(f"⚠️  {line.split('::')[-1].split('[')[0]} (skipped)")
-
-    # Final status
-    if result.returncode == 0:
-        print("\n🎉 ALL BEHAVIOR TESTS PASSED!")
-    else:
-        print(f"\n⚠️ Some tests failed. Exit code: {result.returncode}")
-
-    return result.returncode
+# Removed test_behavior_summary - it was causing recursive pytest execution
+# This test would run pytest inside pytest which causes timeouts
+# The behavior tests are already being run directly
 
 
 if __name__ == "__main__":
-    # Run summary when executed directly
-    sys.exit(test_behavior_summary())
+    # Run tests directly
+    import pytest
+    sys.exit(pytest.main([__file__, "-v"]))

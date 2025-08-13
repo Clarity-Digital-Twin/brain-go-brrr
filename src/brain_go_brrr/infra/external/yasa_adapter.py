@@ -14,14 +14,13 @@ from typing import Any
 import mne
 import numpy as np
 import numpy.typing as npt
+import yasa
+
+from brain_go_brrr._typing import MNERaw
 
 # Filter sklearn FutureWarning from YASA
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 warnings.filterwarnings("ignore", message=".*Scikit-learn.*version.*", category=UserWarning)
-
-import yasa
-
-from brain_go_brrr._typing import MNERaw
 
 logger = logging.getLogger(__name__)
 

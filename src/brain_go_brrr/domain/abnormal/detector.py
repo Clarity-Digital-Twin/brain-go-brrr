@@ -539,7 +539,7 @@ class AbnormalityDetector:
 
                 # Convert features to tensor for classification
                 features = torch.from_numpy(features_np).float().to(self.device, non_blocking=True)
-                
+
                 # Assert expected input dimension for EEGPT features
                 assert features.numel() in [512, 2048], f"Expected 512 or 2048 features, got {features.numel()}"
 
@@ -556,7 +556,7 @@ class AbnormalityDetector:
 
                 # Add batch dimension for classifier
                 features_batch = features_flat.unsqueeze(0)
-                
+
                 # Ensure classifier is on device and in eval mode
                 self.classifier.eval()
                 logits = self.classifier(features_batch)

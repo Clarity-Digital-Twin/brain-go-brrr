@@ -1,7 +1,8 @@
 [run]
 source = brain_go_brrr
 branch = True
-parallel = False
+parallel = True
+data_file = .coverage
 omit = 
     */tests/*
     */__init__.py
