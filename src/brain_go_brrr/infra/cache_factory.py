@@ -53,7 +53,7 @@ class MemoryCache:
         self._ttls.clear()
 
 
-def get_cache(backend: str | None = None) -> CachePort[bytes]:
+def get_cache(backend: str | None = None) -> CachePort:
     """Factory function to get appropriate cache implementation.
 
     This follows the Factory pattern and Dependency Inversion Principle:
