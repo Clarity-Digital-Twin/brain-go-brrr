@@ -1,17 +1,8 @@
-"""Compatibility shim for moved logger module.
-
-DEPRECATED: Use brain_go_brrr.infra.logger instead.
-This shim will be removed in version 2.0.0.
-"""
-
+# DEPRECATED: use brain_go_brrr.infra.logger instead. Removed in v2.0.0.
 from brain_go_brrr.utils.deprecated_redirect import redirect
-
-# Clean redirect to new location
 redirect(
-    __name__,
-    "brain_go_brrr.infra.logger",
-    removal_version="2.0.0"
+    old="brain_go_brrr.core.logger",
+    new="brain_go_brrr.infra.logger",
+    globals_dict=globals(),
+    warn_on_import=False,
 )
-
-# Re-export for compatibility
-from brain_go_brrr.infra.logger import *  # noqa: F403, E402

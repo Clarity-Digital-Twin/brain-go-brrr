@@ -1,17 +1,8 @@
-"""Compatibility shim for moved channels module.
-
-DEPRECATED: Use brain_go_brrr.domain.channels instead.
-This shim will be removed in version 2.0.0.
-"""
-
+# DEPRECATED: use brain_go_brrr.domain.channels instead. Removed in v2.0.0.
 from brain_go_brrr.utils.deprecated_redirect import redirect
-
-# Clean redirect to new location
 redirect(
-    __name__,
-    "brain_go_brrr.domain.channels",
-    removal_version="2.0.0"
+    old="brain_go_brrr.core.channels",
+    new="brain_go_brrr.domain.channels",
+    globals_dict=globals(),
+    warn_on_import=False,
 )
-
-# Re-export for compatibility
-from brain_go_brrr.domain.channels import *  # noqa: F403, E402
