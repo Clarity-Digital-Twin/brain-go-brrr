@@ -188,7 +188,7 @@ class TestEEGPTFeatureExtractor:
 
             assert len(embeddings_list) == 3
             for embeddings in embeddings_list:
-                assert embeddings.shape == (2, 512)  # 2 windows per recording
+                assert embeddings.shape == (2, 4, 512)  # 2 windows, 4 summary tokens, 512 dims
 
     @pytest.mark.integration
     def test_real_eegpt_model_loading(self):
