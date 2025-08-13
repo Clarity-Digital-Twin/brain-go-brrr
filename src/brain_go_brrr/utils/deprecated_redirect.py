@@ -8,53 +8,40 @@ the need for # noqa comments everywhere.
 import importlib
 import sys
 import warnings
+from types import ModuleType
 
 
 def redirect(
-    module_name: str,
-    target: str,
+    old: str,
+    new: str,
+    globals_dict: dict,
     *,
-    submods: tuple[str, ...] = (),
-    removal_version: str | None = None
-) -> None:
-    """Create a deprecation redirect from old module path to new.
-
-    This follows PEP-562 (__getattr__ and __dir__ on modules) to provide
-    clean deprecation warnings without import order issues or type: ignore
-    comments.
-
+    warn_on_import: bool = True,
+    message: str | None = None,
+) -> ModuleType:
+    """PEP-562-friendly module redirect, optionally silent on import.
+    
     Args:
-        module_name: Full name of the deprecated module (typically __name__)
-        target: Full name of the new module location
-        submods: Tuple of submodule names to also redirect
-        removal_version: Version when this shim will be removed (for warning)
-
-    Example:
-        # In src/brain_go_brrr/core/features.py:
-        from brain_go_brrr.utils.deprecated_redirect import redirect
-        redirect(__name__, "brain_go_brrr.preprocessing.features", submods=("extractor",))
+        old: Full name of the deprecated module
+        new: Full name of the new module location
+        globals_dict: Global dictionary of the calling module (pass globals())
+        warn_on_import: Whether to warn on import (False for silent redirects)
+        message: Custom deprecation message
+        
+    Returns:
+        The redirected module
     """
-    removal_msg = f" Will be removed in version {removal_version}." if removal_version else ""
-    warnings.warn(
-        f"{module_name} is deprecated; use {target}.{removal_msg}",
-        DeprecationWarning,
-        stacklevel=3  # Skip this function and the caller to show the import line
-    )
-
-    # Import the target module
-    target_mod = importlib.import_module(target)
-
-    # Replace this module with the target in sys.modules
-    sys.modules[module_name] = target_mod
-
-    # Also redirect any submodules
-    for submod in submods:
-        try:
-            sub_target = importlib.import_module(f"{target}.{submod}")
-            sys.modules[f"{module_name}.{submod}"] = sub_target
-        except ImportError:
-            # Submodule doesn't exist in target, skip it
-            pass
+    mod = importlib.import_module(new)
+    sys.modules[old] = mod
+    globals_dict.update(mod.__dict__)
+    
+    if warn_on_import:
+        warnings.warn(
+            message or f"{old} is deprecated; use {new}. Will be removed in version 2.0.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    return mod
 
 
 __all__ = ["redirect"]
