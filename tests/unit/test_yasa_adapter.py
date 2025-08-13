@@ -45,7 +45,7 @@ class TestYASASleepStager:
     @pytest.fixture
     def mock_yasa(self):
         """Mock YASA module."""
-        with patch("brain_go_brrr.services.yasa_adapter.yasa") as mock:
+        with patch("brain_go_brrr.infra.external.yasa_adapter.yasa") as mock:
             # Mock SleepStaging class
             mock_sls = MagicMock()
             mock_sls.predict.return_value = np.array([0, 1, 2, 3, 4])  # W, N1, N2, N3, REM
@@ -78,9 +78,9 @@ class TestYASASleepStager:
 
         stages, confidences, metrics = stager.stage_sleep(eeg_data)
 
-        # Check outputs (5 minutes = 10 epochs of 30 seconds each)
-        assert len(stages) == 10
-        assert len(confidences) == 10
+        # Check outputs (mock returns 5 stages)
+        assert len(stages) == 5
+        assert len(confidences) == 5
         assert all(0 <= c <= 1 for c in confidences)
         assert all(s in ["W", "N1", "N2", "N3", "REM"] for s in stages)
 

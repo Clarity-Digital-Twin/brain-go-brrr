@@ -1,27 +1,18 @@
 """Services module for brain_go_brrr - compatibility layer."""
 
 # Re-export for backward compatibility
-try:
-    from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
-        HierarchicalEEGAnalyzer,
-        HierarchicalPipeline,
-        PipelineConfig,
-    )
-except ImportError:
-    HierarchicalEEGAnalyzer = None
-    HierarchicalPipeline = None
-    PipelineConfig = None
+from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
+    HierarchicalEEGAnalyzer,
+    PipelineConfig,
+)
+# Alias for backward compatibility
+HierarchicalPipeline = HierarchicalEEGAnalyzer
 
-try:
-    from brain_go_brrr.infra.external.yasa_adapter import (
-        HierarchicalPipelineYASAAdapter,
-        YASAConfig,
-        YASASleepStager,
-    )
-except ImportError:
-    HierarchicalPipelineYASAAdapter = None
-    YASAConfig = None
-    YASASleepStager = None
+from brain_go_brrr.infra.external.yasa_adapter import (
+    HierarchicalPipelineYASAAdapter,
+    YASAConfig,
+    YASASleepStager,
+)
 
 __all__ = [
     "HierarchicalEEGAnalyzer",
