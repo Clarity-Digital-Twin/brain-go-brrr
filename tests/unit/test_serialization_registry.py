@@ -68,13 +68,13 @@ class TestSerializationRegistry:
         """Test registering a valid dataclass."""
         # Given: A valid dataclass with required methods
         # When: Registering it
-        result = register_serializable(TestData1)
+        result = register_serializable(SampleData1)
 
         # Then: Should return the class and be in registry
-        assert result is TestData1
+        assert result is SampleData1
         registry = get_registry()
-        assert "TestData1" in registry
-        assert registry["TestData1"] is TestData1
+        assert "SampleData1" in registry
+        assert registry["SampleData1"] is SampleData1
 
     def test_register_invalid_dataclass(self) -> None:
         """Test registering invalid dataclass raises error."""
@@ -97,15 +97,15 @@ class TestSerializationRegistry:
     def test_round_trip_serialization_single_class(self) -> None:
         """Test round-trip serialization of a single registered class."""
         # Given: A registered dataclass instance
-        register_serializable(TestData1)
-        original = TestData1(name="test", value=42, metadata={"key": "value"})
+        register_serializable(SampleData1)
+        original = SampleData1(name="test", value=42, metadata={"key": "value"})
 
         # When: Serializing and deserializing
         serialized = serialize_value(original)
         deserialized = deserialize_value(serialized)
 
         # Then: Should recover the same data
-        assert isinstance(deserialized, TestData1)
+        assert isinstance(deserialized, SampleData1)
         assert deserialized.name == original.name
         assert deserialized.value == original.value
         assert deserialized.metadata == original.metadata
@@ -113,11 +113,11 @@ class TestSerializationRegistry:
     def test_round_trip_multiple_classes(self) -> None:
         """Test round-trip with multiple registered classes."""
         # Given: Multiple registered dataclasses
-        register_serializable(TestData1)
-        register_serializable(TestData2)
+        register_serializable(SampleData1)
+        register_serializable(SampleData2)
 
-        data1 = TestData1(name="first", value=1)
-        data2 = TestData2(id="abc123", items=["a", "b", "c"])
+        data1 = SampleData1(name="first", value=1)
+        data2 = SampleData2(id="abc123", items=["a", "b", "c"])
 
         # When: Serializing and deserializing both
         ser1 = serialize_value(data1)
@@ -126,11 +126,11 @@ class TestSerializationRegistry:
         deser2 = deserialize_value(ser2)
 
         # Then: Each should deserialize to correct type
-        assert isinstance(deser1, TestData1)
+        assert isinstance(deser1, SampleData1)
         assert deser1.name == "first"
         assert deser1.value == 1
 
-        assert isinstance(deser2, TestData2)
+        assert isinstance(deser2, SampleData2)
         assert deser2.id == "abc123"
         assert deser2.items == ["a", "b", "c"]
         assert deser2.active is True
@@ -138,7 +138,7 @@ class TestSerializationRegistry:
     def test_serialize_unregistered_dataclass(self) -> None:
         """Test serializing unregistered dataclass falls back gracefully."""
         # Given: An unregistered dataclass with to_dict
-        data = TestData1(name="unregistered", value=99)
+        data = SampleData1(name="unregistered", value=99)
 
         # When: Serializing without registration
         serialized = serialize_value(data)
@@ -197,7 +197,7 @@ class TestSerializationRegistry:
     def test_registry_isolation(self) -> None:
         """Test registry can be cleared and reused."""
         # Given: A populated registry
-        register_serializable(TestData1)
+        register_serializable(SampleData1)
         assert len(get_registry()) == 1
 
         # When: Clearing registry
@@ -207,15 +207,15 @@ class TestSerializationRegistry:
         assert len(get_registry()) == 0
 
         # And: Can register again
-        register_serializable(TestData2)
+        register_serializable(SampleData2)
         assert len(get_registry()) == 1
-        assert "TestData2" in get_registry()
+        assert "SampleData2" in get_registry()
 
     def test_complex_nested_data(self) -> None:
         """Test serialization of dataclass with nested complex data."""
         # Given: A dataclass with nested structures
-        register_serializable(TestData1)
-        complex_data = TestData1(
+        register_serializable(SampleData1)
+        complex_data = SampleData1(
             name="complex",
             value=100,
             metadata={
@@ -230,7 +230,7 @@ class TestSerializationRegistry:
         deserialized = deserialize_value(serialized)
 
         # Then: All nested data should be preserved
-        assert isinstance(deserialized, TestData1)
+        assert isinstance(deserialized, SampleData1)
         assert deserialized.metadata["nested"]["deeply"]["nested"] == ["values", 1, 2, 3]
         assert deserialized.metadata["lists"] == [[1, 2], [3, 4]]
         assert deserialized.metadata["mixed"] == [{"a": 1}, {"b": 2}]
