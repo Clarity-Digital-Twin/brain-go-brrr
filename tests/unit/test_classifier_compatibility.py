@@ -79,7 +79,7 @@ class TestClassifierCompatibility:
         """Test the validate_model_compatibility method."""
         with (
             patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel") as mock_model_class,
-            patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
+            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
         ):
             # Mock EEGPT model with correct dimensions
             mock_model = MagicMock()
@@ -102,7 +102,7 @@ class TestClassifierCompatibility:
         """Test that dimension validation happens during detection."""
         with (
             patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel") as mock_model_class,
-            patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
+            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
         ):
             # Create mock with wrong dimensions
             mock_model = MagicMock()

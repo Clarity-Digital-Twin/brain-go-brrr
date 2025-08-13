@@ -200,7 +200,7 @@ class YASASleepStager:
                 # Filter sklearn version warnings but still run
                 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
                 warnings.filterwarnings("ignore", message=".*Trying to unpickle estimator.*")
-                
+
                 sls = yasa.SleepStaging(
                     raw,
                     eeg_name=eeg_name,
@@ -208,7 +208,7 @@ class YASASleepStager:
                     emg_name=None,  # We typically don't have EMG
                     metadata=None,
                 )
-                
+
                 # Get predictions
                 hypnogram = sls.predict()  # Returns array of stages
                 proba = sls.predict_proba()  # Returns probability matrix
@@ -222,7 +222,7 @@ class YASASleepStager:
             hypnogram[1::11] = 1  # Some N1
             hypnogram[3::13] = 3  # Some N3
             hypnogram[5::17] = 4  # Some REM
-            
+
             # Create matching proba matrix
             proba = np.zeros((n_epochs, 5))
             for i, stage in enumerate(hypnogram):
