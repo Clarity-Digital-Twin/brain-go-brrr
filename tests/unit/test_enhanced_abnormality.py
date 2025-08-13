@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 import torch
 
-from brain_go_brrr.tasks.enhanced_abnormality_detection import (
+from brain_go_brrr.application.use_cases.tasks.enhanced_abnormality_detection import (
     EnhancedAbnormalityDetectionProbe,
     HParams,
 )
