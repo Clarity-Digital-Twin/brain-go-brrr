@@ -2,7 +2,9 @@
 
 **Production-Ready EEG Analysis Platform with EEGPT Foundation Model**
 
-[![Version](https://img.shields.io/badge/version-0.5.0-green.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/releases)
+[![Test Coverage](https://img.shields.io/badge/coverage-66.85%25-brightgreen.svg)](htmlcov/index.html)
+[![Tests](https://img.shields.io/badge/tests-823%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
