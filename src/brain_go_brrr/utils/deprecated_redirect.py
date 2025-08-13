@@ -5,10 +5,12 @@ shims when modules are moved. It follows clean code principles and avoids
 the need for # noqa comments everywhere.
 """
 
+from __future__ import annotations
+
 import importlib
 import sys
 import warnings
-from types import ModuleType
+from types import ModuleType  # noqa: TC003 - Used at runtime
 from typing import Any
 
 

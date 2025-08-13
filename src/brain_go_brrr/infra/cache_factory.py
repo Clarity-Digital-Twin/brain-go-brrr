@@ -36,12 +36,10 @@ class MemoryCache:
 
             self._ttls[key] = time.time() + ttl_seconds
 
-    def delete(self, key: str) -> bool:
+    def delete(self, key: str) -> None:
         """Delete from memory cache."""
-        existed = key in self._store
         self._store.pop(key, None)
         self._ttls.pop(key, None)
-        return existed
 
     def exists(self, key: str) -> bool:
         """Check if key exists in memory cache."""
@@ -51,6 +49,10 @@ class MemoryCache:
         """Clear memory cache."""
         self._store.clear()
         self._ttls.clear()
+
+    def close(self) -> None:
+        """Close cache connection (no-op for memory cache)."""
+        pass
 
 
 def get_cache(backend: str | None = None) -> CachePort:
