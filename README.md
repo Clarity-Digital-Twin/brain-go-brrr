@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/releases)
 [![Test Coverage](https://img.shields.io/badge/coverage-66.85%25-brightgreen.svg)](htmlcov/index.html)
-[![Tests](https://img.shields.io/badge/tests-823%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-812%20passing-brightgreen.svg)](tests/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -78,6 +78,33 @@ make run-api
 - **Sleep Metrics**: Total sleep time, efficiency, REM%, N3%, WASO
 - **Hypnogram Generation**: Visual sleep architecture representation
 - **Micro-arousal Detection**: Sub-epoch event identification
+
+## 🔧 Environment Variables
+
+### Abnormality Detection
+- `BGB_ABN_MODEL`: Path to trained abnormality detection model (optional)
+- `BGB_ABN_THRESH`: Abnormality detection threshold (default: 0.5)
+- `BGB_DEVICE`: Device for inference ("cpu" or "cuda", default: auto-detect)
+
+### Data Paths
+- `BGB_DATA_ROOT`: Root directory for datasets (default: ./data)
+- `BGB_MODEL_PATH`: Path to EEGPT base model checkpoint
+
+### API Configuration
+- `BGB_API_HOST`: API server host (default: 0.0.0.0)
+- `BGB_API_PORT`: API server port (default: 8000)
+- `BGB_MAX_UPLOAD_SIZE`: Maximum file upload size in bytes (default: 2GB)
+- `BGB_ENABLE_CORS`: Enable CORS for API (default: true)
+
+### Redis Cache
+- `REDIS_HOST`: Redis server host (default: localhost)
+- `REDIS_PORT`: Redis server port (default: 6379)
+- `REDIS_DB`: Redis database number (default: 0)
+
+### Security
+- `BGB_LOG_LEVEL`: Logging level (default: INFO)
+- `BGB_REDACT_PHI`: Redact PHI from logs (default: true)
+- `BGB_ADMIN_TOKEN`: Admin token for cache management
 
 ## 🏗️ Architecture
 

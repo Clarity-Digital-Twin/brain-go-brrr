@@ -127,7 +127,9 @@ def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
     from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
 
-    with patch("brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt") as mock_create:
+    with patch(
+        "brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt"
+    ) as mock_create:
         # Mock the backbone creation
         fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
         mock_create.return_value = fake_backbone

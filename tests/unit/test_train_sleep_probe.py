@@ -139,7 +139,9 @@ class TestSleepProbeTraining:
         edf_file.write_bytes(b"mock edf data")
 
         # Mock the EDF loading
-        with patch("brain_go_brrr.application.training.sleep_probe_trainer.load_sleep_edf_data") as mock_load:
+        with patch(
+            "brain_go_brrr.application.training.sleep_probe_trainer.load_sleep_edf_data"
+        ) as mock_load:
             # Return mock windows and labels
             mock_load.return_value = (
                 [np.random.randn(19, 1024) for _ in range(100)],

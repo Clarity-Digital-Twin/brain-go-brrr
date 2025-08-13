@@ -525,9 +525,9 @@ class AbnormalityDetector:
     def _predict_window(self, window: npt.NDArray[np.float64]) -> float:
         """Get abnormality prediction for a single window."""
         # Convert to tensor
-        window_tensor = torch.from_numpy(window).float().unsqueeze(0).to(self.device)
+        window_tensor = torch.from_numpy(window).float().unsqueeze(0).to(self.device, non_blocking=True)
 
-        with torch.no_grad():
+        with torch.inference_mode():
             # Extract features using EEGPT
             try:
                 # Convert tensor to numpy for EEGPT model
@@ -538,7 +538,10 @@ class AbnormalityDetector:
                 features_np = self.model.extract_features(window_np, channel_names)
 
                 # Convert features to tensor for classification
-                features = torch.from_numpy(features_np).float().to(self.device)
+                features = torch.from_numpy(features_np).float().to(self.device, non_blocking=True)
+                
+                # Assert expected input dimension for EEGPT features
+                assert features.numel() in [512, 2048], f"Expected 512 or 2048 features, got {features.numel()}"
 
                 # Flatten EEGPT summary tokens: (4, 512) -> (2048,)
                 features_flat = features.flatten() if features.dim() > 1 else features
@@ -553,6 +556,9 @@ class AbnormalityDetector:
 
                 # Add batch dimension for classifier
                 features_batch = features_flat.unsqueeze(0)
+                
+                # Ensure classifier is on device and in eval mode
+                self.classifier.eval()
                 logits = self.classifier(features_batch)
                 predictions = torch.softmax(logits, dim=1)
 

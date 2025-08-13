@@ -21,13 +21,16 @@ from brain_go_brrr.infra.preprocessing.flexible_preprocessor import FlexibleEEGP
 # Create features submodule shim
 class FeaturesModule(ModuleType):
     """Shim for preprocessing.features - redirects to domain.preprocessing.features."""
+
     def __getattr__(self, name: str) -> Any:
         from brain_go_brrr.domain.preprocessing import features
+
         return getattr(features, name)
 
+
 # Install the features submodule
-_features_module = FeaturesModule('brain_go_brrr.preprocessing.features')
-sys.modules['brain_go_brrr.preprocessing.features'] = _features_module
+_features_module = FeaturesModule("brain_go_brrr.preprocessing.features")
+sys.modules["brain_go_brrr.preprocessing.features"] = _features_module
 features = _features_module  # Make it accessible as an attribute
 
 __all__ = [

@@ -250,7 +250,9 @@ class TestAPIEndpoints:
 
     def test_analyze_detailed_pdf_generation(self, client, sample_edf_file, mock_qc_controller):
         """Test PDF report generation."""
-        with patch("brain_go_brrr.presentation.visualization.pdf_report.PDFReportGenerator") as mock_pdf:
+        with patch(
+            "brain_go_brrr.presentation.visualization.pdf_report.PDFReportGenerator"
+        ) as mock_pdf:
             mock_pdf_instance = Mock()
             mock_pdf_instance.generate_report.return_value = b"PDF content"
             mock_pdf.return_value = mock_pdf_instance
