@@ -34,7 +34,7 @@ def redirect(
     mod = importlib.import_module(new)
     sys.modules[old] = mod
     globals_dict.update(mod.__dict__)
-    
+
     if warn_on_import:
         warnings.warn(
             message or f"{old} is deprecated; use {new}. Will be removed in version 2.0.0.",
