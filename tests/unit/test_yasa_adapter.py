@@ -46,16 +46,22 @@ class TestYASASleepStager:
     def mock_yasa(self):
         """Mock YASA module."""
         with patch("brain_go_brrr.infra.external.yasa_adapter.yasa") as mock:
-            # Mock SleepStaging class
+            # Mock SleepStaging class - return 10 epochs for 5 minutes
             mock_sls = MagicMock()
-            mock_sls.predict.return_value = np.array([0, 1, 2, 3, 4])  # W, N1, N2, N3, REM
+            # 10 epochs: variety of stages
+            mock_sls.predict.return_value = np.array([0, 1, 2, 2, 3, 3, 2, 4, 1, 0])
             mock_sls.predict_proba.return_value = np.array(
                 [
                     [0.9, 0.05, 0.03, 0.01, 0.01],  # W with high confidence
                     [0.1, 0.8, 0.05, 0.03, 0.02],  # N1 with high confidence
                     [0.05, 0.1, 0.7, 0.1, 0.05],  # N2 with good confidence
+                    [0.05, 0.1, 0.7, 0.1, 0.05],  # N2 with good confidence
                     [0.02, 0.03, 0.15, 0.75, 0.05],  # N3 with good confidence
+                    [0.02, 0.03, 0.15, 0.75, 0.05],  # N3 with good confidence
+                    [0.05, 0.1, 0.7, 0.1, 0.05],  # N2 with good confidence
                     [0.05, 0.05, 0.1, 0.1, 0.7],  # REM with good confidence
+                    [0.1, 0.8, 0.05, 0.03, 0.02],  # N1 with high confidence
+                    [0.9, 0.05, 0.03, 0.01, 0.01],  # W with high confidence
                 ]
             )
             mock.SleepStaging.return_value = mock_sls
@@ -78,16 +84,16 @@ class TestYASASleepStager:
 
         stages, confidences, metrics = stager.stage_sleep(eeg_data)
 
-        # Check outputs (mock returns 5 stages)
-        assert len(stages) == 5
-        assert len(confidences) == 5
+        # Check outputs - should be 10 epochs (300s / 30s = 10)
+        assert len(stages) == 10
+        assert len(confidences) == 10
         assert all(0 <= c <= 1 for c in confidences)
         assert all(s in ["W", "N1", "N2", "N3", "REM"] for s in stages)
 
         # Check metrics
         assert "stage_counts" in metrics
         assert "sleep_efficiency" in metrics
-        assert metrics["n_epochs"] == 5
+        assert metrics["n_epochs"] == 10
 
     def test_stage_sleep_short_data_error(self):
         """Test error handling for too-short data."""

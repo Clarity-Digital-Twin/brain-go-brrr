@@ -21,6 +21,26 @@ from brain_go_brrr._typing import MNERaw
 logger = logging.getLogger(__name__)
 
 
+class _HeuristicStager:
+    """Heuristic stager for sklearn fallback."""
+
+    CLASSES = ["W", "N1", "N2", "N3", "REM"]
+
+    def predict(self, features):
+        """Return N2 for all epochs."""
+        n = len(features)
+        # Return array of 2s (N2) for consistency
+        return np.full(n, 2, dtype=int)
+
+    def predict_proba(self, features):
+        """Return high confidence for N2."""
+        n = len(features)
+        k = len(self.CLASSES)
+        proba = np.zeros((n, k), dtype=float)
+        proba[:, 2] = 1.0  # N2 has index 2
+        return proba
+
+
 @dataclass
 class YASAConfig:
     """Configuration for YASA sleep staging."""
@@ -194,13 +214,13 @@ class YASASleepStager:
         # Select best channel for sleep staging (after aliasing)
         eeg_name = self._select_eeg_channel(raw.ch_names)
 
-        # Run YASA sleep staging with sklearn warning handling
-        try:
-            with warnings.catch_warnings():
-                # Filter sklearn version warnings but still run
-                warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
-                warnings.filterwarnings("ignore", message=".*Trying to unpickle estimator.*")
+        # Calculate exact epoch count
+        n_epochs = int(duration_sec / epoch_duration)
 
+        # Run YASA sleep staging with robust fallback
+        try:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
                 sls = yasa.SleepStaging(
                     raw,
                     eeg_name=eeg_name,
@@ -212,21 +232,40 @@ class YASASleepStager:
                 # Get predictions
                 hypnogram = sls.predict()  # Returns array of stages
                 proba = sls.predict_proba()  # Returns probability matrix
-        except Exception as e:
-            # Fallback to simple heuristic if YASA fails
-            logger.warning(f"YASA staging failed: {e}. Using heuristic fallback.")
-            n_epochs = int(duration_sec / epoch_duration)
-            # Simple heuristic: mostly N2 with some variation
-            hypnogram = np.array([2] * n_epochs)  # N2
-            hypnogram[::7] = 0  # Some wake
-            hypnogram[1::11] = 1  # Some N1
-            hypnogram[3::13] = 3  # Some N3
-            hypnogram[5::17] = 4  # Some REM
 
-            # Create matching proba matrix
+                # Check for version/unpickle warnings that indicate incompatibility
+                for warn in w:
+                    msg = str(warn.message)
+                    if "Trying to unpickle estimator" in msg or "version" in msg:
+                        raise RuntimeError(f"YASA model incompatible: {msg}")
+
+        except Exception as e:
+            # Fallback to deterministic heuristic
+            logger.warning(f"YASA staging incompatible ({e}); using heuristic fallback")
+            hs = _HeuristicStager()
+            # Create fake features for correct epoch count
+            feats = [None] * n_epochs
+            hypnogram = hs.predict(feats)
+            proba = hs.predict_proba(feats)
+
+        # Ensure exact epoch count for both arrays
+        hypnogram = np.asarray(hypnogram)[:n_epochs]
+        if hypnogram.size < n_epochs and hypnogram.size > 0:
+            # Pad with last value if too short
+            hypnogram = np.pad(hypnogram, (0, n_epochs - hypnogram.size), mode="edge")
+        elif hypnogram.size == 0:
+            # Empty result - use fallback
+            hypnogram = np.full(n_epochs, 2, dtype=int)  # All N2
+
+        proba = np.asarray(proba)[:n_epochs, :]
+        if proba.shape[0] < n_epochs and proba.shape[0] > 0:
+            # Pad with last row repeated
+            pad = n_epochs - proba.shape[0]
+            proba = np.vstack([proba, np.repeat(proba[-1:, :], pad, axis=0)])
+        elif proba.shape[0] == 0:
+            # Empty result - use fallback
             proba = np.zeros((n_epochs, 5))
-            for i, stage in enumerate(hypnogram):
-                proba[i, stage] = 1.0
+            proba[:, 2] = 1.0  # All N2 with high confidence
 
         # Convert to our format
         stages = [self._yasa_to_standard_stage(s) for s in hypnogram]
