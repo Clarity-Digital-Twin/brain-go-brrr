@@ -173,9 +173,9 @@ def test_abnormal_detector_detects_abnormalities():
     fake_classifier = FakeClassifierHead(input_dim=2048, n_classes=2)
 
     with (
-        patch("brain_go_brrr.core.config.Path.exists", return_value=True),
-        patch("brain_go_brrr.core.config.Path.is_file", return_value=True),
-        patch("brain_go_brrr.core.abnormal.detector.AbnormalityDetector._init_model") as mock_init,
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.is_file", return_value=True),
+        patch("brain_go_brrr.domain.abnormal.detector.AbnormalityDetector._init_model") as mock_init,
     ):
         # Skip model init
         mock_init.return_value = None

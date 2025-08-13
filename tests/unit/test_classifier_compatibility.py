@@ -78,7 +78,7 @@ class TestClassifierCompatibility:
     def test_validate_model_compatibility_method(self) -> None:
         """Test the validate_model_compatibility method."""
         with (
-            patch("brain_go_brrr.core.abnormal.detector.EEGPTModel") as mock_model_class,
+            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel") as mock_model_class,
             patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
         ):
             # Mock EEGPT model with correct dimensions
@@ -101,7 +101,7 @@ class TestClassifierCompatibility:
     def test_runtime_validation_on_detect(self) -> None:
         """Test that dimension validation happens during detection."""
         with (
-            patch("brain_go_brrr.core.abnormal.detector.EEGPTModel") as mock_model_class,
+            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel") as mock_model_class,
             patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
         ):
             # Create mock with wrong dimensions
