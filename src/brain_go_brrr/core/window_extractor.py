@@ -1,23 +1,17 @@
 """Compatibility shim for moved window_extractor module.
 
 DEPRECATED: Use brain_go_brrr.preprocessing.window_extractor instead.
-This shim will be removed in a future release.
+This shim will be removed in version 2.0.0.
 """
 
-import warnings
+from brain_go_brrr.utils.deprecated_redirect import redirect
 
-warnings.warn(
-    "brain_go_brrr.core.window_extractor has moved to brain_go_brrr.preprocessing.window_extractor",
-    DeprecationWarning,
-    stacklevel=2,
+# Clean redirect to new location
+redirect(
+    __name__,
+    "brain_go_brrr.preprocessing.window_extractor",
+    removal_version="2.0.0"
 )
 
-# Re-export everything from the new location
+# Re-export for compatibility
 from brain_go_brrr.preprocessing.window_extractor import *  # noqa: F403, E402
-
-try:
-    from brain_go_brrr.preprocessing.window_extractor import (
-        __all__,  # type: ignore
-    )
-except ImportError:
-    __all__ = []

@@ -8,17 +8,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Architecture Refactoring**: Complete SOLID principles implementation with clean architecture
+- **Deprecation Helper**: Added `utils.deprecated_redirect` for PEP-562 compliant module redirects
+- **API Job Store**: Added dedicated API-layer job store with proper field mapping
+- **Import Boundaries**: Added `importlinter.ini` configuration for enforcing layer separation
+- **Coverage Floor**: Set minimum coverage requirement at 66% to prevent regression
 - **Pipeline Error Handling**: Added `traceback` field to error results in parallel pipeline (backward compatible, additive field)
 - **Test Infrastructure**: Added `requires_network` fixture for gating network-dependent tests (use `BGB_ALLOW_NET=1` to enable)
 - **Pre-commit Hooks**: Added torch.load security check and bare except prevention
 
 ### Fixed
+- **Layer Violations**: Core no longer depends on API layer (proper Dependency Inversion)
+- **Import Errors**: Fixed all module import issues after reorganization
+- **Type Errors**: Resolved all mypy type checking issues
+- **Job Models**: Fixed JobData field mapping between API and Core layers
 - **Security**: All `torch.load` calls now use `weights_only=True` with backward compatibility guard for older PyTorch versions
 - **Test Stability**: Fixed FakeMNERaw data aliasing, TUAB test brittleness, and time formatting test reliability
 
 ### Changed
+- **Module Organization**: Major reorganization following clean architecture principles
+  - `core.edf_loader` → `data.edf_loader`
+  - `core.edf_validator` → `data.edf_validator`
+  - `core.window_extractor` → `preprocessing.window_extractor`
+  - `core.features` → `preprocessing.features`
 - **Testing**: Reduced default pytest timeout to 120s with faulthandler for faster failure detection
 - **Coverage**: Excluded `experiments/` directory from coverage calculations
+- **Code Quality**: Achieved 100% lint and type-check compliance
+
+### Deprecated
+**⚠️ The following imports are deprecated and will be removed in v2.0.0:**
+- `brain_go_brrr.core.edf_loader` → Use `brain_go_brrr.data.edf_loader`
+- `brain_go_brrr.core.edf_validator` → Use `brain_go_brrr.data.edf_validator`
+- `brain_go_brrr.core.window_extractor` → Use `brain_go_brrr.preprocessing.window_extractor`
+- `brain_go_brrr.core.features` → Use `brain_go_brrr.preprocessing.features`
+- `brain_go_brrr.core.preprocessing` → Use `brain_go_brrr.preprocessing.basic`
+
+### Removed
+- **Dead Code**: Removed 4 unused modules (`inference/`, `config/`, `core/resources/`, duplicate configs)
+- **Duplicates**: Consolidated 3 YASA adapter implementations into 1
 
 ## [0.6.0] - 2025-08-05
 

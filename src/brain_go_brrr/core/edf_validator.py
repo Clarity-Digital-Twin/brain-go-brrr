@@ -1,21 +1,17 @@
 """Compatibility shim for moved edf_validator module.
 
 DEPRECATED: Use brain_go_brrr.data.edf_validator instead.
-This shim will be removed in a future release.
+This shim will be removed in version 2.0.0.
 """
 
-import warnings
+from brain_go_brrr.utils.deprecated_redirect import redirect
 
-warnings.warn(
-    "brain_go_brrr.core.edf_validator has moved to brain_go_brrr.data.edf_validator",
-    DeprecationWarning,
-    stacklevel=2,
+# Clean redirect to new location
+redirect(
+    __name__,
+    "brain_go_brrr.data.edf_validator",
+    removal_version="2.0.0"
 )
 
-# Re-export everything from the new location
+# Re-export for compatibility
 from brain_go_brrr.data.edf_validator import *  # noqa: F403, E402
-
-try:
-    from brain_go_brrr.data.edf_validator import __all__  # type: ignore
-except ImportError:
-    __all__ = []
