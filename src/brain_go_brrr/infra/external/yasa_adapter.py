@@ -26,13 +26,13 @@ class _HeuristicStager:
 
     CLASSES = ["W", "N1", "N2", "N3", "REM"]
 
-    def predict(self, features):
+    def predict(self, features: Any) -> npt.NDArray[np.int_]:
         """Return N2 for all epochs."""
         n = len(features)
         # Return array of 2s (N2) for consistency
         return np.full(n, 2, dtype=int)
 
-    def predict_proba(self, features):
+    def predict_proba(self, features: Any) -> npt.NDArray[np.float64]:
         """Return high confidence for N2."""
         n = len(features)
         k = len(self.CLASSES)

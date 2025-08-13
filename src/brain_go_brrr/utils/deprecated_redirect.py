@@ -14,13 +14,13 @@ from types import ModuleType
 def redirect(
     old: str,
     new: str,
-    globals_dict: dict,
+    globals_dict: dict[str, Any],
     *,
     warn_on_import: bool = True,
     message: str | None = None,
 ) -> ModuleType:
     """PEP-562-friendly module redirect, optionally silent on import.
-    
+
     Args:
         old: Full name of the deprecated module
         new: Full name of the new module location

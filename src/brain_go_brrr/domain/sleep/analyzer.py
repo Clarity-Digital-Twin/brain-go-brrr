@@ -131,7 +131,9 @@ class SleepAnalyzer:
         """
         return self._smooth_same(hypnogram, window_min)
 
-    def _smooth_same(self, hypno: npt.NDArray[np.str_], window_min: float = 7.5) -> npt.NDArray[np.str_]:
+    def _smooth_same(
+        self, hypno: npt.NDArray[np.str_], window_min: float = 7.5
+    ) -> npt.NDArray[np.str_]:
         """Length-preserving smoothing."""
         # Calculate window size in epochs (30-second epochs)
         win = int(window_min * 60 / 30)
@@ -145,7 +147,7 @@ class SleepAnalyzer:
         x = np.pad(hypno, (pad, pad), mode="edge")
         out = np.empty_like(hypno)
         for i in range(hypno.size):
-            window = x[i:i + win]
+            window = x[i : i + win]
             vals, counts = np.unique(window, return_counts=True)
             out[i] = vals[np.argmax(counts)]
         return out
@@ -284,7 +286,7 @@ class SleepAnalyzer:
                 proba = np.asarray(proba)[:n_epochs, ...]
                 if proba.shape[0] < n_epochs:
                     pad_rows = n_epochs - proba.shape[0]
-                    proba = np.vstack([proba, np.repeat(proba[-1:,...], pad_rows, axis=0)])
+                    proba = np.vstack([proba, np.repeat(proba[-1:, ...], pad_rows, axis=0)])
 
                 if apply_smoothing:
                     y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)

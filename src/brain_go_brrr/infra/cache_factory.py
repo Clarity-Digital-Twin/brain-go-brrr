@@ -8,8 +8,8 @@ implementations.
 import os
 from typing import Any
 
-from brain_go_brrr.core.cache_port import CachePort
 from brain_go_brrr.infra.cache import RedisCache as InfraRedisCache
+from brain_go_brrr.infra.cache_port import CachePort
 
 
 class MemoryCache:
