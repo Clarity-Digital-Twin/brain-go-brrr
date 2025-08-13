@@ -1,17 +1,8 @@
-"""Compatibility shim for moved edf_loader module.
-
-DEPRECATED: Use brain_go_brrr.data.edf_loader instead.
-This shim will be removed in version 2.0.0.
-"""
-
+# DEPRECATED: use brain_go_brrr.data.edf_loader instead. Removed in v2.0.0.
 from brain_go_brrr.utils.deprecated_redirect import redirect
-
-# Clean redirect to new location
 redirect(
-    __name__,
-    "brain_go_brrr.data.edf_loader",
-    removal_version="2.0.0"
+    old="brain_go_brrr.core.edf_loader",
+    new="brain_go_brrr.data.edf_loader",
+    globals_dict=globals(),
+    warn_on_import=False,
 )
-
-# Re-export for compatibility
-from brain_go_brrr.data.edf_loader import *  # noqa: F403, E402
