@@ -20,8 +20,8 @@ class TestClassifierCompatibility:
     def test_classifier_matches_config_feature_dim(self) -> None:
         """Test that classifier input dimension matches config feature_dim."""
         with (
-            patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"),
-            patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
+            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel"),
+            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
         ):
             # Create detector with default config (768-dim)
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
@@ -37,8 +37,8 @@ class TestClassifierCompatibility:
     def test_incompatible_classifier_raises_error(self) -> None:
         """Test that loading incompatible classifier weights raises clear error."""
         with (
-            patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"),
-            patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
+            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel"),
+            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
         ):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
@@ -62,8 +62,8 @@ class TestClassifierCompatibility:
         custom_config.model.feature_dim = 512  # Different from default 768
 
         with (
-            patch("brain_go_brrr.core.abnormal.detector.EEGPTModel"),
-            patch("brain_go_brrr.core.abnormal.detector.ModelConfig"),
+            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel"),
+            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
         ):
             detector = AbnormalityDetector(
                 model_path=Path("fake/path.ckpt"), device="cpu", config=custom_config

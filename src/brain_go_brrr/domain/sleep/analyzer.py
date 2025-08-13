@@ -130,17 +130,17 @@ class SleepAnalyzer:
             Smoothed hypnogram (same length as input)
         """
         return self._smooth_same(hypnogram, window_min)
-    
+
     def _smooth_same(self, hypno: npt.NDArray[np.str_], window_min: float = 7.5) -> npt.NDArray[np.str_]:
         """Length-preserving smoothing."""
         # Calculate window size in epochs (30-second epochs)
         win = int(window_min * 60 / 30)
         if win % 2 == 0:
             win += 1  # Make odd for centered window
-            
+
         if win <= 1 or hypno.size == 0:
             return hypno
-            
+
         pad = win // 2
         x = np.pad(hypno, (pad, pad), mode="edge")
         out = np.empty_like(hypno)
@@ -272,12 +272,12 @@ class SleepAnalyzer:
             epoch_len = 30.0
             duration = float(raw.n_times) / float(raw.info["sfreq"])
             n_epochs = int(np.floor(duration / epoch_len))
-            
+
             # Ensure y_pred has exact length
             y_pred = np.asarray(y_pred)[:n_epochs]
             if y_pred.size < n_epochs:
                 y_pred = np.pad(y_pred, (0, n_epochs - y_pred.size), mode="edge")
-            
+
             # Get prediction probabilities if requested
             if return_proba:
                 proba = sls.predict_proba()
@@ -285,7 +285,7 @@ class SleepAnalyzer:
                 if proba.shape[0] < n_epochs:
                     pad_rows = n_epochs - proba.shape[0]
                     proba = np.vstack([proba, np.repeat(proba[-1:,...], pad_rows, axis=0)])
-                
+
                 if apply_smoothing:
                     y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
                     logger.info(
@@ -318,18 +318,18 @@ class SleepAnalyzer:
                 n_epochs = 10  # default fallback
 
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
-            
+
             if return_proba:
                 # Create dummy proba from hypno
                 proba = self._proba_from_hypno(dummy_stages)
                 if apply_smoothing:
                     dummy_stages = self._smooth_hypnogram(dummy_stages, smoothing_window_min)
                 return (dummy_stages, proba)
-                
+
             if apply_smoothing:
                 dummy_stages = self._smooth_hypnogram(dummy_stages, smoothing_window_min)
             return dummy_stages
-            
+
     def _proba_from_hypno(self, hypno: npt.NDArray[np.str_]) -> npt.NDArray[np.float64]:
         """Create probability matrix from hypnogram."""
         labels = np.array(["W", "N1", "N2", "N3", "REM"])

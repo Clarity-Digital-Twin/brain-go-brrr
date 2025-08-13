@@ -27,7 +27,7 @@ def redirect(
         globals_dict: Global dictionary of the calling module (pass globals())
         warn_on_import: Whether to warn on import (False for silent redirects)
         message: Custom deprecation message
-        
+
     Returns:
         The redirected module
     """
