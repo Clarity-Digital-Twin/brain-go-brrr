@@ -116,3 +116,8 @@ class GPUNotAvailableError(ResourceError):
     """Raised when GPU is required but not available."""
 
     pass
+
+
+# Aliases for backward compatibility
+DataLoadingError = EdfLoadError  # Tests may use this name
+PreprocessingError = ProcessingError  # Alias for consistency

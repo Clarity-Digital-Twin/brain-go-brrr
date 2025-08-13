@@ -127,34 +127,28 @@ class SleepAnalyzer:
             window_min: Window size in minutes (default: 7.5)
 
         Returns:
-            Smoothed hypnogram
+            Smoothed hypnogram (same length as input)
         """
+        return self._smooth_same(hypnogram, window_min)
+    
+    def _smooth_same(self, hypno: npt.NDArray[np.str_], window_min: float = 7.5) -> npt.NDArray[np.str_]:
+        """Length-preserving smoothing."""
         # Calculate window size in epochs (30-second epochs)
-        window_epochs = int(window_min * 60 / 30)
-        if window_epochs % 2 == 0:
-            window_epochs += 1  # Make odd for centered window
-
-        # Handle edge cases
-        if len(hypnogram) <= window_epochs:
-            return hypnogram
-
-        # Pad the hypnogram with edge values
-        pad_size = window_epochs // 2
-        padded = np.pad(hypnogram, (pad_size, pad_size), mode="edge")
-
-        # Apply majority vote with triangular window
-        smoothed = []
-        for i in range(len(hypnogram)):
-            # Extract window around current position
-            window = padded[i : i + window_epochs]
-
-            # Get mode (most common value) in window
-            # Use np.unique for string arrays
-            unique, counts = np.unique(window, return_counts=True)
-            mode_idx = np.argmax(counts)
-            smoothed.append(unique[mode_idx])
-
-        return np.array(smoothed)
+        win = int(window_min * 60 / 30)
+        if win % 2 == 0:
+            win += 1  # Make odd for centered window
+            
+        if win <= 1 or hypno.size == 0:
+            return hypno
+            
+        pad = win // 2
+        x = np.pad(hypno, (pad, pad), mode="edge")
+        out = np.empty_like(hypno)
+        for i in range(hypno.size):
+            window = x[i:i + win]
+            vals, counts = np.unique(window, return_counts=True)
+            out[i] = vals[np.argmax(counts)]
+        return out
 
     def stage_sleep(
         self,
@@ -274,9 +268,24 @@ class SleepAnalyzer:
                 y_pred = y_pred[0]
 
             # Apply temporal smoothing if requested
+            # Enforce exact epoch count based on raw duration
+            epoch_len = 30.0
+            duration = float(raw.n_times) / float(raw.info["sfreq"])
+            n_epochs = int(np.floor(duration / epoch_len))
+            
+            # Ensure y_pred has exact length
+            y_pred = np.asarray(y_pred)[:n_epochs]
+            if y_pred.size < n_epochs:
+                y_pred = np.pad(y_pred, (0, n_epochs - y_pred.size), mode="edge")
+            
             # Get prediction probabilities if requested
             if return_proba:
                 proba = sls.predict_proba()
+                proba = np.asarray(proba)[:n_epochs, ...]
+                if proba.shape[0] < n_epochs:
+                    pad_rows = n_epochs - proba.shape[0]
+                    proba = np.vstack([proba, np.repeat(proba[-1:,...], pad_rows, axis=0)])
+                
                 if apply_smoothing:
                     y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
                     logger.info(
@@ -285,7 +294,8 @@ class SleepAnalyzer:
                 logger.info(
                     f"Sleep staging completed using channels: EEG={eeg_ch}, EOG={eog_ch}, EMG={emg_ch}"
                 )
-                return y_pred, proba
+                # Return exactly 2-tuple for return_proba=True
+                return (y_pred, proba)
 
             if apply_smoothing:
                 y_pred = self._smooth_hypnogram(y_pred, smoothing_window_min)
@@ -301,15 +311,33 @@ class SleepAnalyzer:
             logger.error(f"Sleep staging failed: {e}")
             # Return dummy stages as fallback (always return strings)
             try:
-                if hasattr(raw, "times") and len(raw.times) > 0:
-                    n_epochs = int(raw.times[-1] / self.epoch_length)
-                else:
-                    n_epochs = 10  # default fallback
+                epoch_len = 30.0
+                duration = float(raw.n_times) / float(raw.info["sfreq"])
+                n_epochs = int(np.floor(duration / epoch_len))
             except (AttributeError, IndexError, ValueError, TypeError):
                 n_epochs = 10  # default fallback
 
             dummy_stages = np.random.choice(["N1", "N2", "N3", "REM", "W"], n_epochs)
+            
+            if return_proba:
+                # Create dummy proba from hypno
+                proba = self._proba_from_hypno(dummy_stages)
+                if apply_smoothing:
+                    dummy_stages = self._smooth_hypnogram(dummy_stages, smoothing_window_min)
+                return (dummy_stages, proba)
+                
+            if apply_smoothing:
+                dummy_stages = self._smooth_hypnogram(dummy_stages, smoothing_window_min)
             return dummy_stages
+            
+    def _proba_from_hypno(self, hypno: npt.NDArray[np.str_]) -> npt.NDArray[np.float64]:
+        """Create probability matrix from hypnogram."""
+        labels = np.array(["W", "N1", "N2", "N3", "REM"])
+        idx = {str(lab): i for i, lab in enumerate(labels)}
+        proba = np.zeros((hypno.size, labels.size), dtype=np.float64)
+        for t, lab in enumerate(hypno):
+            proba[t, idx.get(str(lab), 0)] = 1.0
+        return proba
 
     def calculate_sleep_metrics(
         self, raw_or_hypnogram: MNERaw | StrArray, epoch_length: float = 30.0

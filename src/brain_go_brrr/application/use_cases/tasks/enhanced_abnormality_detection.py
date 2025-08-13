@@ -235,10 +235,11 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Calculate metrics
         metrics = self._calculate_metrics(labels, preds, probs[:, 1])
 
-        # Log metrics
-        self.log("val_loss", avg_loss, prog_bar=True)
-        for name, value in metrics.items():
-            self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"])
+        # Log metrics (only if trainer is attached to avoid warnings in tests)
+        if getattr(self, "trainer", None) is not None:
+            self.log("val_loss", avg_loss, prog_bar=True, logger=True)
+            for name, value in metrics.items():
+                self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"], logger=True)
 
         # Clear stored outputs
         self.val_outputs.clear()
