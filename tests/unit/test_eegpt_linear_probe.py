@@ -2,8 +2,10 @@
 
 import torch
 
+from brain_go_brrr.application.use_cases.tasks.abnormality_detection import (
+    AbnormalityDetectionProbe,
+)
 from brain_go_brrr.domain.constraints import LinearWithConstraint
-from brain_go_brrr.application.use_cases.tasks.abnormality_detection import AbnormalityDetectionProbe
 
 
 class TestLinearProbe:
