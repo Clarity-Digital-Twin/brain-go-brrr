@@ -115,7 +115,7 @@ def create_quality_controller(
     Returns:
         Configured quality controller
     """
-    from brain_go_brrr.domain.quality.controller_clean import CleanQualityController
+    from brain_go_brrr.domain.quality.controller import CleanQualityController
     from brain_go_brrr.infra.adapters.autoreject_adapter import AutoRejectAdapter
 
     # Create infrastructure adapters
@@ -162,7 +162,7 @@ def create_feature_extractor(
     Returns:
         Configured feature extractor
     """
-    from brain_go_brrr.domain.preprocessing.features.extractor_clean import (
+    from brain_go_brrr.domain.preprocessing.features.extractor import (
         CleanFeatureExtractor,
     )
 
