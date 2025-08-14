@@ -20,6 +20,7 @@ class _NoopQC(Protocol):
     """Minimal protocol surface for QC controller."""
 
     def run_quality_check(self, raw: Any) -> dict[str, Any]: ...
+    def run_full_qc_pipeline(self, raw: Any) -> dict[str, Any]: ...  # Alias for backward compat
     def validate_input(self, raw: Any) -> bool: ...
 
 
@@ -30,6 +31,10 @@ class _NoopQualityController:
         raise RuntimeError(
             "QC model not configured. Set EEGPT_CKPT_PATH or configure app startup DI."
         )
+
+    def run_full_qc_pipeline(self, raw: Any) -> dict[str, Any]:  # pragma: no cover
+        """Alias for backward compatibility with existing routes."""
+        return self.run_quality_check(raw)
 
     def validate_input(self, raw: Any) -> bool:  # pragma: no cover  # noqa: ARG002
         return True  # Let it fail in run_quality_check if actually called

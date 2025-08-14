@@ -292,3 +292,34 @@ class CleanQualityController:
             raise QualityCheckError(f"Too few channels: {len(raw.ch_names)} (minimum 4)")
 
         return True
+
+    def run_full_qc_pipeline(self, raw: MNERaw) -> dict[str, Any]:
+        """Run full QC pipeline - alias for backward compatibility.
+
+        Converts QualityMetrics to dict for API responses.
+        """
+        metrics = self.run_quality_check(raw)
+
+        # Convert to dict for API compatibility
+        return {
+            "quality_metrics": {
+                "bad_channels": metrics.bad_channels,
+                "bad_channel_ratio": len(metrics.bad_channels) / len(raw.ch_names) if raw.ch_names else 0,
+                "artifact_ratio": len(metrics.artifact_epochs) / 100,  # Approximate
+                "quality_grade": self._grade_from_score(metrics.quality_score),
+                "total_channels": len(raw.ch_names),
+                "abnormality_score": metrics.abnormality_score or 0,
+            },
+            "processing_notes": metrics.processing_notes,
+        }
+
+    def _grade_from_score(self, score: float) -> str:
+        """Convert numeric score to grade."""
+        if score >= 0.8:
+            return "EXCELLENT"
+        elif score >= 0.6:
+            return "GOOD"
+        elif score >= 0.4:
+            return "FAIR"
+        else:
+            return "POOR"

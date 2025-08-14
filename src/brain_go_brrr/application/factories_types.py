@@ -70,6 +70,17 @@ class QualityControllerPort(Protocol):
         """
         ...
 
+    def run_full_qc_pipeline(self, raw: MNERaw) -> dict[str, Any]:
+        """Run full QC pipeline - returns dict for API compatibility.
+
+        Args:
+            raw: Raw EEG data
+
+        Returns:
+            Dictionary with quality metrics for API responses
+        """
+        ...
+
     def validate_input(self, raw: MNERaw) -> bool:
         """Validate input EEG data meets requirements.
 
