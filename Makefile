@@ -21,22 +21,23 @@ DOCS_DIR := docs
 CONFIG_DIR := config
 NOTEBOOKS_DIR := notebooks
 
-# Python and uv settings
+# Python and uv settings with fallback for CI
 PYTHON_VERSION := 3.11
-UV := uv
-PYTHON := $(UV) run python
-PIP := $(UV) pip
-PYTEST := $(UV) run pytest
-RUFF := $(UV) run ruff
+UV := $(shell command -v uv 2>/dev/null)
+RUN := $(if $(UV),uv run,python -m)
+PYTHON := $(RUN) python
+PIP := $(if $(UV),uv pip,python -m pip)
+PYTEST := $(RUN) pytest
+RUFF := $(RUN) ruff
 # Use pytest with coverage - no need to disable autoload
-PYTEST_WITH_COV := $(UV) run pytest
+PYTEST_WITH_COV := $(RUN) pytest
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
 PYTEST_NO_PLUGINS ?= -p no:pytest_benchmark -p no:xdist
 PYTEST_PARALLEL ?= -p xdist -n auto
-MYPY := $(UV) run mypy
-JUPYTER := $(UV) run jupyter
+MYPY := $(RUN) mypy
+JUPYTER := $(RUN) jupyter
 PRE_COMMIT := $(UV) run pre-commit
 
 # Default target
@@ -104,7 +105,7 @@ lint-ci: ## Run linter exactly as CI does (no auto-fix)
 
 import-lint: ## Check import boundaries with import-linter
 	@echo "$(CYAN)Checking import boundaries...$(NC)"
-	$(UV) run lint-imports
+	$(RUN) lint-imports
 	@echo "$(GREEN)Import boundaries check complete!$(NC)"
 
 format: ## Format code with ruff

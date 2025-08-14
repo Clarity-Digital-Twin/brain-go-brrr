@@ -1,0 +1,56 @@
+# Ensure consistent line endings across platforms
+* text=auto
+
+# Python files should always have LF line endings
+*.py text eol=lf
+*.pyx text eol=lf
+*.pxd text eol=lf
+*.pyi text eol=lf
+
+# Shell scripts must have LF line endings
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Makefiles must have LF line endings
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Config files should have LF line endings
+*.ini text eol=lf
+*.cfg text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.rst text eol=lf
+*.txt text eol=lf
+
+# Git files
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Binary files
+*.pkl binary
+*.pickle binary
+*.npy binary
+*.npz binary
+*.h5 binary
+*.hdf5 binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+*.safetensors binary
+*.onnx binary
+*.pb binary
+*.tflite binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.edf binary
+*.fif binary
