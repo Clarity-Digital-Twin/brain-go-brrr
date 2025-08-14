@@ -71,7 +71,7 @@ def test_abnormality_detector_end_to_end_wiring():
     test_data = np.random.randn(20, 2048).astype(np.float32) * 20e-6
     
     # Run detection
-    result = detector.detect_abnormality(test_data, sampling_rate=256)
+    result = detector.detect_abnormality(test_data)
     
     # Verify result structure
     assert isinstance(result, dict)
@@ -102,7 +102,7 @@ def test_feature_extractor_end_to_end_wiring():
     test_data = np.random.randn(20, 2560).astype(np.float32) * 20e-6
     
     # Extract features
-    features = extractor.extract_features(test_data, sampling_rate=256)
+    features = extractor.extract_features(test_data)
     
     # Verify features shape and type
     assert isinstance(features, np.ndarray)
