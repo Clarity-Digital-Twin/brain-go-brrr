@@ -214,6 +214,7 @@ async def analyze_eeg_detailed(
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
+    qc_controller: QCController = None,  # Use DI, default None for backward compat
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
