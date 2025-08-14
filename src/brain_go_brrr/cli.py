@@ -124,7 +124,6 @@ def stream(
         raise typer.Exit(1)
 
     # Initialize model
-    model_config = ModelConfig(device="cpu")
     model = EEGPTModel(config={"device": "cpu"}, auto_load=False)
 
     # Use mock model for now
