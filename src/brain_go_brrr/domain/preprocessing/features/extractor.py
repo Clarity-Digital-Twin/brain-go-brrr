@@ -1,6 +1,13 @@
-"""Back-compat shim: re-export the clean extractor without emitting warnings.
+"""Back-compat shim: silent re-export of the clean extractor.
 
-pytest treats DeprecationWarning as error in this repo, so keep this silent.
+No import-time warnings; pytest treats DeprecationWarning as error in this repo.
 """
+from .extractor_clean import (
+    CleanFeatureExtractor,
+    ExtractedFeatures,
+)
 
-from .extractor_clean import *  # noqa: F403
+# Back-compat name
+EEGPTFeatureExtractor = CleanFeatureExtractor
+
+__all__ = ["CleanFeatureExtractor", "EEGPTFeatureExtractor", "ExtractedFeatures"]

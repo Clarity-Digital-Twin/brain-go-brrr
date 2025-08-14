@@ -1,18 +1,10 @@
-"""Feature extraction domain module.
+"""Feature extraction package.
 
-This module provides feature extraction functionality for EEG data.
-The clean architecture version is available through the application factories.
+Clean implementation lives in extractor_clean. Legacy name is kept for BC.
 """
+from .extractor_clean import CleanFeatureExtractor, ExtractedFeatures
 
-# Import from the clean module directly (extractor.py is now a silent shim)
-from .extractor_clean import (
-    CleanFeatureExtractor,
-    EEGPTFeatureExtractor,  # Backward compat alias to CleanFeatureExtractor
-    ExtractedFeatures,
-)
+# BC alias so old imports keep working
+EEGPTFeatureExtractor = CleanFeatureExtractor
 
-__all__ = [
-    "CleanFeatureExtractor",  # Clean Architecture
-    "EEGPTFeatureExtractor",  # Legacy alias
-    "ExtractedFeatures",
-]
+__all__ = ["CleanFeatureExtractor", "EEGPTFeatureExtractor", "ExtractedFeatures"]
