@@ -104,21 +104,87 @@ def create_abnormality_detector(
 def create_quality_controller(
     model_path: str,
     device: str = "cpu",
-) -> "EEGQualityController":
+    enable_logging: bool = True,
+    enable_autoreject: bool = True,
+) -> "CleanQualityController":
     """Factory to create quality controller with clean dependencies.
 
     Args:
         model_path: Path to EEGPT model checkpoint
         device: Device to run model on
+        enable_logging: Whether to enable logging
+        enable_autoreject: Whether to use AutoReject
 
     Returns:
         Configured quality controller
     """
-    # This would be similar refactoring for QualityController
-    # For now, import the existing one
-    from brain_go_brrr.domain.quality import EEGQualityController
-
-    return EEGQualityController(
-        model_path=Path(model_path),
-        device=device,
+    from brain_go_brrr.domain.quality.controller_clean import CleanQualityController
+    from brain_go_brrr.infra.adapters.autoreject_adapter import AutoRejectAdapter
+    
+    # Create infrastructure adapters
+    model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
+    preprocessor_adapter = EEGPreprocessorAdapter()
+    
+    # Create AutoReject adapter if enabled
+    autoreject_adapter = None
+    if enable_autoreject:
+        autoreject_adapter = AutoRejectAdapter()
+    
+    # Create logger adapter if enabled
+    logger_adapter = None
+    if enable_logging:
+        logger_adapter = LoggerAdapter("brain_go_brrr.domain.quality")
+    
+    # Wire everything together
+    controller = CleanQualityController(
+        preprocessor=preprocessor_adapter,
+        model=model_adapter,
+        autoreject=autoreject_adapter,
+        logger=logger_adapter,
     )
+    
+    return controller
+
+
+def create_feature_extractor(
+    model_path: str,
+    device: str = "cpu",
+    window_size: float = 4.0,
+    overlap: float = 0.5,
+    enable_logging: bool = True,
+) -> "CleanFeatureExtractor":
+    """Factory to create feature extractor with clean dependencies.
+
+    Args:
+        model_path: Path to EEGPT model checkpoint
+        device: Device to run model on
+        window_size: Window size in seconds
+        overlap: Window overlap ratio
+        enable_logging: Whether to enable logging
+
+    Returns:
+        Configured feature extractor
+    """
+    from brain_go_brrr.domain.preprocessing.features.extractor_clean import (
+        CleanFeatureExtractor,
+    )
+    
+    # Create infrastructure adapters
+    model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
+    preprocessor_adapter = EEGPreprocessorAdapter()
+    
+    # Create logger adapter if enabled
+    logger_adapter = None
+    if enable_logging:
+        logger_adapter = LoggerAdapter("brain_go_brrr.domain.features")
+    
+    # Wire everything together
+    extractor = CleanFeatureExtractor(
+        model=model_adapter,
+        preprocessor=preprocessor_adapter,
+        logger=logger_adapter,
+        window_size=window_size,
+        overlap=overlap,
+    )
+    
+    return extractor

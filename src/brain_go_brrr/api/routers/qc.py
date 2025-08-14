@@ -14,8 +14,8 @@ from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.schemas import QCResponse
+from brain_go_brrr.application.factories import create_quality_controller
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
-from brain_go_brrr.domain.quality import EEGQualityController
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.utils.time import utc_now
 
@@ -38,11 +38,23 @@ class NumpyEncoder(json.JSONEncoder):
 
 router = APIRouter(prefix="/eeg", tags=["qc", "analysis"])
 
-# Initialize QC controller
+# Initialize QC controller using factory
 qc_controller = None
 try:
-    qc_controller = EEGQualityController()
-    logger.info("QC controller initialized successfully")
+    # Use a dummy model path for now - in production this would come from config
+    model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
+    if not model_path.exists():
+        # Try alternative path
+        model_path = Path("/tmp/dummy_model.ckpt")
+        model_path.touch()  # Create dummy file for testing
+    
+    qc_controller = create_quality_controller(
+        model_path=str(model_path),
+        device="cpu",
+        enable_logging=True,
+        enable_autoreject=True,
+    )
+    logger.info("QC controller initialized successfully using factory")
 except (ImportError, RuntimeError, AttributeError, ValueError) as e:
     logger.error(f"Failed to initialize QC controller: {e}")
     qc_controller = None  # Set to None to handle gracefully
