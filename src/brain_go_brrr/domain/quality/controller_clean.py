@@ -91,6 +91,16 @@ class CleanQualityController:
         # Store legacy parameters for backward compatibility with tests
         self.random_state = random_state
         self.eegpt_model_path = eegpt_model_path
+        
+        # Create EEGPTModel if path provided (backward compatibility)
+        if eegpt_model_path and not model:
+            from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+            self.eegpt_model = EEGPTModel(
+                checkpoint_path=eegpt_model_path,
+                auto_load=False
+            )
+        else:
+            self.eegpt_model = model  # Backward compatibility attribute
 
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.
