@@ -3,4 +3,4 @@
 pytest treats DeprecationWarning as error in this repo, so keep this silent.
 """
 
-from .extractor_clean import *  # noqa: F401,F403
+from .extractor_clean import *  # noqa: F403
