@@ -20,10 +20,10 @@ class EEGPreprocessorPort(Protocol):
 
     def transform(self, raw: MneRaw) -> npt.NDArray[np.float32]:
         """Transform raw EEG to preprocessed array.
-        
+
         Args:
             raw: Raw EEG data (using forward ref to avoid MNE dependency)
-            
+
         Returns:
             Preprocessed EEG array (channels x samples)
         """
@@ -36,10 +36,10 @@ class AbnormalityHeadPort(Protocol):
 
     def predict_proba(self, X: npt.NDArray[np.float32]) -> float:
         """Predict abnormality probability.
-        
+
         Args:
             X: Preprocessed EEG features
-            
+
         Returns:
             Probability of abnormality (0-1)
         """
@@ -52,10 +52,10 @@ class FeatureExtractorPort(Protocol):
 
     def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Extract features from preprocessed EEG.
-        
+
         Args:
             X: Preprocessed EEG array
-            
+
         Returns:
             Feature vector
         """
@@ -86,26 +86,26 @@ class LoggerPort(Protocol):
 # Forward reference to avoid MNE dependency in domain
 class MneRaw(Protocol):
     """Protocol for MNE Raw object - domain doesn't depend on MNE."""
-    
+
     @property
     def info(self) -> dict:
         """Info dict with sfreq, ch_names, etc."""
         ...
-    
+
     @property
     def ch_names(self) -> list[str]:
         """Channel names."""
         ...
-    
+
     @property
     def n_times(self) -> int:
         """Number of time samples."""
         ...
-    
+
     def get_data(self) -> npt.NDArray[np.float64]:
         """Get data array."""
         ...
-    
+
     def copy(self) -> MneRaw:
         """Copy the raw object."""
         ...

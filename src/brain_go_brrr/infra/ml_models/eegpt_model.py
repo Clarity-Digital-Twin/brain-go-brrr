@@ -25,7 +25,6 @@ import torch.nn as nn
 from scipy import signal
 
 from brain_go_brrr._typing import FloatArray, MNERaw
-from brain_go_brrr.application.config import ModelConfig
 
 from .eegpt_wrapper import EEGPTWrapper, create_normalized_eegpt
 
@@ -74,35 +73,40 @@ class EEGPTModel:
 
     def __init__(
         self,
-        config: ModelConfig | None = None,
         checkpoint_path: str | Path | None = None,
-        device: str | None = None,
+        device: str = "auto",
+        sampling_rate: int = 256,
+        window_duration: float = 4.0,
+        patch_size: int = 64,
+        n_summary_tokens: int = 4,
+        embed_dim: int = 512,
         auto_load: bool = True,
     ) -> None:
         """Initialize EEGPT model.
 
         Args:
-            config: Model configuration (preferred)
-            checkpoint_path: Backward compatibility - path to checkpoint
-            device: Backward compatibility - device to use
-            auto_load: Backward compatibility - whether to auto-load model
+            checkpoint_path: Path to model checkpoint
+            device: Device to use (auto/cuda/cpu)
+            sampling_rate: Target sampling rate in Hz
+            window_duration: Window duration in seconds
+            patch_size: Patch size in samples
+            n_summary_tokens: Number of summary tokens (S=4)
+            embed_dim: Embedding dimension
+            auto_load: Whether to auto-load model
         """
-        # Handle backward compatibility
-        if config is None and checkpoint_path is not None:
-            # Create config from legacy parameters
-            config = ModelConfig()
-            if checkpoint_path:
-                config.model_path = Path(checkpoint_path)
-            if device:
-                config.device = device
-
-        self.config = config or ModelConfig()
+        # Store configuration as attributes (not a config object)
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
+        self.sampling_rate = sampling_rate
+        self.window_duration = window_duration
+        self.patch_size = patch_size
+        self._n_summary_tokens = n_summary_tokens
+        self._embed_dim = embed_dim
 
         # Set device
-        if self.config.device == "auto":
+        if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         else:
-            self.device = torch.device(self.config.device)
+            self.device = torch.device(device)
 
         self.encoder: EEGPTWrapper | None = None
         self.abnormality_head: nn.Module | None = None
@@ -114,7 +118,7 @@ class EEGPTModel:
         self.logger = logging.getLogger(__name__)
 
         # Auto-load for backward compatibility
-        if auto_load and self.config.model_path.exists():
+        if auto_load and self.checkpoint_path and self.checkpoint_path.exists():
             try:
                 self.load_model()
             except Exception as e:
@@ -141,28 +145,26 @@ class EEGPTModel:
 
     @property
     def n_summary_tokens(self) -> int:
-        """Backward compatibility property."""
-        return self.config.n_summary_tokens
+        """Get number of summary tokens."""
+        return self._n_summary_tokens
 
     @property
     def embedding_dim(self) -> int:
-        """Get embedding dimension from config."""
-        return self.config.embed_dim
-
-    @property
-    def checkpoint_path(self) -> Path:
-        """Backward compatibility property."""
-        return self.config.model_path
+        """Get embedding dimension."""
+        return self._embed_dim
 
     @property
     def window_samples(self) -> int:
-        """Backward compatibility property."""
-        return self.config.window_samples
+        """Calculate window size in samples."""
+        samples = self.window_duration * self.sampling_rate
+        if not samples.is_integer():
+            raise ValueError("Window duration must result in integer samples")
+        return int(samples)
 
     def _create_abnormality_head(self) -> nn.Module:
         """Create default abnormality detection head."""
         return nn.Sequential(
-            nn.Linear(self.config.embed_dim * self.config.n_summary_tokens, 512),
+            nn.Linear(self._embed_dim * self._n_summary_tokens, 512),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(512, 2),  # Binary classification
@@ -170,12 +172,12 @@ class EEGPTModel:
 
     def load_model(self) -> None:
         """Load the EEGPT model from checkpoint."""
-        if not self.config.model_path.exists():
-            raise FileNotFoundError(f"Model checkpoint not found: {self.config.model_path}")
+        if not self.checkpoint_path or not self.checkpoint_path.exists():
+            raise FileNotFoundError(f"Model checkpoint not found: {self.checkpoint_path}")
 
         # Load model architecture with normalization wrapper
         self.encoder = create_normalized_eegpt(
-            str(self.config.model_path),
+            str(self.checkpoint_path),
             normalize=True,
             mean=0.0,
             std=1.0,  # Will be estimated from data
@@ -191,7 +193,7 @@ class EEGPTModel:
         self.abnormality_head = self._create_abnormality_head()
 
         self.is_loaded = True
-        self.logger.info(f"✅ Loaded real EEGPT model from {self.config.model_path}")
+        self.logger.info(f"✅ Loaded real EEGPT model from {self.checkpoint_path}")
 
     def extract_features(
         self, data: npt.NDArray[np.float64], channel_names: list[str]
@@ -210,7 +212,7 @@ class EEGPTModel:
         # The model will handle patching internally
 
         # Ensure we have exactly the right number of samples (4 seconds at 256 Hz = 1024 samples)
-        expected_samples = self.config.window_samples
+        expected_samples = self.window_samples
         if n_samples != expected_samples:
             # Truncate or pad as needed
             if n_samples > expected_samples:
@@ -252,7 +254,7 @@ class EEGPTModel:
                 return result
 
         # This should never be reached due to the encoder None check above
-        return np.zeros((self.config.n_summary_tokens, self.config.embed_dim), dtype=np.float64)
+        return np.zeros((self._n_summary_tokens, self._embed_dim), dtype=np.float64)
 
     def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:
         """Predict abnormality from raw EEG data with streaming support."""
@@ -279,7 +281,9 @@ class EEGPTModel:
 
         # Check duration to decide on streaming (configurable threshold)
         duration = processed.times[-1]
-        use_streaming = duration > self.config.streaming_threshold
+        # Default streaming threshold of 120 seconds
+        streaming_threshold = 120.0
+        use_streaming = duration > streaming_threshold
 
         if use_streaming:
             # Use streaming for large files
@@ -487,13 +491,13 @@ class EEGPTModel:
             List of windows (channels, window_samples)
         """
         # Resample if needed
-        if sampling_rate != self.config.sampling_rate:
+        if sampling_rate != self.sampling_rate:
             n_samples = data.shape[1]
-            new_n_samples = int(n_samples * self.config.sampling_rate / sampling_rate)
+            new_n_samples = int(n_samples * self.sampling_rate / sampling_rate)
             data = signal.resample(data, new_n_samples, axis=1)
 
         # Extract windows
-        window_samples = self.config.window_samples
+        window_samples = self.window_samples
         n_windows = data.shape[1] // window_samples
 
         windows = []

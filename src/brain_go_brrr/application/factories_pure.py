@@ -13,16 +13,18 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import torch
 
-from brain_go_brrr.application.config import AbnormalityConfig, ModelConfig
+from brain_go_brrr.application.config import AbnormalityConfig
+from brain_go_brrr.application.factories_types import (
+    AbnormalityDetectorPort,
+    FeatureExtractorPort,
+    QualityControllerPort,
+)
 from brain_go_brrr.domain.abnormal.detector_pure import PureAbnormalityDetector
 from brain_go_brrr.domain.abnormal.settings import (
     AbnormalitySettings,
-    FeatureSettings,
-    QualitySettings,
 )
 from brain_go_brrr.infra.adapters.eegpt_classifier import EEGPTClassifierAdapter
 from brain_go_brrr.infra.adapters.eegpt_feature_extractor import (
@@ -40,32 +42,32 @@ def create_pure_abnormality_detector(
     model_path: str | None = None,
     device: str = "auto",
     logger: logging.Logger | None = None,
-) -> PureAbnormalityDetector:
+) -> AbnormalityDetectorPort:
     """Create a PURE abnormality detector with all dependencies wired.
-    
+
     This is THE composition root - the ONLY place that knows about
     concrete implementations. Everything else depends on abstractions.
-    
+
     Args:
         config: Application configuration (or use defaults)
         model_path: Path to EEGPT model checkpoint
         device: Device for inference (auto/cuda/cpu)
         logger: Python logger instance
-        
+
     Returns:
-        Fully wired PureAbnormalityDetector ready for use
+        AbnormalityDetectorPort implementation ready for use
     """
     # Step 1: Configuration
     if config is None:
         config = AbnormalityConfig.from_spec()
-    
+
     if model_path is None:
         model_path = str(config.model.checkpoint_path)
-    
+
     # Auto-detect device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     # Step 2: Create domain settings (pure value objects)
     settings = AbnormalitySettings(
         abnormal_threshold=config.classification.abnormal_threshold,
@@ -80,18 +82,18 @@ def create_pure_abnormality_detector(
         min_quality_score=config.quality.fair_avg_quality,
         artifact_threshold=config.quality.artifact_amplitude_threshold,
     )
-    
+
     # Step 3: Create infrastructure components
-    
-    # Load EEGPT model
-    model_config = ModelConfig(
+
+    # Load EEGPT model (pass primitives, not config object)
+    eegpt_model = EEGPTModel(
         checkpoint_path=model_path,
         device=device,
         sampling_rate=config.processing.target_sampling_rate,
         window_duration=config.processing.window_duration_seconds,
+        auto_load=True,
     )
-    eegpt_model = EEGPTModel(config=model_config, auto_load=True)
-    
+
     # Load classifier head
     classifier_path = Path(model_path).parent / "abnormal_classifier.pth"
     if classifier_path.exists():
@@ -108,7 +110,7 @@ def create_pure_abnormality_detector(
             torch.nn.Dropout(0.3),
             torch.nn.Linear(64, 2),
         )
-    
+
     # Step 4: Create adapters (infrastructure implementing domain ports)
     preprocessor = FlexiblePreprocessorAdapter(
         target_sfreq=config.processing.target_sampling_rate,
@@ -117,15 +119,15 @@ def create_pure_abnormality_detector(
         notch_freq=50.0,
         channel_subset_size=config.processing.channel_subset_size,
     )
-    
+
     feature_extractor = EEGPTFeatureExtractorAdapter(eegpt_model)
-    
+
     classifier_adapter = EEGPTClassifierAdapter(classifier, device=device)
-    
+
     logger_adapter = PythonLoggerAdapter(
         logger or logging.getLogger("brain_go_brrr.domain.abnormal")
     )
-    
+
     # Step 5: Wire everything together
     detector = PureAbnormalityDetector(
         preprocessor=preprocessor,
@@ -134,7 +136,7 @@ def create_pure_abnormality_detector(
         settings=settings,
         logger=logger_adapter,
     )
-    
+
     return detector
 
 
@@ -143,17 +145,17 @@ def create_quality_controller_pure(
     device: str = "auto",
     enable_autoreject: bool = True,
     logger: logging.Logger | None = None,
-) -> Any:
+) -> QualityControllerPort:
     """Create a PURE quality controller with all dependencies wired.
-    
+
     Args:
         model_path: Path to EEGPT model checkpoint
         device: Device for inference
         enable_autoreject: Whether to use AutoReject
         logger: Python logger instance
-        
+
     Returns:
-        Fully wired quality controller
+        QualityControllerPort implementation ready for use
     """
     # Import the clean quality controller
     from brain_go_brrr.domain.quality.controller_clean import CleanQualityController
@@ -162,28 +164,29 @@ def create_quality_controller_pure(
         EEGPreprocessorAdapter,
         EEGPTModelAdapter,
     )
-    
+
     # Auto-detect device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     # Use default model path if not provided
     if model_path is None:
         model_path = "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
-    
+
     # Create adapters
     model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
     preprocessor_adapter = EEGPreprocessorAdapter()
-    
+
     autoreject_adapter = None
     if enable_autoreject:
         autoreject_adapter = AutoRejectAdapter()
-    
+
     logger_adapter = None
     if logger:
         from brain_go_brrr.infra.adapters.model_adapter import LoggerAdapter
+
         logger_adapter = LoggerAdapter("brain_go_brrr.domain.quality")
-    
+
     # Wire together
     controller = CleanQualityController(
         preprocessor=preprocessor_adapter,
@@ -191,7 +194,7 @@ def create_quality_controller_pure(
         autoreject=autoreject_adapter,
         logger=logger_adapter,
     )
-    
+
     return controller
 
 
@@ -201,18 +204,18 @@ def create_feature_extractor_pure(
     window_size: float = 4.0,
     overlap: float = 0.5,
     logger: logging.Logger | None = None,
-) -> Any:
+) -> FeatureExtractorPort:
     """Create a PURE feature extractor with all dependencies wired.
-    
+
     Args:
         model_path: Path to EEGPT model checkpoint
         device: Device for inference
         window_size: Window size in seconds
         overlap: Window overlap ratio
         logger: Python logger instance
-        
+
     Returns:
-        Fully wired feature extractor
+        FeatureExtractorPort implementation ready for use
     """
     from brain_go_brrr.domain.preprocessing.features.extractor_clean import (
         CleanFeatureExtractor,
@@ -222,23 +225,23 @@ def create_feature_extractor_pure(
         EEGPTModelAdapter,
         LoggerAdapter,
     )
-    
+
     # Auto-detect device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
-    
+
     # Use default model path if not provided
     if model_path is None:
         model_path = "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
-    
+
     # Create adapters
     model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
     preprocessor_adapter = EEGPreprocessorAdapter()
-    
+
     logger_adapter = None
     if logger:
         logger_adapter = LoggerAdapter("brain_go_brrr.domain.features")
-    
+
     # Wire together
     extractor = CleanFeatureExtractor(
         model=model_adapter,
@@ -247,5 +250,5 @@ def create_feature_extractor_pure(
         window_size=window_size,
         overlap=overlap,
     )
-    
+
     return extractor

@@ -14,8 +14,8 @@ warnings.warn(
     stacklevel=2,
 )
 
-# Re-export everything from the new location
-from brain_go_brrr.domain.preprocessing.basic import (  # noqa: E402
+# Re-export from core utilities (not domain!)
+from brain_go_brrr.core.preprocessing_utils import (  # noqa: E402
     BandpassFilter,
     Normalizer,
     NotchFilter,

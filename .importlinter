@@ -2,7 +2,7 @@
 root_package = brain_go_brrr
 
 # ===================================================================
-# UNCLE BOB'S CLEAN ARCHITECTURE - STRICT ENFORCEMENT
+# UNCLE BOB'S CLEAN ARCHITECTURE - 100% STRICT ENFORCEMENT
 # ===================================================================
 
 # Contract 1: DOMAIN MUST BE PURE - NO EXCEPTIONS
@@ -16,21 +16,12 @@ forbidden_modules =
     brain_go_brrr.infra
     brain_go_brrr.api
     brain_go_brrr.presentation
-    brain_go_brrr.core
     brain_go_brrr.services
     brain_go_brrr.models
     brain_go_brrr.preprocessing
     brain_go_brrr.visualization
     brain_go_brrr.config
-ignore_imports =
-    # TEMPORARY: Allow legacy modules until fully migrated
-    brain_go_brrr.domain.abnormal.detector -> brain_go_brrr.application.config
-    brain_go_brrr.domain.abnormal.detector -> brain_go_brrr.infra.logger
-    brain_go_brrr.domain.abnormal.detector -> brain_go_brrr.infra.ml_models.eegpt_model
-    brain_go_brrr.domain.abnormal.detector -> brain_go_brrr.infra.preprocessing.eeg_preprocessor
-    brain_go_brrr.domain.quality.controller -> brain_go_brrr.infra.ml_models.eegpt_model
-    brain_go_brrr.domain.preprocessing.features.extractor -> brain_go_brrr.infra.ml_models.eegpt_model
-    brain_go_brrr.domain.preprocessing.features.extractor -> brain_go_brrr.infra.preprocessing.flexible_preprocessor
+# Domain CAN import from core (utilities are leaf nodes)
 
 # Contract 2: CLEAN ARCHITECTURE LAYERS
 [importlinter:contract:layers]
@@ -62,7 +53,16 @@ forbidden_modules =
     brain_go_brrr.api
     brain_go_brrr.presentation
 
-# Contract 5: SERVICES LAYER RULES
+# Contract 5: INFRA NO APPLICATION
+[importlinter:contract:infra_no_app]
+name = Infrastructure cannot depend on Application
+type = forbidden
+source_modules =
+    brain_go_brrr.infra
+forbidden_modules =
+    brain_go_brrr.application
+
+# Contract 6: SERVICES LAYER RULES
 [importlinter:contract:services_clean]
 name = Services cannot depend on API/Presentation
 type = forbidden
@@ -72,9 +72,9 @@ forbidden_modules =
     brain_go_brrr.api
     brain_go_brrr.presentation
 
-# Contract 6: CORE UTILITIES INDEPENDENCE
+# Contract 7: CORE UTILITIES INDEPENDENCE
 [importlinter:contract:core_independent]
-name = Core utilities must be independent
+name = Core utilities must be independent (leaf nodes)
 type = forbidden
 source_modules =
     brain_go_brrr.core
@@ -83,8 +83,10 @@ forbidden_modules =
     brain_go_brrr.presentation
     brain_go_brrr.application
     brain_go_brrr.domain
+    brain_go_brrr.infra
+    brain_go_brrr.services
 
-# Contract 7: DEPRECATED MODULES
+# Contract 8: DEPRECATED MODULES
 [importlinter:contract:deprecated_redirects]
 name = Deprecated modules are redirects only
 type = forbidden
@@ -97,7 +99,7 @@ forbidden_modules =
     brain_go_brrr.api
     brain_go_brrr.presentation
 
-# Contract 8: DOMAIN PORTS ARE PURE
+# Contract 9: DOMAIN PORTS ARE PURE
 [importlinter:contract:ports_pure]
 name = Domain ports cannot have implementation dependencies
 type = forbidden
@@ -108,5 +110,3 @@ forbidden_modules =
     brain_go_brrr.infra
     brain_go_brrr.application
     brain_go_brrr.api
-
-
