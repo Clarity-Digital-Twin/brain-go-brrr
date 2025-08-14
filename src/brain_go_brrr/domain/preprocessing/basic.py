@@ -6,7 +6,7 @@ Core utilities are leaf nodes - domain can import from core.
 """
 
 # Re-export from core (domain can depend on core utilities)
-from brain_go_brrr.core.preprocessing_utils import (
+from brain_go_brrr.domain.preprocessing.core_logic import (
     BandpassFilter,
     Normalizer,
     NotchFilter,
