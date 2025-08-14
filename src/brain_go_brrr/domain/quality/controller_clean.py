@@ -5,8 +5,8 @@ has NO dependencies on infrastructure or application layers.
 All dependencies are inverted through ports/interfaces.
 """
 
-from dataclasses import dataclass
-from typing import Protocol
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
 import mne
 import numpy as np
@@ -26,13 +26,13 @@ class QualityMetrics:
     interpolated_channels: list[str]
     quality_score: float
     abnormality_score: float | None = None
-    processing_notes: list[str] = None
+    processing_notes: list[str] = field(default_factory=list)
 
 
 class AutoRejectPort(Protocol):
     """Port for artifact rejection service."""
 
-    def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
+    def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict[str, Any]]:
         """Fit and transform epochs with rejection/interpolation."""
         ...
 
@@ -224,14 +224,14 @@ class CleanQualityController:
 
         return artifact_epochs
 
-    def _extract_rejected_epochs(self, rejection_info: dict) -> list[int]:
+    def _extract_rejected_epochs(self, rejection_info: dict[str, Any]) -> list[int]:
         """Extract rejected epoch indices from AutoReject info."""
         if "reject_log" in rejection_info:
             reject_log = rejection_info["reject_log"]
             return [i for i, rejected in enumerate(reject_log) if rejected]
         return []
 
-    def _extract_interpolated_channels(self, rejection_info: dict) -> list[str]:
+    def _extract_interpolated_channels(self, rejection_info: dict[str, Any]) -> list[str]:
         """Extract interpolated channel names from AutoReject info."""
         if "interpolated" in rejection_info:
             return list(rejection_info["interpolated"])

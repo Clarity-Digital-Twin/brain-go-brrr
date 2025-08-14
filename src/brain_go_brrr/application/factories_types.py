@@ -12,11 +12,12 @@ concrete implementations. Everything else depends on these abstractions.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
+
     # Import only for type checking to avoid runtime dependencies
     from brain_go_brrr._typing import MNERaw
     from brain_go_brrr.domain.abnormal.detector_pure import (
@@ -125,7 +126,7 @@ class EEGProcessorPort(Protocol):
     types of EEG analysis.
     """
 
-    def process(self, raw: MNERaw, task: str = "detect") -> dict:
+    def process(self, raw: \"MNERaw\", task: str = "detect") -> dict[str, Any]:
         """Process EEG data for specified task.
 
         Args:
@@ -146,7 +147,7 @@ class ModelPort(Protocol):
     (PyTorch, TensorFlow, etc).
     """
 
-    def predict(self, X: "npt.NDArray[np.float32]") -> "npt.NDArray[np.float32]":  # noqa: N803
+    def predict(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:  # noqa: N803
         """Run model prediction.
 
         Args:
@@ -157,7 +158,7 @@ class ModelPort(Protocol):
         """
         ...
 
-    def extract_embeddings(self, X: "npt.NDArray[np.float32]") -> "npt.NDArray[np.float32]":  # noqa: N803
+    def extract_embeddings(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:  # noqa: N803
         """Extract embeddings/features from model.
 
         Args:

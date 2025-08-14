@@ -7,6 +7,7 @@ allowing the domain to use AutoReject without depending on it.
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 from brain_go_brrr._typing import MNEEpochs
 
@@ -52,7 +53,7 @@ class AutoRejectAdapter:
                 verbose=verbose,
             )
 
-    def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
+    def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict[str, Any]]:
         """Fit and transform epochs with rejection/interpolation.
 
         Args:
@@ -77,7 +78,7 @@ class AutoRejectAdapter:
 
         return epochs_clean, rejection_info
 
-    def _basic_rejection(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
+    def _basic_rejection(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict[str, Any]]:
         """Basic artifact rejection without AutoReject.
 
         Simple threshold-based rejection as fallback.
@@ -96,7 +97,12 @@ class AutoRejectAdapter:
 
         # Drop bad epochs
         good_epochs = [i for i, rejected in enumerate(reject_log) if not rejected]
-        epochs_clean = epochs[good_epochs]
+        if good_epochs:
+            # MNE requires integer indexing, not list
+            epochs_clean = epochs.copy()
+            epochs_clean = epochs_clean[good_epochs]
+        else:
+            epochs_clean = epochs.copy()  # Return copy if all bad
 
         rejection_info = {
             "reject_log": reject_log,

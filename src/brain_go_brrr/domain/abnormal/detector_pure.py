@@ -8,17 +8,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 
 from .ports import (  # noqa: TC001
-    AbnormalityHeadPort,  # noqa: TC001
-    EEGPreprocessorPort,  # noqa: TC001
-    FeatureExtractorPort,  # noqa: TC001
-    LoggerPort,  # noqa: TC001
-    MneRaw,  # noqa: TC001
+    AbnormalityHeadPort,
+    EEGPreprocessorPort,
+    FeatureExtractorPort,
+    LoggerPort,
+    MneRaw,
 )
 from .settings import AbnormalitySettings  # noqa: TC001
 
@@ -43,7 +43,7 @@ class AbnormalityResult:
     n_windows: int
     quality_score: float
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
             "probability": self.probability,
@@ -243,7 +243,7 @@ class PureAbnormalityDetector:
 
         # Combine factors
         quality = float(np.mean(quality_factors))
-        return np.clip(quality, 0, 1)
+        return float(np.clip(quality, 0, 1))
 
     def _determine_triage(
         self, probability: float, confidence: float, quality: float

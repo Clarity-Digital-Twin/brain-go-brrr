@@ -28,18 +28,21 @@ class MemoryCache:
         # TODO: Check TTL expiry
         return self._store.get(key)
 
-    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
+    def set(self, key: str, value: Any, ttl: int | None = None) -> bool:
         """Set value in memory cache."""
         self._store[key] = value
-        if ttl_seconds:
+        if ttl:
             import time
 
-            self._ttls[key] = time.time() + ttl_seconds
+            self._ttls[key] = time.time() + ttl
+        return True
 
-    def delete(self, key: str) -> None:
+    def delete(self, key: str) -> bool:
         """Delete from memory cache."""
+        deleted = key in self._store
         self._store.pop(key, None)
         self._ttls.pop(key, None)
+        return deleted
 
     def exists(self, key: str) -> bool:
         """Check if key exists in memory cache."""

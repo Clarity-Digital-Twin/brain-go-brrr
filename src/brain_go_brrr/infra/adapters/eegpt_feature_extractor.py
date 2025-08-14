@@ -6,11 +6,15 @@ wrapping the actual EEGPT model implementation.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import numpy.typing as npt
 
 from brain_go_brrr.domain.abnormal.ports import FeatureExtractorPort
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel  # noqa: TC001
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 
 class EEGPTFeatureExtractorAdapter(FeatureExtractorPort):
@@ -28,7 +32,7 @@ class EEGPTFeatureExtractorAdapter(FeatureExtractorPort):
         if not hasattr(self._model, "is_loaded") or not self._model.is_loaded:
             raise RuntimeError("EEGPT model must be loaded before creating adapter")
 
-    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:  # noqa: N803
         """Extract features from preprocessed EEG.
 
         Implements the domain port interface.

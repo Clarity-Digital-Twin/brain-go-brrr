@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class EEGPreprocessorPort(Protocol):
     """Port for EEG preprocessing - domain defines what it needs."""
 
-    def transform(self, raw: "MneRaw") -> "npt.NDArray[np.float32]":
+    def transform(self, raw: MneRaw) -> npt.NDArray[np.float32]:
         """Transform raw EEG to preprocessed array.
 
         Args:
@@ -35,7 +35,7 @@ class EEGPreprocessorPort(Protocol):
 class AbnormalityHeadPort(Protocol):
     """Port for abnormality classification head."""
 
-    def predict_proba(self, X: "npt.NDArray[np.float32]") -> float:  # noqa: N803
+    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:  # noqa: N803
         """Predict abnormality probability.
 
         Args:
@@ -51,7 +51,7 @@ class AbnormalityHeadPort(Protocol):
 class FeatureExtractorPort(Protocol):
     """Port for feature extraction from EEG."""
 
-    def extract(self, X: "npt.NDArray[np.float32]") -> "npt.NDArray[np.float32]":  # noqa: N803
+    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:  # noqa: N803
         """Extract features from preprocessed EEG.
 
         Args:
@@ -89,7 +89,7 @@ class MneRaw(Protocol):
     """Protocol for MNE Raw object - domain doesn't depend on MNE."""
 
     @property
-    def info(self) -> dict:
+    def info(self) -> dict[str, Any]:
         """Info dict with sfreq, ch_names, etc."""
         ...
 

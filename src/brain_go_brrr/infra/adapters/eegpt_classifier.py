@@ -31,7 +31,7 @@ class EEGPTClassifierAdapter(AbnormalityHeadPort):
         self._device = torch.device(device)
         self._classifier = self._classifier.to(self._device)
 
-    def predict_proba(self, X: "npt.NDArray[np.float32]") -> float:  # noqa: N803
+    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:  # noqa: N803
         """Predict abnormality probability.
 
         Implements the domain port interface.

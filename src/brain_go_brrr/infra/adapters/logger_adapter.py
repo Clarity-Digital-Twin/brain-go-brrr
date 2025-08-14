@@ -7,6 +7,7 @@ wrapping the actual Python logging implementation.
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from brain_go_brrr.domain.abnormal.ports import LoggerPort
 
@@ -22,18 +23,18 @@ class PythonLoggerAdapter(LoggerPort):
         """
         self._logger = logger or logging.getLogger("brain_go_brrr.domain")
 
-    def debug(self, msg: str, *args, **kwargs) -> None:
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log debug message."""
         self._logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg: str, *args, **kwargs) -> None:
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log info message."""
         self._logger.info(msg, *args, **kwargs)
 
-    def warning(self, msg: str, *args, **kwargs) -> None:
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log warning message."""
         self._logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg: str, *args, **kwargs) -> None:
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log error message."""
         self._logger.error(msg, *args, **kwargs)

@@ -6,8 +6,12 @@ preprocessing without depending on the infrastructure implementation.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import numpy as np
-import numpy.typing as npt
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 from brain_go_brrr.domain.abnormal.ports import EEGPreprocessorPort, MneRaw
 from brain_go_brrr.infra.preprocessing.flexible_preprocessor import (
@@ -24,7 +28,7 @@ class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
         lowpass_freq: float = 45.0,
         highpass_freq: float = 0.5,
         notch_freq: float = 50.0,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Initialize the adapter with preprocessing parameters.
 

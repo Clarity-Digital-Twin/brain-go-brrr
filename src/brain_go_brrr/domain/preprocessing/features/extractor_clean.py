@@ -5,7 +5,8 @@ has NO dependencies on infrastructure or application layers.
 All dependencies are inverted through ports/interfaces.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -22,7 +23,7 @@ class ExtractedFeatures:
     window_features: npt.NDArray[np.float32] | None = None
     channel_features: npt.NDArray[np.float32] | None = None
     global_features: npt.NDArray[np.float32] | None = None
-    metadata: dict = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class CleanFeatureExtractor:
