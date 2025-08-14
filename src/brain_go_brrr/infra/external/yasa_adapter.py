@@ -40,7 +40,7 @@ class _HeuristicStager:
         """Return high confidence for N2."""
         n = len(features)
         k = len(self.CLASSES)
-        proba = np.zeros((n, k), dtype=float)
+        proba: npt.NDArray[np.float64] = np.zeros((n, k), dtype=float)
         proba[:, 2] = 1.0  # N2 has index 2
         return proba
 

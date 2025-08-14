@@ -253,4 +253,5 @@ class TestApplicationBehavior:
 if __name__ == "__main__":
     # Run tests directly
     import pytest
+
     sys.exit(pytest.main([__file__, "-v"]))
