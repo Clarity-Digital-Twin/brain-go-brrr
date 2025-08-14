@@ -6,9 +6,13 @@ wrapping the actual EEGPT model implementation.
 
 from __future__ import annotations
 
-import numpy as np
-import numpy.typing as npt
+from typing import TYPE_CHECKING
+
+import numpy as np  # noqa: TC002
 import torch
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
 
 from brain_go_brrr.domain.abnormal.ports import AbnormalityHeadPort
 
@@ -27,7 +31,7 @@ class EEGPTClassifierAdapter(AbnormalityHeadPort):
         self._device = torch.device(device)
         self._classifier = self._classifier.to(self._device)
 
-    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:
+    def predict_proba(self, X: "npt.NDArray[np.float32]") -> float:  # noqa: N803
         """Predict abnormality probability.
 
         Implements the domain port interface.

@@ -8,17 +8,18 @@ Following Uncle Bob's Clean Architecture:
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-import numpy as np
-import numpy.typing as npt
+if TYPE_CHECKING:
+    import numpy as np
+    import numpy.typing as npt
 
 
 @runtime_checkable
 class EEGPreprocessorPort(Protocol):
     """Port for EEG preprocessing - domain defines what it needs."""
 
-    def transform(self, raw: MneRaw) -> npt.NDArray[np.float32]:
+    def transform(self, raw: "MneRaw") -> "npt.NDArray[np.float32]":
         """Transform raw EEG to preprocessed array.
 
         Args:
@@ -34,7 +35,7 @@ class EEGPreprocessorPort(Protocol):
 class AbnormalityHeadPort(Protocol):
     """Port for abnormality classification head."""
 
-    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:
+    def predict_proba(self, X: "npt.NDArray[np.float32]") -> float:  # noqa: N803
         """Predict abnormality probability.
 
         Args:
@@ -50,7 +51,7 @@ class AbnormalityHeadPort(Protocol):
 class FeatureExtractorPort(Protocol):
     """Port for feature extraction from EEG."""
 
-    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    def extract(self, X: "npt.NDArray[np.float32]") -> "npt.NDArray[np.float32]":  # noqa: N803
         """Extract features from preprocessed EEG.
 
         Args:
@@ -66,19 +67,19 @@ class FeatureExtractorPort(Protocol):
 class LoggerPort(Protocol):
     """Port for logging - domain doesn't care about implementation."""
 
-    def debug(self, msg: str, *args, **kwargs) -> None:
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log debug message."""
         ...
 
-    def info(self, msg: str, *args, **kwargs) -> None:
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log info message."""
         ...
 
-    def warning(self, msg: str, *args, **kwargs) -> None:
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log warning message."""
         ...
 
-    def error(self, msg: str, *args, **kwargs) -> None:
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log error message."""
         ...
 
