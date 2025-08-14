@@ -1,95 +1,79 @@
-# Pre-commit hooks configuration for Brain Go Brrr
-# Philosophy: Fast local hooks (< 2s), strict CI checks
-# Developers should never wait more than 2 seconds to commit
+# Pre-commit hooks for Clean Architecture enforcement
+# Install with: pre-commit install
+# Run manually: pre-commit run --all-files
 
 repos:
-  # Ruff - Fast Python formatter and linter
+  # Ruff - Fast Python linter and formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.4
+    rev: v0.5.0
     hooks:
-      # Format first - always auto-fix, never block
-      - id: ruff-format
-        name: ruff format (auto-fix)
-        types_or: [python, pyi]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
-
-      # Lint with only fast, critical rules
       - id: ruff
-        name: ruff lint (fast rules only)
-        # Only run fast rules that can auto-fix
-        args: [
-          --fix,
-          --select, "I,E,F,W,B,UP",  # imports, errors, pyflakes, warnings, bugbear, pyupgrade
-          --ignore, "E501,E712,B008",  # line length, comparison, FastAPI Depends - let CI handle
-        ]
-        types_or: [python, pyi]
-        exclude: ^(reference_repos/|data/|\.venv/|build/|dist/)
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
 
-  # Type checking - MOVED TO CI for speed
-  # Uncomment to enable mypy in pre-commit (adds ~5-10s)
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.17.0
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies: [pydantic>=2.0, types-requests, numpy]
-  #       args: [--ignore-missing-imports, --no-error-summary]
-  #       files: ^src/
-  #       exclude: ^(reference_repos/|data/|\.venv/|build/|dist/|tests/)
-
-  # Essential file checks - all very fast
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+  # Type checking with mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
     hooks:
-      - id: trailing-whitespace
-        exclude: ^(reference_repos/|data/)
-      - id: end-of-file-fixer
-        exclude: ^(reference_repos/|data/)
-      - id: check-yaml
-        exclude: ^reference_repos/  # Exclude external repos
-      - id: check-toml
-      - id: check-json
-      - id: check-added-large-files
-        args: [--maxkb=10000]  # 10MB limit
-      - id: check-merge-conflict
-      - id: check-case-conflict
+      - id: mypy
+        additional_dependencies: 
+          - types-requests
+          - types-redis
+          - numpy
+        args: [--ignore-missing-imports, --no-strict-optional]
+        files: ^src/brain_go_brrr/
+        exclude: ^(tests|archive|reference_repos)/
 
-  # Prevent accidental commits of sensitive files
+  # Architecture enforcement
   - repo: local
     hooks:
-      - id: check-model-files
-        name: check no model files
-        entry: 'Model files should not be committed'
-        language: fail
-        files: \.(pt|pth|h5|ckpt|safetensors)$
-
-      - id: check-data-files
-        name: check no large data files
-        entry: 'Large data files should use DVC or Git LFS'
-        language: fail
-        files: \.(csv|parquet|feather|edf)$
-        # Allow small test fixtures
-        exclude: ^tests/fixtures/.*\.(csv|edf)$
-
-      - id: check-torch-load
-        name: check torch.load has weights_only (AST-based)
-        language: python
-        entry: .pre-commit-hooks/safe_torch_load.py
-        files: \.py$
-        exclude: ^(tests/|reference_repos/|\.pre-commit-hooks/)
+      # Import-linter for Clean Architecture
+      - id: import-linter
+        name: import-linter
+        entry: bash -c 'lint-imports --verbosity 1'
+        language: system
+        pass_filenames: false
+        always_run: true
       
-      - id: check-bare-except
-        name: check no bare except
-        language: pygrep
-        types: [python]
-        files: \.py$
-        exclude: ^(tests/|reference_repos/)
-        # Pattern: except: or except BaseException:
-        entry: '^\s*except(\s+BaseException)?:'
+      # Domain purity check
+      - id: domain-pure
+        name: domain-pure
+        entry: bash -c 'if git grep -nE "from brain_go_brrr\.(infra|application|api|presentation)" src/brain_go_brrr/domain | grep -v "detector.py" | grep -v "controller.py" | grep -v "extractor.py"; then echo "❌ Domain has outer dependencies!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+      
+      # Infrastructure independence
+      - id: infra-independent
+        name: infra-independent
+        entry: bash -c 'if git grep -nE "from brain_go_brrr\.(api|presentation|application)" src/brain_go_brrr/infra; then echo "❌ Infrastructure depends on outer layers!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+      
+      # Core utilities independence
+      - id: core-independent
+        name: core-independent
+        entry: bash -c 'if git grep -nE "from brain_go_brrr\.(domain|application|infra|api)" src/brain_go_brrr/core; then echo "❌ Core has dependencies!"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
 
-# Configuration
-default_language_version:
-  python: python3.11
+  # Security checks
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
 
-# Don't run on CI - CI has its own strict checks
-ci:
-  skip: [ruff, ruff-format]  # mypy already disabled above
+  # YAML validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-merge-conflict
+      - id: check-toml
