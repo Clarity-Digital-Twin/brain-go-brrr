@@ -378,8 +378,8 @@ class CleanQualityController:
     def preprocess_raw(self, raw: MNERaw, **_kwargs: Any) -> MNERaw:
         """Public wrapper for preprocessing (backward compatibility)."""
         # Accept kwargs for backward compatibility
-        bandpass = kwargs.get("bandpass", (0.5, 50.0))
-        notch = kwargs.get("notch", 50.0)
+        bandpass = _kwargs.get("bandpass", (0.5, 50.0))
+        notch = _kwargs.get("notch", 50.0)
 
         # Clamp h_freq to Nyquist frequency
         sfreq = raw.info["sfreq"]
