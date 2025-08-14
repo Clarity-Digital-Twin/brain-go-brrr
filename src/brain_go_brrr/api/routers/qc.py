@@ -196,10 +196,10 @@ async def analyze_eeg(
 @router.post("/analyze/detailed", response_class=JSONResponse)
 async def analyze_eeg_detailed(
     edf_file: UploadFile = File(...),
-    qc_controller: QCController,  # Injected via Depends
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
+    qc_controller: QCController = Depends(get_qc_controller),  # Explicit Depends
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
