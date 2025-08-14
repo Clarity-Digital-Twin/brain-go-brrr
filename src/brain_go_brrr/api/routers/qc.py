@@ -12,8 +12,8 @@ import numpy as np
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from brain_go_brrr.api.deps import QCController, get_qc_controller
 from brain_go_brrr.api.cache import get_cache
+from brain_go_brrr.api.deps import QCController, get_qc_controller
 from brain_go_brrr.api.schemas import QCResponse
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe

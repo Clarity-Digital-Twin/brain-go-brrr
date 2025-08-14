@@ -126,7 +126,7 @@ class EEGProcessorPort(Protocol):
     types of EEG analysis.
     """
 
-    def process(self, raw: "MNERaw", task: str = "detect") -> dict[str, Any]:
+    def process(self, raw: MNERaw, task: str = "detect") -> dict[str, Any]:
         """Process EEG data for specified task.
 
         Args:

@@ -2,7 +2,7 @@
 
 from warnings import warn
 
-from .extractor_clean import *  # noqa: F403, F401  # Re-export clean implementation
+from .extractor_clean import *  # noqa: F403  # Re-export clean implementation
 
 warn(
     "brain_go_brrr.domain.preprocessing.features.extractor is deprecated; use extractor_clean",
