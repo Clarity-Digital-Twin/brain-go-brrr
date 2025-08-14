@@ -5,8 +5,8 @@ from typing import Any
 
 from brain_go_brrr.domain.abnormal.detector import CleanAbnormalityDetector
 from brain_go_brrr.infra.adapters.model_adapter import (
-    EEGPTModelAdapter,
     EEGPreprocessorAdapter,
+    EEGPTModelAdapter,
 )
 
 
@@ -31,7 +31,7 @@ def create_abnormality_detector(
         device=device,
     )
     preprocessor = EEGPreprocessorAdapter()
-    
+
     # Create domain service with injected dependencies
     return CleanAbnormalityDetector(
         model=model,

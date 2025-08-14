@@ -80,7 +80,7 @@ class CleanAbnormalityDetector:
         # Dependencies are REQUIRED - no defaults
         self.model = model
         self.preprocessor = preprocessor
-        
+
         if config is None:
             # Create minimal config adapter
             class MinimalModel:
