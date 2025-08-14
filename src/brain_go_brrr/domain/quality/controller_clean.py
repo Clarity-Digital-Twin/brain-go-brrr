@@ -79,6 +79,7 @@ class CleanQualityController:
         # Create default preprocessor if none provided (for tests)
         if preprocessor is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+
             preprocessor = EEGPreprocessorAdapter()
 
         self.preprocessor = preprocessor
@@ -95,10 +96,8 @@ class CleanQualityController:
         # Create EEGPTModel if path provided (backward compatibility)
         if eegpt_model_path and not model:
             from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
-            self.eegpt_model = EEGPTModel(
-                checkpoint_path=eegpt_model_path,
-                auto_load=False
-            )
+
+            self.eegpt_model = EEGPTModel(checkpoint_path=eegpt_model_path, auto_load=False)
         else:
             self.eegpt_model = model  # Backward compatibility attribute
 
@@ -323,7 +322,7 @@ class CleanQualityController:
         """Run full QC pipeline - alias for backward compatibility.
 
         Converts QualityMetrics to dict for API responses.
-        
+
         Args:
             raw: Raw EEG data
             **kwargs: Additional options (for backward compatibility)
@@ -335,7 +334,9 @@ class CleanQualityController:
         result = {
             "quality_metrics": {
                 "bad_channels": metrics.bad_channels,
-                "bad_channel_ratio": len(metrics.bad_channels) / len(raw.ch_names) if raw.ch_names else 0,
+                "bad_channel_ratio": len(metrics.bad_channels) / len(raw.ch_names)
+                if raw.ch_names
+                else 0,
                 "artifact_ratio": len(metrics.artifact_epochs) / 100,  # Approximate
                 "quality_grade": self._grade_from_score(metrics.quality_score),
                 "total_channels": len(raw.ch_names),
@@ -418,15 +419,17 @@ class CleanQualityController:
     def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **kwargs: Any) -> float:
         """Compute abnormality score for raw EEG (backward compatibility)."""
         # Use provided model or fallback to self.model or self.eegpt_model
-        model_to_use = model or self.model or getattr(self, 'eegpt_model', None)
+        model_to_use = model or self.model or getattr(self, "eegpt_model", None)
 
         if model_to_use:
             # Handle both MNERaw and Epochs (for backward compatibility)
-            if hasattr(raw, 'info') and hasattr(raw, 'ch_names'):
+            if hasattr(raw, "info") and hasattr(raw, "ch_names"):
                 # It's MNE data (Raw or Epochs)
-                if hasattr(raw, 'n_times'):
+                if hasattr(raw, "n_times"):
                     # It's Raw data - preprocess it
-                    preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+                    preprocessed = self.preprocessor.preprocess(
+                        raw.copy(), bandpass=(0.5, 50.0), notch=50.0
+                    )
                     eeg_array = self.preprocessor.transform_to_array(preprocessed)
                 else:
                     # It's Epochs data - just get the data
@@ -436,10 +439,10 @@ class CleanQualityController:
                 eeg_array = raw if isinstance(raw, np.ndarray) else raw.get_data()
 
             # Check if model has predict_abnormality (backward compat) or extract_features
-            if hasattr(model_to_use, 'predict_abnormality'):
+            if hasattr(model_to_use, "predict_abnormality"):
                 # Old-style model with predict_abnormality
                 result = model_to_use.predict_abnormality(eeg_array)
-                return result.get('abnormality_score', 0.0) if isinstance(result, dict) else result
+                return result.get("abnormality_score", 0.0) if isinstance(result, dict) else result
             else:
                 # New-style model with extract_features
                 features = model_to_use.extract_features(eeg_array)

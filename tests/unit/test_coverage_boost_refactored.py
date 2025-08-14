@@ -177,9 +177,7 @@ def test_abnormal_detector_detects_abnormalities():
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("pathlib.Path.is_file", return_value=True),
-        patch(
-            "brain_go_brrr.infra.adapters.model_adapter.EEGPTModelAdapter"
-        ) as mock_model_adapter,
+        patch("brain_go_brrr.infra.adapters.model_adapter.EEGPTModelAdapter") as mock_model_adapter,
     ):
         # Mock the model adapter to avoid file loading
         mock_model = FakeEEGPTBackbone(feature_dim=512)  # Use EEGPT's actual dimension

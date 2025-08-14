@@ -90,7 +90,7 @@ class EEGPreprocessorAdapter(PreprocessorPort):
         if notch:
             # Only apply notch if it's below Nyquist
             nyquist = processed.info["sfreq"] / 2.0
-            if isinstance(notch, (list, tuple)):
+            if isinstance(notch, list | tuple):
                 notch_freqs = [f for f in notch if f < nyquist]
                 if notch_freqs:
                     processed.notch_filter(freqs=notch_freqs)

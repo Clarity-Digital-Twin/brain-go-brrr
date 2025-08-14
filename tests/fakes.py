@@ -31,7 +31,7 @@ class FakeEEGPTBackbone:
         self,
         data: np.ndarray | torch.Tensor,
         channel_names: list[str] | None = None,
-        sampling_rate: int | None = None
+        sampling_rate: int | None = None,
     ) -> torch.Tensor:
         """Return consistent fake features for testing.
 

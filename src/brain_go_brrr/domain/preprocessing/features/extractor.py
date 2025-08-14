@@ -2,6 +2,7 @@
 
 No import-time warnings; pytest treats DeprecationWarning as error in this repo.
 """
+
 from typing import Any
 
 from .extractor_clean import (
@@ -17,7 +18,9 @@ FeatureExtractor = CleanFeatureExtractor  # Another common alias
 # Placeholder for test mocking - tests expect this class to exist
 class EEGPTModel:
     """Placeholder for backward compatibility with tests that mock EEGPTModel."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize placeholder."""
         pass
 
 

@@ -17,13 +17,17 @@ PureAbnormalityDetector = CleanAbnormalityDetector
 # Placeholder for test mocking - tests expect these classes to exist
 class EEGPTModel:
     """Placeholder for backward compatibility with tests that mock EEGPTModel."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize placeholder."""
         pass
 
 
 class ModelConfig:
     """Placeholder for backward compatibility with tests that mock ModelConfig."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize placeholder."""
         pass
 
 

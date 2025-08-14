@@ -122,7 +122,11 @@ class EEGPTModel:
             else:
                 config_dict = config
 
-            checkpoint_path = checkpoint_path or config_dict.get("checkpoint_path") or config_dict.get("ckpt_path")
+            checkpoint_path = (
+                checkpoint_path
+                or config_dict.get("checkpoint_path")
+                or config_dict.get("ckpt_path")
+            )
             device = config_dict.get("device", device)
             sampling_rate = config_dict.get("sampling_rate", sampling_rate)
             window_duration = config_dict.get("window_duration", window_duration)
@@ -211,7 +215,9 @@ class EEGPTModel:
         """Load the EEGPT model from checkpoint."""
         if not self.checkpoint_path or not self.checkpoint_path.exists():
             # For backward compatibility with tests, create a stub model
-            self.logger.warning(f"Model checkpoint not found: {self.checkpoint_path}, using stub model")
+            self.logger.warning(
+                f"Model checkpoint not found: {self.checkpoint_path}, using stub model"
+            )
 
             # Create a simple stub encoder
             class StubEncoder:

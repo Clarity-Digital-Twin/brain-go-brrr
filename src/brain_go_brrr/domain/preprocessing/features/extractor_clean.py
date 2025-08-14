@@ -62,12 +62,14 @@ class CleanFeatureExtractor:
         # Create defaults if not provided (for tests)
         if model is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPTModelAdapter
+
             model = EEGPTModelAdapter(
                 model_path=model_path or "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt",
-                device=device
+                device=device,
             )
         if preprocessor is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+
             preprocessor = EEGPreprocessorAdapter()
 
         self.model = model
@@ -145,12 +147,12 @@ class CleanFeatureExtractor:
         """Extract sliding windows from EEG data.
 
         Pure domain function for windowing.
-        
+
         Args:
             raw: Raw EEG data
             window_size: Window size in seconds (optional, uses self.window_size if None)
             overlap: Overlap in seconds (optional, uses self.overlap if None)
-            
+
         Returns:
             List of window arrays
         """
@@ -160,18 +162,17 @@ class CleanFeatureExtractor:
 
         data = self.preprocessor.transform_to_array(raw)
         sfreq = float(raw.info["sfreq"])
-        n_times = raw.n_times
 
         # Calculate window and step sizes in samples
-        window_samples = max(1, int(round(ws * sfreq)))
+        window_samples = max(1, round(ws * sfreq))
 
         # Dual-mode: treat overlap < 1.0 as ratio (legacy), >= 1.0 as seconds
         if 0 < ov < 1.0:
             # Ratio mode (legacy) - overlap is fraction of window
-            step_samples = max(1, int(round(ws * (1.0 - ov) * sfreq)))
+            step_samples = max(1, round(ws * (1.0 - ov) * sfreq))
         else:
             # Seconds mode - overlap is absolute seconds
-            step_samples = max(1, int(round((ws - ov) * sfreq)))
+            step_samples = max(1, round((ws - ov) * sfreq))
 
         if step_samples <= 0:
             step_samples = 1
@@ -185,7 +186,7 @@ class CleanFeatureExtractor:
 
         # Handle very short signals
         if not windows and data.shape[1] > 0:
-            window = data[:, 0:min(window_samples, data.shape[1])]
+            window = data[:, 0 : min(window_samples, data.shape[1])]
             windows.append(window.astype(np.float32))
 
         return windows

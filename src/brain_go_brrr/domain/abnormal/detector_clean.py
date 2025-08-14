@@ -80,12 +80,14 @@ class CleanAbnormalityDetector:
         # Create defaults if not provided (for backward compatibility)
         if model is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPTModelAdapter
+
             model = EEGPTModelAdapter(
                 model_path=str(model_path) if model_path else "data/models/pretrained/eegpt.ckpt",
-                device=device
+                device=device,
             )
         if preprocessor is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+
             preprocessor = EEGPreprocessorAdapter()
         if config is None:
             # Create minimal config adapter
@@ -100,14 +102,19 @@ class CleanAbnormalityDetector:
 
                 def get_confidence_threshold(self) -> float:
                     return self.confidence_threshold
+
                 def get_min_confidence(self) -> float:
                     return 0.3
+
                 def get_required_channels(self) -> list[str]:
                     return self.channels
+
                 def get_bandpass_low(self) -> float:
                     return 0.5
+
                 def get_bandpass_high(self) -> float:
                     return 50.0
+
             config = MinimalConfig()
 
         self.model = model
@@ -126,7 +133,7 @@ class CleanAbnormalityDetector:
 
         # Set feature_dim from config if available, else default to 512
         # The test expects 512 as default (EEGPT's actual embedding dim)
-        if hasattr(config, 'model') and hasattr(config.model, 'feature_dim'):
+        if hasattr(config, "model") and hasattr(config.model, "feature_dim"):
             self.feature_dim = config.model.feature_dim
         else:
             self.feature_dim = 512  # EEGPT's actual embedding dimension
@@ -158,7 +165,7 @@ class CleanAbnormalityDetector:
             torch.nn.Linear(64, 2),  # Binary classification
         )
         # Only move to device if not CPU (to avoid cuda issues in tests)
-        if self.device.type != 'cpu':
+        if self.device.type != "cpu":
             self.linear_probe = self.linear_probe.to(self.device)
 
         if self.logger:
@@ -355,12 +362,14 @@ class CleanAbnormalityDetector:
                 raise RuntimeError("dimension mismatch")
 
             # For the actual detection flow, check against linear probe input
-            if hasattr(self, 'linear_probe') and self.linear_probe is not None:
+            if hasattr(self, "linear_probe") and self.linear_probe is not None:
                 expected_dim = self.linear_probe[0].in_features
                 # Model outputs 512 but classifier expects 768 is OK (we pad)
                 # But if model outputs something completely wrong, error
                 if model_output_dim not in [256, 512, 768, expected_dim]:
-                    raise RuntimeError(f"Model/classifier dimension mismatch: model outputs {model_output_dim}, classifier expects {expected_dim}")
+                    raise RuntimeError(
+                        f"Model/classifier dimension mismatch: model outputs {model_output_dim}, classifier expects {expected_dim}"
+                    )
 
     def detect_abnormality(self, raw: MNERaw) -> dict[str, Any]:
         """Detect abnormality (backward compatibility method)."""
@@ -390,10 +399,10 @@ class CleanAbnormalityDetector:
 
     def _predict_window(self, window: npt.NDArray[np.float32]) -> float:
         """Predict abnormality score for a single window (backward compatibility).
-        
+
         Args:
             window: EEG window data (channels, samples)
-            
+
         Returns:
             Abnormality score (0-1)
         """
