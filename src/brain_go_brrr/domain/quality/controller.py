@@ -453,3 +453,7 @@ class CleanQualityController:
     def run_full_pipeline(self, raw: MNERaw, **_options: Any) -> dict[str, Any]:
         """Run full QC pipeline with options (backward compatibility)."""
         return self.run_full_qc_pipeline(raw)
+
+
+# Backward compatibility alias
+EEGQualityController = CleanQualityController

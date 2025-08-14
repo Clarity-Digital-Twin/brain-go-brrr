@@ -401,3 +401,7 @@ class CleanAbnormalityDetector:
 
         # Run inference
         return self._run_inference(features)
+
+
+# Backward compatibility alias
+AbnormalityDetector = CleanAbnormalityDetector
