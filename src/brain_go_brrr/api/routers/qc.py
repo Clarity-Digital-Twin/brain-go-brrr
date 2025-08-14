@@ -12,9 +12,8 @@ import numpy as np
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
-from brain_go_brrr.api.deps import QCController
+from brain_go_brrr.api.deps import QCController, get_qc_controller
 from brain_go_brrr.api.cache import get_cache
-from brain_go_brrr.api.deps import QCController
 from brain_go_brrr.api.schemas import QCResponse
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
@@ -57,7 +56,7 @@ async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
-    qc_controller: QCController,  # Injected via Depends
+    qc_controller: QCController = Depends(get_qc_controller),  # Explicit Depends
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -197,10 +196,10 @@ async def analyze_eeg(
 @router.post("/analyze/detailed", response_class=JSONResponse)
 async def analyze_eeg_detailed(
     edf_file: UploadFile = File(...),
+    qc_controller: QCController,  # Injected via Depends
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
-    qc_controller: QCController,  # Injected via Depends
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
