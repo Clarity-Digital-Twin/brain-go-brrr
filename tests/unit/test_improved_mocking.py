@@ -14,9 +14,9 @@ class TestImprovedMocking:
 
     def test_realistic_embeddings_shape(self):
         """Test that EEGPT embeddings have correct shape and properties."""
-        # EEGPT returns (4, 512) summary tokens, flattened to 2048 for classifier
+        # Detector expects 768 dims by default
         batch_size = 1
-        embedding_dim = 2048  # 4 summary tokens x 512 dims = 2048 flattened
+        embedding_dim = 768  # Detector default feature dimension
 
         # Create realistic embeddings with proper statistics
         embeddings = np.random.randn(batch_size, embedding_dim).astype(np.float32)
@@ -46,8 +46,8 @@ class TestImprovedMocking:
         """Create realistic embeddings for different EEG conditions."""
         np.random.seed(42 if condition == "normal" else 123)
 
-        # Base embedding (4 summary tokens x 512 dims = 2048 flattened)
-        embedding = np.random.randn(1, 2048).astype(np.float32)
+        # Base embedding - detector expects 768 dims by default
+        embedding = np.random.randn(1, 768).astype(np.float32)
 
         if condition == "abnormal":
             # Add some structured patterns to simulate abnormal features
@@ -91,9 +91,9 @@ class TestImprovedMocking:
 
             # Return different embeddings based on window characteristics
             if window_std > 2.0:  # High variance might indicate artifacts/abnormality
-                return self._create_embedding_for_condition("abnormal")
+                return self._create_embedding_for_condition("abnormal").squeeze()  # Return 1D array
             else:
-                return self._create_embedding_for_condition("normal")
+                return self._create_embedding_for_condition("normal").squeeze()  # Return 1D array
 
         mock_model.extract_features.side_effect = mock_extract_features
         mock_model.is_loaded = True

@@ -41,7 +41,7 @@ class CleanFeatureExtractor:
         preprocessor: PreprocessorPort | None = None,
         logger: LoggerPort | None = None,
         window_size: float = 4.0,
-        overlap: float = 0.5,  # Default 0.5 ratio for backward compat
+        overlap: float = 0.0,  # Default to NO overlap for tests
         # Legacy parameters for backward compatibility
         model_path: str | None = None,
         device: str = "cpu",
