@@ -28,7 +28,7 @@ class AutoRejectAdapter:
 
     def __init__(
         self,
-        n_interpolate: list[int] = None,
+        n_interpolate: list[int] | None = None,
         n_jobs: int = 1,
         random_state: int = 42,
         verbose: bool = False,

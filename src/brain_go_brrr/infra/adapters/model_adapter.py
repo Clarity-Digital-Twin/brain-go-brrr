@@ -4,7 +4,6 @@ These adapters implement the domain ports, allowing infrastructure
 components to be used by the domain layer without creating dependencies.
 """
 
-
 import numpy as np
 import numpy.typing as npt
 
@@ -34,7 +33,7 @@ class EEGPTModelAdapter(EEGModelPort):
     def extract_features(
         self,
         eeg_data: npt.NDArray[np.float32],
-        sampling_rate: int = 256,
+        sampling_rate: int = 256,  # noqa: ARG002
     ) -> npt.NDArray[np.float32]:
         """Extract features from EEG data.
 

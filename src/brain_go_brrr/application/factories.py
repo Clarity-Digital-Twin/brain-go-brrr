@@ -4,7 +4,6 @@ This is the composition root where we wire together domain services
 with their infrastructure implementations, following Clean Architecture.
 """
 
-
 from brain_go_brrr.application.config import AbnormalityConfig
 from brain_go_brrr.domain.abnormal.detector_clean import CleanAbnormalityDetector
 from brain_go_brrr.domain.ports import AbnormalityConfigPort
@@ -104,7 +103,7 @@ def create_quality_controller(
     device: str = "cpu",
     enable_logging: bool = True,
     enable_autoreject: bool = True,
-):
+) -> object:
     """Factory to create quality controller with clean dependencies.
 
     Args:
@@ -150,7 +149,7 @@ def create_feature_extractor(
     window_size: float = 4.0,
     overlap: float = 0.5,
     enable_logging: bool = True,
-):
+) -> object:
     """Factory to create feature extractor with clean dependencies.
 
     Args:
