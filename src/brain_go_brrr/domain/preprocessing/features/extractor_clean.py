@@ -43,8 +43,8 @@ class CleanFeatureExtractor:
         window_size: float = 4.0,
         overlap: float = 0.5,
         # Legacy parameters for backward compatibility
-        model_path: str | None = None,  # noqa: ARG002
-        device: str = "cpu",  # noqa: ARG002
+        model_path: str | None = None,
+        device: str = "cpu",
         **_ignored: Any,  # Catch any other legacy params
     ):
         """Initialize feature extractor with injected dependencies.
@@ -69,7 +69,7 @@ class CleanFeatureExtractor:
         if preprocessor is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
             preprocessor = EEGPreprocessorAdapter()
-            
+
         self.model = model
         self.preprocessor = preprocessor
         self.logger = logger

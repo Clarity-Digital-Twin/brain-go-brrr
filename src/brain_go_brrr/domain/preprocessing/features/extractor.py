@@ -12,8 +12,8 @@ EEGPTFeatureExtractor = CleanFeatureExtractor
 FeatureExtractor = CleanFeatureExtractor  # Another common alias
 
 __all__ = [
-    "CleanFeatureExtractor", 
-    "EEGPTFeatureExtractor", 
-    "FeatureExtractor",
+    "CleanFeatureExtractor",
+    "EEGPTFeatureExtractor",
     "ExtractedFeatures",
+    "FeatureExtractor",
 ]

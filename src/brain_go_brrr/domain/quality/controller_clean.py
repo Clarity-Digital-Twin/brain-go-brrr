@@ -59,8 +59,8 @@ class CleanQualityController:
         rejection_threshold: float = 0.1,
         interpolation_threshold: float = 0.8,
         # Legacy parameters for backward compatibility
-        random_state: int | None = None,  # noqa: ARG002
-        eegpt_model_path: str | None = None,  # noqa: ARG002
+        random_state: int | None = None,
+        eegpt_model_path: str | None = None,
         **_ignored: Any,  # Catch any other legacy params
     ):
         """Initialize quality controller with injected dependencies.
@@ -80,14 +80,14 @@ class CleanQualityController:
         if preprocessor is None:
             from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
             preprocessor = EEGPreprocessorAdapter()
-        
+
         self.preprocessor = preprocessor
         self.model = model
         self.autoreject = autoreject
         self.logger = logger
         self.rejection_threshold = rejection_threshold
         self.interpolation_threshold = interpolation_threshold
-        
+
         # Store legacy parameters for backward compatibility with tests
         self.random_state = random_state
         self.eegpt_model_path = eegpt_model_path

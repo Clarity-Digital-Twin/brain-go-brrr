@@ -106,7 +106,7 @@ class EEGPTModel:
             n_summary_tokens = config.get("n_summary_tokens", n_summary_tokens)
             embed_dim = config.get("embed_dim", embed_dim)
             auto_load = config.get("auto_load", auto_load)
-        
+
         # Store configuration as attributes (not a config object)
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.sampling_rate = sampling_rate
