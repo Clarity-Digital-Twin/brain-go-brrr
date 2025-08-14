@@ -176,11 +176,16 @@ class CleanAbnormalityDetector:
             if features_tensor.dim() == 1:
                 features_tensor = features_tensor.unsqueeze(0)
 
-            # Run through linear probe
-            logits = self.linear_probe(features_tensor)
-
-            # Apply softmax to get probabilities
-            probs = torch.softmax(logits, dim=-1)
+            # Run through linear probe if available
+            if self.linear_probe is not None:
+                logits = self.linear_probe(features_tensor)
+                # Apply softmax to get probabilities
+                probs = torch.softmax(logits, dim=-1)
+            else:
+                # Fallback: use heuristic if no linear probe
+                abnormal_score = self._heuristic_abnormality_score(features)
+                # Create pseudo-probabilities
+                probs = torch.tensor([[1 - abnormal_score, abnormal_score]])
 
             # Return abnormality probability (class 1)
             return probs[0, 1].cpu().item()
@@ -242,15 +247,14 @@ class CleanAbnormalityDetector:
 
     def validate_model_compatibility(self, feature_dim: int | None = None) -> None:
         """Validate model compatibility (for backward compatibility with tests).
-        
+
         Args:
             feature_dim: Expected feature dimension (optional)
-        
+
         Raises:
             RuntimeError: If dimensions mismatch
         """
-        if feature_dim is not None and hasattr(self, "feature_dim"):
-            if self.feature_dim != feature_dim:
-                raise RuntimeError(
-                    f"Feature dimension mismatch: expected {self.feature_dim}, got {feature_dim}"
-                )
+        if feature_dim is not None and hasattr(self, "feature_dim") and self.feature_dim != feature_dim:
+            raise RuntimeError(
+                f"Feature dimension mismatch: expected {self.feature_dim}, got {feature_dim}"
+            )

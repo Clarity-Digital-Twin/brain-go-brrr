@@ -317,7 +317,7 @@ class CleanQualityController:
         metrics = self.run_quality_check(raw)
 
         # Convert to dict for API compatibility
-        return {
+        result = {
             "quality_metrics": {
                 "bad_channels": metrics.bad_channels,
                 "bad_channel_ratio": len(metrics.bad_channels) / len(raw.ch_names) if raw.ch_names else 0,
@@ -328,6 +328,24 @@ class CleanQualityController:
             },
             "processing_notes": metrics.processing_notes,
         }
+        
+        # Add data_info and processing_info for backward compatibility
+        result["data_info"] = {
+            "n_channels": len(raw.ch_names),
+            "sampling_rate": raw.info["sfreq"],
+            "duration": raw.n_times / raw.info["sfreq"],
+            "channel_names": raw.ch_names,
+        }
+        
+        result["processing_info"] = {
+            "bad_channels": metrics.bad_channels,
+            "interpolated_channels": metrics.interpolated_channels,
+            "artifact_epochs": metrics.artifact_epochs,
+            "quality_score": metrics.quality_score,
+            "abnormality_score": metrics.abnormality_score,
+        }
+        
+        return result
 
     def _grade_from_score(self, score: float) -> str:
         """Convert numeric score to grade."""
@@ -339,3 +357,22 @@ class CleanQualityController:
             return "FAIR"
         else:
             return "POOR"
+
+    # Public wrapper methods for backward compatibility
+    def preprocess_raw(self, raw: MNERaw) -> MNERaw:
+        """Public wrapper for preprocessing (backward compatibility)."""
+        return self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+
+    def create_epochs(self, raw: MNERaw, duration: float = 2.0) -> MNEEpochs:
+        """Public wrapper for epoch creation (backward compatibility)."""
+        return self._create_epochs(raw, duration)
+
+    def detect_bad_channels(self, raw: MNERaw) -> list[str]:
+        """Public wrapper for bad channel detection (backward compatibility)."""
+        return self._detect_bad_channels(raw)
+
+    def calculate_quality_score(
+        self, n_channels: int, n_bad_channels: int, n_epochs: int, n_artifacts: int
+    ) -> float:
+        """Public wrapper for quality score calculation (backward compatibility)."""
+        return self._calculate_quality_score(n_channels, n_bad_channels, n_epochs, n_artifacts)

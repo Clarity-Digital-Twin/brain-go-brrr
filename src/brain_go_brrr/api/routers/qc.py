@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Back-compat hook for tests that patch this
 # This is a TEMPORARY measure while we migrate tests to proper DI
-qc_controller = None  # type: ignore[assignment]
+qc_controller = None
 
 
 def resolve_qc_controller() -> Any:
