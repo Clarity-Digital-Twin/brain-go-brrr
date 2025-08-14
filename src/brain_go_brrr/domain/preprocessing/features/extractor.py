@@ -60,8 +60,8 @@ class CleanFeatureExtractor:
         window_size: float = 4.0,
         overlap: float = 0.0,  # Default to NO overlap for tests
         # Legacy parameters for backward compatibility
-        model_path: str | None = None,
-        device: str = "cpu",
+        model_path: str | None = None,  # noqa: ARG002
+        device: str = "cpu",  # noqa: ARG002
         **_ignored: Any,  # Catch any other legacy params
     ):
         """Initialize feature extractor with injected dependencies.
