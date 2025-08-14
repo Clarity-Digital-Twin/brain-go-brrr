@@ -4,11 +4,11 @@ This module provides abnormality detection functionality for EEG data.
 The clean architecture version is available through the application factories.
 """
 
-# Import the legacy version for backward compatibility
-from .detector import AbnormalityDetector, AbnormalityResult, TriageLevel
+# Import from the single detector file
+from .detector import AbnormalityResult, CleanAbnormalityDetector, TriageLevel
 
-# Import the clean version
-from .detector_clean import CleanAbnormalityDetector
+# Alias for backward compatibility
+AbnormalityDetector = CleanAbnormalityDetector
 
 __all__ = [
     "AbnormalityDetector",  # Legacy

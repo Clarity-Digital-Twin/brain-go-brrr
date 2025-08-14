@@ -61,10 +61,7 @@ class TestImprovedMocking:
 
     def test_classifier_head_with_realistic_embeddings(self):
         """Test that classifier head works properly with realistic embeddings."""
-        with (
-            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel"),
-            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
-        ):
+        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel"):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
             # Test with normal embedding
@@ -98,10 +95,7 @@ class TestImprovedMocking:
         mock_model.extract_features.side_effect = mock_extract_features
         mock_model.is_loaded = True
 
-        with (
-            patch("brain_go_brrr.domain.abnormal.detector.EEGPTModel") as mock_model_class,
-            patch("brain_go_brrr.domain.abnormal.detector.ModelConfig"),
-        ):
+        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_model_class:
             mock_model_class.return_value = mock_model
 
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")

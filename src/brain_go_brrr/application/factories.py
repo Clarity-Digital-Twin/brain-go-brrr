@@ -5,7 +5,7 @@ with their infrastructure implementations, following Clean Architecture.
 """
 
 from brain_go_brrr.application.config import AbnormalityConfig
-from brain_go_brrr.domain.abnormal.detector_clean import CleanAbnormalityDetector
+from brain_go_brrr.domain.abnormal.detector import CleanAbnormalityDetector
 from brain_go_brrr.domain.ports import AbnormalityConfigPort
 from brain_go_brrr.infra.adapters.model_adapter import (
     EEGPreprocessorAdapter,
@@ -115,7 +115,7 @@ def create_quality_controller(
     Returns:
         Configured quality controller
     """
-    from brain_go_brrr.domain.quality.controller_clean import CleanQualityController
+    from brain_go_brrr.domain.quality.controller import CleanQualityController
     from brain_go_brrr.infra.adapters.autoreject_adapter import AutoRejectAdapter
 
     # Create infrastructure adapters
@@ -162,7 +162,7 @@ def create_feature_extractor(
     Returns:
         Configured feature extractor
     """
-    from brain_go_brrr.domain.preprocessing.features.extractor_clean import (
+    from brain_go_brrr.domain.preprocessing.features.extractor import (
         CleanFeatureExtractor,
     )
 
