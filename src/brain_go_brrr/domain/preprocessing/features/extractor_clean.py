@@ -41,7 +41,7 @@ class CleanFeatureExtractor:
         preprocessor: PreprocessorPort | None = None,
         logger: LoggerPort | None = None,
         window_size: float = 4.0,
-        overlap: float = 0.0,  # No overlap by default for consecutive windows
+        overlap: float = 0.5,  # Default 0.5 ratio for backward compat
         # Legacy parameters for backward compatibility
         model_path: str | None = None,
         device: str = "cpu",
@@ -164,8 +164,15 @@ class CleanFeatureExtractor:
 
         # Calculate window and step sizes in samples
         window_samples = max(1, int(round(ws * sfreq)))
-        # "overlap" in tests is seconds, so step = window - overlap_seconds
-        step_samples = max(1, int(round((ws - ov) * sfreq)))
+        
+        # Dual-mode: treat overlap < 1.0 as ratio (legacy), >= 1.0 as seconds
+        if 0 < ov < 1.0:
+            # Ratio mode (legacy) - overlap is fraction of window
+            step_samples = max(1, int(round(ws * (1.0 - ov) * sfreq)))
+        else:
+            # Seconds mode - overlap is absolute seconds
+            step_samples = max(1, int(round((ws - ov) * sfreq)))
+        
         if step_samples <= 0:
             step_samples = 1
 
