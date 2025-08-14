@@ -1,0 +1,124 @@
+"""Application factories for dependency injection.
+
+This is the composition root where we wire together domain services
+with their infrastructure implementations, following Clean Architecture.
+"""
+
+from pathlib import Path
+from typing import Optional
+
+from brain_go_brrr.application.config import AbnormalityConfig
+from brain_go_brrr.domain.abnormal.detector_clean import CleanAbnormalityDetector
+from brain_go_brrr.domain.ports import AbnormalityConfigPort
+from brain_go_brrr.infra.adapters.model_adapter import (
+    EEGPTModelAdapter,
+    EEGPreprocessorAdapter,
+    LoggerAdapter,
+)
+
+
+class ConfigAdapter(AbnormalityConfigPort):
+    """Adapter to make AbnormalityConfig conform to port interface."""
+
+    def __init__(self, config: AbnormalityConfig):
+        """Initialize config adapter.
+
+        Args:
+            config: Application configuration
+        """
+        self._config = config
+
+    @property
+    def confidence_threshold(self) -> float:
+        """Confidence threshold for abnormality detection."""
+        return self._config.confidence_threshold
+
+    @property
+    def min_confidence(self) -> float:
+        """Minimum confidence for valid prediction."""
+        return self._config.min_confidence
+
+    @property
+    def channels(self) -> list[str]:
+        """Required EEG channels."""
+        return self._config.required_channels
+
+    @property
+    def bandpass_low(self) -> float:
+        """Low frequency for bandpass filter."""
+        return self._config.bandpass_low
+
+    @property
+    def bandpass_high(self) -> float:
+        """High frequency for bandpass filter."""
+        return self._config.bandpass_high
+
+
+def create_abnormality_detector(
+    model_path: str,
+    config: Optional[AbnormalityConfig] = None,
+    device: str = "cpu",
+    enable_logging: bool = True,
+) -> CleanAbnormalityDetector:
+    """Factory to create abnormality detector with all dependencies.
+
+    This is the composition root where we wire together:
+    - Domain logic (CleanAbnormalityDetector)
+    - Infrastructure adapters (EEGPTModelAdapter, etc.)
+    - Configuration
+
+    Args:
+        model_path: Path to EEGPT model checkpoint
+        config: Abnormality detection configuration
+        device: Device to run model on (cpu/cuda)
+        enable_logging: Whether to enable logging
+
+    Returns:
+        Fully configured abnormality detector
+    """
+    # Use default config if not provided
+    if config is None:
+        config = AbnormalityConfig()
+
+    # Create infrastructure adapters
+    model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
+    preprocessor_adapter = EEGPreprocessorAdapter()
+    config_adapter = ConfigAdapter(config)
+
+    # Create logger adapter if enabled
+    logger_adapter = None
+    if enable_logging:
+        logger_adapter = LoggerAdapter("brain_go_brrr.domain.abnormal")
+
+    # Wire everything together in the domain service
+    detector = CleanAbnormalityDetector(
+        model=model_adapter,
+        preprocessor=preprocessor_adapter,
+        config=config_adapter,
+        logger=logger_adapter,
+    )
+
+    return detector
+
+
+def create_quality_controller(
+    model_path: str,
+    device: str = "cpu",
+) -> "EEGQualityController":
+    """Factory to create quality controller with clean dependencies.
+
+    Args:
+        model_path: Path to EEGPT model checkpoint
+        device: Device to run model on
+
+    Returns:
+        Configured quality controller
+    """
+    # This would be similar refactoring for QualityController
+    # For now, import the existing one
+    from brain_go_brrr.domain.quality import EEGQualityController
+
+    return EEGQualityController(
+        model_path=Path(model_path),
+        device=device,
+    )
