@@ -7,12 +7,12 @@ The clean architecture version is available through the application factories.
 # Import from the clean module directly (extractor.py is now a silent shim)
 from .extractor_clean import (
     CleanFeatureExtractor,
-    EEGPTFeatureExtractor,  # This is re-exported from extractor_clean
+    EEGPTFeatureExtractor,  # Backward compat alias to CleanFeatureExtractor
     ExtractedFeatures,
 )
 
 __all__ = [
     "CleanFeatureExtractor",  # Clean Architecture
-    "EEGPTFeatureExtractor",  # Legacy
+    "EEGPTFeatureExtractor",  # Legacy alias
     "ExtractedFeatures",
 ]

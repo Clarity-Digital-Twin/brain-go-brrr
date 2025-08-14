@@ -265,3 +265,7 @@ class CleanFeatureExtractor:
             raise ValueError("At least one channel required")
 
         return True
+
+
+# Backward compatibility alias
+EEGPTFeatureExtractor = CleanFeatureExtractor
