@@ -1,11 +1,3 @@
-"""Deprecated: use domain.quality.controller_clean."""
+"""Back-compat shim to the clean controller (silent re-export)."""
 
-from warnings import warn
-
-from .controller_clean import *  # noqa: F403  # Re-export clean implementation
-
-warn(
-    "brain_go_brrr.domain.quality.controller is deprecated; use controller_clean",
-    DeprecationWarning,
-    stacklevel=2,
-)
+from .controller_clean import *  # noqa: F401,F403

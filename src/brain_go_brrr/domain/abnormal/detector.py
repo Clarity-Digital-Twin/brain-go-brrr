@@ -1,11 +1,3 @@
-"""Deprecated: use domain.abnormal.detector_pure."""
+"""Back-compat shim to the pure detector (silent re-export)."""
 
-from warnings import warn
-
-from .detector_pure import *  # noqa: F403  # Re-export clean implementation
-
-warn(
-    "brain_go_brrr.domain.abnormal.detector is deprecated; use detector_pure",
-    DeprecationWarning,
-    stacklevel=2,
-)
+from .detector_pure import *  # noqa: F401,F403

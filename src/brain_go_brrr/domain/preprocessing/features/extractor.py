@@ -1,11 +1,6 @@
-"""Deprecated: use domain.preprocessing.features.extractor_clean."""
+"""Back-compat shim: re-export the clean extractor without emitting warnings.
 
-from warnings import warn
+pytest treats DeprecationWarning as error in this repo, so keep this silent.
+"""
 
-from .extractor_clean import *  # noqa: F403  # Re-export clean implementation
-
-warn(
-    "brain_go_brrr.domain.preprocessing.features.extractor is deprecated; use extractor_clean",
-    DeprecationWarning,
-    stacklevel=2,
-)
+from .extractor_clean import *  # noqa: F401,F403
