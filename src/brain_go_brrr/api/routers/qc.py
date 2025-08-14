@@ -56,7 +56,7 @@ async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
-    qc_controller: QCController = Depends(get_qc_controller),  # Explicit Depends
+    qc_controller: QCController,
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -199,7 +199,7 @@ async def analyze_eeg_detailed(
     include_report: bool = True,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
-    qc_controller: QCController = Depends(get_qc_controller),  # Explicit Depends
+    qc_controller: QCController,
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
