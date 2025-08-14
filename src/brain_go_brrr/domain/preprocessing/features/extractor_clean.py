@@ -37,21 +37,39 @@ class CleanFeatureExtractor:
 
     def __init__(
         self,
-        model: EEGModelPort,
-        preprocessor: PreprocessorPort,
+        model: EEGModelPort | None = None,
+        preprocessor: PreprocessorPort | None = None,
         logger: LoggerPort | None = None,
         window_size: float = 4.0,
         overlap: float = 0.5,
+        # Legacy parameters for backward compatibility
+        model_path: str | None = None,  # noqa: ARG002
+        device: str = "cpu",  # noqa: ARG002
+        **_ignored: Any,  # Catch any other legacy params
     ):
         """Initialize feature extractor with injected dependencies.
 
         Args:
-            model: EEG model for feature extraction (port)
-            preprocessor: EEG preprocessor (port)
+            model: EEG model for feature extraction (port, optional for back-compat)
+            preprocessor: EEG preprocessor (port, optional for back-compat)
             logger: Logger (port, optional)
             window_size: Window size in seconds
             overlap: Window overlap ratio (0-1)
+            model_path: Legacy parameter (ignored)
+            device: Legacy parameter (ignored)
+            **_ignored: Other legacy parameters (ignored)
         """
+        # Create defaults if not provided (for tests)
+        if model is None:
+            from brain_go_brrr.infra.adapters.model_adapter import EEGPTModelAdapter
+            model = EEGPTModelAdapter(
+                model_path=model_path or "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt",
+                device=device
+            )
+        if preprocessor is None:
+            from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+            preprocessor = EEGPreprocessorAdapter()
+            
         self.model = model
         self.preprocessor = preprocessor
         self.logger = logger

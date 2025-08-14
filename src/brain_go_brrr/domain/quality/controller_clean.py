@@ -52,23 +52,35 @@ class CleanQualityController:
 
     def __init__(
         self,
-        preprocessor: PreprocessorPort,
+        preprocessor: PreprocessorPort | None = None,
         model: EEGModelPort | None = None,
         autoreject: AutoRejectPort | None = None,
         logger: LoggerPort | None = None,
         rejection_threshold: float = 0.1,
         interpolation_threshold: float = 0.8,
+        # Legacy parameters for backward compatibility
+        random_state: int | None = None,  # noqa: ARG002
+        eegpt_model_path: str | None = None,  # noqa: ARG002
+        **_ignored: Any,  # Catch any other legacy params
     ):
         """Initialize quality controller with injected dependencies.
 
         Args:
-            preprocessor: EEG preprocessor (port)
+            preprocessor: EEG preprocessor (port, optional for back-compat)
             model: EEG model for feature extraction (port, optional)
             autoreject: Artifact rejection service (port, optional)
             logger: Logger (port, optional)
             rejection_threshold: Threshold for epoch rejection (0-1)
             interpolation_threshold: Threshold for channel interpolation (0-1)
+            random_state: Legacy parameter (ignored)
+            eegpt_model_path: Legacy parameter (ignored)
+            **_ignored: Other legacy parameters (ignored)
         """
+        # Create default preprocessor if none provided (for tests)
+        if preprocessor is None:
+            from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+            preprocessor = EEGPreprocessorAdapter()
+        
         self.preprocessor = preprocessor
         self.model = model
         self.autoreject = autoreject

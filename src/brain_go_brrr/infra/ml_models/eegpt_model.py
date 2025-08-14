@@ -81,6 +81,7 @@ class EEGPTModel:
         n_summary_tokens: int = 4,
         embed_dim: int = 512,
         auto_load: bool = True,
+        config: dict | None = None,  # Legacy parameter for backward compatibility
     ) -> None:
         """Initialize EEGPT model.
 
@@ -93,7 +94,19 @@ class EEGPTModel:
             n_summary_tokens: Number of summary tokens (S=4)
             embed_dim: Embedding dimension
             auto_load: Whether to auto-load model
+            config: Legacy config dict (for backward compatibility)
         """
+        # Handle legacy config parameter
+        if config is not None:
+            checkpoint_path = checkpoint_path or config.get("checkpoint_path") or config.get("ckpt_path")
+            device = config.get("device", device)
+            sampling_rate = config.get("sampling_rate", sampling_rate)
+            window_duration = config.get("window_duration", window_duration)
+            patch_size = config.get("patch_size", patch_size)
+            n_summary_tokens = config.get("n_summary_tokens", n_summary_tokens)
+            embed_dim = config.get("embed_dim", embed_dim)
+            auto_load = config.get("auto_load", auto_load)
+        
         # Store configuration as attributes (not a config object)
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.sampling_rate = sampling_rate

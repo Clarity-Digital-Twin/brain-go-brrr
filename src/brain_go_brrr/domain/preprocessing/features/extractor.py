@@ -7,7 +7,13 @@ from .extractor_clean import (
     ExtractedFeatures,
 )
 
-# Back-compat name
+# Back-compat names and aliases
 EEGPTFeatureExtractor = CleanFeatureExtractor
+FeatureExtractor = CleanFeatureExtractor  # Another common alias
 
-__all__ = ["CleanFeatureExtractor", "EEGPTFeatureExtractor", "ExtractedFeatures"]
+__all__ = [
+    "CleanFeatureExtractor", 
+    "EEGPTFeatureExtractor", 
+    "FeatureExtractor",
+    "ExtractedFeatures",
+]

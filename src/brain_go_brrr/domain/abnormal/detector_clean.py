@@ -239,3 +239,18 @@ class CleanAbnormalityDetector:
             raise ValueError(f"Missing required channels: {missing}")
 
         return True
+
+    def validate_model_compatibility(self, feature_dim: int | None = None) -> None:
+        """Validate model compatibility (for backward compatibility with tests).
+        
+        Args:
+            feature_dim: Expected feature dimension (optional)
+        
+        Raises:
+            RuntimeError: If dimensions mismatch
+        """
+        if feature_dim is not None and hasattr(self, "feature_dim"):
+            if self.feature_dim != feature_dim:
+                raise RuntimeError(
+                    f"Feature dimension mismatch: expected {self.feature_dim}, got {feature_dim}"
+                )
