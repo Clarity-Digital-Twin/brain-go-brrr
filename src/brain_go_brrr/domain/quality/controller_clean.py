@@ -359,16 +359,21 @@ class CleanQualityController:
             return "POOR"
 
     # Public wrapper methods for backward compatibility
-    def preprocess_raw(self, raw: MNERaw) -> MNERaw:
+    def preprocess_raw(self, raw: MNERaw, **kwargs: Any) -> MNERaw:
         """Public wrapper for preprocessing (backward compatibility)."""
-        return self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+        # Accept kwargs for backward compatibility
+        bandpass = kwargs.get("bandpass", (0.5, 50.0))
+        notch = kwargs.get("notch", 50.0)
+        return self.preprocessor.preprocess(raw.copy(), bandpass=bandpass, notch=notch)
 
-    def create_epochs(self, raw: MNERaw, duration: float = 2.0) -> MNEEpochs:
+    def create_epochs(self, raw: MNERaw, duration: float = 2.0, **kwargs: Any) -> MNEEpochs:
         """Public wrapper for epoch creation (backward compatibility)."""
+        # Accept kwargs for backward compatibility
         return self._create_epochs(raw, duration)
 
-    def detect_bad_channels(self, raw: MNERaw) -> list[str]:
+    def detect_bad_channels(self, raw: MNERaw, method: str = "basic", **kwargs: Any) -> list[str]:
         """Public wrapper for bad channel detection (backward compatibility)."""
+        # Accept method parameter for backward compatibility
         return self._detect_bad_channels(raw)
 
     def calculate_quality_score(
@@ -376,3 +381,35 @@ class CleanQualityController:
     ) -> float:
         """Public wrapper for quality score calculation (backward compatibility)."""
         return self._calculate_quality_score(n_channels, n_bad_channels, n_epochs, n_artifacts)
+
+    def auto_reject_epochs(self, epochs: MNEEpochs, **kwargs: Any) -> MNEEpochs:
+        """Apply autoreject to epochs (backward compatibility)."""
+        # Accept kwargs for rejection_threshold etc
+        if self.autoreject:
+            epochs_clean, _ = self.autoreject.fit_transform(epochs)
+            return epochs_clean
+        return epochs
+
+    def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **kwargs: Any) -> float:
+        """Compute abnormality score for raw EEG (backward compatibility)."""
+        # Use provided model or fallback to self.model
+        model_to_use = model or self.model
+        if model_to_use:
+            preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+            eeg_array = self.preprocessor.transform_to_array(preprocessed)
+            features = model_to_use.extract_features(eeg_array)
+            return self._calculate_abnormality_score(features)
+        return 0.0
+
+    def generate_qc_report(self, raw: MNERaw) -> dict[str, Any]:
+        """Generate QC report (backward compatibility)."""
+        return self.run_full_qc_pipeline(raw)
+
+    def cleanup(self) -> None:
+        """Cleanup resources (backward compatibility)."""
+        # Nothing to cleanup in clean architecture version
+        pass
+
+    def run_full_pipeline(self, raw: MNERaw, **options: Any) -> dict[str, Any]:
+        """Run full QC pipeline with options (backward compatibility)."""
+        return self.run_full_qc_pipeline(raw)
