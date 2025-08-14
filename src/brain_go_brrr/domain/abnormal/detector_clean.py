@@ -114,7 +114,7 @@ class CleanAbnormalityDetector:
         # Step 1: Preprocess the EEG data
         preprocessed = self.preprocessor.preprocess(
             raw,
-            bandpass=(self.config.bandpass_low, self.config.bandpass_high),
+            bandpass=(0.5, 45.0),  # Standard EEG bandpass
             notch=50.0,  # Standard power line frequency
         )
 
