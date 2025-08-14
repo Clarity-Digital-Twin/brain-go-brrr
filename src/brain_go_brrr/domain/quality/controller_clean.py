@@ -328,7 +328,7 @@ class CleanQualityController:
             },
             "processing_notes": metrics.processing_notes,
         }
-        
+
         # Add data_info and processing_info for backward compatibility
         result["data_info"] = {
             "n_channels": len(raw.ch_names),
@@ -336,7 +336,7 @@ class CleanQualityController:
             "duration": raw.n_times / raw.info["sfreq"],
             "channel_names": raw.ch_names,
         }
-        
+
         result["processing_info"] = {
             "bad_channels": metrics.bad_channels,
             "interpolated_channels": metrics.interpolated_channels,
@@ -344,7 +344,7 @@ class CleanQualityController:
             "quality_score": metrics.quality_score,
             "abnormality_score": metrics.abnormality_score,
         }
-        
+
         return result
 
     def _grade_from_score(self, score: float) -> str:
