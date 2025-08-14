@@ -209,7 +209,7 @@ class PureAbnormalityDetector:
 
         # Confidence based on:
         # 1. Consistency (low std = high confidence)
-        std_score = 1.0 - min(np.std(scores_array) * 2, 1.0)
+        std_score = 1.0 - min(float(np.std(scores_array) * 2), 1.0)
 
         # 2. Extremity (far from 0.5 = high confidence)
         mean_score = np.mean(scores_array)
