@@ -8,20 +8,33 @@ import numpy as np
 import pytest
 
 
-def test_quality_controller_end_to_end_wiring(synthetic_tuab_raw):
+def test_quality_controller_end_to_end_wiring():
     """Test that QC controller is properly wired from factory to output."""
+    import mne
     from brain_go_brrr.application.factories import create_quality_controller
+    
+    # Create simple synthetic data without needing channel positions
+    sfreq = 256
+    n_channels = 19
+    duration = 10
+    n_samples = int(sfreq * duration)
+    
+    ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
+    data = np.random.randn(n_channels, n_samples).astype(np.float32) * 20e-6
+    
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+    raw = mne.io.RawArray(data, info)
     
     # Create controller through factory (simulating production wiring)
     controller = create_quality_controller(
         model_path="dummy_path.ckpt",  # Will use null model
         device="cpu",
         enable_logging=False,
-        enable_autoreject=False
+        enable_autoreject=False  # Disable to avoid position requirement
     )
     
     # Run full pipeline
-    result = controller.run_full_qc_pipeline(synthetic_tuab_raw)
+    result = controller.run_full_qc_pipeline(raw)
     
     # Verify we get a proper result structure
     assert isinstance(result, dict)
@@ -38,8 +51,8 @@ def test_quality_controller_end_to_end_wiring(synthetic_tuab_raw):
     
     # Verify data info
     data_info = result["data_info"]
-    assert data_info["n_channels"] == len(synthetic_tuab_raw.ch_names)
-    assert data_info["sampling_rate"] == synthetic_tuab_raw.info["sfreq"]
+    assert data_info["n_channels"] == n_channels
+    assert data_info["sampling_rate"] == sfreq
     assert data_info["duration"] > 0
 
 
