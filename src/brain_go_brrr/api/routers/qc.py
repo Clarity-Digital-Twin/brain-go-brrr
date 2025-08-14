@@ -69,6 +69,7 @@ async def analyze_eeg(
         edf_file: Uploaded EDF file containing EEG data
         background_tasks: FastAPI background tasks (for cleanup)
         cache_client: Redis cache client (optional)
+        qc_controller: Quality control controller (injected or created on-demand)
 
     Returns:
         QCResponse with quality metrics and recommendations

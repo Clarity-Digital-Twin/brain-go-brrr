@@ -13,15 +13,18 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import torch
 
 from brain_go_brrr.application.config import AbnormalityConfig
-from brain_go_brrr.application.factories_types import (
-    AbnormalityDetectorPort,
-    FeatureExtractorPort,
-    QualityControllerPort,
-)
+
+if TYPE_CHECKING:
+    from brain_go_brrr.application.factories_types import (
+        AbnormalityDetectorPort,
+        FeatureExtractorPort,
+        QualityControllerPort,
+    )
 from brain_go_brrr.domain.abnormal.detector_pure import PureAbnormalityDetector
 from brain_go_brrr.domain.abnormal.settings import (
     AbnormalitySettings,
