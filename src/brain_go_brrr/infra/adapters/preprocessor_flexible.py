@@ -59,7 +59,7 @@ class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
             Preprocessed EEG array as float32 (channels x samples)
         """
         # Use the infrastructure preprocessor
-        processed = self._preprocessor.preprocess(raw.copy())
+        processed = self._preprocessor.preprocess(raw.copy())  # type: ignore[arg-type]
 
         # Extract data and ensure float32 as domain expects
         data = processed.get_data()

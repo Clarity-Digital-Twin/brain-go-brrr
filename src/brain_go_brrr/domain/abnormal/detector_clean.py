@@ -8,6 +8,7 @@ All dependencies are inverted through ports/interfaces.
 import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -40,7 +41,7 @@ class AbnormalityResult:
     triage_level: TriageLevel
     processing_time_ms: float
     features_shape: tuple[int, ...]
-    metadata: dict
+    metadata: dict[str, Any]
 
 
 class CleanAbnormalityDetector:
