@@ -1,17 +1,20 @@
-"""Back-compat shim to the pure detector (silent re-export)."""
+"""Back-compat shim to the clean detector."""
 
-from .detector_pure import (
+# Import everything from detector_clean
+from .detector_clean import (
     AbnormalityResult,
-    PureAbnormalityDetector,
+    CleanAbnormalityDetector,
     TriageLevel,
 )
 
-# Backward compatibility alias
-AbnormalityDetector = PureAbnormalityDetector
+# Back-compat aliases for legacy code
+AbnormalityDetector = CleanAbnormalityDetector
+PureAbnormalityDetector = CleanAbnormalityDetector
 
 __all__ = [
-    "AbnormalityDetector",
-    "AbnormalityResult", 
-    "PureAbnormalityDetector",
+    "AbnormalityDetector",  # Legacy alias
+    "AbnormalityResult",
+    "CleanAbnormalityDetector",  
+    "PureAbnormalityDetector",  # Alias
     "TriageLevel",
 ]
