@@ -12,6 +12,7 @@ import numpy as np
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
+from brain_go_brrr.api.deps import QCController
 from brain_go_brrr.api.cache import get_cache
 from brain_go_brrr.api.deps import QCController
 from brain_go_brrr.api.schemas import QCResponse
@@ -56,7 +57,7 @@ async def analyze_eeg(
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     cache_client: Any = Depends(get_cache),
-    qc_controller: QCController = None,  # Use DI, default None for backward compat
+    qc_controller: QCController,  # Injected via Depends
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -69,7 +70,7 @@ async def analyze_eeg(
         edf_file: Uploaded EDF file containing EEG data
         background_tasks: FastAPI background tasks (for cleanup)
         cache_client: Redis cache client (optional)
-        qc_controller: Quality control controller (injected or created on-demand)
+        qc_controller: Quality control controller (injected via Depends)
 
     Returns:
         QCResponse with quality metrics and recommendations
@@ -107,22 +108,6 @@ async def analyze_eeg(
 
             # Load EDF data
             raw = load_edf_safe(tmp_path, preload=True, verbose=False)
-
-            # Check if QC controller is available
-            if qc_controller is None:
-                # Fallback: create controller on-demand if DI not configured
-                from brain_go_brrr.application.factories import create_quality_controller
-
-                model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
-                if not model_path.exists():
-                    model_path = Path("/tmp/dummy_model.ckpt")
-                    model_path.touch()
-                qc_controller = create_quality_controller(
-                    model_path=str(model_path),
-                    device="cpu",
-                    enable_logging=True,
-                    enable_autoreject=True,
-                )
 
             # Run QC analysis
             logger.info("Running QC analysis...")
@@ -258,22 +243,6 @@ async def analyze_eeg_detailed(
 
             # Load EDF data
             raw = load_edf_safe(tmp_path, preload=True, verbose=False)
-
-            # Check if QC controller is available
-            if qc_controller is None:
-                # Fallback: create controller on-demand if DI not configured
-                from brain_go_brrr.application.factories import create_quality_controller
-
-                model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
-                if not model_path.exists():
-                    model_path = Path("/tmp/dummy_model.ckpt")
-                    model_path.touch()
-                qc_controller = create_quality_controller(
-                    model_path=str(model_path),
-                    device="cpu",
-                    enable_logging=True,
-                    enable_autoreject=True,
-                )
 
             # Run QC analysis
             logger.info("Running detailed QC analysis...")
