@@ -32,6 +32,7 @@ __all__ = [
     "AbnormalityResult",
     "CleanAbnormalityDetector",
     "EEGPTModel",  # Placeholder for tests
+    "ModelConfig",  # Placeholder for tests
     "PureAbnormalityDetector",  # Alias
     "TriageLevel",
 ]
