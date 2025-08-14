@@ -15,13 +15,12 @@ from .base import (
 from .cache import AsyncCachePort, CachePort
 
 __all__ = [
-    # From base
+    # From base - sorted
     "AbnormalityConfigPort",
+    "AsyncCachePort",
+    "CachePort",
     "ConfigurationPort",
     "EEGModelPort",
     "LoggerPort",
     "PreprocessorPort",
-    # From cache
-    "AsyncCachePort",
-    "CachePort",
 ]
