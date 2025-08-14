@@ -2,10 +2,7 @@
 
 # Lazy loading to avoid circular imports
 def __getattr__(name):
-    if name == "PreprocessingPipeline":
-        from brain_go_brrr.domain.preprocessing.basic import PreprocessingPipeline
-        return PreprocessingPipeline
-    elif name == "BasicEEGPreprocessor":
+    if name == "PreprocessingPipeline" or name == "BasicEEGPreprocessor":
         from brain_go_brrr.domain.preprocessing.basic import PreprocessingPipeline
         return PreprocessingPipeline
     elif name == "SleepPreprocessor":

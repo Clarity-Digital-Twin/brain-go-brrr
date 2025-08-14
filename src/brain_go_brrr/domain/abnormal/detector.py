@@ -14,7 +14,7 @@ PureAbnormalityDetector = CleanAbnormalityDetector
 __all__ = [
     "AbnormalityDetector",  # Legacy alias
     "AbnormalityResult",
-    "CleanAbnormalityDetector",  
+    "CleanAbnormalityDetector",
     "PureAbnormalityDetector",  # Alias
     "TriageLevel",
 ]
