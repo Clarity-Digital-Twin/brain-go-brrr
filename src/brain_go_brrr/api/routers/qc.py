@@ -13,13 +13,27 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
-from brain_go_brrr.api.deps import QCController
+from brain_go_brrr.api.deps import QCController, get_qc_controller
 from brain_go_brrr.api.schemas import QCResponse
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
+
+# Back-compat hook for tests that patch this
+# This is a TEMPORARY measure while we migrate tests to proper DI
+qc_controller = None  # type: ignore[assignment]
+
+
+def resolve_qc_controller() -> Any:
+    """Resolve QC controller - prefer test mock if set, otherwise use DI."""
+    global qc_controller
+    if qc_controller is not None:
+        # Tests have patched it
+        return qc_controller
+    # Use real DI
+    return get_qc_controller()
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -53,9 +67,9 @@ def cleanup_temp_file(file_path: Path) -> None:
 
 @router.post("/analyze", response_model=QCResponse)
 async def analyze_eeg(
-    qc_controller: QCController,
     edf_file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
+    qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
