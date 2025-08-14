@@ -24,11 +24,9 @@ class EEGPTModelAdapter(EEGModelPort):
             model_path: Path to model checkpoint
             device: Device to run model on
         """
-        from brain_go_brrr.application.config import ModelConfig
-
-        config = ModelConfig(checkpoint_path=model_path)
-        self.model = EEGPTModel(config=config, device=device)
-        self.model.load_checkpoint()
+        # Use primitives, not application config (infra shouldn't know about app)
+        self.model = EEGPTModel(checkpoint_path=model_path, device=device)
+        self.model.load_model()
 
     def extract_features(
         self,

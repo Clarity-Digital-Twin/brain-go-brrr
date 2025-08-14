@@ -1,47 +1,12 @@
-"""Application-layer ports (hexagonal)."""
+"""Application-layer ports (hexagonal).
+
+Application can re-export domain ports for convenience,
+but the source of truth is the domain layer.
+"""
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+# Re-export cache ports from domain (application can depend on domain)
+from brain_go_brrr.domain.ports.cache import AsyncCachePort, CachePort
 
-
-@runtime_checkable
-class CachePort(Protocol):
-    """Cache port interface."""
-
-    def get(self, key: str) -> Any:
-        """Get value from cache."""
-        ...
-
-    def set(self, key: str, value: Any, ttl: int | None = None) -> None:
-        """Set value in cache."""
-        ...
-
-    def delete(self, key: str) -> None:
-        """Delete key from cache."""
-        ...
-
-    def close(self) -> None:
-        """Close cache connection."""
-        ...
-
-
-@runtime_checkable
-class AsyncCachePort(Protocol):
-    """Async cache port interface."""
-
-    async def aget(self, key: str) -> Any:
-        """Get value from cache."""
-        ...
-
-    async def aset(self, key: str, value: Any, ttl: int | None = None) -> None:
-        """Set value in cache."""
-        ...
-
-    async def adelete(self, key: str) -> None:
-        """Delete key from cache."""
-        ...
-
-    async def aclose(self) -> None:
-        """Close cache connection."""
-        ...
+__all__ = ["AsyncCachePort", "CachePort"]
