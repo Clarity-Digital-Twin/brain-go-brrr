@@ -164,7 +164,7 @@ class CleanFeatureExtractor:
 
         # Calculate window and step sizes in samples
         window_samples = max(1, int(round(ws * sfreq)))
-        
+
         # Dual-mode: treat overlap < 1.0 as ratio (legacy), >= 1.0 as seconds
         if 0 < ov < 1.0:
             # Ratio mode (legacy) - overlap is fraction of window
@@ -172,7 +172,7 @@ class CleanFeatureExtractor:
         else:
             # Seconds mode - overlap is absolute seconds
             step_samples = max(1, int(round((ws - ov) * sfreq)))
-        
+
         if step_samples <= 0:
             step_samples = 1
 

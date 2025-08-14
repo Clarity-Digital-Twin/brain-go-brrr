@@ -123,7 +123,7 @@ class CleanAbnormalityDetector:
 
         # Store legacy parameters
         self.model_path = model_path
-        
+
         # Set feature_dim from config if available, else default to 768
         if hasattr(config, 'model') and hasattr(config.model, 'feature_dim'):
             self.feature_dim = config.model.feature_dim
@@ -146,7 +146,7 @@ class CleanAbnormalityDetector:
         """Initialize linear probe head for binary classification."""
         # Use the configured feature_dim
         feature_dim = self.feature_dim
-        
+
         self.linear_probe = torch.nn.Sequential(
             torch.nn.Linear(feature_dim, 256),
             torch.nn.ReLU(),
@@ -253,7 +253,7 @@ class CleanAbnormalityDetector:
             # Add batch dimension if needed
             if features_tensor.dim() == 1:
                 features_tensor = features_tensor.unsqueeze(0)
-                
+
             # Handle dimension mismatch - if features are 2048 (full EEGPT) but classifier expects 768
             # we need to either average or truncate
             if features_tensor.shape[-1] == 2048 and self.linear_probe[0].in_features == 768:
@@ -346,13 +346,13 @@ class CleanAbnormalityDetector:
         # Check if model dimensions match classifier expectations
         if hasattr(self.model, "embedding_dim"):
             model_output_dim = self.model.embedding_dim
-            
+
             # Test expects 512 to be valid (no error), 256 to be invalid (error)
             # The test sets embedding_dim to 256 to trigger the error case
             if model_output_dim == 256:
                 # This is the test case for incompatible dimensions
                 raise RuntimeError("dimension mismatch")
-            
+
             # For the actual detection flow, check against linear probe input
             if hasattr(self, 'linear_probe') and self.linear_probe is not None:
                 expected_dim = self.linear_probe[0].in_features
