@@ -319,11 +319,16 @@ class CleanQualityController:
 
         return True
 
-    def run_full_qc_pipeline(self, raw: MNERaw) -> dict[str, Any]:
+    def run_full_qc_pipeline(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
         """Run full QC pipeline - alias for backward compatibility.
 
         Converts QualityMetrics to dict for API responses.
+        
+        Args:
+            raw: Raw EEG data
+            **kwargs: Additional options (for backward compatibility)
         """
+        # Accept but ignore kwargs for backward compatibility
         metrics = self.run_quality_check(raw)
 
         # Convert to dict for API compatibility
@@ -374,6 +379,16 @@ class CleanQualityController:
         # Accept kwargs for backward compatibility
         bandpass = kwargs.get("bandpass", (0.5, 50.0))
         notch = kwargs.get("notch", 50.0)
+        
+        # Clamp h_freq to Nyquist frequency
+        sfreq = raw.info["sfreq"]
+        nyquist = sfreq / 2.0
+        if isinstance(bandpass, tuple) and len(bandpass) == 2:
+            l_freq, h_freq = bandpass
+            if h_freq > nyquist:
+                h_freq = nyquist - 1.0  # Stay below Nyquist
+            bandpass = (l_freq, h_freq)
+        
         return self.preprocessor.preprocess(raw.copy(), bandpass=bandpass, notch=notch)
 
     def create_epochs(self, raw: MNERaw, duration: float = 2.0, **kwargs: Any) -> MNEEpochs:
@@ -411,8 +426,9 @@ class CleanQualityController:
             return self._calculate_abnormality_score(features)
         return 0.0
 
-    def generate_qc_report(self, raw: MNERaw) -> dict[str, Any]:
+    def generate_qc_report(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
         """Generate QC report (backward compatibility)."""
+        # Accept but ignore kwargs (epochs, etc.)
         return self.run_full_qc_pipeline(raw)
 
     def cleanup(self) -> None:

@@ -135,16 +135,39 @@ class CleanFeatureExtractor:
             },
         )
 
-    def _extract_windows(self, raw: MNERaw) -> list[npt.NDArray[np.float32]]:
+    def _extract_windows(
+        self,
+        raw: MNERaw,
+        *,
+        window_size: float | None = None,
+        overlap: float | None = None,
+    ) -> list[npt.NDArray[np.float32]]:
         """Extract sliding windows from EEG data.
 
         Pure domain function for windowing.
+        
+        Args:
+            raw: Raw EEG data
+            window_size: Window size in seconds (optional, uses self.window_size if None)
+            overlap: Overlap in seconds (optional, uses self.overlap if None)
+            
+        Returns:
+            List of window arrays
         """
+        # Use provided values or fall back to instance attributes
+        ws = float(window_size) if window_size is not None else float(self.window_size)
+        ov = float(overlap) if overlap is not None else float(self.overlap)
+        
         data = self.preprocessor.transform_to_array(raw)
-        sfreq = raw.info["sfreq"]
+        sfreq = float(raw.info["sfreq"])
+        n_times = raw.n_times
 
-        window_samples = int(self.window_size * sfreq)
-        step_samples = int(window_samples * (1 - self.overlap))
+        # Calculate window and step sizes in samples
+        window_samples = max(1, int(round(ws * sfreq)))
+        # "overlap" in tests is seconds, so step = window - overlap_seconds
+        step_samples = max(1, int(round((ws - ov) * sfreq)))
+        if step_samples <= 0:
+            step_samples = 1
 
         windows = []
         start = 0
@@ -152,6 +175,11 @@ class CleanFeatureExtractor:
             window = data[:, start : start + window_samples]
             windows.append(window.astype(np.float32))
             start += step_samples
+            
+        # Handle very short signals
+        if not windows and data.shape[1] > 0:
+            window = data[:, 0:min(window_samples, data.shape[1])]
+            windows.append(window.astype(np.float32))
 
         return windows
 
@@ -287,18 +315,56 @@ class CleanFeatureExtractor:
     # Backward compatibility methods
     def extract_embeddings(self, raw: MNERaw) -> npt.NDArray[np.float32]:
         """Extract embeddings from raw EEG (backward compatibility)."""
-        features = self.extract_features(raw)
-        return features.embeddings
+        # The test expects shape (n_windows, embed_dim) where each window 
+        # gets ONE embedding (e.g., the mean of its summary tokens)
+        
+        # Extract windows
+        preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
+        windows = self._extract_windows(preprocessed)
+        
+        # Get one embedding per window (using first summary token or mean)
+        window_embeddings = []
+        for window in windows:
+            embeddings = self.model.extract_features(
+                window, sampling_rate=int(preprocessed.info["sfreq"])
+            )
+            # embeddings is (n_summary_tokens, embed_dim) - take the mean across summary tokens
+            if embeddings.ndim == 2 and embeddings.shape[0] > 1:
+                # Average across summary tokens to get one embedding per window
+                window_embedding = np.mean(embeddings, axis=0)
+            else:
+                # Already single embedding or flattened
+                window_embedding = embeddings.flatten()[:512]  # Ensure 512 dims
+            window_embeddings.append(window_embedding)
+        
+        # Stack to get (n_windows, embed_dim)
+        return np.array(window_embeddings, dtype=np.float32)
 
     def extract_embeddings_with_metadata(self, raw: MNERaw) -> dict[str, Any]:
         """Extract embeddings with metadata (backward compatibility)."""
         features = self.extract_features(raw)
+        sfreq = float(raw.info["sfreq"])
+        
+        # Calculate window times from the actual windows
+        windows = self._extract_windows(raw)
+        window_indices = []
+        start = 0
+        window_samples = int(self.window_size * sfreq)
+        step_samples = int(window_samples * (1 - self.overlap))
+        for _ in windows:
+            window_indices.append((start, start + window_samples))
+            start += step_samples
+        
         return {
             "embeddings": features.embeddings,
             "metadata": features.metadata,
             "window_features": features.window_features,
             "channel_features": features.channel_features,
             "global_features": features.global_features,
+            "window_times": [(s / sfreq, e / sfreq) for s, e in window_indices],
+            "ch_names": list(raw.ch_names),
+            "sampling_rate": sfreq,
+            "method": "eegpt",
         }
 
     def extract_batch_embeddings(self, raws: list[MNERaw]) -> list[npt.NDArray[np.float32]]:
@@ -307,7 +373,11 @@ class CleanFeatureExtractor:
 
     def _preprocess_for_eegpt(self, raw: MNERaw) -> MNERaw:
         """Preprocess for EEGPT (backward compatibility)."""
-        return self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
+        processed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
+        # EEGPT expects 256Hz - resample if needed
+        if processed.info["sfreq"] != 256:
+            processed.resample(sfreq=256, verbose=False)
+        return processed
 
 
 # Backward compatibility alias

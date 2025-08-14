@@ -79,10 +79,22 @@ class EEGPreprocessorAdapter(PreprocessorPort):
         processed = raw.copy()
 
         if bandpass:
-            processed.filter(l_freq=bandpass[0], h_freq=bandpass[1])
+            # Clamp h_freq to Nyquist
+            nyquist = processed.info["sfreq"] / 2.0
+            l_freq, h_freq = bandpass
+            if h_freq >= nyquist:
+                h_freq = nyquist - 1.0
+            processed.filter(l_freq=l_freq, h_freq=h_freq)
 
         if notch:
-            processed.notch_filter(freqs=notch)
+            # Only apply notch if it's below Nyquist
+            nyquist = processed.info["sfreq"] / 2.0
+            if isinstance(notch, (list, tuple)):
+                notch_freqs = [f for f in notch if f < nyquist]
+                if notch_freqs:
+                    processed.notch_filter(freqs=notch_freqs)
+            elif notch < nyquist:
+                processed.notch_filter(freqs=notch)
 
         # Standardize and clean
         return self.preprocessor.preprocess(processed)
