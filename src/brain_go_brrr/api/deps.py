@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Any, Protocol
 
 from fastapi import Depends
@@ -18,19 +19,19 @@ from brain_go_brrr.application.factories_types import QualityControllerPort
 class _NoopQC(Protocol):
     """Minimal protocol surface for QC controller."""
 
-    def run_quality_check(self, raw) -> dict[str, Any]: ...
-    def validate_input(self, raw) -> bool: ...
+    def run_quality_check(self, raw: Any) -> dict[str, Any]: ...
+    def validate_input(self, raw: Any) -> bool: ...
 
 
 class _NoopQualityController:
     """Safe fallback so routes that error-early don't fail on import."""
 
-    def run_quality_check(self, raw) -> dict[str, Any]:  # pragma: no cover
+    def run_quality_check(self, raw: Any) -> dict[str, Any]:  # pragma: no cover  # noqa: ARG002
         raise RuntimeError(
             "QC model not configured. Set EEGPT_CKPT_PATH or configure app startup DI."
         )
 
-    def validate_input(self, raw) -> bool:  # pragma: no cover
+    def validate_input(self, raw: Any) -> bool:  # pragma: no cover  # noqa: ARG002
         return True  # Let it fail in run_quality_check if actually called
 
 
@@ -39,7 +40,7 @@ def get_qc_controller() -> QualityControllerPort | _NoopQC:
     """Get QC controller - real or noop based on env config."""
     ckpt = os.getenv("EEGPT_CKPT_PATH", "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
 
-    if not ckpt or not os.path.exists(ckpt):
+    if not ckpt or not Path(ckpt).exists():
         # Don't blow up unless we actually try to use it
         return _NoopQualityController()
 
