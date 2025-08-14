@@ -1,7 +1,10 @@
 """Domain preprocessing - pure business logic for EEG preprocessing."""
 
+from typing import Any
+
+
 # Lazy loading to avoid circular imports
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     if name == "PreprocessingPipeline" or name == "BasicEEGPreprocessor":
         from brain_go_brrr.domain.preprocessing.basic import PreprocessingPipeline
         return PreprocessingPipeline
