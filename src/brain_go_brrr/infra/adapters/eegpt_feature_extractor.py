@@ -48,8 +48,8 @@ class EEGPTFeatureExtractorAdapter(FeatureExtractorPort):
         channel_names = [f"CH{i + 1}" for i in range(n_channels)]
 
         # Use EEGPT model to extract features (convert to float64 for EEGPT)
-        X_64 = X.astype(np.float64)
-        features = self._model.extract_features(X_64, channel_names)
+        x_64 = X.astype(np.float64)
+        features = self._model.extract_features(x_64, channel_names)
 
         # Ensure float32 output as domain expects
         if not isinstance(features, np.ndarray):
