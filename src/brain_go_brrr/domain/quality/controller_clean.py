@@ -91,7 +91,7 @@ class CleanQualityController:
         # Store legacy parameters for backward compatibility with tests
         self.random_state = random_state
         self.eegpt_model_path = eegpt_model_path
-        
+
         # Create EEGPTModel if path provided (backward compatibility)
         if eegpt_model_path and not model:
             from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
@@ -379,7 +379,7 @@ class CleanQualityController:
         # Accept kwargs for backward compatibility
         bandpass = kwargs.get("bandpass", (0.5, 50.0))
         notch = kwargs.get("notch", 50.0)
-        
+
         # Clamp h_freq to Nyquist frequency
         sfreq = raw.info["sfreq"]
         nyquist = sfreq / 2.0
@@ -388,7 +388,7 @@ class CleanQualityController:
             if h_freq > nyquist:
                 h_freq = nyquist - 1.0  # Stay below Nyquist
             bandpass = (l_freq, h_freq)
-        
+
         return self.preprocessor.preprocess(raw.copy(), bandpass=bandpass, notch=notch)
 
     def create_epochs(self, raw: MNERaw, duration: float = 2.0, **kwargs: Any) -> MNEEpochs:

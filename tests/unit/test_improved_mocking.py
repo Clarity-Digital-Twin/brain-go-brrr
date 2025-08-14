@@ -84,7 +84,7 @@ class TestImprovedMocking:
         mock_model = MagicMock()
 
         # Mock different embeddings for different window characteristics
-        def mock_extract_features(window_data, channel_names=None):
+        def mock_extract_features(window_data, channel_names=None, sampling_rate=None):
             # Analyze window characteristics (simplified)
             # window_data is already a numpy array from production code
             window_std = np.std(window_data)

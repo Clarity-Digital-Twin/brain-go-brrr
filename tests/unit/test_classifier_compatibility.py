@@ -42,9 +42,9 @@ class TestClassifierCompatibility:
         ):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
-            # Create incompatible state dict (512-dim input instead of 768)
+            # Create incompatible state dict (768-dim input instead of 512)
             incompatible_state = {
-                "0.weight": torch.randn(256, 512),  # Wrong input dimension
+                "0.weight": torch.randn(256, 768),  # Wrong input dimension
                 "0.bias": torch.randn(256),
                 # ... other layers would be here
             }
@@ -106,8 +106,8 @@ class TestClassifierCompatibility:
         ):
             # Create mock with wrong dimensions
             mock_model = MagicMock()
-            mock_model.embedding_dim = 512  # Wrong!
-            mock_model.extract_features.return_value = torch.randn(1, 512)
+            mock_model.embedding_dim = 256  # Wrong! (should be 512)
+            mock_model.extract_features.return_value = torch.randn(1, 256)
             mock_model_class.return_value = mock_model
 
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
@@ -141,5 +141,5 @@ class TestClassifierCompatibility:
             raw = mne.io.RawArray(data, info)
 
             # Should catch dimension mismatch during detection
-            with pytest.raises(RuntimeError, match="Model dimension mismatch"):
+            with pytest.raises(RuntimeError, match="Model/classifier dimension mismatch"):
                 detector.detect_abnormality(raw)

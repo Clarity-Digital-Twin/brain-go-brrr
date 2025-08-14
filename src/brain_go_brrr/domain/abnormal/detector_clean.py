@@ -90,18 +90,20 @@ class CleanAbnormalityDetector:
         if config is None:
             # Create minimal config adapter
             class MinimalModel:
-                feature_dim: int = 768
-            
+                feature_dim: int = 512  # Actual EEGPT dimension
+
             class MinimalConfig:
                 def __init__(self):
                     self.model = MinimalModel()
-                    
+                    self.confidence_threshold = 0.5  # Add as attribute too
+                    self.channels = []  # Empty list for minimal config
+
                 def get_confidence_threshold(self) -> float:
-                    return 0.5
+                    return self.confidence_threshold
                 def get_min_confidence(self) -> float:
                     return 0.3
                 def get_required_channels(self) -> list[str]:
-                    return []
+                    return self.channels
                 def get_bandpass_low(self) -> float:
                     return 0.5
                 def get_bandpass_high(self) -> float:
@@ -113,19 +115,23 @@ class CleanAbnormalityDetector:
         self.config = config
         self.logger = logger
         self.linear_probe = linear_probe
-        self.device = torch.device("cuda" if torch.cuda.is_available() else device)
+        # Use the provided device, or auto-detect if cuda requested but not available
+        if device == "cuda" and not torch.cuda.is_available():
+            self.device = torch.device("cpu")
+        else:
+            self.device = torch.device(device)
 
         # Store legacy parameters
         self.model_path = model_path
-        self.feature_dim = 768  # Default EEGPT feature dimension
+        self.feature_dim = 512  # Default EEGPT feature dimension
 
         # Initialize linear probe if not provided
         if self.linear_probe is None:
             self._initialize_linear_probe()
-            
+
         # Backward compatibility: expose linear_probe as classifier
         self.classifier = self.linear_probe
-        
+
         # Update feature_dim to match actual model
         if hasattr(self.model, 'get_feature_dim'):
             self.feature_dim = self.model.get_feature_dim()
@@ -167,6 +173,9 @@ class CleanAbnormalityDetector:
             AbnormalityResult with detection outcome
         """
         start_time = time.perf_counter()
+
+        # Validate model compatibility before processing
+        self.validate_model_compatibility()
 
         # Step 1: Preprocess the EEG data
         preprocessed = self.preprocessor.preprocess(
@@ -314,11 +323,19 @@ class CleanAbnormalityDetector:
         Raises:
             RuntimeError: If dimensions mismatch
         """
-        if feature_dim is not None and hasattr(self, "feature_dim") and self.feature_dim != feature_dim:
-            raise RuntimeError(
-                f"Feature dimension mismatch: expected {self.feature_dim}, got {feature_dim}"
-            )
-    
+        # Check if model dimensions match classifier expectations
+        if hasattr(self.model, "embedding_dim"):
+            # Model outputs a single embedding of size embedding_dim (not n_summary_tokens * embedding_dim)
+            # because we average the summary tokens in practice
+            model_output_dim = self.model.embedding_dim
+
+            # Check classifier expects the same dimension
+            if model_output_dim != self.feature_dim:
+                raise RuntimeError(
+                    f"Model/classifier dimension mismatch: model produces {model_output_dim}, "
+                    f"classifier expects {self.feature_dim}"
+                )
+
     def detect_abnormality(self, raw: MNERaw) -> dict[str, Any]:
         """Detect abnormality (backward compatibility method)."""
         result = self.detect(raw)
@@ -328,12 +345,23 @@ class CleanAbnormalityDetector:
             "triage_level": result.triage_level.value,
             "processing_time_ms": result.processing_time_ms,
         }
-    
+
     def _load_classifier_weights(self, path: Any) -> None:
         """Load classifier weights (backward compatibility method)."""
-        # This method exists for backward compatibility with tests
-        pass
-    
+        # Load weights and validate dimensions
+        state_dict = torch.load(path) if not isinstance(path, dict) else path
+
+        # Check first layer dimensions
+        if "0.weight" in state_dict:
+            weight_shape = state_dict["0.weight"].shape
+            expected_dim = self.feature_dim
+            actual_dim = weight_shape[1]  # Input dimension is second dim of weight matrix
+
+            if actual_dim != expected_dim:
+                raise RuntimeError(
+                    f"Classifier dimension mismatch: expected {expected_dim}, got {actual_dim}"
+                )
+
     def _predict_window(self, window: npt.NDArray[np.float32]) -> float:
         """Predict abnormality score for a single window (backward compatibility).
         
@@ -345,6 +373,6 @@ class CleanAbnormalityDetector:
         """
         # Extract features from window
         features = self.model.extract_features(window, sampling_rate=256)
-        
+
         # Run inference
         return self._run_inference(features)
