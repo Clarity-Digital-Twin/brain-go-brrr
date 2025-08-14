@@ -1,7 +1,7 @@
 """Test unified EEGPT feature extraction service."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import mne
 import numpy as np
@@ -63,47 +63,48 @@ class TestEEGPTFeatureExtractor:
     def test_extract_embeddings_shape(self, sample_raw, mock_eegpt_model):
         """Test that embeddings have correct shape."""
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
+        from brain_go_brrr.infra.adapters.preprocessor_flexible import FlexiblePreprocessorAdapter
 
-        with patch(
-            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
-            return_value=mock_eegpt_model,
-        ):
-            extractor = EEGPTFeatureExtractor()
-            embeddings = extractor.extract_embeddings(sample_raw)
+        preprocessor = FlexiblePreprocessorAdapter()
+        extractor = EEGPTFeatureExtractor(model=mock_eegpt_model, preprocessor=preprocessor)
+        embeddings = extractor.extract_embeddings(sample_raw)
 
-            # Should return (n_windows, embed_dim) for single recording
-            # EEGPT returns a single 512-dim embedding per window
-            assert embeddings.shape == (3, 512)
-            assert embeddings.dtype == np.float32
+        # Should return (n_windows, embed_dim) for single recording
+        # EEGPT returns a single 512-dim embedding per window
+        assert embeddings.shape == (3, 512)
+        assert embeddings.dtype == np.float32
 
     def test_caching_embeddings(self, sample_raw, mock_eegpt_model, tmp_path, monkeypatch):
         """Test that embeddings are cached for efficiency."""
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
+        from brain_go_brrr.infra.adapters.preprocessor_flexible import FlexiblePreprocessorAdapter
 
         # Use a temporary directory for cache to ensure isolation
         cache_dir = tmp_path / "test_cache"
         cache_dir.mkdir(exist_ok=True)
         monkeypatch.setenv("BGB_CACHE_DIR", str(cache_dir))
 
-        with patch(
-            "brain_go_brrr.infra.adapters.model_adapter.EEGPTModelAdapter",
-            return_value=mock_eegpt_model,
-        ):
-            extractor = EEGPTFeatureExtractor(enable_cache=True)
+        # Pass the mock model directly to the extractor
+        preprocessor = FlexiblePreprocessorAdapter()
+        extractor = EEGPTFeatureExtractor(
+            model=mock_eegpt_model,
+            preprocessor=preprocessor,
+            enable_cache=True
+        )
 
-            # First extraction
-            embeddings1 = extractor.extract_embeddings(sample_raw)
+        # First extraction
+        embeddings1 = extractor.extract_embeddings(sample_raw)
 
-            # Second extraction - should use cache
-            embeddings2 = extractor.extract_embeddings(sample_raw)
+        # Second extraction - should use cache
+        embeddings2 = extractor.extract_embeddings(sample_raw)
 
-            # Should be the same object (cached)
-            assert np.array_equal(embeddings1, embeddings2)
+        # Should be the same object (cached)
+        assert np.array_equal(embeddings1, embeddings2)
 
-            # Model should be called once per window for EACH extraction
-            # Since our clean implementation doesn't have caching, it's called for both
-            # 3 windows * 2 extractions = 6 calls
-            assert mock_eegpt_model.extract_features.call_count == 6
+        # Model should be called once per window for EACH extraction
+        # Since our clean implementation doesn't have caching, it's called for both
+        # 3 windows * 2 extractions = 6 calls
+        assert mock_eegpt_model.extract_features.call_count == 6
 
     def test_window_extraction(self, sample_raw):
         """Test window extraction for EEGPT processing."""
@@ -131,8 +132,10 @@ class TestEEGPTFeatureExtractor:
     def test_preprocessing_for_eegpt(self, sample_raw):
         """Test preprocessing matches EEGPT requirements."""
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
+        from brain_go_brrr.infra.adapters.preprocessor_flexible import FlexiblePreprocessorAdapter
 
-        extractor = EEGPTFeatureExtractor()
+        preprocessor = FlexiblePreprocessorAdapter()
+        extractor = EEGPTFeatureExtractor(preprocessor=preprocessor)
         preprocessed = extractor._preprocess_for_eegpt(sample_raw)
 
         # Should be resampled to 256 Hz (already at 256)
@@ -145,24 +148,22 @@ class TestEEGPTFeatureExtractor:
     def test_embedding_metadata(self, sample_raw, mock_eegpt_model):
         """Test that metadata is returned with embeddings."""
         from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
+        from brain_go_brrr.infra.adapters.preprocessor_flexible import FlexiblePreprocessorAdapter
 
-        with patch(
-            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
-            return_value=mock_eegpt_model,
-        ):
-            extractor = EEGPTFeatureExtractor()
-            result = extractor.extract_embeddings_with_metadata(sample_raw)
+        preprocessor = FlexiblePreprocessorAdapter()
+        extractor = EEGPTFeatureExtractor(model=mock_eegpt_model, preprocessor=preprocessor)
+        result = extractor.extract_embeddings_with_metadata(sample_raw)
 
-            assert "embeddings" in result
-            assert "window_times" in result
-            assert "sampling_rate" in result
-            assert "n_channels" in result
+        assert "embeddings" in result
+        assert "window_times" in result
+        assert "sampling_rate" in result
+        assert "n_channels" in result
 
-            # Window times should match number of windows
-            assert len(result["window_times"]) == 3
-            assert result["window_times"][0] == (0.0, 4.0)
-            assert result["window_times"][1] == (4.0, 8.0)
-            assert result["window_times"][2] == (8.0, 12.0)
+        # Window times should match number of windows
+        assert len(result["window_times"]) == 3
+        assert result["window_times"][0] == (0.0, 4.0)
+        assert result["window_times"][1] == (4.0, 8.0)
+        assert result["window_times"][2] == (8.0, 12.0)
 
     def test_batch_processing(self, mock_eegpt_model):
         """Test batch processing of multiple recordings."""
@@ -180,16 +181,15 @@ class TestEEGPTFeatureExtractor:
 
         # The mock will return single embeddings per window call
 
-        with patch(
-            "brain_go_brrr.domain.preprocessing.features.extractor.EEGPTModel",
-            return_value=mock_eegpt_model,
-        ):
-            extractor = EEGPTFeatureExtractor()
-            embeddings_list = extractor.extract_batch_embeddings(raws)
+        from brain_go_brrr.infra.adapters.preprocessor_flexible import FlexiblePreprocessorAdapter
 
-            assert len(embeddings_list) == 3
-            for embeddings in embeddings_list:
-                assert embeddings.shape == (2, 512)  # 2 windows, 512 dims
+        preprocessor = FlexiblePreprocessorAdapter()
+        extractor = EEGPTFeatureExtractor(model=mock_eegpt_model, preprocessor=preprocessor)
+        embeddings_list = extractor.extract_batch_embeddings(raws)
+
+        assert len(embeddings_list) == 3
+        for embeddings in embeddings_list:
+            assert embeddings.shape == (2, 512)  # 2 windows, 512 dims
 
     @pytest.mark.integration
     def test_real_eegpt_model_loading(self):

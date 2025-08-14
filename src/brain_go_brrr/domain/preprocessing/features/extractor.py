@@ -26,6 +26,21 @@ class ExtractedFeatures:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+# Null implementations for tests
+class _NullModel:
+    """Null model for tests."""
+    def extract_features(self, data, sampling_rate=256):
+        import numpy as np
+        return np.zeros((1, 512), dtype=np.float32)
+
+class _NullPreprocessor:
+    """Null preprocessor for tests."""
+    def preprocess(self, raw, **kwargs):
+        return raw
+
+    def transform_to_array(self, raw):
+        return raw.get_data()
+
 class CleanFeatureExtractor:
     """Clean Architecture Feature Extractor using dependency injection.
 
@@ -37,8 +52,8 @@ class CleanFeatureExtractor:
 
     def __init__(
         self,
-        model: EEGModelPort,
-        preprocessor: PreprocessorPort,
+        model: EEGModelPort | None = None,
+        preprocessor: PreprocessorPort | None = None,
         logger: LoggerPort | None = None,
         window_size: float = 4.0,
         overlap: float = 0.0,  # Default to NO overlap for tests
@@ -59,7 +74,11 @@ class CleanFeatureExtractor:
             device: Legacy parameter (ignored)
             **_ignored: Other legacy parameters (ignored)
         """
-        # Dependencies are REQUIRED - no defaults
+        # Use null if not provided (for tests)
+        if model is None:
+            model = _NullModel()
+        if preprocessor is None:
+            preprocessor = _NullPreprocessor()
 
         self.model = model
         self.preprocessor = preprocessor

@@ -13,13 +13,14 @@ import numpy as np
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-from brain_go_brrr.domain.abnormal.ports import EEGPreprocessorPort, MneRaw
+from brain_go_brrr._typing import MNERaw
+from brain_go_brrr.domain.ports import PreprocessorPort
 from brain_go_brrr.infra.preprocessing.flexible_preprocessor import (
     FlexibleEEGPreprocessor,
 )
 
 
-class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
+class FlexiblePreprocessorAdapter(PreprocessorPort):
     """Adapter wrapping FlexibleEEGPreprocessor to implement domain port."""
 
     def __init__(
@@ -47,7 +48,46 @@ class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
             **kwargs,
         )
 
-    def transform(self, raw: MneRaw) -> npt.NDArray[np.float32]:
+    def preprocess(
+        self,
+        raw: MNERaw,
+        bandpass: tuple[float, float] | None = None,
+        notch: float | None = None,
+    ) -> MNERaw:
+        """Preprocess EEG data.
+
+        Args:
+            raw: Raw EEG data
+            bandpass: Bandpass filter frequencies (low, high)
+            notch: Notch filter frequency
+
+        Returns:
+            Preprocessed EEG data
+        """
+        # Update preprocessor parameters if provided
+        if bandpass is not None:
+            self._preprocessor.highpass_freq = bandpass[0]
+            self._preprocessor.lowpass_freq = bandpass[1]
+        if notch is not None:
+            self._preprocessor.notch_freq = notch
+
+        # Use the infrastructure preprocessor
+        processed = self._preprocessor.preprocess(raw.copy())  # type: ignore[arg-type]
+        return processed  # type: ignore[return-value]
+
+    def transform_to_array(self, raw: MNERaw) -> npt.NDArray[np.float32]:
+        """Transform MNE Raw to numpy array.
+
+        Args:
+            raw: MNE Raw object
+
+        Returns:
+            Numpy array of EEG data
+        """
+        data = raw.get_data()
+        return data.astype(np.float32, copy=False)
+
+    def transform(self, raw: MNERaw) -> npt.NDArray[np.float32]:
         """Transform raw EEG to preprocessed array.
 
         Implements the domain port interface.

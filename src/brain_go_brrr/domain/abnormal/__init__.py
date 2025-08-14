@@ -5,7 +5,7 @@ The clean architecture version is available through the application factories.
 """
 
 # Import from the single detector file
-from .detector import CleanAbnormalityDetector, AbnormalityResult, TriageLevel
+from .detector import AbnormalityResult, CleanAbnormalityDetector, TriageLevel
 
 # Alias for backward compatibility
 AbnormalityDetector = CleanAbnormalityDetector

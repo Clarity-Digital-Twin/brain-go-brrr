@@ -15,12 +15,12 @@ def create_quality_controller(
     **kwargs: Any,
 ) -> CleanQualityController:
     """Create quality controller with all dependencies injected.
-    
+
     Args:
         model_path: Optional path to EEGPT model
         device: Device for inference
         **kwargs: Additional configuration
-        
+
     Returns:
         Configured quality controller
     """

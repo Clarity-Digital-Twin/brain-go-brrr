@@ -18,14 +18,14 @@ def create_feature_extractor(
     **kwargs: Any,
 ) -> CleanFeatureExtractor:
     """Create feature extractor with all dependencies injected.
-    
+
     Args:
         model_path: Path to EEGPT model checkpoint
         device: Device for inference
         window_size: Window size in seconds
         overlap: Window overlap
         **kwargs: Additional configuration
-        
+
     Returns:
         Configured feature extractor
     """

@@ -228,7 +228,7 @@ def create_feature_extractor_pure(
     Returns:
         FeatureExtractorPort implementation ready for use
     """
-    from brain_go_brrr.domain.preprocessing.features.extractor_clean import (
+    from brain_go_brrr.domain.preprocessing.features.extractor import (
         CleanFeatureExtractor,
     )
     from brain_go_brrr.infra.adapters.model_adapter import (

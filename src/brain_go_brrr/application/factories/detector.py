@@ -16,12 +16,12 @@ def create_abnormality_detector(
     **kwargs: Any,
 ) -> CleanAbnormalityDetector:
     """Create abnormality detector with all dependencies injected.
-    
+
     Args:
         model_path: Path to EEGPT model checkpoint
         device: Device for inference (cpu/cuda)
         **kwargs: Additional configuration
-        
+
     Returns:
         Configured abnormality detector
     """

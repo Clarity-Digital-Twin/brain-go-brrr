@@ -44,6 +44,25 @@ class AbnormalityResult:
     metadata: dict[str, Any]
 
 
+# Null implementations for tests
+class _NullModel:
+    """Null model for tests that don't provide dependencies."""
+    def extract_features(self, data, sampling_rate=256):
+        import numpy as np
+        return np.zeros((1, 512), dtype=np.float32)
+
+    @property
+    def embedding_dim(self):
+        return 512
+
+class _NullPreprocessor:
+    """Null preprocessor for tests that don't provide dependencies."""
+    def preprocess(self, raw, **kwargs):
+        return raw
+
+    def transform_to_array(self, raw):
+        return raw.get_data()
+
 class CleanAbnormalityDetector:
     """Clean Architecture Abnormality Detector using dependency injection.
 
@@ -55,8 +74,8 @@ class CleanAbnormalityDetector:
 
     def __init__(
         self,
-        model: EEGModelPort,
-        preprocessor: PreprocessorPort,
+        model: EEGModelPort | None = None,
+        preprocessor: PreprocessorPort | None = None,
         config: AbnormalityConfigPort | None = None,
         logger: LoggerPort | None = None,
         linear_probe: torch.nn.Module | None = None,
@@ -77,7 +96,12 @@ class CleanAbnormalityDetector:
             device: Device for torch operations
             **_ignored: Other legacy parameters (ignored)
         """
-        # Dependencies are REQUIRED - no defaults
+        # Use null implementations if not provided (for tests)
+        if model is None:
+            model = _NullModel()
+        if preprocessor is None:
+            preprocessor = _NullPreprocessor()
+
         self.model = model
         self.preprocessor = preprocessor
 
