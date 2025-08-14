@@ -172,31 +172,32 @@ def test_abnormal_detector_detects_abnormalities():
 
     # Arrange: Use fake classifier to avoid loading weights
     fake_path = Path("/fake/model.ckpt")
-    fake_classifier = FakeClassifierHead(input_dim=2048, n_classes=2)
+    fake_classifier = FakeClassifierHead(input_dim=512, n_classes=2)  # EEGPT actual dimension
 
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("pathlib.Path.is_file", return_value=True),
         patch(
-            "brain_go_brrr.domain.abnormal.detector.AbnormalityDetector._init_model"
-        ) as mock_init,
+            "brain_go_brrr.infra.adapters.model_adapter.EEGPTModelAdapter"
+        ) as mock_model_adapter,
     ):
-        # Skip model init
-        mock_init.return_value = None
+        # Mock the model adapter to avoid file loading
+        mock_model = FakeEEGPTBackbone(feature_dim=512)  # Use EEGPT's actual dimension
+        mock_model_adapter.return_value = mock_model
 
-        detector = AbnormalityDetector(model_path=fake_path, classifier=fake_classifier)
-
-        # Mock the model attribute
-        detector.model = FakeEEGPTBackbone()
+        detector = AbnormalityDetector(model_path=fake_path, linear_probe=fake_classifier)
 
         # Act: Detect abnormality in fake EEG (use longer duration to avoid "too short" error)
         fake_raw = FakeMNERaw(n_channels=19, duration=120.0)
         result = detector.detect_abnormality(fake_raw)
 
-        # Assert: Result has expected structure (using correct field names)
-        assert result.classification in ["normal", "abnormal", "unknown"]
-        assert 0 <= result.confidence <= 1.0
-        assert result.triage_flag.value in ["NORMAL", "ROUTINE", "EXPEDITE", "URGENT"]
+        # Assert: Result has expected structure (detect_abnormality returns a dict)
+        assert "is_abnormal" in result
+        assert isinstance(result["is_abnormal"], bool)
+        assert "confidence" in result
+        assert 0 <= result["confidence"] <= 1.0
+        assert "triage_level" in result
+        assert result["triage_level"] in ["NORMAL", "ROUTINE", "EXPEDITE", "URGENT"]
 
 
 def test_redis_cache_stores_and_retrieves():

@@ -14,9 +14,9 @@ class TestImprovedMocking:
 
     def test_realistic_embeddings_shape(self):
         """Test that EEGPT embeddings have correct shape and properties."""
-        # Detector expects 768 dims by default
+        # Detector expects 512 dims by default (EEGPT's actual embedding dimension)
         batch_size = 1
-        embedding_dim = 768  # Detector default feature dimension
+        embedding_dim = 512  # EEGPT's actual embedding dimension
 
         # Create realistic embeddings with proper statistics
         embeddings = np.random.randn(batch_size, embedding_dim).astype(np.float32)
@@ -46,8 +46,8 @@ class TestImprovedMocking:
         """Create realistic embeddings for different EEG conditions."""
         np.random.seed(42 if condition == "normal" else 123)
 
-        # Base embedding - detector expects 768 dims by default
-        embedding = np.random.randn(1, 768).astype(np.float32)
+        # Base embedding - detector expects 512 dims by default (EEGPT's actual dimension)
+        embedding = np.random.randn(1, 512).astype(np.float32)
 
         if condition == "abnormal":
             # Add some structured patterns to simulate abnormal features

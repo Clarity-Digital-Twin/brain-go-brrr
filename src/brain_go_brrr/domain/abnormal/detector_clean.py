@@ -90,7 +90,7 @@ class CleanAbnormalityDetector:
         if config is None:
             # Create minimal config adapter
             class MinimalModel:
-                feature_dim: int = 768  # Legacy tests expect 768
+                feature_dim: int = 512  # EEGPT's actual embedding dimension
 
             class MinimalConfig:
                 def __init__(self):
@@ -124,11 +124,12 @@ class CleanAbnormalityDetector:
         # Store legacy parameters
         self.model_path = model_path
 
-        # Set feature_dim from config if available, else default to 768
+        # Set feature_dim from config if available, else default to 512
+        # The test expects 512 as default (EEGPT's actual embedding dim)
         if hasattr(config, 'model') and hasattr(config.model, 'feature_dim'):
             self.feature_dim = config.model.feature_dim
         else:
-            self.feature_dim = 768  # Default for legacy tests
+            self.feature_dim = 512  # EEGPT's actual embedding dimension
 
         # Initialize linear probe if not provided
         if self.linear_probe is None:
@@ -376,10 +377,10 @@ class CleanAbnormalityDetector:
         # Load weights and validate dimensions
         state_dict = torch.load(path) if not isinstance(path, dict) else path
 
-        # Check first layer dimensions
-        if "0.weight" in state_dict:
+        # Check first layer dimensions against the linear probe
+        if "0.weight" in state_dict and self.linear_probe is not None:
             weight_shape = state_dict["0.weight"].shape
-            expected_dim = self.feature_dim
+            expected_dim = self.linear_probe[0].in_features  # Get from actual classifier
             actual_dim = weight_shape[1]  # Input dimension is second dim of weight matrix
 
             if actual_dim != expected_dim:

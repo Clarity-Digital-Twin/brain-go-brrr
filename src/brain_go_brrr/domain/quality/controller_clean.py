@@ -417,13 +417,33 @@ class CleanQualityController:
 
     def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **kwargs: Any) -> float:
         """Compute abnormality score for raw EEG (backward compatibility)."""
-        # Use provided model or fallback to self.model
-        model_to_use = model or self.model
+        # Use provided model or fallback to self.model or self.eegpt_model
+        model_to_use = model or self.model or getattr(self, 'eegpt_model', None)
+
         if model_to_use:
-            preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
-            eeg_array = self.preprocessor.transform_to_array(preprocessed)
-            features = model_to_use.extract_features(eeg_array)
-            return self._calculate_abnormality_score(features)
+            # Handle both MNERaw and Epochs (for backward compatibility)
+            if hasattr(raw, 'info') and hasattr(raw, 'ch_names'):
+                # It's MNE data (Raw or Epochs)
+                if hasattr(raw, 'n_times'):
+                    # It's Raw data - preprocess it
+                    preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+                    eeg_array = self.preprocessor.transform_to_array(preprocessed)
+                else:
+                    # It's Epochs data - just get the data
+                    eeg_array = raw.get_data()
+            else:
+                # Assume it's already an array
+                eeg_array = raw if isinstance(raw, np.ndarray) else raw.get_data()
+
+            # Check if model has predict_abnormality (backward compat) or extract_features
+            if hasattr(model_to_use, 'predict_abnormality'):
+                # Old-style model with predict_abnormality
+                result = model_to_use.predict_abnormality(eeg_array)
+                return result.get('abnormality_score', 0.0) if isinstance(result, dict) else result
+            else:
+                # New-style model with extract_features
+                features = model_to_use.extract_features(eeg_array)
+                return self._calculate_abnormality_score(features)
         return 0.0
 
     def generate_qc_report(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:

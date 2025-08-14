@@ -28,7 +28,10 @@ class FakeEEGPTBackbone:
         return self._n_summary_tokens
 
     def extract_features(
-        self, data: np.ndarray | torch.Tensor, channel_names: list[str] | None = None
+        self,
+        data: np.ndarray | torch.Tensor,
+        channel_names: list[str] | None = None,
+        sampling_rate: int | None = None
     ) -> torch.Tensor:
         """Return consistent fake features for testing.
 
