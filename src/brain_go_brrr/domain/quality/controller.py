@@ -88,7 +88,7 @@ class CleanQualityController:
         """
         # Use null if not provided (for tests)
         if preprocessor is None:
-            preprocessor = _NullPreprocessor()
+            preprocessor = _NullPreprocessor()  # type: ignore[assignment]
 
         self.preprocessor = preprocessor
         self.model = model
@@ -106,14 +106,14 @@ class CleanQualityController:
             # Import here to avoid circular dependency
             from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
             try:
-                model = EEGPTModel(eegpt_model_path)
+                model = EEGPTModel(eegpt_model_path)  # type: ignore[assignment]
                 self.model = model
             except Exception:
                 # If loading fails, just continue with None
                 pass
 
         # Store model reference for backward compatibility
-        self.eegpt_model = model  # type: ignore[assignment]  # Backward compatibility
+        self.eegpt_model = model
 
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.
@@ -135,6 +135,7 @@ class CleanQualityController:
             self.logger.info(f"Detected {len(bad_channels)} bad channels: {bad_channels}")
 
         # Step 2: Preprocess the data
+        assert self.preprocessor is not None  # Guaranteed by __init__
         preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
 
         # Step 3: Create epochs for artifact detection
@@ -165,6 +166,7 @@ class CleanQualityController:
         # Step 6: Get abnormality score if model available
         abnormality_score = None
         if self.model:
+            assert self.preprocessor is not None  # Guaranteed by __init__
             eeg_array = self.preprocessor.transform_to_array(preprocessed)
             features = self.model.extract_features(eeg_array)
             abnormality_score = self._calculate_abnormality_score(features)
@@ -404,6 +406,7 @@ class CleanQualityController:
                 h_freq = nyquist - 1.0  # Stay below Nyquist
             bandpass = (l_freq, h_freq)
 
+        assert self.preprocessor is not None  # Guaranteed by __init__
         return self.preprocessor.preprocess(raw.copy(), bandpass=bandpass, notch=notch)
 
     def create_epochs(self, raw: MNERaw, duration: float = 2.0, **_kwargs: Any) -> MNEEpochs:
@@ -441,9 +444,11 @@ class CleanQualityController:
                 # It's MNE data (Raw or Epochs)
                 if hasattr(raw, "n_times"):
                     # It's Raw data - preprocess it
+                    assert self.preprocessor is not None  # Guaranteed by __init__
                     preprocessed = self.preprocessor.preprocess(
                         raw.copy(), bandpass=(0.5, 50.0), notch=50.0
                     )
+                    assert self.preprocessor is not None  # Guaranteed by __init__
                     eeg_array = self.preprocessor.transform_to_array(preprocessed)
                 else:
                     # It's Epochs data - just get the data

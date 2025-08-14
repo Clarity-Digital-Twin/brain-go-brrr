@@ -78,9 +78,9 @@ class CleanFeatureExtractor:
         """
         # Use null if not provided (for tests)
         if model is None:
-            model = _NullModel()
+            model = _NullModel()  # type: ignore[assignment]
         if preprocessor is None:
-            preprocessor = _NullPreprocessor()
+            preprocessor = _NullPreprocessor()  # type: ignore[assignment]
 
         self.model = model
         self.preprocessor = preprocessor
@@ -104,6 +104,7 @@ class CleanFeatureExtractor:
         if self.logger:
             self.logger.info("Preprocessing EEG for feature extraction")
 
+        assert self.preprocessor is not None  # Guaranteed by __init__
         preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
 
         # Step 2: Extract windows
@@ -113,6 +114,7 @@ class CleanFeatureExtractor:
 
         # Step 3: Extract embeddings for each window
         window_embeddings = []
+        assert self.model is not None  # Guaranteed by __init__
         for _, window in enumerate(windows):
             embeddings = self.model.extract_features(
                 window, sampling_rate=int(preprocessed.info["sfreq"])
@@ -170,6 +172,7 @@ class CleanFeatureExtractor:
         ws = float(window_size) if window_size is not None else float(self.window_size)
         ov = float(overlap) if overlap is not None else float(self.overlap)
 
+        assert self.preprocessor is not None  # Guaranteed by __init__
         data = self.preprocessor.transform_to_array(raw)
         sfreq = float(raw.info["sfreq"])
 
@@ -230,6 +233,7 @@ class CleanFeatureExtractor:
 
         Pure domain logic for channel-wise features.
         """
+        assert self.preprocessor is not None  # Guaranteed by __init__
         data = self.preprocessor.transform_to_array(raw)
         features = []
 
@@ -337,11 +341,13 @@ class CleanFeatureExtractor:
         # gets ONE embedding (e.g., the mean of its summary tokens)
 
         # Extract windows
+        assert self.preprocessor is not None  # Guaranteed by __init__
         preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
         windows = self._extract_windows(preprocessed)
 
         # Get one embedding per window (using first summary token or mean)
         window_embeddings = []
+        assert self.model is not None  # Guaranteed by __init__
         for window in windows:
             embeddings = self.model.extract_features(
                 window, sampling_rate=int(preprocessed.info["sfreq"])
@@ -393,6 +399,7 @@ class CleanFeatureExtractor:
 
     def _preprocess_for_eegpt(self, raw: MNERaw) -> MNERaw:
         """Preprocess for EEGPT (backward compatibility)."""
+        assert self.preprocessor is not None  # Guaranteed by __init__
         processed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
         # EEGPT expects 256Hz - resample if needed
         if processed.info["sfreq"] != 256:

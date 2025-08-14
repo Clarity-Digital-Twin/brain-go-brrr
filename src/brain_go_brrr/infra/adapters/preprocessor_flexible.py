@@ -73,8 +73,8 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
             self._preprocessor.notch_freq = notch
 
         # Use the infrastructure preprocessor
-        processed = self._preprocessor.preprocess(raw.copy())  # type: ignore[arg-type]
-        return processed  # type: ignore[return-value]
+        processed = self._preprocessor.preprocess(raw.copy())
+        return processed
 
     def transform_to_array(self, raw: MNERaw) -> npt.NDArray[np.float32]:
         """Transform MNE Raw to numpy array.
@@ -100,7 +100,7 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
             Preprocessed EEG array as float32 (channels x samples)
         """
         # Use the infrastructure preprocessor
-        processed = self._preprocessor.preprocess(raw.copy())  # type: ignore[arg-type]
+        processed = self._preprocessor.preprocess(raw.copy())
 
         # Extract data and ensure float32 as domain expects
         data = processed.get_data()

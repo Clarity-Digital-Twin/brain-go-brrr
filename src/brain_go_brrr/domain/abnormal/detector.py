@@ -100,9 +100,9 @@ class CleanAbnormalityDetector:
         """
         # Use null implementations if not provided (for tests)
         if model is None:
-            model = _NullModel()
+            model = _NullModel()  # type: ignore[assignment]
         if preprocessor is None:
-            preprocessor = _NullPreprocessor()
+            preprocessor = _NullPreprocessor()  # type: ignore[assignment]
 
         self.model = model
         self.preprocessor = preprocessor
@@ -210,6 +210,7 @@ class CleanAbnormalityDetector:
             raise
 
         # Step 1: Preprocess the EEG data
+        assert self.preprocessor is not None  # Guaranteed by __init__
         preprocessed = self.preprocessor.preprocess(
             raw,
             bandpass=(0.5, 45.0),  # Standard EEG bandpass
@@ -217,9 +218,11 @@ class CleanAbnormalityDetector:
         )
 
         # Step 2: Convert to array for model input
+        assert self.preprocessor is not None  # Guaranteed by __init__
         eeg_array = self.preprocessor.transform_to_array(preprocessed)
 
         # Step 3: Extract features using the model
+        assert self.model is not None  # Guaranteed by __init__
         features = self.model.extract_features(
             eeg_array,
             sampling_rate=int(preprocessed.info["sfreq"]),
@@ -368,7 +371,7 @@ class CleanAbnormalityDetector:
             RuntimeError: If dimensions mismatch
         """
         # Check if model dimensions match classifier expectations
-        if hasattr(self.model, "embedding_dim"):
+        if self.model is not None and hasattr(self.model, "embedding_dim"):
             model_output_dim = self.model.embedding_dim
 
             # Test expects 512 to be valid (no error), 256 to be invalid (error)
@@ -423,6 +426,7 @@ class CleanAbnormalityDetector:
             Abnormality score (0-1)
         """
         # Extract features from window
+        assert self.model is not None  # Guaranteed by __init__
         features = self.model.extract_features(window, sampling_rate=256)
 
         # Run inference
