@@ -8,18 +8,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 
-from .ports import (
-    AbnormalityHeadPort,
-    EEGPreprocessorPort,
-    FeatureExtractorPort,
-    LoggerPort,
-    MneRaw,
+from .ports import (  # noqa: TC001
+    AbnormalityHeadPort,  # noqa: TC001
+    EEGPreprocessorPort,  # noqa: TC001
+    FeatureExtractorPort,  # noqa: TC001
+    LoggerPort,  # noqa: TC001
+    MneRaw,  # noqa: TC001
 )
-from .settings import AbnormalitySettings
+from .settings import AbnormalitySettings  # noqa: TC001
 
 
 class TriageLevel(str, Enum):
