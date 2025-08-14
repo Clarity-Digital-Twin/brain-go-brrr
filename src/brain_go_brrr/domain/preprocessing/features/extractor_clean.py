@@ -284,6 +284,31 @@ class CleanFeatureExtractor:
 
         return True
 
+    # Backward compatibility methods
+    def extract_embeddings(self, raw: MNERaw) -> npt.NDArray[np.float32]:
+        """Extract embeddings from raw EEG (backward compatibility)."""
+        features = self.extract_features(raw)
+        return features.embeddings
+
+    def extract_embeddings_with_metadata(self, raw: MNERaw) -> dict[str, Any]:
+        """Extract embeddings with metadata (backward compatibility)."""
+        features = self.extract_features(raw)
+        return {
+            "embeddings": features.embeddings,
+            "metadata": features.metadata,
+            "window_features": features.window_features,
+            "channel_features": features.channel_features,
+            "global_features": features.global_features,
+        }
+
+    def extract_batch_embeddings(self, raws: list[MNERaw]) -> list[npt.NDArray[np.float32]]:
+        """Extract embeddings from multiple recordings (backward compatibility)."""
+        return [self.extract_embeddings(raw) for raw in raws]
+
+    def _preprocess_for_eegpt(self, raw: MNERaw) -> MNERaw:
+        """Preprocess for EEGPT (backward compatibility)."""
+        return self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 45.0), notch=50.0)
+
 
 # Backward compatibility alias
 EEGPTFeatureExtractor = CleanFeatureExtractor

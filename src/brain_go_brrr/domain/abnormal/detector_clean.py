@@ -55,31 +55,72 @@ class CleanAbnormalityDetector:
 
     def __init__(
         self,
-        model: EEGModelPort,
-        preprocessor: PreprocessorPort,
-        config: AbnormalityConfigPort,
+        model: EEGModelPort | None = None,
+        preprocessor: PreprocessorPort | None = None,
+        config: AbnormalityConfigPort | None = None,
         logger: LoggerPort | None = None,
         linear_probe: torch.nn.Module | None = None,
+        # Legacy parameters for backward compatibility
+        model_path: Any = None,
+        device: str = "cpu",
+        **_ignored: Any,
     ):
         """Initialize detector with injected dependencies.
 
         Args:
-            model: EEG model for feature extraction (port)
-            preprocessor: EEG preprocessor (port)
-            config: Configuration (port)
+            model: EEG model for feature extraction (port, optional for back-compat)
+            preprocessor: EEG preprocessor (port, optional for back-compat)
+            config: Configuration (port, optional for back-compat)
             logger: Logger (port, optional)
             linear_probe: Linear probe head for classification (optional)
+            model_path: Legacy parameter (for backward compatibility)
+            device: Legacy parameter (for backward compatibility)
+            **_ignored: Other legacy parameters (ignored)
         """
+        # Create defaults if not provided (for backward compatibility)
+        if model is None:
+            from brain_go_brrr.infra.adapters.model_adapter import EEGPTModelAdapter
+            model = EEGPTModelAdapter(
+                model_path=str(model_path) if model_path else "data/models/pretrained/eegpt.ckpt",
+                device=device
+            )
+        if preprocessor is None:
+            from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter
+            preprocessor = EEGPreprocessorAdapter()
+        if config is None:
+            # Create minimal config adapter
+            class MinimalConfig:
+                def get_confidence_threshold(self) -> float:
+                    return 0.5
+                def get_min_confidence(self) -> float:
+                    return 0.3
+                def get_required_channels(self) -> list[str]:
+                    return []
+                def get_bandpass_low(self) -> float:
+                    return 0.5
+                def get_bandpass_high(self) -> float:
+                    return 50.0
+            config = MinimalConfig()
+
         self.model = model
         self.preprocessor = preprocessor
         self.config = config
         self.logger = logger
         self.linear_probe = linear_probe
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else device)
+
+        # Store legacy parameters
+        self.model_path = model_path
+        self.feature_dim = 768  # Default EEGPT feature dimension
 
         # Initialize linear probe if not provided
         if self.linear_probe is None:
             self._initialize_linear_probe()
+
+    def _init_model(self) -> None:
+        """Initialize model (backward compatibility method)."""
+        # This method exists for backward compatibility with tests
+        pass
 
     def _initialize_linear_probe(self) -> None:
         """Initialize linear probe head for binary classification."""

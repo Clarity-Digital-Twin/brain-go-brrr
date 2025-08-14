@@ -96,16 +96,19 @@ class EEGPTModel:
             auto_load: Whether to auto-load model
             config: Legacy config dict (for backward compatibility)
         """
+        # Store original config for backward compatibility
+        self.config = config
+
         # Handle legacy config parameter (can be dict or pydantic object)
         if config is not None:
             # Handle pydantic objects - convert to dict
             if hasattr(config, "model_dump"):
-                config = config.model_dump()
+                config_dict = config.model_dump()
             elif hasattr(config, "dict"):
-                config = config.dict()
+                config_dict = config.dict()
             elif not isinstance(config, dict):
                 # Try to access as object attributes
-                config = {
+                config_dict = {
                     "checkpoint_path": getattr(config, "checkpoint_path", None),
                     "ckpt_path": getattr(config, "ckpt_path", None),
                     "device": getattr(config, "device", device),
@@ -116,15 +119,17 @@ class EEGPTModel:
                     "embed_dim": getattr(config, "embed_dim", embed_dim),
                     "auto_load": getattr(config, "auto_load", auto_load),
                 }
-            
-            checkpoint_path = checkpoint_path or config.get("checkpoint_path") or config.get("ckpt_path")
-            device = config.get("device", device)
-            sampling_rate = config.get("sampling_rate", sampling_rate)
-            window_duration = config.get("window_duration", window_duration)
-            patch_size = config.get("patch_size", patch_size)
-            n_summary_tokens = config.get("n_summary_tokens", n_summary_tokens)
-            embed_dim = config.get("embed_dim", embed_dim)
-            auto_load = config.get("auto_load", auto_load)
+            else:
+                config_dict = config
+
+            checkpoint_path = checkpoint_path or config_dict.get("checkpoint_path") or config_dict.get("ckpt_path")
+            device = config_dict.get("device", device)
+            sampling_rate = config_dict.get("sampling_rate", sampling_rate)
+            window_duration = config_dict.get("window_duration", window_duration)
+            patch_size = config_dict.get("patch_size", patch_size)
+            n_summary_tokens = config_dict.get("n_summary_tokens", n_summary_tokens)
+            embed_dim = config_dict.get("embed_dim", embed_dim)
+            auto_load = config_dict.get("auto_load", auto_load)
 
         # Store configuration as attributes (not a config object)
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
@@ -207,7 +212,7 @@ class EEGPTModel:
         if not self.checkpoint_path or not self.checkpoint_path.exists():
             # For backward compatibility with tests, create a stub model
             self.logger.warning(f"Model checkpoint not found: {self.checkpoint_path}, using stub model")
-            
+
             # Create a simple stub encoder
             class StubEncoder:
                 def __init__(self, embed_dim: int, n_summary_tokens: int) -> None:
@@ -215,23 +220,23 @@ class EEGPTModel:
                     self.n_summary_tokens = n_summary_tokens
                     self.input_mean = torch.tensor(0.0)
                     self.input_std = torch.tensor(1.0)
-                
+
                 def to(self, device: Any) -> "StubEncoder":
                     return self
-                
+
                 def eval(self) -> "StubEncoder":
                     return self
-                
+
                 def estimate_normalization_params(self, data: Any) -> None:
                     pass
-                
+
                 def __call__(self, data: torch.Tensor, chan_ids: torch.Tensor) -> torch.Tensor:
                     batch_size = data.shape[0]
                     return torch.zeros(batch_size, self.n_summary_tokens, self.embed_dim)
-                
+
                 def prepare_chan_ids(self, channel_names: list[str]) -> torch.Tensor:
                     return torch.zeros(len(channel_names), dtype=torch.long)
-            
+
             self.encoder = StubEncoder(self._embed_dim, self._n_summary_tokens)
             self.encoder.to(self.device)
             self.encoder.eval()
