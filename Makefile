@@ -219,7 +219,7 @@ test-parallel: ## Run tests in parallel (with xdist)
 
 test-fast: ## Run tests in parallel without coverage (fastest)
 	@echo "$(GREEN)Running tests in parallel (fast mode)...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov --benchmark-disable
 
 test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
