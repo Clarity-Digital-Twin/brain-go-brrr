@@ -12,8 +12,8 @@ import numpy as np
 
 if TYPE_CHECKING:
     import numpy.typing as npt
+    from brain_go_brrr._typing import MNERaw
 
-from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.domain.ports import PreprocessorPort
 from brain_go_brrr.infra.preprocessing.flexible_preprocessor import (
     FlexibleEEGPreprocessor,
@@ -50,10 +50,10 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
 
     def preprocess(
         self,
-        raw: MNERaw,
+        raw: "MNERaw",
         bandpass: tuple[float, float] | None = None,
         notch: float | None = None,
-    ) -> MNERaw:
+    ) -> "MNERaw":
         """Preprocess EEG data.
 
         Args:
@@ -75,7 +75,7 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
         processed = self._preprocessor.preprocess(raw.copy())  # type: ignore[arg-type]
         return processed  # type: ignore[return-value]
 
-    def transform_to_array(self, raw: MNERaw) -> npt.NDArray[np.float32]:
+    def transform_to_array(self, raw: "MNERaw") -> npt.NDArray[np.float32]:
         """Transform MNE Raw to numpy array.
 
         Args:
@@ -87,7 +87,7 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
         data = raw.get_data()
         return data.astype(np.float32, copy=False)
 
-    def transform(self, raw: MNERaw) -> npt.NDArray[np.float32]:
+    def transform(self, raw: "MNERaw") -> npt.NDArray[np.float32]:
         """Transform raw EEG to preprocessed array.
 
         Implements the domain port interface.

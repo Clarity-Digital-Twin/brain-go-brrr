@@ -40,10 +40,11 @@ class AutoRejectPort(Protocol):
 # Null implementations for tests
 class _NullPreprocessor:
     """Null preprocessor for tests."""
-    def preprocess(self, raw, **kwargs):
+    def preprocess(self, raw: Any, **kwargs: Any) -> Any:
+        _ = kwargs  # Mark as used
         return raw
 
-    def transform_to_array(self, raw):
+    def transform_to_array(self, raw: Any) -> Any:
         return raw.get_data()
 
 class CleanQualityController:
