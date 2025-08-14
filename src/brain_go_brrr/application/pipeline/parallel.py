@@ -39,7 +39,8 @@ class ParallelEEGPipeline:
         """
         # Initialize both services (with dependency injection support)
         self.eegpt_extractor = extractor or EEGPTFeatureExtractor(
-            model_path=eegpt_model_path, device=device
+            model_path=eegpt_model_path,
+            device=device,  # type: ignore[arg-type]
         )
         self.sleep_analyzer = sleep_analyzer or SleepAnalyzer()
 

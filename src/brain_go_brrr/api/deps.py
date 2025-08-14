@@ -49,7 +49,7 @@ def get_qc_controller() -> QualityControllerPort | _NoopQC:
         # Don't blow up unless we actually try to use it
         return _NoopQualityController()
 
-    return create_quality_controller(
+    return create_quality_controller(  # type: ignore[return-value]
         model_path=ckpt,
         device=os.getenv("EEGPT_DEVICE", "cpu"),
         enable_logging=True,

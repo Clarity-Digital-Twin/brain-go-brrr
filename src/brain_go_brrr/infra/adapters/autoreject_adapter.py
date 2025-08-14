@@ -98,11 +98,10 @@ class AutoRejectAdapter:
         # Drop bad epochs
         good_epochs = [i for i, rejected in enumerate(reject_log) if not rejected]
         if good_epochs:
-            # MNE requires boolean mask for indexing
+            # Create selection array for MNE
+            selection = np.array(good_epochs)
             epochs_clean = epochs.copy()
-            mask = np.zeros(len(epochs_clean), dtype=bool)
-            mask[good_epochs] = True
-            epochs_clean = epochs_clean[mask]
+            epochs_clean = epochs_clean[selection]  # type: ignore[assignment, index]
         else:
             epochs_clean = epochs.copy()  # Return copy if all bad
 

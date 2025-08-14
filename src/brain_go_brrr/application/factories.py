@@ -28,27 +28,27 @@ class ConfigAdapter(AbnormalityConfigPort):
     @property
     def confidence_threshold(self) -> float:
         """Confidence threshold for abnormality detection."""
-        return self._config.confidence_threshold
+        return getattr(self._config.classification, "confidence_threshold", 0.7)
 
     @property
     def min_confidence(self) -> float:
         """Minimum confidence for valid prediction."""
-        return self._config.min_confidence
+        return getattr(self._config.classification, "min_confidence", 0.3)
 
     @property
     def channels(self) -> list[str]:
         """Required EEG channels."""
-        return self._config.required_channels
+        return getattr(self._config.quality, "required_channels", [])
 
     @property
     def bandpass_low(self) -> float:
         """Low frequency for bandpass filter."""
-        return self._config.bandpass_low
+        return getattr(self._config.processing, "bandpass_low", 0.5)
 
     @property
     def bandpass_high(self) -> float:
         """High frequency for bandpass filter."""
-        return self._config.bandpass_high
+        return getattr(self._config.processing, "bandpass_high", 50.0)
 
 
 def create_abnormality_detector(

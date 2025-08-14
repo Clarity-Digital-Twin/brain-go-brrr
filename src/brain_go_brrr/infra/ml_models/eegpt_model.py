@@ -149,7 +149,7 @@ class EEGPTModel:
         else:
             self.device = torch.device(device)
 
-        self.encoder: EEGPTWrapper | None = None
+        self.encoder: EEGPTWrapper | Any | None = None
         self.abnormality_head: nn.Module | None = None
         self.is_loaded = False
 

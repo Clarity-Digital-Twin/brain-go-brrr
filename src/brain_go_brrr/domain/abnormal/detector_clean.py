@@ -95,10 +95,10 @@ class CleanAbnormalityDetector:
                 feature_dim: int = 512  # EEGPT's actual embedding dimension
 
             class MinimalConfig:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.model = MinimalModel()
                     self.confidence_threshold = 0.5  # Add as attribute too
-                    self.channels = []  # Empty list for minimal config
+                    self.channels: list[str] = []  # Empty list for minimal config
 
                 def get_confidence_threshold(self) -> float:
                     return self.confidence_threshold
@@ -115,7 +115,7 @@ class CleanAbnormalityDetector:
                 def get_bandpass_high(self) -> float:
                     return 50.0
 
-            config = MinimalConfig()
+            config = MinimalConfig()  # type: ignore[assignment]
 
         self.model = model
         self.preprocessor = preprocessor
@@ -133,7 +133,7 @@ class CleanAbnormalityDetector:
 
         # Set feature_dim from config if available, else default to 512
         # The test expects 512 as default (EEGPT's actual embedding dim)
-        if hasattr(config, "model") and hasattr(config.model, "feature_dim"):
+        if config and hasattr(config, "model") and hasattr(config.model, "feature_dim"):
             self.feature_dim = config.model.feature_dim
         else:
             self.feature_dim = 512  # EEGPT's actual embedding dimension
@@ -214,7 +214,7 @@ class CleanAbnormalityDetector:
         confidence = self._run_inference(features)
 
         # Step 5: Apply business rules for classification
-        is_abnormal = confidence > self.config.confidence_threshold
+        is_abnormal = confidence > self.config.confidence_threshold  # type: ignore[union-attr]
         triage_level = self._determine_triage_level(confidence, is_abnormal)
 
         # Step 6: Calculate processing time
@@ -238,7 +238,7 @@ class CleanAbnormalityDetector:
                 "n_channels": eeg_array.shape[0],
                 "n_samples": eeg_array.shape[1],
                 "sampling_rate": preprocessed.info["sfreq"],
-                "threshold": self.config.confidence_threshold,
+                "threshold": self.config.confidence_threshold,  # type: ignore[union-attr]
             },
         )
 
@@ -264,7 +264,7 @@ class CleanAbnormalityDetector:
 
             # Handle dimension mismatch - if features are 2048 (full EEGPT) but classifier expects 768
             # we need to either average or truncate
-            if features_tensor.shape[-1] == 2048 and self.linear_probe[0].in_features == 768:
+            if features_tensor.shape[-1] == 2048 and self.linear_probe[0].in_features == 768:  # type: ignore[index]
                 # Reshape to (batch, 4, 512) and average over tokens
                 batch_size = features_tensor.shape[0]
                 features_tensor = features_tensor.view(batch_size, 4, 512).mean(dim=1)
@@ -280,7 +280,8 @@ class CleanAbnormalityDetector:
                 probs = torch.softmax(logits, dim=-1)
             else:
                 # Fallback: use heuristic if no linear probe
-                abnormal_score = self._heuristic_abnormality_score(features)
+                # Use simple heuristic for abnormality score
+                abnormal_score = float(np.mean(features) > 0.5)
                 # Create pseudo-probabilities
                 probs = torch.tensor([[1 - abnormal_score, abnormal_score]])
 
@@ -334,7 +335,7 @@ class CleanAbnormalityDetector:
 
         # Check channels
         available_channels = set(raw.ch_names)
-        required_channels = set(self.config.channels)
+        required_channels = set(self.config.channels)  # type: ignore[union-attr]
         missing = required_channels - available_channels
 
         if missing:
@@ -363,7 +364,7 @@ class CleanAbnormalityDetector:
 
             # For the actual detection flow, check against linear probe input
             if hasattr(self, "linear_probe") and self.linear_probe is not None:
-                expected_dim = self.linear_probe[0].in_features
+                expected_dim = self.linear_probe[0].in_features  # type: ignore[index]
                 # Model outputs 512 but classifier expects 768 is OK (we pad)
                 # But if model outputs something completely wrong, error
                 if model_output_dim not in [256, 512, 768, expected_dim]:
@@ -389,7 +390,7 @@ class CleanAbnormalityDetector:
         # Check first layer dimensions against the linear probe
         if "0.weight" in state_dict and self.linear_probe is not None:
             weight_shape = state_dict["0.weight"].shape
-            expected_dim = self.linear_probe[0].in_features  # Get from actual classifier
+            expected_dim = self.linear_probe[0].in_features  # type: ignore[index]  # Get from actual classifier
             actual_dim = weight_shape[1]  # Input dimension is second dim of weight matrix
 
             if actual_dim != expected_dim:

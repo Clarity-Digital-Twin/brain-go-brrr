@@ -255,7 +255,7 @@ class CleanFeatureExtractor:
         ]
 
         # Flatten and concatenate
-        return np.concatenate(global_feats).astype(np.float32)
+        return np.concatenate(global_feats).astype(np.float32)  # type: ignore[no-any-return]
 
     def _compute_entropy(self, signal: npt.NDArray[np.float32]) -> float:
         """Compute Shannon entropy of signal.

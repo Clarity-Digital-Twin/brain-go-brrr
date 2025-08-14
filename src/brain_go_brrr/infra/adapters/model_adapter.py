@@ -44,7 +44,10 @@ class EEGPTModelAdapter(EEGModelPort):
         """
         # EEGPT expects specific channel names
         channel_names = [f"CH_{i}" for i in range(eeg_data.shape[0])]
-        return self.model.extract_features(eeg_data, channel_names)
+        # Convert types for compatibility
+        eeg_data_64 = eeg_data.astype(np.float64)
+        features = self.model.extract_features(eeg_data_64, channel_names)
+        return features.astype(np.float32)
 
     def get_feature_dim(self) -> int:
         """Get the dimension of extracted features."""
@@ -56,7 +59,7 @@ class EEGPTModelAdapter(EEGModelPort):
 class EEGPreprocessorAdapter(PreprocessorPort):
     """Adapter for EEG preprocessor to implement domain port."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize preprocessor adapter."""
         self.preprocessor = EEGPreprocessor()
 

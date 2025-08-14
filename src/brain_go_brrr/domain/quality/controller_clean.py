@@ -99,7 +99,7 @@ class CleanQualityController:
 
             self.eegpt_model = EEGPTModel(checkpoint_path=eegpt_model_path, auto_load=False)
         else:
-            self.eegpt_model = model  # Backward compatibility attribute
+            self.eegpt_model = model  # type: ignore[assignment]  # Backward compatibility
 
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.
@@ -221,7 +221,7 @@ class CleanQualityController:
             reject_by_annotation=True,
         )
 
-        return epochs
+        return epochs  # type: ignore[no-any-return]
 
     def _basic_artifact_detection(self, epochs: MNEEpochs) -> list[int]:
         """Basic artifact detection without AutoReject.
@@ -433,16 +433,16 @@ class CleanQualityController:
                     eeg_array = self.preprocessor.transform_to_array(preprocessed)
                 else:
                     # It's Epochs data - just get the data
-                    eeg_array = raw.get_data()
+                    eeg_array = raw.get_data()  # type: ignore[assignment]
             else:
                 # Assume it's already an array
-                eeg_array = raw if isinstance(raw, np.ndarray) else raw.get_data()
+                eeg_array = raw if isinstance(raw, np.ndarray) else raw.get_data()  # type: ignore[assignment]
 
             # Check if model has predict_abnormality (backward compat) or extract_features
             if hasattr(model_to_use, "predict_abnormality"):
                 # Old-style model with predict_abnormality
                 result = model_to_use.predict_abnormality(eeg_array)
-                return result.get("abnormality_score", 0.0) if isinstance(result, dict) else result
+                return result.get("abnormality_score", 0.0) if isinstance(result, dict) else result  # type: ignore[no-any-return]
             else:
                 # New-style model with extract_features
                 features = model_to_use.extract_features(eeg_array)

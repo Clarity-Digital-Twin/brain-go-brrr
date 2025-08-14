@@ -125,7 +125,7 @@ def stream(
 
     # Initialize model
     model_config = ModelConfig(device="cpu")
-    model = EEGPTModel(config=model_config, auto_load=False)
+    model = EEGPTModel(config={"device": "cpu"}, auto_load=False)
 
     # Use mock model for now
     from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt

@@ -65,7 +65,9 @@ def create_pure_abnormality_detector(
         config = AbnormalityConfig.from_spec()
 
     if model_path is None:
-        model_path = str(config.model.checkpoint_path)
+        # Try to get checkpoint path from config, default to None
+        checkpoint = getattr(config.model, "checkpoint_path", None)
+        model_path = str(checkpoint) if checkpoint else None
 
     # Auto-detect device
     if device == "auto":
@@ -74,8 +76,8 @@ def create_pure_abnormality_detector(
     # Step 2: Create domain settings (pure value objects)
     settings = AbnormalitySettings(
         abnormal_threshold=config.classification.abnormal_threshold,
-        confidence_threshold=config.classification.confidence_threshold,
-        min_confidence=config.classification.min_confidence,
+        confidence_threshold=getattr(config.classification, "confidence_threshold", 0.7),
+        min_confidence=getattr(config.classification, "min_confidence", 0.3),
         urgent_threshold=config.classification.urgent_score_threshold,
         expedite_threshold=config.classification.expedite_score_threshold,
         routine_threshold=config.classification.routine_score_threshold,
@@ -98,8 +100,14 @@ def create_pure_abnormality_detector(
     )
 
     # Load classifier head
-    classifier_path = Path(model_path).parent / "abnormal_classifier.pth"
-    if classifier_path.exists():
+    if model_path:
+        classifier_path = Path(model_path).parent / "abnormal_classifier.pth"
+        classifier_exists = classifier_path.exists()
+    else:
+        classifier_exists = False
+
+    if classifier_exists and model_path:
+        classifier_path = Path(model_path).parent / "abnormal_classifier.pth"
         classifier = torch.load(classifier_path, map_location=device)
     else:
         # Create default classifier architecture
@@ -140,7 +148,7 @@ def create_pure_abnormality_detector(
         logger=logger_adapter,
     )
 
-    return detector
+    return detector  # type: ignore[return-value]
 
 
 def create_quality_controller_pure(
