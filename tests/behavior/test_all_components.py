@@ -250,11 +250,6 @@ class TestApplicationBehavior:
         print(f"   - PDF size: {len(results['pdf'])} bytes")
 
 
-# Removed test_behavior_summary - it was causing recursive pytest execution
-# This test would run pytest inside pytest which causes timeouts
-# The behavior tests are already being run directly
-
-
 if __name__ == "__main__":
     # Run tests directly
     import pytest
