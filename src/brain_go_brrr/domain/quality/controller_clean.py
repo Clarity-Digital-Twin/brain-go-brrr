@@ -87,6 +87,10 @@ class CleanQualityController:
         self.logger = logger
         self.rejection_threshold = rejection_threshold
         self.interpolation_threshold = interpolation_threshold
+        
+        # Store legacy parameters for backward compatibility with tests
+        self.random_state = random_state
+        self.eegpt_model_path = eegpt_model_path
 
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.
