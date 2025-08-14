@@ -7,7 +7,6 @@ allowing the domain to use AutoReject without depending on it.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 from brain_go_brrr._typing import MNEEpochs
 
@@ -16,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "reference_repos" /
 
 try:
     from autoreject import AutoReject
+
     HAS_AUTOREJECT = True
 except ImportError:
     logging.warning("autoreject not available. Install with: pip install autoreject")
@@ -25,7 +25,7 @@ except ImportError:
 
 class AutoRejectAdapter:
     """Adapter for AutoReject to implement domain port."""
-    
+
     def __init__(
         self,
         n_interpolate: list[int] = None,
@@ -34,7 +34,7 @@ class AutoRejectAdapter:
         verbose: bool = False,
     ):
         """Initialize AutoReject adapter.
-        
+
         Args:
             n_interpolate: Number of channels to interpolate
             n_jobs: Number of parallel jobs
@@ -51,60 +51,57 @@ class AutoRejectAdapter:
                 random_state=random_state,
                 verbose=verbose,
             )
-    
+
     def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
         """Fit and transform epochs with rejection/interpolation.
-        
+
         Args:
             epochs: Input epochs
-            
+
         Returns:
             Tuple of (cleaned epochs, rejection info dict)
         """
         if self.autoreject is None:
             # Basic rejection without AutoReject
             return self._basic_rejection(epochs)
-        
+
         # Use AutoReject
         epochs_clean = self.autoreject.fit_transform(epochs)
-        
+
         # Extract rejection info
         rejection_info = {
-            'reject_log': self.autoreject.reject_log,
-            'thresholds': self.autoreject.thresholds_,
-            'interpolated': getattr(self.autoreject, 'dots', {})
+            "reject_log": self.autoreject.reject_log,
+            "thresholds": self.autoreject.thresholds_,
+            "interpolated": getattr(self.autoreject, "dots", {}),
         }
-        
+
         return epochs_clean, rejection_info
-    
+
     def _basic_rejection(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
         """Basic artifact rejection without AutoReject.
-        
+
         Simple threshold-based rejection as fallback.
         """
         import numpy as np
-        
+
         data = epochs.get_data()
         reject_log = []
-        
+
         for epoch in data:
             # Check for high amplitude (100 µV threshold)
-            if np.max(np.abs(epoch)) > 100e-6:
-                reject_log.append(True)
-            # Check for flat epochs
-            elif np.std(epoch) < 1e-6:
+            if np.max(np.abs(epoch)) > 100e-6 or np.std(epoch) < 1e-6:
                 reject_log.append(True)
             else:
                 reject_log.append(False)
-        
+
         # Drop bad epochs
         good_epochs = [i for i, rejected in enumerate(reject_log) if not rejected]
         epochs_clean = epochs[good_epochs]
-        
+
         rejection_info = {
-            'reject_log': reject_log,
-            'method': 'basic_threshold',
-            'n_rejected': sum(reject_log)
+            "reject_log": reject_log,
+            "method": "basic_threshold",
+            "n_rejected": sum(reject_log),
         }
-        
+
         return epochs_clean, rejection_info

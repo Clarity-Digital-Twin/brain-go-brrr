@@ -47,7 +47,7 @@ try:
         # Try alternative path
         model_path = Path("/tmp/dummy_model.ckpt")
         model_path.touch()  # Create dummy file for testing
-    
+
     qc_controller = create_quality_controller(
         model_path=str(model_path),
         device="cpu",

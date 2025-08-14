@@ -5,10 +5,8 @@ has NO dependencies on infrastructure or application layers.
 All dependencies are inverted through ports/interfaces.
 """
 
-import logging
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Optional, Protocol
+from typing import Protocol
 
 import mne
 import numpy as np
@@ -22,18 +20,18 @@ from brain_go_brrr.domain.ports import EEGModelPort, LoggerPort, PreprocessorPor
 @dataclass
 class QualityMetrics:
     """Quality metrics for EEG data."""
-    
+
     bad_channels: list[str]
     artifact_epochs: list[int]
     interpolated_channels: list[str]
     quality_score: float
-    abnormality_score: Optional[float] = None
+    abnormality_score: float | None = None
     processing_notes: list[str] = None
 
 
 class AutoRejectPort(Protocol):
     """Port for artifact rejection service."""
-    
+
     def fit_transform(self, epochs: MNEEpochs) -> tuple[MNEEpochs, dict]:
         """Fit and transform epochs with rejection/interpolation."""
         ...
@@ -41,28 +39,28 @@ class AutoRejectPort(Protocol):
 
 class CleanQualityController:
     """Clean Architecture Quality Controller using dependency injection.
-    
+
     This class follows Clean Architecture principles:
     - Domain logic is pure (no infrastructure dependencies)
     - All dependencies are injected through ports/interfaces
     - Business rules are isolated from implementation details
     """
-    
+
     # Filter constants to prevent signal loss
     MIN_HIGHPASS_FREQ_LOW_SR = 0.5  # Hz - minimum high-pass for low sampling rates
     LOW_SAMPLING_RATE_THRESHOLD = 100  # Hz - threshold for low sampling rate
-    
+
     def __init__(
         self,
         preprocessor: PreprocessorPort,
-        model: Optional[EEGModelPort] = None,
-        autoreject: Optional[AutoRejectPort] = None,
-        logger: Optional[LoggerPort] = None,
+        model: EEGModelPort | None = None,
+        autoreject: AutoRejectPort | None = None,
+        logger: LoggerPort | None = None,
         rejection_threshold: float = 0.1,
         interpolation_threshold: float = 0.8,
     ):
         """Initialize quality controller with injected dependencies.
-        
+
         Args:
             preprocessor: EEG preprocessor (port)
             model: EEG model for feature extraction (port, optional)
@@ -77,40 +75,36 @@ class CleanQualityController:
         self.logger = logger
         self.rejection_threshold = rejection_threshold
         self.interpolation_threshold = interpolation_threshold
-    
+
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.
-        
+
         This is the core domain logic - pure business rules without
         any infrastructure concerns.
-        
+
         Args:
             raw: Raw EEG data
-            
+
         Returns:
             QualityMetrics with QC results
         """
         processing_notes = []
-        
+
         # Step 1: Detect bad channels before preprocessing
         bad_channels = self._detect_bad_channels(raw)
         if bad_channels and self.logger:
             self.logger.info(f"Detected {len(bad_channels)} bad channels: {bad_channels}")
-        
+
         # Step 2: Preprocess the data
-        preprocessed = self.preprocessor.preprocess(
-            raw.copy(),
-            bandpass=(0.5, 50.0),
-            notch=50.0
-        )
-        
+        preprocessed = self.preprocessor.preprocess(raw.copy(), bandpass=(0.5, 50.0), notch=50.0)
+
         # Step 3: Create epochs for artifact detection
         epochs = self._create_epochs(preprocessed)
-        
+
         # Step 4: Run artifact rejection if available
         artifact_epochs = []
         interpolated_channels = []
-        
+
         if self.autoreject:
             epochs_clean, rejection_info = self.autoreject.fit_transform(epochs)
             artifact_epochs = self._extract_rejected_epochs(rejection_info)
@@ -120,192 +114,181 @@ class CleanQualityController:
             # Basic artifact detection without AutoReject
             artifact_epochs = self._basic_artifact_detection(epochs)
             processing_notes.append(f"Basic detection: {len(artifact_epochs)} artifacts found")
-        
+
         # Step 5: Calculate quality score
         quality_score = self._calculate_quality_score(
             n_channels=len(raw.ch_names),
             n_bad_channels=len(bad_channels),
             n_epochs=len(epochs),
-            n_artifacts=len(artifact_epochs)
+            n_artifacts=len(artifact_epochs),
         )
-        
+
         # Step 6: Get abnormality score if model available
         abnormality_score = None
         if self.model:
             eeg_array = self.preprocessor.transform_to_array(preprocessed)
             features = self.model.extract_features(eeg_array)
             abnormality_score = self._calculate_abnormality_score(features)
-        
+
         if self.logger:
             self.logger.info(
                 f"QC complete: quality_score={quality_score:.2f}, "
                 f"abnormality_score={abnormality_score:.2f if abnormality_score else 'N/A'}"
             )
-        
+
         return QualityMetrics(
             bad_channels=bad_channels,
             artifact_epochs=artifact_epochs,
             interpolated_channels=interpolated_channels,
             quality_score=quality_score,
             abnormality_score=abnormality_score,
-            processing_notes=processing_notes
+            processing_notes=processing_notes,
         )
-    
+
     def _detect_bad_channels(self, raw: MNERaw) -> list[str]:
         """Detect bad channels using domain logic.
-        
+
         Pure domain function - no infrastructure dependencies.
         """
         bad_channels = []
         data = raw.get_data()
-        
+
         for i, ch_name in enumerate(raw.ch_names):
             ch_data = data[i]
-            
+
             # Check for flat channel
             if np.std(ch_data) < 1e-6:
                 bad_channels.append(ch_name)
                 continue
-            
+
             # Check for excessive noise
             if np.std(ch_data) > np.median(np.std(data, axis=1)) * 5:
                 bad_channels.append(ch_name)
                 continue
-            
+
             # Check for clipping/saturation
             unique_vals = len(np.unique(ch_data))
             if unique_vals < 100:  # Too few unique values
                 bad_channels.append(ch_name)
-        
+
         return bad_channels
-    
+
     def _create_epochs(self, raw: MNERaw, duration: float = 2.0) -> MNEEpochs:
         """Create epochs from continuous data.
-        
+
         Pure domain function for epoching.
         """
         # Create events at regular intervals
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         n_samples = int(duration * sfreq)
         n_epochs = raw.n_times // n_samples
-        
-        events = np.array([
-            [i * n_samples, 0, 1]
-            for i in range(n_epochs)
-        ], dtype=int)
-        
+
+        events = np.array([[i * n_samples, 0, 1] for i in range(n_epochs)], dtype=int)
+
         # Create epochs
         epochs = mne.Epochs(
-            raw, events, 
-            tmin=0, tmax=duration,
+            raw,
+            events,
+            tmin=0,
+            tmax=duration,
             baseline=None,
             preload=True,
-            reject_by_annotation=True
+            reject_by_annotation=True,
         )
-        
+
         return epochs
-    
+
     def _basic_artifact_detection(self, epochs: MNEEpochs) -> list[int]:
         """Basic artifact detection without AutoReject.
-        
+
         Pure domain logic for artifact detection.
         """
         artifact_epochs = []
         data = epochs.get_data()
-        
+
         for i, epoch in enumerate(data):
             # Check for high amplitude
             if np.max(np.abs(epoch)) > 100e-6:  # 100 µV threshold
                 artifact_epochs.append(i)
                 continue
-            
+
             # Check for flat epochs
             if np.std(epoch) < 1e-6:
                 artifact_epochs.append(i)
                 continue
-            
+
             # Check for jumps
             diff = np.diff(epoch, axis=1)
             if np.max(np.abs(diff)) > 50e-6:  # 50 µV jump
                 artifact_epochs.append(i)
-        
+
         return artifact_epochs
-    
+
     def _extract_rejected_epochs(self, rejection_info: dict) -> list[int]:
         """Extract rejected epoch indices from AutoReject info."""
-        if 'reject_log' in rejection_info:
-            reject_log = rejection_info['reject_log']
+        if "reject_log" in rejection_info:
+            reject_log = rejection_info["reject_log"]
             return [i for i, rejected in enumerate(reject_log) if rejected]
         return []
-    
+
     def _extract_interpolated_channels(self, rejection_info: dict) -> list[str]:
         """Extract interpolated channel names from AutoReject info."""
-        if 'interpolated' in rejection_info:
-            return list(rejection_info['interpolated'])
+        if "interpolated" in rejection_info:
+            return list(rejection_info["interpolated"])
         return []
-    
+
     def _calculate_quality_score(
-        self,
-        n_channels: int,
-        n_bad_channels: int,
-        n_epochs: int,
-        n_artifacts: int
+        self, n_channels: int, n_bad_channels: int, n_epochs: int, n_artifacts: int
     ) -> float:
         """Calculate overall quality score.
-        
+
         Pure domain business logic for quality scoring.
         """
         # Bad channel penalty
         bad_channel_ratio = n_bad_channels / n_channels if n_channels > 0 else 0
         bad_channel_score = max(0, 1 - bad_channel_ratio * 2)
-        
+
         # Artifact penalty
         artifact_ratio = n_artifacts / n_epochs if n_epochs > 0 else 0
         artifact_score = max(0, 1 - artifact_ratio * 2)
-        
+
         # Combined score (weighted average)
         quality_score = 0.6 * bad_channel_score + 0.4 * artifact_score
-        
+
         return float(np.clip(quality_score, 0, 1))
-    
+
     def _calculate_abnormality_score(self, features: npt.NDArray[np.float32]) -> float:
         """Calculate abnormality score from features.
-        
+
         Pure domain logic for abnormality scoring.
         """
         # Simple heuristic based on feature statistics
         # In production, this would use a trained classifier
         feature_mean = np.mean(features)
         feature_std = np.std(features)
-        
+
         # Abnormality based on deviation from normal range
         z_score = abs(feature_mean) / (feature_std + 1e-6)
         abnormality = 1 / (1 + np.exp(-z_score + 2))  # Sigmoid transformation
-        
+
         return float(np.clip(abnormality, 0, 1))
-    
+
     def validate_input(self, raw: MNERaw) -> bool:
         """Validate input EEG data meets requirements.
-        
+
         Pure domain validation logic.
         """
         # Check sampling rate
-        if raw.info['sfreq'] < 50:
-            raise QualityCheckError(
-                f"Sampling rate too low: {raw.info['sfreq']}Hz (minimum 50Hz)"
-            )
-        
+        if raw.info["sfreq"] < 50:
+            raise QualityCheckError(f"Sampling rate too low: {raw.info['sfreq']}Hz (minimum 50Hz)")
+
         # Check duration
-        duration = raw.n_times / raw.info['sfreq']
+        duration = raw.n_times / raw.info["sfreq"]
         if duration < 10:
-            raise QualityCheckError(
-                f"Recording too short: {duration:.1f}s (minimum 10s)"
-            )
-        
+            raise QualityCheckError(f"Recording too short: {duration:.1f}s (minimum 10s)")
+
         # Check channels
         if len(raw.ch_names) < 4:
-            raise QualityCheckError(
-                f"Too few channels: {len(raw.ch_names)} (minimum 4)"
-            )
-        
+            raise QualityCheckError(f"Too few channels: {len(raw.ch_names)} (minimum 4)")
+
         return True

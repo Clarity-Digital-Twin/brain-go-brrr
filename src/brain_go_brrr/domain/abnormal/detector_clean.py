@@ -6,15 +6,14 @@ All dependencies are inverted through ports/interfaces.
 """
 
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
 import torch
 
-from brain_go_brrr._typing import FloatArray, MNERaw
+from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.domain.ports import (
     AbnormalityConfigPort,
     EEGModelPort,
@@ -58,8 +57,8 @@ class CleanAbnormalityDetector:
         model: EEGModelPort,
         preprocessor: PreprocessorPort,
         config: AbnormalityConfigPort,
-        logger: Optional[LoggerPort] = None,
-        linear_probe: Optional[torch.nn.Module] = None,
+        logger: LoggerPort | None = None,
+        linear_probe: torch.nn.Module | None = None,
     ):
         """Initialize detector with injected dependencies.
 

@@ -5,12 +5,12 @@ This allows the domain to remain pure without any dependencies on infrastructure
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Protocol, Tuple
+from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
 
-from brain_go_brrr._typing import FloatArray, MNERaw
+from brain_go_brrr._typing import MNERaw
 
 
 class LoggerPort(Protocol):
@@ -66,8 +66,8 @@ class PreprocessorPort(ABC):
     def preprocess(
         self,
         raw: MNERaw,
-        bandpass: Optional[Tuple[float, float]] = None,
-        notch: Optional[float] = None,
+        bandpass: tuple[float, float] | None = None,
+        notch: float | None = None,
     ) -> MNERaw:
         """Preprocess EEG data.
 

@@ -12,7 +12,7 @@ from .detector_clean import CleanAbnormalityDetector
 
 __all__ = [
     "AbnormalityDetector",  # Legacy
-    "CleanAbnormalityDetector",  # Clean Architecture
     "AbnormalityResult",
+    "CleanAbnormalityDetector",  # Clean Architecture
     "TriageLevel",
 ]

@@ -11,7 +11,7 @@ from .extractor import EEGPTFeatureExtractor
 from .extractor_clean import CleanFeatureExtractor, ExtractedFeatures
 
 __all__ = [
-    "EEGPTFeatureExtractor",  # Legacy
     "CleanFeatureExtractor",  # Clean Architecture
+    "EEGPTFeatureExtractor",  # Legacy
     "ExtractedFeatures",
 ]

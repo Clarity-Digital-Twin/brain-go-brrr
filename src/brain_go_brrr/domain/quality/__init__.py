@@ -11,7 +11,7 @@ from .controller import EEGQualityController
 from .controller_clean import CleanQualityController, QualityMetrics
 
 __all__ = [
-    "EEGQualityController",  # Legacy
     "CleanQualityController",  # Clean Architecture
+    "EEGQualityController",  # Legacy
     "QualityMetrics",
 ]

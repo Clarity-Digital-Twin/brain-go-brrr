@@ -4,7 +4,6 @@ These adapters implement the domain ports, allowing infrastructure
 components to be used by the domain layer without creating dependencies.
 """
 
-from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -66,8 +65,8 @@ class EEGPreprocessorAdapter(PreprocessorPort):
     def preprocess(
         self,
         raw: MNERaw,
-        bandpass: Optional[tuple[float, float]] = None,
-        notch: Optional[float] = None,
+        bandpass: tuple[float, float] | None = None,
+        notch: float | None = None,
     ) -> MNERaw:
         """Preprocess EEG data.
 
