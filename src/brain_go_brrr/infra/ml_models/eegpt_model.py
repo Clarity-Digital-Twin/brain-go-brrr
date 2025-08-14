@@ -227,7 +227,7 @@ class EEGPTModel:
                     self.input_mean = torch.tensor(0.0)
                     self.input_std = torch.tensor(1.0)
 
-                def to(self, device: Any) -> "StubEncoder":
+                def to(self, _device: Any) -> "StubEncoder":
                     return self
 
                 def eval(self) -> "StubEncoder":
@@ -236,7 +236,7 @@ class EEGPTModel:
                 def estimate_normalization_params(self, data: Any) -> None:
                     pass
 
-                def __call__(self, data: torch.Tensor, chan_ids: torch.Tensor) -> torch.Tensor:
+                def __call__(self, data: torch.Tensor, _chan_ids: torch.Tensor) -> torch.Tensor:
                     batch_size = data.shape[0]
                     return torch.zeros(batch_size, self.n_summary_tokens, self.embed_dim)
 

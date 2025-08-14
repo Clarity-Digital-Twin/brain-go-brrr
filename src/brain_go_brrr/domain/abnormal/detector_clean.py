@@ -342,7 +342,7 @@ class CleanAbnormalityDetector:
 
         return True
 
-    def validate_model_compatibility(self, feature_dim: int | None = None) -> None:
+    def validate_model_compatibility(self, _feature_dim: int | None = None) -> None:
         """Validate model compatibility (for backward compatibility with tests).
 
         Args:

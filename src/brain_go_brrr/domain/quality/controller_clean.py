@@ -318,7 +318,7 @@ class CleanQualityController:
 
         return True
 
-    def run_full_qc_pipeline(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
+    def run_full_qc_pipeline(self, raw: MNERaw, **_kwargs: Any) -> dict[str, Any]:
         """Run full QC pipeline - alias for backward compatibility.
 
         Converts QualityMetrics to dict for API responses.
@@ -375,7 +375,7 @@ class CleanQualityController:
             return "POOR"
 
     # Public wrapper methods for backward compatibility
-    def preprocess_raw(self, raw: MNERaw, **kwargs: Any) -> MNERaw:
+    def preprocess_raw(self, raw: MNERaw, **_kwargs: Any) -> MNERaw:
         """Public wrapper for preprocessing (backward compatibility)."""
         # Accept kwargs for backward compatibility
         bandpass = kwargs.get("bandpass", (0.5, 50.0))
@@ -392,12 +392,12 @@ class CleanQualityController:
 
         return self.preprocessor.preprocess(raw.copy(), bandpass=bandpass, notch=notch)
 
-    def create_epochs(self, raw: MNERaw, duration: float = 2.0, **kwargs: Any) -> MNEEpochs:
+    def create_epochs(self, raw: MNERaw, duration: float = 2.0, **_kwargs: Any) -> MNEEpochs:
         """Public wrapper for epoch creation (backward compatibility)."""
         # Accept kwargs for backward compatibility
         return self._create_epochs(raw, duration)
 
-    def detect_bad_channels(self, raw: MNERaw, method: str = "basic", **kwargs: Any) -> list[str]:
+    def detect_bad_channels(self, raw: MNERaw, _method: str = "basic", **_kwargs: Any) -> list[str]:
         """Public wrapper for bad channel detection (backward compatibility)."""
         # Accept method parameter for backward compatibility
         return self._detect_bad_channels(raw)
@@ -408,7 +408,7 @@ class CleanQualityController:
         """Public wrapper for quality score calculation (backward compatibility)."""
         return self._calculate_quality_score(n_channels, n_bad_channels, n_epochs, n_artifacts)
 
-    def auto_reject_epochs(self, epochs: MNEEpochs, **kwargs: Any) -> MNEEpochs:
+    def auto_reject_epochs(self, epochs: MNEEpochs, **_kwargs: Any) -> MNEEpochs:
         """Apply autoreject to epochs (backward compatibility)."""
         # Accept kwargs for rejection_threshold etc
         if self.autoreject:
@@ -416,7 +416,7 @@ class CleanQualityController:
             return epochs_clean
         return epochs
 
-    def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **kwargs: Any) -> float:
+    def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **_kwargs: Any) -> float:
         """Compute abnormality score for raw EEG (backward compatibility)."""
         # Use provided model or fallback to self.model or self.eegpt_model
         model_to_use = model or self.model or getattr(self, "eegpt_model", None)
@@ -449,7 +449,7 @@ class CleanQualityController:
                 return self._calculate_abnormality_score(features)
         return 0.0
 
-    def generate_qc_report(self, raw: MNERaw, **kwargs: Any) -> dict[str, Any]:
+    def generate_qc_report(self, raw: MNERaw, **_kwargs: Any) -> dict[str, Any]:
         """Generate QC report (backward compatibility)."""
         # Accept but ignore kwargs (epochs, etc.)
         return self.run_full_qc_pipeline(raw)
@@ -459,6 +459,6 @@ class CleanQualityController:
         # Nothing to cleanup in clean architecture version
         pass
 
-    def run_full_pipeline(self, raw: MNERaw, **options: Any) -> dict[str, Any]:
+    def run_full_pipeline(self, raw: MNERaw, **_options: Any) -> dict[str, Any]:
         """Run full QC pipeline with options (backward compatibility)."""
         return self.run_full_qc_pipeline(raw)
