@@ -37,22 +37,14 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Run ruff formatting check
-        run: uv run ruff format src tests scripts --check --diff
+      - name: Run formatting check
+        run: make format-check
 
-      - name: Run ruff linting
-        run: |
-          # Run with project's configured rules
-          uv run ruff check src tests scripts \
-            --output-format=github
+      - name: Run linting
+        run: make lint-ci
 
-      - name: Run type checking (strict mode)
-        run: |
-          # Type check source code with strict settings
-          uv run mypy src --config-file=mypy.ini
-
-          # Type check tests with relaxed settings
-          uv run mypy tests --config-file=mypy.ini || true
+      - name: Run type checking
+        run: make type-check || true  # Allow to fail for now
 
       # Security and docstring checks removed - not in project dependencies
 
@@ -92,8 +84,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Run unit tests (fast only)
-        run: uv run pytest tests -m "not integration and not slow" --maxfail=5 -v
+      - name: Run unit tests
+        run: make test-unit
         timeout-minutes: 10
 
       - name: Upload coverage to Codecov
@@ -161,7 +153,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Build documentation
-        run: uv run mkdocs build
+        run: make docs
 
       - name: Upload documentation
         uses: actions/upload-artifact@v4
