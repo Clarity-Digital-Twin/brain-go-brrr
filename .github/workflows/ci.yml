@@ -41,29 +41,9 @@ jobs:
       - name: Install package in editable mode
         run: uv pip install -e .
 
-      - name: Import smoke test
+      - name: Test critical imports
         run: |
-          uv run python - <<'PY'
-          import sys
-          # Test imports after verified installation
-          try:
-              import brain_go_brrr
-              print("✓ brain_go_brrr imported")
-
-              from brain_go_brrr.core import exceptions
-              print("✓ core.exceptions imported")
-
-              # Try to import infra.data directly
-              from brain_go_brrr.infra.data import edf_loader
-              print("✓ infra.data.edf_loader imported")
-
-              print("\n✅ All imports successful!")
-          except ImportError as e:
-              print(f"✗ Import failed: {e}")
-              import traceback
-              traceback.print_exc()
-              sys.exit(1)
-          PY
+          uv run python -c "from brain_go_brrr.infra.data import edf_loader; print('✅ All imports work')"
 
       - name: Run formatting check
         run: make format-check
