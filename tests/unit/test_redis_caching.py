@@ -231,9 +231,9 @@ class TestRedisCaching:
         # First request - should cache
         response1 = client_for_cache_tests.post(endpoint, files=files, data=data)
         assert response1.status_code == 200
-        assert any(
-            call[0] == "set" for call in dummy_cache.mock_calls
-        ), f"{endpoint} should cache results"
+        assert any(call[0] == "set" for call in dummy_cache.mock_calls), (
+            f"{endpoint} should cache results"
+        )
 
         # Reset and make second request
         dummy_cache.reset_mock()
@@ -241,9 +241,9 @@ class TestRedisCaching:
         assert response2.status_code == 200
 
         # Both endpoints should use cache on second call
-        assert not any(
-            call[0] == "set" for call in dummy_cache.mock_calls
-        ), "Should not set cache again"
+        assert not any(call[0] == "set" for call in dummy_cache.mock_calls), (
+            "Should not set cache again"
+        )
         assert any(call[0] == "get" for call in dummy_cache.mock_calls), "Should get from cache"
 
     def test_cache_stats_endpoint(self, client_for_cache_tests, dummy_cache):

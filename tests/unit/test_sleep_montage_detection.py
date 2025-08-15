@@ -157,9 +157,9 @@ class TestSleepEDFMontageDetection:
         eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types([ch])[0] == "eeg"]
 
         # Verify Sleep-EDF montage is present
-        assert any(
-            "Fpz-Cz" in ch or "Pz-Oz" in ch for ch in eeg_channels
-        ), f"Expected Sleep-EDF montage, got: {eeg_channels}"
+        assert any("Fpz-Cz" in ch or "Pz-Oz" in ch for ch in eeg_channels), (
+            f"Expected Sleep-EDF montage, got: {eeg_channels}"
+        )
 
         # Process a small chunk to verify it works
         raw_subset = raw.copy().crop(tmin=0, tmax=120)  # 2 minutes
