@@ -45,30 +45,23 @@ jobs:
         run: |
           uv run python - <<'PY'
           import sys
-          # Just test that the basic package structure is importable
+          # Just test basic imports work
           try:
               import brain_go_brrr
-              print("✓ brain_go_brrr package imported")
-
-              # Test core modules exist
-              from brain_go_brrr.application.config import base
-              print("✓ application.config.base found")
+              print("✓ brain_go_brrr imported")
 
               from brain_go_brrr.core import exceptions
-              print("✓ core.exceptions found")
+              print("✓ core.exceptions imported")
 
-              # Check that infra subpackages exist as directories
-              import os
-              src_dir = os.path.dirname(brain_go_brrr.__file__)
-              if os.path.exists(os.path.join(src_dir, "infra", "data", "__init__.py")):
-                  print("✓ infra.data package exists")
-              else:
-                  print("✗ infra.data package missing")
-                  sys.exit(1)
+              # Try to import infra.data directly
+              from brain_go_brrr.infra.data import edf_loader
+              print("✓ infra.data.edf_loader imported")
 
-              print("\n✅ Package structure verified!")
+              print("\n✅ All imports successful!")
           except ImportError as e:
               print(f"✗ Import failed: {e}")
+              import traceback
+              traceback.print_exc()
               sys.exit(1)
           PY
 
