@@ -17,6 +17,8 @@ sys.modules.setdefault("core", importlib.import_module("brain_go_brrr.core"))
 
 # Package imports
 from .application.config.base import Config  # noqa: E402
-from .infra.logger import get_logger  # noqa: E402
 
-__all__ = ["Config", "get_logger"]
+# Don't import logger here to avoid circular imports
+# Users should import directly: from brain_go_brrr.infra.logger import get_logger
+
+__all__ = ["Config"]
