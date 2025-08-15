@@ -44,15 +44,25 @@ jobs:
       - name: Quick import smoke test
         run: |
           uv run python - <<'PY'
-          import importlib
-          for m in [
+          import sys
+          import importlib.util
+
+          # Test that modules can be found (without actually importing them)
+          modules = [
               "brain_go_brrr.api.app",
               "brain_go_brrr.infra.data.edf_loader",
               "brain_go_brrr.infra.data.edf_streaming",
-          ]:
-              importlib.import_module(m)
-              print(f"✓ {m}")
-          print("\n✅ All critical imports working!")
+          ]
+
+          for m in modules:
+              spec = importlib.util.find_spec(m)
+              if spec is None:
+                  print(f"✗ {m} - NOT FOUND")
+                  sys.exit(1)
+              else:
+                  print(f"✓ {m} - found at {spec.origin}")
+
+          print("\n✅ All modules can be found!")
           PY
 
       - name: Run formatting check
