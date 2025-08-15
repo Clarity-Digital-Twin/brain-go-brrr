@@ -24,7 +24,7 @@ make test-unit || { echo "❌ Unit tests failed!"; exit 1; }
 
 # 5. Quick import smoke test
 echo "💨 Import smoke test..."
-python - <<'PY'
+uv run python - <<'PY'
 import importlib
 import sys
 try:

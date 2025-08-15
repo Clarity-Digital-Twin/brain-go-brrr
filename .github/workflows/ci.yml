@@ -40,7 +40,7 @@ jobs:
 
       - name: Quick import smoke test
         run: |
-          python - <<'PY'
+          uv run python - <<'PY'
           import importlib
           for m in [
               "brain_go_brrr.api.app",
