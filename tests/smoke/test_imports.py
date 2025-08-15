@@ -5,7 +5,6 @@ and that refactorings haven't broken module exports.
 """
 
 
-
 def test_services_imports():
     """Test that services module exports work."""
     from brain_go_brrr.services import (

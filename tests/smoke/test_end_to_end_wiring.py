@@ -137,6 +137,7 @@ def test_api_endpoint_wiring(valid_edf_file):
     # The endpoint is properly wired if it's reachable, even if it returns an error
     # Since there's no model configured, we expect it to fail with 500
     from pathlib import Path
+
     with Path(valid_edf_file).open("rb") as f:
         try:
             response = client.post(
