@@ -95,12 +95,12 @@ notebook: ## Start Jupyter Lab
 
 lint: ## Run linting with ruff (with auto-fix)
 	@echo "$(GREEN)Running linting checks...$(NC)"
-	$(RUFF) check $(SRC_DIR) $(TEST_DIR) --fix
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR) scripts --fix
 	@echo "$(GREEN)Linting complete!$(NC)"
 
 lint-ci: ## Run linter exactly as CI does (no auto-fix)
 	@echo "$(CYAN)Running CI-style lint check...$(NC)"
-	$(RUFF) check $(SRC_DIR) $(TEST_DIR)
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR) scripts
 	@echo "$(GREEN)CI lint check passed!$(NC)"
 
 import-lint: ## Check import boundaries with import-linter
@@ -110,8 +110,13 @@ import-lint: ## Check import boundaries with import-linter
 
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
-	$(RUFF) format $(SRC_DIR) $(TEST_DIR)
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR) scripts
 	@echo "$(GREEN)Code formatted!$(NC)"
+
+format-check: ## Check formatting without changing files (CI-style)
+	@echo "$(CYAN)Checking code formatting...$(NC)"
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR) scripts --check --diff
+	@echo "$(GREEN)Code formatting check passed!$(NC)"
 
 type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
