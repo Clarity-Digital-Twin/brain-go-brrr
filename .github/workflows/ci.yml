@@ -51,7 +51,9 @@ jobs:
           from importlib.metadata import distribution
           d = distribution("brain-go-brrr")
           files = {str(p) for p in (d.files or [])}
-          needed = [
+
+          # Check if the package has the expected modules (allow both with and without src prefix)
+          needed_patterns = [
               "brain_go_brrr/__init__.py",
               "brain_go_brrr/core/__init__.py",
               "brain_go_brrr/core/exceptions.py",
@@ -59,13 +61,21 @@ jobs:
               "brain_go_brrr/infra/data/__init__.py",
               "brain_go_brrr/infra/data/edf_loader.py",
           ]
-          missing = [p for p in needed if p not in files]
-          if missing:
-              print("❌ MISSING in installed dist:", missing)
+
+          found = []
+          for pattern in needed_patterns:
+              # Check both with and without src/ prefix
+              if pattern in files or f"src/{pattern}" in files:
+                  found.append(pattern)
+              else:
+                  print(f"❌ MISSING: {pattern}")
+
+          if len(found) != len(needed_patterns):
               # Debug: show what IS there
               infra_files = [f for f in files if "infra" in f]
               print("Found infra files:", infra_files[:10])
               raise SystemExit(1)
+
           print("✅ Package contents OK - all required files present")
           PY
 
