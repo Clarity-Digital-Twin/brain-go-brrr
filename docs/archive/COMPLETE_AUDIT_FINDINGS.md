@@ -56,7 +56,7 @@ extra_kwargs['cache_index_path'] = data_root / "cache/tuab_index.json"
 **LINE 179-182: DATASET PARAMS FROM CONFIG**
 ```python
 window_duration=cfg.data.window_duration,  # ❌ FROM CONFIG
-window_stride=cfg.data.window_stride,      # ❌ FROM CONFIG  
+window_stride=cfg.data.window_stride,      # ❌ FROM CONFIG
 sampling_rate=cfg.data.sampling_rate,      # ❌ FROM CONFIG
 ```
 **ISSUE**: Uses config values which might not match cache!

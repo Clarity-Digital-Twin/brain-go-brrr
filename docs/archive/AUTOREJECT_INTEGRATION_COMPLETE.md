@@ -71,14 +71,14 @@ data:
 
 ### Data Flow
 ```
-Raw EDF → Add Positions → Filter → Windows → Pseudo-Epochs 
+Raw EDF → Add Positions → Filter → Windows → Pseudo-Epochs
 → AutoReject → Clean Epochs → Reconstruct Windows → EEGPT
 ```
 
 ### Fallback Chain
 ```
 Try AutoReject → MemoryError? → Amplitude cleaning
-               → No positions? → Amplitude cleaning  
+               → No positions? → Amplitude cleaning
                → Other error? → Use original data
 ```
 
@@ -116,7 +116,7 @@ Try AutoReject → MemoryError? → Amplitude cleaning
 # Test adapters
 uv run pytest tests/unit/test_autoreject_adapter.py -v
 
-# Test chunked processing  
+# Test chunked processing
 uv run pytest tests/unit/test_chunked_autoreject.py -v
 
 # Test fallbacks

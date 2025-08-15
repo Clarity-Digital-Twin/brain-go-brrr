@@ -9,7 +9,7 @@ Successfully improved test suite quality and coverage following Robert C. Martin
 ### Overall Status: ✅ PASSING (99.3% success rate)
 
 - **Total Tests**: 694
-- **Passed**: 689 
+- **Passed**: 689
 - **Failed**: 5
 - **Success Rate**: 99.3%
 - **Execution Time**: 117.83 seconds
@@ -50,16 +50,16 @@ Only 5 tests failing out of 694:
 
 1. `test_core_preprocessing.py::TestNormalizer::test_minmax_normalization`
    - MinMax normalization not fully implemented (uses z-score fallback)
-   
+
 2. `test_enhanced_abnormality.py::test_probe_initialization`
    - Lightning module initialization issue
-   
+
 3. `test_enhanced_abnormality.py::test_forward_pass`
    - Mock setup issue with Lightning
-   
+
 4. `test_enhanced_abnormality.py::test_metrics_computation`
    - Missing sklearn import
-   
+
 5. `test_enhanced_sleep_analyzer.py::test_compute_permutation_entropy`
    - Method not implemented in analyzer
 

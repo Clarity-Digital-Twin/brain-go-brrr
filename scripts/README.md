@@ -6,7 +6,7 @@
 - `benchmark_end_to_end.py` - End-to-end performance benchmark on Sleep-EDF data
 - `run_benchmarks.py` - EEGPT performance benchmarks
 
-### API/Integration Testing  
+### API/Integration Testing
 - `quick_api_test.py` - Quick API test with mock data
 - `test_sleep_analysis.py` - Sleep analysis pipeline test (referenced in CLAUDE.md)
 

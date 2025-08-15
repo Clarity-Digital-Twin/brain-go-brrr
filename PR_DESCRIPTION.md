@@ -16,7 +16,7 @@ This PR fixes severe architectural violations that were breaking Clean Architect
 ### 📁 File Changes
 - **Deleted**: `factories_pure.py`, `application/ports.py` (0% coverage, unused)
 - **Moved**: `core/preprocessing_utils.py` → `domain/preprocessing/core_logic.py` (with shim)
-- **Consolidated**: 
+- **Consolidated**:
   - `detector.py` + `detector_clean.py` + `detector_pure.py` → `detector.py`
   - `controller.py` + `controller_clean.py` → `controller.py`
   - `extractor.py` + `extractor_clean.py` → `extractor.py`

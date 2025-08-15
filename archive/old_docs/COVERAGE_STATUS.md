@@ -12,7 +12,7 @@ Based on existing test files and module analysis:
 
 ### ✅ Well Tested (~80%+ coverage)
 - `services.yasa_adapter` - Channel aliasing, sleep staging
-- `core.config` - Configuration management  
+- `core.config` - Configuration management
 - `models.linear_probe` - Sleep/abnormality classification
 - `core.exceptions` - Error hierarchy (NEW)
 - `core.edf_loader` - EDF file handling (NEW)
@@ -33,7 +33,7 @@ Based on existing test files and module analysis:
 
 ### Phase 1: Critical Path (NO BULLSHIT)
 1. ✅ `core.exceptions` - DONE
-2. ✅ `core.edf_loader` - DONE  
+2. ✅ `core.edf_loader` - DONE
 3. 🔄 `models.eegpt_model` - In progress
 4. ⏳ `data.tuab_dataset` - Next
 
@@ -57,7 +57,7 @@ Based on existing test files and module analysis:
 
 **Current**: ~45% (based on file count and test analysis)
 **Target**: 80% for critical paths, 60% overall
-**Timeline**: 
+**Timeline**:
 - Phase 1: Today
 - Phase 2: This week
 - Phase 3: Ongoing

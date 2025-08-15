@@ -111,7 +111,7 @@ pre-push: ## Run before pushing to ensure CI will pass
 Check GitHub Actions logs for exact error:
 
 1. **Quote style**: Look for `Q000` errors
-2. **Trailing newline**: Look for `W292` errors  
+2. **Trailing newline**: Look for `W292` errors
 3. **Blank line whitespace**: Look for `W293` errors
 
 Then fix locally with `make format` and commit.

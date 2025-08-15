@@ -1,16 +1,16 @@
 # 🔍 APPLICATION BEHAVIOR AUDIT - What Actually Works?
 
-**Date**: August 13, 2025  
-**Purpose**: Deep audit of actual functionality after refactoring  
+**Date**: August 13, 2025
+**Purpose**: Deep audit of actual functionality after refactoring
 **Focus**: BEHAVIOR not just code structure
 
 ## 🧠 What This Application ACTUALLY Does
 
 ### Core Capabilities (Per CLAUDE.md)
 
-1. **Quality Control Module** 
+1. **Quality Control Module**
    - Detect bad channels with >95% accuracy
-   - Calculate impedance metrics  
+   - Calculate impedance metrics
    - Identify artifacts (eye blinks, muscle, heartbeat)
    - Generate reports in <30 seconds
    - Implementation: `/services/qc_flagger.py` → NOW: `domain/quality/controller.py`

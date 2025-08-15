@@ -281,7 +281,7 @@ First functional release with core EEG analysis capabilities.
 ### ✨ Features
 
 - **Quality Control Module**: Automated bad channel detection
-- **Sleep Analysis**: YASA integration for 5-stage classification  
+- **Sleep Analysis**: YASA integration for 5-stage classification
 - **EEGPT Integration**: Foundation model for feature extraction
 - **FastAPI REST API**: Production-ready endpoints
 - **Redis Caching**: High-performance result caching

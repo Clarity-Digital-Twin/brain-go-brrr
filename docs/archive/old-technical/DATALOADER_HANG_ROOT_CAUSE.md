@@ -29,7 +29,7 @@ for class_name in ["normal", "abnormal"]:
 - No caching between runs
 
 ### 3. PYTORCH DATALOADER + WSL2 = DISASTER
-**Evidence**: 
+**Evidence**:
 - CPU at 67% for 4.5 HOURS
 - Memory usage growing to 6GB
 - Zero GPU utilization
@@ -40,7 +40,7 @@ for class_name in ["normal", "abnormal"]:
 ### ❌ NOT Memory Leak
 - Memory stable at 6GB, not growing infinitely
 
-### ❌ NOT GPU Issues  
+### ❌ NOT GPU Issues
 - GPU detected correctly
 - Memory allocated (2.4GB)
 - CUDA available

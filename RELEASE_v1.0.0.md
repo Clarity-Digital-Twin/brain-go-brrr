@@ -1,10 +1,10 @@
 # 🚀 Brain-Go-Brrr v1.0.0 Release
 
-**Release Date**: August 13, 2025  
-**Tag**: v1.0.0  
+**Release Date**: August 13, 2025
+**Tag**: v1.0.0
 **Status**: PRODUCTION READY ✅
 
-## 🎊 WE DID IT! 
+## 🎊 WE DID IT!
 
 After an intensive refactoring effort, we have achieved **100% functionality with 100% clean code**. This release represents a complete transformation from monolithic spaghetti code to a pristine Clean Architecture implementation that would make Robert C. Martin proud.
 
@@ -99,7 +99,7 @@ print(f"Quality: {qc_results['quality_metrics']['quality_grade']}")
 # Sleep staging
 stager = YASASleepStager()
 stages, confidences, metrics = stager.stage_sleep(
-    raw.get_data(), 
+    raw.get_data(),
     raw.info['sfreq'],
     raw.ch_names
 )

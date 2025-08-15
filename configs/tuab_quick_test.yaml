@@ -3,14 +3,14 @@ experiment:
   name: "tuab_quick_test"
   seed: 42
   precision: 16
-  
+
 model:
   backbone:
     name: "eegpt"
     checkpoint_path: "${BGB_DATA_ROOT}/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
     freeze: true
     n_channels: 19
-    
+
   probe:
     type: "two_layer"
     input_dim: 768
@@ -21,40 +21,40 @@ model:
     channel_adapter_in: 19
     channel_adapter_out: 19
     max_norm: 1.0
-    
+
 data:
   dataset: "tuab"
   root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg_abnormal/v3.0.1/edf"
   cache_dir: "${BGB_DATA_ROOT}/cache/tuab_enhanced"
-  
+
   # DO NOT use cache_mode readonly until we fix the hanging issue
   use_cached_dataset: false
   cache_mode: "write"
-  
+
   # Match the cache that was built
   window_duration: 8.0
   window_stride: 4.0
   sampling_rate: 256
-  
+
   bandpass_low: 0.5
   bandpass_high: 50.0
   notch_filter: null
-  
+
   batch_size: 16  # Smaller for testing
   num_workers: 0  # No workers for debugging
   pin_memory: false
   persistent_workers: false
-  
+
   channel_names: [
     'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
     'T3', 'C3', 'CZ', 'C4', 'T4',
     'T5', 'P3', 'PZ', 'P4', 'T6',
     'O1', 'O2'
   ]
-  
+
   # Limit dataset for quick test
   max_files: 10
-  
+
 training:
   epochs: 2
   learning_rate: 5e-4
@@ -75,15 +75,15 @@ training:
   mode: "max"
   val_check_interval: 1.0
   use_ema: false
-  
+
 evaluation:
   metrics: ["auroc", "accuracy", "balanced_accuracy", "f1_weighted"]
   save_predictions: true
-  
+
 logging:
   log_every_n_steps: 10
   save_top_k: 1
-  
+
 accelerator: "gpu"
 devices: 1
 distributed: false

@@ -3,7 +3,7 @@ source = brain_go_brrr
 branch = True
 parallel = True
 data_file = .coverage
-omit = 
+omit =
     */tests/*
     */__init__.py
     */__main__.py
@@ -24,23 +24,23 @@ sort = Cover
 exclude_lines =
     # Have to re-enable the standard pragma
     pragma: no cover
-    
+
     # Don't complain about missing debug-only code:
     def __repr__
     if self\.debug
-    
+
     # Don't complain if tests don't hit defensive assertion code:
     raise AssertionError
     raise NotImplementedError
-    
+
     # Don't complain if non-runnable code isn't run:
     if 0:
     if __name__ == .__main__.:
     if TYPE_CHECKING:
-    
+
     # Don't complain about abstract methods
     @(abc\.)?abstractmethod
-    
+
     # Ignore type checking imports
     from typing import TYPE_CHECKING
     if TYPE_CHECKING:

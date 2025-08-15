@@ -3,7 +3,7 @@
 ## Current Status
 - **Coverage**: 55.59% (up from 52.95%)
 - **Total Tests**: 537 passing, 29 skipped
-- **Recent Improvements**: 
+- **Recent Improvements**:
   - api/cache.py: 95%
   - api/routers/eegpt.py: 89.82%
   - api/app.py: 100%
@@ -26,7 +26,7 @@
 
 ### Tier 1: Quick Wins (Can reach 60% total)
 1. **api/routers/resources.py** (12 lines) - Simple endpoints
-2. **api/routers/cache.py** (21 lines) - Cache management 
+2. **api/routers/cache.py** (21 lines) - Cache management
 3. **api/routers/queue.py** (24 lines) - Queue status
 
 ### Tier 2: Critical Path (Can reach 65% total)

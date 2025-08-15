@@ -4,7 +4,7 @@
 
 ### What We Achieved
 - **100% Clean Architecture** following Domain-Driven Design
-- **PERFECT SOLID Principles** implementation  
+- **PERFECT SOLID Principles** implementation
 - **Zero compromises** on Robert C. Martin's Clean Code
 - **Full backward compatibility** via intelligent shims
 - **GOF Design Patterns**: Strategy, Factory, Adapter, Repository
@@ -51,7 +51,7 @@ All old import paths are **deprecated** but will continue to work until v2.0.0 w
 ```python
 # This will work but show a deprecation warning:
 from brain_go_brrr.core.edf_loader import EDFLoader
-# DeprecationWarning: brain_go_brrr.core.edf_loader is deprecated. 
+# DeprecationWarning: brain_go_brrr.core.edf_loader is deprecated.
 # Use brain_go_brrr.data.edf_loader instead.
 ```
 
@@ -117,7 +117,7 @@ from brain_go_brrr.api.schemas import JobData
 
 job_data = JobData(
     job_id="job-123",
-    analysis_type="abnormality_detection", 
+    analysis_type="abnormality_detection",
     status="pending"
 )
 ```

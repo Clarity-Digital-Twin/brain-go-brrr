@@ -17,7 +17,7 @@ After deep analysis of the training plateau issue (constant LR of 2.84e-03 at 85
 - **Fix**: Removed reset, properly track start_epoch
 
 ### 3. **Missing Gradient Accumulation Awareness**
-- **Bug**: `total_steps = len(train_loader) * epochs` 
+- **Bug**: `total_steps = len(train_loader) * epochs`
 - **Impact**: Wrong total_steps if using gradient accumulation
 - **Fix**: `total_steps = ceil(len(train_loader) / accum_steps) * epochs`
 
@@ -77,7 +77,7 @@ current_lr = optimizer.param_groups[0]['lr']  # NOT scheduler.get_last_lr()
 - **AUROC**: Plateaued at ~0.85
 
 ### After Fix (Expected)
-- **LR Pattern**: 
+- **LR Pattern**:
   - Start: 0.00012 (warmup)
   - Peak: 0.003 (10-50% of training)
   - End: 0.000003 (annealing)

@@ -13,11 +13,11 @@ The test suite is now **fully polished** and production-ready with a rock-solid 
 ## Improvements Implemented
 
 ### 1. Test Hygiene ✅
-- ✅ Removed duplicate `pytest_collection_modifyitems` 
+- ✅ Removed duplicate `pytest_collection_modifyitems`
 - ✅ Consolidated network gating to single marker + collection hook
 - ✅ Added seeds to prevent test flakes (`np.random.seed(42)`, `torch.manual_seed(42)`)
 - ✅ Split `test_red_module_coverage.py` into unit-specific files:
-  - `test_linear_probe_head.py` 
+  - `test_linear_probe_head.py`
   - `test_window_extractor.py`
   - `test_edf_validator.py`
 

@@ -21,7 +21,7 @@
 ### 🎯 Coverage
 
 - **Logic modules**: >75% coverage
-- **API modules**: >80% coverage  
+- **API modules**: >80% coverage
 - **Model modules**: ~70% coverage
 - **Excluded**: MNE-dependent services (YASA, Autoreject)
 
@@ -33,7 +33,7 @@
 def test_probe_learning():
     # Reduced from 200 epochs to 5
     # Reduced dataset from 200 to 40 samples
-    
+
 # Skipped MNE-dependent tests
 pytestmark = pytest.mark.skip(reason="Imports MNE - causes hangs")
 class TestTUABCachedDataset:

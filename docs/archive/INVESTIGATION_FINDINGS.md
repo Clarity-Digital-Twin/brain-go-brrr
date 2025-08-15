@@ -55,7 +55,7 @@ train_dataset = DatasetClass(
 
 **tuab_memsafe.yaml settings (from logs):**
 - window_duration: 5.12s
-- sampling_rate: 200Hz  
+- sampling_rate: 200Hz
 - batch_size: 16
 - bandpass: 0.1-75.0Hz
 
@@ -200,7 +200,7 @@ train_dataset = TUABCachedDataset(
     root_dir=paths["TUAB dataset"],
     split="train",
     sampling_rate=256,      # ✅ CORRECT
-    window_duration=8.0,    # ✅ CORRECT  
+    window_duration=8.0,    # ✅ CORRECT
     window_stride=4.0,      # ✅ CORRECT
     preload=False,
     normalize=True,

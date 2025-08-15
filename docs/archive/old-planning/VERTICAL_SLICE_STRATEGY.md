@@ -141,7 +141,7 @@ Raw EEG → QC → EEGPT → Event Detection Head → Spikes/Seizures
 1. **Complete abnormality detection training**
    - With clean data from AutoReject
    - Achieve target AUROC > 0.85
-   
+
 2. **Start sleep staging integration**
    - Use Sleep-EDF dataset
    - Train EEGPT sleep head

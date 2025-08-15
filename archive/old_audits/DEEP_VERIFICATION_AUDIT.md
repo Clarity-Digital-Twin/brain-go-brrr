@@ -111,7 +111,7 @@ grep -r "from brain_go_brrr.core.config" . --include="*.py" | wc -l
 ```
 
 **VERDICT: 100% DEAD CODE** ✅
-- Empty module 
+- Empty module
 - Everyone uses core.config instead
 - Redundant with core/config.py
 - Safe to delete
@@ -153,7 +153,7 @@ grep -r "from.*yasa_adapter import" tests/ src/ --include="*.py"
 
 # FINDINGS:
 - yasa_adapter.py - USED? Need to verify
-- yasa_adapter_enhanced.py - USED? Need to verify  
+- yasa_adapter_enhanced.py - USED? Need to verify
 - yasa_adapter_original_backup.py - NOT USED ✅
 
 # Deep check test usage
@@ -168,7 +168,7 @@ pytest tests/ -k yasa --collect-only
 grep -r "from brain_go_brrr.api.cache" . --include="*.py"
 # RESULT: Used in API routers
 
-# Infra cache usage  
+# Infra cache usage
 grep -r "from brain_go_brrr.infra.cache" . --include="*.py"
 # RESULT: Different implementation
 
@@ -183,7 +183,7 @@ grep -r "from brain_go_brrr.core.preprocessing" tests/ --include="*.py" | wc -l
 # RESULT: 4 tests
 
 # Preprocessing module usage
-grep -r "from brain_go_brrr.preprocessing" tests/ --include="*.py" | wc -l  
+grep -r "from brain_go_brrr.preprocessing" tests/ --include="*.py" | wc -l
 # RESULT: 17 tests
 
 # FINDING: Both are used, but for different things!
@@ -319,7 +319,7 @@ def check_imports(file_path):
     try:
         with open(file_path) as f:
             tree = ast.parse(f.read())
-        
+
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for name in node.names:
@@ -328,7 +328,7 @@ def check_imports(file_path):
             elif isinstance(node, ast.ImportFrom):
                 if node.module and 'original_backup' in node.module:
                     return False, f"Import from {node.module}"
-        
+
         return True, "OK"
     except Exception as e:
         return False, str(e)
@@ -348,7 +348,7 @@ print("All imports OK!")
 ### Absolutely Dead (Delete Now):
 1. `yasa_adapter_original_backup.py` - 0 uses, backup file
 2. `inference/` - 0 uses, empty module
-3. `config/` - 0 uses, empty module  
+3. `config/` - 0 uses, empty module
 4. `core/resources/` - 0 uses, empty directory
 
 ### Probably Dead (Verify First):
@@ -367,7 +367,7 @@ print("All imports OK!")
 # These 4 are 100% safe to delete:
 rm src/brain_go_brrr/services/yasa_adapter_original_backup.py
 rm -rf src/brain_go_brrr/inference/
-rm -rf src/brain_go_brrr/config/  
+rm -rf src/brain_go_brrr/config/
 rm -rf src/brain_go_brrr/core/resources/
 
 # Test immediately

@@ -25,12 +25,12 @@ if [ -f "$LOG" ]; then
     echo ""
     echo "Latest log: $LOG"
     echo "Log size: $(wc -l < "$LOG") lines"
-    
+
     # Check for training progress
     echo ""
     echo "Training Progress:"
     tail -50 "$LOG" | grep -E "Epoch|step.*loss|val_" | tail -5
-    
+
     # Check for errors
     echo ""
     if tail -100 "$LOG" | grep -q "NaN"; then

@@ -5,7 +5,7 @@
 ### `/data/cache/`
 - `tuab_4s_final/` - **THE ONLY CACHE WE USE** (157 GB, 2 million .pt files)
   - Currently being converted to memory-mapped arrays
-  - Contains 4-second windows at 256Hz 
+  - Contains 4-second windows at 256Hz
   - 2,050,044 total windows (1.86M train, 185k eval)
 
 ### `/experiments/eegpt_linear_probe/`
@@ -18,7 +18,7 @@ Main experiment directory for EEGPT linear probe training
   - 4-second windows, 50% overlap
   - 50 epochs, early stopping
 
-#### `logs/` 
+#### `logs/`
 - Empty (cleaned) - will contain training logs
 
 #### `output/`
@@ -70,7 +70,7 @@ Main experiment directory for EEGPT linear probe training
    # Launch training
    export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
    export CUDA_VISIBLE_DEVICES=0
-   
+
    python train_paper_aligned.py --config configs/tuab_4s_paper_aligned.yaml
    ```
 

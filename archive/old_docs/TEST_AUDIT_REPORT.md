@@ -75,7 +75,7 @@ def __init__(self, eegpt_model_path=None, device="cpu"):
     self.sleep_analyzer = SleepAnalyzer()
 
 # Improved (injectable)
-def __init__(self, eegpt_model_path=None, device="cpu", 
+def __init__(self, eegpt_model_path=None, device="cpu",
              extractor=None, sleep_analyzer=None):
     self.eegpt_extractor = extractor or EEGPTFeatureExtractor(...)
     self.sleep_analyzer = sleep_analyzer or SleepAnalyzer()

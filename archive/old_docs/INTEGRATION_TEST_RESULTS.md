@@ -1,7 +1,7 @@
 # Integration Test Results - FINAL VERDICT
 
 ## EXECUTIVE SUMMARY
-**The integration tests DO work when run with `--run-integration`!** 
+**The integration tests DO work when run with `--run-integration`!**
 - They're not broken, they're just SLOW
 - They need real data/models which aren't always available
 - Some have bugs that need fixing
@@ -24,7 +24,7 @@
 **PURPOSE**: Test real model loading, full pipelines, external services
 **SKIPPED BECAUSE**: They take 30+ seconds each, would make CI take hours
 **STATUS**: Most likely WORK but are SLOW
-**WHEN TO RUN**: 
+**WHEN TO RUN**:
 - Nightly CI builds
 - Before releases
 - After major changes
@@ -33,7 +33,7 @@
 **PURPOSE**: Test on real clinical EEG data
 **SKIPPED BECAUSE**: Datasets are gigabytes, not in repo
 **STATUS**: Will PASS when data is downloaded
-**FIX**: 
+**FIX**:
 ```bash
 # Download Sleep-EDF dataset
 make download-sleep-edf  # If this target exists

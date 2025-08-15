@@ -16,7 +16,7 @@ def pytest_collection_modifyitems(config, items):
     """Deselect integration tests unless --run-integration is passed."""
     if config.getoption("--run-integration", default=False):
         return
-    
+
     # Deselect instead of skip for cleaner output
     drop = [it for it in items if "integration" in it.keywords]
     if drop:
@@ -33,7 +33,7 @@ addopts =
 ### 3. Consistent Makefile Targets
 Every test target now includes proper filters:
 - `make test` → excludes integration
-- `make test-fast` → excludes integration  
+- `make test-fast` → excludes integration
 - `make test-cov` → excludes integration
 - `make test-all-cov` → excludes integration
 
@@ -115,7 +115,7 @@ def pytest_sessionstart(session):
          /\
         /E2E\      (5%)  - Full system, real services
        /------\
-      /Integr. \   (15%) - Component boundaries  
+      /Integr. \   (15%) - Component boundaries
      /----------\
     /   Unit     \ (80%) - Fast, isolated, deterministic
    /--------------\
@@ -153,7 +153,7 @@ pytest -m "not integration and not slow"
 #!/bin/bash
 set -e
 make lint
-make type-check  
+make type-check
 make test  # Fast tests only
 ```
 
@@ -191,7 +191,7 @@ test-cov:
 # Daily development
 make test          # 620 tests, <90s, no skips
 
-# Pre-push verification  
+# Pre-push verification
 make check-all     # Lint + Type + Test
 
 # Full integration

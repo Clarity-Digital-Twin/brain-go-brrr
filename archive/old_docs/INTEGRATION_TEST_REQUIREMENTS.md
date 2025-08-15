@@ -163,7 +163,7 @@ def test_redis_feature():
 ```python
 def test_sleep_staging():
     """Test YASA sleep staging.
-    
+
     Requires:
     - Sleep-EDF dataset in data/datasets/external/sleep-edf/
     - At least 1 PSG recording

@@ -63,7 +63,7 @@ The Brain-Go-Brrr dual pipeline architecture implements autonomous EEG analysis 
 - Interpolation of bad channels
 - PDF report generation
 
-**Test Coverage**: 
+**Test Coverage**:
 - 28 unit tests passing
 - Integration tests with real EEG data
 - Performance benchmarks established
@@ -84,7 +84,7 @@ The Brain-Go-Brrr dual pipeline architecture implements autonomous EEG analysis 
 - GPU/CPU compatibility
 - Channel mapping (T3→T7, T4→T8, etc.)
 
-**Critical Discovery**: 
+**Critical Discovery**:
 - EEGPT pretrained on **4-second windows** (not 8s!)
 - Rewrote entire pipeline for correct window size
 - Target AUROC: 0.869 with 4s windows
@@ -192,19 +192,19 @@ class HierarchicalEEGAnalyzer:
     async def analyze(self, eeg_data):
         # 1. Quality Control
         qc_result = await self.quality_controller.process(eeg_data)
-        
+
         # 2. Parallel: Abnormality + Sleep
         abnormal_task = self.abnormal_screener.screen(eeg_data)
         sleep_task = self.sleep_stager.stage(eeg_data)
-        
+
         abnormal_result, sleep_result = await asyncio.gather(
             abnormal_task, sleep_task
         )
-        
+
         # 3. Conditional: IED if abnormal
         if abnormal_result.is_abnormal:
             ied_result = await self.ied_detector.detect(eeg_data)
-        
+
         return PipelineResult(...)
 ```
 

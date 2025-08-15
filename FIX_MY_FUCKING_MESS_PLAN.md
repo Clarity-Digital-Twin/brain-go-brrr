@@ -69,7 +69,7 @@ def create_abnormality_detector() -> AbnormalityDetector:
 # Update all imports to use single versions
 # Delete all backward compatibility shims
 rm -rf src/brain_go_brrr/config
-rm -rf src/brain_go_brrr/models  
+rm -rf src/brain_go_brrr/models
 rm -rf src/brain_go_brrr/preprocessing
 rm -rf src/brain_go_brrr/services
 ```
@@ -113,7 +113,7 @@ The project is COMPLETELY SALVAGEABLE. The business logic works. The models work
 
 The core is good:
 - EEGPT integration works
-- Sleep analysis works  
+- Sleep analysis works
 - API works
 - Tests pass
 

@@ -154,7 +154,7 @@ make test  # MUST PASS after each
 ```
 KEEP IN CORE (domain logic):
 - abnormal/ - Detection logic ✓
-- sleep/ - Sleep analysis ✓  
+- sleep/ - Sleep analysis ✓
 - quality/ - QC logic ✓
 - channels.py - Domain model ✓
 - exceptions.py - Domain exceptions ✓

@@ -4,7 +4,7 @@
 
 ### 1. DELETED All Duplicates ✅
 - Removed `detector.py`, `detector_pure.py` → kept ONE `detector.py`
-- Removed `controller.py` → kept ONE `controller.py`  
+- Removed `controller.py` → kept ONE `controller.py`
 - Removed `extractor.py` → kept ONE `extractor.py`
 
 ### 2. REMOVED Domain→Infra Violations ✅

@@ -11,7 +11,7 @@ We discovered why the baseline training was taking forever to load:
 ## Timeline
 
 - Earlier: Ran training with 8s @ 256Hz windows, created 188,981 cached files
-- Later: Updated config to match paper (10.24s @ 200Hz) 
+- Later: Updated config to match paper (10.24s @ 200Hz)
 - Now: Training stuck regenerating all windows because cache is incompatible
 
 ## Solutions
@@ -24,7 +24,7 @@ export EEGPT_CONFIG=configs/tuab_cached_baseline.yaml
 - Will load in seconds, not hours
 - Good for quick baseline comparison
 
-### Option 2: Wait for regeneration (SLOW) 
+### Option 2: Wait for regeneration (SLOW)
 - Continue with current training
 - Will take ~2-3 hours to regenerate all windows
 - Matches paper specifications exactly
@@ -45,7 +45,7 @@ rm -rf data/cache/tuab_enhanced/*.pkl
 
 The cache is tied to specific window parameters:
 - Window duration
-- Sampling rate  
+- Sampling rate
 - Preprocessing settings
 
 Changing ANY of these invalidates the entire cache!

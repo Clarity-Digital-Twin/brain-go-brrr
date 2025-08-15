@@ -110,7 +110,7 @@ data:
   window_duration: 4.0  # CRITICAL: Must be 4 seconds
   window_stride: 2.0    # 50% overlap for training
   sampling_rate: 256
-  
+
 model:
   backbone:
     checkpoint_path: eegpt_mcae_58chs_4s_large4E.ckpt

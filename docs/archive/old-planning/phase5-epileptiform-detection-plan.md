@@ -12,7 +12,7 @@ Abnormal EEG Windows
 EEGPT Features (frozen)
     ↓
 Epileptiform Detection Head
-    ├─ Binary: Has epileptiform activity? 
+    ├─ Binary: Has epileptiform activity?
     └─ Multi-class: Spike / Sharp Wave / Spike-Wave / Polyspike
 ```
 
@@ -47,7 +47,7 @@ From literature (TUAB subset analysis):
 class EpileptiformBinaryHead(nn.Module):
     def __init__(self):
         self.has_epileptiform = nn.Linear(768, 2)  # Yes/No
-        
+
 class EpileptiformTypeHead(nn.Module):
     def __init__(self):
         self.event_type = nn.Linear(768, 4)  # 4 types
@@ -79,7 +79,7 @@ class HierarchicalEpileptiformHead(nn.Module):
 ### 2. Loss Function
 ```python
 # For imbalanced classes
-class_weights = compute_class_weight('balanced', 
+class_weights = compute_class_weight('balanced',
                                     classes=np.unique(y_train),
                                     y=y_train)
 criterion = nn.CrossEntropyLoss(weight=torch.tensor(class_weights))

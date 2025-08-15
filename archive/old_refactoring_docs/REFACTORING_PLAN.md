@@ -185,10 +185,10 @@ class ProbeFactory:
             "robust": RobustLinearProbe,
             "two_layer": TwoLayerProbe,
         }
-        
+
         if probe_type not in probes:
             raise ValueError(f"Unknown probe type: {probe_type}")
-        
+
         return probes[probe_type](**kwargs)
 
 __all__ = ['ProbeFactory', 'LinearProbe', 'RobustLinearProbe', 'TwoLayerProbe']
@@ -376,19 +376,19 @@ from pathlib import Path
 
 def validate_architecture():
     checks = []
-    
+
     # No more backup files
     backups = list(Path('src').rglob('*backup*'))
     checks.append(('No backup files', len(backups) == 0))
-    
+
     # Core module reduced
     core_files = list(Path('src/brain_go_brrr/core').rglob('*.py')) if Path('src/brain_go_brrr/core').exists() else []
     checks.append(('Core < 10 files', len(core_files) < 10))
-    
+
     # No duplicate caches
     cache_files = list(Path('src').rglob('*cache*.py'))
     checks.append(('Single cache implementation', len([f for f in cache_files if 'cache' in f.stem]) <= 2))
-    
+
     # Domain layer pure
     if Path('src/brain_go_brrr/domain').exists():
         domain_imports = []
@@ -396,19 +396,19 @@ def validate_architecture():
             with open(f) as file:
                 domain_imports.extend([l for l in file if 'from brain_go_brrr.infra' in l])
         checks.append(('Domain has no infra imports', len(domain_imports) == 0))
-    
+
     # Tests passing
     result = os.system('make test > /dev/null 2>&1')
     checks.append(('All tests passing', result == 0))
-    
+
     # Coverage maintained
     # Run coverage and parse result
     checks.append(('Coverage >= 64%', True))  # Placeholder
-    
+
     for name, passed in checks:
         status = '✅' if passed else '❌'
         print(f'{status} {name}')
-    
+
     return all(passed for _, passed in checks)
 
 if __name__ == '__main__':

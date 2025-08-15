@@ -5,7 +5,7 @@
 ### Summary
 - **Total Tests**: 875 collected
 - **Unit Tests**: 676 passed ✅
-- **Integration Tests**: 51 passed ✅  
+- **Integration Tests**: 51 passed ✅
 - **GPU Tests**: 3 passed, 1 skipped (expected) ✅
 - **Benchmark Tests**: 20+ passed (1 needs fix when --benchmark-disable used)
 

@@ -75,7 +75,7 @@ pytest tests --run-integration -m integration
 #!/bin/bash
 set -e
 make lint          # ✅ Ruff
-make type-check    # ✅ MyPy  
+make type-check    # ✅ MyPy
 pytest tests -m "not integration and not slow" -q
 ```
 
@@ -132,7 +132,7 @@ make coverage       # Fails if <70%
 
 ```bash
 ruff check src tests      # ✅ 0 issues
-mypy src/brain_go_brrr    # ✅ 0 issues  
+mypy src/brain_go_brrr    # ✅ 0 issues
 pytest (unit)             # ✅ 621 passing
 pytest (integration)      # ✅ 139 ready when resources available
 ```
@@ -157,7 +157,7 @@ pytest (integration)      # ✅ 139 ready when resources available
 
 Following **Robert C. Martin's Clean Code**:
 - **Single Responsibility**: Each test tests ONE thing
-- **No Surprises**: Predictable, deterministic behavior  
+- **No Surprises**: Predictable, deterministic behavior
 - **Dependency Injection**: Testable by design
 - **Fast Feedback**: Unit tests under 2 minutes
 - **Clear Intent**: Test names describe behavior
@@ -193,7 +193,7 @@ Following **Robert C. Martin's Clean Code**:
 **TO**: 621 green tests, 0 bogus skips, clean architecture
 
 **LEROY JENKINS ENERGY**: ✅ DELIVERED
-**DEMIS HASSABIS RIGOR**: ✅ ACHIEVED  
+**DEMIS HASSABIS RIGOR**: ✅ ACHIEVED
 **ROBERT C. MARTIN APPROVED**: ✅ CLEAN AF
 
 ## The Bottom Line

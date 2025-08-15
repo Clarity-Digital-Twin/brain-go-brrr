@@ -2,7 +2,7 @@
 
 ## Root Cause Summary
 The training crashed due to normalization statistics computed on the wrong dataset (Sleep-EDF), resulting in:
-- Mean: 9.4e-09 
+- Mean: 9.4e-09
 - Std: 2.1e-05
 - This caused a 47,000x amplification of TUAB data, leading to NaN in mixed precision training
 

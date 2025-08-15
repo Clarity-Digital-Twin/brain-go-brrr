@@ -4,7 +4,7 @@
 
 ### Before: CHAOS
 - **140+ tests skipped** randomly
-- MagicMock cancer everywhere  
+- MagicMock cancer everywhere
 - No control, no gates, no standards
 
 ### After: PERFECTION
@@ -54,7 +54,7 @@ make check-all
 
 ```bash
 ✅ ruff check src tests      # 0 issues
-✅ mypy src/brain_go_brrr    # 0 issues  
+✅ mypy src/brain_go_brrr    # 0 issues
 ✅ pytest tests              # 621 passing, 0 skipped
 ```
 
@@ -94,7 +94,7 @@ This is what peak performance looks like.
 ---
 
 *Generated with LEROY JENKINS energy*
-*DEMIS HASSABIS rigor*  
+*DEMIS HASSABIS rigor*
 *ROBERT C. MARTIN cleanliness*
 
 **NOW GO BUILD THE FUTURE!** 🚀

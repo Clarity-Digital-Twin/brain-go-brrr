@@ -182,7 +182,7 @@ src/brain_go_brrr/core/sleep/analyzer.py:192: error: "MNERaw" has no attribute
     ...    eeg_channels = [ch for ch in raw.ch_names if raw.get_channel_types...
                                                         ^~~~~~~~~~~~~~~~~~~~~
 src/brain_go_brrr/core/sleep/analyzer.py:198: error: Incompatible types in
-assignment (expression has type "str | None", variable has type "str") 
+assignment (expression has type "str | None", variable has type "str")
 [assignment]
                 eeg_ch = picks[0] if picks[0] in raw.ch_names else None
                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -190,11 +190,11 @@ src/brain_go_brrr/core/sleep/analyzer.py:228: error: "MNERaw" has no attribute
 "get_channel_types"; maybe "set_channel_types"?  [attr-defined]
     ...                    ch for ch in raw.ch_names if raw.get_channel_types...
                                                         ^~~~~~~~~~~~~~~~~~~~~
-src/brain_go_brrr/api/app.py:112: error: Unused "type: ignore" comment 
+src/brain_go_brrr/api/app.py:112: error: Unused "type: ignore" comment
 [unused-ignore]
                     route.endpoint,  # type: ignore[attr-defined]
                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-src/brain_go_brrr/api/app.py:113: error: Unused "type: ignore" comment 
+src/brain_go_brrr/api/app.py:113: error: Unused "type: ignore" comment
 [unused-ignore]
                     methods=route.methods,  # type: ignore[attr-defined]
                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

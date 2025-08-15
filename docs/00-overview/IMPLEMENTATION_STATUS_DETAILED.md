@@ -90,19 +90,19 @@ class EEGPTWrapper(nn.Module):
         # Load pretrained EEGPT
         self.eegpt = self._load_checkpoint(checkpoint_path)
         self.eegpt.eval()  # Always in eval mode
-        
+
         # Normalization stats (computed from Sleep-EDF)
         self.register_buffer('mean', torch.tensor(2.896e-07))
         self.register_buffer('std', torch.tensor(2.118e-05))
-    
+
     def forward(self, x):
         # CRITICAL: Normalize input
         x = (x - self.mean) / (self.std + 1e-8)
-        
+
         # Extract features (no gradients)
         with torch.no_grad():
             features = self.eegpt.extract_features(x)
-        
+
         return features  # [batch, 512]
 ```
 
@@ -124,22 +124,22 @@ class SleepAnalyzer:
     def run_full_sleep_analysis(self, raw):
         # 1. Preprocessing (NO filtering per YASA docs)
         raw_sleep = self.preprocess_for_sleep(raw)
-        
+
         # 2. Sleep staging with YASA
         hypnogram = self.stage_sleep(raw_sleep)
-        
+
         # 3. Calculate comprehensive metrics
         metrics = self.compute_sleep_statistics(hypnogram)
-        
+
         # 4. Detect sleep events
         events = self.detect_sleep_events(raw_sleep, hypnogram)
-        
+
         # 5. Generate quality score
         quality = self.analyze_sleep_quality(hypnogram, metrics, events)
-        
+
         # 6. Create hypnogram visualization
         hypno_info = self.generate_hypnogram(hypnogram)
-        
+
         return {
             'hypnogram': hypnogram,
             'metrics': metrics,
@@ -164,27 +164,27 @@ class SleepAnalyzer:
 ```python
 def _compute_quality_score(self, metrics):
     score = 0
-    
+
     # Sleep efficiency (25 points)
     if metrics['sleep_efficiency'] >= 85:
         score += 25
-    
+
     # Fragmentation (20 points)
     if metrics['fragmentation_index'] <= 0.1:
         score += 20
-    
+
     # REM percentage (20 points)
     if 18 <= metrics['rem_percentage'] <= 25:
         score += 20
-    
+
     # Deep sleep (20 points)
     if metrics['deep_sleep_percentage'] >= 15:
         score += 20
-    
+
     # Spindle density (15 points)
     if metrics['spindle_density'] >= 2:
         score += 15
-    
+
     return score  # 0-100 scale
 ```
 
@@ -203,41 +203,41 @@ class HierarchicalEEGAnalyzer:
         self.screener = AbnormalityScreener()
         self.sleep_stager = YASASleepStager() if config.use_yasa else None
         self.ied_detector = IEDDetector()  # Currently mock
-    
+
     async def analyze(self, eeg_data):
         start_time = time.time()
-        
+
         # Step 1: Quality Control
         qc_result = await self._run_qc(eeg_data)
         if qc_result.quality_score < 0.3:
             return AnalysisResult(
                 error="Data quality too poor for analysis"
             )
-        
+
         # Step 2: Parallel processing
         tasks = []
-        
+
         # Abnormality screening
         if self.config.enable_abnormality_screening:
             tasks.append(self._run_abnormal_detection(eeg_data))
-        
+
         # Sleep staging (parallel)
         if self.config.enable_sleep_staging:
             tasks.append(self._run_sleep_staging(eeg_data))
-        
+
         results = await asyncio.gather(*tasks)
-        
+
         # Step 3: Conditional IED detection
         ied_events = None
         if results[0].is_abnormal and self.config.enable_epileptiform_detection:
             ied_events = await self._run_ied_detection(
-                eeg_data, 
+                eeg_data,
                 results[0].abnormal_segments
             )
-        
+
         # Compile results
         processing_time = (time.time() - start_time) * 1000
-        
+
         return AnalysisResult(
             abnormality_score=results[0].score if len(results) > 0 else None,
             is_abnormal=results[0].is_abnormal if len(results) > 0 else False,
@@ -289,31 +289,31 @@ CREATE TABLE analysis_results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     file_hash VARCHAR(64) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
+
     -- Quality metrics
     quality_score FLOAT,
     bad_channels TEXT[],
     artifact_percentage FLOAT,
-    
+
     -- Abnormality detection
     is_abnormal BOOLEAN,
     abnormality_score FLOAT,
     abnormal_segments JSONB,
-    
+
     -- Sleep analysis
     hypnogram TEXT[],
     sleep_efficiency FLOAT,
     total_sleep_time_min FLOAT,
     sleep_quality_grade CHAR(1),
-    
+
     -- IED detection
     epileptiform_events JSONB,
     event_count INTEGER,
-    
+
     -- Metadata
     processing_time_ms FLOAT,
     pipeline_version VARCHAR(20),
-    
+
     INDEX idx_file_hash (file_hash),
     INDEX idx_created_at (created_at DESC)
 );
@@ -366,7 +366,7 @@ def test_throughput():
     # - Single window: 8.3ms
     # - Batch (32): 89ms (2.8ms/window)
     # - Throughput: 357 windows/second
-    
+
 def test_memory_usage():
     """Memory consumption under load"""
     # Results:
@@ -520,13 +520,13 @@ def test_memory_usage():
 # Concurrent processing test
 async def test_concurrent_load():
     files = [f"eeg_{i}.edf" for i in range(50)]
-    
+
     start = time.time()
     results = await asyncio.gather(*[
         pipeline.analyze(f) for f in files
     ])
     duration = time.time() - start
-    
+
     # Results:
     # 50 files in 487 seconds
     # ~6.2 files/minute with 8 workers

@@ -37,7 +37,7 @@ if HAS_AUTOREJECT and AutoReject is not None:
         verbose=False,
     )
 
-# Line 234-236  
+# Line 234-236
 # Fit and transform epochs with autoreject
 epochs_clean, reject_log = self.autoreject.fit_transform(epochs, return_log=True)
 ```
@@ -72,7 +72,7 @@ data = raw.get_data()
 
 Current training uses raw, noisy data:
 - Eye blinks
-- Muscle artifacts  
+- Muscle artifacts
 - Movement artifacts
 - Bad channels
 - Line noise remnants

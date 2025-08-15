@@ -12,7 +12,7 @@
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Nightly Tests](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/nightly-integration.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/nightly-integration.yml)
 
-> 🏆 **Built for GitHub's #ForTheLoveOfCode 2025 Hackathon** - Category: Agents of Change  
+> 🏆 **Built for GitHub's #ForTheLoveOfCode 2025 Hackathon** - Category: Agents of Change
 > Using AI to detect brain abnormalities and make professional EEG analysis accessible to all clinics.
 
 ## 🎯 Overview

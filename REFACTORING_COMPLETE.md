@@ -86,7 +86,7 @@ src/brain_go_brrr/
 - **Full Token**: 2048 (4 tokens × 512) when needed
 
 ### 2. Window Extraction
-- **Dual-Mode Overlap**: 
+- **Dual-Mode Overlap**:
   - `< 1.0` = ratio (legacy)
   - `>= 1.0` = seconds (new)
 - **Default**: No overlap (0.0) for test consistency

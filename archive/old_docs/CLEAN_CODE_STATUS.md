@@ -2,7 +2,7 @@
 
 ### ✅ COMPLETED
 - **Linting**: All 440+ tests pass ruff linting
-- **Type checking**: mypy finds 0 issues in 90 source files  
+- **Type checking**: mypy finds 0 issues in 90 source files
 - **Test coverage**: 83+ unit tests working cleanly (MNE modules excluded)
 - **Documentation**: Added clear notes about MNE/coverage issue in pytest.ini
 

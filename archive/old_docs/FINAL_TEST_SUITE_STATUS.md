@@ -23,7 +23,7 @@ $ uv run pytest tests -q --tb=no
 ### Quality Checks
 ```bash
 $ make lint          # ✅ All checks passed
-$ make type-check    # ✅ Success: no issues found in 92 source files  
+$ make type-check    # ✅ Success: no issues found in 92 source files
 ```
 
 ## Architecture Summary
@@ -103,7 +103,7 @@ make coverage      # Fails if <70%
 # Fast path (every commit)
 - run: make test          # <2 minutes
 
-# Pre-merge (comprehensive)  
+# Pre-merge (comprehensive)
 - run: make test-all      # <10 minutes
 
 # Nightly (everything)
@@ -152,7 +152,7 @@ pytest --run-integration -m integration \
 ### Google (Bazel)
 ```python
 size = "small"     # <1 minute (our unit tests)
-size = "medium"    # <5 minutes (our integration)  
+size = "medium"    # <5 minutes (our integration)
 size = "large"     # <15 minutes (our full suite)
 ```
 

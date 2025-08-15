@@ -12,7 +12,7 @@ uv run pytest tests/unit/test_abnormality_accuracy.py \
               --cov=brain_go_brrr --cov-report=term -q
 ```
 
-**Result**: 
+**Result**:
 - ✅ 18 passed, 15 skipped, 2 xfailed
 - ✅ Baseline regression test works (0.794 ± 0.01)
 - ✅ TwoLayerProbe correctly shows XFAIL (not SKIP)
@@ -26,7 +26,7 @@ export SLEEP_EDF_DIR="$PWD/data/datasets/external/sleep-edf"
 uv run pytest tests/api/test_api_sleep_edf.py --run-integration -q
 ```
 
-**Result**: 
+**Result**:
 - ✅ 2 passed in 17.81s
 - ✅ **Fpz-Cz and Pz-Oz montages now accepted!**
 - ✅ No more "Unsupported EEG montage" errors

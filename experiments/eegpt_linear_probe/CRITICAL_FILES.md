@@ -12,7 +12,7 @@ The ONLY training script to use. Has all 10 bug fixes:
 ### 2. **LAUNCH_BULLETPROOF.sh**
 Launch script that includes dry run test first
 
-### 3. **test_scheduler_dry_run.py** 
+### 3. **test_scheduler_dry_run.py**
 Test scheduler behavior before training
 
 ## 📊 Dataset

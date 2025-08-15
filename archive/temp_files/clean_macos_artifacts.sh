@@ -23,11 +23,11 @@ if [[ $confirm == "y" || $confirm == "Y" ]]; then
     echo "Removing macOS metadata files..."
     find "$TUAB_DIR" -name "._*" -type f -delete
     echo "✓ Removed $COUNT macOS metadata files"
-    
+
     # Verify
     REMAINING=$(find "$TUAB_DIR" -name "._*" -type f | wc -l)
     echo "Remaining ._ files: $REMAINING"
-    
+
     # Show new file counts
     echo ""
     echo "=== CLEAN DATASET STATS ==="

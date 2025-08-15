@@ -11,7 +11,7 @@
 ### 2. Test Speed Improvements
 - **Marked slow tests**: Added `@pytest.mark.slow` to model loading tests
 - **Updated pytest.ini**: Excludes slow/external/gpu tests by default
-- **Updated Makefile**: 
+- **Updated Makefile**:
   - `make test` - Fast tests only
   - `make test-all` - All tests including slow
 - **Created tiny fixtures**: `/tests/fixtures/tiny_tuab/` for fast testing

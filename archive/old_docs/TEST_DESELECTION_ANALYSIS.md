@@ -110,7 +110,7 @@ def pytest_collection_modifyitems(config, items):
     """Deselect integration tests unless --run-integration is passed."""
     if config.getoption("--run-integration"):
         return
-    
+
     drop = [it for it in items if "integration" in it.keywords]
     if drop:
         config.hook.pytest_deselected(items=drop)
@@ -125,7 +125,7 @@ def pytest_collection_modifyitems(config, items):
 uv run pytest tests --co -q | tail -1
 # 621/820 tests collected (199 deselected)
 
-# Unit tests only  
+# Unit tests only
 uv run pytest tests --co -q -m "not integration and not benchmark" | tail -1
 # 642/820 tests collected (178 deselected)
 
@@ -156,7 +156,7 @@ uv run pytest tests -q --tb=no | grep -E "deselected|skipped"
 stages:
   - fast:    # Every commit
       pytest -m "not integration and not slow"
-  - full:    # Pre-merge  
+  - full:    # Pre-merge
       pytest -m "not slow"
   - nightly: # Complete
       pytest --run-integration

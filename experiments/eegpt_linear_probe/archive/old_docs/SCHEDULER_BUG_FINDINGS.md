@@ -1,6 +1,6 @@
 # OneCycleLR Scheduler Bug Analysis & Fix - COMPLETE ANALYSIS
 
-**Date**: 2025-08-09  
+**Date**: 2025-08-09
 **Updated**: After deep review and external feedback
 **Issue**: Training plateaued with constant learning rate despite OneCycleLR configuration
 
@@ -32,7 +32,7 @@ Training run showed constant learning rate of 2.84e-03 throughout 77% of trainin
    ```python
    # WRONG: Doesn't account for accumulation
    total_steps = len(train_loader) * max_epochs
-   
+
    # CORRECT:
    accum_steps = config.get('gradient_accumulation_steps', 1)
    steps_per_epoch = math.ceil(len(train_loader) / accum_steps)
@@ -50,46 +50,46 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     """Train for one epoch."""
     model.eval()  # Backbone stays frozen
     probe.train()
-    
+
     losses = []
     pbar = tqdm(train_loader, desc='Training')
-    
+
     for batch_idx, (data, labels) in enumerate(pbar):
         data = data.to(device)
         labels = labels.to(device)
-        
+
         # Forward through frozen backbone
         with torch.no_grad():
             features = model(data)
-            
+
         # Forward through probe
         logits = probe(features)
         loss = F.cross_entropy(logits, labels)
-        
+
         # Backward
         optimizer.zero_grad()
         loss.backward()
-        
+
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(
-            probe.parameters(), 
+            probe.parameters(),
             config['training']['gradient_clip_val']
         )
-        
+
         optimizer.step()
-        
+
         # Gradient accumulation aware stepping
         should_step = ((batch_idx + 1) % accum_steps == 0) or (batch_idx + 1 == len(train_loader))
-        
+
         if should_step:
             torch.nn.utils.clip_grad_norm_(probe.parameters(), clip_val)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
-            
+
             # ✅ CRITICAL: Step scheduler ONLY when optimizer steps
             scheduler.step()
             global_step += 1
-        
+
         # ✅ Use OPTIMIZER LR (not scheduler)
         current_lr = optimizer.param_groups[0]['lr']
         pbar.set_postfix({
@@ -107,7 +107,7 @@ for batch_idx, (data, labels) in enumerate(pbar):
     # ... forward pass ...
     loss = loss / accumulation_steps
     loss.backward()
-    
+
     if (batch_idx + 1) % accumulation_steps == 0:
         torch.nn.utils.clip_grad_norm_(probe.parameters(), clip_val)
         optimizer.step()
@@ -253,16 +253,16 @@ scheduler = OneCycleLR(
 def test_scheduler_dry_run(config, train_loader):
     """Test scheduler behavior without training."""
     import math
-    
+
     # Setup
     accum = config.get('gradient_accumulation_steps', 1)
     steps_per_epoch = math.ceil(len(train_loader) / accum)
     total_steps = steps_per_epoch * config['max_epochs']
-    
+
     # Create dummy optimizer
     optimizer = torch.optim.AdamW([torch.randn(10, 10)], lr=0.003)
     scheduler = OneCycleLR(optimizer, max_lr=0.003, total_steps=total_steps)
-    
+
     # Simulate training
     lrs = []
     for step in range(min(200, total_steps)):  # First 200 steps
@@ -272,7 +272,7 @@ def test_scheduler_dry_run(config, train_loader):
         lrs.append(lr)
         if step % 10 == 0:
             print(f"Step {step}: LR = {lr:.6f}")
-    
+
     # Verify warmup is happening
     assert lrs[0] < lrs[50], "No warmup detected!"
     print("✅ Scheduler warmup verified")

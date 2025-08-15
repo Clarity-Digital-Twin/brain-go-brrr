@@ -79,20 +79,20 @@ class PatchEmbedding(nn.Module):
         super().__init__()
         self.patch_size = patch_size
         self.projection = nn.Linear(patch_size, d_model)
-        
+
     def forward(self, x):
         # x: [B, C, T]
         B, C, T = x.shape
         n_patches = T // self.patch_size
-        
+
         # Extract patches
         patches = x.unfold(2, self.patch_size, self.patch_size)
         # patches: [B, C, n_patches, patch_size]
-        
+
         # Project to d_model
         tokens = self.projection(patches)
         # tokens: [B, C, n_patches, d_model]
-        
+
         return tokens
 ```
 
@@ -101,10 +101,10 @@ class PatchEmbedding(nn.Module):
 def create_mask(n_time_patches, n_channels, mask_ratio_time=0.5, mask_ratio_channel=0.8):
     # Time masking: random 50% of time patches
     time_mask = torch.rand(n_time_patches) < mask_ratio_time
-    
+
     # Channel masking: random 80% of channels per time patch
     channel_mask = torch.rand(n_channels, n_time_patches) < mask_ratio_channel
-    
+
     # Combined mask
     mask = time_mask.unsqueeze(0) | channel_mask
     return mask
@@ -120,25 +120,25 @@ class SpatialEncoder(nn.Module):
             for _ in range(n_layers)
         ])
         self.summary_token = nn.Parameter(torch.randn(1, 1, d_model))
-        
+
     def forward(self, tokens):
         # tokens: [B, C, n_patches, d_model]
         B, C, P, D = tokens.shape
-        
+
         # Process each time patch across channels
         outputs = []
         for p in range(P):
             x = tokens[:, :, p, :]  # [B, C, D]
-            
+
             # Add summary token
             x = torch.cat([self.summary_token.expand(B, -1, -1), x], dim=1)
-            
+
             # Apply transformer layers
             for layer in self.layers:
                 x = layer(x)
-            
+
             outputs.append(x[:, 0, :])  # Extract summary token
-            
+
         return torch.stack(outputs, dim=1)  # [B, P, D]
 ```
 
@@ -152,17 +152,17 @@ class EEGPTLinearProbe(nn.Module):
         # Load pretrained EEGPT
         self.eegpt = load_eegpt(eegpt_checkpoint)
         self.eegpt.eval()  # Freeze backbone
-        
+
         # Linear probe
         self.classifier = nn.Linear(768, n_classes)
-        
+
     def forward(self, x):
         with torch.no_grad():
             features = self.eegpt.extract_features(x)
-        
+
         # Global average pooling
         features = features.mean(dim=1)  # [B, D]
-        
+
         return self.classifier(features)
 ```
 

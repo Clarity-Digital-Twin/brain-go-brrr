@@ -3,7 +3,7 @@
 ## 🎯 THE PROBLEM
 
 Sleep-EDF uses **Fpz-Cz** (frontal) channels instead of **C3/C4** (central) channels that YASA was trained on. This causes:
-- Accuracy drop from 87.5% → ~83-84% 
+- Accuracy drop from 87.5% → ~83-84%
 - Excessive "Wake" detection (as we saw in demos)
 - Lost spindle/slow-wave features that are stronger in central leads
 
@@ -22,21 +22,21 @@ Sleep-EDF uses **Fpz-Cz** (frontal) channels instead of **C3/C4** (central) chan
 
 ```python
 def _prepare_channels_for_yasa(
-    self, 
-    raw: mne.io.Raw, 
+    self,
+    raw: mne.io.Raw,
     channel_map: dict[str, str] | None = None
 ) -> mne.io.Raw:
     """Prepare channels for YASA by aliasing if needed.
-    
+
     Args:
         raw: MNE Raw object
         channel_map: Optional mapping like {"Fpz-Cz": "C4-M1"}
-        
+
     Returns:
         Raw object with aliased channels
     """
     ch_names = raw.ch_names
-    
+
     # Default mappings for common sleep montages
     default_aliases = {
         "EEG Fpz-Cz": "C4",     # Sleep-EDF frontal → central
@@ -47,14 +47,14 @@ def _prepare_channels_for_yasa(
         "Pz": "C4",
         "Cz": "C3"              # Already central, but wrong side
     }
-    
+
     # Apply user-provided mapping first, then defaults
     final_mapping = {**default_aliases, **(channel_map or {})}
-    
+
     # Check if we need to alias
     central_channels = ["C3", "C4", "C3-M2", "C4-M1", "Cz"]
     has_central = any(ch in ch_names for ch in central_channels)
-    
+
     if not has_central:
         # Need to alias channels
         rename_dict = {}
@@ -62,13 +62,13 @@ def _prepare_channels_for_yasa(
             if old_name in ch_names:
                 rename_dict[old_name] = new_name
                 logger.info(f"Aliasing '{old_name}' → '{new_name}' for YASA")
-        
+
         if rename_dict:
             raw.rename_channels(rename_dict)
             logger.info(f"Channel aliasing complete: {rename_dict}")
         else:
             logger.warning("No channels could be aliased to central leads")
-    
+
     return raw
 ```
 
@@ -84,30 +84,30 @@ def stage_sleep(
     channel_map: dict[str, str] | None = None  # NEW PARAMETER
 ) -> tuple[list[str], list[float], dict[str, Any]]:
     """Perform sleep staging with automatic channel aliasing.
-    
+
     Args:
         eeg_data: EEG data array
         sfreq: Sampling frequency
         ch_names: Channel names
         epoch_duration: Epoch duration in seconds
         channel_map: Optional channel aliasing map
-        
+
     Returns:
         Stages, confidences, metrics
     """
     # Create MNE Raw object
     if ch_names is None:
         ch_names = [f"EEG{i}" for i in range(n_channels)]
-    
+
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     raw = mne.io.RawArray(eeg_data, info)
-    
+
     # Apply channel aliasing for Sleep-EDF compatibility
     raw = self._prepare_channels_for_yasa(raw, channel_map)
-    
+
     # Now YASA will find "C3" or "C4" channels
     eeg_name = self._select_eeg_channel(raw.ch_names)
-    
+
     # Continue with normal YASA processing...
     sls = yasa.SleepStaging(raw, eeg_name=eeg_name)
     # ... rest of method
@@ -122,7 +122,7 @@ async def analyze_sleep_eeg(
     channel_map: dict[str, str] | None = None  # Optional JSON body
 ):
     """Analyze sleep with optional channel mapping.
-    
+
     Example request body:
     {
         "channel_map": {
@@ -141,26 +141,26 @@ async def analyze_sleep_eeg(
 ```python
 def test_sleep_edf_with_aliasing():
     """Test that aliasing improves Sleep-EDF accuracy."""
-    
+
     # Load Sleep-EDF file
     edf_file = "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
     raw = mne.io.read_raw_edf(edf_file)
-    
+
     # Test WITHOUT aliasing
     stager_no_alias = YASASleepStager()
     stages_no_alias, conf_no_alias, _ = stager_no_alias.stage_sleep(
         raw.get_data(), raw.info['sfreq'], raw.ch_names
     )
-    
+
     # Test WITH aliasing
     stager_with_alias = YASASleepStager()
     stages_with_alias, conf_with_alias, _ = stager_with_alias.stage_sleep(
-        raw.get_data(), 
-        raw.info['sfreq'], 
+        raw.get_data(),
+        raw.info['sfreq'],
         raw.ch_names,
         channel_map={"EEG Fpz-Cz": "C4", "EEG Pz-Oz": "O2"}
     )
-    
+
     # Compare results
     print(f"Without aliasing: {set(stages_no_alias)}")  # Mostly "W"
     print(f"With aliasing: {set(stages_with_alias)}")    # Should see N1,N2,N3,REM
@@ -209,7 +209,7 @@ Add to API docs:
 ```markdown
 ### Channel Mapping for Non-Standard Montages
 
-Sleep-EDF and similar datasets use frontal channels (Fpz-Cz) instead 
+Sleep-EDF and similar datasets use frontal channels (Fpz-Cz) instead
 of central channels (C3/C4). For optimal accuracy, use channel mapping:
 
 ```json

@@ -125,7 +125,7 @@ services:
       - minio
     volumes:
       - ./src:/app/src  # Hot reload in development
-    
+
   worker:
     build:
       context: .
@@ -146,7 +146,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    
+
   db:
     image: timescale/timescaledb:2.11.0-pg15
     environment:
@@ -155,13 +155,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    
+
   redis:
     image: redis:7-alpine
     command: redis-server --requirepass password
     volumes:
       - redis_data:/data
-    
+
   minio:
     image: minio/minio
     command: server /data --console-address ":9001"
@@ -504,7 +504,7 @@ terraform {
       version = "~> 2.0"
     }
   }
-  
+
   backend "s3" {
     bucket = "brain-go-brrr-terraform-state"
     key    = "production/terraform.tfstate"
@@ -518,23 +518,23 @@ terraform {
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
   version = "5.0.0"
-  
+
   name = "brain-go-brrr-vpc"
   cidr = "10.0.0.0/16"
-  
+
   azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
   database_subnets = ["10.0.201.0/24", "10.0.202.0/24", "10.0.203.0/24"]
-  
+
   enable_nat_gateway = true
   single_nat_gateway = false  # HA NAT gateways
   enable_dns_hostnames = true
   enable_dns_support = true
-  
+
   enable_flow_log = true
   flow_log_destination_type = "cloud-watch-logs"
-  
+
   tags = {
     Environment = "production"
     Application = "brain-go-brrr"
@@ -545,70 +545,70 @@ module "vpc" {
 module "eks" {
   source = "terraform-aws-modules/eks/aws"
   version = "19.0.0"
-  
+
   cluster_name    = "brain-go-brrr-cluster"
   cluster_version = "1.28"
-  
+
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
-  
+
   # Control plane logging
   cluster_enabled_log_types = [
     "api", "audit", "authenticator", "controllerManager", "scheduler"
   ]
-  
+
   # OIDC Provider for IRSA
   enable_irsa = true
-  
+
   # Node groups
   eks_managed_node_groups = {
     general = {
       name = "general-workers"
-      
+
       instance_types = ["m5.xlarge"]
-      
+
       min_size     = 3
       max_size     = 10
       desired_size = 5
-      
+
       disk_size = 100
       disk_type = "gp3"
-      
+
       labels = {
         Environment = "production"
         NodeType    = "general"
       }
-      
+
       tags = {
         "k8s.io/cluster-autoscaler/enabled" = "true"
         "k8s.io/cluster-autoscaler/brain-go-brrr-cluster" = "owned"
       }
     }
-    
+
     gpu = {
       name = "gpu-workers"
-      
+
       instance_types = ["g4dn.xlarge"]  # NVIDIA T4 GPU
-      
+
       min_size     = 1
       max_size     = 5
       desired_size = 2
-      
+
       disk_size = 200
       disk_type = "gp3"
-      
+
       labels = {
         Environment = "production"
         NodeType    = "gpu"
         "node.kubernetes.io/gpu" = "true"
       }
-      
+
       taints = [{
         key    = "nvidia.com/gpu"
         value  = "true"
         effect = "NO_SCHEDULE"
       }]
-      
+
       # GPU-specific user data
       user_data = base64encode(templatefile("${path.module}/gpu-init.sh", {}))
     }
@@ -619,44 +619,44 @@ module "eks" {
 module "rds" {
   source = "terraform-aws-modules/rds/aws"
   version = "6.0.0"
-  
+
   identifier = "brain-go-brrr-db"
-  
+
   engine            = "postgres"
   engine_version    = "15.3"
   instance_class    = "db.r6g.2xlarge"
   allocated_storage = 500
   storage_type      = "gp3"
   storage_encrypted = true
-  
+
   # High availability
   multi_az = true
-  
+
   # Database configuration
   db_name  = "braindb"
   username = "brainadmin"
   port     = "5432"
-  
+
   # VPC configuration
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = module.vpc.database_subnet_group_name
-  
+
   # Backup configuration
   backup_retention_period = 30
   backup_window          = "03:00-04:00"
   maintenance_window     = "sun:04:00-sun:05:00"
-  
+
   # Performance Insights
   performance_insights_enabled = true
   performance_insights_retention_period = 7
-  
+
   # Monitoring
   enabled_cloudwatch_logs_exports = ["postgresql"]
   create_cloudwatch_log_group     = true
-  
+
   # Parameter group for TimescaleDB
   parameter_group_name = aws_db_parameter_group.timescale.name
-  
+
   tags = {
     Environment = "production"
     Application = "brain-go-brrr"
@@ -667,36 +667,36 @@ module "rds" {
 module "elasticache" {
   source = "terraform-aws-modules/elasticache/aws"
   version = "1.0.0"
-  
+
   cluster_id = "brain-go-brrr-cache"
-  
+
   engine          = "redis"
   engine_version  = "7.0"
   node_type       = "cache.r6g.xlarge"
   num_cache_nodes = 1
-  
+
   # Redis cluster mode
   parameter_group_family = "redis7"
-  
+
   # High availability
   automatic_failover_enabled = true
   multi_az_enabled          = true
   num_node_groups           = 3
   replicas_per_node_group   = 2
-  
+
   # Security
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
   auth_token_enabled        = true
-  
+
   # VPC configuration
   subnet_ids = module.vpc.private_subnets
   security_group_ids = [aws_security_group.redis.id]
-  
+
   # Backup
   snapshot_retention_limit = 7
   snapshot_window         = "03:00-05:00"
-  
+
   tags = {
     Environment = "production"
     Application = "brain-go-brrr"
@@ -706,7 +706,7 @@ module "elasticache" {
 # S3 Buckets
 resource "aws_s3_bucket" "eeg_files" {
   bucket = "brain-go-brrr-eeg-files-prod"
-  
+
   tags = {
     Environment = "production"
     DataType    = "PHI"
@@ -722,7 +722,7 @@ resource "aws_s3_bucket_versioning" "eeg_files" {
 
 resource "aws_s3_bucket_encryption" "eeg_files" {
   bucket = aws_s3_bucket.eeg_files.id
-  
+
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
@@ -733,16 +733,16 @@ resource "aws_s3_bucket_encryption" "eeg_files" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "eeg_files" {
   bucket = aws_s3_bucket.eeg_files.id
-  
+
   rule {
     id     = "archive_old_files"
     status = "Enabled"
-    
+
     transition {
       days          = 90
       storage_class = "GLACIER"
     }
-    
+
     transition {
       days          = 365
       storage_class = "DEEP_ARCHIVE"
@@ -905,21 +905,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         pip install uv
         uv sync --dev
-    
+
     - name: Run tests
       run: |
         uv run pytest --cov=brain_go_brrr
-    
+
     - name: Security scan
       uses: aquasecurity/trivy-action@master
       with:
@@ -933,21 +933,21 @@ jobs:
     strategy:
       matrix:
         service: [api, worker]
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-    
+
     - name: Login to ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-    
+
     - name: Build and push image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -955,20 +955,20 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/brain-go-brrr/${{ matrix.service }}:$IMAGE_TAG \
           -f docker/${{ matrix.service }}/Dockerfile .
-        
+
         docker tag $ECR_REGISTRY/brain-go-brrr/${{ matrix.service }}:$IMAGE_TAG \
           $ECR_REGISTRY/brain-go-brrr/${{ matrix.service }}:latest
-        
+
         docker push $ECR_REGISTRY/brain-go-brrr/${{ matrix.service }}:$IMAGE_TAG
         docker push $ECR_REGISTRY/brain-go-brrr/${{ matrix.service }}:latest
-    
+
     - name: Image security scan
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ env.ECR_REGISTRY }}/brain-go-brrr/${{ matrix.service }}:${{ github.sha }}
         format: 'sarif'
         output: 'trivy-results.sarif'
-    
+
     - name: Upload scan results
       uses: github/codeql-action/upload-sarif@v2
       with:
@@ -978,26 +978,26 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: production
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
-    
+
     - name: Update kubeconfig
       run: |
         aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER }}
-    
+
     - name: Install Helm
       uses: azure/setup-helm@v3
       with:
         version: '3.12.0'
-    
+
     - name: Deploy with Helm
       run: |
         helm upgrade --install brain-go-brrr ./helm/brain-go-brrr \
@@ -1006,12 +1006,12 @@ jobs:
           --set image.worker.tag=${{ github.sha }} \
           --values helm/brain-go-brrr/values.production.yaml \
           --wait --timeout 10m
-    
+
     - name: Verify deployment
       run: |
         kubectl rollout status deployment/api -n brain-go-brrr
         kubectl rollout status deployment/analysis-worker -n brain-go-brrr
-    
+
     - name: Run smoke tests
       run: |
         API_URL=$(kubectl get ingress -n brain-go-brrr -o jsonpath='{.items[0].spec.rules[0].host}')
@@ -1069,11 +1069,11 @@ prometheus:
           resources:
             requests:
               storage: 100Gi
-    
+
     serviceMonitorSelector:
       matchLabels:
         app.kubernetes.io/part-of: brain-go-brrr
-    
+
     additionalScrapeConfigs:
     - job_name: 'brain-go-brrr-api'
       kubernetes_sd_configs:
@@ -1140,7 +1140,7 @@ data:
         Flush         5
         Log_Level     info
         Daemon        off
-    
+
     [INPUT]
         Name              tail
         Tag               kube.*
@@ -1149,7 +1149,7 @@ data:
         DB                /var/log/flb-kube.db
         Mem_Buf_Limit     50MB
         Skip_Long_Lines   On
-    
+
     [FILTER]
         Name                kubernetes
         Match               kube.*
@@ -1158,13 +1158,13 @@ data:
         Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
         Merge_Log           On
         Keep_Log            Off
-    
+
     [FILTER]
         Name                record_modifier
         Match               *
         Record environment  production
         Record application  brain-go-brrr
-    
+
     [OUTPUT]
         Name                cloudwatch_logs
         Match               *
@@ -1303,7 +1303,7 @@ spec:
               pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME | \
                 gzip | \
                 aws s3 cp - s3://brain-go-brrr-backups/postgres/$DATE.sql.gz
-              
+
               # Cleanup old backups (keep 30 days)
               aws s3 ls s3://brain-go-brrr-backups/postgres/ | \
                 while read -r line; do
@@ -1325,15 +1325,15 @@ spec:
 resource "aws_s3_bucket_replication_configuration" "eeg_files" {
   role   = aws_iam_role.replication.arn
   bucket = aws_s3_bucket.eeg_files.id
-  
+
   rule {
     id     = "replicate-to-dr-region"
     status = "Enabled"
-    
+
     destination {
       bucket        = aws_s3_bucket.eeg_files_dr.arn
       storage_class = "STANDARD_IA"
-      
+
       encryption_configuration {
         replica_kms_key_id = aws_kms_key.s3_key_dr.arn
       }
@@ -1344,15 +1344,15 @@ resource "aws_s3_bucket_replication_configuration" "eeg_files" {
 # RDS Read Replica in DR region
 resource "aws_db_instance" "dr_replica" {
   provider = aws.dr_region
-  
+
   replicate_source_db = module.rds.db_instance_id
-  
+
   instance_class = "db.r6g.xlarge"
-  
+
   # Enable automated backups in DR region
   backup_retention_period = 7
   backup_window          = "03:00-04:00"
-  
+
   tags = {
     Environment = "production-dr"
     Application = "brain-go-brrr"
@@ -1370,11 +1370,11 @@ resource "aws_cloudfront_distribution" "api_cdn" {
   is_ipv6_enabled     = true
   comment             = "Brain-Go-Brrr API CDN"
   default_root_object = ""
-  
+
   origin {
     domain_name = aws_lb.alb.dns_name
     origin_id   = "ALB-brain-go-brrr"
-    
+
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -1382,55 +1382,55 @@ resource "aws_cloudfront_distribution" "api_cdn" {
       origin_ssl_protocols   = ["TLSv1.2", "TLSv1.3"]
     }
   }
-  
+
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
     target_origin_id = "ALB-brain-go-brrr"
-    
+
     forwarded_values {
       query_string = true
       headers      = ["Authorization", "Content-Type", "X-API-Version"]
-      
+
       cookies {
         forward = "none"
       }
     }
-    
+
     viewer_protocol_policy = "redirect-to-https"
     min_ttl                = 0
     default_ttl            = 0
     max_ttl                = 86400
   }
-  
+
   # Cache static assets
   ordered_cache_behavior {
     path_pattern     = "/static/*"
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "ALB-brain-go-brrr"
-    
+
     forwarded_values {
       query_string = false
       cookies {
         forward = "none"
       }
     }
-    
+
     min_ttl                = 86400
     default_ttl            = 604800
     max_ttl                = 31536000
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }
-  
+
   restrictions {
     geo_restriction {
       restriction_type = "whitelist"
       locations        = ["US", "CA", "GB", "DE", "FR", "JP", "AU"]
     }
   }
-  
+
   viewer_certificate {
     acm_certificate_arn = aws_acm_certificate.cert.arn
     ssl_support_method  = "sni-only"

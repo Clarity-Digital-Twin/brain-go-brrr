@@ -127,7 +127,7 @@ core → core:    43 imports (high internal coupling)
 
 ### Import Hotspots (Most Imported)
 1. `core.exceptions` - 37 imports
-2. `api.schemas` - 27 imports  
+2. `api.schemas` - 27 imports
 3. `core.config` - 19 imports
 4. `_typing` - 12 imports
 5. `core.channels` - 11 imports
@@ -282,18 +282,18 @@ REPLACEMENTS = [
     (r'from brain_go_brrr\.core\.quality', 'from brain_go_brrr.domain.quality'),
     (r'from brain_go_brrr\.core\.channels', 'from brain_go_brrr.domain.channels'),
     (r'from brain_go_brrr\.core\.exceptions', 'from brain_go_brrr.domain.exceptions'),
-    
+
     # Application moves
     (r'from brain_go_brrr\.core\.pipeline', 'from brain_go_brrr.application.pipelines'),
     (r'from brain_go_brrr\.core\.jobs', 'from brain_go_brrr.application.jobs'),
     (r'from brain_go_brrr\.training', 'from brain_go_brrr.application.training'),
     (r'from brain_go_brrr\.tasks', 'from brain_go_brrr.application.tasks'),
-    
+
     # Presentation moves
     (r'from brain_go_brrr\.api', 'from brain_go_brrr.presentation.api'),
     (r'from brain_go_brrr\.cli', 'from brain_go_brrr.presentation.cli'),
     (r'from brain_go_brrr\.visualization', 'from brain_go_brrr.presentation.visualization'),
-    
+
     # Infrastructure moves
     (r'from brain_go_brrr\.data', 'from brain_go_brrr.infrastructure.data'),
     (r'from brain_go_brrr\.models', 'from brain_go_brrr.infrastructure.models'),
@@ -301,7 +301,7 @@ REPLACEMENTS = [
     (r'from brain_go_brrr\.mne_compat', 'from brain_go_brrr.infrastructure.external.mne_compat'),
     (r'from brain_go_brrr\.infra\.redis', 'from brain_go_brrr.infrastructure.redis'),
     (r'from brain_go_brrr\.infra\.cache', 'from brain_go_brrr.infrastructure.cache'),
-    
+
     # Shared moves
     (r'from brain_go_brrr\.utils', 'from brain_go_brrr.shared.utils'),
     (r'from brain_go_brrr\._typing', 'from brain_go_brrr.shared.utils.types'),
@@ -311,10 +311,10 @@ REPLACEMENTS = [
 def update_file(filepath):
     with open(filepath, 'r') as f:
         content = f.read()
-    
+
     for old, new in REPLACEMENTS:
         content = re.sub(old, new, content)
-    
+
     with open(filepath, 'w') as f:
         f.write(content)
 

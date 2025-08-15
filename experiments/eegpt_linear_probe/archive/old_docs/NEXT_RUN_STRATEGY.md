@@ -63,7 +63,7 @@ tail -f logs/fixed_scheduler_*.log | grep "LR:"
 # 2. Check warmup phase (first 10% of training)
 # LR should gradually increase from 0.00012 to 0.003
 
-# 3. Check annealing phase (last 50% of training)  
+# 3. Check annealing phase (last 50% of training)
 # LR should gradually decrease from 0.003 to 0.000003
 
 # 4. Monitor loss stability

@@ -35,7 +35,7 @@
    - Fixed montage creation
    - Added type ignores for MNE API
 
-3. **src/brain_go_brrr/preprocessing/flexible_preprocessor.py**  
+3. **src/brain_go_brrr/preprocessing/flexible_preprocessor.py**
    - Fixed montage setting
    - Removed unused variables
    - Added type ignores for MNE API

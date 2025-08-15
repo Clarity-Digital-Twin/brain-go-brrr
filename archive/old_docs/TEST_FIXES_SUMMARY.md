@@ -92,7 +92,7 @@ uv run pytest --run-integration -m integration -q
 
 **Before**: 164 mysteriously skipped tests
 **After**: Clear categories with explicit requirements
-- Integration tests: Run with `--run-integration` 
+- Integration tests: Run with `--run-integration`
 - GPU tests: Run when CUDA available
 - Redis tests: Run when Redis available
 - XFail tests: Fail loudly if implemented wrong

@@ -9,9 +9,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        exclude: ^scripts/archive/
+        exclude: ^(archive/|scripts/archive/|reference_repos/)
       - id: ruff-format
-        exclude: ^scripts/archive/
+        exclude: ^(archive/|scripts/archive/|reference_repos/)
 
   # Type checking with mypy (temporarily disabled - pydantic issue)
   # - repo: https://github.com/pre-commit/mirrors-mypy

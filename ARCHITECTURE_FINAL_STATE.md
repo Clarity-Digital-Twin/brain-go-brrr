@@ -10,7 +10,7 @@ All architectural violations have been fixed, tests are passing, and the system 
 
 ### ✅ Test Suite
 - **Unit Tests**: 713 passed ✅
-- **API Tests**: Working ✅  
+- **API Tests**: Working ✅
 - **Coverage**: 64.70% (meets CI requirement of 60%)
 - **Total Time**: ~92 seconds
 
@@ -30,7 +30,7 @@ All architectural violations have been fixed, tests are passing, and the system 
 #### Clean Architecture Layers
 1. **Domain Layer** (Pure Business Logic)
    - `domain/abnormal/detector.py` - Abnormality detection logic
-   - `domain/quality/controller.py` - Quality control logic  
+   - `domain/quality/controller.py` - Quality control logic
    - `domain/preprocessing/features/extractor.py` - Feature extraction
    - `domain/ports.py` - Port interfaces
 

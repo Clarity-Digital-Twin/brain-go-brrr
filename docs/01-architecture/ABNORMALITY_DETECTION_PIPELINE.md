@@ -24,24 +24,24 @@ This document details the implementation of EEG abnormality detection based on t
 ```python
 def preprocess_eeg(raw_eeg):
     # 1. Channel selection (19 channels)
-    channels = ['FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8', 
+    channels = ['FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
                 'T3', 'C3', 'CZ', 'C4', 'T4',
-                'T5', 'P3', 'PZ', 'P4', 'T6', 
+                'T5', 'P3', 'PZ', 'P4', 'T6',
                 'O1', 'O2']
-    
+
     # 2. Re-referencing to average
     raw_eeg.set_eeg_reference('average')
-    
+
     # 3. Filtering
     raw_eeg.filter(l_freq=0.5, h_freq=50.0, method='iir')
     raw_eeg.notch_filter(freqs=50.0)  # or 60Hz for US
-    
+
     # 4. Resampling
     raw_eeg.resample(256)
-    
+
     # 5. Windowing (8s windows, 50% overlap)
     windows = create_windows(raw_eeg, window_size=8.0, overlap=0.5)
-    
+
     return windows
 ```
 
@@ -54,7 +54,7 @@ class AbnormalityDetectionPipeline:
         # Load pretrained EEGPT
         self.backbone = create_normalized_eegpt(checkpoint_path)
         self.backbone.eval()  # Freeze during inference
-        
+
         # Two-layer probe (matching paper)
         self.probe = EEGPTTwoLayerProbe(
             backbone_dim=768,
@@ -102,14 +102,14 @@ def process_recording(eeg_file_path):
     # Load and preprocess
     raw = mne.io.read_raw_edf(eeg_file_path)
     windows = preprocess_eeg(raw)
-    
+
     # Extract features for each window
     window_predictions = []
     for window in windows:
         features = eegpt_model(window)
         pred = probe(features)
         window_predictions.append(pred)
-    
+
     # Aggregate predictions
     recording_pred = aggregate_predictions(window_predictions)
     return recording_pred
@@ -120,15 +120,15 @@ def process_recording(eeg_file_path):
 def aggregate_predictions(window_preds):
     # Option 1: Average probabilities
     avg_prob = torch.stack(window_preds).mean(dim=0)
-    
+
     # Option 2: Voting (paper approach)
     votes = (torch.stack(window_preds) > 0.5).float()
     final_pred = votes.mean() > 0.5
-    
+
     # Option 3: Weighted by confidence
     confidences = torch.abs(window_preds - 0.5) * 2
     weighted_pred = (window_preds * confidences).sum() / confidences.sum()
-    
+
     return weighted_pred
 ```
 
@@ -138,19 +138,19 @@ def enhanced_abnormality_detection(eeg_file_path):
     # Step 1: Quality check with AutoReject
     raw = mne.io.read_raw_edf(eeg_file_path)
     epochs = create_epochs(raw)
-    
+
     ar = AutoReject(n_interpolate=[1, 2, 3, 4])
     epochs_clean, reject_log = ar.fit_transform(epochs)
-    
+
     # Step 2: Only process clean segments
     clean_windows = epochs_clean[~reject_log.bad_epochs]
-    
+
     # Step 3: EEGPT feature extraction
     features = extract_eegpt_features(clean_windows)
-    
+
     # Step 4: Classification
     prediction = classify_abnormal(features)
-    
+
     return {
         'classification': 'abnormal' if prediction > 0.5 else 'normal',
         'confidence': float(prediction),
@@ -174,7 +174,7 @@ def enhanced_abnormality_detection(eeg_file_path):
 - Time shifting: ±0.5s random shift
 - Amplitude scaling: 0.8-1.2x random scale
 
-# Frequency-domain augmentations  
+# Frequency-domain augmentations
 - Band-limited noise injection
 - Phase jittering in non-critical bands
 ```
@@ -204,14 +204,14 @@ def batch_process_recordings(file_paths, batch_size=16):
         num_workers=4,
         pin_memory=True
     )
-    
+
     predictions = []
     with torch.no_grad():
         for batch in dataloader:
             features = eegpt_model(batch)
             preds = probe(features)
             predictions.extend(preds)
-    
+
     return predictions
 ```
 
@@ -243,7 +243,7 @@ class TemperatureScaling(nn.Module):
     def __init__(self):
         super().__init__()
         self.temperature = nn.Parameter(torch.ones(1) * 1.5)
-    
+
     def forward(self, logits):
         return logits / self.temperature
 ```
@@ -278,11 +278,11 @@ assert processing_time < 30  # seconds
 def adapt_channels(raw_eeg, target_channels):
     available = raw_eeg.ch_names
     missing = set(target_channels) - set(available)
-    
+
     if missing:
         # Interpolate missing channels
         raw_eeg = interpolate_missing_channels(raw_eeg, missing)
-    
+
     return raw_eeg.pick_channels(target_channels)
 ```
 
@@ -291,12 +291,12 @@ def adapt_channels(raw_eeg, target_channels):
 # Handle recordings shorter than 20 minutes
 def handle_short_recording(raw_eeg):
     duration = raw_eeg.times[-1]
-    
+
     if duration < 600:  # Less than 10 minutes
         logger.warning(f"Short recording: {duration:.1f}s")
         # Adjust window overlap for more samples
         return create_windows(raw_eeg, overlap=0.75)
-    
+
     return create_windows(raw_eeg, overlap=0.5)
 ```
 
@@ -306,15 +306,15 @@ def handle_short_recording(raw_eeg):
 def robust_prediction(raw_eeg):
     # Multiple strategies
     predictions = []
-    
+
     # 1. With artifact rejection
     clean_pred = predict_with_autoreject(raw_eeg)
     predictions.append(clean_pred)
-    
+
     # 2. Raw prediction (more data)
     raw_pred = predict_without_cleaning(raw_eeg)
     predictions.append(raw_pred * 0.8)  # Lower weight
-    
+
     # 3. Ensemble
     final_pred = np.mean(predictions)
     return final_pred
@@ -340,7 +340,7 @@ def get_abnormality_heatmap(recording):
     attention_weights = extract_attention_maps(recording)
     temporal_importance = attention_weights.mean(axis=1)
     channel_importance = attention_weights.mean(axis=2)
-    
+
     return {
         'temporal_heatmap': temporal_importance,
         'channel_heatmap': channel_importance,
@@ -355,17 +355,17 @@ class StreamingAbnormalityDetector:
     def __init__(self, window_size=8.0, stride=2.0):
         self.buffer = RingBuffer(window_size)
         self.stride = stride
-        
+
     def process_chunk(self, new_data):
         self.buffer.append(new_data)
-        
+
         if self.buffer.is_full():
             window = self.buffer.get_window()
             prediction = self.model(window)
-            
+
             if prediction > 0.8:  # High confidence
                 self.trigger_alert()
-            
+
             self.buffer.advance(self.stride)
 ```
 

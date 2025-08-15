@@ -7,7 +7,7 @@
 
 ### REAL Directories (Active Code)
 - `api/` - Presentation layer (FastAPI)
-- `application/` - Use case orchestration  
+- `application/` - Use case orchestration
 - `core/` - SHOULD BE EMPTY but has 300+ lines of business logic
 - `domain/` - Business logic (VIOLATED with infra imports)
 - `infra/` - Infrastructure adapters
@@ -17,7 +17,7 @@
 
 ### SHIM Directories (Backward Compatibility)
 - `config/` → redirects to `application/config`
-- `models/` → redirects to `infra/ml_models`  
+- `models/` → redirects to `infra/ml_models`
 - `preprocessing/` → redirects to `domain/preprocessing`
 - `visualization/` → redirects to `infra/visualization`
 
@@ -118,7 +118,7 @@ Instead of REFACTORING, they:
 - Classes like `CleanQualityController` do EVERYTHING
 - 6+ responsibilities in one class
 
-### Open/Closed Principle (OCP) - VIOLATED  
+### Open/Closed Principle (OCP) - VIOLATED
 - Created duplicate classes instead of extending
 - Old and new code coexist
 
@@ -154,7 +154,7 @@ API → Application → Domain
 ## 📈 Metrics of Failure
 
 - **6** domain→infra violations
-- **1** domain→core violation  
+- **1** domain→core violation
 - **8+** duplicate classes
 - **300** lines in core that should be in domain
 - **4** shim directories for backward compat
@@ -205,10 +205,10 @@ API → Application → Domain
    # .import-linter
    [domain]
    forbidden = infra, core, application, api
-   
-   [application]  
+
+   [application]
    forbidden = api
-   
+
    [infra]
    allowed = all
    ```

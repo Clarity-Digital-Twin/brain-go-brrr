@@ -43,7 +43,7 @@ These tests are skipped due to API changes or missing implementations:
 - Old: EEGPTConfig(n_channels=20)
 - New: Uses @dataclass with different attrs
 
-# Preprocessing API changed (9 tests)  
+# Preprocessing API changed (9 tests)
 - test_core_preprocessing.py - Function signatures changed
 - Need to update to match new preprocessing pipeline
 

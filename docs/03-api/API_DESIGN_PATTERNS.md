@@ -51,7 +51,7 @@ class AuthConfig:
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 30
     REFRESH_TOKEN_EXPIRE_DAYS = 7
-    
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 class TokenResponse(BaseModel):
@@ -74,7 +74,7 @@ async def login(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Create tokens
     access_token = create_access_token(
         data={"sub": user.id, "scopes": user.scopes}
@@ -82,10 +82,10 @@ async def login(
     refresh_token = create_refresh_token(
         data={"sub": user.id}
     )
-    
+
     # Log authentication event
     await log_auth_event(db, user.id, "login", request.client.host)
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -102,30 +102,30 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(
-            token, 
-            AuthConfig.SECRET_KEY, 
+            token,
+            AuthConfig.SECRET_KEY,
             algorithms=[AuthConfig.ALGORITHM]
         )
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-            
+
         # Check token expiration
         exp = payload.get("exp")
         if exp and datetime.fromtimestamp(exp) < datetime.utcnow():
             raise credentials_exception
-            
+
     except JWTError:
         raise credentials_exception
-    
+
     # Get user from database
     user = await get_user(db, user_id=user_id)
     if user is None:
         raise credentials_exception
-        
+
     return user
 ```
 
@@ -146,13 +146,13 @@ class Permission(str, Enum):
     READ_EEG = "read:eeg"
     WRITE_EEG = "write:eeg"
     DELETE_EEG = "delete:eeg"
-    
+
     READ_ANALYSIS = "read:analysis"
     WRITE_ANALYSIS = "write:analysis"
-    
+
     READ_PHI = "read:phi"
     WRITE_PHI = "write:phi"
-    
+
     ADMIN_USERS = "admin:users"
     ADMIN_SYSTEM = "admin:system"
 
@@ -190,21 +190,21 @@ def require_permission(permission: Permission):
         current_user: User = Depends(get_current_user)
     ):
         user_permissions = ROLE_PERMISSIONS.get(current_user.role, [])
-        
+
         if permission not in user_permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Permission denied. Required: {permission}"
             )
-        
+
         # Additional checks for patient role
         if current_user.role == Role.PATIENT:
             # Ensure accessing only their own data
             # This check happens in the endpoint
             pass
-            
+
         return current_user
-    
+
     return permission_checker
 ```
 
@@ -256,34 +256,34 @@ async def upload_eeg(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file type. Supported: .edf, .bdf, .fif"
         )
-    
+
     # Check file size
     file_size = 0
     chunk_size = 1024 * 1024  # 1MB chunks
     sha256_hash = hashlib.sha256()
-    
+
     # Stream file to storage and calculate checksum
     file_id = generate_file_id()
     storage_path = f"eeg/{current_user.organization_id}/{file_id}"
-    
+
     async with aiofiles.tempfile.NamedTemporaryFile(delete=False) as tmp:
         while chunk := await file.read(chunk_size):
             await tmp.write(chunk)
             sha256_hash.update(chunk)
             file_size += len(chunk)
-            
+
             # Check size limit (2GB)
             if file_size > 2 * 1024 * 1024 * 1024:
                 raise HTTPException(
                     status_code=status.HTTP_413_ENTITY_TOO_LARGE,
                     detail="File too large. Maximum size: 2GB"
                 )
-        
+
         # Validate EDF structure
         try:
             validator = EDFValidator()
             validation_result = validator.validate_edf(Path(tmp.name))
-            
+
             if not validation_result["valid"]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -294,10 +294,10 @@ async def upload_eeg(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"EDF validation failed: {str(e)}"
             )
-        
+
         # Upload to storage
         await storage.upload_file(tmp.name, storage_path)
-    
+
     # Save to database
     eeg_file = EEGFile(
         id=file_id,
@@ -309,10 +309,10 @@ async def upload_eeg(
         organization_id=current_user.organization_id,
         metadata=metadata.dict() if metadata else None
     )
-    
+
     db.add(eeg_file)
     await db.commit()
-    
+
     # Log upload event
     await log_audit_event(
         db,
@@ -321,7 +321,7 @@ async def upload_eeg(
         resource_id=file_id,
         details={"filename": file.filename, "size": file_size}
     )
-    
+
     return EEGUploadResponse(
         file_id=file_id,
         filename=file.filename,
@@ -338,20 +338,20 @@ async def get_eeg_details(
 ):
     """Get EEG file details and metadata."""
     eeg_file = await get_eeg_file(db, file_id)
-    
+
     if not eeg_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="EEG file not found"
         )
-    
+
     # Check access permissions
     if not await can_access_file(current_user, eeg_file):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this file"
         )
-    
+
     return EEGFileDetails.from_orm(eeg_file)
 
 @router.delete("/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -363,25 +363,25 @@ async def delete_eeg(
 ):
     """Delete EEG file (soft delete for audit trail)."""
     eeg_file = await get_eeg_file(db, file_id)
-    
+
     if not eeg_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="EEG file not found"
         )
-    
+
     # Soft delete
     eeg_file.deleted_at = datetime.utcnow()
     eeg_file.deleted_by = current_user.id
-    
+
     await db.commit()
-    
+
     # Schedule storage cleanup after retention period
     await schedule_storage_cleanup(
         storage_path=eeg_file.storage_path,
         cleanup_after_days=90  # HIPAA retention
     )
-    
+
     # Log deletion
     await log_audit_event(
         db,
@@ -410,21 +410,21 @@ class AnalysisType(str, Enum):
 class AnalysisRequest(BaseModel):
     file_id: str
     analysis_type: AnalysisType = AnalysisType.STANDARD
-    
+
     # Optional parameters
     priority: Optional[str] = "normal"  # normal, expedite, urgent
-    
+
     # Custom analysis options
     enable_quality_control: bool = True
     enable_abnormality_detection: bool = True
     enable_sleep_analysis: Optional[bool] = None
     enable_event_detection: Optional[bool] = None
     enable_seizure_detection: Optional[bool] = None
-    
+
     # Processing options
     use_gpu: bool = True
     batch_size: Optional[int] = None
-    
+
     # Clinical context (helps with interpretation)
     clinical_notes: Optional[str] = None
     suspected_conditions: Optional[List[str]] = None
@@ -457,16 +457,16 @@ async def create_analysis(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="EEG file not found"
         )
-    
+
     if not await can_access_file(current_user, eeg_file):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this file"
         )
-    
+
     # Create analysis job
     job_id = generate_job_id()
-    
+
     analysis_job = AnalysisJob(
         id=job_id,
         file_id=request.file_id,
@@ -477,10 +477,10 @@ async def create_analysis(
         configuration=request.dict(exclude={'file_id', 'analysis_type', 'priority'}),
         status="queued"
     )
-    
+
     db.add(analysis_job)
     await db.commit()
-    
+
     # Submit to processing queue
     queue_position = await queue.submit_job(
         job_id=job_id,
@@ -491,14 +491,14 @@ async def create_analysis(
             "analysis_config": analysis_job.configuration
         }
     )
-    
+
     # Estimate completion time
     estimated_time = await estimate_completion_time(
         queue_position=queue_position,
         analysis_type=request.analysis_type,
         file_size=eeg_file.size_bytes
     )
-    
+
     # Background task for notifications
     if current_user.notification_preferences.get("analysis_complete"):
         background_tasks.add_task(
@@ -507,7 +507,7 @@ async def create_analysis(
             user_id=current_user.id,
             estimated_time=estimated_time
         )
-    
+
     return AnalysisResponse(
         job_id=job_id,
         status="queued",
@@ -533,22 +533,22 @@ async def get_analysis_status(
     cached_status = await cache.get(f"job_status:{job_id}")
     if cached_status:
         return JobStatus(**cached_status)
-    
+
     # Get from database
     job = await get_analysis_job(db, job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Analysis job not found"
         )
-    
+
     if not await can_access_job(current_user, job):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this job"
         )
-    
+
     # Get detailed status
     status = JobStatus(
         job_id=job_id,
@@ -561,10 +561,10 @@ async def get_analysis_status(
         estimated_completion=job.estimated_completion,
         messages=job.status_messages or []
     )
-    
+
     # Cache for 5 seconds
     await cache.set(f"job_status:{job_id}", status.dict(), ttl=5)
-    
+
     return status
 
 @router.post("/{job_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
@@ -576,28 +576,28 @@ async def cancel_analysis(
 ):
     """Cancel running or queued analysis."""
     job = await get_analysis_job(db, job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Analysis job not found"
         )
-    
+
     if job.status in ["completed", "failed", "cancelled"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot cancel job in {job.status} state"
         )
-    
+
     # Cancel in queue
     cancelled = await queue.cancel_job(job_id)
-    
+
     if cancelled:
         job.status = "cancelled"
         job.cancelled_at = datetime.utcnow()
         job.cancelled_by = current_user.id
         await db.commit()
-        
+
         # Log cancellation
         await log_audit_event(
             db,
@@ -626,23 +626,23 @@ class AnalysisResults(BaseModel):
     file_id: str
     completed_at: datetime
     analysis_type: str
-    
+
     # Quality control results
     quality_report: Optional[QualityReport] = None
-    
+
     # Abnormality detection results
     abnormality_detection: Optional[AbnormalityResult] = None
-    
+
     # Sleep analysis results
     sleep_analysis: Optional[SleepAnalysisResult] = None
-    
+
     # Event detection results
     event_detection: Optional[EventDetectionResult] = None
-    
+
     # Processing metadata
     processing_time_seconds: float
     model_versions: Dict[str, str]
-    
+
     # Clinical summary
     clinical_summary: Optional[str] = None
     recommendations: Optional[List[str]] = None
@@ -660,39 +660,39 @@ async def get_results(
     # Check cache first
     cache_key = f"results:{job_id}:{format}:{include_raw_features}"
     cached = await cache.get(cache_key)
-    
+
     if cached and format == "json":
         return AnalysisResults(**cached)
-    
+
     # Get job and results
     job = await get_analysis_job(db, job_id)
-    
+
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Analysis job not found"
         )
-    
+
     if job.status != "completed":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Job status is {job.status}, not completed"
         )
-    
+
     if not await can_access_job(current_user, job):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to these results"
         )
-    
+
     # Load results from storage
     results = await load_results_from_storage(job.results_path)
-    
+
     # Filter based on user preferences
     if not include_raw_features:
         # Remove large raw feature arrays
         results = filter_raw_features(results)
-    
+
     # Format conversion
     if format == "pdf":
         pdf_bytes = await generate_pdf_report(results)
@@ -712,10 +712,10 @@ async def get_results(
                 "Content-Disposition": f"attachment; filename=analysis_{job_id}.dcm"
             }
         )
-    
+
     # Cache JSON results
     await cache.set(cache_key, results.dict(), ttl=3600)  # 1 hour
-    
+
     # Log access
     await log_audit_event(
         db,
@@ -724,7 +724,7 @@ async def get_results(
         resource_id=job_id,
         details={"format": format}
     )
-    
+
     return results
 
 @router.get("/{job_id}/summary", response_model=ResultsSummary)
@@ -735,7 +735,7 @@ async def get_results_summary(
 ):
     """Get a concise summary of results."""
     results = await get_results(job_id, current_user=current_user, db=db)
-    
+
     summary = ResultsSummary(
         job_id=job_id,
         is_abnormal=results.abnormality_detection.is_abnormal,
@@ -744,7 +744,7 @@ async def get_results_summary(
         key_findings=extract_key_findings(results),
         recommendations=results.recommendations or []
     )
-    
+
     return summary
 
 @router.get("/{job_id}/visualizations/{viz_type}")
@@ -760,22 +760,22 @@ async def get_visualization(
     """Generate visualization of results."""
     # Validate visualization type
     valid_types = [
-        "eeg_montage", "hypnogram", "power_spectrum", 
+        "eeg_montage", "hypnogram", "power_spectrum",
         "topographic_map", "event_timeline", "feature_importance"
     ]
-    
+
     if viz_type not in valid_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid visualization type. Valid: {valid_types}"
         )
-    
+
     # Get results
     results = await get_results(job_id, current_user=current_user, db=db)
-    
+
     # Generate visualization
     viz_generator = VisualizationGenerator()
-    
+
     if viz_type == "eeg_montage":
         image_bytes = await viz_generator.create_eeg_montage(
             file_id=results.file_id,
@@ -795,7 +795,7 @@ async def get_visualization(
             results.sleep_analysis.epoch_timestamps
         )
     # ... other visualization types
-    
+
     return StreamingResponse(
         io.BytesIO(image_bytes),
         media_type="image/png",
@@ -815,11 +815,11 @@ class BatchAnalysisRequest(BaseModel):
     file_ids: List[str]
     analysis_type: AnalysisType = AnalysisType.STANDARD
     priority: str = "normal"
-    
+
     # Batch-specific options
     stop_on_error: bool = False
     parallel_jobs: int = 5
-    
+
     # Common configuration for all files
     common_config: Optional[Dict[str, Any]] = None
 
@@ -855,21 +855,21 @@ async def create_batch_analysis(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot access file: {file_id}"
             )
-    
+
     if not accessible_files:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No accessible files in batch"
         )
-    
+
     # Create batch job
     batch_id = generate_batch_id()
     job_ids = []
-    
+
     # Create individual jobs
     for file_id in accessible_files:
         job_id = generate_job_id()
-        
+
         analysis_job = AnalysisJob(
             id=job_id,
             file_id=file_id,
@@ -881,10 +881,10 @@ async def create_batch_analysis(
             configuration=request.common_config or {},
             status="queued"
         )
-        
+
         db.add(analysis_job)
         job_ids.append(job_id)
-    
+
     # Create batch record
     batch = BatchJob(
         id=batch_id,
@@ -894,15 +894,15 @@ async def create_batch_analysis(
         configuration=request.dict(),
         status="processing"
     )
-    
+
     db.add(batch)
     await db.commit()
-    
+
     # Submit jobs to queue with rate limiting
     for i, job_id in enumerate(job_ids):
         if i > 0 and i % request.parallel_jobs == 0:
             await asyncio.sleep(1)  # Rate limit
-        
+
         await queue.submit_job(
             job_id=job_id,
             job_type="analysis",
@@ -912,7 +912,7 @@ async def create_batch_analysis(
                 "batch_id": batch_id
             }
         )
-    
+
     return BatchAnalysisResponse(
         batch_id=batch_id,
         total_files=len(job_ids),
@@ -934,21 +934,21 @@ async def get_batch_status(
 ):
     """Get status of batch analysis."""
     batch = await get_batch_job(db, batch_id)
-    
+
     if not batch:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Batch not found"
         )
-    
+
     # Get individual job statuses
     job_statuses = await get_job_statuses(db, batch.job_ids)
-    
+
     completed = sum(1 for s in job_statuses if s.status == "completed")
     failed = sum(1 for s in job_statuses if s.status == "failed")
     processing = sum(1 for s in job_statuses if s.status == "processing")
     queued = sum(1 for s in job_statuses if s.status == "queued")
-    
+
     return BatchStatus(
         batch_id=batch_id,
         total_jobs=batch.total_jobs,
@@ -1001,7 +1001,7 @@ async def validation_exception_handler(
             "message": error["msg"],
             "type": error["type"]
         })
-    
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=ErrorResponse(
@@ -1027,7 +1027,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 class BusinessLogicError(HTTPException):
     """Base class for business logic errors."""
-    
+
     def __init__(
         self,
         status_code: int,
@@ -1046,7 +1046,7 @@ class BusinessLogicError(HTTPException):
 
 class InsufficientQuotaError(BusinessLogicError):
     """Raised when user exceeds their quota."""
-    
+
     def __init__(self, quota_type: str, limit: int, used: int):
         super().__init__(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -1095,25 +1095,25 @@ async def get_results(...):
 # Organization-based quotas
 class QuotaMiddleware:
     """Enforce organization quotas."""
-    
+
     def __init__(self, app):
         self.app = app
-        
+
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
             request = Request(scope, receive)
-            
+
             # Skip for non-authenticated endpoints
             if not request.url.path.startswith("/api/v1"):
                 await self.app(scope, receive, send)
                 return
-            
+
             # Get user from request
             user = await get_current_user_from_request(request)
             if user:
                 # Check quotas
                 quota_service = QuotaService()
-                
+
                 # Check monthly analysis quota
                 if request.method == "POST" and "/analyses" in request.url.path:
                     usage = await quota_service.get_usage(
@@ -1121,7 +1121,7 @@ class QuotaMiddleware:
                         "analyses",
                         "monthly"
                     )
-                    
+
                     if usage >= user.organization.monthly_analysis_limit:
                         response = JSONResponse(
                             status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -1139,13 +1139,13 @@ class QuotaMiddleware:
                         )
                         await response(scope, receive, send)
                         return
-                
+
                 # Check storage quota
                 if request.method == "POST" and "/eeg/upload" in request.url.path:
                     storage_used = await quota_service.get_storage_usage(
                         user.organization_id
                     )
-                    
+
                     if storage_used >= user.organization.storage_limit_gb * 1024**3:
                         response = JSONResponse(
                             status_code=status.HTTP_402_PAYMENT_REQUIRED,
@@ -1161,7 +1161,7 @@ class QuotaMiddleware:
                         )
                         await response(scope, receive, send)
                         return
-            
+
             await self.app(scope, receive, send)
 ```
 
@@ -1190,7 +1190,7 @@ def get_api_version(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid API version: {x_api_version}"
             )
-    
+
     if accept:
         # Parse Accept header for version
         # application/vnd.brainbrrr.v2+json
@@ -1200,7 +1200,7 @@ def get_api_version(
                 return APIVersion(match.group(1))
             except ValueError:
                 pass
-    
+
     # Default to v1
     return APIVersion.V1
 
@@ -1232,45 +1232,45 @@ from fastapi.openapi.utils import get_openapi
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-        
+
     openapi_schema = get_openapi(
         title="Brain-Go-Brrr API",
         version="1.0.0",
         description="""
         ## Overview
-        
+
         The Brain-Go-Brrr API provides programmatic access to advanced EEG analysis capabilities including:
-        
+
         - **Quality Control**: Automated artifact detection and channel validation
         - **Abnormality Detection**: ML-based identification of abnormal EEG patterns
         - **Sleep Analysis**: Comprehensive sleep staging and metrics
         - **Event Detection**: Identification of epileptiform discharges and other events
-        
+
         ## Authentication
-        
+
         All API requests require authentication via JWT tokens. Obtain tokens via the `/auth/token` endpoint.
-        
+
         ```bash
         curl -X POST https://api.brain-go-brrr.com/v1/auth/token \\
           -H "Content-Type: application/x-www-form-urlencoded" \\
           -d "username=your_username&password=your_password"
         ```
-        
+
         Include the token in subsequent requests:
-        
+
         ```bash
         curl -H "Authorization: Bearer YOUR_TOKEN" \\
           https://api.brain-go-brrr.com/v1/analyses
         ```
-        
+
         ## Rate Limits
-        
+
         - Standard: 100 requests/minute, 1000 requests/hour
         - Analysis creation: 10 requests/minute
         - File uploads: 5 requests/minute
-        
+
         ## Quotas
-        
+
         - Monthly analyses: Based on organization plan
         - Storage: Based on organization plan
         - Concurrent jobs: Based on organization plan
@@ -1299,7 +1299,7 @@ def custom_openapi():
             }
         ]
     )
-    
+
     # Add security scheme
     openapi_schema["components"]["securitySchemes"] = {
         "bearerAuth": {
@@ -1308,10 +1308,10 @@ def custom_openapi():
             "bearerFormat": "JWT"
         }
     }
-    
+
     # Add global security
     openapi_schema["security"] = [{"bearerAuth": []}]
-    
+
     # Add webhook documentation
     openapi_schema["webhooks"] = {
         "analysisComplete": {
@@ -1332,7 +1332,7 @@ def custom_openapi():
             }
         }
     }
-    
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -1350,10 +1350,10 @@ import hashlib
 
 class WebhookService:
     """Manage webhook deliveries."""
-    
+
     def __init__(self):
         self.client = httpx.AsyncClient(timeout=30.0)
-        
+
     async def send_webhook(
         self,
         url: str,
@@ -1367,7 +1367,7 @@ class WebhookService:
             "X-BrainBrrr-Event": event_type,
             "X-BrainBrrr-Delivery": generate_delivery_id()
         }
-        
+
         # Add signature if secret provided
         if secret:
             body = json.dumps(payload).encode()
@@ -1377,7 +1377,7 @@ class WebhookService:
                 hashlib.sha256
             ).hexdigest()
             headers["X-BrainBrrr-Signature"] = f"sha256={signature}"
-        
+
         # Retry logic
         max_attempts = 3
         for attempt in range(max_attempts):
@@ -1387,7 +1387,7 @@ class WebhookService:
                     json=payload,
                     headers=headers
                 )
-                
+
                 if response.status_code < 400:
                     # Success
                     await log_webhook_delivery(
@@ -1397,7 +1397,7 @@ class WebhookService:
                         response_code=response.status_code
                     )
                     return
-                    
+
                 # Client error - don't retry
                 if 400 <= response.status_code < 500:
                     await log_webhook_delivery(
@@ -1408,7 +1408,7 @@ class WebhookService:
                         error="Client error"
                     )
                     return
-                    
+
             except Exception as e:
                 if attempt == max_attempts - 1:
                     # Final attempt failed
@@ -1419,7 +1419,7 @@ class WebhookService:
                         error=str(e)
                     )
                     return
-                    
+
             # Exponential backoff
             await asyncio.sleep(2 ** attempt)
 
@@ -1428,7 +1428,7 @@ class WebhookAnalysisComplete(BaseModel):
     event: str = "analysis.complete"
     timestamp: datetime
     data: Dict[str, Any]
-    
+
     class Config:
         schema_extra = {
             "example": {
@@ -1458,19 +1458,19 @@ class WebhookAnalysisComplete(BaseModel):
 def generate_typescript_sdk():
     """Generate TypeScript SDK from OpenAPI schema."""
     schema = app.openapi()
-    
+
     # Use openapi-typescript-codegen
     sdk_generator = TypeScriptSDKGenerator(schema)
-    
+
     # Generate client code
     client_code = sdk_generator.generate_client()
-    
+
     # Generate type definitions
     types_code = sdk_generator.generate_types()
-    
+
     # Generate documentation
     docs = sdk_generator.generate_docs()
-    
+
     # Package as npm module
     package = {
         "name": "@brain-go-brrr/sdk",
@@ -1482,7 +1482,7 @@ def generate_typescript_sdk():
             "axios": "^1.0.0"
         }
     }
-    
+
     return {
         "src/client.ts": client_code,
         "src/types.ts": types_code,
@@ -1494,10 +1494,10 @@ def generate_typescript_sdk():
 def generate_python_sdk():
     """Generate Python SDK from OpenAPI schema."""
     schema = app.openapi()
-    
+
     # Use openapi-python-client
     sdk_generator = PythonSDKGenerator(schema)
-    
+
     return sdk_generator.generate_package()
 ```
 
@@ -1513,7 +1513,7 @@ from fastapi.testclient import TestClient
 @pytest.mark.asyncio
 class TestAPIEndpoints:
     """Comprehensive API testing."""
-    
+
     async def test_authentication_flow(self, client: AsyncClient):
         """Test complete authentication flow."""
         # Register user
@@ -1526,7 +1526,7 @@ class TestAPIEndpoints:
             }
         )
         assert response.status_code == 201
-        
+
         # Login
         response = await client.post(
             "/api/v1/auth/token",
@@ -1537,12 +1537,12 @@ class TestAPIEndpoints:
         )
         assert response.status_code == 200
         token = response.json()["access_token"]
-        
+
         # Use token
         headers = {"Authorization": f"Bearer {token}"}
         response = await client.get("/api/v1/user/profile", headers=headers)
         assert response.status_code == 200
-        
+
     async def test_analysis_workflow(self, client: AsyncClient, auth_headers: dict):
         """Test complete analysis workflow."""
         # Upload file
@@ -1554,7 +1554,7 @@ class TestAPIEndpoints:
             )
         assert response.status_code == 201
         file_id = response.json()["file_id"]
-        
+
         # Submit analysis
         response = await client.post(
             "/api/v1/analyses",
@@ -1566,7 +1566,7 @@ class TestAPIEndpoints:
         )
         assert response.status_code == 202
         job_id = response.json()["job_id"]
-        
+
         # Check status
         response = await client.get(
             f"/api/v1/analyses/{job_id}/status",
@@ -1574,10 +1574,10 @@ class TestAPIEndpoints:
         )
         assert response.status_code == 200
         assert response.json()["status"] in ["queued", "processing", "completed"]
-        
+
         # Wait for completion (in real test, use mock)
         await wait_for_job_completion(client, job_id, auth_headers)
-        
+
         # Get results
         response = await client.get(
             f"/api/v1/results/{job_id}",

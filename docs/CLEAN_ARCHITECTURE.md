@@ -106,7 +106,7 @@ class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
     """Infrastructure implements the contract."""
     def __init__(self, **kwargs):
         self._inner = FlexibleEEGPreprocessor(**kwargs)
-    
+
     def transform(self, raw: MneRaw) -> npt.NDArray[np.float32]:
         # Adapter wraps infrastructure implementation
         return self._inner.preprocess(raw).astype("float32")
@@ -118,11 +118,11 @@ class FlexiblePreprocessorAdapter(EEGPreprocessorPort):
 # application/factories_pure.py
 def create_pure_abnormality_detector(...) -> PureAbnormalityDetector:
     """The ONLY place that knows about concrete implementations."""
-    
+
     # Create infrastructure components
     preprocessor = FlexiblePreprocessorAdapter(...)
     classifier = EEGPTClassifierAdapter(...)
-    
+
     # Wire into domain service
     detector = PureAbnormalityDetector(
         preprocessor=preprocessor,  # Port satisfied by adapter
@@ -141,14 +141,14 @@ def test_pure_domain_logic():
     # Create stub implementations
     preprocessor = StubPreprocessor()
     classifier = StubClassifier(returns=0.8)
-    
+
     # Test pure domain logic
     detector = PureAbnormalityDetector(
         preprocessor=preprocessor,
         classifier=classifier,
         settings=AbnormalitySettings(),
     )
-    
+
     result = detector.detect(mock_raw)
     assert result.is_abnormal == True
 ```
@@ -161,7 +161,7 @@ def test_with_real_infrastructure():
         config=test_config,
         model_path=test_model_path,
     )
-    
+
     result = detector.detect(real_eeg_data)
     assert result.triage_level == TriageLevel.URGENT
 ```
@@ -182,7 +182,7 @@ def test_adapter_implements_port():
 name = Domain must be PURE
 type = forbidden
 source_modules = brain_go_brrr.domain
-forbidden_modules = 
+forbidden_modules =
     brain_go_brrr.application
     brain_go_brrr.infra
     brain_go_brrr.api

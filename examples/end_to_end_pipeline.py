@@ -361,7 +361,7 @@ class EEGPipeline:
             self.output_dir = original_output_dir
 
 
-def main():
+def main() -> None:
     """Example usage of the complete EEG processing pipeline."""
     logger.info("Starting EEG Pipeline Example")
 

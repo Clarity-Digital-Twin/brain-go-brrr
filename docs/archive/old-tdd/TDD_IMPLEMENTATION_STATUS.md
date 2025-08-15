@@ -4,7 +4,7 @@
 
 ### TDD METRICS - PURE RED-GREEN-REFACTOR
 - **34 Unit Tests**: ALL PASSING ✅
-- **5 Integration Tests**: ALL PASSING ✅  
+- **5 Integration Tests**: ALL PASSING ✅
 - **Linting**: 302 issues AUTO-FIXED by Ruff ✅
 - **Type Safety**: Full type hints on all modules ✅
 - **ZERO Technical Debt**: Clean as fuck ✅
@@ -17,7 +17,7 @@
 
 2. **EDF Validation** (`edf_validator.py`)
    - Duration checks (≥60s)
-   - Sampling rate validation 
+   - Sampling rate validation
    - Channel count validation (≥19)
    - Data quality checks (NaN, Inf, amplitude, flat channels)
    - Fixed: NaN-aware operations with `np.nanmax`
@@ -41,7 +41,7 @@
 - Remaining: 30 (mostly docstring style)
 - Critical issues: 0
 
-# Test Results  
+# Test Results
 - Unit tests: 34/34 PASS
 - Integration tests: 5/5 PASS
 - Coverage: 100% on Phase 1 modules
@@ -69,7 +69,7 @@
    ```python
    # Tests to write first:
    - test_bandpass_filter_specs()
-   - test_notch_filter_removal()  
+   - test_notch_filter_removal()
    - test_zscore_normalization()
    - test_resampling_quality()
    ```
@@ -156,7 +156,7 @@ assert type_errors == 0
 
 # Phase 2 (Next)
 assert preprocessing_tested == True
-assert autoreject_integrated == True  
+assert autoreject_integrated == True
 assert auroc_improvement >= 0.05
 
 # Overall

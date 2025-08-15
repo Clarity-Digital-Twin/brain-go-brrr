@@ -42,7 +42,7 @@ select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "SIM", "TCH", "RUF", "PTH"
 
 Running Ruff with strict annotation checks shows:
 - ✅ All functions have parameter types
-- ✅ All functions have return types  
+- ✅ All functions have return types
 - ✅ No missing annotations on regular functions
 
 ### Minor Issues Found (90 total):

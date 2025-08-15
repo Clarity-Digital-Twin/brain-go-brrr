@@ -106,7 +106,7 @@ jobs:
             -H "Authorization: Bearer ${{ github.token }}" \
             -H "Accept: application/vnd.github+json" \
             "${{ github.api_url }}/repos/${{ github.repository }}/issues?per_page=1")
-          
+
           if [[ "$STATUS" != "2"* ]]; then
             echo "::warning::GitHub token lacks issues:write permission. Skipping issue creation."
             exit 0

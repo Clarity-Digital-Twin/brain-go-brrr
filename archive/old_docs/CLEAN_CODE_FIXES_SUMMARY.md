@@ -6,7 +6,7 @@ Following Robert C. Martin's principles and your feedback, all issues have been 
 
 ### 1. Accuracy Test - Now Uses Baseline Regression ✅
 **Old**: Lowered threshold from 80% to 78% (moving goalposts)
-**Fixed**: 
+**Fixed**:
 ```python
 BASELINE_ACCURACY = 0.794  # Baseline on deterministic mock data
 REGRESSION_TOLERANCE = 0.01  # Allow 1% variance
@@ -40,7 +40,7 @@ for target_ch in sleep_edf_channels:
 @pytest.fixture(autouse=True)
 def skip_if_not_implemented(self):
     """Skip tests if module doesn't exist, xfail if it does but is broken."""
-    pytest.importorskip("brain_go_brrr.models.eegpt_two_layer_probe", 
+    pytest.importorskip("brain_go_brrr.models.eegpt_two_layer_probe",
                        reason="TwoLayerProbe module not found")
 
 @pytest.mark.xfail(strict=True, reason="TwoLayerProbe not yet implemented correctly")
@@ -98,7 +98,7 @@ def test_single_window_gpu_inference_speed(...):
 
 ## Coverage Status
 
-- **Before fixes**: 55.59% 
+- **Before fixes**: 55.59%
 - **Target**: 80% on critical modules
 - **Strategy**: Test real logic, not mocks
 

@@ -30,7 +30,7 @@ if [ -f "$LOG_FILE" ]; then
     echo "--------------------------------"
     ERROR_COUNT=$(grep -c "ERROR\|Exception\|Traceback\|nan\|inf" "$LOG_FILE" || echo "0")
     echo "Error count: $ERROR_COUNT"
-    
+
     if [ "$ERROR_COUNT" -gt "0" ]; then
         echo "RECENT ERRORS:"
         grep -n "ERROR\|Exception\|Traceback\|nan\|inf" "$LOG_FILE" | tail -5
@@ -43,11 +43,11 @@ echo "--------------------------------"
 if [ -f "$LOG_FILE" ]; then
     # Get epoch info
     grep "Epoch" "$LOG_FILE" | tail -5
-    
+
     # Get loss info
     echo -e "\nRecent losses:"
     grep -E "loss.*[0-9]" "$LOG_FILE" | tail -5
-    
+
     # Get metrics
     echo -e "\nRecent metrics:"
     grep -E "auroc|accuracy" "$LOG_FILE" | tail -5
@@ -63,7 +63,7 @@ if [ -f "$LOG_FILE" ]; then
     else
         echo "⚠️ No cache loading message found"
     fi
-    
+
     # Check for file scanning
     SCAN_COUNT=$(grep -c "Scanning\|Found.*\.edf" "$LOG_FILE" || echo "0")
     if [ "$SCAN_COUNT" -gt "0" ]; then

@@ -136,7 +136,7 @@ Two approaches:
    ```python
    # In tuab_dataset.py _load_edf_file():
    if self.use_autoreject:
-       ar = AutoReject(n_interpolate=[1, 2, 4], 
+       ar = AutoReject(n_interpolate=[1, 2, 4],
                        random_state=42,
                        n_jobs=1)
        epochs_clean = ar.fit_transform(epochs)

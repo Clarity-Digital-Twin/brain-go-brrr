@@ -163,7 +163,7 @@ lr_scales = {
 
 With all fixes implemented:
 - Window size fix: +3-4% AUROC
-- Probe architecture: +2-3% AUROC  
+- Probe architecture: +2-3% AUROC
 - Training improvements: +1-2% AUROC
 - **Total Expected**: 0.86-0.88 AUROC (matching paper)
 
@@ -202,7 +202,7 @@ class EEGPTTwoLayerProbe(nn.Module):
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
         self.probe2 = nn.Linear(hidden_dim * 16, num_classes)
-        
+
     def forward(self, features):
         # features: [B, 16, 768] from EEGPT
         x = self.probe1(features)  # [B, 16, 16]

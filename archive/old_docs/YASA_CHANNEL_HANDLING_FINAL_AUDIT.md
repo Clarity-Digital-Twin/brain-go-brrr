@@ -18,7 +18,7 @@ After thorough analysis of the YASA literature, our implementation, and Sleep-ED
 
 3. **Performance by Channel**:
    - Single central EEG: **85.12%** accuracy
-   - Central EEG + EOG: **86.92%** accuracy  
+   - Central EEG + EOG: **86.92%** accuracy
    - Full model (EEG+EOG+EMG): **87.46%** accuracy
 
 4. **Key Finding**: Central channels are CRITICAL for spindle and slow-wave detection in N2/N3 stages
@@ -45,8 +45,8 @@ DEFAULT_ALIASES = {
     # Sleep-EDF mappings
     "EEG Fpz-Cz": "C4",  # Frontal→Central aliasing
     "EEG Pz-Oz": "O2",   # Parietal→Occipital
-    
-    # Single electrode mappings  
+
+    # Single electrode mappings
     "Fpz": "C3",
     "Pz": "C4",
 }

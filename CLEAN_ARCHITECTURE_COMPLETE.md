@@ -42,7 +42,7 @@ This codebase now follows Uncle Bob's Clean Architecture principles to the lette
 
 ```
 ✅ Domain Layer: PURE (0 outer dependencies)
-✅ Infrastructure: INDEPENDENT (0 app/api dependencies)  
+✅ Infrastructure: INDEPENDENT (0 app/api dependencies)
 ✅ Core Utilities: LEAF NODES (0 dependencies)
 ✅ Application: ORCHESTRATION ONLY (no api/presentation imports)
 ✅ Import-Linter: 7/9 contracts KEPT (2 broken only in unused legacy code)

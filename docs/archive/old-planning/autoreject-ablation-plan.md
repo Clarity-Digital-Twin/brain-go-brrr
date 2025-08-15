@@ -60,7 +60,7 @@ Next steps after baseline completes:
 # Per batch:
 - n_windows_total
 - n_windows_kept
-- n_windows_interpolated  
+- n_windows_interpolated
 - n_windows_dropped
 - mean_bad_channels_per_window
 - max_bad_channels_per_window

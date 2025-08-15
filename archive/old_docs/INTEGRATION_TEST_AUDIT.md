@@ -8,7 +8,7 @@ We have 164 skipped tests taking up space. Either they should WORK or be DELETED
 ### 1. INTEGRATION TESTS (52 tests marked @pytest.mark.integration)
 **WHY THEY EXIST**: Test real model loading, external data, end-to-end pipelines
 **WHY THEY'RE SKIPPED**: Prevent CI from taking 30+ minutes
-**WHEN TO RUN**: 
+**WHEN TO RUN**:
 - Before releases
 - After major model changes
 - Nightly builds
@@ -38,7 +38,7 @@ pytest.skip("TUH abnormal dataset not available")
 **STATUS**: BROKEN - Need fixing
 ```python
 # EEGPTConfig API changed (9 tests)
-# Preprocessing API changed (9 tests)  
+# Preprocessing API changed (9 tests)
 # EEGPTWrapper methods changed (2 tests)
 ```
 

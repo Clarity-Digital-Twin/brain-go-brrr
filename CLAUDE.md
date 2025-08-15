@@ -9,7 +9,7 @@ Loading `train_dataloader` to estimate number of stepping batches
 
 This occurs with large cached datasets (>100k samples) and CANNOT be fixed with any settings. We tried:
 - `deterministic=False` ❌
-- `limit_train_batches` as integer ❌  
+- `limit_train_batches` as integer ❌
 - `max_steps=10000` ❌
 - `num_sanity_val_steps=0` ❌
 - `fast_dev_run=True` ❌
