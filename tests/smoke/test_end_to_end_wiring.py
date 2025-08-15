@@ -121,13 +121,16 @@ def test_api_to_domain_integration(synthetic_tuab_raw, tmp_path):
 )
 def test_api_endpoint_wiring(valid_edf_file):
     """Test that API endpoints are properly wired to use domain services."""
+    from pathlib import Path
+
     from fastapi.testclient import TestClient
 
     from brain_go_brrr.api.app import create_app
 
     app = create_app()
 
-    client = TestClient(app)
+    # Don't raise server exceptions - we want to test the wiring even if processing fails
+    client = TestClient(app, raise_server_exceptions=False)
 
     # Test health check
     response = client.get("/api/v1/health")
@@ -136,17 +139,11 @@ def test_api_endpoint_wiring(valid_edf_file):
     # Test analyze endpoint structure (will fail without real model, but tests wiring)
     # The endpoint is properly wired if it's reachable, even if it returns an error
     # Since there's no model configured, we expect it to fail with 500
-    from pathlib import Path
-
     with Path(valid_edf_file).open("rb") as f:
-        try:
-            response = client.post(
-                "/api/v1/eeg/analyze",
-                files={"edf_file": ("test.edf", f, "application/octet-stream")},
-            )
-            # Even if processing fails, endpoint should be wired
-            assert response.status_code in [200, 400, 500]  # Success or expected errors
-        except Exception:
-            # If the test client raises an exception from the server code,
-            # that still proves the endpoint is wired (just failing internally)
-            pass  # Endpoint is wired, even if it errors internally
+        response = client.post(
+            "/api/v1/eeg/analyze",
+            files={"edf_file": ("test.edf", f, "application/octet-stream")},
+        )
+        # Even if processing fails, endpoint should be wired
+        # 422 = validation error, 400 = bad request, 500 = internal error
+        assert response.status_code in {200, 400, 422, 500}

@@ -3,13 +3,15 @@
 # Run manually: pre-commit run --all-files
 
 repos:
-  # Ruff - Fast Python linter and formatter
+  # Ruff - Fast Python linter and formatter (aligned with CI/local)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.8.6  # Match the version used in development
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+        args: [--fix]
+        exclude: ^scripts/archive/
       - id: ruff-format
+        exclude: ^scripts/archive/
 
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy

@@ -28,18 +28,12 @@ jobs:
       run: |
         uv sync --frozen
         
-    - name: Run ruff linting
+    - name: Run code quality checks
       run: |
-        uv run ruff check src/brain_go_brrr tests
-        
-    - name: Run ruff formatting check
-      run: |
-        uv run ruff format --check src/brain_go_brrr tests
-        
-    - name: Run mypy type checking
-      run: |
-        uv run mypy --config-file mypy.ini src/brain_go_brrr
-      continue-on-error: true  # Allow to fail for now since we have some third-party issues
+        # Use Make targets for consistency with local development
+        make format-check
+        make lint-ci
+        make type-check || true  # Allow to fail for now since we have some third-party issues
       
     - name: Check for private MNE API usage
       run: |
