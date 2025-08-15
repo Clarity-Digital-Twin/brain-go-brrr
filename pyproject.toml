@@ -148,6 +148,9 @@ exclude = [
     "node_modules/",
     "archive/",
     "scripts/archive/",
+    "experiments/",
+    "notebooks/",
+    "research/",
 ]
 
 [tool.ruff.lint]
