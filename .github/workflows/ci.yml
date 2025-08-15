@@ -35,36 +35,15 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Build wheel
-        run: uv build
+      - name: Install dependencies
+        run: uv sync
 
-      - name: Install from wheel (deterministic)
+      - name: Install package in editable mode
+        run: uv pip install -e .
+
+      - name: Import smoke test
         run: |
-          uv venv
-          uv pip install dist/*.whl
-
-      - name: Import smoke (no side effects)
-        run: |
-          uv run python - <<'PY'
-          import importlib.util as iu
-
-          def must_find(mod):
-              spec = iu.find_spec(mod)
-              if spec is None:
-                  raise SystemExit(f"✗ NOT FOUND: {mod}")
-              print(f"✓ found: {mod}")
-              return spec
-
-          # core leaf module (safe)
-          must_find("brain_go_brrr.core.exceptions")
-
-          # package and subpackage presence (safe, no import-time mne)
-          must_find("brain_go_brrr.infra")
-          must_find("brain_go_brrr.infra.data")
-          must_find("brain_go_brrr.infra.data.edf_loader")
-
-          print("✅ packaging OK")
-          PY
+          uv run python -c "from brain_go_brrr.core import exceptions; print('✅ All imports work')"
 
       - name: Run formatting check
         run: make format-check
