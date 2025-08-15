@@ -4,7 +4,6 @@ These tests ensure that our public API imports work correctly
 and that refactorings haven't broken module exports.
 """
 
-import pytest
 
 
 def test_services_imports():
@@ -36,8 +35,8 @@ def test_preprocessing_imports():
     assert PreprocessingPipeline is not None
 
     # Test deprecated path with warning
-    import warnings
     import sys
+    import warnings
 
     # Remove the module if already imported to test warning
     if "brain_go_brrr.core.preprocessing_utils" in sys.modules:
@@ -45,7 +44,7 @@ def test_preprocessing_imports():
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        from brain_go_brrr.core import preprocessing_utils
+        from brain_go_brrr.core import preprocessing_utils  # noqa: F401
 
         # Check that a deprecation warning was issued
         assert len(w) >= 1

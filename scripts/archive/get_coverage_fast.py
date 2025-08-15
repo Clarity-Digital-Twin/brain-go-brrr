@@ -61,7 +61,7 @@ def get_coverage():
     for line in lines:
         if "TOTAL" in line and "%" in line:
             parts = line.split()
-            for i, part in enumerate(parts):
+            for _i, part in enumerate(parts):
                 if "%" in part:
                     coverage = part.strip("%")
                     print(f"\n📊 TOTAL COVERAGE: {coverage}%")

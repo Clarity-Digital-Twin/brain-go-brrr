@@ -98,9 +98,6 @@ def test_feature_extractor_end_to_end_wiring(synthetic_tuab_raw):
 
 def test_api_to_domain_integration(synthetic_tuab_raw, tmp_path):
     """Test API endpoint can properly use domain services."""
-    from pathlib import Path
-    import mne
-
     # Save test data to EDF
     edf_path = tmp_path / "test.edf"
     synthetic_tuab_raw.export(str(edf_path), overwrite=True)
@@ -125,6 +122,7 @@ def test_api_to_domain_integration(synthetic_tuab_raw, tmp_path):
 def test_api_endpoint_wiring(valid_edf_file):
     """Test that API endpoints are properly wired to use domain services."""
     from fastapi.testclient import TestClient
+
     from brain_go_brrr.api.app import create_app
 
     app = create_app()
@@ -138,7 +136,8 @@ def test_api_endpoint_wiring(valid_edf_file):
     # Test analyze endpoint structure (will fail without real model, but tests wiring)
     # The endpoint is properly wired if it's reachable, even if it returns an error
     # Since there's no model configured, we expect it to fail with 500
-    with open(valid_edf_file, "rb") as f:
+    from pathlib import Path
+    with Path(valid_edf_file).open("rb") as f:
         try:
             response = client.post(
                 "/api/v1/eeg/analyze",

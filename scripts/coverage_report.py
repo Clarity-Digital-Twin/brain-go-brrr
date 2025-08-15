@@ -105,7 +105,7 @@ def main():
         else:
             print(f"❌ Coverage below threshold (55% required, got {total_coverage:.2f}%)")
             return 1
-    except:
+    except Exception:
         print("Could not determine total coverage")
 
     return 0 if all_passed else 1

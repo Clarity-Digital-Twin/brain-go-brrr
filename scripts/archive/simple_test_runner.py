@@ -13,6 +13,7 @@ class SimpleTestRunner:
     """Run tests without pytest hanging issues."""
 
     def __init__(self):
+        """Initialize test runner with counters."""
         self.passed = 0
         self.failed = 0
         self.errors = []
@@ -85,15 +86,14 @@ class SimpleTestRunner:
             # Count public methods/functions
             total = 0
             for name, obj in inspect.getmembers(module):
-                if not name.startswith("_"):
-                    if inspect.isfunction(obj) or inspect.isclass(obj):
-                        total += 1
+                if not name.startswith("_") and (inspect.isfunction(obj) or inspect.isclass(obj)):
+                    total += 1
 
             # Rough estimate: assume each test covers 1-2 items
             covered = min(self.passed * 1.5, total)
 
             return (covered / total * 100) if total > 0 else 0
-        except:
+        except Exception:
             return 0
 
     def run_all_tests(self):

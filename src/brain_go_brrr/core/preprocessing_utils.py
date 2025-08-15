@@ -15,4 +15,4 @@ warnings.warn(
 )
 
 # TODO: Remove this shim in v2.0.0 (Q2 2025)
-from brain_go_brrr.domain.preprocessing.core_logic import *  # noqa: F401,F403
+from brain_go_brrr.domain.preprocessing.core_logic import *  # noqa: F403,E402
