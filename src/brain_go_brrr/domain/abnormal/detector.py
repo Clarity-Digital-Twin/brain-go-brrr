@@ -396,6 +396,7 @@ class CleanAbnormalityDetector:
         return {
             "is_abnormal": result.is_abnormal,
             "confidence": result.confidence,
+            "abnormality_score": 1.0 - result.confidence if result.is_abnormal else result.confidence,
             "triage_level": result.triage_level.value,
             "processing_time_ms": result.processing_time_ms,
         }
