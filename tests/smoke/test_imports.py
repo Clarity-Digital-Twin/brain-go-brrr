@@ -35,21 +35,22 @@ def test_preprocessing_imports():
     assert PreprocessingConfig is not None
     assert PreprocessingPipeline is not None
 
-    # Old deprecated path (should still work with warning)
-    # Note: The deprecation warning is emitted at module import time
-    # If the module was already imported, we won't see the warning again
+    # Test deprecated path with warning
+    import warnings
     import sys
-
-    if "brain_go_brrr.core.preprocessing" in sys.modules:
-        # Module already imported, can't test warning
-        pass
-    else:
-        with pytest.warns(
-            DeprecationWarning, match="brain_go_brrr.core.preprocessing is deprecated"
-        ):
-            from brain_go_brrr.core.preprocessing import PreprocessingConfig as OldConfig
-
-            assert OldConfig is PreprocessingConfig  # Same class
+    
+    # Remove the module if already imported to test warning
+    if "brain_go_brrr.core.preprocessing_utils" in sys.modules:
+        del sys.modules["brain_go_brrr.core.preprocessing_utils"]
+    
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        from brain_go_brrr.core import preprocessing_utils
+        
+        # Check that a deprecation warning was issued
+        assert len(w) >= 1
+        assert any(issubclass(warning.category, DeprecationWarning) for warning in w)
+        assert any("deprecated" in str(warning.message).lower() for warning in w)
 
 
 def test_core_job_models_imports():

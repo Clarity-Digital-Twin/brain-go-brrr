@@ -59,9 +59,10 @@ class EEGPTModelAdapter(EEGModelPort):
 class EEGPreprocessorAdapter(PreprocessorPort):
     """Adapter for EEG preprocessor to implement domain port."""
 
-    def __init__(self) -> None:
+    def __init__(self, use_autoreject: bool = False) -> None:
         """Initialize preprocessor adapter."""
-        self.preprocessor = EEGPreprocessor()
+        # Disable autoreject by default to avoid position requirement issues
+        self.preprocessor = EEGPreprocessor(use_autoreject=use_autoreject)
 
     def preprocess(
         self,

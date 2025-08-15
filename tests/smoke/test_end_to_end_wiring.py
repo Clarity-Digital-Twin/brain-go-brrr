@@ -8,22 +8,9 @@ import numpy as np
 import pytest
 
 
-def test_quality_controller_end_to_end_wiring():
+def test_quality_controller_end_to_end_wiring(synthetic_tuab_raw):
     """Test that QC controller is properly wired from factory to output."""
-    import mne
     from brain_go_brrr.application.factories import create_quality_controller
-    
-    # Create simple synthetic data without needing channel positions
-    sfreq = 256
-    n_channels = 19
-    duration = 10
-    n_samples = int(sfreq * duration)
-    
-    ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
-    data = np.random.randn(n_channels, n_samples).astype(np.float32) * 20e-6
-    
-    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
-    raw = mne.io.RawArray(data, info)
     
     # Create controller through factory (simulating production wiring)
     controller = create_quality_controller(
@@ -34,7 +21,7 @@ def test_quality_controller_end_to_end_wiring():
     )
     
     # Run full pipeline
-    result = controller.run_full_qc_pipeline(raw)
+    result = controller.run_full_qc_pipeline(synthetic_tuab_raw)
     
     # Verify we get a proper result structure
     assert isinstance(result, dict)
@@ -51,12 +38,12 @@ def test_quality_controller_end_to_end_wiring():
     
     # Verify data info
     data_info = result["data_info"]
-    assert data_info["n_channels"] == n_channels
-    assert data_info["sampling_rate"] == sfreq
+    assert data_info["n_channels"] == len(synthetic_tuab_raw.ch_names)
+    assert data_info["sampling_rate"] == synthetic_tuab_raw.info["sfreq"]
     assert data_info["duration"] > 0
 
 
-def test_abnormality_detector_end_to_end_wiring():
+def test_abnormality_detector_end_to_end_wiring(synthetic_tuab_raw):
     """Test that abnormality detector is properly wired from factory to output."""
     from brain_go_brrr.application.factories import create_abnormality_detector
     
@@ -67,11 +54,9 @@ def test_abnormality_detector_end_to_end_wiring():
         enable_logging=False
     )
     
-    # Create test data
-    test_data = np.random.randn(20, 2048).astype(np.float32) * 20e-6
-    
-    # Run detection
-    result = detector.detect_abnormality(test_data)
+    # Use proper MNE Raw object instead of numpy array
+    # Run detection (detect_abnormality doesn't take sampling_rate parameter)
+    result = detector.detect_abnormality(synthetic_tuab_raw)
     
     # Verify result structure
     assert isinstance(result, dict)
@@ -85,7 +70,7 @@ def test_abnormality_detector_end_to_end_wiring():
     assert 0 <= result["abnormality_score"] <= 1
 
 
-def test_feature_extractor_end_to_end_wiring():
+def test_feature_extractor_end_to_end_wiring(synthetic_tuab_raw):
     """Test that feature extractor is properly wired from factory to output."""
     from brain_go_brrr.application.factories import create_feature_extractor
     
@@ -98,11 +83,9 @@ def test_feature_extractor_end_to_end_wiring():
         enable_logging=False
     )
     
-    # Create test data (20 channels, 10 seconds at 256Hz)
-    test_data = np.random.randn(20, 2560).astype(np.float32) * 20e-6
-    
-    # Extract features
-    features = extractor.extract_features(test_data)
+    # Use proper MNE Raw object instead of numpy array
+    # Extract features (extract_features doesn't take sampling_rate parameter)
+    features = extractor.extract_features(synthetic_tuab_raw)
     
     # Verify features shape and type
     assert isinstance(features, np.ndarray)
@@ -140,7 +123,9 @@ def test_api_to_domain_integration(synthetic_tuab_raw, tmp_path):
 def test_api_endpoint_wiring(valid_edf_file):
     """Test that API endpoints are properly wired to use domain services."""
     from fastapi.testclient import TestClient
-    from brain_go_brrr.api.app import app
+    from brain_go_brrr.api.app import create_app
+    
+    app = create_app()
     
     client = TestClient(app)
     
@@ -151,7 +136,7 @@ def test_api_endpoint_wiring(valid_edf_file):
     # Test analyze endpoint structure (will fail without real model, but tests wiring)
     with open(valid_edf_file, "rb") as f:
         response = client.post(
-            "/eeg/analyze",
+            "/api/v1/eeg/analyze",
             files={"edf_file": ("test.edf", f, "application/octet-stream")}
         )
     
