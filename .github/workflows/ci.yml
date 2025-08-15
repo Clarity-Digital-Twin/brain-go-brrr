@@ -35,49 +35,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Install dependencies and build
-        run: |
-          uv sync
-          uv build
+      - name: Install dependencies
+        run: uv sync
 
-      - name: Install wheel (not editable)
-        run: |
-          # Install the built wheel to ensure proper package structure
-          uv pip install dist/*.whl
-
-      - name: Verify package contents
-        run: |
-          uv run python - <<'PY'
-          from importlib.metadata import distribution
-          d = distribution("brain-go-brrr")
-          files = {str(p) for p in (d.files or [])}
-
-          # Check if the package has the expected modules (allow both with and without src prefix)
-          needed_patterns = [
-              "brain_go_brrr/__init__.py",
-              "brain_go_brrr/core/__init__.py",
-              "brain_go_brrr/core/exceptions.py",
-              "brain_go_brrr/infra/__init__.py",
-              "brain_go_brrr/infra/data/__init__.py",
-              "brain_go_brrr/infra/data/edf_loader.py",
-          ]
-
-          found = []
-          for pattern in needed_patterns:
-              # Check both with and without src/ prefix
-              if pattern in files or f"src/{pattern}" in files:
-                  found.append(pattern)
-              else:
-                  print(f"❌ MISSING: {pattern}")
-
-          if len(found) != len(needed_patterns):
-              # Debug: show what IS there
-              infra_files = [f for f in files if "infra" in f]
-              print("Found infra files:", infra_files[:10])
-              raise SystemExit(1)
-
-          print("✅ Package contents OK - all required files present")
-          PY
+      - name: Install package in editable mode
+        run: uv pip install -e .
 
       - name: Import smoke test
         run: |
@@ -149,11 +111,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils fonts-dejavu-core
 
-      - name: Build and install wheel
-        run: |
-          uv sync --all-extras
-          uv build
-          uv pip install dist/*.whl
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Install package
+        run: uv pip install -e .
 
       - name: Run unit tests
         run: make test-unit
