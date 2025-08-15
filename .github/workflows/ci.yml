@@ -35,8 +35,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Build wheel
-        run: uv build
+      - name: Install dependencies and build
+        run: |
+          uv sync
+          uv build
 
       - name: Install wheel (not editable)
         run: |
@@ -139,6 +141,7 @@ jobs:
 
       - name: Build and install wheel
         run: |
+          uv sync --all-extras
           uv build
           uv pip install dist/*.whl
 
