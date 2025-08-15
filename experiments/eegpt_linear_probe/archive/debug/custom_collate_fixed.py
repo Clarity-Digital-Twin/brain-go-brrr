@@ -1,12 +1,13 @@
 """Simple collate function for cached TUAB dataset with consistent 20 channels."""
 
-
 import torch
 
 
-def collate_eeg_batch_fixed(batch: list[tuple[torch.Tensor, int]]) -> tuple[torch.Tensor, torch.Tensor]:
+def collate_eeg_batch_fixed(
+    batch: list[tuple[torch.Tensor, int]],
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Simple collate function for cached data with consistent 20 channels.
-    
+
     All cached samples have exactly 20 channels after preprocessing,
     so we just need to stack them into a batch.
     """

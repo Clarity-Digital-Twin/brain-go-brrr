@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class TUABMemoryMappedDatasetSafe(Dataset):
     """Ultra-fast dataset using memory-mapped numpy arrays - WSL SAFE.
-    
+
     This version is optimized for WSL and avoids multiprocessing issues.
     """
 
@@ -27,8 +27,7 @@ class TUABMemoryMappedDatasetSafe(Dataset):
 
         if not X_path.exists():
             raise FileNotFoundError(
-                f"Memory-mapped arrays not found at {X_path}\n"
-                f"Run: python build_mmap_cache.py"
+                f"Memory-mapped arrays not found at {X_path}\nRun: python build_mmap_cache.py"
             )
 
         # Store paths instead of opening memmaps in __init__
@@ -38,7 +37,7 @@ class TUABMemoryMappedDatasetSafe(Dataset):
 
         # Get dataset size without opening memmap
         # Load just the labels to get length (small file)
-        temp_y = np.memmap(y_path, dtype='int64', mode='r')
+        temp_y = np.memmap(y_path, dtype="int64", mode="r")
         self.length = len(temp_y)
         del temp_y  # Close immediately
 
@@ -53,15 +52,15 @@ class TUABMemoryMappedDatasetSafe(Dataset):
         logger.info("Using WSL-safe lazy loading strategy")
 
         # Detect if we're in WSL
-        if 'microsoft' in os.uname().release.lower():
+        if "microsoft" in os.uname().release.lower():
             logger.warning("WSL detected - use num_workers=0 for stability!")
 
     def _ensure_memmaps(self):
         """Lazily open memory maps (once per process)."""
         if self._X is None:
-            self._X = np.memmap(self.X_path, dtype='float32', mode='r')
+            self._X = np.memmap(self.X_path, dtype="float32", mode="r")
             self._X = self._X.reshape(self.length, *self.data_shape)
-            self._y = np.memmap(self.y_path, dtype='int64', mode='r')
+            self._y = np.memmap(self.y_path, dtype="int64", mode="r")
 
     def __len__(self):
         return self.length

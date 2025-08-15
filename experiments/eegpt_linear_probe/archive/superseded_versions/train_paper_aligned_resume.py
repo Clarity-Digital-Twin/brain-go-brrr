@@ -25,8 +25,7 @@ from src.brain_go_brrr.models.eegpt_model import EEGPTModel
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -43,22 +42,21 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 class LinearProbe(nn.Module):
     """Linear probe matching the original training structure."""
 
-    def __init__(self, input_dim=512, hidden_dim=128, n_classes=2, dropout=0.1, probe_type='linear'):
+    def __init__(
+        self, input_dim=512, hidden_dim=128, n_classes=2, dropout=0.1, probe_type="linear"
+    ):
         super().__init__()
 
-        if probe_type == 'linear':
+        if probe_type == "linear":
             # Single layer probe
-            self.probe = nn.Sequential(
-                nn.Dropout(dropout),
-                nn.Linear(input_dim, n_classes)
-            )
+            self.probe = nn.Sequential(nn.Dropout(dropout), nn.Linear(input_dim, n_classes))
         else:
             # Two-layer probe - THIS IS WHAT WAS USED!
             self.probe = nn.Sequential(
                 nn.Linear(input_dim, hidden_dim),
                 nn.ReLU(),
                 nn.Dropout(dropout),
-                nn.Linear(hidden_dim, n_classes)
+                nn.Linear(hidden_dim, n_classes),
             )
 
     def forward(self, x):
@@ -97,39 +95,33 @@ def create_dataloaders(config):
     from tuab_mmap_dataset_safe import TUABMemoryMappedDatasetSafe
 
     # Expand environment variables
-    cache_dir = Path(os.path.expandvars(config['data']['cache_dir']))
+    cache_dir = Path(os.path.expandvars(config["data"]["cache_dir"]))
 
     # Create datasets
-    train_dataset = TUABMemoryMappedDatasetSafe(
-        cache_dir=cache_dir,
-        split='train'
-    )
+    train_dataset = TUABMemoryMappedDatasetSafe(cache_dir=cache_dir, split="train")
 
     # Validation dataset
-    val_dataset = TUABMemoryMappedDatasetSafe(
-        cache_dir=cache_dir,
-        split='eval'
-    )
+    val_dataset = TUABMemoryMappedDatasetSafe(cache_dir=cache_dir, split="eval")
 
     # Create dataloaders - WSL SAFE with num_workers=0
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config['data']['batch_size'],
+        batch_size=config["data"]["batch_size"],
         shuffle=True,
         num_workers=0,  # CRITICAL FOR WSL!
         pin_memory=False,  # WSL stability
         persistent_workers=False,
-        collate_fn=collate_eeg_batch_fixed
+        collate_fn=collate_eeg_batch_fixed,
     )
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config['data']['batch_size'],
+        batch_size=config["data"]["batch_size"],
         shuffle=False,
         num_workers=0,  # CRITICAL FOR WSL!
         pin_memory=False,
         persistent_workers=False,
-        collate_fn=collate_eeg_batch_fixed
+        collate_fn=collate_eeg_batch_fixed,
     )
 
     return train_loader, val_loader
@@ -144,7 +136,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     all_preds = []
     all_labels = []
 
-    pbar = tqdm(train_loader, desc='Training')
+    pbar = tqdm(train_loader, desc="Training")
     for batch_idx, (data, labels) in enumerate(pbar):
         data = data.to(device)
         labels = labels.to(device)
@@ -162,7 +154,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         # Backward
         optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(probe.parameters(), config['training']['gradient_clip_val'])
+        torch.nn.utils.clip_grad_norm_(probe.parameters(), config["training"]["gradient_clip_val"])
         optimizer.step()
 
         # CRITICAL FIX: Step scheduler after EACH optimizer step (per-batch, not per-epoch!)
@@ -176,21 +168,19 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
         # Update progress bar with CURRENT learning rate (should change each batch)
         current_lr = scheduler.get_last_lr()[0]
-        pbar.set_postfix({'loss': f'{loss.item():.4f}', 'lr': f'{current_lr:.2e}'})
+        pbar.set_postfix({"loss": f"{loss.item():.4f}", "lr": f"{current_lr:.2e}"})
 
         # Log periodically with LR verification
-        if batch_idx % config['logging']['log_every_n_steps'] == 0:
-            logger.info(f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f} - LR: {current_lr:.2e}")
+        if batch_idx % config["logging"]["log_every_n_steps"] == 0:
+            logger.info(
+                f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f} - LR: {current_lr:.2e}"
+            )
 
     # Compute metrics
     auroc = roc_auc_score(all_labels, all_preds)
     bacc = balanced_accuracy_score(all_labels, np.array(all_preds) > 0.5)
 
-    return {
-        'loss': np.mean(losses),
-        'auroc': auroc,
-        'bacc': bacc
-    }
+    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}
 
 
 def validate(model, probe, val_loader, device):
@@ -203,7 +193,7 @@ def validate(model, probe, val_loader, device):
     all_labels = []
 
     with torch.no_grad():
-        pbar = tqdm(val_loader, desc='Validation')
+        pbar = tqdm(val_loader, desc="Validation")
         for data, labels in pbar:
             data = data.to(device)
             labels = labels.to(device)
@@ -227,20 +217,20 @@ def validate(model, probe, val_loader, device):
     auroc = roc_auc_score(all_labels, all_preds)
     bacc = balanced_accuracy_score(all_labels, np.array(all_preds) > 0.5)
 
-    return {
-        'loss': np.mean(losses),
-        'auroc': auroc,
-        'bacc': bacc
-    }
+    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}
 
 
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='configs/tuab_4s_wsl_safe.yaml')
-    parser.add_argument('--resume', type=str, default='output/tuab_4s_paper_target_20250806_132743/best_model.pt',
-                        help='Path to checkpoint to resume from')
-    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument("--config", type=str, default="configs/tuab_4s_wsl_safe.yaml")
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default="output/tuab_4s_paper_target_20250806_132743/best_model.pt",
+        help="Path to checkpoint to resume from",
+    )
+    parser.add_argument("--device", type=str, default="cuda")
     args = parser.parse_args()
 
     # Load config
@@ -248,16 +238,17 @@ def main():
         config = yaml.safe_load(f)
 
     # Set environment
-    os.environ['BGB_DATA_ROOT'] = os.environ.get('BGB_DATA_ROOT',
-        '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
+    os.environ["BGB_DATA_ROOT"] = os.environ.get(
+        "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+    )
 
     # Device
-    device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
     # Set seed
-    torch.manual_seed(config['experiment']['seed'])
-    np.random.seed(config['experiment']['seed'])
+    torch.manual_seed(config["experiment"]["seed"])
+    np.random.seed(config["experiment"]["seed"])
 
     # Create output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -265,30 +256,30 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save config
-    with open(output_dir / 'config.yaml', 'w') as f:
+    with open(output_dir / "config.yaml", "w") as f:
         yaml.dump(config, f)
 
     # Initialize model
     logger.info("Loading EEGPT backbone...")
-    checkpoint_path = Path(os.path.expandvars(config['model']['backbone']['checkpoint_path']))
+    checkpoint_path = Path(os.path.expandvars(config["model"]["backbone"]["checkpoint_path"]))
     model = EEGPTModel(checkpoint_path=checkpoint_path, device=device)
     # EEGPTModel doesn't have .eval() - it's already frozen
 
     # Initialize probe - matching the saved model structure
     probe = LinearProbe(
-        input_dim=config['model']['probe']['input_dim'],
-        hidden_dim=config['model']['probe']['hidden_dim'],
-        n_classes=config['model']['probe']['n_classes'],
-        dropout=config['model']['probe']['dropout'],
-        probe_type='two_layer'  # The saved model used two-layer probe!
+        input_dim=config["model"]["probe"]["input_dim"],
+        hidden_dim=config["model"]["probe"]["hidden_dim"],
+        n_classes=config["model"]["probe"]["n_classes"],
+        dropout=config["model"]["probe"]["dropout"],
+        probe_type="two_layer",  # The saved model used two-layer probe!
     )
     probe = probe.to(device)
 
     # Initialize optimizer
     optimizer = torch.optim.AdamW(
         probe.parameters(),
-        lr=config['training']['optimizer']['lr'],
-        weight_decay=config['training']['optimizer']['weight_decay']
+        lr=config["training"]["optimizer"]["lr"],
+        weight_decay=config["training"]["optimizer"]["weight_decay"],
     )
 
     # Create dataloaders
@@ -296,26 +287,34 @@ def main():
 
     # Initialize scheduler with CORRECT total steps and resume support
     steps_per_epoch = len(train_loader)
-    total_steps = steps_per_epoch * config['training']['max_epochs']
+    total_steps = steps_per_epoch * config["training"]["max_epochs"]
 
     # Calculate steps already completed if resuming
     steps_completed = start_epoch * steps_per_epoch if start_epoch > 0 else 0
 
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
-        max_lr=config['training']['scheduler']['max_lr'],
+        max_lr=config["training"]["scheduler"]["max_lr"],
         total_steps=total_steps,  # Total BATCH steps, not epoch steps!
-        pct_start=config['training']['scheduler']['pct_start'],
-        anneal_strategy=config['training']['scheduler']['anneal_strategy'],
-        div_factor=config['training']['scheduler']['div_factor'],
-        final_div_factor=config['training']['scheduler']['final_div_factor'],
-        last_epoch=steps_completed - 1 if steps_completed > 0 else -1  # Resume from correct position
+        pct_start=config["training"]["scheduler"]["pct_start"],
+        anneal_strategy=config["training"]["scheduler"]["anneal_strategy"],
+        div_factor=config["training"]["scheduler"]["div_factor"],
+        final_div_factor=config["training"]["scheduler"]["final_div_factor"],
+        last_epoch=steps_completed - 1
+        if steps_completed > 0
+        else -1,  # Resume from correct position
     )
 
-    logger.info(f"OneCycleLR initialized: {total_steps} total steps ({steps_per_epoch} steps/epoch * {config['training']['max_epochs']} epochs)")
+    logger.info(
+        f"OneCycleLR initialized: {total_steps} total steps ({steps_per_epoch} steps/epoch * {config['training']['max_epochs']} epochs)"
+    )
     if steps_completed > 0:
-        logger.info(f"Resuming from step {steps_completed} / {total_steps} ({steps_completed/total_steps*100:.1f}% complete)")
-    logger.info(f"LR schedule: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['div_factor']:.6f} → {config['training']['scheduler']['max_lr']:.6f} → {config['training']['scheduler']['max_lr']/config['training']['scheduler']['final_div_factor']:.6f}")
+        logger.info(
+            f"Resuming from step {steps_completed} / {total_steps} ({steps_completed / total_steps * 100:.1f}% complete)"
+        )
+    logger.info(
+        f"LR schedule: {config['training']['scheduler']['max_lr'] / config['training']['scheduler']['div_factor']:.6f} → {config['training']['scheduler']['max_lr']:.6f} → {config['training']['scheduler']['max_lr'] / config['training']['scheduler']['final_div_factor']:.6f}"
+    )
 
     # 🚀 RESUME LOGIC - THE MAGIC HAPPENS HERE!
     start_epoch = 0
@@ -326,90 +325,104 @@ def main():
         checkpoint = torch.load(args.resume, map_location=device)
 
         # Load probe weights
-        probe.load_state_dict(checkpoint['probe_state_dict'])
+        probe.load_state_dict(checkpoint["probe_state_dict"])
         logger.info("✅ Loaded probe weights")
 
         # Load optimizer state
-        if 'optimizer_state_dict' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if "optimizer_state_dict" in checkpoint:
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
             logger.info("✅ Loaded optimizer state")
 
         # Load scheduler state (might need to adjust)
-        if 'scheduler_state_dict' in checkpoint:
+        if "scheduler_state_dict" in checkpoint:
             try:
-                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
                 logger.info("✅ Loaded scheduler state")
             except:
                 logger.warning("⚠️ Could not load scheduler state, starting fresh")
 
         # Set starting epoch (checkpoint has epoch 15, so we start at 16)
-        start_epoch = checkpoint['epoch'] + 1
-        best_auroc = checkpoint.get('val_auroc', 0.0)
+        start_epoch = checkpoint["epoch"] + 1
+        best_auroc = checkpoint.get("val_auroc", 0.0)
 
         logger.info(f"🎯 RESUMING FROM EPOCH {start_epoch}")
         logger.info(f"📊 Best AUROC so far: {best_auroc:.4f}")
         logger.info(f"🎯 Target AUROC: {config['target_metrics']['auroc']}")
-        logger.info(f"📈 Progress: {best_auroc/config['target_metrics']['auroc']*100:.1f}% of target")
+        logger.info(
+            f"📈 Progress: {best_auroc / config['target_metrics']['auroc'] * 100:.1f}% of target"
+        )
 
     # Training loop
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     logger.info(f"🚀 STARTING TRAINING FROM EPOCH {start_epoch}")
-    logger.info(f"{'='*60}\n")
+    logger.info(f"{'=' * 60}\n")
 
     patience_counter = 0
 
-    for epoch in range(start_epoch, config['training']['max_epochs']):
-        logger.info(f"\nEpoch {epoch+1}/{config['training']['max_epochs']}")
+    for epoch in range(start_epoch, config["training"]["max_epochs"]):
+        logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
         # Train
-        train_metrics = train_epoch(model, probe, train_loader, optimizer, scheduler, device, config)
-        logger.info(f"Train - Loss: {train_metrics['loss']:.4f}, "
-                   f"AUROC: {train_metrics['auroc']:.4f}, "
-                   f"BACC: {train_metrics['bacc']:.4f}")
+        train_metrics = train_epoch(
+            model, probe, train_loader, optimizer, scheduler, device, config
+        )
+        logger.info(
+            f"Train - Loss: {train_metrics['loss']:.4f}, "
+            f"AUROC: {train_metrics['auroc']:.4f}, "
+            f"BACC: {train_metrics['bacc']:.4f}"
+        )
 
         # Validate every epoch
-        if (epoch + 1) % config['training']['val_check_interval'] == 0:
+        if (epoch + 1) % config["training"]["val_check_interval"] == 0:
             val_metrics = validate(model, probe, val_loader, device)
-            logger.info(f"Val - Loss: {val_metrics['loss']:.4f}, "
-                       f"AUROC: {val_metrics['auroc']:.4f}, "
-                       f"BACC: {val_metrics['bacc']:.4f}")
+            logger.info(
+                f"Val - Loss: {val_metrics['loss']:.4f}, "
+                f"AUROC: {val_metrics['auroc']:.4f}, "
+                f"BACC: {val_metrics['bacc']:.4f}"
+            )
 
             # Save best model
-            if val_metrics['auroc'] > best_auroc:
-                best_auroc = val_metrics['auroc']
+            if val_metrics["auroc"] > best_auroc:
+                best_auroc = val_metrics["auroc"]
                 checkpoint = {
-                    'epoch': epoch,
-                    'probe_state_dict': probe.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
-                    'val_auroc': val_metrics['auroc'],
-                    'val_bacc': val_metrics['bacc'],
-                    'config': config
+                    "epoch": epoch,
+                    "probe_state_dict": probe.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "val_auroc": val_metrics["auroc"],
+                    "val_bacc": val_metrics["bacc"],
+                    "config": config,
                 }
-                torch.save(checkpoint, output_dir / 'best_model.pt')
+                torch.save(checkpoint, output_dir / "best_model.pt")
                 logger.info(f"🎉 Saved best model with AUROC: {best_auroc:.4f}")
-                logger.info(f"📈 Progress: {best_auroc/config['target_metrics']['auroc']*100:.1f}% of target")
+                logger.info(
+                    f"📈 Progress: {best_auroc / config['target_metrics']['auroc'] * 100:.1f}% of target"
+                )
                 patience_counter = 0
             else:
                 patience_counter += 1
 
             # Early stopping
-            if patience_counter >= config['training']['early_stopping']['patience']:
-                logger.info(f"Early stopping triggered after {patience_counter} epochs without improvement")
+            if patience_counter >= config["training"]["early_stopping"]["patience"]:
+                logger.info(
+                    f"Early stopping triggered after {patience_counter} epochs without improvement"
+                )
                 break
 
             # Check if we hit target
-            if best_auroc >= config['target_metrics']['auroc']:
-                logger.info(f"🎊 TARGET REACHED! AUROC: {best_auroc:.4f} >= {config['target_metrics']['auroc']}")
+            if best_auroc >= config["target_metrics"]["auroc"]:
+                logger.info(
+                    f"🎊 TARGET REACHED! AUROC: {best_auroc:.4f} >= {config['target_metrics']['auroc']}"
+                )
                 break
 
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     logger.info("🏁 TRAINING COMPLETE!")
     logger.info(f"Best Val AUROC: {best_auroc:.4f}")
     logger.info(f"Target AUROC: {config['target_metrics']['auroc']}")
-    logger.info(f"Final Progress: {best_auroc/config['target_metrics']['auroc']*100:.1f}%")
+    logger.info(f"Final Progress: {best_auroc / config['target_metrics']['auroc'] * 100:.1f}%")
     logger.info(f"Model saved at: {output_dir / 'best_model.pt'}")
-    logger.info(f"{'='*60}\n")
+    logger.info(f"{'=' * 60}\n")
 
 
 if __name__ == "__main__":

@@ -9,12 +9,14 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-print("="*60)
+print("=" * 60)
 print("CONVERTING CACHE TO MEMORY-MAPPED ARRAYS")
 print("This will take ~30 minutes but then training will be FAST")
-print("="*60)
+print("=" * 60)
 
-data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
+data_root = os.environ.get(
+    "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+)
 cache_dir = Path(data_root) / "cache" / "tuab_4s_final"
 
 # Load index
@@ -23,7 +25,7 @@ with open(index_path) as f:
     index = json.load(f)
 
 # Process each split
-for split in ['train', 'eval']:
+for split in ["train", "eval"]:
     print(f"\nProcessing {split} split...")
 
     # Count windows first
@@ -47,8 +49,8 @@ for split in ['train', 'eval']:
     print(f"  y: {y_path} - shape {y_shape}")
 
     # Create arrays
-    X_mmap = np.memmap(X_path, dtype='float32', mode='w+', shape=X_shape)
-    y_mmap = np.memmap(y_path, dtype='int64', mode='w+', shape=y_shape)
+    X_mmap = np.memmap(X_path, dtype="float32", mode="w+", shape=X_shape)
+    y_mmap = np.memmap(y_path, dtype="int64", mode="w+", shape=y_shape)
 
     # Fill arrays
     idx = 0
@@ -58,8 +60,8 @@ for split in ['train', 'eval']:
             data = torch.load(cache_file, weights_only=True)
 
             n_windows = data["x"].shape[0]
-            X_mmap[idx:idx+n_windows] = data["x"].numpy()
-            y_mmap[idx:idx+n_windows] = data["y"].numpy()
+            X_mmap[idx : idx + n_windows] = data["x"].numpy()
+            y_mmap[idx : idx + n_windows] = data["y"].numpy()
             idx += n_windows
 
     # Flush to disk
@@ -68,7 +70,7 @@ for split in ['train', 'eval']:
 
     print(f"✓ {split} arrays saved!")
 
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("CONVERSION COMPLETE!")
 print("Arrays ready for fast memory-mapped training")
-print("="*60)
+print("=" * 60)

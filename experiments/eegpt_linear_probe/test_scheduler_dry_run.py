@@ -1,6 +1,5 @@
 """Dry run test to verify OneCycleLR scheduler is working correctly."""
 
-
 import matplotlib.pyplot as plt
 import torch
 import yaml
@@ -14,15 +13,16 @@ def test_scheduler(config_path="configs/tuab_4s_paper_aligned.yaml"):
         config = yaml.safe_load(f)
 
     # Simulate training parameters
-    batch_size = config['data']['batch_size']
-    max_epochs = config['training']['max_epochs']
-    accum_steps = config['training'].get('gradient_accumulation_steps', 1)
+    batch_size = config["data"]["batch_size"]
+    max_epochs = config["training"]["max_epochs"]
+    accum_steps = config["training"].get("gradient_accumulation_steps", 1)
 
     # Assume we have ~2900 batches per epoch (TUAB train set)
     batches_per_epoch = 2914  # Approximate from TUAB dataset
 
     # Calculate total OPTIMIZER steps (not batch steps)
     import math
+
     steps_per_epoch = math.ceil(batches_per_epoch / accum_steps)
     total_steps = steps_per_epoch * max_epochs
 
@@ -41,32 +41,34 @@ def test_scheduler(config_path="configs/tuab_4s_paper_aligned.yaml"):
     # Create scheduler
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=config['training']['scheduler']['max_lr'],
+        max_lr=config["training"]["scheduler"]["max_lr"],
         total_steps=total_steps,
-        pct_start=config['training']['scheduler']['pct_start'],
-        anneal_strategy=config['training']['scheduler']['anneal_strategy'],
-        div_factor=config['training']['scheduler']['div_factor'],
-        final_div_factor=config['training']['scheduler']['final_div_factor']
+        pct_start=config["training"]["scheduler"]["pct_start"],
+        anneal_strategy=config["training"]["scheduler"]["anneal_strategy"],
+        div_factor=config["training"]["scheduler"]["div_factor"],
+        final_div_factor=config["training"]["scheduler"]["final_div_factor"],
     )
 
     # Expected LR values
-    max_lr = config['training']['scheduler']['max_lr']
-    initial_lr = max_lr / config['training']['scheduler']['div_factor']
-    final_lr = max_lr / config['training']['scheduler']['final_div_factor']
-    warmup_steps = int(total_steps * config['training']['scheduler']['pct_start'])
+    max_lr = config["training"]["scheduler"]["max_lr"]
+    initial_lr = max_lr / config["training"]["scheduler"]["div_factor"]
+    final_lr = max_lr / config["training"]["scheduler"]["final_div_factor"]
+    warmup_steps = int(total_steps * config["training"]["scheduler"]["pct_start"])
 
     print("Expected Learning Rate Schedule:")
     print(f"  Initial LR: {initial_lr:.6f}")
     print(f"  Max LR: {max_lr:.6f}")
     print(f"  Final LR: {final_lr:.6f}")
-    print(f"  Warmup steps: {warmup_steps} ({config['training']['scheduler']['pct_start']*100:.1f}% of training)")
+    print(
+        f"  Warmup steps: {warmup_steps} ({config['training']['scheduler']['pct_start'] * 100:.1f}% of training)"
+    )
     print()
 
     # Simulate training
     lrs = []
     for step in range(total_steps):
         # Dummy forward/backward
-        loss = (dummy_param ** 2).sum()
+        loss = (dummy_param**2).sum()
         loss.backward()
 
         # Optimizer step
@@ -77,7 +79,7 @@ def test_scheduler(config_path="configs/tuab_4s_paper_aligned.yaml"):
         scheduler.step()
 
         # Record LR
-        current_lr = optimizer.param_groups[0]['lr']
+        current_lr = optimizer.param_groups[0]["lr"]
         lrs.append(current_lr)
 
         # Log key points
@@ -125,25 +127,25 @@ def test_scheduler(config_path="configs/tuab_4s_paper_aligned.yaml"):
 
     plt.subplot(1, 2, 1)
     plt.plot(lrs)
-    plt.axvline(warmup_steps, color='r', linestyle='--', label='End of warmup')
-    plt.axhline(max_lr, color='g', linestyle='--', alpha=0.5, label=f'Max LR ({max_lr:.4f})')
-    plt.xlabel('Optimizer Step')
-    plt.ylabel('Learning Rate')
-    plt.title('OneCycleLR Schedule')
+    plt.axvline(warmup_steps, color="r", linestyle="--", label="End of warmup")
+    plt.axhline(max_lr, color="g", linestyle="--", alpha=0.5, label=f"Max LR ({max_lr:.4f})")
+    plt.xlabel("Optimizer Step")
+    plt.ylabel("Learning Rate")
+    plt.title("OneCycleLR Schedule")
     plt.legend()
     plt.grid(True, alpha=0.3)
 
     plt.subplot(1, 2, 2)
     plt.semilogy(lrs)
-    plt.axvline(warmup_steps, color='r', linestyle='--', label='End of warmup')
-    plt.xlabel('Optimizer Step')
-    plt.ylabel('Learning Rate (log scale)')
-    plt.title('OneCycleLR Schedule (Log Scale)')
+    plt.axvline(warmup_steps, color="r", linestyle="--", label="End of warmup")
+    plt.xlabel("Optimizer Step")
+    plt.ylabel("Learning Rate (log scale)")
+    plt.title("OneCycleLR Schedule (Log Scale)")
     plt.legend()
     plt.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig('scheduler_test.png', dpi=100)
+    plt.savefig("scheduler_test.png", dpi=100)
     print("\n📊 Schedule plot saved to scheduler_test.png")
 
     # Test resume functionality
@@ -158,17 +160,17 @@ def test_scheduler(config_path="configs/tuab_4s_paper_aligned.yaml"):
         optimizer2,
         max_lr=max_lr,
         total_steps=total_steps,
-        pct_start=config['training']['scheduler']['pct_start'],
-        anneal_strategy=config['training']['scheduler']['anneal_strategy'],
-        div_factor=config['training']['scheduler']['div_factor'],
-        final_div_factor=config['training']['scheduler']['final_div_factor'],
-        last_epoch=resume_step - 1  # Resume from this step
+        pct_start=config["training"]["scheduler"]["pct_start"],
+        anneal_strategy=config["training"]["scheduler"]["anneal_strategy"],
+        div_factor=config["training"]["scheduler"]["div_factor"],
+        final_div_factor=config["training"]["scheduler"]["final_div_factor"],
+        last_epoch=resume_step - 1,  # Resume from this step
     )
 
     # Step once and check LR
     optimizer2.step()
     scheduler2.step()
-    resumed_lr = optimizer2.param_groups[0]['lr']
+    resumed_lr = optimizer2.param_groups[0]["lr"]
     expected_lr = lrs[resume_step]
 
     if abs(resumed_lr - expected_lr) < 0.0001:
@@ -184,14 +186,14 @@ if __name__ == "__main__":
 
     config_path = sys.argv[1] if len(sys.argv) > 1 else "configs/tuab_4s_paper_aligned.yaml"
 
-    print("="*60)
+    print("=" * 60)
     print("OneCycleLR Scheduler Test")
-    print("="*60)
+    print("=" * 60)
     print()
 
     lrs = test_scheduler(config_path)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Test Complete!")
     print("If all checks passed, the scheduler is working correctly.")
-    print("="*60)
+    print("=" * 60)

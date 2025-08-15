@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 import mne
 import numpy as np
@@ -41,7 +41,7 @@ def run_sleep_analysis_demo():
     print("\n2. Initializing YASA sleep stager...")
     config = YASAConfig(
         use_consensus=True,  # Use multiple models for better accuracy
-        min_confidence=0.5
+        min_confidence=0.5,
     )
     stager = YASASleepStager(config)
 
@@ -50,7 +50,7 @@ def run_sleep_analysis_demo():
     print("\n3. Running sleep staging...")
 
     # Get 5 minutes of data for quick demo
-    sfreq = raw.info['sfreq']
+    sfreq = raw.info["sfreq"]
     five_minutes = int(5 * 60 * sfreq)
 
     # Extract data
@@ -63,7 +63,7 @@ def run_sleep_analysis_demo():
             data,
             sfreq,
             ch_names,
-            epoch_duration=30  # 30-second epochs
+            epoch_duration=30,  # 30-second epochs
         )
 
         print("\n✅ SLEEP STAGING SUCCESSFUL!")
@@ -75,8 +75,8 @@ def run_sleep_analysis_demo():
         print(f"Mean confidence: {metrics['mean_confidence']:.2%}")
 
         print("\nSleep Stage Distribution:")
-        for stage, count in metrics['stage_counts'].items():
-            percentage = metrics['stage_percentages'][stage]
+        for stage, count in metrics["stage_counts"].items():
+            percentage = metrics["stage_percentages"][stage]
             print(f"  {stage:3s}: {count:3d} epochs ({percentage:5.1f}%)")
 
         print(f"\nSleep Efficiency: {metrics['sleep_efficiency']:.1f}%")
@@ -84,7 +84,7 @@ def run_sleep_analysis_demo():
         # Show first 10 epochs
         print("\nFirst 10 epochs (30s each):")
         for i in range(min(10, len(stages))):
-            print(f"  Epoch {i+1:2d}: {stages[i]:3s} (confidence: {confidences[i]:.2%})")
+            print(f"  Epoch {i + 1:2d}: {stages[i]:3s} (confidence: {confidences[i]:.2%})")
 
     except Exception as e:
         print(f"\n⚠️ Note: {e}")
@@ -95,15 +95,12 @@ def run_sleep_analysis_demo():
         print("\n4. Trying with channel-agnostic approach...")
 
         # Use just the first EEG channel
-        if 'EEG' in ch_names[0] or 'Fpz' in ch_names[0]:
+        if "EEG" in ch_names[0] or "Fpz" in ch_names[0]:
             single_channel_data = data[0:1, :]  # Just first channel
 
             try:
                 stages, confidences, metrics = stager.stage_sleep(
-                    single_channel_data,
-                    sfreq,
-                    [ch_names[0]],
-                    epoch_duration=30
+                    single_channel_data, sfreq, [ch_names[0]], epoch_duration=30
                 )
 
                 print("\n✅ Single-channel staging worked!")
@@ -126,6 +123,7 @@ def run_sleep_analysis_demo():
     print("✅ Each epoch gets a confidence score")
     print("✅ We calculate sleep metrics (efficiency, stage %, etc.)")
     print("\n📊 This is REAL clinical sleep staging, not hallucinated!")
+
 
 if __name__ == "__main__":
     run_sleep_analysis_demo()

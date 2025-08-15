@@ -3,7 +3,7 @@
 
 import sys
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 # Import the exceptions
 from brain_go_brrr.core.exceptions import (
@@ -48,18 +48,25 @@ print("\nNow testing if we can get coverage...")
 import subprocess
 
 result = subprocess.run(
-    ["uv", "run", "python", "-m", "coverage", "run", "--source=src/brain_go_brrr/core/exceptions", __file__],
+    [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "coverage",
+        "run",
+        "--source=src/brain_go_brrr/core/exceptions",
+        __file__,
+    ],
     capture_output=True,
     text=True,
-    timeout=5
+    timeout=5,
 )
 
 if result.returncode == 0:
     # Get coverage report
     report = subprocess.run(
-        ["uv", "run", "python", "-m", "coverage", "report"],
-        capture_output=True,
-        text=True
+        ["uv", "run", "python", "-m", "coverage", "report"], capture_output=True, text=True
     )
     print("\nCoverage report:")
     print(report.stdout)

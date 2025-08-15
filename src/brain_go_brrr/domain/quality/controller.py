@@ -40,12 +40,14 @@ class AutoRejectPort(Protocol):
 # Null implementations for tests
 class _NullPreprocessor:
     """Null preprocessor for tests."""
+
     def preprocess(self, raw: Any, **kwargs: Any) -> Any:
         _ = kwargs  # Mark as used
         return raw
 
     def transform_to_array(self, raw: Any) -> Any:
         return raw.get_data()
+
 
 class CleanQualityController:
     """Clean Architecture Quality Controller using dependency injection.
@@ -105,6 +107,7 @@ class CleanQualityController:
         if model is None and eegpt_model_path is not None:
             # Import here to avoid circular dependency
             from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+
             try:
                 model = EEGPTModel(eegpt_model_path)  # type: ignore[assignment]
                 self.model = model

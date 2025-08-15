@@ -38,15 +38,15 @@ def test_preprocessing_imports():
     # Test deprecated path with warning
     import warnings
     import sys
-    
+
     # Remove the module if already imported to test warning
     if "brain_go_brrr.core.preprocessing_utils" in sys.modules:
         del sys.modules["brain_go_brrr.core.preprocessing_utils"]
-    
+
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         from brain_go_brrr.core import preprocessing_utils
-        
+
         # Check that a deprecation warning was issued
         assert len(w) >= 1
         assert any(issubclass(warning.category, DeprecationWarning) for warning in w)

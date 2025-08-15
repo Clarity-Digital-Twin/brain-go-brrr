@@ -34,7 +34,9 @@ def get_coverage():
 
     # Run tests with coverage
     cmd = [
-        sys.executable, "-m", "pytest",
+        sys.executable,
+        "-m",
+        "pytest",
         *existing,
         "--no-cov",  # Disable default coverage
         "--cov=src/brain_go_brrr",  # Add our coverage
@@ -42,7 +44,8 @@ def get_coverage():
         "--cov-report=",
         "-q",
         "--tb=no",
-        "-o", "addopts=''",  # Override pytest.ini
+        "-o",
+        "addopts=''",  # Override pytest.ini
         "--timeout=30",
     ]
 
@@ -66,6 +69,7 @@ def get_coverage():
 
     print("\n❌ Could not determine coverage percentage")
     print("Raw output:", result.stdout[-500:] if result.stdout else "No output")
+
 
 if __name__ == "__main__":
     get_coverage()

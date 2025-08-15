@@ -10,17 +10,15 @@ def fix_hparams():
     content = file_path.read_text()
 
     # 1. Add TypedDict import
-    content = content.replace(
-        "from typing import Any",
-        "from typing import Any, TypedDict"
-    )
+    content = content.replace("from typing import Any", "from typing import Any, TypedDict")
 
     # 2. Add HParams TypedDict definition after logger
     logger_line = "logger = logging.getLogger(__name__)"
     if logger_line in content:
         content = content.replace(
             logger_line,
-            logger_line + """
+            logger_line
+            + """
 
 
 class HParams(TypedDict, total=False):
@@ -32,7 +30,7 @@ class HParams(TypedDict, total=False):
     total_epochs: int
     layer_decay: float
     batch_size: int
-    max_epochs: int"""
+    max_epochs: int""",
         )
 
     # 3. Add hparams type annotation to class
@@ -40,7 +38,7 @@ class HParams(TypedDict, total=False):
         "class EnhancedAbnormalityTask(pl.LightningModule):",
         """class EnhancedAbnormalityTask(pl.LightningModule):
     hparams: HParams  # Properly typed hyperparameters
-"""
+""",
     )
 
     # 4. Fix all hparams access to use .get() for safety
@@ -59,12 +57,13 @@ class HParams(TypedDict, total=False):
     # 5. Fix configure_optimizers return type
     content = content.replace(
         "def configure_optimizers(self) -> Any:",
-        "def configure_optimizers(self) -> dict[str, Any] | list[Any] | Any:"
+        "def configure_optimizers(self) -> dict[str, Any] | list[Any] | Any:",
     )
 
     # Write back
     file_path.write_text(content)
     print("✅ Fixed Lightning hparams with TypedDict")
+
 
 if __name__ == "__main__":
     fix_hparams()

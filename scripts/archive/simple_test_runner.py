@@ -6,7 +6,8 @@ import inspect
 import sys
 from pathlib import Path
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
+
 
 class SimpleTestRunner:
     """Run tests without pytest hanging issues."""
@@ -34,7 +35,8 @@ class SimpleTestRunner:
 
         # Find test classes
         test_classes = [
-            obj for name, obj in inspect.getmembers(module)
+            obj
+            for name, obj in inspect.getmembers(module)
             if inspect.isclass(obj) and name.startswith("Test")
         ]
 
@@ -52,7 +54,8 @@ class SimpleTestRunner:
 
             # Find test methods
             test_methods = [
-                method for method in dir(instance)
+                method
+                for method in dir(instance)
                 if method.startswith("test_") and callable(getattr(instance, method))
             ]
 
@@ -137,6 +140,7 @@ class SimpleTestRunner:
             print(f"  {module}: ~{cov:.0f}%")
 
         return self.failed == 0
+
 
 if __name__ == "__main__":
     runner = SimpleTestRunner()

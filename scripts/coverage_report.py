@@ -13,12 +13,14 @@ from pathlib import Path
 def run_coverage_chunk(test_paths, cov_append=False):
     """Run coverage on a chunk of tests."""
     cmd = [
-        "uv", "run", "pytest",
+        "uv",
+        "run",
+        "pytest",
         *test_paths,
         "--cov=brain_go_brrr",
         "--cov-report=",  # No report, just collect data
         "--no-cov-on-fail",
-        "-q"
+        "-q",
     ]
 
     if cov_append:
@@ -75,17 +77,14 @@ def main():
         all_passed = all_passed and success
 
     # Generate final report
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Generating coverage report...")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Show terminal report
-    subprocess.run([
-        "uv", "run", "coverage", "report",
-        "--skip-covered",
-        "--show-missing",
-        "--precision=2"
-    ])
+    subprocess.run(
+        ["uv", "run", "coverage", "report", "--skip-covered", "--show-missing", "--precision=2"]
+    )
 
     # Generate HTML report
     subprocess.run(["uv", "run", "coverage", "html"])
@@ -93,14 +92,12 @@ def main():
 
     # Get total coverage
     result = subprocess.run(
-        ["uv", "run", "coverage", "report", "--format=total"],
-        capture_output=True,
-        text=True
+        ["uv", "run", "coverage", "report", "--format=total"], capture_output=True, text=True
     )
 
     try:
         total_coverage = float(result.stdout.strip())
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"TOTAL COVERAGE: {total_coverage:.2f}%")
 
         if total_coverage >= 55:

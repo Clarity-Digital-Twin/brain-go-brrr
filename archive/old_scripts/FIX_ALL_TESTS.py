@@ -11,8 +11,9 @@ TEST_FIXES = {
     "tests/unit/test_edf_loader.py": "FIX - Minor assertion fixes needed",
     "tests/unit/test_models_eegpt_model.py": "SKIP - Config API changed",
     "tests/unit/test_api_schemas.py": "SKIP - Schema API changed",
-    "tests/benchmarks/": "SKIP - Benchmark tests should be optional"
+    "tests/benchmarks/": "SKIP - Benchmark tests should be optional",
 }
+
 
 def add_skip_marker(file_path, reason):
     """Add pytest skip marker to file."""
@@ -20,16 +21,17 @@ def add_skip_marker(file_path, reason):
 
     if "pytestmark = pytest.mark.skip" not in content:
         # Add skip marker after imports
-        lines = content.split('\n')
+        lines = content.split("\n")
         import_end = 0
         for i, line in enumerate(lines):
-            if line and not line.startswith('import') and not line.startswith('from'):
+            if line and not line.startswith("import") and not line.startswith("from"):
                 import_end = i
                 break
 
         lines.insert(import_end, f'\npytestmark = pytest.mark.skip(reason="{reason}")\n')
-        file_path.write_text('\n'.join(lines))
+        file_path.write_text("\n".join(lines))
         print(f"✓ Skipped {file_path.name}: {reason}")
+
 
 def fix_assertion(file_path):
     """Fix simple assertion issues."""
@@ -38,11 +40,12 @@ def fix_assertion(file_path):
     # Fix "File not found" assertion
     content = content.replace(
         'assert "File not found" in str(exc_info.value)',
-        'assert "not found" in str(exc_info.value).lower()'
+        'assert "not found" in str(exc_info.value).lower()',
     )
 
     file_path.write_text(content)
     print(f"✓ Fixed assertions in {file_path.name}")
+
 
 def main():
     """Fix all test issues."""
@@ -71,6 +74,7 @@ def main():
 
     print("\n✅ All problematic tests marked for skip/fix")
     print("Run 'make test' to verify")
+
 
 if __name__ == "__main__":
     main()

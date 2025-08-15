@@ -6,7 +6,9 @@ from pathlib import Path
 
 print("=== DETAILED MODEL INSPECTION ===\n")
 
-model_path = Path("experiments/eegpt_linear_probe/output/tuab_4s_paper_target_BULLETPROOF_20250809_073159/best_model.pt")
+model_path = Path(
+    "experiments/eegpt_linear_probe/output/tuab_4s_paper_target_BULLETPROOF_20250809_073159/best_model.pt"
+)
 
 checkpoint = torch.load(model_path, map_location="cpu", weights_only=False)
 
@@ -22,15 +24,19 @@ if "probe_state_dict" in checkpoint:
     print(f"  Number of layers: {len(probe_dict)}")
     for key, tensor in probe_dict.items():
         print(f"  - {key}: {tensor.shape}")
-        
+
 print("\nConfiguration:")
 if "config" in checkpoint:
     config = checkpoint["config"]
     if isinstance(config, dict):
         print(f"  - Model type: {config.get('model', {}).get('probe', {}).get('type', 'N/A')}")
         print(f"  - Input dim: {config.get('model', {}).get('probe', {}).get('input_dim', 'N/A')}")
-        print(f"  - Hidden dim: {config.get('model', {}).get('probe', {}).get('hidden_dim', 'N/A')}")
-        print(f"  - Output classes: {config.get('model', {}).get('probe', {}).get('n_classes', 'N/A')}")
+        print(
+            f"  - Hidden dim: {config.get('model', {}).get('probe', {}).get('hidden_dim', 'N/A')}"
+        )
+        print(
+            f"  - Output classes: {config.get('model', {}).get('probe', {}).get('n_classes', 'N/A')}"
+        )
         print(f"  - Dropout: {config.get('model', {}).get('probe', {}).get('dropout', 'N/A')}")
         print(f"  - Target AUROC: {config.get('target_metrics', {}).get('auroc', 'N/A')}")
 

@@ -4,7 +4,7 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, 'src')
+sys.path.insert(0, "src")
 
 import mne
 import numpy as np
@@ -42,7 +42,7 @@ def generate_full_sleep_report():
 
     # Process first 8 hours (typical sleep duration)
     print("\n🌙 ANALYZING 8-HOUR SLEEP PERIOD...")
-    sfreq = raw.info['sfreq']
+    sfreq = raw.info["sfreq"]
     eight_hours = int(8 * 3600 * sfreq)  # 8 hours in samples
 
     # Extract data
@@ -50,9 +50,7 @@ def generate_full_sleep_report():
     ch_names = raw.ch_names
 
     # Run sleep staging
-    stages, confidences, metrics = stager.stage_sleep(
-        data, sfreq, ch_names, epoch_duration=30
-    )
+    stages, confidences, metrics = stager.stage_sleep(data, sfreq, ch_names, epoch_duration=30)
 
     print("\n" + "=" * 80)
     print("SLEEP ARCHITECTURE ANALYSIS")
@@ -73,29 +71,25 @@ def generate_full_sleep_report():
     print("  Stage | Epochs | Duration | Percentage | Normal Range")
     print("  " + "-" * 50)
 
-    normal_ranges = {
-        'W': (5, 15),
-        'N1': (5, 10),
-        'N2': (45, 55),
-        'N3': (15, 25),
-        'REM': (20, 25)
-    }
+    normal_ranges = {"W": (5, 15), "N1": (5, 10), "N2": (45, 55), "N3": (15, 25), "REM": (20, 25)}
 
-    for stage in ['W', 'N1', 'N2', 'N3', 'REM']:
-        count = metrics['stage_counts'][stage]
-        percentage = metrics['stage_percentages'][stage]
+    for stage in ["W", "N1", "N2", "N3", "REM"]:
+        count = metrics["stage_counts"][stage]
+        percentage = metrics["stage_percentages"][stage]
         duration_min = count * 0.5  # 30s epochs = 0.5 min
         normal_min, normal_max = normal_ranges[stage]
 
         # Check if within normal range
         status = "✓" if normal_min <= percentage <= normal_max else "⚠"
 
-        print(f"  {stage:3s}  | {count:6d} | {duration_min:7.1f}m | {percentage:9.1f}% | {normal_min}-{normal_max}% {status}")
+        print(
+            f"  {stage:3s}  | {count:6d} | {duration_min:7.1f}m | {percentage:9.1f}% | {normal_min}-{normal_max}% {status}"
+        )
 
     # Sleep cycles
     print("\n🔄 SLEEP CYCLES:")
     # Simplified cycle detection (normally more complex)
-    rem_epochs = [i for i, s in enumerate(stages) if s == 'REM']
+    rem_epochs = [i for i, s in enumerate(stages) if s == "REM"]
     if rem_epochs:
         # Estimate cycles based on REM periods
         cycle_count = 1
@@ -123,10 +117,12 @@ def generate_full_sleep_report():
             if end_epoch <= len(stages):
                 segment_stages = stages[start_epoch:end_epoch]
                 # Create visual representation
-                stage_map = {'W': '═', 'N1': '─', 'N2': '▬', 'N3': '▓', 'REM': '░'}
-                visual = ''.join([stage_map.get(s, '?') for s in segment_stages[::2]])  # Sample every other
+                stage_map = {"W": "═", "N1": "─", "N2": "▬", "N3": "▓", "REM": "░"}
+                visual = "".join(
+                    [stage_map.get(s, "?") for s in segment_stages[::2]]
+                )  # Sample every other
 
-                time_str = f"{hour:02d}:{quarter*15:02d}"
+                time_str = f"{hour:02d}:{quarter * 15:02d}"
                 dominant = max(set(segment_stages), key=segment_stages.count)
                 conf = np.mean(confidences[start_epoch:end_epoch])
 
@@ -142,17 +138,19 @@ def generate_full_sleep_report():
     # Check for abnormalities
     issues = []
 
-    if metrics['sleep_efficiency'] < 85:
+    if metrics["sleep_efficiency"] < 85:
         issues.append(f"• Low sleep efficiency ({metrics['sleep_efficiency']:.1f}%)")
 
-    if metrics['stage_percentages']['N3'] < 15:
+    if metrics["stage_percentages"]["N3"] < 15:
         issues.append(f"• Reduced deep sleep (N3: {metrics['stage_percentages']['N3']:.1f}%)")
 
-    if metrics['stage_percentages']['REM'] < 20:
+    if metrics["stage_percentages"]["REM"] < 20:
         issues.append(f"• Reduced REM sleep ({metrics['stage_percentages']['REM']:.1f}%)")
 
-    if metrics['waso_epochs'] > 60:  # >30 min WASO
-        issues.append(f"• Increased wake after sleep onset ({metrics['waso_epochs'] * 0.5:.1f} min)")
+    if metrics["waso_epochs"] > 60:  # >30 min WASO
+        issues.append(
+            f"• Increased wake after sleep onset ({metrics['waso_epochs'] * 0.5:.1f} min)"
+        )
 
     if issues:
         print("  Potential Issues Detected:")
@@ -162,11 +160,11 @@ def generate_full_sleep_report():
         print("  ✅ Sleep architecture appears normal")
 
     print("\n📋 RECOMMENDATIONS:")
-    if metrics['sleep_efficiency'] < 85:
+    if metrics["sleep_efficiency"] < 85:
         print("  • Consider sleep hygiene improvements")
-    if metrics['stage_percentages']['N3'] < 15:
+    if metrics["stage_percentages"]["N3"] < 15:
         print("  • Evaluate factors affecting deep sleep")
-    if metrics['waso_epochs'] > 60:
+    if metrics["waso_epochs"] > 60:
         print("  • Assess for sleep fragmentation causes")
 
     print("\n" + "=" * 80)
@@ -207,6 +205,7 @@ def generate_full_sleep_report():
     print("=" * 80)
     print("THIS IS REAL, VALIDATED, CLINICAL-GRADE SLEEP ANALYSIS!")
     print("=" * 80)
+
 
 if __name__ == "__main__":
     generate_full_sleep_report()

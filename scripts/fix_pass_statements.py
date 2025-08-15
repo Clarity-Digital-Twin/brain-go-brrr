@@ -28,34 +28,34 @@ for file_path in files_with_pass:
     if not full_path.exists():
         print(f"Skipping {file_path} - not found")
         continue
-    
+
     content = full_path.read_text()
-    
+
     # Replace standalone pass with pytest.skip
     # Match pass that's alone on a line (with any indentation)
     new_content = re.sub(
-        r'^(\s*)pass\s*$',
+        r"^(\s*)pass\s*$",
         r'\1pytest.skip("Expected exception was raised")',
         content,
-        flags=re.MULTILINE
+        flags=re.MULTILINE,
     )
-    
+
     # If we made changes and pytest not imported, add import
-    if new_content != content and 'import pytest' not in new_content:
+    if new_content != content and "import pytest" not in new_content:
         # Add pytest import after other imports
-        lines = new_content.split('\n')
+        lines = new_content.split("\n")
         import_idx = 0
         for i, line in enumerate(lines):
-            if line.startswith('import ') or line.startswith('from '):
+            if line.startswith("import ") or line.startswith("from "):
                 import_idx = i + 1
-            elif import_idx > 0 and line and not line.startswith(' '):
+            elif import_idx > 0 and line and not line.startswith(" "):
                 # Found non-import line after imports
                 break
-        
+
         if import_idx > 0:
-            lines.insert(import_idx, 'import pytest')
-            new_content = '\n'.join(lines)
-    
+            lines.insert(import_idx, "import pytest")
+            new_content = "\n".join(lines)
+
     if new_content != content:
         full_path.write_text(new_content)
         print(f"Fixed {file_path}")

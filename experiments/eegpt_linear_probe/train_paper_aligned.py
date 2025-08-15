@@ -31,8 +31,7 @@ from tuab_mmap_dataset import TUABMemoryMappedDataset
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -44,21 +43,21 @@ class LinearProbe(nn.Module):
         super().__init__()
 
         # Channel adapter (1x1 conv)
-        if config['probe']['use_channel_adapter']:
+        if config["probe"]["use_channel_adapter"]:
             self.channel_adapter = nn.Conv1d(
-                config['probe']['channel_adapter_in'],
-                config['probe']['channel_adapter_out'],
-                kernel_size=1
+                config["probe"]["channel_adapter_in"],
+                config["probe"]["channel_adapter_out"],
+                kernel_size=1,
             )
         else:
             self.channel_adapter = None
 
         # Two-layer probe
         self.probe = nn.Sequential(
-            nn.Linear(config['probe']['input_dim'], config['probe']['hidden_dim']),
+            nn.Linear(config["probe"]["input_dim"], config["probe"]["hidden_dim"]),
             nn.ReLU(),
-            nn.Dropout(config['probe']['dropout']),
-            nn.Linear(config['probe']['hidden_dim'], config['probe']['n_classes'])
+            nn.Dropout(config["probe"]["dropout"]),
+            nn.Linear(config["probe"]["hidden_dim"], config["probe"]["n_classes"]),
         )
 
     def forward(self, features):
@@ -76,7 +75,7 @@ def load_config(config_path):
 
     # Resolve environment variables
     def resolve_env_vars(obj):
-        if isinstance(obj, str) and obj.startswith('${') and obj.endswith('}'):
+        if isinstance(obj, str) and obj.startswith("${") and obj.endswith("}"):
             env_var = obj[2:-1]
             return os.environ.get(env_var, obj)
         elif isinstance(obj, dict):
@@ -91,43 +90,47 @@ def load_config(config_path):
 def create_dataloaders(config):
     """Create train and validation dataloaders."""
     # Resolve environment variables in paths
-    data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
+    data_root = os.environ.get(
+        "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+    )
     cache_dir = Path(data_root) / "cache" / "tuab_4s_final"
 
     # Create memory-mapped datasets (NO RAM usage - streams from disk)
     logger.info("Creating memory-mapped datasets...")
-    train_dataset = TUABMemoryMappedDataset(
-        cache_dir=cache_dir,
-        split='train'
-    )
+    train_dataset = TUABMemoryMappedDataset(cache_dir=cache_dir, split="train")
 
     # Validation dataset
-    val_dataset = TUABMemoryMappedDataset(
-        cache_dir=cache_dir,
-        split='eval'
-    )
+    val_dataset = TUABMemoryMappedDataset(cache_dir=cache_dir, split="eval")
 
     # Create dataloaders
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config['data']['batch_size'],
+        batch_size=config["data"]["batch_size"],
         shuffle=True,
-        num_workers=config['data'].get('num_workers', 0),
-        pin_memory=config['data'].get('pin_memory', True),
-        persistent_workers=config['data'].get('persistent_workers', False) if config['data'].get('num_workers', 0) > 0 else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 0) > 0 else None,
-        collate_fn=collate_eeg_batch_fixed
+        num_workers=config["data"].get("num_workers", 0),
+        pin_memory=config["data"].get("pin_memory", True),
+        persistent_workers=config["data"].get("persistent_workers", False)
+        if config["data"].get("num_workers", 0) > 0
+        else False,
+        prefetch_factor=config["data"].get("prefetch_factor", 2)
+        if config["data"].get("num_workers", 0) > 0
+        else None,
+        collate_fn=collate_eeg_batch_fixed,
     )
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=config['data']['batch_size'],
+        batch_size=config["data"]["batch_size"],
         shuffle=False,
-        num_workers=config['data'].get('num_workers', 0),
-        pin_memory=config['data'].get('pin_memory', True),
-        persistent_workers=config['data'].get('persistent_workers', False) if config['data'].get('num_workers', 0) > 0 else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 0) > 0 else None,
-        collate_fn=collate_eeg_batch_fixed
+        num_workers=config["data"].get("num_workers", 0),
+        pin_memory=config["data"].get("pin_memory", True),
+        persistent_workers=config["data"].get("persistent_workers", False)
+        if config["data"].get("num_workers", 0) > 0
+        else False,
+        prefetch_factor=config["data"].get("prefetch_factor", 2)
+        if config["data"].get("num_workers", 0) > 0
+        else None,
+        collate_fn=collate_eeg_batch_fixed,
     )
 
     return train_loader, val_loader
@@ -142,7 +145,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     all_preds = []
     all_labels = []
 
-    pbar = tqdm(train_loader, desc='Training')
+    pbar = tqdm(train_loader, desc="Training")
     for batch_idx, (data, labels) in enumerate(pbar):
         data = data.to(device)
         labels = labels.to(device)
@@ -155,7 +158,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         logits = probe(features)
 
         # Compute loss
-        if config['training'].get('weighted_loss', False):
+        if config["training"].get("weighted_loss", False):
             # Compute class weights
             class_counts = torch.bincount(labels)
             class_weights = 1.0 / (class_counts.float() + 1e-5)
@@ -169,10 +172,9 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         loss.backward()
 
         # Gradient clipping
-        if config['training']['gradient_clip_val'] > 0:
+        if config["training"]["gradient_clip_val"] > 0:
             torch.nn.utils.clip_grad_norm_(
-                probe.parameters(),
-                config['training']['gradient_clip_val']
+                probe.parameters(), config["training"]["gradient_clip_val"]
             )
 
         optimizer.step()
@@ -185,20 +187,13 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         all_labels.extend(labels.cpu().numpy())
 
         # Update progress bar
-        pbar.set_postfix({
-            'loss': f'{loss.item():.4f}',
-            'lr': f'{scheduler.get_last_lr()[0]:.2e}'
-        })
+        pbar.set_postfix({"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"})
 
     # Compute epoch metrics
     auroc = roc_auc_score(all_labels, all_preds)
     bacc = balanced_accuracy_score(all_labels, np.array(all_preds) > 0.5)
 
-    return {
-        'loss': np.mean(losses),
-        'auroc': auroc,
-        'bacc': bacc
-    }
+    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}
 
 
 def validate(model, probe, val_loader, device):
@@ -211,7 +206,7 @@ def validate(model, probe, val_loader, device):
     all_labels = []
 
     with torch.no_grad():
-        for data, labels in tqdm(val_loader, desc='Validation'):
+        for data, labels in tqdm(val_loader, desc="Validation"):
             data = data.to(device)
             labels = labels.to(device)
 
@@ -230,22 +225,21 @@ def validate(model, probe, val_loader, device):
     auroc = roc_auc_score(all_labels, all_preds)
     bacc = balanced_accuracy_score(all_labels, np.array(all_preds) > 0.5)
 
-    return {
-        'loss': np.mean(losses),
-        'auroc': auroc,
-        'bacc': bacc
-    }
+    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str,
-                       default='configs/tuab_4s_paper_aligned.yaml',
-                       help='Path to config file')
-    parser.add_argument('--output_dir', type=str, default=None,
-                       help='Output directory (default: auto-generated)')
-    parser.add_argument('--device', type=str, default='cuda',
-                       help='Device to use')
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/tuab_4s_paper_aligned.yaml",
+        help="Path to config file",
+    )
+    parser.add_argument(
+        "--output_dir", type=str, default=None, help="Output directory (default: auto-generated)"
+    )
+    parser.add_argument("--device", type=str, default="cuda", help="Device to use")
     args = parser.parse_args()
 
     # Load config
@@ -253,19 +247,19 @@ def main():
 
     # Setup output directory
     if args.output_dir is None:
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
         args.output_dir = f"output/{config['experiment']['name']}_{timestamp}"
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Save config
-    with open(output_dir / 'config.yaml', 'w') as f:
+    with open(output_dir / "config.yaml", "w") as f:
         yaml.dump(config, f)
 
     logger.info(f"Output directory: {output_dir}")
 
     # Set device
-    device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
+    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
 
     # Create dataloaders
@@ -274,97 +268,109 @@ def main():
     logger.info(f"Val samples: {len(val_loader.dataset)}")
 
     # Update steps per epoch in config
-    config['training']['scheduler']['steps_per_epoch'] = len(train_loader)
+    config["training"]["scheduler"]["steps_per_epoch"] = len(train_loader)
 
     # Create model
     # Resolve model checkpoint path
-    model_checkpoint = config['model']['backbone']['checkpoint_path']
-    if '${BGB_DATA_ROOT}' in model_checkpoint:
-        data_root = os.environ.get('BGB_DATA_ROOT', '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data')
-        model_checkpoint = model_checkpoint.replace('${BGB_DATA_ROOT}', data_root)
+    model_checkpoint = config["model"]["backbone"]["checkpoint_path"]
+    if "${BGB_DATA_ROOT}" in model_checkpoint:
+        data_root = os.environ.get(
+            "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+        )
+        model_checkpoint = model_checkpoint.replace("${BGB_DATA_ROOT}", data_root)
 
-    backbone = EEGPTWrapper(
-        checkpoint_path=model_checkpoint
-    )
+    backbone = EEGPTWrapper(checkpoint_path=model_checkpoint)
     backbone.to(device)
     backbone.eval()  # Freeze backbone
 
-    probe = LinearProbe(config['model'])
+    probe = LinearProbe(config["model"])
     probe.to(device)
 
     # Create optimizer
     optimizer = torch.optim.AdamW(
         probe.parameters(),
-        lr=config['training']['optimizer']['lr'],
-        weight_decay=config['training']['optimizer']['weight_decay']
+        lr=config["training"]["optimizer"]["lr"],
+        weight_decay=config["training"]["optimizer"]["weight_decay"],
     )
 
     # Create scheduler with proper configuration
     steps_per_epoch = len(train_loader)
-    total_steps = steps_per_epoch * config['training']['max_epochs']
+    total_steps = steps_per_epoch * config["training"]["max_epochs"]
 
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=float(config['training']['scheduler']['max_lr']),
+        max_lr=float(config["training"]["scheduler"]["max_lr"]),
         total_steps=total_steps,  # Use total_steps instead of epochs/steps_per_epoch
-        pct_start=config['training']['scheduler']['pct_start'],
-        anneal_strategy=config['training']['scheduler']['anneal_strategy'],
-        div_factor=config['training']['scheduler']['div_factor'],
-        final_div_factor=config['training']['scheduler']['final_div_factor']
+        pct_start=config["training"]["scheduler"]["pct_start"],
+        anneal_strategy=config["training"]["scheduler"]["anneal_strategy"],
+        div_factor=config["training"]["scheduler"]["div_factor"],
+        final_div_factor=config["training"]["scheduler"]["final_div_factor"],
     )
 
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     logger.info("OneCycleLR Scheduler Configuration:")
-    logger.info(f"  Total steps: {total_steps} ({steps_per_epoch} batches/epoch * {config['training']['max_epochs']} epochs)")
+    logger.info(
+        f"  Total steps: {total_steps} ({steps_per_epoch} batches/epoch * {config['training']['max_epochs']} epochs)"
+    )
     logger.info(f"  Max LR: {config['training']['scheduler']['max_lr']:.6f}")
-    logger.info(f"  Initial LR: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['div_factor']:.6f}")
-    logger.info(f"  Final LR: {config['training']['scheduler']['max_lr']/config['training']['scheduler']['final_div_factor']:.6f}")
-    logger.info(f"  Warmup: {config['training']['scheduler']['pct_start']*100:.1f}% ({int(total_steps*config['training']['scheduler']['pct_start'])} steps)")
-    logger.info(f"{'='*60}\n")
+    logger.info(
+        f"  Initial LR: {config['training']['scheduler']['max_lr'] / config['training']['scheduler']['div_factor']:.6f}"
+    )
+    logger.info(
+        f"  Final LR: {config['training']['scheduler']['max_lr'] / config['training']['scheduler']['final_div_factor']:.6f}"
+    )
+    logger.info(
+        f"  Warmup: {config['training']['scheduler']['pct_start'] * 100:.1f}% ({int(total_steps * config['training']['scheduler']['pct_start'])} steps)"
+    )
+    logger.info(f"{'=' * 60}\n")
 
     # Training loop
     best_val_auroc = 0
     patience_counter = 0
 
-    for epoch in range(config['training']['max_epochs']):
+    for epoch in range(config["training"]["max_epochs"]):
         logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
         # Train
         train_metrics = train_epoch(
             backbone, probe, train_loader, optimizer, scheduler, device, config
         )
-        logger.info(f"Train - Loss: {train_metrics['loss']:.4f}, "
-                   f"AUROC: {train_metrics['auroc']:.4f}, "
-                   f"BACC: {train_metrics['bacc']:.4f}")
+        logger.info(
+            f"Train - Loss: {train_metrics['loss']:.4f}, "
+            f"AUROC: {train_metrics['auroc']:.4f}, "
+            f"BACC: {train_metrics['bacc']:.4f}"
+        )
 
         # Validate
         if (epoch + 1) % 2 == 0:  # Validate every 2 epochs
             val_metrics = validate(backbone, probe, val_loader, device)
-            logger.info(f"Val - Loss: {val_metrics['loss']:.4f}, "
-                       f"AUROC: {val_metrics['auroc']:.4f}, "
-                       f"BACC: {val_metrics['bacc']:.4f}")
+            logger.info(
+                f"Val - Loss: {val_metrics['loss']:.4f}, "
+                f"AUROC: {val_metrics['auroc']:.4f}, "
+                f"BACC: {val_metrics['bacc']:.4f}"
+            )
 
             # Save checkpoint if best
-            if val_metrics['auroc'] > best_val_auroc:
-                best_val_auroc = val_metrics['auroc']
+            if val_metrics["auroc"] > best_val_auroc:
+                best_val_auroc = val_metrics["auroc"]
                 patience_counter = 0
 
                 checkpoint = {
-                    'epoch': epoch,
-                    'probe_state_dict': probe.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
-                    'val_auroc': val_metrics['auroc'],
-                    'val_bacc': val_metrics['bacc'],
-                    'config': config
+                    "epoch": epoch,
+                    "probe_state_dict": probe.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "scheduler_state_dict": scheduler.state_dict(),
+                    "val_auroc": val_metrics["auroc"],
+                    "val_bacc": val_metrics["bacc"],
+                    "config": config,
                 }
-                torch.save(checkpoint, output_dir / 'best_model.pt')
+                torch.save(checkpoint, output_dir / "best_model.pt")
                 logger.info(f"Saved best model with AUROC: {val_metrics['auroc']:.4f}")
             else:
                 patience_counter += 1
 
             # Early stopping
-            if patience_counter >= config['training']['early_stopping']['patience']:
+            if patience_counter >= config["training"]["early_stopping"]["patience"]:
                 logger.info("Early stopping triggered")
                 break
 

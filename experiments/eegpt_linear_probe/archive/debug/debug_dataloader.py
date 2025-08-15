@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 # Add parent to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
+
 def check_system():
     """Check system resources."""
     print("=== SYSTEM CHECK ===")
@@ -20,12 +21,12 @@ def check_system():
     print(f"RAM available: {psutil.virtual_memory().available / 1e9:.1f} GB")
 
     # Check if WSL
-    if 'microsoft' in os.uname().release.lower():
+    if "microsoft" in os.uname().release.lower():
         print("⚠️  WSL DETECTED - Known issues with multiprocessing!")
 
         # Check shared memory
         try:
-            shm_size = os.statvfs('/dev/shm')
+            shm_size = os.statvfs("/dev/shm")
             shm_gb = (shm_size.f_blocks * shm_size.f_frsize) / 1e9
             print(f"/dev/shm size: {shm_gb:.1f} GB")
             if shm_gb < 2:
@@ -34,6 +35,7 @@ def check_system():
             print("❌ Cannot check /dev/shm")
 
     print()
+
 
 def test_dataloader(num_workers=0):
     """Test DataLoader with different worker configs."""
@@ -46,21 +48,25 @@ def test_dataloader(num_workers=0):
             config = yaml.safe_load(f)
 
         # Set environment
-        os.environ['BGB_DATA_ROOT'] = '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data'
-        cache_dir = Path(os.path.expandvars(config['data']['cache_dir']))
+        os.environ["BGB_DATA_ROOT"] = (
+            "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+        )
+        cache_dir = Path(os.path.expandvars(config["data"]["cache_dir"]))
 
         print(f"Cache dir: {cache_dir}")
 
         # Try original dataset
         try:
             from tuab_mmap_dataset import TUABMemoryMappedDataset
-            dataset = TUABMemoryMappedDataset(cache_dir, split='train')
+
+            dataset = TUABMemoryMappedDataset(cache_dir, split="train")
             print(f"✅ Original dataset loaded: {len(dataset)} samples")
         except Exception as e:
             print(f"❌ Original dataset failed: {e}")
             # Try safe version
             from tuab_mmap_dataset_safe import TUABMemoryMappedDatasetSafe
-            dataset = TUABMemoryMappedDatasetSafe(cache_dir, split='train')
+
+            dataset = TUABMemoryMappedDatasetSafe(cache_dir, split="train")
             print(f"✅ Safe dataset loaded: {len(dataset)} samples")
 
         # Create DataLoader
@@ -71,7 +77,7 @@ def test_dataloader(num_workers=0):
             num_workers=num_workers,
             pin_memory=(num_workers == 0),  # Only pin if single process
             persistent_workers=(num_workers > 0),
-            prefetch_factor=2 if num_workers > 0 else None
+            prefetch_factor=2 if num_workers > 0 else None,
         )
 
         print(f"DataLoader created with {num_workers} workers")
@@ -93,6 +99,7 @@ def test_dataloader(num_workers=0):
         return False
     finally:
         print()
+
 
 def main():
     """Run diagnostic tests."""
@@ -138,6 +145,7 @@ def main():
         working = [k for k, v in results.items() if v]
         if working:
             print(f"Use num_workers={max(working)} for best performance")
+
 
 if __name__ == "__main__":
     main()

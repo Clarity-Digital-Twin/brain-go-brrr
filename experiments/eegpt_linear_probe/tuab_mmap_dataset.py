@@ -23,13 +23,12 @@ class TUABMemoryMappedDataset(Dataset):
 
         if not X_path.exists():
             raise FileNotFoundError(
-                f"Memory-mapped arrays not found at {X_path}\n"
-                f"Run: python build_mmap_cache.py"
+                f"Memory-mapped arrays not found at {X_path}\nRun: python build_mmap_cache.py"
             )
 
         # Memory-map the arrays (NO RAM USAGE - OS handles paging)
-        self.X = np.memmap(X_path, dtype='float32', mode='r')
-        self.y = np.memmap(y_path, dtype='int64', mode='r')
+        self.X = np.memmap(X_path, dtype="float32", mode="r")
+        self.y = np.memmap(y_path, dtype="int64", mode="r")
 
         # Reshape X to correct dimensions
         n_samples = len(self.y)

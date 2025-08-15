@@ -13,10 +13,10 @@ def add_imports_to_file(file_path: Path, imports: list[str]) -> None:
     content = file_path.read_text()
 
     # Find the import section
-    lines = content.split('\n')
+    lines = content.split("\n")
     last_import_idx = 0
     for i, line in enumerate(lines):
-        if line.startswith('import ') or line.startswith('from '):
+        if line.startswith("import ") or line.startswith("from "):
             last_import_idx = i
 
     # Add new imports after the last import
@@ -25,8 +25,9 @@ def add_imports_to_file(file_path: Path, imports: list[str]) -> None:
             lines.insert(last_import_idx + 1, imp)
             last_import_idx += 1
 
-    file_path.write_text('\n'.join(lines))
+    file_path.write_text("\n".join(lines))
     print(f"✓ Added imports to {file_path.name}")
+
 
 def fix_syntax_errors(file_path: Path, fixes: list[tuple[str, str]]) -> None:
     """Fix syntax errors in a file."""
@@ -38,6 +39,7 @@ def fix_syntax_errors(file_path: Path, fixes: list[tuple[str, str]]) -> None:
         content = content.replace(old, new)
     file_path.write_text(content)
     print(f"✓ Fixed syntax in {file_path.name}")
+
 
 def main():
     """Fix all final errors."""
@@ -73,34 +75,34 @@ def main():
         content = re.sub(
             r'logger\.debug\(f"Clipped input values \(count: \{self\.clip_count\.item\(\)  # type: ignore\[operator\]\}\)"\)',
             'logger.debug(f"Clipped input values (count: {self.clip_count.item()})")',  # type: ignore[operator]
-            content
+            content,
         )
 
         # Fix nan_count line
         content = re.sub(
             r'"nan_count": self\.nan_count\.item\(\)  # type: ignore\[operator\],',
             '"nan_count": self.nan_count.item(),  # type: ignore[operator]',
-            content
+            content,
         )
 
         # Fix clip_count line
         content = re.sub(
             r'"clip_count": self\.clip_count\.item\(\)  # type: ignore\[operator\],',
             '"clip_count": self.clip_count.item(),  # type: ignore[operator]',
-            content
+            content,
         )
 
         # Fix fill_ calls
         content = re.sub(
             r'self\.nan_count\.fill_\(  # type: ignore\[operator\]checkpoint\["statistics"\]\["nan_count"\]\)',
             'self.nan_count.fill_(checkpoint["statistics"]["nan_count"])  # type: ignore[operator]',
-            content
+            content,
         )
 
         content = re.sub(
             r'self\.clip_count\.fill_\(  # type: ignore\[operator\]checkpoint\["statistics"\]\["clip_count"\]\)',
             'self.clip_count.fill_(checkpoint["statistics"]["clip_count"])  # type: ignore[operator]',
-            content
+            content,
         )
 
         robust_file.write_text(content)
@@ -114,7 +116,7 @@ def main():
         # Fix commented line that broke indentation
         content = content.replace(
             "# x = self.probe.adapt_channels(x)  # TODO: Implement channel adaptation\n        # Extract features with backbone",
-            "        # x = self.probe.adapt_channels(x)  # TODO: Implement channel adaptation\n        # Extract features with backbone"
+            "        # x = self.probe.adapt_channels(x)  # TODO: Implement channel adaptation\n        # Extract features with backbone",
         )
 
         task_file.write_text(content)
@@ -124,10 +126,7 @@ def main():
     sleep_file = Path("src/brain_go_brrr/core/sleep/analyzer.py")
     if sleep_file.exists():
         content = sleep_file.read_text()
-        content = content.replace(
-            "proba = sls.predict_proba()",
-            "_ = sls.predict_proba()"
-        )
+        content = content.replace("proba = sls.predict_proba()", "_ = sls.predict_proba()")
         sleep_file.write_text(content)
         print("✓ Fixed core/sleep/analyzer.py")
 
@@ -140,13 +139,14 @@ def main():
                 window = windows[i].cpu().numpy()  # Convert to numpy for extract_features
             else:
                 window = windows[i]""",
-            "            window = windows[i].cpu().numpy() if isinstance(windows, torch.Tensor) else windows[i]"
+            "            window = windows[i].cpu().numpy() if isinstance(windows, torch.Tensor) else windows[i]",
         )
         model_file.write_text(content)
         print("✓ Fixed models/eegpt_model.py")
 
     print("\n✅ All final errors fixed!")
     print("Run: make lint && make type-check")
+
 
 if __name__ == "__main__":
     main()

@@ -31,7 +31,8 @@ def create_feature_extractor(
     """
     # Create infrastructure adapters
     model = EEGPTModelAdapter(
-        model_path=str(model_path) if model_path
+        model_path=str(model_path)
+        if model_path
         else "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt",
         device=device,
     )

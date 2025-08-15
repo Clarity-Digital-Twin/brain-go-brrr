@@ -87,9 +87,7 @@ class TestEEGPTFeatureExtractor:
         # Pass the mock model directly to the extractor
         preprocessor = FlexiblePreprocessorAdapter()
         extractor = EEGPTFeatureExtractor(
-            model=mock_eegpt_model,
-            preprocessor=preprocessor,
-            enable_cache=True
+            model=mock_eegpt_model, preprocessor=preprocessor, enable_cache=True
         )
 
         # First extraction

@@ -29,19 +29,24 @@ class ExtractedFeatures:
 # Null implementations for tests
 class _NullModel:
     """Null model for tests."""
+
     def extract_features(self, data: Any, sampling_rate: int = 256) -> npt.NDArray[np.float32]:
         import numpy as np
+
         _ = data, sampling_rate  # Mark as used
         return np.zeros((1, 512), dtype=np.float32)
 
+
 class _NullPreprocessor:
     """Null preprocessor for tests."""
+
     def preprocess(self, raw: Any, **kwargs: Any) -> Any:
         _ = kwargs  # Mark as used
         return raw
 
     def transform_to_array(self, raw: Any) -> Any:
         return raw.get_data()
+
 
 class CleanFeatureExtractor:
     """Clean Architecture Feature Extractor using dependency injection.

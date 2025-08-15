@@ -101,5 +101,6 @@ def analyze_coverage():
             status = "✅" if test_exists else "❌"
             print(f"  {status} {module}")
 
+
 if __name__ == "__main__":
     analyze_coverage()
