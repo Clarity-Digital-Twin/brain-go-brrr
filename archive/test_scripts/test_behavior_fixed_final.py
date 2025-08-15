@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """FIXED behavior test with correct imports and class names."""
 
+from pathlib import Path
+
 import mne
 import numpy as np
-from pathlib import Path
-import torch
 
 print("=== FIXED APPLICATION BEHAVIOR TEST ===\n")
 print("Testing all major components with CORRECT imports")
@@ -58,7 +58,7 @@ try:
         eeg_data=eeg_array, sfreq=raw.info["sfreq"], ch_names=raw.ch_names
     )
 
-    print(f"✅ Sleep staging completed!")
+    print("✅ Sleep staging completed!")
     print(f"   - Epochs: {len(stages)}")
     print(f"   - Avg confidence: {np.mean(confidences):.2f}")
     yasa_works = True

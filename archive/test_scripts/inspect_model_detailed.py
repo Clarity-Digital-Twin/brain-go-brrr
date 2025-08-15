@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Detailed inspection of the trained model."""
 
-import torch
 from pathlib import Path
+
+import torch
 
 print("=== DETAILED MODEL INSPECTION ===\n")
 

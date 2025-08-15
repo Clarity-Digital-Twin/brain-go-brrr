@@ -4,7 +4,6 @@
 import ast
 import pathlib
 import sys
-from typing import Any
 
 
 def check_torch_load(node: ast.Call, source_lines: list[str]) -> str | None:
@@ -31,7 +30,7 @@ def check_torch_load(node: ast.Call, source_lines: list[str]) -> str | None:
     has_weights_only = any(keyword.arg == "weights_only" for keyword in node.keywords)
 
     if not has_weights_only:
-        return f"torch.load missing weights_only parameter (or # nosec:weights_only comment)"
+        return "torch.load missing weights_only parameter (or # nosec:weights_only comment)"
 
     return None
 

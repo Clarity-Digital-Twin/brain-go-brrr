@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 """Fix for robust abnormality detector loading."""
 
-import os
-import torch
 import inspect
-from pathlib import Path
-from typing import Any, Dict
 import logging
+import os
+from pathlib import Path
+from typing import Any
+
+import torch
 
 logger = logging.getLogger(__name__)
 
 
-def load_checkpoint_robust(checkpoint_path: Path, device: str = "cpu") -> Dict[str, Any]:
+def load_checkpoint_robust(checkpoint_path: Path, device: str = "cpu") -> dict[str, Any]:
     """Robustly load a checkpoint, handling various formats.
 
     Args:
@@ -41,7 +42,7 @@ def load_checkpoint_robust(checkpoint_path: Path, device: str = "cpu") -> Dict[s
     return checkpoint
 
 
-def extract_probe_weights(checkpoint: Dict[str, Any]) -> Dict[str, torch.Tensor]:
+def extract_probe_weights(checkpoint: dict[str, Any]) -> dict[str, torch.Tensor]:
     """Extract probe weights from various checkpoint formats.
 
     Handles:
@@ -58,7 +59,7 @@ def extract_probe_weights(checkpoint: Dict[str, Any]) -> Dict[str, torch.Tensor]
         state_dict = checkpoint["state_dict"]
     # Raw state dict
     elif isinstance(checkpoint, dict) and any(
-        k.endswith(".weight") or k.endswith(".bias") for k in checkpoint.keys()
+        k.endswith(".weight") or k.endswith(".bias") for k in checkpoint
     ):
         state_dict = checkpoint
     else:

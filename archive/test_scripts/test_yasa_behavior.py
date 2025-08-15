@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Test YASA sleep staging actual behavior."""
 
+from pathlib import Path
+
 import mne
 import numpy as np
-from pathlib import Path
 
 # Test with synthetic data first
 print("=== TESTING YASA SLEEP STAGING ===\n")

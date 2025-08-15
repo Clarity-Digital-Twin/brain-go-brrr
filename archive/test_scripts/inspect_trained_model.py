@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Inspect the trained abnormality detection model."""
 
-import torch
 from pathlib import Path
+
+import torch
 
 print("=== INSPECTING TRAINED MODEL ===\n")
 

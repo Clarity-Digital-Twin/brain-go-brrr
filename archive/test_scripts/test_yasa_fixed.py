@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Test YASA sleep staging - FIXED version."""
 
+from pathlib import Path
+
 import mne
 import numpy as np
-from pathlib import Path
 
 print("=== TESTING YASA SLEEP STAGING (FIXED) ===\n")
 

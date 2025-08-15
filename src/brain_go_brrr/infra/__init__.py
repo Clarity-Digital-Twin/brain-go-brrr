@@ -1,5 +1,5 @@
 """Infrastructure modules for Brain Go Brrr."""
 
-from . import cache, redis
+from . import cache, data, redis
 
-__all__ = ["cache", "redis"]
+__all__ = ["cache", "data", "redis"]

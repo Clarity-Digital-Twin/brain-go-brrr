@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Fix imports after refactoring reorganization."""
 
-import os
 import re
 from pathlib import Path
 
@@ -40,7 +39,7 @@ IMPORT_MAPPINGS = {
 def fix_imports_in_file(filepath: Path) -> bool:
     """Fix imports in a single file."""
     try:
-        with open(filepath, "r", encoding="utf-8") as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
     except Exception:
         return False
