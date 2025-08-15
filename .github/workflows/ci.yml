@@ -35,14 +35,13 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Sync deps
-        run: uv sync
-
       - name: Build wheel
         run: uv build
 
       - name: Install from wheel (deterministic)
-        run: uv pip install dist/*.whl
+        run: |
+          uv venv
+          uv pip install dist/*.whl
 
       - name: Import smoke (no side effects)
         run: |
@@ -50,9 +49,11 @@ jobs:
           import importlib.util as iu
 
           def must_find(mod):
-              if iu.find_spec(mod) is None:
+              spec = iu.find_spec(mod)
+              if spec is None:
                   raise SystemExit(f"✗ NOT FOUND: {mod}")
               print(f"✓ found: {mod}")
+              return spec
 
           # core leaf module (safe)
           must_find("brain_go_brrr.core.exceptions")
