@@ -13,6 +13,7 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   UV_VERSION: "0.8.1"
+  PYTHONPATH: src  # Belt & suspenders for imports
 
 jobs:
   # Code quality and linting
@@ -37,6 +38,20 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Quick import smoke test
+        run: |
+          python - <<'PY'
+          import importlib
+          for m in [
+              "brain_go_brrr.api.app",
+              "brain_go_brrr.infra.data.edf_loader",
+              "brain_go_brrr.infra.data.edf_streaming",
+          ]:
+              importlib.import_module(m)
+              print(f"✓ {m}")
+          print("\n✅ All critical imports working!")
+          PY
+
       - name: Run formatting check
         run: make format-check
 
@@ -54,6 +69,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: quality
     timeout-minutes: 15  # Generous timeout for entire job
+    env:
+      PYTHONPATH: src  # Ensure imports work correctly
     strategy:
       fail-fast: false
       matrix:

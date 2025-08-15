@@ -153,6 +153,10 @@ quality: lint format type-check ## Run all code quality checks
 check: test-fast quality ## Run all tests and quality checks
 	@echo "$(GREEN)All checks passed!$(NC)"
 
+validate: ## Full pre-push validation - ensures you stay in banger-town! 🚀
+	@echo "$(CYAN)Running full validation suite...$(NC)"
+	@./scripts/validate_before_push.sh
+
 ##@ Testing
 
 test: ## Run fast tests only (excludes integration, slow, external, gpu) with parallel execution
