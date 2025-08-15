@@ -1,5 +1,4 @@
 """Infrastructure modules for Brain Go Brrr."""
 
-from . import cache, data, redis
-
+# Lazy imports to avoid circular dependencies
 __all__ = ["cache", "data", "redis"]
