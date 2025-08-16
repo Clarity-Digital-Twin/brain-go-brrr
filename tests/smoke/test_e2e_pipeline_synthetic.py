@@ -27,7 +27,7 @@ def test_e2e_on_synthetic_raw():
 
     # Create MNE info structure with proper montage
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-    
+
     # Set standard 10-20 montage for channel positions
     montage = mne.channels.make_standard_montage("standard_1020")
     info.set_montage(montage, on_missing="ignore")

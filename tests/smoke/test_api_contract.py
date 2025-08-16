@@ -32,8 +32,22 @@ def test_api_health_ready_root():
     )
 
     try:
-        # Give server time to start
-        time.sleep(2.0)
+        # Give server more time to start and check if it's running
+        for i in range(10):  # Try for up to 10 seconds
+            time.sleep(1.0)
+            if process.poll() is not None:
+                # Process died - get output for debugging
+                stdout, stderr = process.communicate()
+                raise RuntimeError(f"Server failed to start:\nSTDOUT: {stdout}\nSTDERR: {stderr}")
+            
+            # Try to connect
+            try:
+                with httpx.Client(base_url="http://127.0.0.1:8010", timeout=1.0) as test_client:
+                    test_client.get("/")
+                    break  # Server is up
+            except (httpx.ConnectError, httpx.TimeoutException):
+                if i == 9:  # Last attempt
+                    raise RuntimeError("Server failed to start after 10 seconds")
 
         # Test each endpoint
         client = httpx.Client(base_url="http://127.0.0.1:8010", timeout=5.0)
