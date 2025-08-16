@@ -175,9 +175,10 @@ class CleanQualityController:
             abnormality_score = self._calculate_abnormality_score(features)
 
         if self.logger:
+            abnorm_str = f"{abnormality_score:.2f}" if abnormality_score is not None else "N/A"
             self.logger.info(
                 f"QC complete: quality_score={quality_score:.2f}, "
-                f"abnormality_score={abnormality_score:.2f if abnormality_score else 'N/A'}"
+                f"abnormality_score={abnorm_str}"
             )
 
         return QualityMetrics(
@@ -272,13 +273,24 @@ class CleanQualityController:
         """Extract rejected epoch indices from AutoReject info."""
         if "reject_log" in rejection_info:
             reject_log = rejection_info["reject_log"]
-            return [i for i, rejected in enumerate(reject_log) if rejected]
+            # Handle RejectLog object or array-like structure
+            if hasattr(reject_log, "bad_epochs"):
+                # RejectLog object has bad_epochs attribute
+                return list(reject_log.bad_epochs)
+            elif hasattr(reject_log, "__iter__"):
+                # Iterable (list/array)
+                try:
+                    return [i for i, rejected in enumerate(reject_log) if rejected]
+                except (TypeError, ValueError):
+                    return []
         return []
 
     def _extract_interpolated_channels(self, rejection_info: dict[str, Any]) -> list[str]:
         """Extract interpolated channel names from AutoReject info."""
         if "interpolated" in rejection_info:
-            return list(rejection_info["interpolated"])
+            interpolated = rejection_info["interpolated"]
+            if interpolated is not None:
+                return list(interpolated)
         return []
 
     def _calculate_quality_score(
