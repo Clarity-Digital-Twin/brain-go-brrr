@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **CI/CD Fixes** (2025-08-16): Complete overhaul of CI/CD pipeline
+  - Ruff 0.6.9 pinned across all environments
+  - LF line endings enforced with .gitattributes
+  - Pre-commit hooks made non-destructive in CI
+  - Safe torch.load wrapper for security
+- **Package Structure Fix**: Fixed missing `infra.data` module
+  - Proper .gitignore scoping for source vs data
+  - All infra.data modules now properly tracked
+- **Documentation Cleanup**: Organized root directory
+  - Moved development history to docs/archive
+  - Maintained essential root files only
+  
+## [0.6.1] - 2025-08-16
+
+### Fixed
+- **CI/CD Pipeline**: Resolved formatter version conflicts and CRLF issues
+- **Package Import**: Fixed missing infra.data module imports
+- **Git Ignores**: Properly scoped data directory exclusions
+- **Torch Security**: Added safe_load wrapper for all torch.load calls
+
+### Changed
+- **Branch Synchronization**: All branches (main/staging/development) now aligned
+- **Documentation**: Cleaned root directory, archived old docs
+
+## [0.6.0] - 2025-08-05
+
+### Added
 - **Architecture Refactoring**: Complete SOLID principles implementation with clean architecture
 - **Deprecation Helper**: Added `utils.deprecated_redirect` for PEP-562 compliant module redirects
 - **API Job Store**: Added dedicated API-layer job store with proper field mapping
