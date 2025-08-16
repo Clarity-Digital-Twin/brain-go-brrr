@@ -69,10 +69,11 @@ class AutoRejectAdapter:
         # Use AutoReject
         epochs_clean = self.autoreject.fit_transform(epochs)
 
-        # Extract rejection info
+        # Extract rejection info - handle API changes
         rejection_info = {
-            "reject_log": self.autoreject.reject_log,
-            "thresholds": self.autoreject.thresholds_,
+            "reject_log": getattr(self.autoreject, "reject_log", 
+                                 getattr(self.autoreject, "get_reject_log", lambda e: None)(epochs_clean) if hasattr(self.autoreject, "get_reject_log") else None),
+            "thresholds": getattr(self.autoreject, "thresholds_", {}),
             "interpolated": getattr(self.autoreject, "dots", {}),
         }
 
