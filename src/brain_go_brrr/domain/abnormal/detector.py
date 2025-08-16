@@ -428,6 +428,43 @@ class CleanAbnormalityDetector:
                     f"Classifier dimension mismatch: expected {expected_dim}, got {actual_dim}"
                 )
 
+    # Backward compatibility methods (deprecated)
+    def compute_abnormality_score(self, features: npt.NDArray[np.float32]) -> float:
+        """Compute abnormality score (deprecated, use detect instead).
+
+        Args:
+            features: Feature vector from EEGPT
+
+        Returns:
+            Abnormality score between 0 and 1
+        """
+        import warnings
+
+        warnings.warn(
+            "compute_abnormality_score is deprecated, use detect() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._run_inference(features)
+
+    def is_abnormal(self, features: npt.NDArray[np.float32], threshold: float = 0.5) -> bool:
+        """Check if features indicate abnormality (deprecated).
+
+        Args:
+            features: Feature vector from EEGPT
+            threshold: Detection threshold
+
+        Returns:
+            True if abnormal, False otherwise
+        """
+        import warnings
+
+        warnings.warn(
+            "is_abnormal is deprecated, use detect() instead", DeprecationWarning, stacklevel=2
+        )
+        score = self._run_inference(features)
+        return score > threshold
+
     def _predict_window(self, window: npt.NDArray[np.float32]) -> float:
         """Predict abnormality score for a single window (backward compatibility).
 

@@ -12,6 +12,7 @@ from brain_go_brrr.infra.adapters.model_adapter import (
     EEGPTModelAdapter,
     LoggerAdapter,
 )
+from brain_go_brrr.services.yasa_adapter import YASASleepStager
 
 
 class ConfigAdapter(AbnormalityConfigPort):
@@ -52,7 +53,7 @@ class ConfigAdapter(AbnormalityConfigPort):
 
 
 def create_abnormality_detector(
-    model_path: str,
+    model_path: str | None = None,
     config: AbnormalityConfig | None = None,
     device: str = "cpu",
     enable_logging: bool = True,
@@ -65,7 +66,7 @@ def create_abnormality_detector(
     - Configuration
 
     Args:
-        model_path: Path to EEGPT model checkpoint
+        model_path: Path to EEGPT model checkpoint (optional, uses default if None)
         config: Abnormality detection configuration
         device: Device to run model on (cpu/cuda)
         enable_logging: Whether to enable logging
@@ -76,6 +77,14 @@ def create_abnormality_detector(
     # Use default config if not provided
     if config is None:
         config = AbnormalityConfig()
+
+    # Use default model path if not provided
+    if model_path is None:
+        import os
+
+        model_path = os.environ.get(
+            "BGB_MODEL_PATH", "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+        )
 
     # Create infrastructure adapters
     model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
@@ -99,7 +108,7 @@ def create_abnormality_detector(
 
 
 def create_quality_controller(
-    model_path: str,
+    model_path: str | None = None,
     device: str = "cpu",
     enable_logging: bool = True,
     enable_autoreject: bool = True,
@@ -107,7 +116,7 @@ def create_quality_controller(
     """Factory to create quality controller with clean dependencies.
 
     Args:
-        model_path: Path to EEGPT model checkpoint
+        model_path: Path to EEGPT model checkpoint (optional, uses default if None)
         device: Device to run model on
         enable_logging: Whether to enable logging
         enable_autoreject: Whether to use AutoReject
@@ -117,6 +126,14 @@ def create_quality_controller(
     """
     from brain_go_brrr.domain.quality.controller import CleanQualityController
     from brain_go_brrr.infra.adapters.autoreject_adapter import AutoRejectAdapter
+
+    # Use default model path if not provided
+    if model_path is None:
+        import os
+
+        model_path = os.environ.get(
+            "BGB_MODEL_PATH", "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+        )
 
     # Create infrastructure adapters
     model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)
@@ -183,3 +200,35 @@ def create_feature_extractor(
     )
 
     return extractor
+
+
+def create_sleep_analyzer(
+    consensus: bool = True,
+    min_confidence: float = 0.5,
+    enable_logging: bool = True,  # noqa: ARG001
+) -> YASASleepStager:
+    """Factory to create sleep analyzer (YASA adapter).
+
+    This maintains backward compatibility with the documented API
+    while providing sensible defaults.
+
+    Args:
+        consensus: Whether to use consensus model (default: True)
+        min_confidence: Minimum confidence threshold (default: 0.5)
+        enable_logging: Whether to enable logging (default: True)
+
+    Returns:
+        Configured YASA sleep stager
+    """
+    # Import the config class
+    from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
+
+    # Create config with parameters
+    config = YASAConfig()
+    config.use_consensus = consensus
+    config.min_confidence = min_confidence
+
+    # Create YASA adapter with configuration
+    stager = YASASleepStager(config=config)
+
+    return stager

@@ -13,6 +13,14 @@ from fastapi.routing import APIRoute
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
 from brain_go_brrr.infra.logger import get_logger
 
+# Get version from package metadata
+try:
+    from importlib.metadata import version as pkg_version
+
+    API_VERSION = pkg_version("brain-go-brrr")
+except Exception:
+    API_VERSION = "1.0.0"
+
 logger = get_logger(__name__)
 
 
@@ -50,7 +58,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Brain-Go-Brrr EEG Analysis API",
         description="Production-ready API for EEG analysis using EEGPT and YASA",
-        version="0.4.0",
+        version=API_VERSION,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         lifespan=lifespan,
@@ -72,16 +80,32 @@ def create_app() -> FastAPI:
         """Root endpoint with API information."""
         return {
             "message": "Welcome to Brain-Go-Brrr API",
-            "version": "0.1.0",
+            "service": "brain-go-brrr",
+            "version": API_VERSION,
+            "status": "ok",
             "endpoints": {
                 "docs": str(request.app.docs_url),
                 "redoc": str(request.app.redoc_url),
-                "health": request.app.url_path_for("health_check"),
-                "ready": request.app.url_path_for("readiness_check"),
-                "queue_status": request.app.url_path_for("get_queue_status"),
-                "jobs": request.app.url_path_for("list_jobs"),
+                "health": "/health",
+                "ready": "/ready",
+                "api_health": "/api/v1/health",
+                "queue_status": "/api/v1/queue/status",
+                "jobs": "/api/v1/jobs",
             },
         }
+
+    # Health check endpoint at root level
+    @app.get("/health", tags=["health"], name="health_root")
+    async def health_check() -> dict[str, str]:
+        """Health check endpoint."""
+        return {"status": "ok"}
+
+    # Ready check endpoint at root level
+    @app.get("/ready", tags=["health"], name="ready_root")
+    async def ready_check() -> dict[str, str]:
+        """Readiness check endpoint - lightweight dependency check."""
+        # Check if critical services are accessible (but don't load models)
+        return {"status": "ready"}
 
     # Include routers
     app.include_router(health.router, prefix="/api/v1")

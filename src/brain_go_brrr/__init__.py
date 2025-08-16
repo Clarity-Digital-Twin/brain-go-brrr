@@ -4,7 +4,14 @@ This package provides tools for EEG signal processing and neural representation
 learning based on the EEGPT transformer architecture.
 """
 
-__version__ = "0.4.0"
+# Single source of truth for version from pyproject.toml
+try:
+    from importlib.metadata import version
+
+    __version__ = version("brain-go-brrr")
+except Exception:
+    __version__ = "1.0.0"  # Fallback for development
+
 __author__ = "CLARITY-DIGITAL-TWIN"
 __email__ = "contact@clarity-digital-twin.org"
 

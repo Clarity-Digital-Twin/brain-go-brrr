@@ -436,6 +436,33 @@ class CleanQualityController:
             return epochs_clean
         return epochs
 
+    def compute_quality_score(self, eeg_data: npt.NDArray[np.float64]) -> float:
+        """Compute quality score from raw EEG data (deprecated).
+
+        Args:
+            eeg_data: Raw EEG data array (channels, samples)
+
+        Returns:
+            Quality score between 0 and 1
+        """
+        import warnings
+
+        warnings.warn(
+            "compute_quality_score is deprecated, use calculate_quality_score() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Simple heuristic based on amplitude
+        variance = float(np.var(eeg_data))
+        if variance < 10:
+            return 0.9  # Very clean
+        elif variance < 100:
+            return 0.7  # Good
+        elif variance < 1000:
+            return 0.5  # Fair
+        else:
+            return 0.3  # Poor
+
     def compute_abnormality_score(self, raw: MNERaw, model: Any = None, **_kwargs: Any) -> float:
         """Compute abnormality score for raw EEG (backward compatibility)."""
         # Use provided model or fallback to self.model or self.eegpt_model
