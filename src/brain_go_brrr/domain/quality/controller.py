@@ -362,14 +362,18 @@ class CleanQualityController:
         metrics = self.run_quality_check(raw)
 
         # Convert to dict for API compatibility
+        # Compute quality grade
+        quality_grade = self._grade_from_score(metrics.quality_score)
+        
         result = {
+            "quality_grade": quality_grade,  # Add at top level for backward compatibility
             "quality_metrics": {
                 "bad_channels": metrics.bad_channels,
                 "bad_channel_ratio": len(metrics.bad_channels) / len(raw.ch_names)
                 if raw.ch_names
                 else 0,
                 "artifact_ratio": len(metrics.artifact_epochs) / 100,  # Approximate
-                "quality_grade": self._grade_from_score(metrics.quality_score),
+                "quality_grade": quality_grade,  # Also include in metrics
                 "total_channels": len(raw.ch_names),
                 "abnormality_score": metrics.abnormality_score or 0,
             },
@@ -394,8 +398,10 @@ class CleanQualityController:
 
         return result
 
-    def _grade_from_score(self, score: float) -> str:
+    def _grade_from_score(self, score: float | None) -> str:
         """Convert numeric score to grade."""
+        if score is None:
+            return "UNKNOWN"
         if score >= 0.8:
             return "EXCELLENT"
         elif score >= 0.6:

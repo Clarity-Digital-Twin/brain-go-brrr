@@ -71,8 +71,13 @@ class AutoRejectAdapter:
 
         # Extract rejection info - handle API changes
         rejection_info = {
-            "reject_log": getattr(self.autoreject, "reject_log", 
-                                 getattr(self.autoreject, "get_reject_log", lambda e: None)(epochs_clean) if hasattr(self.autoreject, "get_reject_log") else None),
+            "reject_log": getattr(
+                self.autoreject,
+                "reject_log",
+                getattr(self.autoreject, "get_reject_log", lambda _: None)(epochs_clean)
+                if hasattr(self.autoreject, "get_reject_log")
+                else None,
+            ),
             "thresholds": getattr(self.autoreject, "thresholds_", {}),
             "interpolated": getattr(self.autoreject, "dots", {}),
         }

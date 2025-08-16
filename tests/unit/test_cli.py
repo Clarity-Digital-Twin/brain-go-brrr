@@ -1,8 +1,11 @@
 """Tests for CLI module."""
 
+from importlib.metadata import version as pkg_version
 from typer.testing import CliRunner
 
 from brain_go_brrr.cli import app
+
+PKG_VER = pkg_version("brain-go-brrr")
 
 
 class TestCLI:
@@ -102,4 +105,4 @@ class TestCLI:
         """Test version command shows actual version."""
         result = self.runner.invoke(app, ["version"])
         assert result.exit_code == 0
-        assert "1.0.0" in result.stdout  # Should show version from pyproject.toml
+        assert PKG_VER in result.stdout  # Should show version from pyproject.toml

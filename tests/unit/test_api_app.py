@@ -3,8 +3,11 @@
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
+from importlib.metadata import version as pkg_version
 
 from brain_go_brrr.api.app import NumpyEncoder, create_app
+
+PKG_VER = pkg_version("brain-go-brrr")
 
 
 class TestNumpyEncoder:
@@ -54,7 +57,7 @@ class TestAppFactory:
         app = create_app()
 
         assert app.title == "Brain-Go-Brrr EEG Analysis API"
-        assert app.version == "1.0.0"
+        assert app.version == PKG_VER
         assert app.docs_url == "/api/docs"
         assert app.redoc_url == "/api/redoc"
 
@@ -66,7 +69,7 @@ class TestAppFactory:
         data = response.json()
 
         assert data["message"] == "Welcome to Brain-Go-Brrr API"
-        assert data["version"] == "1.0.0"
+        assert data["version"] == PKG_VER
         assert "endpoints" in data
 
         # Check endpoint URLs are present
@@ -119,7 +122,7 @@ class TestAppFactory:
         schema = response.json()
 
         assert schema["info"]["title"] == "Brain-Go-Brrr EEG Analysis API"
-        assert schema["info"]["version"] == "1.0.0"
+        assert schema["info"]["version"] == PKG_VER
         assert "paths" in schema
 
     def test_404_for_unknown_endpoint(self, client):
