@@ -178,8 +178,19 @@ cython_debug/
 *.safetensors
 
 # Data files - keep the code package, ignore payload
-/data/                       # root-level datasets, checkpoints, outputs
+# Data directories - NEVER commit these!
+/data/
+data/
+/datasets/
+datasets/
+*.npy
+*.npz
+
+# BUT allow source code in src/brain_go_brrr/infra/data/
+!src/brain_go_brrr/infra/data/
+!src/brain_go_brrr/infra/data/**/*.py
 !src/brain_go_brrr/data/**   # allow the Python package
+!src/brain_go_brrr/*/data/** # allow data subdirs in source code
 datasets/*/raw/
 datasets/*/processed/
 *.csv
@@ -359,7 +370,6 @@ examples/*.log
 # Test reports
 pipeline_test_report.txt
 *_test_report.txt
-data/
 
 # MyPy cache directories
 .mypy_cache/

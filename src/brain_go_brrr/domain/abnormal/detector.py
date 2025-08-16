@@ -410,7 +410,12 @@ class CleanAbnormalityDetector:
     def _load_classifier_weights(self, path: Any) -> None:
         """Load classifier weights (backward compatibility method)."""
         # Load weights and validate dimensions
-        state_dict = torch.load(path) if not isinstance(path, dict) else path
+        if not isinstance(path, dict):
+            from brain_go_brrr.infra.safe_load import safe_load
+
+            state_dict = safe_load(path)
+        else:
+            state_dict = path
 
         # Check first layer dimensions against the linear probe
         if "0.weight" in state_dict and self.linear_probe is not None:

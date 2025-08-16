@@ -4,10 +4,9 @@ Based on the EEGPT paper: "EEGPT: Pretrained Transformer for Universal
 and Reliable Representation of EEG Signals"
 """
 
-import inspect
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import torch
 import torch.nn as nn
@@ -181,11 +180,9 @@ class EEGPTLinearProbe(nn.Module):
         Args:
             path: Path to checkpoint
         """
-        # Guard for older PyTorch versions
-        kwargs: dict[str, Any] = {"map_location": "cpu"}
-        if "weights_only" in inspect.signature(torch.load).parameters:
-            kwargs["weights_only"] = True
-        checkpoint = torch.load(path, **kwargs)
+        from brain_go_brrr.infra.safe_load import safe_load
+
+        checkpoint = safe_load(path, map_location="cpu")
         self.channel_adapter.load_state_dict(checkpoint["channel_adapter"])
         self.classifier.load_state_dict(checkpoint["classifier"])
         logger.info(f"Loaded probe weights from {path}")
