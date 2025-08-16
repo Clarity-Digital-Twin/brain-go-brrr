@@ -1,6 +1,7 @@
 """Tests for CLI module."""
 
 from importlib.metadata import version as pkg_version
+
 from typer.testing import CliRunner
 
 from brain_go_brrr.cli import app

@@ -364,7 +364,7 @@ class CleanQualityController:
         # Convert to dict for API compatibility
         # Compute quality grade
         quality_grade = self._grade_from_score(metrics.quality_score)
-        
+
         result = {
             "quality_grade": quality_grade,  # Add at top level for backward compatibility
             "quality_metrics": {

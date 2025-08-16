@@ -1,9 +1,10 @@
 """Tests for API app factory and endpoints - boost coverage with minimal effort."""
 
+from importlib.metadata import version as pkg_version
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
-from importlib.metadata import version as pkg_version
 
 from brain_go_brrr.api.app import NumpyEncoder, create_app
 
