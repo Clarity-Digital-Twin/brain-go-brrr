@@ -2,6 +2,7 @@
 
 import importlib
 import warnings
+from contextlib import suppress
 
 
 def test_old_imports_still_redirect():
@@ -48,10 +49,8 @@ def test_old_imports_still_redirect():
         import numpy as np
 
         fake_features = np.random.randn(512).astype(np.float32)
-        try:
+        with suppress(Exception):
             detector.compute_abnormality_score(fake_features)
-        except Exception:
-            pass  # Method might fail without model, but should exist
 
         # Check if deprecation warning was raised
         deprecation_warnings = [
