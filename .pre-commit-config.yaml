@@ -5,15 +5,15 @@
 repos:
   # Ruff - Fast Python linter and formatter (aligned with CI/local)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6  # Match the version used in development
+    rev: v0.6.9  # Pinned for consistency across all environments
     hooks:
       - id: ruff
         args: [--fix]
-        files: ^(src|tests)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/)
+        files: ^(src|tests|scripts)/
+        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/)
       - id: ruff-format
-        files: ^(src|tests)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/)
+        files: ^(src|tests|scripts)/
+        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/)
 
   # Type checking with mypy (temporarily disabled - pydantic issue)
   # - repo: https://github.com/pre-commit/mirrors-mypy

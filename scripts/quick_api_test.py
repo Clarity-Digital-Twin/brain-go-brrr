@@ -104,9 +104,7 @@ def main():
     import subprocess
 
     proc = subprocess.Popen(
-        ["uv", "run", "uvicorn", "api.main:app"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        ["uv", "run", "uvicorn", "api.main:app"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
 
     # Register cleanup

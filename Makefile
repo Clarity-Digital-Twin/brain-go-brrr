@@ -28,7 +28,7 @@ RUN := $(if $(UV),uv run,python -m)
 PYTHON := $(RUN) python
 PIP := $(if $(UV),uv pip,python -m pip)
 PYTEST := $(RUN) pytest
-RUFF := $(RUN) ruff
+RUFF := uvx ruff==0.6.9
 # Use pytest with coverage - no need to disable autoload
 PYTEST_WITH_COV := $(RUN) pytest
 

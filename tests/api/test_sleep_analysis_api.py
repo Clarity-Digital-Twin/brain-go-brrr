@@ -33,11 +33,7 @@ def mock_redis_cache():
     """Mock Redis cache for testing."""
     cache = DummyCache()
     # Set up health check response
-    cache.health_check = lambda: {
-        "status": "healthy",
-        "connected": True,
-        "memory_usage": "1.2MB",
-    }
+    cache.health_check = lambda: {"status": "healthy", "connected": True, "memory_usage": "1.2MB"}
     return cache
 
 

@@ -69,12 +69,7 @@ async def get_worker_status() -> dict[str, Any]:
     # TODO: Integrate with Celery
     return {
         "workers": [
-            {
-                "id": "worker-1",
-                "status": "active",
-                "current_job": None,
-                "jobs_completed": 0,
-            }
+            {"id": "worker-1", "status": "active", "current_job": None, "jobs_completed": 0}
         ],
         "total_workers": 1,
     }

@@ -269,10 +269,7 @@ async def analyze_sleep_eeg(
         job_id=job_id,
         analysis_type="sleep",
         file_path=str(tmp_path),
-        options={
-            "file_size": len(content),
-            "filename": edf_file.filename,
-        },
+        options={"file_size": len(content), "filename": edf_file.filename},
         status=JobStatus.PENDING,
         priority=JobPriority.NORMAL,
         progress=0.0,
@@ -288,11 +285,7 @@ async def analyze_sleep_eeg(
     job_store.create(job_id, job)
 
     # Schedule the actual sleep analysis as a background task
-    background_tasks.add_task(
-        process_sleep_analysis_job,
-        job_id,
-        tmp_path,
-    )
+    background_tasks.add_task(process_sleep_analysis_job, job_id, tmp_path)
 
     # Return job response
     return JobResponse(
@@ -358,9 +351,7 @@ async def get_sleep_job_results(job_id: str) -> SleepAnalysisResponse:
 
 
 @router.post("/stages", response_model=SleepStageResponse)
-async def analyze_sleep_stages_eegpt(
-    edf_file: UploadFile = File(...),
-) -> SleepStageResponse:
+async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepStageResponse:
     """Analyze sleep stages using EEGPT with linear probe.
 
     This endpoint uses the pretrained EEGPT model with a linear probe
@@ -469,10 +460,7 @@ async def analyze_sleep_stages_eegpt(
         }
 
         return SleepStageResponse(
-            stages=stages,
-            confidence_scores=confidence_scores,
-            hypnogram=hypnogram,
-            summary=summary,
+            stages=stages, confidence_scores=confidence_scores, hypnogram=hypnogram, summary=summary
         )
 
     except EdfLoadError as e:

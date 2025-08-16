@@ -158,12 +158,10 @@ def mock_eegpt_model_loading(monkeypatch):
         mock_extract_features_batch,
     )
     monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.process_recording",
-        mock_process_recording,
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.process_recording", mock_process_recording
     )
     monkeypatch.setattr(
-        "brain_go_brrr.models.eegpt_model.EEGPTModel.predict_abnormality",
-        mock_predict_abnormality,
+        "brain_go_brrr.models.eegpt_model.EEGPTModel.predict_abnormality", mock_predict_abnormality
     )
 
 

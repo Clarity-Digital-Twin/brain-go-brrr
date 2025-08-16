@@ -229,8 +229,7 @@ class CleanAbnormalityDetector:
         # Step 3: Extract features using the model
         assert self.model is not None  # Guaranteed by __init__
         features = self.model.extract_features(
-            eeg_array,
-            sampling_rate=int(preprocessed.info["sfreq"]),
+            eeg_array, sampling_rate=int(preprocessed.info["sfreq"])
         )
 
         # Step 4: Run inference with linear probe

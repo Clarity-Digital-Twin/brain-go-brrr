@@ -9,11 +9,7 @@ import pytest
 import torch
 from fastapi.testclient import TestClient
 
-from brain_go_brrr.api.routers.eegpt import (
-    get_eegpt_model,
-    get_probe,
-    router,
-)
+from brain_go_brrr.api.routers.eegpt import get_eegpt_model, get_probe, router
 
 
 class TestEEGPTRouterClean:

@@ -162,9 +162,7 @@ def create_feature_extractor(
     Returns:
         Configured feature extractor
     """
-    from brain_go_brrr.domain.preprocessing.features.extractor import (
-        CleanFeatureExtractor,
-    )
+    from brain_go_brrr.domain.preprocessing.features.extractor import CleanFeatureExtractor
 
     # Create infrastructure adapters
     model_adapter = EEGPTModelAdapter(model_path=model_path, device=device)

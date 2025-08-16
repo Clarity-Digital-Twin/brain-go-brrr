@@ -26,10 +26,7 @@ class SleepDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     """PyTorch dataset for sleep EEG windows."""
 
     def __init__(
-        self,
-        windows: list[npt.NDArray[np.float64]],
-        labels: list[int],
-        augment: bool = False,
+        self, windows: list[npt.NDArray[np.float64]], labels: list[int], augment: bool = False
     ):
         """Initialize sleep dataset.
 
@@ -166,10 +163,7 @@ class SleepProbeTrainer:
 
 
 def evaluate_probe(
-    probe: SleepStageProbe,
-    eegpt_model: EEGPTModel,
-    dataset: SleepDataset,
-    batch_size: int = 32,
+    probe: SleepStageProbe, eegpt_model: EEGPTModel, dataset: SleepDataset, batch_size: int = 32
 ) -> tuple[float, npt.NDArray[np.float64]]:
     """Evaluate probe on dataset.
 
@@ -433,12 +427,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Train sleep stage probe")
-    parser.add_argument(
-        "--data-dir",
-        type=Path,
-        required=True,
-        help="Path to Sleep-EDF dataset",
-    )
+    parser.add_argument("--data-dir", type=Path, required=True, help="Path to Sleep-EDF dataset")
     parser.add_argument(
         "--checkpoint-dir",
         type=Path,

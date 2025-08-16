@@ -25,10 +25,7 @@ class TestPDFReportIntegration:
                         "bad_channel_ratio": 0.15,
                         "abnormality_score": 0.65,
                         "quality_grade": "FAIR",
-                        "impedance_warnings": [
-                            "High impedance on F3",
-                            "Poor contact on T3",
-                        ],
+                        "impedance_warnings": ["High impedance on F3", "Poor contact on T3"],
                         "artifact_summary": {
                             "eye_blinks": 25,
                             "muscle": 10,
@@ -252,11 +249,7 @@ class TestPDFReportIntegration:
 
     @pytest.mark.parametrize(
         "triage_flag,expected_color",
-        [
-            ("URGENT", "red"),
-            ("EXPEDITE", "orange"),
-            ("ROUTINE", "yellow"),
-        ],
+        [("URGENT", "red"), ("EXPEDITE", "orange"), ("ROUTINE", "yellow")],
     )
     def test_pdf_triage_flag_styling(
         self, client, sample_edf_file, mock_qc_controller, triage_flag, expected_color
@@ -283,16 +276,8 @@ class TestPDFReportIntegration:
                 "bad_channel_ratio": 0.15,
                 "abnormality_score": abnormal_score,
                 "quality_grade": quality_grade,
-                "impedance_warnings": [
-                    "High impedance on F3",
-                    "Poor contact on T3",
-                ],
-                "artifact_summary": {
-                    "eye_blinks": 25,
-                    "muscle": 10,
-                    "heartbeat": 5,
-                    "motion": 3,
-                },
+                "impedance_warnings": ["High impedance on F3", "Poor contact on T3"],
+                "artifact_summary": {"eye_blinks": 25, "muscle": 10, "heartbeat": 5, "motion": 3},
                 "artifact_segments": [
                     {"start": 10.5, "end": 11.0, "type": "eye_blink"},
                     {"start": 45.2, "end": 46.1, "type": "muscle"},

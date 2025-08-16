@@ -183,12 +183,7 @@ class TestSerializationRegistry:
     def test_deserialize_invalid_json(self) -> None:
         """Test deserializing invalid JSON returns as-is."""
         # Given: Invalid JSON strings
-        invalid_inputs = [
-            "not json",
-            b"binary data",
-            "{invalid json}",
-            "",
-        ]
+        invalid_inputs = ["not json", b"binary data", "{invalid json}", ""]
 
         for input_val in invalid_inputs:
             result = deserialize_value(input_val)

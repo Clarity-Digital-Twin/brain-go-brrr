@@ -54,11 +54,7 @@ def create_app() -> FastAPI:
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         lifespan=lifespan,
-        json_encoders={
-            np.integer: int,
-            np.floating: float,
-            np.ndarray: lambda x: x.tolist(),
-        },
+        json_encoders={np.integer: int, np.floating: float, np.ndarray: lambda x: x.tolist()},
     )
 
     # Add CORS middleware

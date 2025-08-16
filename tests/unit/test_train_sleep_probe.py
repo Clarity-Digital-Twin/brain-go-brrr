@@ -70,10 +70,7 @@ class TestSleepProbeTraining:
         """Test SleepProbeTrainer initialization."""
         probe = SleepStageProbe()
         trainer = SleepProbeTrainer(
-            probe=probe,
-            eegpt_model=mock_eegpt_model,
-            learning_rate=1e-3,
-            batch_size=4,
+            probe=probe, eegpt_model=mock_eegpt_model, learning_rate=1e-3, batch_size=4
         )
 
         assert trainer.probe == probe

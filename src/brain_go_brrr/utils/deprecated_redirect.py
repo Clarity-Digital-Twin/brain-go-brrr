@@ -10,8 +10,10 @@ from __future__ import annotations
 import importlib
 import sys
 import warnings
-from types import ModuleType  # noqa: TC003 - Used at runtime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 def redirect(

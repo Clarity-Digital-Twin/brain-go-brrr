@@ -19,8 +19,15 @@ jobs:
       - name: Install pre-commit
         run: pip install pre-commit
 
-      - name: Run pre-commit hooks
-        run: pre-commit run --all-files --show-diff-on-failure
+      - name: Run pre-commit hooks (non-destructive)
+        run: |
+          # Skip ruff-format to prevent file modifications in CI
+          SKIP=ruff-format pre-commit run --all-files --show-diff-on-failure
+
+      - name: Check formatting with pinned ruff
+        run: |
+          pip install ruff==0.6.9
+          ruff format --check src tests scripts
 
       - name: Check for unsafe torch.load
         run: |

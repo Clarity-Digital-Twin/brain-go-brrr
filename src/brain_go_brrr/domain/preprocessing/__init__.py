@@ -20,9 +20,4 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = [
-    "BasicEEGPreprocessor",
-    "PreprocessingPipeline",
-    "SleepPreprocessor",
-    "WindowExtractor",
-]
+__all__ = ["BasicEEGPreprocessor", "PreprocessingPipeline", "SleepPreprocessor", "WindowExtractor"]

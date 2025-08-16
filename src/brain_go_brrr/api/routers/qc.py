@@ -250,8 +250,7 @@ async def analyze_eeg_detailed(
 
             if required_memory > available_memory:
                 raise HTTPException(
-                    status_code=507,
-                    detail="Insufficient memory for analysis. Try a smaller file.",
+                    status_code=507, detail="Insufficient memory for analysis. Try a smaller file."
                 )
 
             # Load EDF data

@@ -53,9 +53,7 @@ def benchmark_raw_data(benchmark_edf_path) -> "mne.io.Raw | None":
 
 
 @pytest.fixture
-def realistic_single_window(
-    benchmark_raw_data,
-) -> tuple[npt.NDArray[np.float32], list[str]]:
+def realistic_single_window(benchmark_raw_data) -> tuple[npt.NDArray[np.float32], list[str]]:
     """Get a realistic 4-second EEG window from actual data."""
     if benchmark_raw_data is not None:
         # Extract 4-second window from real data
@@ -141,9 +139,7 @@ def realistic_single_window(
 
 
 @pytest.fixture
-def realistic_batch_windows(
-    benchmark_raw_data,
-) -> tuple[npt.NDArray[np.float32], list[str]]:
+def realistic_batch_windows(benchmark_raw_data) -> tuple[npt.NDArray[np.float32], list[str]]:
     """Get a batch of realistic 4-second EEG windows."""
     batch_size = 32
 
@@ -250,9 +246,7 @@ def realistic_batch_windows(
 
 
 @pytest.fixture
-def realistic_twenty_min_recording(
-    benchmark_raw_data,
-) -> tuple[npt.NDArray[np.float32], list[str]]:
+def realistic_twenty_min_recording(benchmark_raw_data) -> tuple[npt.NDArray[np.float32], list[str]]:
     """Get a realistic 20-minute EEG recording."""
     target_duration = 20 * 60  # 20 minutes in seconds
     target_samples = target_duration * 256  # at 256 Hz

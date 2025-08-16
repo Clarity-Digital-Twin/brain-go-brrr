@@ -360,11 +360,7 @@ class EEGPreprocessor:
     def _apply_notch_filter(self, raw: MNERaw) -> MNERaw:
         """Apply notch filter to remove powerline interference."""
         mne_compat.notch_filter_raw(
-            raw,
-            freqs=self.notch_freq,
-            picks="eeg",
-            method="iir",
-            verbose=False,
+            raw, freqs=self.notch_freq, picks="eeg", method="iir", verbose=False
         )
         return raw
 

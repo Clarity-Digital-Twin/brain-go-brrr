@@ -110,11 +110,7 @@ class TestExceptionUsage:
 
     def test_catching_hierarchy(self):
         """Test catching exceptions by base class."""
-        errors = [
-            EdfLoadError("EDF"),
-            ConfigurationError("Config"),
-            ModelLoadError("Model"),
-        ]
+        errors = [EdfLoadError("EDF"), ConfigurationError("Config"), ModelLoadError("Model")]
 
         for error in errors:
             with pytest.raises(BrainGoBrrrError):

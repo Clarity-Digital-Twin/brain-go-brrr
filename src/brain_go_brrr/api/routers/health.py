@@ -26,7 +26,4 @@ async def health_check() -> dict[str, str]:
 async def readiness_check() -> dict[str, str]:
     """Readiness check for Kubernetes."""
     # TODO: Check dependencies (Redis, model loading, etc.)
-    return {
-        "status": "ready",
-        "timestamp": utc_now().isoformat(),
-    }
+    return {"status": "ready", "timestamp": utc_now().isoformat()}

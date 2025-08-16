@@ -45,9 +45,6 @@ jobs:
         run: |
           uv run python -c "from brain_go_brrr.core import exceptions; print('✅ All imports work')"
 
-      - name: Run formatting check
-        run: make format-check
-
       - name: Run linting
         run: make lint-ci
 

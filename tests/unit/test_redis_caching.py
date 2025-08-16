@@ -40,11 +40,7 @@ class TestRedisCaching:
         yield client_with_cache
 
     def test_cache_hit_on_repeated_analysis(
-        self,
-        client_for_cache_tests,
-        valid_edf_content,
-        dummy_cache,
-        mock_qc_controller,
+        self, client_for_cache_tests, valid_edf_content, dummy_cache, mock_qc_controller
     ):
         """Test that repeated analysis uses cache instead of reprocessing."""
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}

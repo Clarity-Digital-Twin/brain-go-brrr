@@ -255,11 +255,7 @@ class SleepAnalyzer:
         try:
             # Perform sleep staging using YASA
             sls = yasa.SleepStaging(
-                raw,
-                eeg_name=eeg_ch,
-                eog_name=eog_ch,
-                emg_name=emg_ch,
-                metadata=metadata,
+                raw, eeg_name=eeg_ch, eog_name=eog_ch, emg_name=emg_ch, metadata=metadata
             )
 
             # Predict sleep stages

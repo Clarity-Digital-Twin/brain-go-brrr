@@ -247,10 +247,7 @@ def filter_raw(
 
 
 def notch_filter_raw(
-    raw: MNERaw,
-    freqs: float | list[float],
-    picks: str | list[int] | None = None,
-    **kwargs: Any,
+    raw: MNERaw, freqs: float | list[float], picks: str | list[int] | None = None, **kwargs: Any
 ) -> None:
     """Apply notch filter with proper picks handling.
 

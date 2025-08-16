@@ -53,11 +53,7 @@ async def clear_cache(
 
     try:
         deleted_count = cache_client.clear_pattern(pattern)
-        return {
-            "status": "success",
-            "deleted_count": deleted_count,
-            "pattern": pattern,
-        }
+        return {"status": "success", "deleted_count": deleted_count, "pattern": pattern}
     except (ConnectionError, TimeoutError) as e:
         # Redis connection issues
         logger.error(f"Redis connection error clearing cache: {e}")
@@ -81,7 +77,4 @@ async def warmup_cache(
         return {"status": "unavailable", "message": "Cache not available", "warmed": 0}
 
     # TODO: Implement cache warmup logic
-    return {
-        "status": "not_implemented",
-        "message": "Cache warmup not yet implemented",
-    }
+    return {"status": "not_implemented", "message": "Cache warmup not yet implemented"}

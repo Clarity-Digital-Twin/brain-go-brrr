@@ -223,16 +223,11 @@ async def get_available_probes() -> ProbeInfoResponse:
         },
     }
 
-    return ProbeInfoResponse(
-        available_probes=list(probe_info.keys()),
-        probe_info=probe_info,
-    )
+    return ProbeInfoResponse(available_probes=list(probe_info.keys()), probe_info=probe_info)
 
 
 @router.post("/sleep/stages")
-async def analyze_sleep_stages(
-    edf_file: UploadFile = File(...),
-) -> dict[str, Any]:
+async def analyze_sleep_stages(edf_file: UploadFile = File(...)) -> dict[str, Any]:
     """Analyze sleep stages from EEG file.
 
     Returns window-by-window sleep stage predictions.
@@ -296,9 +291,7 @@ async def analyze_sleep_stages(
 
 @router.post("/analyze/batch")
 async def analyze_batch(
-    edf_file: UploadFile = File(...),
-    analysis_type: str = "abnormality",
-    batch_size: int = 32,
+    edf_file: UploadFile = File(...), analysis_type: str = "abnormality", batch_size: int = 32
 ) -> dict[str, Any]:
     """Batch process multiple windows from EEG file.
 

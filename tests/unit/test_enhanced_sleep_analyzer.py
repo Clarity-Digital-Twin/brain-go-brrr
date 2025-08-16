@@ -3,10 +3,7 @@
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.sleep.analyzer_enhanced import (
-    EnhancedSleepAnalyzer,
-    YASAConfig,
-)
+from brain_go_brrr.core.sleep.analyzer_enhanced import EnhancedSleepAnalyzer, YASAConfig
 
 
 class TestEnhancedSleepAnalyzer:

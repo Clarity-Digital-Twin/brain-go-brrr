@@ -92,10 +92,7 @@ async def get_job_results(job_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
     if job.status != JobStatus.COMPLETED:
-        return {
-            "status": job.status,
-            "message": "Job not yet completed",
-        }
+        return {"status": job.status, "message": "Job not yet completed"}
 
     return {
         "job_id": job_id,
@@ -131,9 +128,7 @@ async def cancel_job(job_id: str) -> dict[str, str]:
 
 @router.get("", response_model=JobListResponse, name="list_jobs")
 async def list_jobs(
-    status: JobStatus | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    status: JobStatus | None = None, limit: int = 100, offset: int = 0
 ) -> JobListResponse:
     """List all jobs with optional filtering."""
     all_jobs = job_store.list_all()

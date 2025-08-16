@@ -62,12 +62,7 @@ class TestSerializationEdgeCases:
 
     def test_serialize_none_values(self):
         """Test serializing None values."""
-        test_cases = [
-            None,
-            {"key": None},
-            [None, None],
-            {"nested": {"value": None}},
-        ]
+        test_cases = [None, {"key": None}, [None, None], {"nested": {"value": None}}]
 
         for original in test_cases:
             serialized = serialize_value(original)
@@ -76,12 +71,7 @@ class TestSerializationEdgeCases:
 
     def test_serialize_empty_containers(self):
         """Test serializing empty containers."""
-        test_cases = [
-            {},
-            [],
-            {"empty_dict": {}, "empty_list": []},
-            [[], {}, []],
-        ]
+        test_cases = [{}, [], {"empty_dict": {}, "empty_list": []}, [[], {}, []]]
 
         for original in test_cases:
             serialized = serialize_value(original)
@@ -298,12 +288,7 @@ class TestSerializationEdgeCases:
 
     def test_serialize_inf_and_nan(self):
         """Test serializing infinity and NaN (should fail)."""
-        test_cases = [
-            float("inf"),
-            float("-inf"),
-            float("nan"),
-            {"value": float("inf")},
-        ]
+        test_cases = [float("inf"), float("-inf"), float("nan"), {"value": float("inf")}]
 
         for value in test_cases:
             # Python's json module actually handles inf/nan by default
@@ -336,11 +321,7 @@ class TestSerializationEdgeCases:
 
     def test_serialize_numpy_types(self):
         """Test serializing numpy types (should fail)."""
-        test_cases = [
-            np.array([1, 2, 3]),
-            np.float32(3.14),
-            np.int64(42),
-        ]
+        test_cases = [np.array([1, 2, 3]), np.float32(3.14), np.int64(42)]
 
         for value in test_cases:
             # NumPy types not JSON serializable by default

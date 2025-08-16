@@ -65,10 +65,7 @@ class EEGPreprocessorAdapter(PreprocessorPort):
         self.preprocessor = EEGPreprocessor(use_autoreject=use_autoreject)
 
     def preprocess(
-        self,
-        raw: MNERaw,
-        bandpass: tuple[float, float] | None = None,
-        notch: float | None = None,
+        self, raw: MNERaw, bandpass: tuple[float, float] | None = None, notch: float | None = None
     ) -> MNERaw:
         """Preprocess EEG data.
 

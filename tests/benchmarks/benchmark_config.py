@@ -62,10 +62,7 @@ class BenchmarkReporter:
         self.results: dict[str, Any] = {}
 
     def add_result(
-        self,
-        test_name: str,
-        benchmark_result: Any,
-        metadata: dict[str, Any] | None = None,
+        self, test_name: str, benchmark_result: Any, metadata: dict[str, Any] | None = None
     ) -> None:
         """Add benchmark result for reporting.
 
@@ -144,12 +141,7 @@ class BenchmarkReporter:
         ]
 
         # Add targets table
-        lines.extend(
-            [
-                "| Metric | Target | Description |",
-                "|--------|--------|-------------|",
-            ]
-        )
+        lines.extend(["| Metric | Target | Description |", "|--------|--------|-------------|"])
 
         target_descriptions = {
             "single_window_ms": "Single 4-second window inference time",
@@ -169,10 +161,7 @@ class BenchmarkReporter:
         # Add results table
         if self.results:
             lines.extend(
-                [
-                    "| Test | Mean Time | Target | Status |",
-                    "|------|-----------|--------|--------|",
-                ]
+                ["| Test | Mean Time | Target | Status |", "|------|-----------|--------|--------|"]
             )
 
             for test_name, result in self.results.items():

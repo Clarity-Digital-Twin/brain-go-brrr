@@ -83,11 +83,7 @@ class MetricsRecorder:
         return None
 
     def check_regression(
-        self,
-        test_name: str,
-        metric_name: str,
-        current_value: float,
-        max_drop_pp: float = 3.0,
+        self, test_name: str, metric_name: str, current_value: float, max_drop_pp: float = 3.0
     ) -> bool:
         """Check if metric has regressed beyond threshold.
 
@@ -115,10 +111,7 @@ class MetricsRecorder:
             import subprocess
 
             result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                capture_output=True,
-                text=True,
-                check=False,
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
             )
             if result.returncode == 0:
                 return result.stdout.strip()[:8]

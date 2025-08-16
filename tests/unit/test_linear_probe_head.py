@@ -87,14 +87,7 @@ class TestLinearProbeHead:
         assert probe.classifier.bias.grad is not None
 
     @pytest.mark.parametrize(
-        "input_dim,num_classes",
-        [
-            (128, 2),
-            (256, 5),
-            (512, 10),
-            (1024, 2),
-            (2048, 3),
-        ],
+        "input_dim,num_classes", [(128, 2), (256, 5), (512, 10), (1024, 2), (2048, 3)]
     )
     def test_various_dimensions(self, input_dim, num_classes):
         """Test LinearProbeHead with various input/output dimensions."""

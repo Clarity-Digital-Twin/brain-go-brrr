@@ -125,7 +125,7 @@ def test_malformed_dataclass_json():
     # Missing data field
     bad_json = json.dumps(
         {
-            "_dataclass_type": "MiniSerializable",
+            "_dataclass_type": "MiniSerializable"
             # Missing "data" field
         }
     )

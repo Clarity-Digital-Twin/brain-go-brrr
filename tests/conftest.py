@@ -429,9 +429,7 @@ def patched_qc_endpoint(mock_qc_controller):
     """Provide a context manager for patching QC endpoint dependencies."""
 
     def _patch():
-        return [
-            patch("brain_go_brrr.api.routers.qc.qc_controller", mock_qc_controller),
-        ]
+        return [patch("brain_go_brrr.api.routers.qc.qc_controller", mock_qc_controller)]
 
     return _patch
 

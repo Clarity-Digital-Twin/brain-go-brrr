@@ -131,9 +131,7 @@ class PDFReportGenerator:
         # Add electrode heatmap if channel positions available
         if "channel_positions" in quality_metrics:
             self._add_electrode_heatmap(
-                fig,
-                quality_metrics["channel_positions"],
-                quality_metrics.get("bad_channels", []),
+                fig, quality_metrics["channel_positions"], quality_metrics.get("bad_channels", [])
             )
 
         return fig
@@ -153,14 +151,7 @@ class PDFReportGenerator:
 
         # Add warning text
         ax.text(
-            0.5,
-            0.5,
-            text,
-            ha="center",
-            va="center",
-            fontsize=16,
-            fontweight="bold",
-            color="white",
+            0.5, 0.5, text, ha="center", va="center", fontsize=16, fontweight="bold", color="white"
         )
 
         ax.axis("off")
@@ -177,14 +168,7 @@ class PDFReportGenerator:
 
         # Add text
         ax.text(
-            0.5,
-            0.5,
-            text,
-            ha="center",
-            va="center",
-            fontsize=16,
-            fontweight="bold",
-            color="white",
+            0.5, 0.5, text, ha="center", va="center", fontsize=16, fontweight="bold", color="white"
         )
 
         ax.axis("off")
@@ -195,14 +179,7 @@ class PDFReportGenerator:
         ax.axis("off")
 
         # Title
-        ax.text(
-            0.5,
-            0.7,
-            "EEG Quality Control Report",
-            ha="center",
-            fontsize=18,
-            fontweight="bold",
-        )
+        ax.text(0.5, 0.7, "EEG Quality Control Report", ha="center", fontsize=18, fontweight="bold")
 
         # File info
         filename = processing_info.get("file_name", "Unknown")
@@ -212,10 +189,7 @@ class PDFReportGenerator:
         ax.text(0.5, 0.1, f"Generated: {timestamp}", ha="center", fontsize=8)
 
     def _add_summary_stats(
-        self,
-        fig: Figure,
-        quality_metrics: dict[str, Any],
-        processing_info: dict[str, Any],
+        self, fig: Figure, quality_metrics: dict[str, Any], processing_info: dict[str, Any]
     ) -> None:
         """Add summary statistics section."""
         ax = fig.add_axes((0.1, 0.6, 0.8, 0.2))
@@ -313,9 +287,7 @@ class PDFReportGenerator:
 
         # Create artifact visualizations
         artifact_fig = create_artifact_examples(
-            eeg_data,
-            sorted_artifacts,
-            results.get("processing_info", {}).get("sampling_rate", 256),
+            eeg_data, sorted_artifacts, results.get("processing_info", {}).get("sampling_rate", 256)
         )
 
         # Handle case where no artifacts to visualize
@@ -323,14 +295,7 @@ class PDFReportGenerator:
             # Create empty figure with message
             artifact_fig = plt.figure(figsize=self.figsize)
             ax = artifact_fig.add_subplot(111)
-            ax.text(
-                0.5,
-                0.5,
-                "No artifacts to display",
-                ha="center",
-                va="center",
-                fontsize=14,
-            )
+            ax.text(0.5, 0.5, "No artifacts to display", ha="center", va="center", fontsize=14)
             ax.axis("off")
 
         return artifact_fig
@@ -481,12 +446,7 @@ def get_banner_color(flag: str) -> str:
     Returns:
         Color string or RGB tuple
     """
-    color_map = {
-        "URGENT": "red",
-        "EXPEDITE": "orange",
-        "ROUTINE": "yellow",
-        "NORMAL": "green",
-    }
+    color_map = {"URGENT": "red", "EXPEDITE": "orange", "ROUTINE": "yellow", "NORMAL": "green"}
     return color_map.get(flag.upper(), "gray")
 
 

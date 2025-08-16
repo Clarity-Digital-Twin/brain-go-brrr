@@ -9,10 +9,7 @@ from rich.logging import RichHandler
 
 
 def get_logger(
-    name: str,
-    level: str = "INFO",
-    log_file: Path | None = None,
-    rich_console: bool = True,
+    name: str, level: str = "INFO", log_file: Path | None = None, rich_console: bool = True
 ) -> logging.Logger:
     """Get a configured logger with Rich formatting.
 

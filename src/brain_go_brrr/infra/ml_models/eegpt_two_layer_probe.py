@@ -190,10 +190,7 @@ class EEGPTChannelAdapter(nn.Module):
     """Standalone channel adapter for EEGPT."""
 
     def __init__(
-        self,
-        in_channels: int = 20,
-        out_channels: int = 19,
-        intermediate_channels: int = 22,
+        self, in_channels: int = 20, out_channels: int = 19, intermediate_channels: int = 22
     ):
         """Initialize channel adapter for EEGPT."""
         super().__init__()

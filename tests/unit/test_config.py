@@ -43,11 +43,7 @@ class TestConfig:
 
     def test_config_with_custom_values(self):
         """Test configuration with custom values."""
-        config = Config(
-            environment="production",
-            debug=True,
-            seed=123,
-        )
+        config = Config(environment="production", debug=True, seed=123)
         assert config.environment == "production"
         assert config.debug is True
         assert config.seed == 123

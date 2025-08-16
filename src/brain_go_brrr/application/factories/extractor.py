@@ -4,10 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from brain_go_brrr.domain.preprocessing.features.extractor import CleanFeatureExtractor
-from brain_go_brrr.infra.adapters.model_adapter import (
-    EEGPreprocessorAdapter,
-    EEGPTModelAdapter,
-)
+from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter, EEGPTModelAdapter
 
 
 def create_feature_extractor(
@@ -40,9 +37,5 @@ def create_feature_extractor(
 
     # Create domain service with injected dependencies
     return CleanFeatureExtractor(
-        model=model,
-        preprocessor=preprocessor,
-        window_size=window_size,
-        overlap=overlap,
-        **kwargs,
+        model=model, preprocessor=preprocessor, window_size=window_size, overlap=overlap, **kwargs
     )

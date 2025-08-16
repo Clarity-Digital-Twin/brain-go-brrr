@@ -16,9 +16,7 @@ if TYPE_CHECKING:
     from brain_go_brrr._typing import MNERaw
 
 from brain_go_brrr.domain.ports import PreprocessorPort
-from brain_go_brrr.infra.preprocessing.flexible_preprocessor import (
-    FlexibleEEGPreprocessor,
-)
+from brain_go_brrr.infra.preprocessing.flexible_preprocessor import FlexibleEEGPreprocessor
 
 
 class FlexiblePreprocessorAdapter(PreprocessorPort):
@@ -50,10 +48,7 @@ class FlexiblePreprocessorAdapter(PreprocessorPort):
         )
 
     def preprocess(
-        self,
-        raw: MNERaw,
-        bandpass: tuple[float, float] | None = None,
-        notch: float | None = None,
+        self, raw: MNERaw, bandpass: tuple[float, float] | None = None, notch: float | None = None
     ) -> MNERaw:
         """Preprocess EEG data.
 

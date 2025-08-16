@@ -153,6 +153,13 @@ exclude = [
     "research/",
 ]
 
+[tool.ruff.format]
+# Make output deterministic across platforms/versions
+line-ending = "lf"
+skip-magic-trailing-comma = true
+# Keep quoting as-is to avoid churn
+quote-style = "preserve"
+
 [tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
@@ -175,6 +182,8 @@ ignore = [
     "E501",   # Line too long (handled by formatter)
     "B008",   # Do not perform function calls in argument defaults
     "RUF012", # Mutable class attributes should be annotated
+    "ANN101", # Missing type annotation for self (unnecessary)
+    "ANN102", # Missing type annotation for cls (unnecessary)
     # Type annotation exceptions
     "ANN204", # Missing return type annotation for special method __init__ (46 instances)
     "ANN401", # Dynamically typed expressions (Any) - TODO: fix these gradually
@@ -190,8 +199,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ARG", "D417", "ANN"]  # Tests don't need strict type annotations
 "scripts/*.py" = ["E402", "ANN"]  # Allow imports after env var setup, relaxed types
-"tests/conftest.py" = ["TC004"]  # Allow type-checking imports with future annotations
-"tests/fixtures/mock_eeg_generator.py" = ["TC004"]  # Allow type-checking imports with future annotations
+"tests/conftest.py" = ["TCH004"]  # Allow type-checking imports with future annotations
+"tests/fixtures/mock_eeg_generator.py" = ["TCH004"]  # Allow type-checking imports with future annotations
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"  # Use Google-style docstrings

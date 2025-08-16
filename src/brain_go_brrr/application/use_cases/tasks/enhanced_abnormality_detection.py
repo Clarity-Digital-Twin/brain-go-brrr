@@ -89,9 +89,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         # Initialize probe
         if probe is None:
             probe = EEGPTTwoLayerProbe(
-                backbone_dim=768,
-                n_input_channels=n_channels,
-                n_classes=n_classes,
+                backbone_dim=768, n_input_channels=n_channels, n_classes=n_classes
             )
         self.probe = probe
 
@@ -178,11 +176,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Store outputs for epoch-level metrics
         self.train_outputs.append(
-            {
-                "loss": loss.detach(),
-                "logits": logits.detach(),
-                "labels": y.detach(),
-            }
+            {"loss": loss.detach(), "logits": logits.detach(), "labels": y.detach()}
         )
 
         return cast("torch.Tensor", loss)
@@ -198,11 +192,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Store outputs
         self.val_outputs.append(
-            {
-                "loss": loss.detach(),
-                "logits": logits.detach(),
-                "labels": y.detach(),
-            }
+            {"loss": loss.detach(), "logits": logits.detach(), "labels": y.detach()}
         )
 
     def on_train_epoch_end(self) -> None:
@@ -276,11 +266,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         param_groups = self._get_param_groups()
 
         # Create optimizer
-        optimizer = AdamW(
-            param_groups,
-            eps=1e-8,
-            betas=(0.9, 0.999),
-        )
+        optimizer = AdamW(param_groups, eps=1e-8, betas=(0.9, 0.999))
 
         # Create scheduler based on type
         scheduler_type = self.hparams.get("scheduler_type", "none")
@@ -299,17 +285,12 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
             )
             return {
                 "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": sched,
-                    "interval": "step",
-                },
+                "lr_scheduler": {"scheduler": sched, "interval": "step"},
             }
 
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
-                optimizer,
-                T_max=int(self.trainer.estimated_stepping_batches),
-                eta_min=1e-6,
+                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6
             )
             return [optimizer], [sched]
 

@@ -155,11 +155,7 @@ class CleanFeatureExtractor:
         )
 
     def _extract_windows(
-        self,
-        raw: MNERaw,
-        *,
-        window_size: float | None = None,
-        overlap: float | None = None,
+        self, raw: MNERaw, *, window_size: float | None = None, overlap: float | None = None
     ) -> list[npt.NDArray[np.float32]]:
         """Extract sliding windows from EEG data.
 

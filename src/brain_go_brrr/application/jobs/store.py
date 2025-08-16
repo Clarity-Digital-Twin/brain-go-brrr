@@ -201,13 +201,7 @@ class ThreadSafeJobStore:
             Dictionary of status counts
         """
         with self._lock:
-            counts = {
-                "pending": 0,
-                "processing": 0,
-                "completed": 0,
-                "failed": 0,
-                "cancelled": 0,
-            }
+            counts = {"pending": 0, "processing": 0, "completed": 0, "failed": 0, "cancelled": 0}
 
             for job in self._jobs.values():
                 status = job.status.value

@@ -141,8 +141,7 @@ def test_api_endpoint_wiring(valid_edf_file):
     # Since there's no model configured, we expect it to fail with 500
     with Path(valid_edf_file).open("rb") as f:
         response = client.post(
-            "/api/v1/eeg/analyze",
-            files={"edf_file": ("test.edf", f, "application/octet-stream")},
+            "/api/v1/eeg/analyze", files={"edf_file": ("test.edf", f, "application/octet-stream")}
         )
         # Even if processing fails, endpoint should be wired
         # 422 = validation error, 400 = bad request, 500 = internal error

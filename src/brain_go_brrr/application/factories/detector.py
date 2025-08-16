@@ -4,16 +4,11 @@ from pathlib import Path
 from typing import Any
 
 from brain_go_brrr.domain.abnormal.detector import CleanAbnormalityDetector
-from brain_go_brrr.infra.adapters.model_adapter import (
-    EEGPreprocessorAdapter,
-    EEGPTModelAdapter,
-)
+from brain_go_brrr.infra.adapters.model_adapter import EEGPreprocessorAdapter, EEGPTModelAdapter
 
 
 def create_abnormality_detector(
-    model_path: str | Path | None = None,
-    device: str = "cpu",
-    **kwargs: Any,
+    model_path: str | Path | None = None, device: str = "cpu", **kwargs: Any
 ) -> CleanAbnormalityDetector:
     """Create abnormality detector with all dependencies injected.
 
@@ -33,9 +28,4 @@ def create_abnormality_detector(
     preprocessor = EEGPreprocessorAdapter()
 
     # Create domain service with injected dependencies
-    return CleanAbnormalityDetector(
-        model=model,
-        preprocessor=preprocessor,
-        device=device,
-        **kwargs,
-    )
+    return CleanAbnormalityDetector(model=model, preprocessor=preprocessor, device=device, **kwargs)

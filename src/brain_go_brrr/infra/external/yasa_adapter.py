@@ -475,10 +475,7 @@ class YASASleepStager:
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
 
         # Sleep-EDF specific channel mapping
-        sleep_edf_mapping = {
-            "EEG Fpz-Cz": "C4",
-            "EEG Pz-Oz": "O2",
-        }
+        sleep_edf_mapping = {"EEG Fpz-Cz": "C4", "EEG Pz-Oz": "O2"}
 
         # Process with aliasing
         data = raw.get_data()

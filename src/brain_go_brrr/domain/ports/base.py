@@ -38,9 +38,7 @@ class EEGModelPort(ABC):
 
     @abstractmethod
     def extract_features(
-        self,
-        eeg_data: npt.NDArray[np.float32],
-        sampling_rate: int = 256,
+        self, eeg_data: npt.NDArray[np.float32], sampling_rate: int = 256
     ) -> npt.NDArray[np.float32]:
         """Extract features from EEG data.
 
@@ -64,10 +62,7 @@ class PreprocessorPort(ABC):
 
     @abstractmethod
     def preprocess(
-        self,
-        raw: MNERaw,
-        bandpass: tuple[float, float] | None = None,
-        notch: float | None = None,
+        self, raw: MNERaw, bandpass: tuple[float, float] | None = None, notch: float | None = None
     ) -> MNERaw:
         """Preprocess EEG data.
 

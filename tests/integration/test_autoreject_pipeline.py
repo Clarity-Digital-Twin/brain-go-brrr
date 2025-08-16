@@ -294,11 +294,7 @@ class TestAutoRejectEEGPTIntegration:
         normal_dir.mkdir(parents=True, exist_ok=True)
 
         # Create dataset with AutoReject
-        TUABEnhancedDataset(
-            root_dir=tmp_path,
-            split="train",
-            use_autoreject=True,
-        )
+        TUABEnhancedDataset(root_dir=tmp_path, split="train", use_autoreject=True)
 
         # Simulate loading multiple files
         for _i in range(10):

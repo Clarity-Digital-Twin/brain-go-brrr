@@ -26,18 +26,8 @@ class TestPDFReportGeneration:
                 "artifact_segments": [
                     {"start": 10.5, "end": 12.3, "type": "muscle", "severity": 0.9},
                     {"start": 45.2, "end": 47.8, "type": "eye_blink", "severity": 0.8},
-                    {
-                        "start": 120.0,
-                        "end": 125.5,
-                        "type": "electrode_pop",
-                        "severity": 1.0,
-                    },
-                    {
-                        "start": 200.1,
-                        "end": 203.4,
-                        "type": "movement",
-                        "severity": 0.85,
-                    },
+                    {"start": 120.0, "end": 125.5, "type": "electrode_pop", "severity": 1.0},
+                    {"start": 200.1, "end": 203.4, "type": "movement", "severity": 0.85},
                     {"start": 310.0, "end": 315.0, "type": "muscle", "severity": 0.95},
                 ],
                 "channel_positions": {
@@ -160,10 +150,7 @@ class TestPDFReportGeneration:
                 "quality_grade": "EXCELLENT",
                 "artifact_segments": [],
             },
-            "processing_info": {
-                "file_name": "normal_eeg.edf",
-                "timestamp": "2025-01-17T10:30:00",
-            },
+            "processing_info": {"file_name": "normal_eeg.edf", "timestamp": "2025-01-17T10:30:00"},
         }
 
         generator = PDFReportGenerator()
@@ -243,12 +230,7 @@ class TestPDFReportGeneration:
 
     @pytest.mark.parametrize(
         "flag,expected_color",
-        [
-            ("URGENT", "red"),
-            ("EXPEDITE", "orange"),
-            ("ROUTINE", "yellow"),
-            ("NORMAL", "green"),
-        ],
+        [("URGENT", "red"), ("EXPEDITE", "orange"), ("ROUTINE", "yellow"), ("NORMAL", "green")],
     )
     def test_pdf_banner_color_by_flag(self, flag, expected_color):
         """Test PDF banner color matches triage flag."""
