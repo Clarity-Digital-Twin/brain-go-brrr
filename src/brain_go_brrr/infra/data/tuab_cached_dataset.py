@@ -35,9 +35,16 @@ class TUABCachedDataset(TUABDataset):
         """Initialize cached TUAB dataset.
 
         Args:
+            root_dir: Path to TUAB root directory
+            split: Dataset split to load ("train", "eval", or "test")
+            sampling_rate: Target sampling rate in Hz (default: 256)
+            window_duration: Window length in seconds (default: 30.0)
+            window_stride: Stride between windows in seconds (default: 30.0)
+            preload: If True, preload all data into memory
+            normalize: If True, apply per-channel normalization
+            cache_dir: Directory for caching preprocessed data
             cache_index_path: Path to tuab_index.json file
             max_files: Limit number of files (for testing)
-            ... (other args same as parent)
         """
         # Store params before parent init
         self.root_dir = Path(root_dir)

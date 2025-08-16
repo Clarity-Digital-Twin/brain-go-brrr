@@ -183,8 +183,6 @@ cython_debug/
 data/
 /datasets/
 datasets/
-*.npy
-*.npz
 
 # BUT allow source code in src/brain_go_brrr/infra/data/
 !src/brain_go_brrr/infra/data/
