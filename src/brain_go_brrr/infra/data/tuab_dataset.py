@@ -300,7 +300,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         data = raw.get_data()
 
         # Create output array with exactly 23 channels
-        output_data = np.zeros((len(self.STANDARD_CHANNELS), data.shape[1]), dtype=np.float32)
+        output_data = np.zeros((len(self.STANDARD_CHANNELS), data.shape[1]), dtype=np.float64)
 
         # Fill in available channels in the correct order
         for idx, ch_name in enumerate(self.STANDARD_CHANNELS):
