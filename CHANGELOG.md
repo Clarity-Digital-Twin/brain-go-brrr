@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2025-08-16  
+## [1.0.0] - 2025-08-16
 
 ### 🎯 MAJOR RELEASE: Clean Architecture Implementation
 
@@ -29,7 +29,7 @@ This is a **MAJOR** release that completely restructures the codebase following 
 
 ### Changed
 - **Complete Module Reorganization** (800+ files modified)
-  - `core.edf_loader` → `data.edf_loader` 
+  - `core.edf_loader` → `data.edf_loader`
   - `core.edf_validator` → `data.edf_validator`
   - `core.window_extractor` → `preprocessing.window_extractor`
   - `core.features` → `preprocessing.features`

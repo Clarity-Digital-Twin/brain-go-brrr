@@ -1,6 +1,6 @@
 # 🚀 Brain-Go-Brrr v1.0.0 - PRODUCTION READY
 
-**Release Date**: August 16, 2025  
+**Release Date**: August 16, 2025
 **Status**: PRODUCTION READY ✅
 
 ## 🎊 Major Milestone: Clean Architecture Achievement
@@ -35,12 +35,12 @@ After intensive refactoring from v0.6.0 to v1.0.0, we have achieved **100% clean
 
 ### Key Architectural Achievements
 
-✅ **Domain Layer** - Zero external dependencies  
-✅ **Ports & Adapters** - Complete dependency inversion  
-✅ **SOLID Principles** - 100% implementation  
-✅ **Test Coverage** - 66.85% (exceeds 62% target)  
-✅ **Import Boundaries** - Enforced with import-linter  
-✅ **Deprecation System** - PEP-562 compliant redirects  
+✅ **Domain Layer** - Zero external dependencies
+✅ **Ports & Adapters** - Complete dependency inversion
+✅ **SOLID Principles** - 100% implementation
+✅ **Test Coverage** - 66.85% (exceeds 62% target)
+✅ **Import Boundaries** - Enforced with import-linter
+✅ **Deprecation System** - PEP-562 compliant redirects
 
 ## ✨ Working Components
 
@@ -50,7 +50,7 @@ After intensive refactoring from v0.6.0 to v1.0.0, we have achieved **100% clean
 - Consensus model with confidence scores
 - Channel aliasing for Sleep-EDF compatibility
 
-### 2. Quality Control ✅  
+### 2. Quality Control ✅
 - Autoreject integration with fallbacks
 - >95% bad channel detection accuracy
 - Artifact identification (EOG, EMG, ECG)
@@ -106,7 +106,7 @@ analyzer = create_sleep_analyzer()
 # With pip
 pip install brain-go-brrr==1.0.0
 
-# With uv (recommended)  
+# With uv (recommended)
 uv pip install brain-go-brrr==1.0.0
 
 # Development setup
