@@ -24,6 +24,8 @@ NOTEBOOKS_DIR := notebooks
 # Python and uv settings with fallback for CI
 PYTHON_VERSION := 3.11
 UV := $(shell command -v uv 2>/dev/null)
+# Set UV_LINK_MODE=copy to avoid hardlink warnings on WSL/cross-filesystem setups
+export UV_LINK_MODE := copy
 RUN := $(if $(UV),uv run,python -m)
 PYTHON := $(RUN) python
 PIP := $(if $(UV),uv pip,python -m pip)
