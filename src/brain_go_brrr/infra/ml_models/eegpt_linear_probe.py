@@ -1,10 +1,14 @@
 """EEGPT Linear Probe implementation.
 
+DEPRECATED: Use eegpt_probe_unified.EEGPTProbe instead.
+This file will be removed in v2.0.0.
+
 Based on the EEGPT paper: "EEGPT: Pretrained Transformer for Universal
 and Reliable Representation of EEG Signals"
 """
 
 import logging
+import warnings
 from pathlib import Path
 from typing import cast
 
@@ -41,6 +45,8 @@ class EEGPTLinearProbe(nn.Module):
         freeze_backbone: bool = True,
     ) -> None:
         """Initialize EEGPT Linear Probe.
+        
+        DEPRECATED: Use EEGPTProbe from eegpt_probe_unified instead.
 
         Args:
             checkpoint_path: Path to pretrained EEGPT checkpoint
@@ -51,6 +57,12 @@ class EEGPTLinearProbe(nn.Module):
             max_norm: Maximum norm for weight constraint (default: 0.25)
             freeze_backbone: Whether to freeze EEGPT backbone (default: True)
         """
+        warnings.warn(
+            "EEGPTLinearProbe is deprecated and will be removed in v2.0.0. "
+            "Use EEGPTProbe from brain_go_brrr.infra.ml_models.eegpt_probe_unified instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__()
 
         # Load pretrained EEGPT

@@ -128,6 +128,11 @@ class TUEVLinearProbe(nn.Module):
             # EEGPT expects (batch, channels, time)
             features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, N_patches, 4, 512)
         
+        # Verify patch count matches expected (1024 samples / 64 = 16 patches)
+        n_patches = features.shape[1]
+        expected_patches = x.shape[-1] // 64
+        assert n_patches == expected_patches, f"TUEV patch mismatch: got {n_patches}, expected {expected_patches} from {x.shape[-1]} samples"
+        
         # Log shape on first forward for debugging
         if not hasattr(self, '_logged_shape'):
             logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")

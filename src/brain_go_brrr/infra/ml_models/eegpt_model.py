@@ -1,5 +1,8 @@
 """EEGPT Model Integration Module.
 
+DEPRECATED: This module is deprecated. Use eegpt_wrapper.EEGPTWrapper directly.
+This file will be removed in v2.0.0.
+
 Implements the EEGPT foundation model for EEG analysis.
 Based on the paper "EEGPT: Pretrained Transformer for Universal
 and Reliable Representation of EEG Signals"
@@ -13,6 +16,7 @@ Model specifications:
 """
 
 import logging
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any

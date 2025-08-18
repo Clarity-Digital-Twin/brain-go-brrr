@@ -155,6 +155,10 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         # Forward through frozen backbone with temporal features
         with torch.no_grad():
             features = model.extract_features(data, return_all_temporal=True)
+            # Verify patch count matches expected
+            n_patches = features.shape[1]
+            expected_patches = data.shape[-1] // 64
+            assert n_patches == expected_patches, f"Patch count mismatch: got {n_patches}, expected {expected_patches} from {data.shape[-1]} samples"
             # Log shape on first batch for verification
             if batch_idx == 0 and epoch == 0:
                 logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
@@ -217,6 +221,10 @@ def validate(model, probe, val_loader, device):
 
             # Forward with temporal features
             features = model.extract_features(data, return_all_temporal=True)
+            # Verify patch count
+            n_patches = features.shape[1]
+            expected_patches = data.shape[-1] // 64
+            assert n_patches == expected_patches, f"Val patch mismatch: {n_patches} != {expected_patches}"
             # Log shape on first validation batch
             if batch_idx == 0:
                 logger.debug(f"Val features shape: {features.shape}")

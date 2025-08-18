@@ -1,6 +1,11 @@
-"""Two-layer probe for EEGPT matching paper implementation."""
+"""Two-layer probe for EEGPT matching paper implementation.
+
+DEPRECATED: Use eegpt_probe_unified.EEGPTProbe with architecture='two_layer' instead.
+This file will be removed in v2.0.0.
+"""
 
 import logging
+import warnings
 from typing import Literal, cast, overload
 
 import torch
@@ -70,6 +75,12 @@ class EEGPTTwoLayerProbe(nn.Module):
         use_channel_adapter: bool = True,
     ):
         """Initialize two-layer probe for EEGPT with channel adaptation."""
+        warnings.warn(
+            "EEGPTTwoLayerProbe is deprecated and will be removed in v2.0.0. "
+            "Use EEGPTProbe(architecture='two_layer') from brain_go_brrr.infra.ml_models.eegpt_probe_unified instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__()
 
         self.n_input_channels = n_input_channels

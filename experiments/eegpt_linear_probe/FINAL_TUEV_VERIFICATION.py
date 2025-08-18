@@ -124,10 +124,10 @@ def test_training_compatibility():
     
     class LinearProbe(nn.Module):
         """Two-layer linear probe for TUAB."""
-        def __init__(self, input_dim=32768, hidden_dim=128, n_classes=2, dropout=0.1):
+        def __init__(self, hidden_dim=128, n_classes=2, dropout=0.1):
             super().__init__()
             self.probe = nn.Sequential(
-                nn.Linear(input_dim, hidden_dim),
+                nn.LazyLinear(hidden_dim),
                 nn.ReLU(),
                 nn.Dropout(dropout),
                 nn.Linear(hidden_dim, n_classes),
@@ -162,8 +162,8 @@ def test_training_compatibility():
         """TUEV classifier head."""
         def __init__(self):
             super().__init__()
-            # 16 patches × 4 tokens × 512 = 32,768 features
-            self.classifier = nn.Linear(16 * 4 * 512, 6)
+            # LazyLinear adapts to any patch count
+            self.classifier = nn.LazyLinear(6)
         
         def forward(self, features):
             # features: (batch_size, n_temporal, n_summary_tokens, embed_dim)

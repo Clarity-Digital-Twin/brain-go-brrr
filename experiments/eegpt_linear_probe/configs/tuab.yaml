@@ -24,7 +24,7 @@ model:
     freeze: true
   probe:
     type: linear  # Simple linear probe as per paper
-    input_dim: 32768  # 16 temporal patches * 4 tokens * 512 = 32,768 for 4s windows
+    # input_dim removed - LazyLinear infers automatically
     hidden_dim: 128  # Hidden layer size
     n_classes: 2
     dropout: 0.1

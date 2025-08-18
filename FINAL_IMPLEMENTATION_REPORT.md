@@ -100,10 +100,10 @@ assert n_patches == x.shape[-1] // 64  # Works for any window size
 ## Architecture Decisions Documented
 
 ### Window Size Policy
-**Decision**: Use 4s (1024 samples) for both TUAB and TUEV
-- **Pro**: Matches EEGPT pretraining
+**Decision**: We use **4s (1024 samples)** for both TUAB and TUEV tasks to align with EEGPT pretraining; probe dimensions are **inferred dynamically**.
+- **Pro**: Matches EEGPT pretraining (model name: `eegpt_mcae_58chs_4s_large4E.ckpt`)
 - **Con**: Deviates from paper's Table 13 (1000 samples for TUEV)
-- **Mitigation**: LazyLinear handles both automatically
+- **Mitigation**: LazyLinear handles both automatically, runtime assertions enforce consistency
 
 ### Cross-Patch Processing
 **Decision**: Process temporal patches independently
