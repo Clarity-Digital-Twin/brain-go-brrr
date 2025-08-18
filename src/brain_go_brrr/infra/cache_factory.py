@@ -1,15 +1,35 @@
 """Cache factory following SOLID's Dependency Inversion and Factory patterns.
 
+DEPRECATED: This module is deprecated. Use cache.py directly.
+Will be removed in v2.0.0.
+
 This module provides cache implementations that conform to the CachePort protocol,
 allowing the application layer to depend on abstractions rather than concrete
 implementations.
 """
 
 import os
-from typing import Any
+import warnings
+from typing import Any, Protocol
 
 from brain_go_brrr.infra.cache import RedisCache as InfraRedisCache
-from brain_go_brrr.infra.cache_port import CachePort
+
+warnings.warn(
+    "cache_factory is deprecated and will be removed in v2.0.0. "
+    "Use brain_go_brrr.infra.cache directly.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+
+class CachePort(Protocol):
+    """Cache protocol for compatibility."""
+    def get(self, key: str) -> Any | None: ...
+    def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
+    def delete(self, key: str) -> bool: ...
+    def exists(self, key: str) -> bool: ...
+    def clear(self) -> None: ...
+    def close(self) -> None: ...
 
 
 class MemoryCache:

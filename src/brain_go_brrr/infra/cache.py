@@ -1,6 +1,12 @@
-"""Cache protocol and Redis implementation."""
+"""Cache protocol and implementations.
+
+Unified cache module combining protocol definition, Redis implementation,
+and in-memory cache for testing.
+"""
 
 import logging
+import os
+import time
 from typing import Any, Protocol, runtime_checkable
 
 from brain_go_brrr.infra.redis import RedisConnectionPool, get_redis_pool
@@ -176,15 +182,101 @@ class RedisCache:
         return self.pool.health_check()
 
 
+class InMemoryCache:
+    """In-memory cache implementation for testing and development."""
+    
+    def __init__(self) -> None:
+        """Initialize in-memory cache."""
+        self._store: dict[str, Any] = {}
+        self._ttls: dict[str, float] = {}
+        self._connected = True
+    
+    @property
+    def connected(self) -> bool:
+        """Always connected for memory cache."""
+        return True
+    
+    def get(self, key: str) -> Any:
+        """Get value from memory cache."""
+        # Check TTL expiry
+        if key in self._ttls:
+            if time.time() > self._ttls[key]:
+                # Expired
+                del self._store[key]
+                del self._ttls[key]
+                return None
+        return self._store.get(key)
+    
+    def set(self, key: str, value: Any, expiry: int | None = None) -> bool:
+        """Set value in memory cache."""
+        self._store[key] = value
+        if expiry:
+            self._ttls[key] = time.time() + expiry
+        return True
+    
+    def delete(self, key: str) -> int:
+        """Delete from memory cache."""
+        deleted = 1 if key in self._store else 0
+        self._store.pop(key, None)
+        self._ttls.pop(key, None)
+        return deleted
+    
+    def clear_pattern(self, pattern: str) -> int:
+        """Clear keys matching pattern."""
+        import fnmatch
+        pattern = pattern.replace("*", ".*")
+        keys_to_delete = [k for k in self._store if fnmatch.fnmatch(k, pattern)]
+        for key in keys_to_delete:
+            self._store.pop(key, None)
+            self._ttls.pop(key, None)
+        return len(keys_to_delete)
+    
+    def get_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        return {
+            "backend": "memory",
+            "keys": len(self._store),
+            "expired_keys": sum(1 for k, t in self._ttls.items() if time.time() > t)
+        }
+    
+    def health_check(self) -> dict[str, Any]:
+        """Check cache health."""
+        return {
+            "healthy": True,
+            "backend": "memory",
+            "keys": len(self._store)
+        }
+
+
 # Global cache instance
-_cache: RedisCache | None = None
+_cache: RedisCache | InMemoryCache | None = None
 
 
-def get_cache() -> RedisCache:
+def create_cache(backend: str | None = None) -> RedisCache | InMemoryCache:
+    """Factory function to create appropriate cache implementation.
+    
+    Args:
+        backend: Cache backend ("redis", "memory", or None for env-based)
+        
+    Returns:
+        Cache implementation
+    """
+    if backend is None:
+        backend = os.getenv("CACHE_BACKEND", "memory").lower()
+    
+    if backend == "redis":
+        return RedisCache()
+    elif backend == "memory":
+        return InMemoryCache()
+    else:
+        raise ValueError(f"Unknown cache backend: {backend}")
+
+
+def get_cache() -> RedisCache | InMemoryCache:
     """Get global cache instance."""
     global _cache
     if _cache is None:
-        _cache = RedisCache()
+        _cache = create_cache()
     return _cache
 
 
@@ -192,5 +284,6 @@ def close_cache() -> None:
     """Close global cache instance."""
     global _cache
     if _cache is not None:
-        _cache.pool.close()
+        if hasattr(_cache, 'pool'):
+            _cache.pool.close()
         _cache = None
