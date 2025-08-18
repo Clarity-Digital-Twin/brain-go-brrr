@@ -91,10 +91,11 @@ class TUEVLinearProbe(nn.Module):
         # Dropout - CRITICAL: 0.5 for TUEV, not 0.25!
         self.dropout = nn.Dropout(0.5)
         
-        # Linear probe (16×4×512 → 6) for 4s windows at 256Hz
-        # 1024 samples / 64 = 16 temporal patches
-        # 16 patches × 4 summary tokens × 512 dim = 32,768 features
-        self.classifier = nn.Linear(16 * 4 * 512, 6)
+        # Linear probe using LazyLinear to adapt to actual input size
+        # Will automatically handle:
+        # - 1000 samples (paper) → 15 patches × 4 × 512 = 30,720 features
+        # - 1024 samples (EEGPT pretrain) → 16 patches × 4 × 512 = 32,768 features
+        self.classifier = nn.LazyLinear(6)
         
         self.device = device
         self.to(device)
@@ -125,10 +126,15 @@ class TUEVLinearProbe(nn.Module):
         # EEGPT encoder (frozen) - get all temporal features
         with torch.no_grad():
             # EEGPT expects (batch, channels, time)
-            features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, 16, 4, 512)
+            features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, N_patches, 4, 512)
+        
+        # Log shape on first forward for debugging
+        if not hasattr(self, '_logged_shape'):
+            logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+            self._logged_shape = True
         
         # Flatten all temporal and summary features
-        features = features.view(features.size(0), -1)  # (batch, 32768)
+        features = features.view(features.size(0), -1)  # (batch, N_patches*4*512)
         logits = self.classifier(features)  # (batch, 6)
         
         return logits
