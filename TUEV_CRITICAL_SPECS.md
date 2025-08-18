@@ -2,15 +2,18 @@
 
 ## 📊 DATASET FACTS - VERIFIED ✅
 
-### Core Specifications (Paper vs Actual)
-- **Samples**: 112,491 5-second segments (paper) | ~62,000 estimated (actual)
-- **Subjects**: 288 (paper) | **370 actual** (290 train, 80 eval) ✅
-  - **NOTE**: EEGPT paper used 288 subjects. Our v2.0.1 has 370 subjects (more data, potentially better)
-- **Classes**: 6 (multi-class, NOT multi-label) ✅ CONFIRMED
-- **Channels**: 23 @ 256 Hz (paper) | 26-27 @ 250 Hz (actual) ⚠️
-  - **CRITICAL**: Must resample 250→256 Hz and select exactly 23 channels to match paper
-- **Window**: 5 seconds (1280 samples @ 256Hz)
-- **Source**: TUEV v2.0.1 (newer version than paper used)
+### Core Specifications (Paper Claims vs Table 13 Reality)
+- **Samples**: Paper CLAIMS "112,491 5-second segments" (line 585)
+  - **BUT Table 13 SHOWS**: 23 × 1000 input (3.9 seconds!)
+  - **PAPER HAS INTERNAL CONTRADICTION**
+- **Subjects**: 288 (paper Table 1) | **370 actual** (our v2.0.1)
+- **Classes**: 6 (confirmed everywhere)
+- **Channels**: 23 @ 256 Hz (paper) | 26-27 @ 250 Hz (our files)
+- **Window Reality**:
+  - Paper text claims: 5 seconds
+  - Table 13 proves: 1000 samples = 3.90625 seconds @ 256Hz
+  - **USE TABLE 13 (1000 samples) - it's the actual architecture!**
+- **Source**: TUEV v2.0.1 (newer than paper's version)
 
 ### Dataset Reality Check
 - **EDF Files**: 518 total (359 train, 159 eval)
@@ -63,16 +66,18 @@ temporal_conv = Conv1d(
 **The 20 channels (from paper page 615):**
 FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2
 
-### Training Parameters (EXACT from paper)
-- **Batch Size**: 500 (not 100 like TUAB!)
-- **Learning Rate**: 5e-4 (CONSTANT - no OneCycle schedule!)
-- **Optimizer**: AdamW (but NO schedule, unlike pretraining)
-- **Method**: Linear-probing (frozen EEGPT backbone)
-- **Dropout**: 0.5 (NOT 0.25 like TUAB!)
-- **Input Size**: 23 × 1000 (NOT 23 × 1280!)
-  - ⚠️ **CRITICAL**: 1000 samples @ 256Hz = 3.90625s, not 5s!
-  - Paper inconsistency: Says "5-second samples" but uses 1000 samples
-- **GPU Memory**: Batch 500 requires ~8GB VRAM
+### Training Parameters (EXACT from paper with line numbers)
+- **Batch Size**: 500 (line 587: "batch size for TUAB was 100, and for TUEV, it was 500")
+- **Learning Rate**: 5e-4 (line 587: "learning rate of 5e-4")
+- **Optimizer**: Not specified but paper says "same optimizer" for both
+  - Likely AdamW (used everywhere else in paper)
+  - NO OneCycle mentioned for TUAB/TUEV (unlike other tasks)
+- **Method**: Linear-probing (line 197: "linear-probing method")
+- **Dropout**: 0.5 (Table 13, line 610: "dropout(0.5)")
+- **Input Size**: 23 × 1000 (Table 13, line 606)
+  - **CONTRADICTION**: Paper says "5-second" but Table shows 1000 samples
+  - 1000 @ 256Hz = 3.90625 seconds
+  - **USE TABLE 13 - it's the actual implementation!**
 
 ### Critical Differences from TUAB
 
