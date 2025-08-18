@@ -43,7 +43,7 @@ if [ ! -d "$CACHE_DIR/tuev_train_cache" ]; then
     echo ""
     
     # Build cache
-    python build_tuev_cache.py \
+    uv run python build_tuev_cache.py \
         --config configs/tuev_table13_aligned.yaml \
         --output $CACHE_DIR
     
@@ -55,7 +55,7 @@ else
     
     # Verify cache
     echo "Verifying cache integrity..."
-    python -c "
+    uv run python -c "
 import json
 from pathlib import Path
 cache_dir = Path('$CACHE_DIR')
@@ -91,7 +91,7 @@ for SEED in 42 123 456; do
     LOG_FILE="logs/tuev_seed${SEED}_$(date +%Y%m%d_%H%M%S).log"
     
     # Run training
-    python train_tuev_aligned.py \
+    uv run python train_tuev_aligned.py \
         --config configs/tuev_table13_aligned.yaml \
         --device cuda \
         --seed $SEED \
@@ -112,7 +112,7 @@ echo "=========================================="
 echo "📊 FINAL RESULTS"
 echo "=========================================="
 
-python -c "
+uv run python -c "
 import re
 with open('$RESULTS_FILE', 'r') as f:
     content = f.read()

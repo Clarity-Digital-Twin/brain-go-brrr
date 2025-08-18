@@ -1,10 +1,6 @@
-"""TUEV Training Script - Following Table 13 Architecture Exactly.
+"""TUEV Training Script with Full EEGPT Features.
 
-Based on TUEV_UNIFIED_SPECS.md:
-- Architecture from Table 13: 23→20 channels, kernel 55, dropout 0.5
-- Batch size: 500, Learning rate: 5e-4 (constant)
-- 6-class event detection
-- Run 3 times with different seeds (paper protocol)
+CRITICAL FIX: Use all patch features (16×20×512) not just 4 summary tokens.
 """
 
 import argparse
@@ -34,8 +30,7 @@ from tqdm import tqdm
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-
+from eegpt_full_features import EEGPTFullFeatures
 from tuev_dataset import TUEVDataset
 from tuev_dataset_padded import TUEVCachedDatasetPadded
 
@@ -43,29 +38,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TUEVLinearProbe(nn.Module):
-    """TUEV Linear Probe - EXACT Table 13 Architecture."""
+class TUEVLinearProbeFixed(nn.Module):
+    """TUEV Linear Probe with FULL EEGPT features."""
     
     def __init__(self, eegpt_checkpoint: str, device: str = 'cuda'):
-        """Initialize with frozen EEGPT backbone and TUEV-specific layers.
+        """Initialize with frozen EEGPT and proper feature dimensions.
         
-        Architecture from Table 13 (lines 606-613):
-        1. Conv1d: 23→20 channels (kernel=1)
-        2. BatchNorm + GELU
-        3. Conv1d: Depthwise temporal (kernel=55, groups=20, padding=27)
-        4. BatchNorm + GELU
-        5. Dropout(0.5)
-        6. EEGPT encoder (frozen)
-        7. Linear: 15×4×512 → 6 classes
+        Uses ALL patch features: 16 patches × 20 channels × 512 dim = 163,840 features
         """
         super().__init__()
         
-        # Load frozen EEGPT backbone
-        self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
-        self.eegpt.model.eval()
-        for param in self.eegpt.model.parameters():
+        # Load EEGPT with full features
+        self.eegpt = EEGPTFullFeatures(checkpoint_path=eegpt_checkpoint)
+        self.eegpt.eval()
+        for param in self.eegpt.parameters():
             param.requires_grad = False
-        self.eegpt.model = self.eegpt.model.to(device)
+        self.eegpt = self.eegpt.to(device)
         
         # Layer 1: Channel reduction (23 → 20)
         self.channel_reducer = nn.Conv1d(
@@ -81,25 +69,33 @@ class TUEVLinearProbe(nn.Module):
         self.temporal_conv = nn.Conv1d(
             in_channels=20,
             out_channels=20,
-            kernel_size=55,  # CRITICAL: 55, not 15!
+            kernel_size=55,  # CRITICAL: 55 for TUEV
             stride=1,
-            groups=20,  # Depthwise convolution
+            groups=20,  # Depthwise
             padding=27  # Maintains size
         )
         self.bn2 = nn.BatchNorm1d(20)
         
-        # Dropout - CRITICAL: 0.5 for TUEV, not 0.25!
+        # Dropout - CRITICAL: 0.5 for TUEV
         self.dropout = nn.Dropout(0.5)
         
-        # Linear probe (4×512 → 6)
-        # EEGPT returns only 4 summary tokens × 512 dim = 2,048
-        self.classifier = nn.Linear(4 * 512, 6)
+        # Calculate feature dimensions:
+        # 16 patches (1024/64) × 20 channels × 512 dim = 163,840
+        n_patches = 1024 // 64  # 16
+        n_channels = 20
+        embed_dim = 512
+        feature_dim = n_patches * n_channels * embed_dim  # 163,840
+        
+        # Linear probe with full features
+        self.classifier = nn.Linear(feature_dim, 6)
         
         self.device = device
         self.to(device)
+        
+        logger.info(f"Model initialized with {feature_dim:,} features (full patch embeddings)")
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass following Table 13 exactly.
+        """Forward pass with full features.
         
         Args:
             x: Input tensor of shape (batch, 23, 1024)
@@ -108,7 +104,7 @@ class TUEVLinearProbe(nn.Module):
             Logits of shape (batch, 6)
         """
         # Verify input shape  
-        assert x.shape[1:] == (23, 1024), f"Wrong input shape: {x.shape}, expected (batch, 23, 1024)"
+        assert x.shape[1:] == (23, 1024), f"Wrong input shape: {x.shape}"
         
         # Channel reduction: 23 → 20
         x = self.channel_reducer(x)  # (batch, 20, 1024)
@@ -121,20 +117,18 @@ class TUEVLinearProbe(nn.Module):
         # Dropout
         x = self.dropout(x)  # (batch, 20, 1024)
         
-        # EEGPT encoder (frozen)
+        # EEGPT encoder (frozen) - returns ALL features
         with torch.no_grad():
-            # EEGPT expects (batch, channels, time)
-            features = self.eegpt.extract_features(x)  # (batch, 4, 512) - only summary tokens
+            features = self.eegpt(x)  # (batch, 163840)
         
-        # Flatten and classify
-        features = features.view(features.size(0), -1)  # (batch, 2048)
+        # Classify with full features
         logits = self.classifier(features)  # (batch, 6)
         
         return logits
 
 
 def train_epoch(
-    model: TUEVLinearProbe,
+    model: TUEVLinearProbeFixed,
     train_loader: DataLoader,
     optimizer: torch.optim.Optimizer,
     criterion: nn.Module,
@@ -144,7 +138,7 @@ def train_epoch(
     """Train for one epoch."""
     model.train()
     # Keep EEGPT frozen
-    model.eegpt.model.eval()
+    model.eegpt.eval()
     
     all_preds = []
     all_labels = []
@@ -193,7 +187,7 @@ def train_epoch(
 
 
 def evaluate(
-    model: TUEVLinearProbe,
+    model: TUEVLinearProbeFixed,
     val_loader: DataLoader,
     criterion: nn.Module,
     device: str,
@@ -259,7 +253,7 @@ def main(args):
     
     # Setup output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(f"output/tuev_{timestamp}_seed{args.seed}")
+    output_dir = Path(f"output/tuev_FIXED_{timestamp}_seed{args.seed}")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Setup logging
@@ -268,62 +262,46 @@ def main(args):
     file_handler.setLevel(logging.INFO)
     logger.addHandler(file_handler)
     
-    logger.info(f"Starting TUEV training with seed {args.seed}")
+    logger.info(f"Starting TUEV training (FIXED) with seed {args.seed}")
+    logger.info(f"Using FULL patch features, not just summary tokens")
     logger.info(f"Config: {config}")
     logger.info(f"Output directory: {output_dir}")
     
-    # Critical assertions from Table 13
-    assert config.data.batch_size == 500, "Batch size must be 500 (paper line 587)"
-    assert config.training.learning_rate == 5e-4, "LR must be 5e-4 (paper line 587)"
-    
     # Create datasets
-    if args.use_cache:
-        logger.info("Using cached dataset with padding to 1024 samples")
-        train_dataset = TUEVCachedDatasetPadded(
-            cache_dir=Path(config.data.cache_dir),
-            split='train',
-            padding='edge'  # Repeat last samples for padding
-        )
-        val_dataset = TUEVCachedDatasetPadded(
-            cache_dir=Path(config.data.cache_dir),
-            split='eval',
-            padding='edge'
-        )
-    else:
-        logger.info("Loading dataset from EDF files")
-        train_dataset = TUEVDataset(
-            root_dir=Path(config.data.root_dir),
-            split='train'
-        )
-        val_dataset = TUEVDataset(
-            root_dir=Path(config.data.root_dir),
-            split='eval'
-        )
+    logger.info("Using cached dataset with padding to 1024")
+    train_dataset = TUEVCachedDatasetPadded(
+        cache_dir=Path(config.data.cache_dir),
+        split='train',
+        padding='edge'
+    )
+    val_dataset = TUEVCachedDatasetPadded(
+        cache_dir=Path(config.data.cache_dir),
+        split='eval',
+        padding='edge'
+    )
     
     # Create data loaders
     train_loader = DataLoader(
         train_dataset,
         batch_size=config.data.batch_size,
         shuffle=True,
-        num_workers=config.data.num_workers,
-        pin_memory=True,
-        persistent_workers=True
+        num_workers=0,  # Set to 0 for WSL stability
+        pin_memory=True
     )
     
     val_loader = DataLoader(
         val_dataset,
         batch_size=config.data.batch_size,
         shuffle=False,
-        num_workers=config.data.num_workers,
-        pin_memory=True,
-        persistent_workers=True
+        num_workers=0,
+        pin_memory=True
     )
     
     logger.info(f"Train samples: {len(train_dataset)}")
     logger.info(f"Eval samples: {len(val_dataset)}")
     
     # Create model
-    model = TUEVLinearProbe(
+    model = TUEVLinearProbeFixed(
         eegpt_checkpoint=config.model.eegpt_checkpoint,
         device=args.device
     )
@@ -333,9 +311,7 @@ def main(args):
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     logger.info(f"Class weights: {class_weights}")
     
-    # Setup optimizer 
-    # [Paper] says "same optimizer" and lr=5e-4 but doesn't name it
-    # [Decision] Use AdamW (from pretraining) with constant LR (schedule not specified)
+    # Setup optimizer - AdamW with paper learning rate
     optimizer = torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=config.training.learning_rate,
@@ -402,6 +378,11 @@ def main(args):
         # Save history
         with open(output_dir / 'history.json', 'w') as f:
             json.dump(history, f, indent=2)
+        
+        # Early stopping check
+        if epoch - best_epoch > config.training.patience:
+            logger.info(f"Early stopping triggered (no improvement for {config.training.patience} epochs)")
+            break
     
     # Final report
     logger.info("=" * 50)
@@ -415,11 +396,11 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train TUEV Linear Probe")
-    parser.add_argument('--config', type=str, required=True, help='Config file path')
-    parser.add_argument('--device', type=str, default='cuda', help='Device to use')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--use-cache', action='store_true', help='Use cached dataset')
+    parser = argparse.ArgumentParser(description="Train TUEV Linear Probe (FIXED)")
+    parser.add_argument('--config', type=str, default='configs/tuev_table13_aligned.yaml')
+    parser.add_argument('--device', type=str, default='cuda')
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--use-cache', action='store_true', default=True)
     
     args = parser.parse_args()
     

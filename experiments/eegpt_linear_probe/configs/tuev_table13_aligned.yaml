@@ -3,11 +3,12 @@
 
 data:
   dataset: "tuev"
-  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg/TUEV/v2.0.1"
-  cache_dir: "${BGB_DATA_ROOT}/cache/tuev_table13"
+  root_dir: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuh_eeg/TUEV/v2.0.1"
+  cache_dir: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_table13"
   
-  # CRITICAL: Table 13 shows 1000 samples, not 1280!
-  window_samples: 1000  # 3.90625 seconds @ 256Hz
+  # CRITICAL: Must be divisible by 64 for EEGPT patches
+  # Paper says ~3.9s but we need 1024 samples (4.0s) for EEGPT compatibility
+  window_samples: 1024  # 4.0 seconds @ 256Hz (16 patches of 64 samples)
   sampling_rate: 256    # Target rate (resample from 250Hz)
   n_channels: 23        # Input channels (will reduce to 20)
   n_classes: 6          # SPSW, GPED, PLED, EYEM, ARTF, BCKG
@@ -19,7 +20,7 @@ data:
 
 model:
   # EEGPT pretrained checkpoint
-  eegpt_checkpoint: "${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  eegpt_checkpoint: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
   freeze_backbone: true  # Linear probing only
   
   # Table 13 architecture (lines 606-613)
@@ -36,9 +37,9 @@ model:
   dropout: 0.5        # CRITICAL: 0.5 for TUEV (not 0.25!)
   
   # Expected shapes (for validation)
-  expected_input: [23, 1000]
-  expected_after_conv: [20, 1000]
-  expected_features: [15, 4, 512]  # From EEGPT encoder
+  expected_input: [23, 1024]
+  expected_after_conv: [20, 1024]
+  expected_features: [16, 4, 512]  # From EEGPT encoder (16 patches of 64 samples)
 
 training:
   n_epochs: 100

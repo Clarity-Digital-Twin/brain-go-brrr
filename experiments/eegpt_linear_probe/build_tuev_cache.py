@@ -36,6 +36,11 @@ def build_cache(config_path: str, output_dir: str):
         config_path: Path to TUEV config file
         output_dir: Directory to save cache
     """
+    # Set environment variable if not set
+    if 'BGB_DATA_ROOT' not in os.environ:
+        os.environ['BGB_DATA_ROOT'] = '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data'
+        logger.info(f"Set BGB_DATA_ROOT to {os.environ['BGB_DATA_ROOT']}")
+    
     # Load config
     config = OmegaConf.load(config_path)
     

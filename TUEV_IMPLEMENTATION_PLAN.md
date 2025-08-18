@@ -287,7 +287,7 @@ class TUEVLinearProbe(nn.Module):
 
 #### 3.2 Adapt Training Loop
 ```python
-def train_epoch_tuev(model, probe, train_loader, optimizer, scheduler, device, config):
+def train_epoch_tuev(model, probe, train_loader, optimizer, device, config):  # No scheduler per paper
     """Training loop for 6-class TUEV."""
     model.eval()  # Backbone frozen
     probe.train()
@@ -316,7 +316,7 @@ def train_epoch_tuev(model, probe, train_loader, optimizer, scheduler, device, c
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()  # Per-batch stepping
+        # No scheduler.step() - using constant LR per paper
         
         # Track metrics
         preds = logits.argmax(dim=1)
@@ -368,10 +368,8 @@ probe:
 training:
   n_epochs: 100
   learning_rate: 5.0e-4  # Paper specifies 5e-4 for TUEV
-  scheduler:
-    max_lr: 5.0e-4
-    final_lr: 5.0e-7
-    cycle_momentum: false  # Critical for AdamW!
+  # [Paper] NO scheduler for downstream tasks - use constant LR
+  # Paper only mentions OneCycle for pretraining, not for TUAB/TUEV
   
 metrics:
   - balanced_accuracy

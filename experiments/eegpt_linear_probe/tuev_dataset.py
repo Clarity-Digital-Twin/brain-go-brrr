@@ -1,10 +1,11 @@
-"""TUEV Dataset Implementation - Following Table 13 Exactly.
+"""TUEV Dataset Implementation - Following Table 13 with EEGPT Compatibility.
 
 Based on TUEV_UNIFIED_SPECS.md:
-- Input: 23 × 1000 samples (3.90625 seconds @ 256Hz)
+- Input: 23 × 1024 samples (4.0 seconds @ 256Hz) 
 - Classes: 6 (SPSW, GPED, PLED, EYEM, ARTF, BCKG)
 - Channel reduction: 23 → 20 standard channels
 - Actual data: 250Hz, needs resampling to 256Hz
+- EEGPT requirement: window size must be divisible by 64 (patch size)
 """
 
 import json
@@ -22,12 +23,12 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-# CRITICAL: From Table 13, line 606
-# [Paper/Text] claims "5-second samples" but [Paper/Table 13] shows 23×1000
-# [Decision] Use Table 13 value (1000 samples) for exact reproduction
-WINDOW_SAMPLES = 1000  # NOT 1280!
+# CRITICAL: Must be divisible by 64 for EEGPT patch embedding
+# Paper Table 13 shows ~1000 samples but EEGPT requires multiples of 64
+# [Decision] Use 1024 samples (4.0s) for EEGPT compatibility
+WINDOW_SAMPLES = 1024  # 16 patches of 64 samples each
 TARGET_SAMPLING_RATE = 256  # Hz
-WINDOW_SECONDS = WINDOW_SAMPLES / TARGET_SAMPLING_RATE  # 3.90625s
+WINDOW_SECONDS = WINDOW_SAMPLES / TARGET_SAMPLING_RATE  # 4.0s
 
 # The 6 TUEV classes
 CLASS_MAPPING = {
@@ -82,7 +83,8 @@ class TUEVDataset(Dataset):
         """
         self.root_dir = Path(root_dir)
         self.split = split
-        self.split_dir = self.root_dir / split
+        # TUEV has edf/train and edf/eval structure
+        self.split_dir = self.root_dir / 'edf' / split
         self.resample = resample
         self.normalize = normalize
         
