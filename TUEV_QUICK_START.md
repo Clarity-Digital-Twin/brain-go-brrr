@@ -6,7 +6,7 @@
 - ✅ **Infrastructure**: Ready (reuse TUAB pipeline)
 - ✅ **Verified**: All 6 classes present, 370 subjects (paper had 288)
 - ⚠️ **[Paper] Split Strategy**: MUST use BIOT split (NOT LOSO, NOT random!) (Line 197)
-- 🔴 **CRITICAL**: Deep audit found MAJOR architecture differences! See `TUEV_CRITICAL_ARCHITECTURE.md`
+- 🔴 **CRITICAL**: EEGPT returns wrong features! See `EEGPT_TUEV_FIX.md` for solution
 
 ## Immediate Actions Required
 
@@ -39,6 +39,8 @@ uv run python scripts/verify_tuev_dataset.py
 | **Temporal Padding** | 7 | **27** |
 | **[Paper] Optimizer** | "same optimizer" @ 5e-4 | **[Decision] AdamW @ 5e-4** |
 | **Output Shape** | 31 × 4 × 512 | **15 × 4 × 512** |
+| **Features** | 63,488 (31×4×512) | **30,720 (15×4×512)** |
+| **Current Bug** | Only uses last 4 tokens | Only uses last 4 tokens |
 
 ### 4️⃣ What TUEV Classes Mean
 
@@ -116,4 +118,4 @@ python scripts/evaluate_tuev.py
 
 ---
 
-**READ FIRST**: `TUEV_IMPLEMENTATION_PLAN.md` for complete details!
+**READ FIRST**: `EEGPT_TUEV_FIX.md` for the critical architecture fix needed!

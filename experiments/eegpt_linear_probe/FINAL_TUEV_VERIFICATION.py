@@ -1,239 +1,239 @@
 #!/usr/bin/env python
-"""Final TUEV Training Verification Script - Should We Continue or Abort?"""
+"""Final verification of EEGPT feature extraction for TUEV.
 
-import json
-import subprocess
+This script tests the hypothesis that TUEV needs patch features, not just summary tokens.
+"""
+
+import sys
 from pathlib import Path
-from datetime import datetime
+import torch
+import torch.nn as nn
 
-def check_training_status():
-    """Check if TUEV training with full features should continue."""
+# Add project root
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from src.brain_go_brrr.infra.ml_models.eegpt_architecture import create_eegpt_model
+
+
+def analyze_eegpt_outputs():
+    """Analyze what EEGPT actually outputs at each stage."""
     
-    print("=" * 80)
-    print("TUEV TRAINING VERIFICATION REPORT")
-    print("=" * 80)
-    print(f"Timestamp: {datetime.now()}")
-    print()
+    print("="*60)
+    print("EEGPT FEATURE EXTRACTION ANALYSIS")
+    print("="*60)
     
-    # 1. Check current metrics from logs
-    log_file = Path("logs/tuev_FIXED_seed42.log")
-    if not log_file.exists():
-        print("❌ ERROR: Log file not found!")
-        return False
+    # Create dummy input matching TUEV after preprocessing
+    batch_size = 2
+    n_channels = 20  # After channel reduction from 23
+    n_samples = 1024  # 4 seconds at 256 Hz
+    x = torch.randn(batch_size, n_channels, n_samples)
     
-    # Parse latest metrics
-    with open(log_file) as f:
-        lines = f.readlines()
+    print(f"\nInput shape: {x.shape}")
+    print(f"  Batch size: {batch_size}")
+    print(f"  Channels: {n_channels}")
+    print(f"  Time samples: {n_samples}")
     
-    # Find epoch 1 results - look for first validation line
-    epoch1_metrics = {}
-    found_epoch1 = False
-    for line in lines:
-        # Look for Val line after Epoch 001
-        if "Epoch 001:" in line:
-            found_epoch1 = True
-        if found_epoch1 and "Val" in line and "BAcc:" in line:
-            # Extract metrics from line
-            if "BAcc:" in line:
-                bacc_str = line.split("BAcc:")[1].split(",")[0].strip()
-                epoch1_metrics['bacc'] = float(bacc_str)
-            if "F1:" in line:
-                f1_str = line.split("F1:")[1].split(",")[0].strip()
-                epoch1_metrics['f1'] = float(f1_str)
-            if "Loss:" in line:
-                loss_str = line.split("Loss:")[1].split(",")[0].strip()
-                epoch1_metrics['loss'] = float(loss_str)
-            if "Kappa:" in line:
-                kappa_str = line.split("Kappa:")[1].strip()
-                epoch1_metrics['kappa'] = float(kappa_str)
-            break
+    # Create model (without loading weights for testing)
+    model = create_eegpt_model(checkpoint_path=None)
+    model.eval()
     
-    print("EPOCH 1 VALIDATION RESULTS:")
-    bacc = epoch1_metrics.get('bacc', None)
-    f1 = epoch1_metrics.get('f1', None)
-    kappa = epoch1_metrics.get('kappa', None)
-    loss = epoch1_metrics.get('loss', None)
+    # Manually step through the forward pass
+    print("\n" + "="*60)
+    print("FORWARD PASS ANALYSIS")
+    print("="*60)
     
-    bacc_str = f"{bacc:.4f}" if bacc is not None else "N/A"
-    f1_str = f"{f1:.4f}" if f1 is not None else "N/A"
-    kappa_str = f"{kappa:.4f}" if kappa is not None else "N/A"
-    loss_str = f"{loss:.4f}" if loss is not None else "N/A"
+    # 1. Patch embedding
+    patch_embed_output = model.patch_embed(x)
+    print(f"\n1. After patch embedding: {patch_embed_output.shape}")
+    print(f"   Interpretation: (batch={patch_embed_output.shape[0]}, "
+          f"n_patches={patch_embed_output.shape[1]}, "
+          f"n_channels={patch_embed_output.shape[2]}, "
+          f"embed_dim={patch_embed_output.shape[3]})")
     
-    print(f"  Balanced Accuracy: {bacc_str}")
-    print(f"  Weighted F1:       {f1_str}")
-    print(f"  Cohen's Kappa:     {kappa_str}")
-    print(f"  Loss:              {loss_str}")
-    print()
+    # 2. Add channel embeddings
+    batch_size, num_patches, num_channels, embed_dim = patch_embed_output.shape
+    chan_ids = torch.arange(0, num_channels, dtype=torch.long)
+    chan_embed = model.chan_embed(chan_ids).unsqueeze(0).unsqueeze(0)
+    x_with_chan = patch_embed_output + chan_embed
+    print(f"\n2. After channel embedding: {x_with_chan.shape}")
     
-    print("PAPER TARGETS:")
-    print("  Balanced Accuracy: 0.6232 ± 0.0114")
-    print("  Weighted F1:       0.8187 ± 0.0063")
-    print("  Cohen's Kappa:     0.6351 ± 0.0134")
-    print()
+    # 3. Reshape for transformer
+    x_reshaped = x_with_chan.reshape(batch_size, num_patches * num_channels, embed_dim)
+    print(f"\n3. After reshape for transformer: {x_reshaped.shape}")
+    print(f"   Total tokens: {x_reshaped.shape[1]} = {num_patches} patches × {num_channels} channels")
     
-    # 2. Apply dossier criteria
-    print("DOSSIER CRITERIA CHECK:")
+    # 4. Add summary tokens
+    summary_tokens = model.summary_token.repeat(batch_size, 1, 1)
+    x_with_summary = torch.cat([x_reshaped, summary_tokens], dim=1)
+    print(f"\n4. After adding summary tokens: {x_with_summary.shape}")
+    print(f"   Patch tokens: {x_reshaped.shape[1]}")
+    print(f"   Summary tokens: {summary_tokens.shape[1]}")
+    print(f"   Total: {x_with_summary.shape[1]}")
     
-    criteria_passed = True
+    # 5. After transformer blocks (simulation)
+    x_transformed = x_with_summary  # Would go through blocks
+    print(f"\n5. After transformer blocks: {x_transformed.shape}")
     
-    # Check loss threshold
-    loss_val = epoch1_metrics.get('loss', 100)
-    if loss_val > 5.0:
-        print(f"  ❌ Loss > 5.0 after epoch 1 ({loss_val:.2f})")
-        criteria_passed = False
-    else:
-        print(f"  ✅ Loss < 5.0 ({loss_val:.2f})")
+    # 6. Current extraction (ONLY SUMMARY)
+    summary_only = x_transformed[:, -model.embed_num:, :]
+    print(f"\n6. Current extraction (summary only): {summary_only.shape}")
+    print(f"   Features: {summary_only.shape[1]} × {summary_only.shape[2]} = {summary_only.shape[1] * summary_only.shape[2]}")
     
-    # Check BAcc threshold
-    bacc_val = epoch1_metrics.get('bacc', 0)
-    if bacc_val < 0.30:
-        print(f"  ❌ BAcc < 0.30 ({bacc_val:.4f})")
-        criteria_passed = False
-    else:
-        print(f"  ✅ BAcc > 0.30 ({bacc_val:.4f})")
+    # 7. Alternative: Extract patches
+    patches_only = x_transformed[:, :-model.embed_num, :]
+    print(f"\n7. Alternative extraction (patches): {patches_only.shape}")
+    print(f"   Features if flattened: {patches_only.shape[1]} × {patches_only.shape[2]} = {patches_only.shape[1] * patches_only.shape[2]}")
     
-    # Check if worse than random
-    random_bacc = 1/6  # 0.167 for 6 classes
-    if epoch1_metrics.get('bacc', 0) < random_bacc:
-        print(f"  ❌ CRITICAL: BAcc WORSE than random ({random_bacc:.3f})")
-        criteria_passed = False
+    # Analysis of Table 13's "15 × 4 × 512"
+    print("\n" + "="*60)
+    print("PAPER TABLE 13 ANALYSIS: '15 × 4 × 512'")
+    print("="*60)
     
-    # Check negative kappa
-    if epoch1_metrics.get('kappa', 0) < 0:
-        print(f"  ❌ CRITICAL: Negative Kappa = worse than chance!")
-        criteria_passed = False
+    print("\nPossible interpretations:")
+    print("1. If '4' is summary tokens and '512' is embed_dim:")
+    print(f"   Then '15' could be: 15 selected patches?")
+    print(f"   Total patches available: {num_patches}")
+    print(f"   Using 15 out of {num_patches}? {num_patches - 1 == 15}")
     
-    print()
-    print("=" * 80)
-    print("ARCHITECTURAL ANALYSIS:")
-    print("=" * 80)
+    print("\n2. If this is patches × channels × embed_dim:")
+    print(f"   15 patches × 4 channels × 512 dim = 30,720 features")
+    print(f"   But we have {n_channels} channels, not 4...")
     
-    print("CURRENT APPROACH: Using ALL patch features")
-    print("  - Feature dimensions: 163,840 (16 patches × 20 channels × 512)")
-    print("  - Training samples: 83,932")
-    print("  - Feature/sample ratio: 1.95 (TERRIBLE - should be << 1)")
-    print()
+    print("\n3. If keeping spatial structure:")
+    # Try reshaping patches back to spatial
+    patches_spatial = patches_only.reshape(batch_size, num_patches, num_channels, embed_dim)
+    print(f"   Patches with spatial structure: {patches_spatial.shape}")
+    print(f"   Could select 15 patches: {patches_spatial[:, :15, :, :].shape}")
     
-    print("WHY IT'S FAILING:")
-    print("  1. Too many features for linear classifier (163k params)")
-    print("  2. Severe overfitting risk")
-    print("  3. Not how EEGPT was designed to be used")
-    print("  4. Gradient instability from massive feature space")
-    print()
+    # Test hypothesis: Use 15 temporal positions
+    if num_patches == 16:
+        patches_15 = patches_spatial[:, :15, :, :]  # Drop last patch
+        print(f"\n   Selecting first 15 patches: {patches_15.shape}")
+        features_15 = patches_15.reshape(batch_size, -1)
+        print(f"   Flattened features: {features_15.shape}")
+        print(f"   Total features: {features_15.shape[1]}")
     
-    print("RECOMMENDED FIX: Channel-pooled features")
-    print("  - Feature dimensions: 10,240 (20 channels × 512)")
-    print("  - Feature/sample ratio: 0.12 (much better)")
-    print("  - Preserves channel-specific patterns for TUEV events")
-    print()
+    print("\n" + "="*60)
+    print("CONCLUSIONS")
+    print("="*60)
     
-    # 3. Final recommendation
-    print("=" * 80)
-    print("FINAL RECOMMENDATION:")
-    print("=" * 80)
+    print("\n1. CURRENT IMPLEMENTATION:")
+    print(f"   - Returns only {model.embed_num} summary tokens")
+    print(f"   - Total features: {model.embed_num * embed_dim} = {model.embed_num * 512}")
+    print(f"   - Throws away {num_patches * num_channels} patch tokens")
     
-    if criteria_passed:
-        print("✅ Training can continue (but unlikely to succeed)")
-        recommendation = "CONTINUE"
-    else:
-        print("❌ ABORT IMMEDIATELY - Training has failed")
-        print()
-        print("ACTION ITEMS:")
-        print("1. Kill the tmux session: tmux kill-session -t tuev_fixed_42")
-        print("2. Implement proper feature extraction in src/brain_go_brrr/models/")
-        print("3. Use channel-pooled features (10,240 dims)")
-        print("4. Restart training with new architecture")
-        recommendation = "ABORT"
+    print("\n2. PAPER EVIDENCE:")
+    print("   - Table 13 shows '15 × 4 × 512' output shape")
+    print("   - This doesn't match summary tokens (4 × 512)")
+    print("   - Suggests spatial information is preserved")
     
-    print()
-    print("=" * 80)
+    print("\n3. HYPOTHESIS:")
+    print("   - Paper uses 15 out of 16 temporal patches")
+    print("   - Preserves all 20 channels")
+    print(f"   - Total features: 15 × 20 × 512 = 153,600")
+    print("   - This would explain the 46% performance gap!")
     
-    # Save verification results
-    results = {
-        'timestamp': datetime.now().isoformat(),
-        'epoch1_metrics': epoch1_metrics,
-        'criteria_passed': criteria_passed,
-        'recommendation': recommendation,
-        'feature_dims': 163840,
-        'training_samples': 83932
+    print("\n4. NEXT STEPS:")
+    print("   - Implement patch extraction mode")
+    print("   - Test with 15 patches × 20 channels")
+    print("   - Compare performance to summary-only")
+
+
+def test_feature_dimensions():
+    """Test different feature extraction strategies."""
+    
+    print("\n" + "="*60)
+    print("FEATURE DIMENSION COMPARISON")
+    print("="*60)
+    
+    # Setup dimensions
+    batch = 32
+    channels = 20
+    time = 1024
+    embed_dim = 512
+    patches = time // 64  # 16 patches
+    
+    print(f"\nInput: ({batch}, {channels}, {time})")
+    print(f"Patches: {patches} (window of 64 samples each)")
+    
+    # Different extraction strategies
+    strategies = {
+        "Summary only (current)": 4 * embed_dim,
+        "All patches": patches * channels * embed_dim,
+        "15 patches (hypothesis)": 15 * channels * embed_dim,
+        "Middle 8 patches": 8 * channels * embed_dim,
+        "Patches + summary": (patches * channels + 4) * embed_dim,
     }
     
-    with open('tuev_verification_results.json', 'w') as f:
-        json.dump(results, f, indent=2)
+    print("\nFeature counts by strategy:")
+    for name, n_features in strategies.items():
+        ratio = n_features / strategies["Summary only (current)"]
+        print(f"  {name:30s}: {n_features:8,d} features ({ratio:6.1f}x)")
     
-    print(f"Results saved to tuev_verification_results.json")
+    # Memory implications
+    print("\nMemory usage (float32, batch=32):")
+    for name, n_features in strategies.items():
+        memory_mb = (batch * n_features * 4) / (1024 * 1024)
+        print(f"  {name:30s}: {memory_mb:8.1f} MB")
     
-    return criteria_passed
+    # Training implications
+    print("\nTraining implications:")
+    print("  TUEV training samples: ~84,000")
+    for name, n_features in strategies.items():
+        ratio = n_features / 84000
+        status = "✓ OK" if ratio < 1 else "⚠ Overparameterized" if ratio < 2 else "✗ Severely overparameterized"
+        print(f"  {name:30s}: {ratio:6.2f} feature/sample ratio {status}")
 
 
-def check_alternative_approaches():
-    """Show alternative feature extraction approaches."""
+def test_linear_probe_dimensions():
+    """Test linear probe input/output dimensions."""
     
-    print("\n" + "=" * 80)
-    print("ALTERNATIVE APPROACHES TO TRY:")
-    print("=" * 80)
+    print("\n" + "="*60)
+    print("LINEAR PROBE DIMENSION TEST")
+    print("="*60)
     
-    approaches = [
-        {
-            'name': 'Summary Tokens (Original)',
-            'dims': 2048,
-            'description': '4 summary tokens × 512 dims',
-            'pros': 'How EEGPT was designed',
-            'cons': 'Already failed for TUEV (BAcc 0.16)'
-        },
-        {
-            'name': 'Channel-Pooled Features',
-            'dims': 10240,
-            'description': 'Pool patches by channel: 20 × 512',
-            'pros': 'Good for channel-specific events (SPSW, GPED)',
-            'cons': 'Loses temporal resolution'
-        },
-        {
-            'name': 'Temporal-Pooled Features',
-            'dims': 8192,
-            'description': 'Pool patches by time: 16 × 512',
-            'pros': 'Good for temporal dynamics',
-            'cons': 'Loses channel specificity'
-        },
-        {
-            'name': 'Attention-Weighted Features',
-            'dims': 'Variable',
-            'description': 'Learn attention over patches',
-            'pros': 'Adaptive feature selection',
-            'cons': 'More complex, needs tuning'
-        },
-        {
-            'name': 'PCA Reduced Features',
-            'dims': 5000,
-            'description': 'PCA on full features → 5k dims',
-            'pros': 'Data-driven compression',
-            'cons': 'Loses interpretability'
-        }
+    # Test different linear layer configurations
+    configs = [
+        ("Summary tokens", 4 * 512, 6),
+        ("15 patches", 15 * 20 * 512, 6),
+        ("All patches", 16 * 20 * 512, 6),
+        ("Paper Table 13 literal", 15 * 4 * 512, 6),  # If taken literally
     ]
     
-    for approach in approaches:
-        print(f"\n{approach['name']}:")
-        print(f"  Dimensions: {approach['dims']}")
-        print(f"  Method: {approach['description']}")
-        print(f"  ✅ {approach['pros']}")
-        print(f"  ⚠️  {approach['cons']}")
+    print("\nLinear layer configurations:")
+    for name, in_features, out_features in configs:
+        layer = nn.Linear(in_features, out_features)
+        n_params = sum(p.numel() for p in layer.parameters())
+        print(f"  {name:25s}: Linear({in_features:7,d} → {out_features}) = {n_params:10,d} parameters")
     
-    print("\n" + "=" * 80)
-    print("RECOMMENDED NEXT STEP: Try Channel-Pooled Features (10,240 dims)")
-    print("=" * 80)
+    # Test forward pass
+    print("\nForward pass test:")
+    batch_size = 32
+    for name, in_features, out_features in configs:
+        try:
+            layer = nn.Linear(in_features, out_features)
+            x = torch.randn(batch_size, in_features)
+            y = layer(x)
+            print(f"  {name:25s}: Input {x.shape} → Output {y.shape} ✓")
+        except Exception as e:
+            print(f"  {name:25s}: Failed - {e}")
 
 
 if __name__ == "__main__":
-    # Run verification
-    should_continue = check_training_status()
+    print("FINAL TUEV VERIFICATION SCRIPT")
+    print("Testing EEGPT feature extraction hypotheses")
+    print()
     
-    # Show alternatives
-    check_alternative_approaches()
+    # Run all tests
+    analyze_eegpt_outputs()
+    test_feature_dimensions()
+    test_linear_probe_dimensions()
     
-    # Exit with appropriate code
-    if not should_continue:
-        print("\n🛑 TRAINING SHOULD BE ABORTED")
-        exit(1)
-    else:
-        print("\n✅ Training can continue (but unlikely to succeed)")
-        exit(0)
+    print("\n" + "="*60)
+    print("RECOMMENDATION")
+    print("="*60)
+    print("\n1. Implement patch extraction (15 × 20 × 512)")
+    print("2. This matches paper dimensionality better")
+    print("3. Provides spatial information TUEV needs")
+    print("4. Start with 15 patches, test 16 if needed")
+    print("\nExpected improvement: BAcc 0.15 → 0.40+ (minimum)")
+    print("Target performance: BAcc 0.62 (paper result)")

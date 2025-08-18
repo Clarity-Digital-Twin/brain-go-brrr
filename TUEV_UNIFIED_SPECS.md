@@ -44,6 +44,9 @@ Line 609: | 20 × 1000    | batchnorm,gelu | -      | -      | -      | -       
 Line 610: | 20 × 1000    | dropout(0.5)   | -      | -      | -      | -       |
 Line 611: | 20 × 1000    | eegpt-encoder  | 64     | 64     | -      | -       |
 Line 612: | 15 × 4 × 512 | flatten,linear | -      | -      | -      | -       |
+          |              | [CRITICAL: This is 15 temporal × 4 summary tokens × 512 dims = 30,720 features]
+          |              | [Paper Line 164: "encoder passes output tokens corresponding to summary tokens"]
+          |              | [Our bug: only extracting LAST 4 tokens = 2,048 features]
 Line 613: | 6            | output         | -      | -      | -      | -       |
 ```
 
@@ -53,7 +56,10 @@ Line 613: | 6            | output         | -      | -      | -      | -       |
 - **[Paper]** Temporal kernel: 55, padding: 27, groups: 20
 - **[Paper]** Dropout: 0.5
 - **[Paper]** Output shape: 15 × 4 × 512
-- **[Decision]**: Follow Table 13 exactly
+- **[Paper]** Line 164: "encoder passes output tokens corresponding to summary tokens"
+- **[Correct]**: 15 temporal × 4 summary tokens × 512 = 30,720 features
+- **[Current Bug]**: Only extracting last 4 tokens = 2,048 features
+- **[Decision]**: Extract ALL 60 summary tokens, not just last 4
 
 ### Channel Names
 **[Paper]** Line 615: The 20 channels are:
@@ -117,7 +123,8 @@ assert temporal_kernel == 55, "Table 13, line 608"
 assert temporal_padding == 27, "Table 13, line 608"
 assert temporal_groups == 20, "Table 13, line 608"
 assert dropout_rate == 0.5, "Table 13, line 610"
-assert output_shape == (batch, 15, 4, 512), "Table 13, line 612"
+assert output_shape == (batch, 15, 4, 512), "15 temporal × 4 summary tokens × 512"
+# Paper Table 13 shows this shape, paper text confirms summary tokens are used
 assert n_classes == 6, "Table 13, line 613"
 assert batch_size == 500, "Paper line 587"
 assert learning_rate == 5e-4, "Paper line 587"

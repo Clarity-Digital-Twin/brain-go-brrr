@@ -1,8 +1,16 @@
 # PROJECT STATUS - Brain-Go-Brrr
 
-_Last Updated: August 16, 2025 - v1.0.0 PRODUCTION READY_
+_Last Updated: August 18, 2025 - CRITICAL EEGPT FIX IDENTIFIED_
 
-## 🎯 Current State: PRODUCTION READY - Clean Architecture Achieved
+## 🔴 CRITICAL: EEGPT Feature Extraction Bug Found
+
+**TUEV FAILURE**: BAcc 0.15 (worse than random 0.167)
+- **Root Cause**: EEGPT only returns last 4 tokens (2,048 features)
+- **Paper Shows**: 15 × 4 × 512 = 30,720 features needed (Table 13)
+- **Fix Required**: Extract features preserving temporal structure
+- **See**: `EEGPT_TUEV_FIX.md` for implementation plan
+
+## 🎯 Previous State: PRODUCTION READY - Clean Architecture Achieved
 
 ### ✅ COMPLETE: MASSIVE Clean Architecture Refactoring
 
