@@ -30,10 +30,8 @@ Created new modules with extracted functionality:
   - `prepare_batch_for_eegpt()` - Batch preparation
   - `validate_eeg_input()` - Input validation
 
-- **NEW**: `application/pipelines/eegpt_pipeline.py`
-  - `predict_abnormality()` - Abnormality detection pipeline
-  - `analyze()` - Multi-modal analysis orchestrator
-  - `batch_analyze()` - Batch processing
+- **NEW**: `application/pipeline/eegpt_orchestration.py` (in EXISTING pipeline folder)
+  - `predict_abnormality_with_eegpt()` - Abnormality detection orchestration
 
 ### ✅ Phase 5: Simplified Cache
 - Consolidated cache functionality into single `cache.py`
@@ -83,8 +81,8 @@ model = EEGPTModel(...)
 results = model.predict_abnormality(raw)
 
 # NEW
-from brain_go_brrr.application.pipelines.eegpt_pipeline import predict_abnormality
-results = predict_abnormality(model, raw)
+from brain_go_brrr.application.pipeline.eegpt_orchestration import predict_abnormality_with_eegpt
+results = predict_abnormality_with_eegpt(model, raw)
 ```
 
 #### For Cache:
