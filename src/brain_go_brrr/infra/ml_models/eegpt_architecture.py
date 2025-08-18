@@ -489,21 +489,21 @@ class EEGTransformer(nn.Module):
             # Process each temporal patch separately to maintain temporal dimension
             # Reshape to (batch_size * num_patches, num_channels, embed_dim)
             x = x.reshape(batch_size * num_patches, num_channels, embed_dim)
-            
+
             # Add summary tokens for each temporal patch
             summary_tokens = self.summary_token.repeat(batch_size * num_patches, 1, 1)
             x = torch.cat([x, summary_tokens], dim=1)  # (B*N_patches, C+4, embed_dim)
-            
+
             # Apply transformer blocks
             for block in self.blocks:
                 x = block(x)
-            
+
             # Extract only the summary tokens
             x = x[:, -self.embed_num:, :]  # (B*N_patches, 4, embed_dim)
-            
+
             # Final normalization
             x = self.norm(x)
-            
+
             # Reshape back to include temporal dimension
             x = x.reshape(batch_size, num_patches, self.embed_num, embed_dim)
             # Return shape: (B, N_temporal, 4, embed_dim)

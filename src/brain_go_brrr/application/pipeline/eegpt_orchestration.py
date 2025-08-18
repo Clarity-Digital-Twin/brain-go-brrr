@@ -5,20 +5,19 @@ High-level pipeline functions that coordinate EEGPT inference.
 
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional, Literal
+from typing import Any
 
 import numpy as np
 import torch
-import mne
 
 from brain_go_brrr._typing import MNERaw
-from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import (
-    preprocess_for_eegpt,
     extract_windows,
     prepare_batch_for_eegpt,
-    validate_eeg_input
+    preprocess_for_eegpt,
+    validate_eeg_input,
 )
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +25,11 @@ logger = logging.getLogger(__name__)
 def predict_abnormality_with_eegpt(
     model_or_path: Any,
     raw: MNERaw,
-    probe_path: Optional[Path] = None,
+    probe_path: Path | None = None,
     window_duration: float = 4.0,
     overlap: float = 0.5,
     device: str = "auto"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run abnormality detection using EEGPT.
     
     This is the high-level orchestration function that was previously
@@ -52,13 +51,13 @@ def predict_abnormality_with_eegpt(
         model = create_normalized_eegpt(str(model_or_path))
     else:
         model = model_or_path
-    
+
     # Set device
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
     model.eval()
-    
+
     # Load probe if provided
     probe = None
     if probe_path and Path(probe_path).exists():
@@ -73,32 +72,32 @@ def predict_abnormality_with_eegpt(
         probe = probe.to(device)
         probe.eval()
         logger.info(f"Loaded probe from {probe_path}")
-    
+
     # Preprocess data
     data = preprocess_for_eegpt(raw)
-    
+
     # Validate
     is_valid, message = validate_eeg_input(
-        data, 
+        data,
         expected_samples=int(raw.info['sfreq'] * window_duration)
     )
     if not is_valid:
         logger.warning(f"Input validation warning: {message}")
-    
+
     # Extract windows
     windows = extract_windows(data, window_duration, int(raw.info['sfreq']), overlap)
-    
+
     # Prepare batch
     batch = prepare_batch_for_eegpt(windows, device=device)
-    
+
     # Run inference
     predictions = []
     confidences = []
-    
+
     with torch.no_grad():
         for i in range(0, len(batch), 32):  # Process in mini-batches
             mini_batch = batch[i:i+32]
-            
+
             if probe:
                 # Use trained probe
                 logits = probe(mini_batch, return_all_temporal=True)
@@ -110,14 +109,14 @@ def predict_abnormality_with_eegpt(
                 # Simple heuristic: use mean activation as abnormality score
                 abnormal_prob = features.mean(dim=(1, 2, 3))
                 abnormal_prob = torch.sigmoid(abnormal_prob)  # Convert to probability
-            
+
             predictions.extend((abnormal_prob > 0.5).cpu().numpy())
             confidences.extend(abnormal_prob.cpu().numpy())
-    
+
     # Aggregate results
     overall_prediction = int(np.mean(predictions) > 0.5)
     overall_confidence = float(np.mean(confidences))
-    
+
     return {
         "prediction": "abnormal" if overall_prediction else "normal",
         "confidence": overall_confidence,

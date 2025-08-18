@@ -5,13 +5,10 @@ Supports both linear and two-layer architectures, with optional robust mode.
 """
 
 import logging
-import warnings
 from pathlib import Path
-from typing import Optional
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from brain_go_brrr.domain.constraints import LinearWithConstraint
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
@@ -29,7 +26,7 @@ class EEGPTProbe(nn.Module):
     
     All with a single configurable implementation.
     """
-    
+
     def __init__(
         self,
         checkpoint_path: Path | str | None = None,
@@ -43,7 +40,7 @@ class EEGPTProbe(nn.Module):
         freeze_backbone: bool = True,
         max_norm: float = 0.25,        # For LinearWithConstraint
         input_clip_value: float = 50.0, # For robust mode
-        backbone: Optional[nn.Module] = None,  # Allow dependency injection
+        backbone: nn.Module | None = None,  # Allow dependency injection
     ):
         """Initialize unified EEGPT probe.
         
@@ -62,7 +59,7 @@ class EEGPTProbe(nn.Module):
             backbone: Pre-initialized backbone (for testing)
         """
         super().__init__()
-        
+
         # Load or use provided backbone
         if backbone is not None:
             self.backbone = backbone
@@ -70,13 +67,13 @@ class EEGPTProbe(nn.Module):
             self.backbone = create_normalized_eegpt(str(checkpoint_path))
         else:
             raise ValueError("Either checkpoint_path or backbone must be provided")
-        
+
         # Freeze backbone if requested
         if freeze_backbone:
             self.backbone.eval()
             for param in self.backbone.parameters():
                 param.requires_grad = False
-        
+
         # Optional channel adapter (1x1 conv)
         self.use_channel_adapter = channel_adapter
         if channel_adapter:
@@ -87,7 +84,7 @@ class EEGPTProbe(nn.Module):
                 stride=1,
                 padding=0
             )
-        
+
         # Build probe architecture
         self.architecture = architecture
         if architecture == "linear":
@@ -111,16 +108,16 @@ class EEGPTProbe(nn.Module):
             )
         else:
             raise ValueError(f"Unknown architecture: {architecture}")
-        
+
         # Robust mode settings
         self.robust_mode = robust_mode
         self.input_clip_value = input_clip_value
-        
+
         # Store config for reference
         self.n_classes = n_classes
         self.hidden_dim = hidden_dim
         self.dropout = dropout
-        
+
     def forward(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:
         """Forward pass through probe.
         
@@ -136,20 +133,20 @@ class EEGPTProbe(nn.Module):
             # Check for NaN/Inf
             if torch.isnan(x).any() or torch.isinf(x).any():
                 logger.warning("NaN or Inf detected in input, replacing with zeros")
-                x = torch.nan_to_num(x, nan=0.0, posinf=self.input_clip_value, 
+                x = torch.nan_to_num(x, nan=0.0, posinf=self.input_clip_value,
                                    neginf=-self.input_clip_value)
-            
+
             # Clip extreme values
             x = torch.clamp(x, min=-self.input_clip_value, max=self.input_clip_value)
-        
+
         # Channel adaptation if enabled
         if self.use_channel_adapter:
             x = self.channel_adapter(x)
-        
+
         # Extract features from backbone
         with torch.no_grad() if self.training else torch.enable_grad():
             features = self.backbone.extract_features(x, return_all_temporal=return_all_temporal)
-        
+
         # Handle different feature shapes
         if return_all_temporal:
             # Features shape: (B, N_temporal, 4, 512)
@@ -163,22 +160,22 @@ class EEGPTProbe(nn.Module):
                 features = features.mean(dim=1)
             elif features.dim() != 2:
                 raise ValueError(f"Unexpected feature shape: {features.shape}")
-        
+
         # Robust mode: check features
         if self.robust_mode and (torch.isnan(features).any() or torch.isinf(features).any()):
             logger.warning("NaN or Inf in features, replacing with zeros")
             features = torch.nan_to_num(features, nan=0.0)
-        
+
         # Pass through probe
         logits = self.probe(features)
-        
+
         # Final robust check
         if self.robust_mode and (torch.isnan(logits).any() or torch.isinf(logits).any()):
             logger.error("NaN or Inf in output logits!")
             logits = torch.nan_to_num(logits, nan=0.0)
-        
+
         return logits
-    
+
     def get_feature_dim(self) -> int:
         """Get the expected feature dimension after backbone."""
         # This is mainly for compatibility
@@ -208,9 +205,9 @@ def create_eegpt_probe(
     if probe_type == "robust":
         robust = True
         probe_type = "linear"
-    
+
     architecture = "two_layer" if probe_type == "two_layer" else "linear"
-    
+
     return EEGPTProbe(
         checkpoint_path=checkpoint_path,
         n_classes=n_classes,

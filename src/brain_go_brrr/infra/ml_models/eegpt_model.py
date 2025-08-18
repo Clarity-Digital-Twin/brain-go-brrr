@@ -107,7 +107,7 @@ class EEGPTModel:
             DeprecationWarning,
             stacklevel=2
         )
-        
+
         # Store original config for backward compatibility
         self.config = config
 

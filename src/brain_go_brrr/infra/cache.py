@@ -184,18 +184,18 @@ class RedisCache:
 
 class InMemoryCache:
     """In-memory cache implementation for testing and development."""
-    
+
     def __init__(self) -> None:
         """Initialize in-memory cache."""
         self._store: dict[str, Any] = {}
         self._ttls: dict[str, float] = {}
         self._connected = True
-    
+
     @property
     def connected(self) -> bool:
         """Always connected for memory cache."""
         return True
-    
+
     def get(self, key: str) -> Any:
         """Get value from memory cache."""
         # Check TTL expiry
@@ -206,21 +206,21 @@ class InMemoryCache:
                 del self._ttls[key]
                 return None
         return self._store.get(key)
-    
+
     def set(self, key: str, value: Any, expiry: int | None = None) -> bool:
         """Set value in memory cache."""
         self._store[key] = value
         if expiry:
             self._ttls[key] = time.time() + expiry
         return True
-    
+
     def delete(self, key: str) -> int:
         """Delete from memory cache."""
         deleted = 1 if key in self._store else 0
         self._store.pop(key, None)
         self._ttls.pop(key, None)
         return deleted
-    
+
     def clear_pattern(self, pattern: str) -> int:
         """Clear keys matching pattern."""
         import fnmatch
@@ -230,7 +230,7 @@ class InMemoryCache:
             self._store.pop(key, None)
             self._ttls.pop(key, None)
         return len(keys_to_delete)
-    
+
     def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         return {
@@ -238,7 +238,7 @@ class InMemoryCache:
             "keys": len(self._store),
             "expired_keys": sum(1 for k, t in self._ttls.items() if time.time() > t)
         }
-    
+
     def health_check(self) -> dict[str, Any]:
         """Check cache health."""
         return {
@@ -263,7 +263,7 @@ def create_cache(backend: str | None = None) -> RedisCache | InMemoryCache:
     """
     if backend is None:
         backend = os.getenv("CACHE_BACKEND", "memory").lower()
-    
+
     if backend == "redis":
         return RedisCache()
     elif backend == "memory":
