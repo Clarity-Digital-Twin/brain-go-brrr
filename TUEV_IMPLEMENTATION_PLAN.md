@@ -83,17 +83,18 @@ cat > scripts/download_tuev.sh << 'EOF'
 DATA_DIR="data/datasets/external/tuh_eeg_events"
 mkdir -p $DATA_DIR
 
-# TUEV v1.0.1 download (requires credentials)
-echo "Downloading TUEV v1.0.1..."
+# TUEV v2.0.1 download (requires credentials)
+echo "Downloading TUEV v2.0.1..."
 echo "Username: nedc-tuh-eeg"
 echo "You'll need the password from Temple University"
 
 rsync -auxvL \
-  nedc-tuh-eeg@www.isip.piconepress.com:data/tuh_eeg/tuh_eeg_events/v1.0.1/ \
-  $DATA_DIR/v1.0.1/
+  nedc-tuh-eeg@www.isip.piconepress.com:data/tuh_eeg/tuh_eeg_events/v2.0.1/ \
+  $DATA_DIR/v2.0.1/
 
 echo "Download complete!"
-echo "Expected: ~112,491 5-second segments with 6-class labels"
+echo "[Paper] Claims: 112,491 5-second segments"
+echo "[Reality] Table 13 shows: 1000 samples (3.9 seconds)"
 EOF
 
 chmod +x scripts/download_tuev.sh

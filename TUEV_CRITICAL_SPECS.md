@@ -1,19 +1,13 @@
-# 🔴 TUEV CRITICAL SPECIFICATIONS - MUST FOLLOW EXACTLY
+# 🔴 TUEV CRITICAL SPECIFICATIONS - IMPLEMENTATION GUIDE
 
-## 📊 DATASET FACTS - VERIFIED ✅
+## 📊 FINAL DECISION: Use Table 13 (NOT text claims)
 
-### Core Specifications (Paper Claims vs Table 13 Reality)
-- **Samples**: Paper CLAIMS "112,491 5-second segments" (line 585)
-  - **BUT Table 13 SHOWS**: 23 × 1000 input (3.9 seconds!)
-  - **PAPER HAS INTERNAL CONTRADICTION**
-- **Subjects**: 288 (paper Table 1) | **370 actual** (our v2.0.1)
-- **Classes**: 6 (confirmed everywhere)
-- **Channels**: 23 @ 256 Hz (paper) | 26-27 @ 250 Hz (our files)
-- **Window Reality**:
-  - Paper text claims: 5 seconds
-  - Table 13 proves: 1000 samples = 3.90625 seconds @ 256Hz
-  - **USE TABLE 13 (1000 samples) - it's the actual architecture!**
-- **Source**: TUEV v2.0.1 (newer than paper's version)
+### What We're Implementing
+- **Input Size**: 23 × 1000 (3.90625 seconds @ 256Hz) - FROM TABLE 13
+- **Subjects**: 370 in our v2.0.1 (paper had 288)
+- **Classes**: 6 (SPSW, GPED, PLED, EYEM, ARTF, BCKG)
+- **Channels**: Resample 250→256 Hz, select 23 channels
+- **Why 1000 not 1280**: Paper Table 13 shows 1000, despite text claiming 5s
 
 ### Dataset Reality Check
 - **EDF Files**: 518 total (359 train, 159 eval)
@@ -194,21 +188,23 @@ config = {
 
 ## ✅ VALIDATION CHECKLIST
 
-Before training, verify:
+Before training, verify these EXACT values from Paper Table 13:
 ```python
-# CRITICAL: These are the ACTUAL values from Table 13!
-assert input_shape == (batch, 23, 1000), "Input must be 23×1000!"
-assert n_channels_after_conv == 20, "Must reduce to 20 channels!"
-assert target_channels == ['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
-                           'T7','C3','CZ','C4','T8','P7','P3','PZ',
-                           'P4','P8','O1','O2'], "Wrong channel mapping!"
-assert kernel_size == 55, "TUEV needs kernel 55"
-assert padding == 27, "Padding must be 27 for kernel 55"
-assert dropout_rate == 0.5, "TUEV uses 0.5 dropout!"
-assert batch_size == 500, "TUEV uses batch 500"
-assert learning_rate == 5e-4, "Constant LR of 5e-4"
-assert n_classes == 6, "TUEV has 6 event types"
-assert samples_per_window == 1000, "NOT 1280! Paper uses 1000"
+assert input_shape == (batch, 23, 1000), "Table 13 line 606"
+assert n_channels_after_conv == 20, "Table 13 line 607"
+assert temporal_kernel == 55, "Table 13 line 608"
+assert temporal_padding == 27, "Table 13 line 608"
+assert temporal_groups == 20, "Table 13 line 608 (depthwise)"
+assert dropout_rate == 0.5, "Table 13 line 610"
+assert output_shape[1:] == (15, 4, 512), "Table 13 line 612"
+assert n_classes == 6, "Table 13 line 613"
+assert batch_size == 500, "Paper line 587"
+assert learning_rate == 5e-4, "Paper line 587"
+
+# The 20 target channels (Paper line 615)
+target_channels = ['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
+                   'T7','C3','CZ','C4','T8','P7','P3','PZ',
+                   'P4','P8','O1','O2']
 ```
 
 ## 📐 METRICS TO TRACK

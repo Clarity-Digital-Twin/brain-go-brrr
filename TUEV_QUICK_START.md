@@ -25,19 +25,19 @@ uv run python scripts/verify_tuev_dataset.py
 # ⚠️ Note: 26-27 channels (need to select 23)
 ```
 
-### 3️⃣ Key Differences from TUAB (UPDATED FROM DEEP AUDIT!)
+### 3️⃣ Key Differences from TUAB (FINAL - Use Table 13!)
 
-| Parameter | TUAB | TUEV | 
-|-----------|------|------|
-| **Input Size** | 23 × 2000 | **23 × 1000** ⚠️ |
-| **Window** | 4 seconds | **3.9 seconds** (paper says 5s but uses 1000 samples!) |
-| **Channels** | 23 → 20 | **23 → 20** (same reduction) |
-| **Classes** | 2 (binary) | **6** |
-| **Dropout** | 0.25 | **0.5** (double!) |
+| Parameter | TUAB (Table 12) | TUEV (Table 13) | 
+|-----------|-----------------|-----------------|
+| **Input Size** | 23 × 2000 | **23 × 1000** |
+| **Actual Window** | 7.8 seconds | **3.9 seconds** |
+| **Channel Reduction** | 23 → 20 | **23 → 20** |
+| **Classes** | 2 | **6** |
+| **Dropout** | 0.25 | **0.5** |
 | **Batch Size** | 100 | **500** |
-| **Kernel** | (1, 15) | **(1, 55)** |
-| **Padding** | 7 | **27** |
-| **LR Schedule** | AdamW + constant | **AdamW + constant** (no OneCycle!) |
+| **Temporal Kernel** | 15 | **55** |
+| **Temporal Padding** | 7 | **27** |
+| **Optimizer** | AdamW @ 5e-4 | **AdamW @ 5e-4** |
 | **Output Shape** | 31 × 4 × 512 | **15 × 4 × 512** |
 
 ### 4️⃣ What TUEV Classes Mean
