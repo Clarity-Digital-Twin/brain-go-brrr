@@ -2,13 +2,18 @@
 
 _Last Updated: August 18, 2025 - CRITICAL EEGPT FIX IDENTIFIED_
 
-## 🔴 CRITICAL: EEGPT Feature Extraction Bug Found
+## 🔴 CRITICAL: EEGPT Feature Extraction Bug Affects BOTH Tasks
 
-**TUEV FAILURE**: BAcc 0.15 (worse than random 0.167)
-- **Root Cause**: EEGPT only returns last 4 tokens (2,048 features)
-- **Paper Shows**: 15 × 4 × 512 = 30,720 features needed (Table 13)
-- **Fix Required**: Extract features preserving temporal structure
-- **See**: `EEGPT_TUEV_FIX.md` for implementation plan
+**DISCOVERY**: Reference implementation HARDCODES exact feature dimensions:
+- **TUAB**: Uses 63,488 features (31 × 4 × 512) - We use only 512!
+- **TUEV**: Uses 30,720 features (15 × 4 × 512) - We use only 2,048!
+
+**Impact**:
+- **TUAB**: 0.79 AUROC (missing 0.08 from paper's 0.87)
+- **TUEV**: 0.15 BAcc (catastrophic failure, paper's 0.62)
+
+**Root Cause**: Our EEGPT returns only last 4 summary tokens, should return ALL temporal positions
+**See**: `EEGPT_TUEV_FIX.md` and `COMPLETE_CERTAINTY.md` for details
 
 ## 🎯 Previous State: PRODUCTION READY - Clean Architecture Achieved
 

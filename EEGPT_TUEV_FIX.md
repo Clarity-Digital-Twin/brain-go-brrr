@@ -1,8 +1,14 @@
-# EEGPT & TUEV: Architecture Fix Documentation
+# EEGPT Architecture Fix: TUAB & TUEV
 
 ## Executive Summary
 
-**CRITICAL BUG**: Our implementation returns 4 summary tokens TOTAL (2,048 features) but TUEV needs 4 summary tokens PER TEMPORAL PATCH (15 patches × 4 tokens = 30,720 features). This causes catastrophic failure: BAcc 0.15 vs paper's 0.62.
+**CRITICAL BUG AFFECTS BOTH TASKS**: Our EEGPT returns only the last 4 summary tokens instead of ALL temporal positions:
+- **TUAB**: Returns 512 features, needs 63,488 (31 patches × 4 tokens × 512)
+- **TUEV**: Returns 2,048 features, needs 30,720 (15 patches × 4 tokens × 512)
+
+**Impact**:
+- TUAB: 0.79 AUROC (should be 0.87)
+- TUEV: 0.15 BAcc (should be 0.62)
 
 **ROOT CAUSE**: Architectural misunderstanding. We process all patches together:
 ```python
@@ -190,20 +196,11 @@ Fix: Process each temporal patch separately, get 4 tokens each
 
 ## Migration Plan
 
-### Week 1
-- [ ] Implement `EEGPTFeatureExtractor` with multiple modes
-- [ ] Test patch extraction on small subset
-- [ ] Verify shapes match paper
-
-### Week 2  
-- [ ] Train TUEV with 15-patch extraction
-- [ ] Compare to summary-only baseline
-- [ ] Tune regularization if overfitting
-
-### Week 3
-- [ ] Ensure TUAB still works with summary mode
-- [ ] Document API changes
-- [ ] Create migration guide
+### Immediate Actions
+1. Implement `return_all_temporal` flag in EEGPT forward pass
+2. Fix TUAB: Change probe input_dim from 512 to 63,488
+3. Fix TUEV: Change classifier from 2,048 to 30,720
+4. Test both tasks with correct feature dimensions
 
 ## Configuration Changes
 
@@ -219,11 +216,18 @@ model:
 
 ## Expected Outcomes
 
-| Metric | Current | Expected | Target |
-|--------|---------|----------|--------|
-| BAcc | 0.15 | 0.40+ | 0.62 |
-| F1 | 0.50 | 0.70+ | 0.82 |
-| Kappa | -0.01 | 0.30+ | 0.64 |
+### TUAB (Binary Classification)
+| Metric | Current | Target (Paper) |
+|--------|---------|----------------|
+| AUROC | 0.79 | 0.87 |
+| BAcc | ~0.75 | 0.80 |
+
+### TUEV (6-class Events)
+| Metric | Current | Target (Paper) |
+|--------|---------|----------------|
+| BAcc | 0.15 | 0.62 |
+| F1 | 0.50 | 0.82 |
+| Kappa | -0.01 | 0.64 |
 
 ## Command to Test
 
