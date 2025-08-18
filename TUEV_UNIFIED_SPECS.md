@@ -44,8 +44,9 @@ Line 609: | 20 × 1000    | batchnorm,gelu | -      | -      | -      | -       
 Line 610: | 20 × 1000    | dropout(0.5)   | -      | -      | -      | -       |
 Line 611: | 20 × 1000    | eegpt-encoder  | 64     | 64     | -      | -       |
 Line 612: | 15 × 4 × 512 | flatten,linear | -      | -      | -      | -       |
-          |              | [CRITICAL: This is 15 temporal × 4 summary tokens × 512 dims = 30,720 features]
+          |              | [Paper] This denotes 15 temporal patches × S=4 summary tokens × 512 dims = 30,720 features (EEGPT Table 13; §2.4)
           |              | [Paper Line 164: "encoder passes output tokens corresponding to summary tokens"]
+          |              | [Reference Code Line 769: LinearWithConstraint(30720, num_classes) - HARDCODED PROOF!]
           |              | [Our bug: only extracting LAST 4 tokens = 2,048 features]
 Line 613: | 6            | output         | -      | -      | -      | -       |
 ```
@@ -55,11 +56,12 @@ Line 613: | 6            | output         | -      | -      | -      | -       |
 - **[Paper]** Channel reduction: 23 → 20
 - **[Paper]** Temporal kernel: 55, padding: 27, groups: 20
 - **[Paper]** Dropout: 0.5
-- **[Paper]** Output shape: 15 × 4 × 512
-- **[Paper]** Line 164: "encoder passes output tokens corresponding to summary tokens"
-- **[Correct]**: 15 temporal × 4 summary tokens × 512 = 30,720 features
+- **[Paper]** Output shape: 15 × 4 × 512 (Table 13)
+- **[Paper]** Line 164: "encoder passes output tokens corresponding to summary tokens" (§2.4)
+- **[Reference]** Line 769 in EEGPT_mcae_finetune_change_tuev.py: LinearWithConstraint(30720, num_classes)
+- **[Correct]**: 15 temporal patches × 4 summary tokens × 512 = 30,720 features
 - **[Current Bug]**: Only extracting last 4 tokens = 2,048 features
-- **[Decision]**: Extract ALL 60 summary tokens, not just last 4
+- **[Decision]**: Process each temporal patch separately, get 4 summary tokens per patch
 
 ### Channel Names
 **[Paper]** Line 615: The 20 channels are:
