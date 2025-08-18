@@ -180,6 +180,57 @@ class EEGPTProbe(nn.Module):
         """Get the expected feature dimension after backbone."""
         # This is mainly for compatibility
         return self.hidden_dim
+    
+    # Compatibility methods for existing tests
+    def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
+        """Get probability predictions.
+        
+        Args:
+            x: Input tensor of shape (B, C, T)
+            
+        Returns:
+            Probabilities of shape (B, n_classes)
+        """
+        logits = self.forward(x)
+        return torch.softmax(logits, dim=-1)
+    
+    def get_num_trainable_params(self) -> int:
+        """Count number of trainable parameters."""
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+    
+    def save_probe(self, path: Path | str) -> None:
+        """Save probe state.
+        
+        Args:
+            path: Path to save checkpoint
+        """
+        path = Path(path)
+        state = {
+            'probe_state_dict': self.probe.state_dict(),
+            'config': {
+                'n_classes': self.n_classes,
+                'architecture': self.architecture,
+                'robust_mode': self.robust_mode,
+                'hidden_dim': self.hidden_dim,
+                'dropout': self.dropout,
+            }
+        }
+        torch.save(state, path)
+    
+    def load_probe(self, path: Path | str) -> None:
+        """Load probe state.
+        
+        Args:
+            path: Path to checkpoint
+        """
+        path = Path(path)
+        checkpoint = torch.load(path, map_location='cpu')
+        self.probe.load_state_dict(checkpoint['probe_state_dict'])
+    
+    @property
+    def classifier(self) -> nn.Module:
+        """Alias for probe head (backwards compatibility)."""
+        return self.probe
 
 
 # Compatibility aliases for migration

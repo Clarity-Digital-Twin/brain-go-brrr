@@ -1,9 +1,21 @@
-# DEPRECATED: use brain_go_brrr.application.ports.cache instead. Removed in v2.0.0.
-from brain_go_brrr.utils.deprecated_redirect import redirect
+"""Backwards compatibility module for cache_port.
 
-redirect(
-    old="brain_go_brrr.core.cache_port",
-    new="brain_go_brrr.infra.cache_port",
-    globals_dict=globals(),
-    warn_on_import=False,
+DEPRECATED: Import from brain_go_brrr.infra.cache instead.
+"""
+
+import warnings
+
+warnings.warn(
+    "brain_go_brrr.core.cache_port is deprecated. "
+    "Import from brain_go_brrr.infra.cache instead.",
+    DeprecationWarning,
+    stacklevel=2
 )
+
+# Import from new location
+from brain_go_brrr.infra.cache import RedisCacheProtocol as CachePort
+
+# Create AsyncCachePort as alias for now (async not yet implemented)
+AsyncCachePort = CachePort
+
+__all__ = ["CachePort", "AsyncCachePort"]
