@@ -26,7 +26,18 @@
 3. **Annotation Format**: .lab files with microsecond timestamps + .rec files
 4. **Split Strategy CRITICAL**: Must use BIOT strategy (existing train/eval split), NOT LOSO!
 
-## 📚 TUEV Specifications (From EEGPT Paper)
+## 🚨 CRITICAL UPDATE: Deep Audit Found Major Discrepancies!
+
+**SEE `TUEV_CRITICAL_ARCHITECTURE.md` for full details!**
+
+Key findings from Table 13 (page 20):
+- Input is 23 × 1000 (NOT 23 × 1280!)
+- Reduces to 20 channels (NOT expands to 58!)
+- Dropout is 0.5 (NOT 0.25!)
+- No learning rate schedule (just constant 5e-4)
+- Output shape is 15 × 4 × 512 (NOT 31 × 4 × 512)
+
+## 📚 TUEV Specifications (From EEGPT Paper - CORRECTED)
 
 ### Dataset Characteristics
 - **Size**: 112,491 5-second samples

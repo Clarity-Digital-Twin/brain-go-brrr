@@ -30,40 +30,63 @@
 
 ## 🎯 EXACT TRAINING CONFIGURATION
 
-### Model Architecture (from Appendix C.2.6)
+### Model Architecture (from Table 13, page 20)
 ```python
-# Two-layer convolution adapter
+# CRITICAL: Architecture is DIFFERENT than expected!
+# Input: 23 × 1000 (NOT 1280!)
+
+# Layer 1: Channel REDUCTION (not expansion!)
 spatial_conv = Conv1d(
     in_channels=23,      # TUEV has 23 channels
-    out_channels=58,     # EEGPT expects 58
-    kernel_size=1        # 1x1 spatial convolution
+    out_channels=20,     # Reduces to 20 standard channels (NOT 58!)
+    kernel_size=1,       # 1x1 spatial convolution
+    stride=1,
+    padding=0
 )
+# → BatchNorm + GELU
 
+# Layer 2: Temporal convolution (depthwise)
 temporal_conv = Conv1d(
-    in_channels=58,
-    out_channels=58,
-    kernel_size=55,      # CRITICAL: (1, 55) for TUEV!
-    groups=58,           # Depthwise convolution
-    padding='same'
+    in_channels=20,      # Works on 20 channels
+    out_channels=20,     # Maintains 20 channels
+    kernel_size=55,      # CRITICAL: kernel=55
+    stride=1,
+    groups=20,           # Depthwise (each channel independent)
+    padding=27           # Specific padding value
 )
+# → BatchNorm + GELU
+# → Dropout(0.5)  # CRITICAL: 0.5 not 0.25!
+
+# Then EEGPT encoder processes 20 × 1000 → 15 × 4 × 512
 ```
+
+**The 20 channels (from paper page 615):**
+FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2
 
 ### Training Parameters (EXACT from paper)
 - **Batch Size**: 500 (not 100 like TUAB!)
-- **Learning Rate**: 5e-4
-- **Optimizer**: AdamW (same as TUAB)
+- **Learning Rate**: 5e-4 (CONSTANT - no OneCycle schedule!)
+- **Optimizer**: AdamW (but NO schedule, unlike pretraining)
 - **Method**: Linear-probing (frozen EEGPT backbone)
+- **Dropout**: 0.5 (NOT 0.25 like TUAB!)
+- **Input Size**: 23 × 1000 (NOT 23 × 1280!)
+  - ⚠️ **CRITICAL**: 1000 samples @ 256Hz = 3.90625s, not 5s!
+  - Paper inconsistency: Says "5-second samples" but uses 1000 samples
 - **GPU Memory**: Batch 500 requires ~8GB VRAM
 
 ### Critical Differences from TUAB
 
 | Parameter | TUAB | TUEV | Why Different |
 |-----------|------|------|---------------|
-| Window | 10s → 4s | 5s | Different annotation granularity |
+| Input Size | 23 × 2000 | **23 × 1000** | Different window lengths |
+| Window | 4s @ 256Hz | **3.9s @ 256Hz** | Paper says 5s but uses 1000 samples |
+| Channels | 23 → 20 | **23 → 20** | Both reduce to same 20 channels |
 | Kernel | (1, 15) | **(1, 55)** | Longer temporal context needed |
-| Batch | 100 | **500** | More samples available |
+| Dropout | 0.25 | **0.5** | More regularization for TUEV |
+| Batch | 100 | **500** | More GPU memory available |
 | Classes | 2 | **6** | Event classification |
-| Samples | 409,455 | 112,491 | Smaller but more specific |
+| LR Schedule | Same as TUAB | **None (constant)** | Simpler optimization |
+| Output Shape | 31 × 4 × 512 | **15 × 4 × 512** | Fewer patches (1000/64 vs 2000/64) |
 
 ## 📈 PAPER PERFORMANCE (Target)
 
@@ -168,12 +191,19 @@ config = {
 
 Before training, verify:
 ```python
-assert window_size == 5.0, "TUEV uses 5s windows"
-assert n_channels == 23, "TUEV has 23 channels"
+# CRITICAL: These are the ACTUAL values from Table 13!
+assert input_shape == (batch, 23, 1000), "Input must be 23×1000!"
+assert n_channels_after_conv == 20, "Must reduce to 20 channels!"
+assert target_channels == ['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
+                           'T7','C3','CZ','C4','T8','P7','P3','PZ',
+                           'P4','P8','O1','O2'], "Wrong channel mapping!"
 assert kernel_size == 55, "TUEV needs kernel 55"
+assert padding == 27, "Padding must be 27 for kernel 55"
+assert dropout_rate == 0.5, "TUEV uses 0.5 dropout!"
 assert batch_size == 500, "TUEV uses batch 500"
+assert learning_rate == 5e-4, "Constant LR of 5e-4"
 assert n_classes == 6, "TUEV has 6 event types"
-assert samples_per_window == 1280, "5s * 256Hz = 1280"
+assert samples_per_window == 1000, "NOT 1280! Paper uses 1000"
 ```
 
 ## 📐 METRICS TO TRACK
@@ -195,6 +225,7 @@ You've succeeded when:
 - ✅ Weighted F1 ≥ 0.81
 - ✅ Cohen's Kappa ≥ 0.63
 - ✅ Better than BIOT baseline (0.53 BAC)
+- ✅ Results averaged over 3 runs with different seeds (paper protocol)
 
 ## 📝 PAPER QUOTES (Direct Evidence)
 
@@ -205,6 +236,10 @@ You've succeeded when:
 > "The convolution kernel size for TUAB was (1, 15), and for TUEV, it was (1, 55)" (p.20)
 
 > "Due to GPU memory limitations, the batch size for TUAB was 100, and for TUEV, it was 500" (p.20)
+
+> "To ensure the reliability of the experiments, we repeated each experiment three times and calculated the standard deviation" (p.6)
+
+> "For the data splitting of TUAB and TUEV, we strictly follow the same strategy as BIOT" (p.6)
 
 > "We achieved a 9.5% performance improvement" compared to BIOT (p.8)
 

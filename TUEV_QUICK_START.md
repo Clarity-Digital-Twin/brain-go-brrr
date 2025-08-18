@@ -6,6 +6,7 @@
 - ✅ **Infrastructure**: Ready (reuse TUAB pipeline)
 - ✅ **Verified**: All 6 classes present, 370 subjects (paper had 288)
 - ⚠️ **Split Strategy**: MUST use BIOT split (NOT LOSO, NOT random!)
+- 🔴 **CRITICAL**: Deep audit found MAJOR architecture differences! See `TUEV_CRITICAL_ARCHITECTURE.md`
 
 ## Immediate Actions Required
 
@@ -24,17 +25,20 @@ uv run python scripts/verify_tuev_dataset.py
 # ⚠️ Note: 26-27 channels (need to select 23)
 ```
 
-### 3️⃣ Key Differences from TUAB
+### 3️⃣ Key Differences from TUAB (UPDATED FROM DEEP AUDIT!)
 
 | Parameter | TUAB | TUEV | 
 |-----------|------|------|
-| **Window** | 4 seconds | **5 seconds** |
-| **Channels** | 20 | **23** |
+| **Input Size** | 23 × 2000 | **23 × 1000** ⚠️ |
+| **Window** | 4 seconds | **3.9 seconds** (paper says 5s but uses 1000 samples!) |
+| **Channels** | 23 → 20 | **23 → 20** (same reduction) |
 | **Classes** | 2 (binary) | **6** |
-| **Samples** | 409,455 | 112,491 |
+| **Dropout** | 0.25 | **0.5** (double!) |
 | **Batch Size** | 100 | **500** |
 | **Kernel** | (1, 15) | **(1, 55)** |
-| **Learning Rate** | 5e-4 | 5e-4 |
+| **Padding** | 7 | **27** |
+| **LR Schedule** | AdamW + constant | **AdamW + constant** (no OneCycle!) |
+| **Output Shape** | 31 × 4 × 512 | **15 × 4 × 512** |
 
 ### 4️⃣ What TUEV Classes Mean
 
