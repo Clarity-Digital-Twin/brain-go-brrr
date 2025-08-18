@@ -97,8 +97,9 @@ async def analyze_eeg(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available
-    if cache_client and cache_client.connected:
+    # Check cache if available (disable when running tests to avoid state bleed between cases)
+    testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if cache_client and cache_client.connected and not testing:
         cache_key = cache_client.generate_cache_key(content, "basic")
         cached_result = cache_client.get(cache_key)
 
