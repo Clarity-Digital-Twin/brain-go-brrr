@@ -12,11 +12,17 @@ class DummyEEGPTModel(nn.Module):
         super().__init__()
         self.linear = nn.Linear(1024, 512)  # Just for having params
 
-    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, 
+                return_all_temporal: bool = False) -> torch.Tensor:
         """Return fixed-size summary tokens."""
         batch_size = x.shape[0]
-        # Return 4 summary tokens of 512 dimensions
-        return torch.zeros((batch_size, 4, 512), dtype=x.dtype, device=x.device)
+        if return_all_temporal:
+            # Return all temporal features (16 patches × 4 summary × 512)
+            n_patches = x.shape[-1] // 64  # 64 samples per patch
+            return torch.zeros((batch_size, n_patches, 4, 512), dtype=x.dtype, device=x.device)
+        else:
+            # Return 4 summary tokens of 512 dimensions
+            return torch.zeros((batch_size, 4, 512), dtype=x.dtype, device=x.device)
 
     def prepare_chan_ids(self, channel_names: list[str]) -> torch.Tensor:
         """Mock channel ID preparation."""
