@@ -90,36 +90,40 @@ class EEGPTWrapper(nn.Module):
             f"std={self.input_std.item():.6f}"
         )
 
-    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, return_all_temporal: bool = False) -> torch.Tensor:
         """Forward pass with preprocessing.
 
         Args:
             x: Input tensor of shape (B, C, T)
             chan_ids: Channel IDs for positional embedding
+            return_all_temporal: If True, return all temporal features (B, N_temporal, 4, embed_dim)
 
         Returns:
-            Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=False: Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
         # Normalize input if enabled
         if self.normalize:
             x = (x - self.input_mean) / (self.input_std + 1e-8)
 
-        # Forward through model
-        return cast("torch.Tensor", self.model(x, chan_ids))
+        # Forward through model with temporal flag
+        return cast("torch.Tensor", self.model(x, chan_ids, return_all_temporal))
 
     def extract_features(
-        self, x: torch.Tensor, chan_ids: torch.Tensor | None = None
+        self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, return_all_temporal: bool = False
     ) -> torch.Tensor:
         """Extract features (alias for forward).
 
         Args:
             x: Input tensor of shape (B, C, T)
             chan_ids: Channel IDs
+            return_all_temporal: If True, return all temporal features
 
         Returns:
-            Features of shape (B, embed_num, embed_dim)
+            If return_all_temporal=False: Features of shape (B, embed_num, embed_dim)
+            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
-        return self.forward(x, chan_ids)
+        return self.forward(x, chan_ids, return_all_temporal)
 
 
 def create_normalized_eegpt(

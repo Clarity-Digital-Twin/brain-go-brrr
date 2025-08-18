@@ -62,9 +62,11 @@ class LinearProbe(nn.Module):
 
     def forward(self, features):
         """Forward pass through probe."""
-        # features: (batch_size, n_summary_tokens, embed_dim)
-        # Average pool over summary tokens
-        x = features.mean(dim=1)  # (batch_size, embed_dim)
+        # features: (batch_size, n_temporal, n_summary_tokens, embed_dim)
+        # For TUAB with 4s windows: (B, 16, 4, 512)
+        # Flatten all features: 16 * 4 * 512 = 32,768 features
+        batch_size = features.shape[0]
+        x = features.reshape(batch_size, -1)  # Flatten to (batch_size, 32768)
         return self.probe(x)
 
 
@@ -150,9 +152,9 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         data = data.to(device)
         labels = labels.to(device)
 
-        # Forward through frozen backbone
+        # Forward through frozen backbone with temporal features
         with torch.no_grad():
-            features = model(data)
+            features = model.extract_features(data, return_all_temporal=True)
 
         # Forward through probe
         logits = probe(features)
@@ -210,8 +212,8 @@ def validate(model, probe, val_loader, device):
             data = data.to(device)
             labels = labels.to(device)
 
-            # Forward
-            features = model(data)
+            # Forward with temporal features
+            features = model.extract_features(data, return_all_temporal=True)
             logits = probe(features)
             loss = F.cross_entropy(logits, labels)
 
