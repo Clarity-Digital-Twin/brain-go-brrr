@@ -100,6 +100,14 @@ class EEGPTModel:
             auto_load: Whether to auto-load model
             config: Legacy config dict (for backward compatibility)
         """
+        warnings.warn(
+            "EEGPTModel is deprecated and will be removed in v2.0.0. "
+            "Use create_normalized_eegpt() from brain_go_brrr.infra.ml_models.eegpt_wrapper directly. "
+            "For preprocessing, use functions from brain_go_brrr.domain.preprocessing.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         # Store original config for backward compatibility
         self.config = config
 
