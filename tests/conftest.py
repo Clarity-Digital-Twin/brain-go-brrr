@@ -349,18 +349,19 @@ def mock_qc_controller():
 
     controller = MagicMock(spec=EEGQualityController)
     controller.eegpt_model = MagicMock()  # Model is loaded
+    # Set a safe default that results in ROUTINE flag for tests that don't override
     controller.run_full_qc_pipeline = MagicMock(
         return_value={
             "quality_metrics": {
-                "bad_channels": ["T3", "O2"],
-                "bad_channel_ratio": 0.21,
-                "abnormality_score": 0.82,
-                "quality_grade": "POOR",
+                "bad_channels": [],
+                "bad_channel_ratio": 0.0,
+                "abnormality_score": 0.2,  # Low score for ROUTINE
+                "quality_grade": "GOOD",
                 "total_channels": 19,
-                "artifact_ratio": 0.15,
+                "artifact_ratio": 0.05,
             },
-            "processing_info": {"confidence": 0.85},
-            "processing_time": 1.5,
+            "processing_info": {"confidence": 0.95},
+            "processing_time": 0.5,
         }
     )
     return controller
