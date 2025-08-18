@@ -66,8 +66,8 @@ Line 613: | 6            | output         | -      | -      | -      | -       |
 ### Batch Size & Learning Rate
 - **[Paper]** Line 587: "batch size for TUAB was 100, and for TUEV, it was 500"
 - **[Paper]** Line 587: "learning rate of 5e-4"
-- **[Paper]** Line 587: "Both experiments used the same optimizer"
-- **[Decision]**: Batch 500, LR 5e-4, AdamW (inferred)
+- **[Paper]** Line 587: "Both experiments used the same optimizer" (name not specified)
+- **[Decision]**: Batch 500, LR 5e-4, AdamW (inferred from pretraining), constant schedule (not stated in paper)
 
 ### Data Split
 - **[Paper]** Line 197: "For the data splitting of TUAB and TUEV, we strictly follow the same strategy as BIOT"

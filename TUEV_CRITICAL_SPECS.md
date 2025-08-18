@@ -1,19 +1,23 @@
 # 🔴 TUEV CRITICAL SPECIFICATIONS - IMPLEMENTATION GUIDE
 
+> **SSOT:** See `TUEV_UNIFIED_SPECS.md` for canonical [Paper]/[Local]/[Decision] facts.
+
 ## 📊 FINAL DECISION: Use Table 13 (NOT text claims)
 
 ### What We're Implementing
-- **Input Size**: 23 × 1000 (3.90625 seconds @ 256Hz) - FROM TABLE 13
+- **[Paper/Table 13] Input Size**: 23 × 1000 (3.90625 seconds @ 256Hz)
+- **[Decision]**: Use 1000 samples to replicate Table 13 exactly
 - **Subjects**: 370 in our v2.0.1 (paper had 288)
 - **Classes**: 6 (SPSW, GPED, PLED, EYEM, ARTF, BCKG)
 - **Channels**: Resample 250→256 Hz, select 23 channels
-- **Why 1000 not 1280**: Paper Table 13 shows 1000, despite text claiming 5s
+- **Note**: Paper text states "5-second samples" but Table 13 shows 23×1000. We reproduce Table 13.
 
 ### Dataset Reality Check
-- **EDF Files**: 518 total (359 train, 159 eval)
-- **Label Files**: 11,396 .lab files (per-channel annotations)
-- **Annotation Format**: Microsecond timestamps in .lab files
-- **Actual Sampling**: 250 Hz (will need resampling to 256 Hz)
+- **[Local] EDF Files**: 518 total (359 train, 159 eval)
+- **[Local] Label Files**: 11,396 .lab files (per-channel annotations)
+- **[Local] Annotation Format**: Microsecond timestamps in .lab files
+- **[Local] Actual Sampling**: 250 Hz
+- **[Decision]**: Resample to 256 Hz to match paper requirements
 
 ### The 6 Classes (CRITICAL!)
 1. **SPSW** - Spike and Sharp Wave (epileptiform)
@@ -60,12 +64,11 @@ temporal_conv = Conv1d(
 **The 20 channels (from paper page 615):**
 FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2
 
-### Training Parameters (EXACT from paper with line numbers)
-- **Batch Size**: 500 (line 587: "batch size for TUAB was 100, and for TUEV, it was 500")
-- **Learning Rate**: 5e-4 (line 587: "learning rate of 5e-4")
-- **Optimizer**: Not specified but paper says "same optimizer" for both
-  - Likely AdamW (used everywhere else in paper)
-  - NO OneCycle mentioned for TUAB/TUEV (unlike other tasks)
+### Training Parameters (Paper-reported)
+- **[Paper] Batch Size**: 500 (line 587: "batch size for TUAB was 100, and for TUEV, it was 500")
+- **[Paper] Learning Rate**: 5e-4 (line 587: "learning rate of 5e-4")
+- **[Paper] Optimizer**: "same optimizer" (line 587) - name not specified for downstream
+- **[Decision]**: Use AdamW with constant LR (no schedule mentioned for downstream tasks)
 - **Method**: Linear-probing (line 197: "linear-probing method")
 - **Dropout**: 0.5 (Table 13, line 610: "dropout(0.5)")
 - **Input Size**: 23 × 1000 (Table 13, line 606)
@@ -107,11 +110,11 @@ FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O
 ### 1. Data Processing Requirements
 - **Resample**: 250 Hz → 256 Hz (actual data is 250 Hz!)
 - **Channel selection**: Pick 23 from 26-27 available
-- **Window extraction**: Parse .lab files for 5-second segments
+- **Window extraction**: Parse .lab files and extract 1000-sample segments (Table 13)
 - **Label mapping**: Use .lab files (microsecond precision)
 
 ### 2. Data Split Strategy (CRITICAL FOR COMPARISON!)
-- **MUST Follow BIOT strategy** - Paper states: "For the data splitting of TUAB and TUEV, we strictly follow the same strategy as BIOT"
+- **[Paper] MUST Follow BIOT strategy** - Line 197: "For the data splitting of TUAB and TUEV, we strictly follow the same strategy as BIOT"
 - **NOT LOSO** - LOSO is only for BCIC-2A, BCIC-2B, etc. NOT for TUEV!
 - **Use existing split**: 290 train / 80 eval subjects (subject-level, not random)
 - Train/eval split preserves subject boundaries
@@ -133,34 +136,34 @@ kernel_size = 55  # Much larger receptive field
 ```
 
 ### 4. Why Kernel 55?
-- 5-second windows = 1280 samples
+- 1000 samples @ 256Hz = 3.9 seconds (Table 13)
 - Kernel 55 ≈ 214ms receptive field
 - Captures event morphology (spikes are 20-200ms)
-- Larger than TUAB because events span longer
+- Larger kernel than TUAB (55 vs 15) for longer temporal patterns
 
 ## 🔧 EXACT IMPLEMENTATION
 
 ### Dataset Loader
 ```python
 class TUEVDataset(Dataset):
-    """TUEV with EXACT paper specifications."""
+    """TUEV with EXACT Table 13 specifications."""
     
     def __init__(self, root_dir, split='train'):
-        self.window_size = 5.0  # MUST be 5 seconds
-        self.sample_rate = 256  # MUST be 256 Hz
-        self.n_channels = 23    # MUST be 23
-        self.n_classes = 6      # MUST be 6
+        self.window_size = 3.90625  # 1000/256 seconds (Table 13)
+        self.sample_rate = 256      # MUST be 256 Hz
+        self.n_channels = 23        # MUST be 23
+        self.n_classes = 6          # MUST be 6
         
-        # CRITICAL: 5 * 256 = 1280 samples per window
-        self.n_samples = 1280
+        # CRITICAL: Table 13 shows 1000 samples, NOT 1280
+        self.n_samples = 1000
 ```
 
 ### Model Configuration
 ```python
 config = {
     'data': {
-        'window_size': 5.0,      # NOT 4.0!
-        'n_channels': 23,        # NOT 20!
+        'window_samples': 1000,  # Table 13 (NOT 1280!)
+        'n_channels': 23,        # Input channels
         'batch_size': 500,       # NOT 100!
     },
     'model': {
@@ -178,13 +181,13 @@ config = {
 
 ## 🚨 COMMON MISTAKES TO AVOID
 
-1. ❌ Using 4-second windows (that's TUAB)
-2. ❌ Using kernel size 15 (that's TUAB)
-3. ❌ Using batch size 100 (memory limited for TUAB)
-4. ❌ Using 20 channels (that's TUAB processed)
-5. ❌ Using LOSO validation (that's for BCIC)
+1. ❌ Using 4-second windows (that's TUAB - use 1000 samples)
+2. ❌ Using kernel size 15 (that's TUAB - use 55)
+3. ❌ Using batch size 100 (that's TUAB - use 500)
+4. ❌ Using 20 input channels (use 23, then reduce to 20)
+5. ❌ Using LOSO validation (that's for BCIC - use BIOT)
 6. ❌ Binary classification (TUEV is 6-class!)
-7. ❌ Using 10-second raw windows (need 5s)
+7. ❌ Using 1280 samples (Table 13 shows 1000)
 
 ## ✅ VALIDATION CHECKLIST
 

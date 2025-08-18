@@ -5,7 +5,7 @@
 - ✅ **TUEV dataset**: FULLY DOWNLOADED (518 EDF files, 11,396 labels)
 - ✅ **Infrastructure**: Ready (reuse TUAB pipeline)
 - ✅ **Verified**: All 6 classes present, 370 subjects (paper had 288)
-- ⚠️ **Split Strategy**: MUST use BIOT split (NOT LOSO, NOT random!)
+- ⚠️ **[Paper] Split Strategy**: MUST use BIOT split (NOT LOSO, NOT random!) (Line 197)
 - 🔴 **CRITICAL**: Deep audit found MAJOR architecture differences! See `TUEV_CRITICAL_ARCHITECTURE.md`
 
 ## Immediate Actions Required
@@ -29,15 +29,15 @@ uv run python scripts/verify_tuev_dataset.py
 
 | Parameter | TUAB (Table 12) | TUEV (Table 13) | 
 |-----------|-----------------|-----------------|
-| **Input Size** | 23 × 2000 | **23 × 1000** |
-| **Actual Window** | 7.8 seconds | **3.9 seconds** |
+| **Input Size** | 23 × 2000 | **23 × 1000** ([Paper/Table 13]) |
+| **Actual Window** | 7.8 seconds | **[Paper/Table] 3.9s, [Paper/Text] claims 5s** |
 | **Channel Reduction** | 23 → 20 | **23 → 20** |
 | **Classes** | 2 | **6** |
 | **Dropout** | 0.25 | **0.5** |
 | **Batch Size** | 100 | **500** |
 | **Temporal Kernel** | 15 | **55** |
 | **Temporal Padding** | 7 | **27** |
-| **Optimizer** | AdamW @ 5e-4 | **AdamW @ 5e-4** |
+| **[Paper] Optimizer** | "same optimizer" @ 5e-4 | **[Decision] AdamW @ 5e-4** |
 | **Output Shape** | 31 × 4 × 512 | **15 × 4 × 512** |
 
 ### 4️⃣ What TUEV Classes Mean
@@ -56,7 +56,7 @@ uv run python scripts/verify_tuev_dataset.py
 ### Must Implement
 1. `experiments/eegpt_linear_probe/tuev_dataset.py` - Dataset loader
 2. `experiments/eegpt_linear_probe/train_tuev_aligned.py` - Training script
-3. `experiments/eegpt_linear_probe/configs/tuev_5s_paper_aligned.yaml` - Config
+3. `experiments/eegpt_linear_probe/configs/tuev_table13_aligned.yaml` - Config
 
 ### Can Reuse from TUAB
 - ✅ EEGPT wrapper
@@ -87,11 +87,11 @@ Patient EEG → TUAB (abnormal?)
 
 ## ⚠️ Common Pitfalls
 
-1. **Wrong window size** - TUEV is 5s, not 4s!
+1. **Wrong window size** - [Paper/Text] says 5s but [Paper/Table 13] shows 1000 samples (3.9s)!
 2. **Wrong channels** - TUEV has 23, not 20!
 3. **Wrong split** - Use BIOT strategy (existing train/eval), NOT LOSO!
 4. **Class imbalance** - Use weighted loss
-5. **Memory issues** - 112k × 5s × 23ch = big! Use mmap
+5. **Memory issues** - 112k × 3.9s × 23ch = big! Use mmap
 6. **Kernel size** - Must be (1, 55) not (1, 15)
 7. **Sampling rate** - Resample 250 Hz → 256 Hz!
 

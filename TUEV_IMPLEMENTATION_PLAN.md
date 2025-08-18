@@ -49,7 +49,7 @@ Key findings from Table 13 (page 20):
   5. ARTF - Other Artifacts
   6. BCKG - Background (normal)
 - **Channels**: 23 channels @ 256 Hz
-- **Window**: 5 seconds (vs 4 seconds for TUAB)
+- **[Paper/Table 13] Window**: 1000 samples (~3.9s) for TUEV, 2000 samples for TUAB
 
 ### Training Parameters (Paper)
 - **Batch Size**: 500 (vs 100 for TUAB)
@@ -108,7 +108,7 @@ from pathlib import Path
 import pandas as pd
 
 def verify_tuev():
-    base = Path("data/datasets/external/tuh_eeg_events/v1.0.1")
+    base = Path("data/datasets/external/tuh_eeg_events/v2.0.1")
     
     # Check for annotation files
     train_csv = base / "train" / "annotations.csv"
@@ -122,7 +122,7 @@ def verify_tuev():
     # Expected structure:
     # - 6 classes: SPSW, GPED, PLED, EYEM, ARTF, BCKG
     # - TCP montage (23 channels)
-    # - 5-second windows
+    # - 1000-sample windows (Table 13)
 ```
 
 ### Phase 2: Dataset Implementation (Day 2)
@@ -153,7 +153,7 @@ class TUEVDataset(torch.utils.data.Dataset):
         self,
         data_dir: Path,
         split: str = 'train',
-        window_size: float = 5.0,  # 5 seconds for TUEV
+        window_size: float = 3.90625,  # 1000 samples @ 256Hz (Table 13)
         sampling_rate: int = 256,
         cache_dir: Path = None
     ):
@@ -161,7 +161,7 @@ class TUEVDataset(torch.utils.data.Dataset):
         self.split = split
         self.window_size = window_size
         self.sampling_rate = sampling_rate
-        self.n_samples = int(window_size * sampling_rate)  # 1280 samples
+        self.n_samples = 1000  # FIXED: Table 13 shows 1000, not 1280
         
         # Load annotations
         self.annotations = self._load_annotations()
@@ -179,14 +179,14 @@ class TUEVDataset(torch.utils.data.Dataset):
         return pd.read_csv(csv_path)
     
     def __getitem__(self, idx):
-        """Get preprocessed 5-second window."""
+        """Get preprocessed window (1000 samples per Table 13)."""
         ann = self.annotations.iloc[idx]
         
         # Load EDF segment
         edf_path = self.data_dir / ann['file_path']
         raw = mne.io.read_raw_edf(edf_path, preload=False)
         
-        # Extract 5-second window
+        # Extract window (1000 samples per Table 13)
         start = ann['start_time']
         raw.crop(tmin=start, tmax=start + self.window_size)
         data = raw.get_data()
@@ -339,11 +339,11 @@ def train_epoch_tuev(model, probe, train_loader, optimizer, scheduler, device, c
 
 #### 4.1 Create TUEV Config
 ```yaml
-# experiments/eegpt_linear_probe/configs/tuev_5s_paper_aligned.yaml
+# experiments/eegpt_linear_probe/configs/tuev_table13_aligned.yaml
 
 data:
   dataset: "tuev"
-  window_size: 5.0  # 5 seconds for TUEV
+  window_size: 3.90625  # 1000 samples @ 256Hz (Table 13)
   sampling_rate: 256
   n_channels: 23
   n_classes: 6
@@ -358,11 +358,11 @@ model:
 probe:
   use_channel_adapter: true
   channel_adapter_in: 23  # TUEV channels
-  channel_adapter_out: 58  # EEGPT expects 58
+  channel_adapter_out: 20  # Reduces to 20 standard channels (Table 13)
   temporal_kernel: 55  # Paper specifies for TUEV
   input_dim: 768  # EEGPT embedding dim
   hidden_dim: 256
-  dropout: 0.2
+  dropout: 0.5  # CRITICAL: 0.5 for TUEV (Table 13)
   n_classes: 6
 
 training:
@@ -398,16 +398,15 @@ echo ""
 export CUDA_VISIBLE_DEVICES=0
 export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
 
-# Test scheduler first
-echo "Testing scheduler behavior..."
-python test_scheduler_dry_run.py --config configs/tuev_5s_paper_aligned.yaml
+# No scheduler for downstream tasks (constant LR per paper)
+echo "Using constant learning rate 5e-4 (no scheduler for TUAB/TUEV)"
 
 # Launch training
 LOG_FILE="logs/tuev_training_$(date +%Y%m%d_%H%M%S).log"
 echo "Starting training, logging to: $LOG_FILE"
 
 python train_tuev_aligned.py \
-    --config configs/tuev_5s_paper_aligned.yaml \
+    --config configs/tuev_table13_aligned.yaml \
     --device cuda \
     2>&1 | tee $LOG_FILE
 
@@ -511,7 +510,7 @@ def prepare_test_set():
     """Prepare held-out test set for final evaluation."""
     
     # Use official eval split
-    eval_dir = Path("data/datasets/external/tuh_eeg_events/v1.0.1/eval")
+    eval_dir = Path("data/datasets/external/tuh_eeg_events/v2.0.1/eval")
     
     # Create balanced test set
     # Ensure each class has sufficient samples
@@ -546,7 +545,7 @@ def evaluate_tuev_model(model_path, test_loader):
 ## 🚨 Critical Implementation Notes
 
 ### 1. **Dataset Differences from TUAB**
-- **Window Size**: 5 seconds (not 4)
+- **Window Size**: 1000 samples / 3.9s (Table 13, NOT 5s text claim)
 - **Channels**: 23 (not 20)
 - **Kernel Size**: (1, 55) (not (1, 15))
 - **Batch Size**: 500 (not 100)
@@ -558,7 +557,7 @@ TUEV likely has imbalanced classes. Need:
 - Per-class metrics
 
 ### 3. **Memory Considerations**
-With 112,491 samples × 5 seconds × 23 channels:
+With 112,491 samples × 3.9 seconds × 23 channels:
 - Use memory-mapped dataset
 - Cache preprocessed windows
 - Batch size 500 might need adjustment
@@ -566,7 +565,7 @@ With 112,491 samples × 5 seconds × 23 channels:
 ### 4. **Debugging Tips**
 ```python
 # Quick sanity checks
-assert window_size == 5.0, "TUEV uses 5-second windows"
+assert n_samples == 1000, "TUEV uses 1000 samples (Table 13)"
 assert n_channels == 23, "TUEV uses TCP montage (23 channels)"
 assert n_classes == 6, "TUEV has 6 event types"
 assert kernel_size[1] == 55, "Paper specifies (1, 55) kernel"

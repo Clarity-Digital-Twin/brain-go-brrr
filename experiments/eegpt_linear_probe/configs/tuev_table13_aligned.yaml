@@ -1,0 +1,125 @@
+# TUEV Configuration - Exact Table 13 Specifications
+# Based on TUEV_UNIFIED_SPECS.md
+
+data:
+  dataset: "tuev"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg/TUEV/v2.0.1"
+  cache_dir: "${BGB_DATA_ROOT}/cache/tuev_table13"
+  
+  # CRITICAL: Table 13 shows 1000 samples, not 1280!
+  window_samples: 1000  # 3.90625 seconds @ 256Hz
+  sampling_rate: 256    # Target rate (resample from 250Hz)
+  n_channels: 23        # Input channels (will reduce to 20)
+  n_classes: 6          # SPSW, GPED, PLED, EYEM, ARTF, BCKG
+  
+  # Paper line 587: batch size 500 for TUEV
+  batch_size: 500
+  num_workers: 4
+  pin_memory: true
+
+model:
+  # EEGPT pretrained checkpoint
+  eegpt_checkpoint: "${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  freeze_backbone: true  # Linear probing only
+  
+  # Table 13 architecture (lines 606-613)
+  channel_reduction:
+    in_channels: 23   # TUEV channels
+    out_channels: 20  # Standard 10-20 channels
+    kernel_size: 1
+  
+  temporal_conv:
+    kernel_size: 55   # CRITICAL: 55 for TUEV (not 15!)
+    padding: 27       # Maintains size
+    groups: 20        # Depthwise convolution
+  
+  dropout: 0.5        # CRITICAL: 0.5 for TUEV (not 0.25!)
+  
+  # Expected shapes (for validation)
+  expected_input: [23, 1000]
+  expected_after_conv: [20, 1000]
+  expected_features: [15, 4, 512]  # From EEGPT encoder
+
+training:
+  n_epochs: 100
+  
+  # [Paper] line 587: learning rate 5e-4
+  learning_rate: 5.0e-4
+  weight_decay: 0.01
+  
+  # [Decision] NO learning rate schedule for downstream tasks
+  # Paper doesn't specify schedule for TUAB/TUEV (only mentions OneCycle for pretraining)
+  use_scheduler: false
+  
+  # Gradient clipping for stability
+  gradient_clip: 1.0
+  
+  # Early stopping
+  patience: 20
+  min_delta: 0.001
+
+metrics:
+  # Paper reports these metrics (Table 3)
+  primary:
+    - balanced_accuracy  # Target: 0.6232 ± 0.0114
+    - weighted_f1        # Target: 0.8187 ± 0.0063
+    - cohen_kappa        # Target: 0.6351 ± 0.0134
+  
+  secondary:
+    - confusion_matrix
+    - per_class_f1
+    - ied_vs_non_ied    # SPSW+GPED+PLED vs others
+
+validation:
+  # Paper line 197: "repeated each experiment three times"
+  n_runs: 3
+  seeds: [42, 123, 456]
+  
+  # BIOT split strategy (not LOSO!)
+  split_strategy: "biot"  # Use existing train/eval split
+  
+  # Target performance from paper
+  targets:
+    balanced_accuracy: 0.6232
+    weighted_f1: 0.8187
+    cohen_kappa: 0.6351
+    
+    # Comparison to BIOT baseline
+    improvement_over_biot:
+      balanced_accuracy: 0.095  # +9.5%
+      weighted_f1: 0.069        # +6.9%
+
+# Channel mapping (from paper line 615)
+channels:
+  target_20: [
+    'FP1', 'FPZ', 'FP2',
+    'F7', 'F3', 'FZ', 'F4', 'F8',
+    'T7', 'C3', 'CZ', 'C4', 'T8',
+    'P7', 'P3', 'PZ', 'P4', 'P8',
+    'O1', 'O2'
+  ]
+  
+  # TCP montage channels in TUEV
+  tcp_23: [
+    'FP1-F7', 'F7-T3', 'T3-T5', 'T5-O1',
+    'FP2-F8', 'F8-T4', 'T4-T6', 'T6-O2',
+    'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1',
+    'FP2-F4', 'F4-C4', 'C4-P4', 'P4-O2',
+    'FZ-CZ', 'CZ-PZ',
+    'T3-C3', 'C3-CZ', 'CZ-C4', 'C4-T4',
+    'A1-T3', 'T4-A2'
+  ]
+
+# Class definitions
+classes:
+  0: 'SPSW'  # Spike and Sharp Wave (epileptiform)
+  1: 'GPED'  # Generalized Periodic Epileptiform Discharges
+  2: 'PLED'  # Periodic Lateralized Epileptiform Discharges
+  3: 'EYEM'  # Eye Movement (artifact)
+  4: 'ARTF'  # Other Artifacts
+  5: 'BCKG'  # Background (normal)
+  
+  # Clinical groupings
+  ied_classes: [0, 1, 2]  # Interictal Epileptiform Discharges
+  artifact_classes: [3, 4]
+  normal_classes: [5]
