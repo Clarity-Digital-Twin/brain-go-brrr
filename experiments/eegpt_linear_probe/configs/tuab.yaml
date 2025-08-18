@@ -6,7 +6,7 @@ experiment:
 data:
   root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
   cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
-  batch_size: 32   # Paper-aligned batch size
+  batch_size: 100  # Paper-aligned batch size from Table 12
   num_workers: 2   # Try 2 workers for WSL (was 0)
   pin_memory: true
   persistent_workers: true  # Keep workers alive
@@ -24,7 +24,7 @@ model:
     freeze: true
   probe:
     type: linear  # Simple linear probe as per paper
-    input_dim: 512  # EEGPT embedding dimension
+    input_dim: 32768  # 16 temporal patches * 4 tokens * 512 = 32,768 for 4s windows
     hidden_dim: 128  # Hidden layer size
     n_classes: 2
     dropout: 0.1

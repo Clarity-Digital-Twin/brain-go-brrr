@@ -91,9 +91,10 @@ class TUEVLinearProbe(nn.Module):
         # Dropout - CRITICAL: 0.5 for TUEV, not 0.25!
         self.dropout = nn.Dropout(0.5)
         
-        # Linear probe (4×512 → 6)
-        # EEGPT returns only 4 summary tokens × 512 dim = 2,048
-        self.classifier = nn.Linear(4 * 512, 6)
+        # Linear probe (16×4×512 → 6) for 4s windows at 256Hz
+        # 1024 samples / 64 = 16 temporal patches
+        # 16 patches × 4 summary tokens × 512 dim = 32,768 features
+        self.classifier = nn.Linear(16 * 4 * 512, 6)
         
         self.device = device
         self.to(device)
@@ -121,13 +122,13 @@ class TUEVLinearProbe(nn.Module):
         # Dropout
         x = self.dropout(x)  # (batch, 20, 1024)
         
-        # EEGPT encoder (frozen)
+        # EEGPT encoder (frozen) - get all temporal features
         with torch.no_grad():
             # EEGPT expects (batch, channels, time)
-            features = self.eegpt.extract_features(x)  # (batch, 4, 512) - only summary tokens
+            features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, 16, 4, 512)
         
-        # Flatten and classify
-        features = features.view(features.size(0), -1)  # (batch, 2048)
+        # Flatten all temporal and summary features
+        features = features.view(features.size(0), -1)  # (batch, 32768)
         logits = self.classifier(features)  # (batch, 6)
         
         return logits
