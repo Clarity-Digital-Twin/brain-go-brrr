@@ -196,7 +196,16 @@ class EEGPTProbe(nn.Module):
     
     def get_num_trainable_params(self) -> int:
         """Count number of trainable parameters."""
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        # Handle uninitialized LazyLinear parameters
+        count = 0
+        for p in self.parameters():
+            if p.requires_grad:
+                try:
+                    count += p.numel()
+                except (RuntimeError, ValueError):
+                    # Uninitialized parameter, skip it
+                    pass
+        return count
     
     def save_probe(self, path: Path | str) -> None:
         """Save probe state.
@@ -224,7 +233,8 @@ class EEGPTProbe(nn.Module):
             path: Path to checkpoint
         """
         path = Path(path)
-        checkpoint = torch.load(path, map_location='cpu')
+        # Use weights_only=False to handle uninitialized LazyLinear parameters
+        checkpoint = torch.load(path, map_location='cpu', weights_only=False)
         self.probe.load_state_dict(checkpoint['probe_state_dict'])
     
     @property
