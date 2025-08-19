@@ -127,16 +127,14 @@ def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
     from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
-    with patch(
-        "brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt"
-    ) as mock_create:
-        # Mock the backbone creation
-        fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
-        mock_create.return_value = fake_backbone
-
-        probe = EEGPTProbe(architecture='linear',
-            checkpoint_path="/fake/path.ckpt", n_input_channels=20, n_classes=2
-        )
+    # Use backbone directly to avoid file loading
+    fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
+    probe = EEGPTProbe(
+        architecture='linear',
+        backbone=fake_backbone,  # Provide backbone directly
+        n_input_channels=20,
+        n_classes=2
+    )
 
         # Act: Forward pass with batch of EEG windows
         x = torch.randn(8, 20, 1024)  # batch_size=8, channels=20, samples=1024
@@ -340,27 +338,26 @@ def test_two_layer_probe_forward_pass():
     from pathlib import Path
 
     from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
-    with patch('brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt') as mock_create:
-        # Mock the backbone creation
-        from tests.fakes import FakeEEGPTBackbone
-        mock_create.return_value = FakeEEGPTBackbone(feature_dim=2048)
+    # Use backbone directly to avoid file loading
+    from tests.fakes import FakeEEGPTBackbone
+    fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
+    
+    probe = EEGPTProbe(
+        architecture='two_layer',
+        backbone=fake_backbone,  # Provide backbone directly
+        n_classes=3,
+        hidden_dim=512
+    )
 
-        probe = EEGPTProbe(
-            architecture='two_layer',
-            checkpoint_path=Path('/fake/model.ckpt'),
-            n_classes=3,
-            hidden_dim=512
-        )
+    # Act: Forward pass
+    x = torch.randn(16, 2048)  # batch=16, features=2048
+    output = probe(x)
 
-        # Act: Forward pass
-        x = torch.randn(16, 2048)  # batch=16, features=2048
-        output = probe(x)
-
-        # Assert: Output shape matches classes
-        assert output.shape == (16, 3)
-        # Should produce valid logits
-        assert not torch.isnan(output).any()
-        assert not torch.isinf(output).any()
+    # Assert: Output shape matches classes
+    assert output.shape == (16, 3)
+    # Should produce valid logits
+    assert not torch.isnan(output).any()
+    assert not torch.isinf(output).any()
 
 
 def test_edf_streamer_streams_windows():
