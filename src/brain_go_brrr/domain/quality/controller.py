@@ -117,7 +117,7 @@ class CleanQualityController:
 
         # Store model reference for backward compatibility
         self.eegpt_model = model
-    
+
     @property
     def eegpt_model(self):
         """Back-compat property for tests expecting a .eegpt_model attribute."""
@@ -126,7 +126,7 @@ class CleanQualityController:
             return self._eegpt_model
         # Otherwise return the model from the model attribute
         return self.model
-    
+
     @eegpt_model.setter
     def eegpt_model(self, value):
         """Setter for backward compatibility."""

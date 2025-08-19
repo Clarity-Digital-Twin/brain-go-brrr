@@ -12,7 +12,7 @@ class DummyEEGPTModel(nn.Module):
         super().__init__()
         self.linear = nn.Linear(1024, 512)  # Just for having params
 
-    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, 
+    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None,
                 return_all_temporal: bool = False) -> torch.Tensor:
         """Return fixed-size summary tokens."""
         batch_size = x.shape[0]

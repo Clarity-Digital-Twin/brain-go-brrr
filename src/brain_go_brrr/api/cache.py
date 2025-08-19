@@ -64,7 +64,7 @@ class RedisCache:
             ttl = expiry
         elif ttl is None:
             ttl = 3600  # Default 1 hour
-            
+
         try:
             # Add version metadata
             value_with_meta = {

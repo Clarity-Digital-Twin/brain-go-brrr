@@ -118,7 +118,7 @@ class EEGPTProbe(nn.Module):
         self.n_classes = n_classes
         self.hidden_dim = hidden_dim
         self.dropout = dropout
-    
+
     def _accepts_param(self, param_name: str) -> bool:
         """Check if backbone's extract_features accepts a parameter.
         
@@ -201,7 +201,7 @@ class EEGPTProbe(nn.Module):
         """Get the expected feature dimension after backbone."""
         # This is mainly for compatibility
         return self.hidden_dim
-    
+
     # Compatibility methods for existing tests
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
         """Get probability predictions.
@@ -214,7 +214,7 @@ class EEGPTProbe(nn.Module):
         """
         logits = self.forward(x)
         return torch.softmax(logits, dim=-1)
-    
+
     def get_num_trainable_params(self) -> int:
         """Count number of trainable parameters."""
         # Handle uninitialized LazyLinear parameters
@@ -227,7 +227,7 @@ class EEGPTProbe(nn.Module):
                     # Uninitialized parameter, skip it
                     pass
         return count
-    
+
     def save_probe(self, path: Path | str) -> None:
         """Save probe state.
         
@@ -246,7 +246,7 @@ class EEGPTProbe(nn.Module):
             }
         }
         torch.save(state, path)
-    
+
     def load_probe(self, path: Path | str) -> None:
         """Load probe state.
         
@@ -257,7 +257,7 @@ class EEGPTProbe(nn.Module):
         # Use weights_only=False to handle uninitialized LazyLinear parameters
         checkpoint = torch.load(path, map_location='cpu', weights_only=False)
         self.probe.load_state_dict(checkpoint['probe_state_dict'])
-    
+
     @property
     def classifier(self) -> nn.Module:
         """Alias for probe head (backwards compatibility)."""
