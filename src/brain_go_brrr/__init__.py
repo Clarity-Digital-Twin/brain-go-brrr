@@ -15,15 +15,8 @@ except Exception:
 __author__ = "CLARITY-DIGITAL-TWIN"
 __email__ = "contact@clarity-digital-twin.org"
 
-# Standard library imports
-import importlib
-import sys
-
-# Import shim for backwards compatibility with tests
-sys.modules.setdefault("core", importlib.import_module("brain_go_brrr.core"))
-
 # Package imports
-from .application.config.base import Config  # noqa: E402
+from .application.config.base import Config
 
 # Don't import logger here to avoid circular imports
 # Users should import directly: from brain_go_brrr.infra.logger import get_logger
