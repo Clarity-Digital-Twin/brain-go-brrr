@@ -124,8 +124,8 @@ class TestTwoLayerProbe:
 
     def test_two_layer_initialization(self):
         """Test two-layer probe initialization."""
-        from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import (
-            TwoLayerProbeHead as TwoLayerProbe,
+        from brain_go_brrr.infra.ml_models.eegpt_probe_unified import (
+            EEGPTProbe as TwoLayerProbe,
         )
 
         probe = TwoLayerProbe(input_dim=768, hidden_dim=256, num_classes=2, dropout=0.1)
@@ -138,8 +138,8 @@ class TestTwoLayerProbe:
 
     def test_two_layer_forward(self):
         """Test two-layer forward pass."""
-        from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import (
-            TwoLayerProbeHead as TwoLayerProbe,
+        from brain_go_brrr.infra.ml_models.eegpt_probe_unified import (
+            EEGPTProbe as TwoLayerProbe,
         )
 
         probe = TwoLayerProbe(input_dim=768, hidden_dim=128, num_classes=2)

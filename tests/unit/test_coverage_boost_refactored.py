@@ -125,7 +125,7 @@ def test_job_store_manages_jobs():
 
 def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
-    from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
+    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
     with patch(
         "brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt"
@@ -134,7 +134,7 @@ def test_linear_probe_produces_predictions():
         fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
         mock_create.return_value = fake_backbone
 
-        probe = EEGPTLinearProbe(
+        probe = EEGPTProbe(architecture='linear',
             checkpoint_path="/fake/path.ckpt", n_input_channels=20, n_classes=2
         )
 
@@ -335,10 +335,11 @@ def test_cached_dataset_loads_from_cache():
 
 def test_two_layer_probe_forward_pass():
     """Test two-layer probe produces correct outputs."""
-    from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+    # Two layer probe is now part of unified probe
+    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
     # Arrange
-    probe = EEGPTTwoLayerProbe(n_classes=3, hidden_dim=512)
+    probe = EEGPTProbe(architecture='two_layer', n_classes=3, hidden_dim=512)
 
     # Act: Forward pass
     x = torch.randn(16, 2048)  # batch=16, features=2048

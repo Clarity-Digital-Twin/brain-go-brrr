@@ -33,27 +33,17 @@ def test_preprocessing_imports():
     assert PreprocessingConfig is not None
     assert PreprocessingPipeline is not None
 
-    # Test deprecated path with warning
-    import sys
-    import warnings
+    # Test domain channels module (replacement for core.preprocessing_utils)
+    from brain_go_brrr.domain import channels
+    from brain_go_brrr.domain.channels import ChannelMapper
 
-    # Remove the module if already imported to test warning
-    if "brain_go_brrr.core.preprocessing_utils" in sys.modules:
-        del sys.modules["brain_go_brrr.core.preprocessing_utils"]
-
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        from brain_go_brrr.core import preprocessing_utils  # noqa: F401
-
-        # Check that a deprecation warning was issued
-        assert len(w) >= 1
-        assert any(issubclass(warning.category, DeprecationWarning) for warning in w)
-        assert any("deprecated" in str(warning.message).lower() for warning in w)
+    assert channels is not None
+    assert ChannelMapper is not None
 
 
 def test_core_job_models_imports():
-    """Test that core job models are accessible."""
-    from brain_go_brrr.core.jobs.models import JobData, JobPriority, JobStatus
+    """Test that job models are accessible from application layer."""
+    from brain_go_brrr.application.jobs.models import JobData, JobPriority, JobStatus
 
     assert JobData is not None
     assert JobPriority is not None
@@ -72,11 +62,11 @@ def test_core_job_models_imports():
 
 
 def test_cache_port_protocol():
-    """Test that cache port protocol is importable."""
-    from brain_go_brrr.core.cache_port import AsyncCachePort, CachePort
+    """Test that cache protocol is importable from infra layer."""
+    from brain_go_brrr.infra.cache import RedisCache, RedisCacheProtocol
 
-    assert CachePort is not None
-    assert AsyncCachePort is not None
+    assert RedisCacheProtocol is not None
+    assert RedisCache is not None
 
 
 def test_infra_cache_factory():

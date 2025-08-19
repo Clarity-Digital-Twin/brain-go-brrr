@@ -10,12 +10,12 @@ from typing import Any
 
 import torch
 
-from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
+from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
 logger = logging.getLogger(__name__)
 
 
-class AbnormalityDetectionProbe(EEGPTLinearProbe):
+class AbnormalityDetectionProbe(EEGPTProbe):
     """TUAB abnormality detection probe.
 
     Binary classification: normal (0) vs abnormal (1)

@@ -249,7 +249,7 @@ class TestEnhancedSleepAnalyzer:
         # Should still be 100 Hz
         assert processed.info["sfreq"] == 100
 
-    @patch("brain_go_brrr.core.sleep.analyzer_enhanced.yasa.SleepStaging")
+    @patch("brain_go_brrr.domain.sleep.analyzer_enhanced.yasa.SleepStaging")
     def test_stage_sleep_flexible_success(self, mock_sleep_staging, analyzer, sample_raw_data):
         """Test successful sleep staging."""
         # Mock YASA response
@@ -287,7 +287,7 @@ class TestEnhancedSleepAnalyzer:
         with pytest.raises(UnsupportedMontageError):
             analyzer.stage_sleep_flexible(raw)
 
-    @patch("brain_go_brrr.core.sleep.analyzer_enhanced.yasa.SleepStaging")
+    @patch("brain_go_brrr.domain.sleep.analyzer_enhanced.yasa.SleepStaging")
     def test_stage_sleep_with_smoothing(self, mock_sleep_staging, analyzer, sample_raw_data):
         """Test sleep staging with temporal smoothing."""
         # Create noisy hypnogram
@@ -510,7 +510,7 @@ class TestIntegrationWithSleepEDF:
         mock_read_edf.return_value = sleep_edf_style_raw
 
         # Mock YASA
-        with patch("brain_go_brrr.core.sleep.analyzer_enhanced.yasa.SleepStaging") as mock_sls:
+        with patch("brain_go_brrr.domain.sleep.analyzer_enhanced.yasa.SleepStaging") as mock_sls:
             mock_instance = Mock()
             mock_instance.predict.return_value = np.array(["W", "N1", "N2"] * 100)
             mock_instance.predict_proba.return_value = np.ones((300, 5)) * 0.2
@@ -639,7 +639,7 @@ class TestErrorHandling:
         assert metrics["sleep_efficiency"] == 0
         assert metrics["total_sleep_time_min"] == 0
 
-    @patch("brain_go_brrr.core.sleep.analyzer_enhanced.yasa.SleepStaging")
+    @patch("brain_go_brrr.domain.sleep.analyzer_enhanced.yasa.SleepStaging")
     def test_yasa_failure_fallback(self, mock_sleep_staging, analyzer, sample_raw_data):
         """Test fallback when YASA fails."""
         # Make YASA raise an error
