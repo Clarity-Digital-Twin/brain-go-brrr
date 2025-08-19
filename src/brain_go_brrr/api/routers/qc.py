@@ -3,18 +3,17 @@
 import base64
 import json
 import logging
-import os
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
-from brain_go_brrr.api.deps import get_qc_controller
+from brain_go_brrr.api.deps import CacheMode, CacheModeInject, get_qc_controller
 from brain_go_brrr.api.schemas import QCResponse
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
@@ -72,7 +71,7 @@ async def analyze_eeg(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
-    x_enable_cache: str | None = Header(default=None),
+    cache_mode: CacheModeInject = CacheMode.AUTO,
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -86,7 +85,7 @@ async def analyze_eeg(
         background_tasks: FastAPI background tasks (for cleanup)
         qc_controller: Quality control controller (injected via Depends)
         cache_client: Redis cache client (optional)
-        x_enable_cache: Header to control cache usage in tests
+        cache_mode: Cache behavior mode (auto/bypass/force)
 
     Returns:
         QCResponse with quality metrics and recommendations
@@ -99,10 +98,8 @@ async def analyze_eeg(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available (header-based opt-in for tests)
-    # In tests, bypass cache by default but allow opt-in via X-Enable-Cache header
-    testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
-    cache_enabled = x_enable_cache == "true" if testing else True
+    # Check cache if available (DI-based control)
+    cache_enabled = cache_mode != CacheMode.BYPASS
     if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "basic")
         cached_result = cache_client.get(cache_key)
@@ -174,7 +171,7 @@ async def analyze_eeg(
                 "timestamp": utc_now().isoformat(),
             }
 
-            # Cache the result if cache is available (header-based control)
+            # Cache the result if cache is available (DI-based control)
             if cache_client and cache_client.connected and cache_enabled:
                 cache_client.set(cache_key, response_data, ttl=3600)  # 1 hour cache
 
@@ -220,7 +217,7 @@ async def analyze_eeg_detailed(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
-    x_enable_cache: str | None = Header(default=None),
+    cache_mode: CacheModeInject = CacheMode.AUTO,
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
@@ -230,10 +227,8 @@ async def analyze_eeg_detailed(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available (header-based opt-in for tests)
-    # In tests, bypass cache by default but allow opt-in via X-Enable-Cache header
-    testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
-    cache_enabled = x_enable_cache == "true" if testing else True
+    # Check cache if available (DI-based control)
+    cache_enabled = cache_mode != CacheMode.BYPASS
     if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "detailed")
         cached_result = cache_client.get(cache_key)
