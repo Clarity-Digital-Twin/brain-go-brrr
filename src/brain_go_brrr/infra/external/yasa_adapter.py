@@ -9,18 +9,23 @@ import logging
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import mne
 import numpy as np
 import numpy.typing as npt
-import yasa
 
 from brain_go_brrr._typing import MNERaw
 
 # Filter sklearn FutureWarning from YASA
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 warnings.filterwarnings("ignore", message=".*Scikit-learn.*version.*", category=UserWarning)
+
+# Lazy import yasa to avoid hanging on module import
+if TYPE_CHECKING:
+    import yasa
+else:
+    yasa = None
 
 logger = logging.getLogger(__name__)
 
@@ -223,6 +228,11 @@ class YASASleepStager:
 
         # Run YASA sleep staging with robust fallback
         try:
+            # Lazy import yasa when actually needed
+            global yasa
+            if yasa is None:
+                import yasa
+            
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 sls = yasa.SleepStaging(

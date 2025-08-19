@@ -6,13 +6,18 @@ Implements all features from the reference implementation with production enhanc
 
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
-import yasa
 from scipy import signal
 from scipy.stats import kurtosis, skew
+
+# Lazy import yasa to avoid hanging
+if TYPE_CHECKING:
+    import yasa
+else:
+    yasa = None
 
 from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNERaw
