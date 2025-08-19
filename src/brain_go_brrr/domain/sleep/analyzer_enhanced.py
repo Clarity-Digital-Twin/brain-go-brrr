@@ -4,20 +4,37 @@ Based on YASA paper achieving 87.46% accuracy with flexible channel configuratio
 Implements all features from the reference implementation with production enhancements.
 """
 
+import importlib
 import logging
+import os
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 from scipy import signal
 from scipy.stats import kurtosis, skew
 
-# Lazy import yasa to avoid hanging
 if TYPE_CHECKING:
     import yasa
-else:
-    yasa = None
+
+# Lazy import mechanism for YASA
+_yasa: Optional[Any] = None
+_yasa_err: Optional[BaseException] = None
+
+def _ensure_yasa() -> Any:
+    """Lazy import YASA to avoid hanging on module import."""
+    global _yasa, _yasa_err
+    if os.getenv("BGBR_DISABLE_YASA") == "1":
+        raise RuntimeError("YASA disabled via BGBR_DISABLE_YASA=1")
+    if _yasa is None and _yasa_err is None:
+        try:
+            _yasa = importlib.import_module("yasa")
+        except BaseException as e:
+            _yasa_err = e
+    if _yasa_err:
+        raise _yasa_err
+    return _yasa
 
 from brain_go_brrr import mne_compat
 from brain_go_brrr._typing import MNERaw
@@ -138,12 +155,15 @@ class EnhancedSleepAnalyzer:
     def _validate_yasa_installation(self) -> None:
         """Ensure YASA is properly installed."""
         try:
-            import yasa
-
+            yasa = _ensure_yasa()
             self.yasa_version = yasa.__version__
             logger.info(f"YASA {self.yasa_version} initialized")
-        except ImportError as e:
-            raise ImportError("YASA required: pip install yasa") from e
+        except (ImportError, RuntimeError) as e:
+            if "BGBR_DISABLE_YASA" in str(e):
+                logger.info("YASA disabled via environment variable")
+                self.yasa_version = "disabled"
+            else:
+                raise ImportError("YASA required: pip install yasa") from e
 
     def find_best_channels(self, raw: MNERaw, channel_type: str = "eeg") -> str | None:
         """Find best available channel based on preferences.
@@ -264,6 +284,7 @@ class EnhancedSleepAnalyzer:
 
         try:
             # Create YASA SleepStaging object
+            yasa = _ensure_yasa()
             sls = yasa.SleepStaging(
                 raw, eeg_name=eeg_ch, eog_name=eog_ch, emg_name=emg_ch, metadata=metadata
             )
@@ -529,6 +550,7 @@ class EnhancedSleepAnalyzer:
             }
 
         # Convert to YASA format
+        yasa = _ensure_yasa()
         hypno_int = yasa.hypno_str_to_int(hypnogram)
 
         # Get YASA metrics - handle all-wake case

@@ -5,11 +5,13 @@ Integrates YASA sleep staging into our hierarchical pipeline.
 YASA includes pre-trained models and requires no additional weights.
 """
 
+import importlib
 import logging
+import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import mne
 import numpy as np
@@ -21,11 +23,27 @@ from brain_go_brrr._typing import MNERaw
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 warnings.filterwarnings("ignore", message=".*Scikit-learn.*version.*", category=UserWarning)
 
-# Lazy import yasa to avoid hanging on module import
 if TYPE_CHECKING:
     import yasa
-else:
-    yasa = None
+
+# Lazy import mechanism for YASA
+_yasa: Optional[Any] = None
+_yasa_err: Optional[BaseException] = None
+
+def _ensure_yasa() -> Any:
+    """Lazy import YASA to avoid hanging on module import."""
+    global _yasa, _yasa_err
+    if os.getenv("BGBR_DISABLE_YASA") == "1":
+        # Keep importable surface, but don't load YASA
+        raise RuntimeError("YASA disabled via BGBR_DISABLE_YASA=1")
+    if _yasa is None and _yasa_err is None:
+        try:
+            _yasa = importlib.import_module("yasa")
+        except BaseException as e:
+            _yasa_err = e
+    if _yasa_err:
+        raise _yasa_err
+    return _yasa
 
 logger = logging.getLogger(__name__)
 
@@ -228,10 +246,7 @@ class YASASleepStager:
 
         # Run YASA sleep staging with robust fallback
         try:
-            # Lazy import yasa when actually needed
-            global yasa
-            if yasa is None:
-                import yasa
+            yasa = _ensure_yasa()
             
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
