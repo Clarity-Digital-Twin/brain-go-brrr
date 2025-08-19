@@ -27,7 +27,7 @@ from brain_go_brrr.domain.exceptions import (
 )
 from brain_go_brrr.domain.sleep import SleepAnalyzer
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+# Import will be done in get_eegpt_model for backward compatibility
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 from brain_go_brrr.utils.time import utc_now
 
@@ -46,14 +46,16 @@ class SleepStageResponse(BaseModel):
 
 
 # Global instances for model and probe (would be dependency injected in production)
-_eegpt_model: EEGPTModel | None = None
+_eegpt_model: Any | None = None
 _sleep_probe: SleepStageProbe | None = None
 
 
-def get_eegpt_model() -> EEGPTModel:
+def get_eegpt_model() -> Any:
     """Get or initialize EEGPT model."""
     global _eegpt_model
     if _eegpt_model is None:
+        # Import here for backward compatibility
+        from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
         _eegpt_model = EEGPTModel()
     return _eegpt_model
 
