@@ -25,7 +25,7 @@ from sklearn.metrics import (
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
-from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 logger = logging.getLogger(__name__)
@@ -88,8 +88,12 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Initialize probe
         if probe is None:
-            probe = EEGPTTwoLayerProbe(
-                backbone_dim=768, n_input_channels=n_channels, n_classes=n_classes
+            # Pass the backbone to the probe to avoid needing checkpoint_path
+            probe = EEGPTProbe(
+                backbone=self.backbone,  # Use the already loaded backbone
+                architecture='two_layer',
+                n_input_channels=n_channels,
+                n_classes=n_classes
             )
         self.probe = probe
 
