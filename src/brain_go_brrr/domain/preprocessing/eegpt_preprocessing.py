@@ -7,6 +7,7 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
+import numpy.typing as npt
 
 from brain_go_brrr._typing import MNERaw
 
@@ -50,7 +51,7 @@ def preprocess_for_eegpt(
     highpass: float = 0.5,
     reference: str = "average",
     channels: list[str] | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """Preprocess raw EEG data for EEGPT input.
 
     Args:
@@ -110,8 +111,8 @@ def preprocess_for_eegpt(
 
 
 def extract_windows(
-    data: np.ndarray, window_duration: float = 4.0, sampling_rate: int = 256, overlap: float = 0.0
-) -> list[np.ndarray]:
+    data: npt.NDArray[np.float64], window_duration: float = 4.0, sampling_rate: int = 256, overlap: float = 0.0
+) -> list[npt.NDArray[np.float64]]:
     """Extract fixed-size windows from continuous EEG data.
 
     Args:
@@ -139,7 +140,7 @@ def extract_windows(
 
 
 def prepare_batch_for_eegpt(
-    windows: list[np.ndarray], n_channels: int = 20, device: str = "cpu"
+    windows: list[npt.NDArray[np.float64]], n_channels: int = 20, device: str = "cpu"
 ) -> "torch.Tensor":
     """Prepare a batch of windows for EEGPT input.
 
@@ -181,7 +182,7 @@ def prepare_batch_for_eegpt(
 
 
 def validate_eeg_input(
-    data: np.ndarray,
+    data: npt.NDArray[np.float64],
     expected_channels: int = 20,
     expected_samples: int = 1024,
     tolerance: float = 0.1,

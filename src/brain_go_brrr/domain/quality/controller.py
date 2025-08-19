@@ -109,12 +109,15 @@ class CleanQualityController:
             # For compatibility, try new API first, fall back to old if needed
             try:
                 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
-                model = create_normalized_eegpt(checkpoint_path=str(eegpt_model_path))
+
+                wrapper = create_normalized_eegpt(checkpoint_path=str(eegpt_model_path))
+                model = wrapper  # type: ignore[assignment]
                 self.model = model
             except Exception:
                 # If new API fails, try old API for backward compatibility with tests
                 try:
                     from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+
                     model = EEGPTModel(eegpt_model_path)  # type: ignore[assignment]
                     self.model = model
                 except Exception:

@@ -113,8 +113,9 @@ def stream(
     """Stream EDF file and extract features in real-time."""
     import json
 
+    import torch
     from brain_go_brrr.infra.data.edf_streaming import EDFStreamer
-    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+    from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
     console.print(f"[green]Starting EDF streaming from {edf_path}[/green]")
 
@@ -122,16 +123,31 @@ def stream(
         console.print(f"[red]Error: File not found: {edf_path}[/red]")
         raise typer.Exit(1)
 
-    # Initialize model
-    model = EEGPTModel(config={"device": "cpu"}, auto_load=False)
+    # Create CLI wrapper for backward compatibility
+    class CLIModelWrapper:
+        """Wrapper to maintain CLI interface compatibility."""
+        
+        def __init__(self, device: str = "cpu"):
+            self.device = device
+            self.encoder = create_normalized_eegpt(checkpoint_path=None)
+            if self.encoder is not None:
+                self.encoder = self.encoder.to(device)
+            self.is_loaded = True
+        
+        def extract_features(self, data_window, channel_names):
+            """Extract features with old API signature."""
+            # Convert numpy to tensor
+            data_tensor = torch.from_numpy(data_window).unsqueeze(0).float()
+            # Extract features (encoder returns features directly)
+            if hasattr(self.encoder, 'extract_features'):
+                features_tensor = self.encoder.extract_features(data_tensor)
+            else:
+                features_tensor = self.encoder(data_tensor)
+            # Convert back to numpy
+            return features_tensor.squeeze(0).detach().cpu().numpy()
 
-    # Use mock model for now
-    from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
-
-    model.encoder = create_normalized_eegpt(checkpoint_path=None)
-    if model.encoder is not None:
-        model.encoder.to(model.device)
-    model.is_loaded = True
+    # Initialize model wrapper
+    model = CLIModelWrapper(device="cpu")
 
     # Stream and process
     try:
@@ -147,7 +163,7 @@ def stream(
             for window_count, (data_window, start_time) in enumerate(
                 streamer.process_in_windows(window_size, overlap), 1
             ):
-                # Extract features
+                # Extract features (wrapper handles compatibility)
                 features = model.extract_features(data_window, ch_names)
 
                 # Output result

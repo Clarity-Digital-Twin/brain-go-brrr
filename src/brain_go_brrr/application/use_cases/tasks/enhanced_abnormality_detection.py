@@ -93,7 +93,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                 backbone=self.backbone,  # Use the already loaded backbone
                 architecture='two_layer',
                 n_input_channels=n_channels,
-                n_classes=n_classes
+                n_classes=n_classes,
             )
         self.probe = probe
 

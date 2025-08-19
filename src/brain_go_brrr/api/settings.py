@@ -27,6 +27,7 @@ class APISettings(BaseSettings):
 
     class Config:
         """Pydantic config."""
+
         env_prefix = "BGBR_"  # All env vars start with BGBR_
         case_sensitive = False
 
