@@ -144,7 +144,7 @@ class TestEEGPTRouterClean:
         """Test get_eegpt_model returns singleton instance."""
         # Since EEGPTModel is imported inside get_eegpt_model now,
         # we need to patch it at the source
-        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_cls:
+        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel") as mock_cls:
             mock_instance = MagicMock()
             mock_cls.return_value = mock_instance
 

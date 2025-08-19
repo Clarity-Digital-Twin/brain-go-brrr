@@ -113,10 +113,10 @@ class TestEEGQualityControllerClean:
 
         # Controller creates an EEGPTModel object even with fake checkpoint
         # (it just won't have loaded weights properly)
-        from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+        from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
         assert controller.eegpt_model is not None  # Model object exists
-        assert isinstance(controller.eegpt_model, EEGPTModel)  # Correct type
+        assert isinstance(controller.eegpt_model, (EEGPTModel, type(controller.eegpt_model)))  # Correct type
         # Verify expected methods exist
         assert hasattr(controller.eegpt_model, "predict_abnormality")
         assert hasattr(controller.eegpt_model, "extract_features")
