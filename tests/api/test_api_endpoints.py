@@ -151,7 +151,7 @@ class TestAPIEndpoints:
     def test_analyze_eeg_controller_error(self, client, sample_edf_file, mock_qc_controller):
         """Test handling of controller errors."""
         # Import the expected exception type
-        from brain_go_brrr.core.exceptions import QualityCheckError
+        from brain_go_brrr.domain.exceptions import QualityCheckError
 
         # Make controller raise a QualityCheckError which will be caught and handled
         mock_qc_controller.run_full_qc_pipeline.side_effect = QualityCheckError("Processing failed")

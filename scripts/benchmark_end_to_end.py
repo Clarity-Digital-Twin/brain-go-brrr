@@ -11,7 +11,7 @@ from pathlib import Path
 import mne
 import numpy as np
 
-from brain_go_brrr.core.config import ModelConfig
+from brain_go_brrr.application.config import ModelConfig
 from brain_go_brrr.models.eegpt_model import EEGPTModel
 
 

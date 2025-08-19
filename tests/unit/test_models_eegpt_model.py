@@ -48,7 +48,7 @@ class TestEEGPTModel:
         """Test model initialization without loading weights."""
         from pathlib import Path
 
-        from brain_go_brrr.core.config import ModelConfig
+        from brain_go_brrr.application.config import ModelConfig
 
         # Create config with non-existent model path so it doesn't try to load
         config = ModelConfig()
@@ -65,7 +65,7 @@ class TestEEGPTModel:
         """Test that extract_features returns correct shape."""
         from pathlib import Path
 
-        from brain_go_brrr.core.config import ModelConfig
+        from brain_go_brrr.application.config import ModelConfig
 
         config = ModelConfig()
         config.model_path = Path("/tmp/nonexistent_model.ckpt")

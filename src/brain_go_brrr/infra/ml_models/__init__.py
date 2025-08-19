@@ -3,7 +3,7 @@
 Contains model implementations for EEG analysis.
 """
 
-from .eegpt_model import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
+from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
 from .linear_probe import LinearProbeHead, TwoLayerProbe
 
 __all__ = [

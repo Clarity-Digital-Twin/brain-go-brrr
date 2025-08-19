@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import torch
 
-from brain_go_brrr.core.abnormal import AbnormalityDetector
+from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
 
 class TestImprovedMocking:

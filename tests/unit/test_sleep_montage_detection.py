@@ -8,8 +8,8 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.exceptions import UnsupportedMontageError
-from brain_go_brrr.core.sleep.analyzer import SleepAnalyzer
+from brain_go_brrr.domain.exceptions import UnsupportedMontageError
+from brain_go_brrr.domain.sleep.analyzer import SleepAnalyzer
 
 
 class TestSleepEDFMontageDetection:

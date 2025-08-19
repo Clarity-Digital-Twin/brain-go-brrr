@@ -25,7 +25,7 @@ from tests.fakes import (
 
 def test_parallel_pipeline_processes_data():
     """Test that parallel pipeline actually processes EEG data."""
-    from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.domain.pipeline.parallel import ParallelEEGPipeline
 
     # Arrange: Create pipeline with fake dependencies
     fake_extractor = FakeFeatureExtractor(feature_dim=128)
@@ -168,7 +168,7 @@ def test_sleep_analyzer_analyzes_sleep():
 
 def test_abnormal_detector_detects_abnormalities():
     """Test abnormality detector produces valid predictions."""
-    from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
+    from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
     # Arrange: Use fake classifier to avoid loading weights
     fake_path = Path("/fake/model.ckpt")
@@ -435,7 +435,7 @@ def test_edf_validator():
 
 def test_model_config():
     """Test model configuration."""
-    from brain_go_brrr.core.config import ModelConfig
+    from brain_go_brrr.application.config import ModelConfig
 
     # Test default config
     config = ModelConfig()
@@ -488,7 +488,7 @@ def test_api_422_validation_error():
 
 def test_pipeline_error_path_with_traceback():
     """Test pipeline error handling includes traceback in result."""
-    from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.domain.pipeline.parallel import ParallelEEGPipeline
 
     # Create pipeline with broken extractor
     class BrokenExtractor:

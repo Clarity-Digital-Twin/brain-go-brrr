@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.quality.controller import EEGQualityController
+from brain_go_brrr.domain.quality.controller import EEGQualityController
 
 
 class TestEEGQualityControllerClean:

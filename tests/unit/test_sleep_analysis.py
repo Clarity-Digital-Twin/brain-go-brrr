@@ -15,7 +15,7 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.core.sleep import SleepAnalyzer
+from brain_go_brrr.domain.sleep import SleepAnalyzer
 
 # Gracefully handle missing dependencies
 yasa = pytest.importorskip(

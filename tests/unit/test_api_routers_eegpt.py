@@ -316,7 +316,7 @@ class TestEEGPTRouterClean:
     @patch("brain_go_brrr.api.routers.eegpt.load_edf_safe")
     def test_analyze_with_probe_edf_load_error(self, mock_load_edf, valid_edf_bytes, test_client):
         """Test analyze_with_probe handles EDF load errors."""
-        from brain_go_brrr.core.exceptions import EdfLoadError
+        from brain_go_brrr.domain.exceptions import EdfLoadError
 
         mock_load_edf.side_effect = EdfLoadError("Corrupted EDF")
 
