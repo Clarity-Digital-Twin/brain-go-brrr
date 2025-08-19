@@ -79,7 +79,7 @@ class EEGPTTwoLayerProbe(nn.Module):
             "EEGPTTwoLayerProbe is deprecated and will be removed in v2.0.0. "
             "Use EEGPTProbe(architecture='two_layer') from brain_go_brrr.infra.ml_models.eegpt_probe_unified instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__()
 

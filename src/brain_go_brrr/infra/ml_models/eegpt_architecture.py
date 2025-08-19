@@ -434,7 +434,9 @@ class EEGTransformer(nn.Module):
         chan_ids = [self.channel_index.get(name, 0) for name in channel_names]
         return torch.tensor(chan_ids, dtype=torch.long)
 
-    def forward(self, x: Tensor, chan_ids: Tensor | None = None, return_all_temporal: bool = False) -> Tensor:
+    def forward(
+        self, x: Tensor, chan_ids: Tensor | None = None, return_all_temporal: bool = False
+    ) -> Tensor:
         """Forward pass through EEG Transformer encoder.
 
         Args:
@@ -499,7 +501,7 @@ class EEGTransformer(nn.Module):
                 x = block(x)
 
             # Extract only the summary tokens
-            x = x[:, -self.embed_num:, :]  # (B*N_patches, 4, embed_dim)
+            x = x[:, -self.embed_num :, :]  # (B*N_patches, 4, embed_dim)
 
             # Final normalization
             x = self.norm(x)

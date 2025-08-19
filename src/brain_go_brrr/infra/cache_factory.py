@@ -18,12 +18,13 @@ warnings.warn(
     "cache_factory is deprecated and will be removed in v2.0.0. "
     "Use brain_go_brrr.infra.cache directly.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 
 class CachePort(Protocol):
     """Cache protocol for compatibility."""
+
     def get(self, key: str) -> Any | None: ...
     def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
     def delete(self, key: str) -> bool: ...

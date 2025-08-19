@@ -105,7 +105,7 @@ class EEGPTModel:
             "Use create_normalized_eegpt() from brain_go_brrr.infra.ml_models.eegpt_wrapper directly. "
             "For preprocessing, use functions from brain_go_brrr.domain.preprocessing.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         # Store original config for backward compatibility
