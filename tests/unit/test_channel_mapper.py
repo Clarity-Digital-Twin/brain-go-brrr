@@ -13,7 +13,7 @@ class TestChannelMapper:
         old_channels = ["FP1", "FP2", "T3", "T4", "T5", "T6", "O1", "O2"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelMapper
+        from brain_go_brrr.domain.channels import ChannelMapper
 
         mapper = ChannelMapper()
         modern_channels = mapper.standardize_channel_names(old_channels)
@@ -27,7 +27,7 @@ class TestChannelMapper:
         mixed_case = ["fp1", "FP2", "Fz", "FZ", "cz", "CZ"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelMapper
+        from brain_go_brrr.domain.channels import ChannelMapper
 
         mapper = ChannelMapper()
         normalized = mapper.standardize_channel_names(mixed_case)
@@ -41,7 +41,7 @@ class TestChannelMapper:
         modern_channels = ["Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelMapper
+        from brain_go_brrr.domain.channels import ChannelMapper
 
         mapper = ChannelMapper()
         result = mapper.standardize_channel_names(modern_channels)
@@ -55,7 +55,7 @@ class TestChannelMapper:
         empty_channels = []
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelMapper
+        from brain_go_brrr.domain.channels import ChannelMapper
 
         mapper = ChannelMapper()
         result = mapper.standardize_channel_names(empty_channels)
@@ -73,7 +73,7 @@ class TestChannelValidator:
         insufficient_channels = ["Fp1", "Fp2", "F7", "F3", "Fz"]  # Only 5
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelValidator
+        from brain_go_brrr.domain.channels import ChannelValidator
 
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(insufficient_channels)
@@ -106,7 +106,7 @@ class TestChannelValidator:
         ]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelValidator
+        from brain_go_brrr.domain.channels import ChannelValidator
 
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(partial_channels)
@@ -142,7 +142,7 @@ class TestChannelValidator:
         ]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelValidator
+        from brain_go_brrr.domain.channels import ChannelValidator
 
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(complete_channels)
@@ -181,7 +181,7 @@ class TestChannelValidator:
         ]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelValidator
+        from brain_go_brrr.domain.channels import ChannelValidator
 
         validator = ChannelValidator()
         is_valid, missing = validator.validate_channels(channels_with_extras)
@@ -196,7 +196,7 @@ class TestChannelValidator:
         channels = ["ECG", "Fp1", "Fp2", "EMG", "F7", "F3"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelValidator
+        from brain_go_brrr.domain.channels import ChannelValidator
 
         validator = ChannelValidator()
         indices = validator.get_standard_channel_indices(channels)
@@ -214,7 +214,7 @@ class TestChannelSelector:
         input_channels = ["EOG", "O2", "Fp1", "C3", "F7", "Pz", "EMG", "T8", "F3"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelSelector
+        from brain_go_brrr.domain.channels import ChannelSelector
 
         selector = ChannelSelector()
         selected, indices = selector.select_standard_channels(input_channels)
@@ -229,7 +229,7 @@ class TestChannelSelector:
         non_standard = ["ECG", "EOG1", "EOG2", "EMG", "X1", "X2"]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelSelector
+        from brain_go_brrr.domain.channels import ChannelSelector
 
         selector = ChannelSelector()
         selected, indices = selector.select_standard_channels(non_standard)
@@ -270,7 +270,7 @@ class TestChannelIntegration:
         ]
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelProcessor
+        from brain_go_brrr.domain.channels import ChannelProcessor
 
         processor = ChannelProcessor()
         result = processor.process_channels(raw_channels)

@@ -40,7 +40,7 @@ class TestDataPipelineIntegration:
         )
 
         # When - process through pipeline
-        from brain_go_brrr.domain.preprocessing.channels import ChannelProcessor
+        from brain_go_brrr.domain.channels import ChannelProcessor
         from brain_go_brrr.domain.preprocessing.window_extractor import WindowExtractor
         from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
@@ -82,7 +82,7 @@ class TestDataPipelineIntegration:
         )
 
         # When
-        from brain_go_brrr.domain.preprocessing.channels import ChannelProcessor
+        from brain_go_brrr.domain.channels import ChannelProcessor
         from brain_go_brrr.infra.data.edf_validator import EDFValidator
 
         # Validate EDF structure
@@ -232,7 +232,7 @@ class TestDataPipelineIntegration:
         ]
 
         # When - process batch
-        from brain_go_brrr.domain.preprocessing.channels import ChannelProcessor
+        from brain_go_brrr.domain.channels import ChannelProcessor
         from brain_go_brrr.domain.preprocessing.window_extractor import BatchWindowExtractor
         from brain_go_brrr.infra.data.edf_validator import EDFValidator
 

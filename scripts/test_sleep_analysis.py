@@ -13,7 +13,7 @@ import numpy as np
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from brain_go_brrr.application.logging import get_logger
+from brain_go_brrr.infra.logger import get_logger
 from brain_go_brrr.domain.sleep import SleepAnalyzer
 
 logger = get_logger(__name__)
