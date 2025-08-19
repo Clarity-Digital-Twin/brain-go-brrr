@@ -345,7 +345,7 @@ def mock_eeg_data():
 @pytest.fixture
 def mock_qc_controller():
     """Mock QC controller with proper spec and expected behavior."""
-    from brain_go_brrr.core.quality import EEGQualityController
+    from brain_go_brrr.domain.quality.controller import EEGQualityController
 
     controller = MagicMock(spec=EEGQualityController)
     controller.eegpt_model = MagicMock()  # Model is loaded
@@ -438,7 +438,7 @@ def patched_qc_endpoint(mock_qc_controller):
 @pytest.fixture
 def mock_abnormality_detector():
     """Mock abnormality detector with proper spec."""
-    from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
+    from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
     detector = MagicMock(spec=AbnormalityDetector)
     detector.detect_abnormality = MagicMock(

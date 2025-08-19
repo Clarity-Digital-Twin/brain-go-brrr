@@ -5,6 +5,7 @@ while using the new EEGPTWrapper internally. This allows gradual migration
 without breaking existing code.
 """
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,18 @@ import torch
 
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
+
+
+@dataclass
+class EEGPTConfig:
+    """Configuration for EEGPT model (compatibility class)."""
+    sampling_rate: int = 256
+    window_duration: float = 4.0
+    window_samples: int = 1024
+    patch_size: int = 64
+    n_channels: int = 20
+    device: str = "auto"
+    batch_size: int = 32
 
 
 class EEGPTModel:
@@ -157,3 +170,42 @@ class EEGPTModel:
         """Clean up resources (compatibility method)."""
         if self.device.type == "cuda":
             torch.cuda.empty_cache()
+
+
+# Compatibility functions
+def preprocess_for_eegpt(
+    raw: MNERaw,
+    sampling_rate: int = 256,
+    window_duration: float = 4.0,
+    bandpass: tuple[float, float] = (0.5, 50.0),
+    notch: float = 50.0,
+) -> npt.NDArray[np.float64]:
+    """Preprocess raw EEG for EEGPT (compatibility function)."""
+    # Resample if needed
+    if raw.info["sfreq"] != sampling_rate:
+        raw = raw.copy().resample(sampling_rate)
+    
+    # Apply filters
+    raw = raw.copy().filter(l_freq=bandpass[0], h_freq=bandpass[1])
+    raw = raw.copy().notch_filter(freqs=notch)
+    
+    return raw.get_data()
+
+
+def extract_features_from_raw(
+    raw: MNERaw,
+    model: EEGPTModel | None = None,
+    sampling_rate: int = 256,
+    window_duration: float = 4.0,
+) -> npt.NDArray[np.float32]:
+    """Extract EEGPT features from raw EEG (compatibility function)."""
+    if model is None:
+        model = EEGPTModel()
+    
+    # Preprocess
+    data = preprocess_for_eegpt(raw, sampling_rate, window_duration)
+    
+    # Extract features
+    features = model.extract_features(data, raw.ch_names)
+    
+    return features

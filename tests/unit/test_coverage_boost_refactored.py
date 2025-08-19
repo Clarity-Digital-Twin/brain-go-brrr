@@ -450,7 +450,7 @@ def test_model_config():
 
 def test_eegpt_config():
     """Test EEGPT configuration."""
-    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTConfig
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTConfig
 
     # Test default config
     config = EEGPTConfig()
