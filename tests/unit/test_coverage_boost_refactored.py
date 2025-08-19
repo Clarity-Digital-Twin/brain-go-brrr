@@ -336,15 +336,15 @@ def test_cached_dataset_loads_from_cache():
 def test_two_layer_probe_forward_pass():
     """Test two-layer probe produces correct outputs."""
     # Two layer probe is now part of unified probe
-    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
-
     # Arrange - provide a dummy checkpoint path to satisfy initialization
     from pathlib import Path
+
+    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
     with patch('brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt') as mock_create:
         # Mock the backbone creation
         from tests.fakes import FakeEEGPTBackbone
         mock_create.return_value = FakeEEGPTBackbone(feature_dim=2048)
-        
+
         probe = EEGPTProbe(
             architecture='two_layer',
             checkpoint_path=Path('/fake/model.ckpt'),

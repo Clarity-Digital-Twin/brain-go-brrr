@@ -28,7 +28,7 @@ class EEGPTConfig:
     n_channels: int = 20
     device: str = "auto"
     batch_size: int = 32
-    
+
     def __post_init__(self) -> None:
         """Compute window_samples based on duration and sampling rate."""
         self.window_samples = int(self.window_duration * self.sampling_rate)
@@ -129,7 +129,7 @@ class EEGPTModel:
             features = features.mean(axis=1)
 
         # Don't squeeze batch dimension - tests expect 2D
-        return features.astype(np.float64)  # type: ignore[no-any-return]
+        return features.astype(np.float32)  # type: ignore[no-any-return]
 
     def extract_windows(
         self,
@@ -173,7 +173,7 @@ class EEGPTModel:
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        return features.astype(np.float64)  # type: ignore[no-any-return]
+        return features.astype(np.float32)  # type: ignore[no-any-return]
 
     def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:  # noqa: ARG002
         """Predict abnormality (stub for compatibility)."""
@@ -207,10 +207,10 @@ def preprocess_for_eegpt(
     """
     # Handle both parameter names for sampling rate
     target_rate = target_sfreq if target_sfreq is not None else sampling_rate
-    
+
     # Make a copy to avoid modifying the original
     raw = raw.copy()
-    
+
     # Resample if needed
     if raw.info["sfreq"] != target_rate:
         raw = raw.resample(target_rate)
@@ -234,7 +234,7 @@ def extract_features_from_raw(
 
     # Preprocess (returns MNE Raw now)
     processed = preprocess_for_eegpt(raw, sampling_rate, window_duration)
-    
+
     # Get data array from preprocessed Raw
     data = processed.get_data()
 

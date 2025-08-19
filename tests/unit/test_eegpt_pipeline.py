@@ -75,7 +75,7 @@ class TestEEGPTPreprocessing:
         processed = preprocess_for_eegpt(raw)
 
         # preprocess_for_eegpt returns ndarray
-        assert processed.shape[1] == raw.n_times
+        assert processed.n_times == raw.n_times
 
     def test_preprocess_preserves_data_continuity(self, sample_raw):
         """Test that preprocessing doesn't break data continuity."""
@@ -85,7 +85,9 @@ class TestEEGPTPreprocessing:
         processed = preprocess_for_eegpt(sample_raw)
 
         # The spike should still be visible (though at different location due to resampling)
-        assert np.max(processed[0]) > 500
+        # Get data from the Raw object
+        data = processed.get_data()
+        assert np.max(data[0]) > 500
 
     def test_preprocess_handles_bad_channels(self, sample_raw):
         """Test preprocessing with bad channels marked."""
@@ -96,9 +98,9 @@ class TestEEGPTPreprocessing:
 
         # preprocess_for_eegpt returns ndarray, channels are handled internally
         # Just check shape is reasonable
-        assert processed.shape[0] <= n_channels_before
+        assert len(processed.ch_names) <= n_channels_before
         # preprocess_for_eegpt returns ndarray, just check shape is reasonable
-        assert processed.shape[0] <= n_channels_before
+        assert len(processed.ch_names) <= n_channels_before
         assert processed.info["sfreq"] == 256
 
 
