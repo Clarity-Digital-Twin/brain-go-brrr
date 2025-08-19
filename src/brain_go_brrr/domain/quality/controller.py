@@ -117,6 +117,23 @@ class CleanQualityController:
 
         # Store model reference for backward compatibility
         self.eegpt_model = model
+    
+    @property
+    def eegpt_model(self):
+        """Back-compat property for tests expecting a .eegpt_model attribute."""
+        # Return the model if we have one
+        if hasattr(self, '_eegpt_model'):
+            return self._eegpt_model
+        # Otherwise return the model from the model attribute
+        return self.model
+    
+    @eegpt_model.setter
+    def eegpt_model(self, value):
+        """Setter for backward compatibility."""
+        self._eegpt_model = value
+        # Also update model if it's being set
+        if value is not None:
+            self.model = value
 
     def run_quality_check(self, raw: MNERaw) -> QualityMetrics:
         """Run comprehensive quality check on EEG data.

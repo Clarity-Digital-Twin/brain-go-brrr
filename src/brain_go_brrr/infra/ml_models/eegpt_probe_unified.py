@@ -4,6 +4,7 @@ This replaces the multiple probe variants with a single configurable implementat
 Supports both linear and two-layer architectures, with optional robust mode.
 """
 
+import inspect
 import logging
 from pathlib import Path
 
@@ -117,6 +118,21 @@ class EEGPTProbe(nn.Module):
         self.n_classes = n_classes
         self.hidden_dim = hidden_dim
         self.dropout = dropout
+    
+    def _accepts_param(self, param_name: str) -> bool:
+        """Check if backbone's extract_features accepts a parameter.
+        
+        Args:
+            param_name: Name of the parameter to check
+            
+        Returns:
+            True if the method accepts the parameter
+        """
+        try:
+            method = self.backbone.extract_features
+            return param_name in inspect.signature(method).parameters
+        except Exception:
+            return False
 
     def forward(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:
         """Forward pass through probe.
@@ -145,7 +161,12 @@ class EEGPTProbe(nn.Module):
 
         # Extract features from backbone
         with torch.no_grad() if self.training else torch.enable_grad():
-            features = self.backbone.extract_features(x, return_all_temporal=return_all_temporal)
+            # Check if backbone accepts return_all_temporal parameter
+            if self._accepts_param('return_all_temporal'):
+                features = self.backbone.extract_features(x, return_all_temporal=return_all_temporal)
+            else:
+                # Fallback for older backbones
+                features = self.backbone.extract_features(x)
 
         # Handle different feature shapes
         if return_all_temporal:

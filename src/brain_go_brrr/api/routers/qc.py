@@ -170,8 +170,8 @@ async def analyze_eeg(
                 "timestamp": utc_now().isoformat(),
             }
 
-            # Cache the result if cache is available
-            if cache_client and cache_client.connected:
+            # Cache the result if cache is available (disable when running tests)
+            if cache_client and cache_client.connected and not testing:
                 cache_client.set(cache_key, response_data, expiry=3600)  # 1 hour cache
 
             return QCResponse(**response_data)
@@ -225,8 +225,9 @@ async def analyze_eeg_detailed(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available
-    if cache_client and cache_client.connected:
+    # Check cache if available (disable when running tests to avoid state bleed between cases)
+    testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
+    if cache_client and cache_client.connected and not testing:
         cache_key = cache_client.generate_cache_key(content, "detailed")
         cached_result = cache_client.get(cache_key)
 
@@ -314,8 +315,8 @@ async def analyze_eeg_detailed(
                 "report": report_base64,
             }
 
-            # Cache the result
-            if cache_client and cache_client.connected:
+            # Cache the result (disable when running tests)
+            if cache_client and cache_client.connected and not testing:
                 cache_client.set(cache_key, detailed_response, ttl=3600)
 
             # Return with custom encoder to handle numpy types
