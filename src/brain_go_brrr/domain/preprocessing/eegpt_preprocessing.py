@@ -111,7 +111,10 @@ def preprocess_for_eegpt(
 
 
 def extract_windows(
-    data: npt.NDArray[np.float64], window_duration: float = 4.0, sampling_rate: int = 256, overlap: float = 0.0
+    data: npt.NDArray[np.float64],
+    window_duration: float = 4.0,
+    sampling_rate: int = 256,
+    overlap: float = 0.0,
 ) -> list[npt.NDArray[np.float64]]:
     """Extract fixed-size windows from continuous EEG data.
 

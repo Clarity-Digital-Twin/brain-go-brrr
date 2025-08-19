@@ -20,6 +20,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 @dataclass
 class EEGPTConfig:
     """Configuration for EEGPT model (compatibility class)."""
+
     sampling_rate: int = 256
     window_duration: float = 4.0
     window_samples: int = 1024

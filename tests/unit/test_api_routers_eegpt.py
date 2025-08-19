@@ -150,6 +150,7 @@ class TestEEGPTRouterClean:
 
             # Reset global state
             import brain_go_brrr.api.routers.eegpt as eegpt_module
+
             eegpt_module._eegpt_model = None
 
             # First call creates instance
