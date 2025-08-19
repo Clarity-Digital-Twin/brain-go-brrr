@@ -136,15 +136,15 @@ def test_linear_probe_produces_predictions():
         n_classes=2
     )
 
-        # Act: Forward pass with batch of EEG windows
-        x = torch.randn(8, 20, 1024)  # batch_size=8, channels=20, samples=1024
-        output = probe(x)
+    # Act: Forward pass with batch of EEG windows
+    x = torch.randn(8, 20, 1024)  # batch_size=8, channels=20, samples=1024
+    output = probe(x)
 
-        # Assert: Output shape matches expected classes
-        assert output.shape == (8, 2)
-        # Probabilities should be valid
-        probs = torch.softmax(output, dim=-1)
-        assert torch.allclose(probs.sum(dim=-1), torch.ones(8), atol=1e-5)
+    # Assert: Output shape matches expected classes
+    assert output.shape == (8, 2)
+    # Probabilities should be valid
+    probs = torch.softmax(output, dim=-1)
+    assert torch.allclose(probs.sum(dim=-1), torch.ones(8), atol=1e-5)
 
 
 def test_sleep_analyzer_analyzes_sleep():
