@@ -434,7 +434,9 @@ class EEGTransformer(nn.Module):
         chan_ids = [self.channel_index.get(name, 0) for name in channel_names]
         return torch.tensor(chan_ids, dtype=torch.long)
 
-    def forward(self, x: Tensor, chan_ids: Tensor | None = None) -> Tensor:
+    def forward(
+        self, x: Tensor, chan_ids: Tensor | None = None, return_all_temporal: bool = False
+    ) -> Tensor:
         """Forward pass through EEG Transformer encoder.
 
         Args:
@@ -443,9 +445,13 @@ class EEGTransformer(nn.Module):
                C = number of channels
                T = time steps (e.g., 1024 for 4 seconds at 256 Hz)
             chan_ids: Channel IDs for positional embedding (optional)
+            return_all_temporal: If True, return features for all temporal patches
+                                (B, N_temporal, embed_num, embed_dim)
+                                If False, return only final summary tokens (B, embed_num, embed_dim)
 
         Returns:
-            Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=False: Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
         # Input shape: (B, C, T)
         batch_size, n_channels, time_steps = x.shape
@@ -481,26 +487,51 @@ class EEGTransformer(nn.Module):
         )  # (1, 1, num_channels, embed_dim)
         x = x + chan_embed  # Broadcast to (batch_size, num_patches, num_channels, embed_dim)
 
-        # Reshape to sequence format for transformer
-        x = x.reshape(
-            batch_size, num_patches * num_channels, embed_dim
-        )  # (batch_size, num_patches*num_channels, embed_dim)
+        if return_all_temporal:
+            # Process each temporal patch separately to maintain temporal dimension
+            # Reshape to (batch_size * num_patches, num_channels, embed_dim)
+            x = x.reshape(batch_size * num_patches, num_channels, embed_dim)
 
-        # Concatenate summary tokens
-        summary_tokens = self.summary_token.repeat(batch_size, 1, 1)
-        x = torch.cat([x, summary_tokens], dim=1)  # Add summary tokens at the end
+            # Add summary tokens for each temporal patch
+            summary_tokens = self.summary_token.repeat(batch_size * num_patches, 1, 1)
+            x = torch.cat([x, summary_tokens], dim=1)  # (B*N_patches, C+4, embed_dim)
 
-        # Apply transformer blocks
-        for block in self.blocks:
-            x = block(x)
+            # Apply transformer blocks
+            for block in self.blocks:
+                x = block(x)
 
-        # Extract only the summary tokens from the output
-        x = x[:, -self.embed_num :, :]
+            # Extract only the summary tokens
+            x = x[:, -self.embed_num :, :]  # (B*N_patches, 4, embed_dim)
 
-        # Final normalization
-        x = self.norm(x)
+            # Final normalization
+            x = self.norm(x)
 
-        return x
+            # Reshape back to include temporal dimension
+            x = x.reshape(batch_size, num_patches, self.embed_num, embed_dim)
+            # Return shape: (B, N_temporal, 4, embed_dim)
+            return x
+        else:
+            # Original behavior: process all patches together
+            # Reshape to sequence format for transformer
+            x = x.reshape(
+                batch_size, num_patches * num_channels, embed_dim
+            )  # (batch_size, num_patches*num_channels, embed_dim)
+
+            # Concatenate summary tokens
+            summary_tokens = self.summary_token.repeat(batch_size, 1, 1)
+            x = torch.cat([x, summary_tokens], dim=1)  # Add summary tokens at the end
+
+            # Apply transformer blocks
+            for block in self.blocks:
+                x = block(x)
+
+            # Extract only the summary tokens from the output
+            x = x[:, -self.embed_num :, :]
+
+            # Final normalization
+            x = self.norm(x)
+
+            return x
 
 
 def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEGTransformer:

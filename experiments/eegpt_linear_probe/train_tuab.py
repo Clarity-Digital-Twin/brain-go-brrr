@@ -27,7 +27,7 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 # Import custom dataset and collate
 sys.path.insert(0, str(Path(__file__).parent))
 from custom_collate_fixed import collate_eeg_batch_fixed
-from tuab_mmap_dataset import TUABMemoryMappedDataset
+from tuab_dataset import TUABMemoryMappedDataset
 
 # Configure logging
 logging.basicConfig(
@@ -43,7 +43,7 @@ class LinearProbe(nn.Module):
         super().__init__()
 
         # Channel adapter (1x1 conv)
-        if config["probe"]["use_channel_adapter"]:
+        if config["probe"].get("use_channel_adapter", False):
             self.channel_adapter = nn.Conv1d(
                 config["probe"]["channel_adapter_in"],
                 config["probe"]["channel_adapter_out"],
@@ -52,9 +52,9 @@ class LinearProbe(nn.Module):
         else:
             self.channel_adapter = None
 
-        # Two-layer probe
+        # Two-layer probe using LazyLinear to infer input dimension
         self.probe = nn.Sequential(
-            nn.Linear(config["probe"]["input_dim"], config["probe"]["hidden_dim"]),
+            nn.LazyLinear(config["probe"]["hidden_dim"]),
             nn.ReLU(),
             nn.Dropout(config["probe"]["dropout"]),
             nn.Linear(config["probe"]["hidden_dim"], config["probe"]["n_classes"]),
@@ -62,9 +62,11 @@ class LinearProbe(nn.Module):
 
     def forward(self, features):
         """Forward pass through probe."""
-        # features: (batch_size, n_summary_tokens, embed_dim)
-        # Average pool over summary tokens
-        x = features.mean(dim=1)  # (batch_size, embed_dim)
+        # features: (batch_size, n_temporal, n_summary_tokens, embed_dim)
+        # For TUAB with 4s windows: (B, 16, 4, 512)
+        # Flatten all features: 16 * 4 * 512 = 32,768 features
+        batch_size = features.shape[0]
+        x = features.reshape(batch_size, -1)  # Flatten to (batch_size, 32768)
         return self.probe(x)
 
 
@@ -136,7 +138,7 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config):
+def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0):
     """Train for one epoch."""
     model.eval()  # Backbone stays frozen
     probe.train()
@@ -150,9 +152,16 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
         data = data.to(device)
         labels = labels.to(device)
 
-        # Forward through frozen backbone
+        # Forward through frozen backbone with temporal features
         with torch.no_grad():
-            features = model(data)
+            features = model.extract_features(data, return_all_temporal=True)
+            # Verify patch count matches expected
+            n_patches = features.shape[1]
+            expected_patches = data.shape[-1] // 64
+            assert n_patches == expected_patches, f"Patch count mismatch: got {n_patches}, expected {expected_patches} from {data.shape[-1]} samples"
+            # Log shape on first batch for verification
+            if batch_idx == 0 and epoch == 0:
+                logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
 
         # Forward through probe
         logits = probe(features)
@@ -206,12 +215,19 @@ def validate(model, probe, val_loader, device):
     all_labels = []
 
     with torch.no_grad():
-        for data, labels in tqdm(val_loader, desc="Validation"):
+        for batch_idx, (data, labels) in enumerate(tqdm(val_loader, desc="Validation")):
             data = data.to(device)
             labels = labels.to(device)
 
-            # Forward
-            features = model(data)
+            # Forward with temporal features
+            features = model.extract_features(data, return_all_temporal=True)
+            # Verify patch count
+            n_patches = features.shape[1]
+            expected_patches = data.shape[-1] // 64
+            assert n_patches == expected_patches, f"Val patch mismatch: {n_patches} != {expected_patches}"
+            # Log shape on first validation batch
+            if batch_idx == 0:
+                logger.debug(f"Val features shape: {features.shape}")
             logits = probe(features)
             loss = F.cross_entropy(logits, labels)
 
@@ -333,7 +349,7 @@ def main():
 
         # Train
         train_metrics = train_epoch(
-            backbone, probe, train_loader, optimizer, scheduler, device, config
+            backbone, probe, train_loader, optimizer, scheduler, device, config, epoch
         )
         logger.info(
             f"Train - Loss: {train_metrics['loss']:.4f}, "

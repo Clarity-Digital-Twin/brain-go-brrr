@@ -50,8 +50,23 @@ class RedisCache:
             logger.error(f"Cache get error: {e}")
             return None
 
-    def set(self, key: str, value: dict[str, Any], ttl: int = 3600) -> bool:
-        """Set cache entry with TTL."""
+    def set(
+        self, key: str, value: dict[str, Any], ttl: int | None = None, expiry: int | None = None
+    ) -> bool:
+        """Set cache entry with TTL.
+
+        Args:
+            key: Cache key
+            value: Value to cache
+            ttl: Time to live in seconds (preferred)
+            expiry: Time to live in seconds (backwards compat alias for ttl)
+        """
+        # Support both ttl and expiry for backwards compatibility
+        if ttl is None and expiry is not None:
+            ttl = expiry
+        elif ttl is None:
+            ttl = 3600  # Default 1 hour
+
         try:
             # Add version metadata
             value_with_meta = {

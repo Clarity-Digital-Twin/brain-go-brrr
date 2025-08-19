@@ -13,8 +13,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
-from brain_go_brrr.api.deps import get_qc_controller
+from brain_go_brrr.api.deps import CacheMode, get_cache_mode, get_qc_controller
 from brain_go_brrr.api.schemas import QCResponse
+from brain_go_brrr.api.settings import settings
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.utils.time import utc_now
@@ -71,6 +72,7 @@ async def analyze_eeg(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
+    cache_mode: CacheMode = Depends(get_cache_mode),
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -82,8 +84,9 @@ async def analyze_eeg(
     Args:
         edf_file: Uploaded EDF file containing EEG data
         background_tasks: FastAPI background tasks (for cleanup)
-        cache_client: Redis cache client (optional)
         qc_controller: Quality control controller (injected via Depends)
+        cache_client: Redis cache client (optional)
+        cache_mode: Cache behavior mode (auto/bypass/force)
 
     Returns:
         QCResponse with quality metrics and recommendations
@@ -96,8 +99,9 @@ async def analyze_eeg(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available
-    if cache_client and cache_client.connected:
+    # Check cache if available (DI-based control)
+    cache_enabled = cache_mode != CacheMode.BYPASS
+    if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "basic")
         cached_result = cache_client.get(cache_key)
 
@@ -168,9 +172,9 @@ async def analyze_eeg(
                 "timestamp": utc_now().isoformat(),
             }
 
-            # Cache the result if cache is available
-            if cache_client and cache_client.connected:
-                cache_client.set(cache_key, response_data, expiry=3600)  # 1 hour cache
+            # Cache the result if cache is available (DI-based control)
+            if cache_client and cache_client.connected and cache_enabled:
+                cache_client.set(cache_key, response_data, ttl=settings.cache_ttl_seconds)
 
             return QCResponse(**response_data)
 
@@ -214,6 +218,7 @@ async def analyze_eeg_detailed(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
+    cache_mode: CacheMode = Depends(get_cache_mode),
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
@@ -223,8 +228,9 @@ async def analyze_eeg_detailed(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available
-    if cache_client and cache_client.connected:
+    # Check cache if available (DI-based control)
+    cache_enabled = cache_mode != CacheMode.BYPASS
+    if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "detailed")
         cached_result = cache_client.get(cache_key)
 
@@ -312,9 +318,9 @@ async def analyze_eeg_detailed(
                 "report": report_base64,
             }
 
-            # Cache the result
-            if cache_client and cache_client.connected:
-                cache_client.set(cache_key, detailed_response, ttl=3600)
+            # Cache the result (header-based control)
+            if cache_client and cache_client.connected and cache_enabled:
+                cache_client.set(cache_key, detailed_response, ttl=settings.cache_ttl_seconds)
 
             # Return with custom encoder to handle numpy types
             return JSONResponse(content=json.loads(json.dumps(detailed_response, cls=NumpyEncoder)))

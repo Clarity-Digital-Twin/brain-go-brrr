@@ -6,9 +6,10 @@ causing all outputs to be identical. This wrapper handles the necessary
 preprocessing.
 """
 
+import inspect
 import logging
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import torch
 import torch.nn as nn
@@ -90,36 +91,70 @@ class EEGPTWrapper(nn.Module):
             f"std={self.input_std.item():.6f}"
         )
 
-    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None) -> torch.Tensor:
+    def _accepts_param(self, method: Any, param_name: str) -> bool:
+        """Check if a method accepts a specific parameter.
+
+        Args:
+            method: The method to check
+            param_name: Name of the parameter to look for
+
+        Returns:
+            True if the method accepts the parameter
+        """
+        try:
+            return param_name in inspect.signature(method).parameters
+        except Exception:
+            return False
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        chan_ids: torch.Tensor | None = None,
+        return_all_temporal: bool = False,
+    ) -> torch.Tensor:
         """Forward pass with preprocessing.
 
         Args:
             x: Input tensor of shape (B, C, T)
             chan_ids: Channel IDs for positional embedding
+            return_all_temporal: If True, return all temporal features (B, N_temporal, 4, embed_dim)
 
         Returns:
-            Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=False: Summary tokens of shape (B, embed_num, embed_dim)
+            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
         # Normalize input if enabled
         if self.normalize:
             x = (x - self.input_mean) / (self.input_std + 1e-8)
 
-        # Forward through model
-        return cast("torch.Tensor", self.model(x, chan_ids))
+        # Check if model accepts return_all_temporal parameter
+        if self._accepts_param(self.model.forward, 'return_all_temporal'):
+            return cast("torch.Tensor", self.model(x, chan_ids, return_all_temporal))
+        else:
+            # Model doesn't support the parameter, log once and fall back
+            if not getattr(self, '_warned_ret_temporal', False):
+                logger.debug("Model doesn't accept return_all_temporal; ignoring parameter")
+                self._warned_ret_temporal = True
+            return cast("torch.Tensor", self.model(x, chan_ids))
 
     def extract_features(
-        self, x: torch.Tensor, chan_ids: torch.Tensor | None = None
+        self,
+        x: torch.Tensor,
+        chan_ids: torch.Tensor | None = None,
+        return_all_temporal: bool = False,
     ) -> torch.Tensor:
         """Extract features (alias for forward).
 
         Args:
             x: Input tensor of shape (B, C, T)
             chan_ids: Channel IDs
+            return_all_temporal: If True, return all temporal features
 
         Returns:
-            Features of shape (B, embed_num, embed_dim)
+            If return_all_temporal=False: Features of shape (B, embed_num, embed_dim)
+            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
-        return self.forward(x, chan_ids)
+        return self.forward(x, chan_ids, return_all_temporal)
 
 
 def create_normalized_eegpt(

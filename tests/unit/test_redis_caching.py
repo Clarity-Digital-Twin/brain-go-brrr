@@ -5,6 +5,9 @@ from unittest.mock import Mock
 
 import pytest
 
+# Note: Tests use dependency injection to control cache behavior
+# By default, cache is bypassed in tests unless explicitly overridden
+
 
 class TestRedisCaching:
     """Test Redis caching for repeated EEG analyses."""
@@ -43,28 +46,38 @@ class TestRedisCaching:
         self, client_for_cache_tests, valid_edf_content, dummy_cache, mock_qc_controller
     ):
         """Test that repeated analysis uses cache instead of reprocessing."""
-        files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
 
-        # First call - should store in cache
-        response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
-        assert response1.status_code == 200
-        result1 = response1.json()
-        assert "cached" not in result1 or not result1.get("cached")
+        # Override dependency to force cache usage
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
 
-        # Verify cache was set
-        assert any(
-            call[0] == "set" for call in dummy_cache.mock_calls
-        ), "First call must prime the cache"
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
 
-        # Reset mocks
-        dummy_cache.reset_mock()
-        mock_qc_controller.run_full_qc_pipeline.reset_mock()
+            # First call - should store in cache
+            response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+            assert response1.status_code == 200
+            result1 = response1.json()
+            assert "cached" not in result1 or not result1.get("cached")
 
-        # Second call - should hit cache
-        response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
-        assert response2.status_code == 200
-        result2 = response2.json()
-        assert result2.get("cached") is True
+            # Verify cache was set
+            assert any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), "First call must prime the cache"
+
+            # Reset mocks
+            dummy_cache.reset_mock()
+            mock_qc_controller.run_full_qc_pipeline.reset_mock()
+
+            # Second call - should hit cache
+            response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+            assert response2.status_code == 200
+            result2 = response2.json()
+            assert result2.get("cached") is True
+        finally:
+            # Clean up override
+            app.dependency_overrides.pop(get_cache_mode, None)
 
         # Verify cache was used, not set again
         assert not any(
@@ -79,8 +92,17 @@ class TestRedisCaching:
 
     def test_cache_key_generation(self, client_for_cache_tests, valid_edf_content, dummy_cache):
         """Test that cache keys are properly generated from file content."""
-        files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-        response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
+
+        # Override dependency to force cache usage
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
+
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
 
         assert response.status_code == 200
 
@@ -98,8 +120,16 @@ class TestRedisCaching:
 
     def test_cache_expiration(self, client_for_cache_tests, valid_edf_content, dummy_cache):
         """Test that cached results have proper expiration."""
-        files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-        response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
+
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
+
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
 
         assert response.status_code == 200
 
@@ -108,63 +138,71 @@ class TestRedisCaching:
         assert len(set_calls) == 1
         # set_calls format: ('set', key, value, kwargs)
         kwargs = set_calls[0][3]
-        assert kwargs.get("expiry") == 3600  # 1 hour
+        assert kwargs.get("ttl") == 3600  # 1 hour
 
     def test_cache_invalidation_on_different_file(
         self, client_for_cache_tests, dummy_cache, valid_edf_content
     ):
         """Test that different files generate different cache keys."""
-        # First file
-        files1 = {"edf_file": ("test1.edf", valid_edf_content, "application/octet-stream")}
-        response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files1)
-        assert response1.status_code == 200
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
 
-        # Create a second valid EDF file with different data
-        import tempfile
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
 
-        import numpy as np
-        from pyedflib import EdfWriter
+        try:
+            # First file
+            files1 = {"edf_file": ("test1.edf", valid_edf_content, "application/octet-stream")}
+            response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files1)
+            assert response1.status_code == 200
 
-        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
-            writer = EdfWriter(tmp.name, n_channels=1)
-            writer.setSignalHeader(
-                0,
-                {
-                    "label": "EEG C3-C4",  # Different channel name
-                    "dimension": "uV",
-                    "sample_frequency": 256,
-                    "physical_max": 300,  # Different range
-                    "physical_min": -300,
-                    "digital_max": 2047,
-                    "digital_min": -2048,
-                    "prefilter": "HP:0.5Hz LP:70Hz",
-                    "transducer": "AgAgCl electrode",
-                },
-            )
-            # Write different data pattern - 30 seconds for proper testing
-            data = np.sin(np.linspace(0, 2 * np.pi * 30, 30 * 256)) * 1000
-            writer.writeDigitalSamples(data.astype(np.int32))
-            writer.close()
+            # Create a second valid EDF file with different data
+            import tempfile
 
-            # Read the different file
-            from pathlib import Path
+            import numpy as np
+            from pyedflib import EdfWriter
 
-            different_edf_content = Path(tmp.name).read_bytes()
-            Path(tmp.name).unlink()
+            with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
+                writer = EdfWriter(tmp.name, n_channels=1)
+                writer.setSignalHeader(
+                    0,
+                    {
+                        "label": "EEG C3-C4",  # Different channel name
+                        "dimension": "uV",
+                        "sample_frequency": 256,
+                        "physical_max": 300,  # Different range
+                        "physical_min": -300,
+                        "digital_max": 2047,
+                        "digital_min": -2048,
+                        "prefilter": "HP:0.5Hz LP:70Hz",
+                        "transducer": "AgAgCl electrode",
+                    },
+                )
+                # Write different data pattern - 30 seconds for proper testing
+                data = np.sin(np.linspace(0, 2 * np.pi * 30, 30 * 256)) * 1000
+                writer.writeDigitalSamples(data.astype(np.int32))
+                writer.close()
 
-        # Second file with different content
-        files2 = {"edf_file": ("test2.edf", different_edf_content, "application/octet-stream")}
-        response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files2)
-        assert response2.status_code == 200
+                # Read the different file
+                from pathlib import Path
 
-        # Check that two different cache keys were used
-        set_calls = dummy_cache.set_calls()
-        cache_keys = [call[1] for call in set_calls]  # Extract keys
+                different_edf_content = Path(tmp.name).read_bytes()
+                Path(tmp.name).unlink()
 
-        assert len(cache_keys) == 2, f"Expected 2 set calls, got {len(cache_keys)}"
-        assert (
-            len(set(cache_keys)) == 2
-        ), f"Different files must generate different cache keys. Keys: {cache_keys}"
+            # Second file with different content
+            files2 = {"edf_file": ("test2.edf", different_edf_content, "application/octet-stream")}
+            response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files2)
+            assert response2.status_code == 200
+
+            # Check that two different cache keys were used
+            set_calls = dummy_cache.set_calls()
+            cache_keys = [call[1] for call in set_calls]  # Extract keys
+
+            assert len(cache_keys) == 2, f"Expected 2 set calls, got {len(cache_keys)}"
+            assert (
+                len(set(cache_keys)) == 2
+            ), f"Different files must generate different cache keys. Keys: {cache_keys}"
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
 
     def test_cache_disabled_when_redis_unavailable(
         self, client_for_cache_tests, valid_edf_content, dummy_cache
@@ -174,6 +212,7 @@ class TestRedisCaching:
         dummy_cache.connected = False
 
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+        # Don't enable cache for this test - simulating unavailable cache
         response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
 
         # Should still work without cache
@@ -192,17 +231,27 @@ class TestRedisCaching:
         self, client_for_cache_tests, valid_edf_content, dummy_cache
     ):
         """Test caching on the detailed analysis endpoint."""
-        files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-        response = client_for_cache_tests.post(
-            "/api/v1/eeg/analyze/detailed", files=files, data={"include_report": "false"}
-        )
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
 
-        assert response.status_code == 200
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
 
-        # Should use "detailed" analysis type for cache key
-        gen_key_calls = [call for call in dummy_cache.mock_calls if call[0] == "generate_cache_key"]
-        assert len(gen_key_calls) == 1
-        assert gen_key_calls[0][2] == "detailed"  # analysis_type
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            response = client_for_cache_tests.post(
+                "/api/v1/eeg/analyze/detailed",
+                files=files,
+                data={"include_report": "false"},
+            )
+
+            assert response.status_code == 200
+
+            # Should use "detailed" analysis type for cache key
+            gen_key_calls = [call for call in dummy_cache.mock_calls if call[0] == "generate_cache_key"]
+            assert len(gen_key_calls) == 1
+            assert gen_key_calls[0][2] == "detailed"  # analysis_type
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
 
     @pytest.mark.parametrize(
         "endpoint,field_name,analysis_type",
@@ -221,26 +270,54 @@ class TestRedisCaching:
         analysis_type,
     ):
         """Test that cache works correctly for both endpoints."""
-        files = {field_name: ("test.edf", valid_edf_content, "application/octet-stream")}
-        data = {"include_report": "false"} if "detailed" in endpoint else None
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
 
-        # First request - should cache
-        response1 = client_for_cache_tests.post(endpoint, files=files, data=data)
-        assert response1.status_code == 200
-        assert any(
-            call[0] == "set" for call in dummy_cache.mock_calls
-        ), f"{endpoint} should cache results"
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.FORCE
 
-        # Reset and make second request
-        dummy_cache.reset_mock()
-        response2 = client_for_cache_tests.post(endpoint, files=files, data=data)
-        assert response2.status_code == 200
+        try:
+            files = {field_name: ("test.edf", valid_edf_content, "application/octet-stream")}
+            data = {"include_report": "false"} if "detailed" in endpoint else None
 
-        # Both endpoints should use cache on second call
-        assert not any(
-            call[0] == "set" for call in dummy_cache.mock_calls
-        ), "Should not set cache again"
-        assert any(call[0] == "get" for call in dummy_cache.mock_calls), "Should get from cache"
+            # First request - should cache
+            response1 = client_for_cache_tests.post(endpoint, files=files, data=data)
+            assert response1.status_code == 200
+            assert any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), f"{endpoint} should cache results"
+
+            # Reset and make second request
+            dummy_cache.reset_mock()
+            response2 = client_for_cache_tests.post(endpoint, files=files, data=data)
+            assert response2.status_code == 200
+
+            # Both endpoints should use cache on second call
+            assert not any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), "Should not set cache again"
+            assert any(call[0] == "get" for call in dummy_cache.mock_calls), "Should get from cache"
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
+
+    def test_bypass_mode_skips_cache(self, client_for_cache_tests, dummy_cache, valid_edf_content):
+        """Test that BYPASS mode completely skips cache operations."""
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
+
+        # Override to BYPASS mode - should skip all cache operations
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.BYPASS
+
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+            assert response.status_code == 200
+
+            # Verify NO cache operations occurred
+            assert not any(
+                call[0] in {"get", "set"} for call in dummy_cache.mock_calls
+            ), "BYPASS mode should skip all cache operations"
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
 
     def test_cache_stats_endpoint(self, client_for_cache_tests, dummy_cache):
         """Test the cache stats endpoint."""

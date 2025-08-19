@@ -252,6 +252,11 @@ Thumbs.db
 config/secrets.yml
 .secrets/
 
+# Temple University download scripts with credentials
+scripts/*_secure.exp
+scripts/download_*_secure.*
+*.exp
+
 # Large files that shouldn't be in git
 *.zip
 *.tar.gz
@@ -373,3 +378,11 @@ pipeline_test_report.txt
 .mypy_cache/
 .mypy_cache_strict/
 .mypy_cache_fast/
+
+# Temple University downloads
+**/download_*.py
+**/download_*.sh
+DOWNLOAD_*.md
+*_DOWNLOAD_*.md
+*password*
+*credentials*

@@ -6,6 +6,7 @@ REAL DI. NO DEFAULTS. NO FALLBACKS IN ROUTES.
 from __future__ import annotations
 
 import os
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Protocol
@@ -57,8 +58,39 @@ def get_qc_controller() -> QualityControllerPort | _NoopQC:
     )
 
 
-# Type alias for dependency injection - NO DEFAULTS IN ROUTES
+# Cache control via DI - clean separation of test/prod behavior
+class CacheMode(str, Enum):
+    """Cache behavior modes for clean DI control.
+
+    Modes:
+    - AUTO: Normal production behavior - use cache when available
+    - BYPASS: Skip all cache operations (default for tests)
+    - FORCE: Enable cache operations (for cache-specific tests)
+
+    Note: FORCE and AUTO behave identically (both enable cache).
+    The distinction allows tests to explicitly request cache usage
+    vs relying on default production behavior.
+    """
+    AUTO = "auto"      # Normal production behavior
+    BYPASS = "bypass"  # Skip cache (for most tests)
+    FORCE = "force"    # Always use cache (for cache tests)
+
+
+def get_cache_mode() -> CacheMode:
+    """Get cache mode - bypass in tests by default, auto in production.
+
+    This keeps ALL test logic out of production code paths.
+    Tests can override this dependency to control caching precisely.
+    """
+    # Only check for test environment here, in the dependency
+    # Production code never needs to know about test environment
+    if os.getenv("PYTEST_CURRENT_TEST"):
+        return CacheMode.BYPASS
+    return CacheMode.AUTO
+
+
+# Type aliases for dependency injection - NO DEFAULTS IN ROUTES
 QCController = Annotated[QualityControllerPort | _NoopQC, Depends(get_qc_controller)]
 
 
-__all__ = ["QCController", "get_qc_controller"]
+__all__ = ["QCController", "get_qc_controller", "CacheMode", "get_cache_mode"]
