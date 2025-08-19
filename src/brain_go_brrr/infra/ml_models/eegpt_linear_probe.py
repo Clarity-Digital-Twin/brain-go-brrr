@@ -45,7 +45,7 @@ class EEGPTLinearProbe(nn.Module):
         freeze_backbone: bool = True,
     ) -> None:
         """Initialize EEGPT Linear Probe.
-        
+
         DEPRECATED: Use EEGPTProbe from eegpt_probe_unified instead.
 
         Args:
@@ -61,7 +61,7 @@ class EEGPTLinearProbe(nn.Module):
             "EEGPTLinearProbe is deprecated and will be removed in v2.0.0. "
             "Use EEGPTProbe from brain_go_brrr.infra.ml_models.eegpt_probe_unified instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         super().__init__()
 

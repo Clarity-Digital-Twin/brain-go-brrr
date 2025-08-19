@@ -93,11 +93,11 @@ class EEGPTWrapper(nn.Module):
 
     def _accepts_param(self, method: Any, param_name: str) -> bool:
         """Check if a method accepts a specific parameter.
-        
+
         Args:
             method: The method to check
             param_name: Name of the parameter to look for
-            
+
         Returns:
             True if the method accepts the parameter
         """
@@ -106,7 +106,12 @@ class EEGPTWrapper(nn.Module):
         except Exception:
             return False
 
-    def forward(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, return_all_temporal: bool = False) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        chan_ids: torch.Tensor | None = None,
+        return_all_temporal: bool = False,
+    ) -> torch.Tensor:
         """Forward pass with preprocessing.
 
         Args:
@@ -133,7 +138,10 @@ class EEGPTWrapper(nn.Module):
             return cast("torch.Tensor", self.model(x, chan_ids))
 
     def extract_features(
-        self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, return_all_temporal: bool = False
+        self,
+        x: torch.Tensor,
+        chan_ids: torch.Tensor | None = None,
+        return_all_temporal: bool = False,
     ) -> torch.Tensor:
         """Extract features (alias for forward).
 

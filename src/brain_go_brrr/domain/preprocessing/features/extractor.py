@@ -222,7 +222,7 @@ class CleanFeatureExtractor:
                 np.median(window),
                 np.percentile(window, 25),
                 np.percentile(window, 75),
-                float(np.max(window) - np.min(window)),  # Range
+                float(np.max(window) - np.min(window)),  # type: ignore[operator]  # Range
                 np.mean(np.abs(np.diff(window, axis=1))),  # Mean absolute difference
             ]
             features.append(window_feats)
@@ -282,7 +282,7 @@ class CleanFeatureExtractor:
         hist = hist / hist.sum()
 
         # Calculate entropy
-        entropy = float(-np.sum(hist * np.log2(hist + 1e-10)))
+        entropy = float(-np.sum(hist * np.log2(hist + 1e-10)))  # type: ignore[operator]
         return float(entropy)
 
     def _compute_zero_crossings(self, signal: npt.NDArray[np.float32]) -> float:

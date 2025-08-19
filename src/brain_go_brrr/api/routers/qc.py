@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
@@ -72,6 +72,7 @@ async def analyze_eeg(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
+    x_enable_cache: str | None = Header(default=None),
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -83,8 +84,9 @@ async def analyze_eeg(
     Args:
         edf_file: Uploaded EDF file containing EEG data
         background_tasks: FastAPI background tasks (for cleanup)
-        cache_client: Redis cache client (optional)
         qc_controller: Quality control controller (injected via Depends)
+        cache_client: Redis cache client (optional)
+        x_enable_cache: Header to control cache usage in tests
 
     Returns:
         QCResponse with quality metrics and recommendations
@@ -97,9 +99,11 @@ async def analyze_eeg(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available (disable when running tests to avoid state bleed between cases)
+    # Check cache if available (header-based opt-in for tests)
+    # In tests, bypass cache by default but allow opt-in via X-Enable-Cache header
     testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
-    if cache_client and cache_client.connected and not testing:
+    cache_enabled = x_enable_cache == "true" if testing else True
+    if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "basic")
         cached_result = cache_client.get(cache_key)
 
@@ -170,9 +174,9 @@ async def analyze_eeg(
                 "timestamp": utc_now().isoformat(),
             }
 
-            # Cache the result if cache is available (disable when running tests)
-            if cache_client and cache_client.connected and not testing:
-                cache_client.set(cache_key, response_data, expiry=3600)  # 1 hour cache
+            # Cache the result if cache is available (header-based control)
+            if cache_client and cache_client.connected and cache_enabled:
+                cache_client.set(cache_key, response_data, ttl=3600)  # 1 hour cache
 
             return QCResponse(**response_data)
 
@@ -216,6 +220,7 @@ async def analyze_eeg_detailed(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
+    x_enable_cache: str | None = Header(default=None),
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
@@ -225,9 +230,11 @@ async def analyze_eeg_detailed(
     content = await edf_file.read()
     await edf_file.seek(0)  # Reset file pointer
 
-    # Check cache if available (disable when running tests to avoid state bleed between cases)
+    # Check cache if available (header-based opt-in for tests)
+    # In tests, bypass cache by default but allow opt-in via X-Enable-Cache header
     testing = bool(os.getenv("PYTEST_CURRENT_TEST"))
-    if cache_client and cache_client.connected and not testing:
+    cache_enabled = x_enable_cache == "true" if testing else True
+    if cache_client and cache_client.connected and cache_enabled:
         cache_key = cache_client.generate_cache_key(content, "detailed")
         cached_result = cache_client.get(cache_key)
 
@@ -315,8 +322,8 @@ async def analyze_eeg_detailed(
                 "report": report_base64,
             }
 
-            # Cache the result (disable when running tests)
-            if cache_client and cache_client.connected and not testing:
+            # Cache the result (header-based control)
+            if cache_client and cache_client.connected and cache_enabled:
                 cache_client.set(cache_key, detailed_response, ttl=3600)
 
             # Return with custom encoder to handle numpy types

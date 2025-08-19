@@ -4,28 +4,43 @@ Extracted from eegpt_model.py to proper domain layer.
 """
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from brain_go_brrr._typing import MNERaw
 
+if TYPE_CHECKING:
+    import torch
+
 logger = logging.getLogger(__name__)
 
 # Standard EEGPT channel names (modern 10-20 system)
 EEGPT_CHANNELS = [
-    "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
-    "T7", "C3", "CZ", "C4", "T8",
-    "P7", "P3", "PZ", "P4", "P8",
-    "O1", "O2", "OZ"
+    "FP1",
+    "FP2",
+    "F7",
+    "F3",
+    "FZ",
+    "F4",
+    "F8",
+    "T7",
+    "C3",
+    "CZ",
+    "C4",
+    "T8",
+    "P7",
+    "P3",
+    "PZ",
+    "P4",
+    "P8",
+    "O1",
+    "O2",
+    "OZ",
 ]
 
 # Old to modern channel mapping for TUAB compatibility
-CHANNEL_MAPPING = {
-    "T3": "T7",
-    "T4": "T8",
-    "T5": "P7",
-    "T6": "P8"
-}
+CHANNEL_MAPPING = {"T3": "T7", "T4": "T8", "T5": "P7", "T6": "P8"}
 
 
 def preprocess_for_eegpt(
@@ -34,10 +49,10 @@ def preprocess_for_eegpt(
     lowpass: float = 50.0,
     highpass: float = 0.5,
     reference: str = "average",
-    channels: list[str] | None = None
+    channels: list[str] | None = None,
 ) -> np.ndarray:
     """Preprocess raw EEG data for EEGPT input.
-    
+
     Args:
         raw: MNE Raw object with EEG data
         target_sfreq: Target sampling frequency (Hz)
@@ -45,7 +60,7 @@ def preprocess_for_eegpt(
         highpass: High-pass filter cutoff (Hz)
         reference: Reference type ('average' or specific channel)
         channels: Specific channels to use (None = use standard EEGPT channels)
-        
+
     Returns:
         Preprocessed EEG array of shape (n_channels, n_samples)
     """
@@ -95,19 +110,16 @@ def preprocess_for_eegpt(
 
 
 def extract_windows(
-    data: np.ndarray,
-    window_duration: float = 4.0,
-    sampling_rate: int = 256,
-    overlap: float = 0.0
+    data: np.ndarray, window_duration: float = 4.0, sampling_rate: int = 256, overlap: float = 0.0
 ) -> list[np.ndarray]:
     """Extract fixed-size windows from continuous EEG data.
-    
+
     Args:
         data: EEG array of shape (n_channels, n_samples)
         window_duration: Window duration in seconds
         sampling_rate: Sampling rate in Hz
         overlap: Overlap fraction (0.0 to 0.9)
-        
+
     Returns:
         List of windows, each of shape (n_channels, window_samples)
     """
@@ -118,7 +130,7 @@ def extract_windows(
     windows = []
     start = 0
     while start + window_samples <= n_samples:
-        window = data[:, start:start + window_samples]
+        window = data[:, start : start + window_samples]
         windows.append(window)
         start += stride_samples
 
@@ -127,17 +139,15 @@ def extract_windows(
 
 
 def prepare_batch_for_eegpt(
-    windows: list[np.ndarray],
-    n_channels: int = 20,
-    device: str = "cpu"
+    windows: list[np.ndarray], n_channels: int = 20, device: str = "cpu"
 ) -> "torch.Tensor":
     """Prepare a batch of windows for EEGPT input.
-    
+
     Args:
         windows: List of EEG windows
         n_channels: Target number of channels (pad/trim as needed)
         device: Device to place tensor on
-        
+
     Returns:
         Batch tensor of shape (batch_size, n_channels, n_samples)
     """
@@ -174,16 +184,16 @@ def validate_eeg_input(
     data: np.ndarray,
     expected_channels: int = 20,
     expected_samples: int = 1024,
-    tolerance: float = 0.1
+    tolerance: float = 0.1,
 ) -> tuple[bool, str]:
     """Validate EEG input data for EEGPT.
-    
+
     Args:
         data: EEG data array
         expected_channels: Expected number of channels
         expected_samples: Expected number of samples
         tolerance: Tolerance for sample count (fraction)
-        
+
     Returns:
         Tuple of (is_valid, message)
     """
@@ -191,6 +201,10 @@ def validate_eeg_input(
         return False, f"Expected 2D array, got {data.ndim}D"
 
     n_channels, n_samples = data.shape
+
+    # Check against expected channels with tolerance
+    if expected_channels and abs(n_channels - expected_channels) > expected_channels * 0.2:
+        return False, f"Channel count mismatch: got {n_channels}, expected ~{expected_channels}"
 
     if n_channels < 19:
         return False, f"Too few channels: {n_channels} (minimum 19)"

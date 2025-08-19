@@ -28,13 +28,13 @@ def predict_abnormality_with_eegpt(
     probe_path: Path | None = None,
     window_duration: float = 4.0,
     overlap: float = 0.5,
-    device: str = "auto"
+    device: str = "auto",
 ) -> dict[str, Any]:
     """Run abnormality detection using EEGPT.
-    
+
     This is the high-level orchestration function that was previously
     part of EEGPTModel class.
-    
+
     Args:
         model_or_path: EEGPT model instance or path to checkpoint
         raw: MNE Raw object with EEG data
@@ -42,12 +42,12 @@ def predict_abnormality_with_eegpt(
         window_duration: Window duration in seconds
         overlap: Window overlap fraction
         device: Device for inference
-        
+
     Returns:
         Dictionary with predictions and confidence scores
     """
     # Load model if path provided
-    if isinstance(model_or_path, (str, Path)):
+    if isinstance(model_or_path, str | Path):
         model = create_normalized_eegpt(str(model_or_path))
     else:
         model = model_or_path
@@ -62,11 +62,8 @@ def predict_abnormality_with_eegpt(
     probe = None
     if probe_path and Path(probe_path).exists():
         from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
-        probe = EEGPTProbe(
-            backbone=model,
-            n_classes=2,
-            architecture="linear"
-        )
+
+        probe = EEGPTProbe(backbone=model, n_classes=2, architecture="linear")
         checkpoint = torch.load(probe_path, map_location=device)
         probe.load_state_dict(checkpoint['model_state_dict'])
         probe = probe.to(device)
@@ -78,8 +75,7 @@ def predict_abnormality_with_eegpt(
 
     # Validate
     is_valid, message = validate_eeg_input(
-        data,
-        expected_samples=int(raw.info['sfreq'] * window_duration)
+        data, expected_samples=int(raw.info['sfreq'] * window_duration)
     )
     if not is_valid:
         logger.warning(f"Input validation warning: {message}")
@@ -96,7 +92,7 @@ def predict_abnormality_with_eegpt(
 
     with torch.no_grad():
         for i in range(0, len(batch), 32):  # Process in mini-batches
-            mini_batch = batch[i:i+32]
+            mini_batch = batch[i : i + 32]
 
             if probe:
                 # Use trained probe
@@ -123,7 +119,7 @@ def predict_abnormality_with_eegpt(
         "window_predictions": predictions,
         "window_confidences": confidences,
         "n_windows": len(windows),
-        "triage": _get_triage_level(overall_confidence, overall_prediction)
+        "triage": _get_triage_level(overall_confidence, bool(overall_prediction)),
     }
 
 

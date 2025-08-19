@@ -61,7 +61,7 @@ def verify_tuev_dataset():
     sample_labs = (list(train_labs[:50]) + list(eval_labs[:50]))[:100]
 
     for lab_file in sample_labs:
-        with open(lab_file) as f:
+        with Path(lab_file).open() as f:
             for line in f:
                 parts = line.strip().split()
                 if len(parts) == 3:
@@ -165,22 +165,23 @@ def verify_tuev_dataset():
         "subjects": {
             "train": len(train_subjects),
             "eval": len(eval_subjects),
-            "total": len(train_subjects) + len(eval_subjects)
+            "total": len(train_subjects) + len(eval_subjects),
         },
         "files": {
             "train_edf": len(train_edfs),
             "eval_edf": len(eval_edfs),
             "train_lab": len(train_labs),
-            "eval_lab": len(eval_labs)
+            "eval_lab": len(eval_labs),
         },
         "labels": dict(label_counts),
-        "checks_passed": checks
+        "checks_passed": checks,
     }
 
-    with open("tuev_verification_report.json", "w") as f:
+    with Path("tuev_verification_report.json").open("w") as f:
         json.dump(report, f, indent=2)
 
     print("\n📄 Report saved to: tuev_verification_report.json")
+
 
 if __name__ == "__main__":
     verify_tuev_dataset()

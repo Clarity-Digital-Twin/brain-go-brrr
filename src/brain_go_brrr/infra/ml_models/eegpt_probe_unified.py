@@ -7,6 +7,7 @@ Supports both linear and two-layer architectures, with optional robust mode.
 import inspect
 import logging
 from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -19,12 +20,12 @@ logger = logging.getLogger(__name__)
 
 class EEGPTProbe(nn.Module):
     """Unified EEGPT probe with configurable architecture.
-    
+
     This replaces:
     - EEGPTLinearProbe
-    - RobustEEGPTLinearProbe  
+    - RobustEEGPTLinearProbe
     - EEGPTTwoLayerProbe
-    
+
     All with a single configurable implementation.
     """
 
@@ -34,17 +35,17 @@ class EEGPTProbe(nn.Module):
         n_classes: int = 2,
         n_input_channels: int = 20,
         architecture: str = "linear",  # "linear" or "two_layer"
-        robust_mode: bool = False,     # Enable NaN handling
-        channel_adapter: bool = False, # Use channel adaptation layer
+        robust_mode: bool = False,  # Enable NaN handling
+        channel_adapter: bool = False,  # Use channel adaptation layer
         hidden_dim: int = 128,
         dropout: float = 0.1,
         freeze_backbone: bool = True,
-        max_norm: float = 0.25,        # For LinearWithConstraint
-        input_clip_value: float = 50.0, # For robust mode
+        max_norm: float = 0.25,  # For LinearWithConstraint
+        input_clip_value: float = 50.0,  # For robust mode
         backbone: nn.Module | None = None,  # Allow dependency injection
     ):
         """Initialize unified EEGPT probe.
-        
+
         Args:
             checkpoint_path: Path to EEGPT checkpoint (optional if backbone provided)
             n_classes: Number of output classes
@@ -83,7 +84,7 @@ class EEGPTProbe(nn.Module):
                 out_channels=20,  # EEGPT expects 20 channels
                 kernel_size=1,
                 stride=1,
-                padding=0
+                padding=0,
             )
 
         # Build probe architecture
@@ -94,7 +95,7 @@ class EEGPTProbe(nn.Module):
                 nn.LazyLinear(hidden_dim),
                 nn.GELU(),
                 nn.Dropout(dropout),
-                LinearWithConstraint(hidden_dim, n_classes, max_norm=max_norm)
+                LinearWithConstraint(hidden_dim, n_classes, max_norm=max_norm),
             )
         elif architecture == "two_layer":
             # Two layer probe
@@ -105,7 +106,7 @@ class EEGPTProbe(nn.Module):
                 nn.Linear(hidden_dim, hidden_dim // 2),
                 nn.GELU(),
                 nn.Dropout(dropout),
-                LinearWithConstraint(hidden_dim // 2, n_classes, max_norm=max_norm)
+                LinearWithConstraint(hidden_dim // 2, n_classes, max_norm=max_norm),
             )
         else:
             raise ValueError(f"Unknown architecture: {architecture}")
@@ -121,10 +122,10 @@ class EEGPTProbe(nn.Module):
 
     def _accepts_param(self, param_name: str) -> bool:
         """Check if backbone's extract_features accepts a parameter.
-        
+
         Args:
             param_name: Name of the parameter to check
-            
+
         Returns:
             True if the method accepts the parameter
         """
@@ -136,11 +137,11 @@ class EEGPTProbe(nn.Module):
 
     def forward(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:
         """Forward pass through probe.
-        
+
         Args:
             x: Input tensor of shape (B, C, T)
             return_all_temporal: If True, extract all temporal features
-            
+
         Returns:
             Logits of shape (B, n_classes)
         """
@@ -149,8 +150,9 @@ class EEGPTProbe(nn.Module):
             # Check for NaN/Inf
             if torch.isnan(x).any() or torch.isinf(x).any():
                 logger.warning("NaN or Inf detected in input, replacing with zeros")
-                x = torch.nan_to_num(x, nan=0.0, posinf=self.input_clip_value,
-                                   neginf=-self.input_clip_value)
+                x = torch.nan_to_num(
+                    x, nan=0.0, posinf=self.input_clip_value, neginf=-self.input_clip_value
+                )
 
             # Clip extreme values
             x = torch.clamp(x, min=-self.input_clip_value, max=self.input_clip_value)
@@ -163,7 +165,9 @@ class EEGPTProbe(nn.Module):
         with torch.no_grad() if self.training else torch.enable_grad():
             # Check if backbone accepts return_all_temporal parameter
             if self._accepts_param('return_all_temporal'):
-                features = self.backbone.extract_features(x, return_all_temporal=return_all_temporal)
+                features = self.backbone.extract_features(
+                    x, return_all_temporal=return_all_temporal
+                )
             else:
                 # Fallback for older backbones
                 features = self.backbone.extract_features(x)
@@ -205,10 +209,10 @@ class EEGPTProbe(nn.Module):
     # Compatibility methods for existing tests
     def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
         """Get probability predictions.
-        
+
         Args:
             x: Input tensor of shape (B, C, T)
-            
+
         Returns:
             Probabilities of shape (B, n_classes)
         """
@@ -217,20 +221,19 @@ class EEGPTProbe(nn.Module):
 
     def get_num_trainable_params(self) -> int:
         """Count number of trainable parameters."""
+        from contextlib import suppress
+
         # Handle uninitialized LazyLinear parameters
         count = 0
         for p in self.parameters():
             if p.requires_grad:
-                try:
+                with suppress(RuntimeError, ValueError):
                     count += p.numel()
-                except (RuntimeError, ValueError):
-                    # Uninitialized parameter, skip it
-                    pass
         return count
 
     def save_probe(self, path: Path | str) -> None:
         """Save probe state.
-        
+
         Args:
             path: Path to save checkpoint
         """
@@ -243,13 +246,13 @@ class EEGPTProbe(nn.Module):
                 'robust_mode': self.robust_mode,
                 'hidden_dim': self.hidden_dim,
                 'dropout': self.dropout,
-            }
+            },
         }
         torch.save(state, path)
 
     def load_probe(self, path: Path | str) -> None:
         """Load probe state.
-        
+
         Args:
             path: Path to checkpoint
         """
@@ -270,17 +273,17 @@ def create_eegpt_probe(
     n_classes: int = 2,
     probe_type: str = "linear",
     robust: bool = False,
-    **kwargs
+    **kwargs: Any,
 ) -> EEGPTProbe:
     """Factory function for creating EEGPT probes.
-    
+
     Args:
         checkpoint_path: Path to EEGPT checkpoint
         n_classes: Number of output classes
         probe_type: "linear", "two_layer", or "robust" (sets robust_mode)
         robust: Enable robust mode (alternative to probe_type="robust")
         **kwargs: Additional arguments passed to EEGPTProbe
-        
+
     Returns:
         Configured EEGPT probe
     """
@@ -295,5 +298,5 @@ def create_eegpt_probe(
         n_classes=n_classes,
         architecture=architecture,
         robust_mode=robust,
-        **kwargs
+        **kwargs,
     )

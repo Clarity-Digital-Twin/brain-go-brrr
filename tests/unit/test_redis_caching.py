@@ -5,11 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 
-# Note: Caching is disabled during tests to prevent state bleed between test cases
-# These tests verify the caching interface but won't actually cache during test runs
-pytestmark = pytest.mark.xfail(
-    reason="Caching is disabled during tests via PYTEST_CURRENT_TEST env var"
-)
+# Note: Tests use header-based cache control via X-Enable-Cache header
+# By default, cache is bypassed in tests unless explicitly enabled
 
 
 class TestRedisCaching:
@@ -51,8 +48,10 @@ class TestRedisCaching:
         """Test that repeated analysis uses cache instead of reprocessing."""
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
 
-        # First call - should store in cache
-        response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        # First call - should store in cache (enable cache via header)
+        response1 = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files, headers={"X-Enable-Cache": "true"}
+        )
         assert response1.status_code == 200
         result1 = response1.json()
         assert "cached" not in result1 or not result1.get("cached")
@@ -66,8 +65,10 @@ class TestRedisCaching:
         dummy_cache.reset_mock()
         mock_qc_controller.run_full_qc_pipeline.reset_mock()
 
-        # Second call - should hit cache
-        response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        # Second call - should hit cache (enable cache via header)
+        response2 = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files, headers={"X-Enable-Cache": "true"}
+        )
         assert response2.status_code == 200
         result2 = response2.json()
         assert result2.get("cached") is True
@@ -86,7 +87,9 @@ class TestRedisCaching:
     def test_cache_key_generation(self, client_for_cache_tests, valid_edf_content, dummy_cache):
         """Test that cache keys are properly generated from file content."""
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-        response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        response = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files, headers={"X-Enable-Cache": "true"}
+        )
 
         assert response.status_code == 200
 
@@ -105,7 +108,9 @@ class TestRedisCaching:
     def test_cache_expiration(self, client_for_cache_tests, valid_edf_content, dummy_cache):
         """Test that cached results have proper expiration."""
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
-        response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+        response = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files, headers={"X-Enable-Cache": "true"}
+        )
 
         assert response.status_code == 200
 
@@ -114,7 +119,7 @@ class TestRedisCaching:
         assert len(set_calls) == 1
         # set_calls format: ('set', key, value, kwargs)
         kwargs = set_calls[0][3]
-        assert kwargs.get("expiry") == 3600  # 1 hour
+        assert kwargs.get("ttl") == 3600  # 1 hour
 
     def test_cache_invalidation_on_different_file(
         self, client_for_cache_tests, dummy_cache, valid_edf_content
@@ -122,7 +127,9 @@ class TestRedisCaching:
         """Test that different files generate different cache keys."""
         # First file
         files1 = {"edf_file": ("test1.edf", valid_edf_content, "application/octet-stream")}
-        response1 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files1)
+        response1 = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files1, headers={"X-Enable-Cache": "true"}
+        )
         assert response1.status_code == 200
 
         # Create a second valid EDF file with different data
@@ -160,7 +167,9 @@ class TestRedisCaching:
 
         # Second file with different content
         files2 = {"edf_file": ("test2.edf", different_edf_content, "application/octet-stream")}
-        response2 = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files2)
+        response2 = client_for_cache_tests.post(
+            "/api/v1/eeg/analyze", files=files2, headers={"X-Enable-Cache": "true"}
+        )
         assert response2.status_code == 200
 
         # Check that two different cache keys were used
@@ -180,6 +189,7 @@ class TestRedisCaching:
         dummy_cache.connected = False
 
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+        # Don't enable cache for this test - simulating unavailable cache
         response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
 
         # Should still work without cache
@@ -200,7 +210,10 @@ class TestRedisCaching:
         """Test caching on the detailed analysis endpoint."""
         files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
         response = client_for_cache_tests.post(
-            "/api/v1/eeg/analyze/detailed", files=files, data={"include_report": "false"}
+            "/api/v1/eeg/analyze/detailed",
+            files=files,
+            data={"include_report": "false"},
+            headers={"X-Enable-Cache": "true"},
         )
 
         assert response.status_code == 200
@@ -230,8 +243,10 @@ class TestRedisCaching:
         files = {field_name: ("test.edf", valid_edf_content, "application/octet-stream")}
         data = {"include_report": "false"} if "detailed" in endpoint else None
 
-        # First request - should cache
-        response1 = client_for_cache_tests.post(endpoint, files=files, data=data)
+        # First request - should cache (enable cache via header)
+        response1 = client_for_cache_tests.post(
+            endpoint, files=files, data=data, headers={"X-Enable-Cache": "true"}
+        )
         assert response1.status_code == 200
         assert any(
             call[0] == "set" for call in dummy_cache.mock_calls
@@ -239,7 +254,9 @@ class TestRedisCaching:
 
         # Reset and make second request
         dummy_cache.reset_mock()
-        response2 = client_for_cache_tests.post(endpoint, files=files, data=data)
+        response2 = client_for_cache_tests.post(
+            endpoint, files=files, data=data, headers={"X-Enable-Cache": "true"}
+        )
         assert response2.status_code == 200
 
         # Both endpoints should use cache on second call

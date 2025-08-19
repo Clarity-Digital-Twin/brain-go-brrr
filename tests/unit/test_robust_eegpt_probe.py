@@ -74,20 +74,24 @@ class TestRobustEEGPTLinearProbeClean:
             n_classes=2,
             freeze_backbone=True,
             robust_mode=True,
-            architecture="linear"
+            architecture="linear",
         )
 
         assert probe is not None
         # The unified probe stores different attributes
         assert probe.n_classes == 2
-        assert probe.robust_mode == True
+        assert probe.robust_mode
         assert probe.architecture == "linear"
 
     def test_validate_and_clean_input(self, mock_backbone, synthetic_eeg_batch):
         """Test input validation and cleaning."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Add extreme values to test cleaning
@@ -109,8 +113,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_robust_normalize(self, mock_backbone, synthetic_eeg_batch):
         """Test robust normalization."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Create data with very small variance (could cause instability)
@@ -146,8 +154,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_predict_proba(self, mock_backbone, synthetic_eeg_batch):
         """Test probability prediction."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Get probabilities
@@ -168,7 +180,7 @@ class TestRobustEEGPTLinearProbeClean:
             n_classes=2,
             freeze_backbone=True,
             robust_mode=True,
-            architecture="linear"
+            architecture="linear",
         )
 
         num_params = probe.get_num_trainable_params()
@@ -179,8 +191,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_save_and_load_probe(self, mock_backbone, tmp_path):
         """Test saving and loading probe state."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Save probe
@@ -191,24 +207,31 @@ class TestRobustEEGPTLinearProbeClean:
 
         # Create new probe and load state
         probe2 = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
         probe2.load_probe(save_path)
 
         # Compare parameters (skip uninitialized LazyLinear params)
+        from contextlib import suppress
+
         for p1, p2 in zip(probe.parameters(), probe2.parameters(), strict=False):
-            try:
+            with suppress(RuntimeError, ValueError):
                 assert torch.allclose(p1, p2)
-            except (RuntimeError, ValueError):
-                # Skip uninitialized parameters
-                pass
 
     def test_forward_with_nan_input(self, mock_backbone, synthetic_eeg_batch):
         """Test forward pass handles NaN input gracefully."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Inject NaN into input
@@ -231,7 +254,7 @@ class TestRobustEEGPTLinearProbeClean:
             n_classes=2,
             freeze_backbone=True,
             robust_mode=True,
-            architecture="linear"
+            architecture="linear",
         )
 
         # Check backbone params are frozen (use .backbone, not deprecated alias)
@@ -263,8 +286,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_mixed_precision_compatibility(self, mock_backbone, synthetic_eeg_batch):
         """Test compatibility with mixed precision."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Test with float16 input (mixed precision)
@@ -279,8 +306,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_different_batch_sizes(self, mock_backbone):
         """Test probe with different batch sizes."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Test different batch sizes
@@ -292,8 +323,12 @@ class TestRobustEEGPTLinearProbeClean:
     def test_probe_head_architecture(self, mock_backbone):
         """Test probe head has expected architecture."""
         probe = EEGPTProbe(
-            checkpoint_path=None, backbone=mock_backbone, n_input_channels=20, n_classes=2,
-            robust_mode=True, architecture="linear"
+            checkpoint_path=None,
+            backbone=mock_backbone,
+            n_input_channels=20,
+            n_classes=2,
+            robust_mode=True,
+            architecture="linear",
         )
 
         # Check classifier structure (the actual probe head)

@@ -119,7 +119,7 @@ class CleanQualityController:
         self.eegpt_model = model
 
     @property
-    def eegpt_model(self):
+    def eegpt_model(self) -> Any | None:
         """Back-compat property for tests expecting a .eegpt_model attribute."""
         # Return the model if we have one
         if hasattr(self, '_eegpt_model'):
@@ -128,7 +128,7 @@ class CleanQualityController:
         return self.model
 
     @eegpt_model.setter
-    def eegpt_model(self, value):
+    def eegpt_model(self, value: Any) -> None:
         """Setter for backward compatibility."""
         self._eegpt_model = value
         # Also update model if it's being set

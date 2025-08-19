@@ -199,12 +199,11 @@ class InMemoryCache:
     def get(self, key: str) -> Any:
         """Get value from memory cache."""
         # Check TTL expiry
-        if key in self._ttls:
-            if time.time() > self._ttls[key]:
-                # Expired
-                del self._store[key]
-                del self._ttls[key]
-                return None
+        if key in self._ttls and time.time() > self._ttls[key]:
+            # Expired
+            del self._store[key]
+            del self._ttls[key]
+            return None
         return self._store.get(key)
 
     def set(self, key: str, value: Any, expiry: int | None = None) -> bool:
@@ -224,6 +223,7 @@ class InMemoryCache:
     def clear_pattern(self, pattern: str) -> int:
         """Clear keys matching pattern."""
         import fnmatch
+
         pattern = pattern.replace("*", ".*")
         keys_to_delete = [k for k in self._store if fnmatch.fnmatch(k, pattern)]
         for key in keys_to_delete:
@@ -236,16 +236,12 @@ class InMemoryCache:
         return {
             "backend": "memory",
             "keys": len(self._store),
-            "expired_keys": sum(1 for k, t in self._ttls.items() if time.time() > t)
+            "expired_keys": sum(1 for k, t in self._ttls.items() if time.time() > t),
         }
 
     def health_check(self) -> dict[str, Any]:
         """Check cache health."""
-        return {
-            "healthy": True,
-            "backend": "memory",
-            "keys": len(self._store)
-        }
+        return {"healthy": True, "backend": "memory", "keys": len(self._store)}
 
 
 # Global cache instance
@@ -254,10 +250,10 @@ _cache: RedisCache | InMemoryCache | None = None
 
 def create_cache(backend: str | None = None) -> RedisCache | InMemoryCache:
     """Factory function to create appropriate cache implementation.
-    
+
     Args:
         backend: Cache backend ("redis", "memory", or None for env-based)
-        
+
     Returns:
         Cache implementation
     """

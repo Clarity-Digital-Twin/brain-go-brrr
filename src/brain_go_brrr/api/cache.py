@@ -50,9 +50,11 @@ class RedisCache:
             logger.error(f"Cache get error: {e}")
             return None
 
-    def set(self, key: str, value: dict[str, Any], ttl: int | None = None, expiry: int | None = None) -> bool:
+    def set(
+        self, key: str, value: dict[str, Any], ttl: int | None = None, expiry: int | None = None
+    ) -> bool:
         """Set cache entry with TTL.
-        
+
         Args:
             key: Cache key
             value: Value to cache
