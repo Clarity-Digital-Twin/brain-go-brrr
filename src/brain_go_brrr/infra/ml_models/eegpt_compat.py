@@ -28,6 +28,10 @@ class EEGPTConfig:
     n_channels: int = 20
     device: str = "auto"
     batch_size: int = 32
+    
+    def __post_init__(self) -> None:
+        """Compute window_samples based on duration and sampling rate."""
+        self.window_samples = int(self.window_duration * self.sampling_rate)
 
 
 class EEGPTModel:
@@ -117,10 +121,14 @@ class EEGPTModel:
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        # Remove batch dimension if it was added
-        if features.shape[0] == 1 and data.ndim == 2:
-            features = features.squeeze(0)
+        # Ensure 2D output (batch, features) for test compatibility
+        if features.ndim == 1:
+            features = features.reshape(1, -1)
+        elif features.ndim == 3:
+            # If 3D (batch, seq, features), average across sequence
+            features = features.mean(axis=1)
 
+        # Don't squeeze batch dimension - tests expect 2D
         return features.astype(np.float64)  # type: ignore[no-any-return]
 
     def extract_windows(
@@ -188,20 +196,30 @@ class EEGPTModel:
 def preprocess_for_eegpt(
     raw: MNERaw,
     sampling_rate: int = 256,
+    target_sfreq: int | None = None,  # Accept both parameter names
     window_duration: float = 4.0,  # noqa: ARG001
     bandpass: tuple[float, float] = (0.5, 50.0),
     notch: float = 50.0,
-) -> npt.NDArray[np.float64]:
-    """Preprocess raw EEG for EEGPT (compatibility function)."""
+) -> MNERaw:
+    """Preprocess raw EEG for EEGPT (compatibility function).
+    
+    Returns preprocessed MNE Raw object for compatibility with existing tests.
+    """
+    # Handle both parameter names for sampling rate
+    target_rate = target_sfreq if target_sfreq is not None else sampling_rate
+    
+    # Make a copy to avoid modifying the original
+    raw = raw.copy()
+    
     # Resample if needed
-    if raw.info["sfreq"] != sampling_rate:
-        raw = raw.copy().resample(sampling_rate)
+    if raw.info["sfreq"] != target_rate:
+        raw = raw.resample(target_rate)
 
     # Apply filters
-    raw = raw.copy().filter(l_freq=bandpass[0], h_freq=bandpass[1])
-    raw = raw.copy().notch_filter(freqs=notch)
+    raw = raw.filter(l_freq=bandpass[0], h_freq=bandpass[1])
+    raw = raw.notch_filter(freqs=notch)
 
-    return raw.get_data()
+    return raw
 
 
 def extract_features_from_raw(
@@ -214,10 +232,13 @@ def extract_features_from_raw(
     if model is None:
         model = EEGPTModel()
 
-    # Preprocess
-    data = preprocess_for_eegpt(raw, sampling_rate, window_duration)
+    # Preprocess (returns MNE Raw now)
+    processed = preprocess_for_eegpt(raw, sampling_rate, window_duration)
+    
+    # Get data array from preprocessed Raw
+    data = processed.get_data()
 
     # Extract features
-    features = model.extract_features(data, raw.ch_names)
+    features = model.extract_features(data, processed.ch_names)
 
     return features.astype(np.float32)

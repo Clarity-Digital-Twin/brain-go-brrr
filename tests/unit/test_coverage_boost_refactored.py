@@ -25,7 +25,7 @@ from tests.fakes import (
 
 def test_parallel_pipeline_processes_data():
     """Test that parallel pipeline actually processes EEG data."""
-    from brain_go_brrr.domain.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
     # Arrange: Create pipeline with fake dependencies
     fake_extractor = FakeFeatureExtractor(feature_dim=128)
@@ -128,7 +128,7 @@ def test_linear_probe_produces_predictions():
     from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
     with patch(
-        "brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt"
+        "brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt"
     ) as mock_create:
         # Mock the backbone creation
         fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
@@ -338,18 +338,29 @@ def test_two_layer_probe_forward_pass():
     # Two layer probe is now part of unified probe
     from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
-    # Arrange
-    probe = EEGPTProbe(architecture='two_layer', n_classes=3, hidden_dim=512)
+    # Arrange - provide a dummy checkpoint path to satisfy initialization
+    from pathlib import Path
+    with patch('brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt') as mock_create:
+        # Mock the backbone creation
+        from tests.fakes import FakeEEGPTBackbone
+        mock_create.return_value = FakeEEGPTBackbone(feature_dim=2048)
+        
+        probe = EEGPTProbe(
+            architecture='two_layer',
+            checkpoint_path=Path('/fake/model.ckpt'),
+            n_classes=3,
+            hidden_dim=512
+        )
 
-    # Act: Forward pass
-    x = torch.randn(16, 2048)  # batch=16, features=2048
-    output = probe(x)
+        # Act: Forward pass
+        x = torch.randn(16, 2048)  # batch=16, features=2048
+        output = probe(x)
 
-    # Assert: Output shape matches classes
-    assert output.shape == (16, 3)
-    # Should produce valid logits
-    assert not torch.isnan(output).any()
-    assert not torch.isinf(output).any()
+        # Assert: Output shape matches classes
+        assert output.shape == (16, 3)
+        # Should produce valid logits
+        assert not torch.isnan(output).any()
+        assert not torch.isinf(output).any()
 
 
 def test_edf_streamer_streams_windows():
@@ -489,7 +500,7 @@ def test_api_422_validation_error():
 
 def test_pipeline_error_path_with_traceback():
     """Test pipeline error handling includes traceback in result."""
-    from brain_go_brrr.domain.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
     # Create pipeline with broken extractor
     class BrokenExtractor:
