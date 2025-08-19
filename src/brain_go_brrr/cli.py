@@ -1,6 +1,7 @@
 """Command-line interface for Brain Go Brrr."""
 
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
