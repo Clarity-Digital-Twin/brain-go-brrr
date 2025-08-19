@@ -13,8 +13,6 @@ from pydantic import BaseModel
 
 from brain_go_brrr.domain.exceptions import EdfLoadError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
-from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
-import torch
 from brain_go_brrr.infra.ml_models.linear_probe import (
     AbnormalityProbe,
     SleepStageProbe,
@@ -54,7 +52,7 @@ def get_eegpt_model() -> Any:
     if _eegpt_model is None:
         # Create wrapper for API compatibility
         from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
-        
+
         # Try to use old model for now (with deprecation warning)
         # This maintains compatibility until we update all methods
         _eegpt_model = EEGPTModel()

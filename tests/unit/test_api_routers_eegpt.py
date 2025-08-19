@@ -142,9 +142,15 @@ class TestEEGPTRouterClean:
 
     def test_get_eegpt_model_singleton_pattern(self):
         """Test get_eegpt_model returns singleton instance."""
-        with patch("brain_go_brrr.api.routers.eegpt.EEGPTModel") as mock_cls:
+        # Since EEGPTModel is imported inside get_eegpt_model now,
+        # we need to patch it at the source
+        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_cls:
             mock_instance = MagicMock()
             mock_cls.return_value = mock_instance
+
+            # Reset global state
+            import brain_go_brrr.api.routers.eegpt as eegpt_module
+            eegpt_module._eegpt_model = None
 
             # First call creates instance
             model1 = get_eegpt_model()

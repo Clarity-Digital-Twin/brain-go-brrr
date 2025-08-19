@@ -114,6 +114,7 @@ def stream(
     import json
 
     import torch
+
     from brain_go_brrr.infra.data.edf_streaming import EDFStreamer
     from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
@@ -126,15 +127,15 @@ def stream(
     # Create CLI wrapper for backward compatibility
     class CLIModelWrapper:
         """Wrapper to maintain CLI interface compatibility."""
-        
+
         def __init__(self, device: str = "cpu"):
             self.device = device
             self.encoder = create_normalized_eegpt(checkpoint_path=None)
             if self.encoder is not None:
                 self.encoder = self.encoder.to(device)
             self.is_loaded = True
-        
-        def extract_features(self, data_window, channel_names):
+
+        def extract_features(self, data_window: Any, channel_names: Any) -> Any:  # noqa: ARG002
             """Extract features with old API signature."""
             # Convert numpy to tensor
             data_tensor = torch.from_numpy(data_window).unsqueeze(0).float()

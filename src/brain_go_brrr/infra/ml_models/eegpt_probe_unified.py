@@ -131,7 +131,7 @@ class EEGPTProbe(nn.Module):
         """
         try:
             if hasattr(self.backbone, 'extract_features'):
-                method = getattr(self.backbone, 'extract_features')
+                method = self.backbone.extract_features
                 if callable(method):
                     return param_name in inspect.signature(method).parameters
             return False
@@ -168,7 +168,7 @@ class EEGPTProbe(nn.Module):
         with torch.no_grad() if self.training else torch.no_grad():  # Always use no_grad for now
             # Check if backbone accepts return_all_temporal parameter
             if self._accepts_param('return_all_temporal'):
-                if hasattr(self.backbone, 'extract_features') and callable(getattr(self.backbone, 'extract_features')):
+                if hasattr(self.backbone, 'extract_features') and callable(self.backbone.extract_features):
                     features = self.backbone.extract_features(  # type: ignore[attr-defined]
                         x, return_all_temporal=return_all_temporal
                     )
@@ -176,7 +176,7 @@ class EEGPTProbe(nn.Module):
                     features = self.backbone(x)  # type: ignore[operator]
             else:
                 # Fallback for older backbones
-                if hasattr(self.backbone, 'extract_features') and callable(getattr(self.backbone, 'extract_features')):
+                if hasattr(self.backbone, 'extract_features') and callable(self.backbone.extract_features):
                     features = self.backbone.extract_features(x)  # type: ignore[attr-defined]
                 else:
                     features = self.backbone(x)  # type: ignore[operator]

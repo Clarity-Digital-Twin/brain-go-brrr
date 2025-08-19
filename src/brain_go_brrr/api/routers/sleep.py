@@ -27,6 +27,7 @@ from brain_go_brrr.domain.exceptions import (
 )
 from brain_go_brrr.domain.sleep import SleepAnalyzer
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
+
 # Import will be done in get_eegpt_model for backward compatibility
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 from brain_go_brrr.utils.time import utc_now
