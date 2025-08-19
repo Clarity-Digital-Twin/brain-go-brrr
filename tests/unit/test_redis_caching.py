@@ -299,6 +299,26 @@ class TestRedisCaching:
         finally:
             app.dependency_overrides.pop(get_cache_mode, None)
 
+    def test_bypass_mode_skips_cache(self, client_for_cache_tests, dummy_cache, valid_edf_content):
+        """Test that BYPASS mode completely skips cache operations."""
+        from brain_go_brrr.api.deps import CacheMode, get_cache_mode
+        from brain_go_brrr.api.main import app
+
+        # Override to BYPASS mode - should skip all cache operations
+        app.dependency_overrides[get_cache_mode] = lambda: CacheMode.BYPASS
+
+        try:
+            files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
+            response = client_for_cache_tests.post("/api/v1/eeg/analyze", files=files)
+            assert response.status_code == 200
+
+            # Verify NO cache operations occurred
+            assert not any(
+                call[0] in {"get", "set"} for call in dummy_cache.mock_calls
+            ), "BYPASS mode should skip all cache operations"
+        finally:
+            app.dependency_overrides.pop(get_cache_mode, None)
+
     def test_cache_stats_endpoint(self, client_for_cache_tests, dummy_cache):
         """Test the cache stats endpoint."""
         response = client_for_cache_tests.get("/api/v1/cache/stats")

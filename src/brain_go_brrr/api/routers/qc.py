@@ -13,8 +13,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from fastapi.responses import JSONResponse
 
 from brain_go_brrr.api.cache import get_cache
-from brain_go_brrr.api.deps import CacheMode, CacheModeInject, get_qc_controller
+from brain_go_brrr.api.deps import CacheMode, get_cache_mode, get_qc_controller
 from brain_go_brrr.api.schemas import QCResponse
+from brain_go_brrr.api.settings import settings
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.utils.time import utc_now
@@ -71,7 +72,7 @@ async def analyze_eeg(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
-    cache_mode: CacheModeInject = CacheMode.AUTO,
+    cache_mode: CacheMode = Depends(get_cache_mode),
 ) -> QCResponse:
     """Analyze uploaded EEG file for quality control and abnormality detection.
 
@@ -173,7 +174,7 @@ async def analyze_eeg(
 
             # Cache the result if cache is available (DI-based control)
             if cache_client and cache_client.connected and cache_enabled:
-                cache_client.set(cache_key, response_data, ttl=3600)  # 1 hour cache
+                cache_client.set(cache_key, response_data, ttl=settings.cache_ttl_seconds)
 
             return QCResponse(**response_data)
 
@@ -217,7 +218,7 @@ async def analyze_eeg_detailed(
     background_tasks: BackgroundTasks = BackgroundTasks(),
     qc_controller: Any = Depends(resolve_qc_controller),
     cache_client: Any = Depends(get_cache),
-    cache_mode: CacheModeInject = CacheMode.AUTO,
+    cache_mode: CacheMode = Depends(get_cache_mode),
 ) -> JSONResponse:
     """Detailed EEG analysis with optional PDF report.
 
@@ -319,7 +320,7 @@ async def analyze_eeg_detailed(
 
             # Cache the result (header-based control)
             if cache_client and cache_client.connected and cache_enabled:
-                cache_client.set(cache_key, detailed_response, ttl=3600)
+                cache_client.set(cache_key, detailed_response, ttl=settings.cache_ttl_seconds)
 
             # Return with custom encoder to handle numpy types
             return JSONResponse(content=json.loads(json.dumps(detailed_response, cls=NumpyEncoder)))
