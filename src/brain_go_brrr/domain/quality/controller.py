@@ -114,9 +114,9 @@ class CleanQualityController:
                 model = wrapper  # type: ignore[assignment]
                 self.model = model
             except Exception:
-                # If new API fails, try old API for backward compatibility with tests
+                # If new API fails, try compatibility wrapper for tests
                 try:
-                    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+                    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
                     model = EEGPTModel(eegpt_model_path)  # type: ignore[assignment]
                     self.model = model

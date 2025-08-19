@@ -16,7 +16,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 
 logger = logging.getLogger(__name__)

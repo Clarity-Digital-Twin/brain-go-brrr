@@ -56,7 +56,7 @@ def get_eegpt_model() -> Any:
     global _eegpt_model
     if _eegpt_model is None:
         # Import here for backward compatibility
-        from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+        from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
         _eegpt_model = EEGPTModel()
     return _eegpt_model
 
