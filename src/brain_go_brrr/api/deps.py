@@ -60,7 +60,17 @@ def get_qc_controller() -> QualityControllerPort | _NoopQC:
 
 # Cache control via DI - clean separation of test/prod behavior
 class CacheMode(str, Enum):
-    """Cache behavior modes for clean DI control."""
+    """Cache behavior modes for clean DI control.
+
+    Modes:
+    - AUTO: Normal production behavior - use cache when available
+    - BYPASS: Skip all cache operations (default for tests)
+    - FORCE: Enable cache operations (for cache-specific tests)
+
+    Note: FORCE and AUTO behave identically (both enable cache).
+    The distinction allows tests to explicitly request cache usage
+    vs relying on default production behavior.
+    """
     AUTO = "auto"      # Normal production behavior
     BYPASS = "bypass"  # Skip cache (for most tests)
     FORCE = "force"    # Always use cache (for cache tests)
