@@ -81,7 +81,6 @@ def get_cache_mode() -> CacheMode:
 
 # Type aliases for dependency injection - NO DEFAULTS IN ROUTES
 QCController = Annotated[QualityControllerPort | _NoopQC, Depends(get_qc_controller)]
-CacheModeInject = Annotated[CacheMode, Depends(get_cache_mode)]
 
 
-__all__ = ["QCController", "get_qc_controller", "CacheMode", "get_cache_mode", "CacheModeInject"]
+__all__ = ["QCController", "get_qc_controller", "CacheMode", "get_cache_mode"]
