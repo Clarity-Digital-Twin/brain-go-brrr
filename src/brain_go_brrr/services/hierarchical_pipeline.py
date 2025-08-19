@@ -1,21 +1,25 @@
 # shim for backward compatibility - lazy import to avoid side effects
 
-__all__ = ["HierarchicalPipeline", "HierarchicalEEGAnalyzer", "PipelineConfig", "AnalysisResult"]
+from typing import Any
 
-def __getattr__(name):
+# Don't use __all__ with lazy imports to avoid F822 errors
+# __all__ is handled dynamically via __getattr__
+
+
+def __getattr__(name: str) -> Any:
     """Lazy import from new location."""
     from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
         AnalysisResult,
         HierarchicalEEGAnalyzer,
         PipelineConfig,
     )
-    
-    if name == "HierarchicalPipeline":
-        return HierarchicalEEGAnalyzer  # Backward compatible alias
-    elif name == "HierarchicalEEGAnalyzer":
-        return HierarchicalEEGAnalyzer
-    elif name == "PipelineConfig":
-        return PipelineConfig
-    elif name == "AnalysisResult":
-        return AnalysisResult
+
+    mapping = {
+        "HierarchicalPipeline": HierarchicalEEGAnalyzer,  # Backward compatible alias
+        "HierarchicalEEGAnalyzer": HierarchicalEEGAnalyzer,
+        "PipelineConfig": PipelineConfig,
+        "AnalysisResult": AnalysisResult,
+    }
+    if name in mapping:
+        return mapping[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

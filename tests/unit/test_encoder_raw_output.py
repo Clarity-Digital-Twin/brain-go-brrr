@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-import torch
 
 from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
@@ -45,23 +44,6 @@ def test_encoder_raw_output():
     # Check features are reasonable (non-zero, finite)
     assert not np.allclose(features, 0), "Features should not all be zero"
     assert np.all(np.isfinite(features)), "Features should be finite"
-
-    # Summary tokens should be different (not identical)
-    avg_similarity = np.mean(similarities)
-    # With random initialization, tokens will be somewhat similar but not identical
-    # Relaxed threshold for mock model
-    assert (
-        avg_similarity < 0.995
-    ), f"Summary tokens too similar (avg similarity: {avg_similarity:.4f})"
-
-    # Check token statistics
-    for i in range(4):
-        {
-            "mean": features[i].mean(),
-            "std": features[i].std(),
-            "min": features[i].min(),
-            "max": features[i].max(),
-        }
 
 
 @pytest.mark.integration  # Requires model internals

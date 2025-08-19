@@ -11,7 +11,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any
 
 import mne
 import numpy as np
@@ -23,12 +23,11 @@ from brain_go_brrr._typing import MNERaw
 warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn")
 warnings.filterwarnings("ignore", message=".*Scikit-learn.*version.*", category=UserWarning)
 
-if TYPE_CHECKING:
-    import yasa
 
 # Lazy import mechanism for YASA
-_yasa: Optional[Any] = None
-_yasa_err: Optional[BaseException] = None
+_yasa: Any | None = None
+_yasa_err: BaseException | None = None
+
 
 def _ensure_yasa() -> Any:
     """Lazy import YASA to avoid hanging on module import."""
@@ -44,6 +43,7 @@ def _ensure_yasa() -> Any:
     if _yasa_err:
         raise _yasa_err
     return _yasa
+
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +247,7 @@ class YASASleepStager:
         # Run YASA sleep staging with robust fallback
         try:
             yasa = _ensure_yasa()
-            
+
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 sls = yasa.SleepStaging(

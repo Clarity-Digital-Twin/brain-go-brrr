@@ -202,7 +202,7 @@ def preprocess_for_eegpt(
     notch: float = 50.0,
 ) -> MNERaw:
     """Preprocess raw EEG for EEGPT (compatibility function).
-    
+
     Returns preprocessed MNE Raw object for compatibility with existing tests.
     """
     # Handle both parameter names for sampling rate
@@ -226,14 +226,14 @@ def extract_features_from_raw(
     raw: MNERaw,
     model: EEGPTModel | None = None,
     sampling_rate: int = 256,
-    window_duration: float = 4.0,
+    window_duration: float = 4.0,  # noqa: ARG001
 ) -> npt.NDArray[np.float32]:
     """Extract EEGPT features from raw EEG (compatibility function)."""
     if model is None:
         model = EEGPTModel()
 
     # Preprocess (returns MNE Raw now)
-    processed = preprocess_for_eegpt(raw, sampling_rate, window_duration)
+    processed = preprocess_for_eegpt(raw, sampling_rate=sampling_rate)
 
     # Get data array from preprocessed Raw
     data = processed.get_data()

@@ -133,7 +133,7 @@ def test_linear_probe_produces_predictions():
         architecture='linear',
         backbone=fake_backbone,  # Provide backbone directly
         n_input_channels=20,
-        n_classes=2
+        n_classes=2,
     )
 
     # Act: Forward pass with batch of EEG windows
@@ -335,18 +335,19 @@ def test_two_layer_probe_forward_pass():
     """Test two-layer probe produces correct outputs."""
     # Two layer probe is now part of unified probe
     # Arrange - provide a dummy checkpoint path to satisfy initialization
-    from pathlib import Path
 
     from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
+
     # Use backbone directly to avoid file loading
     from tests.fakes import FakeEEGPTBackbone
+
     fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
-    
+
     probe = EEGPTProbe(
         architecture='two_layer',
         backbone=fake_backbone,  # Provide backbone directly
         n_classes=3,
-        hidden_dim=512
+        hidden_dim=512,
     )
 
     # Act: Forward pass

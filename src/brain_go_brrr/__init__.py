@@ -15,11 +15,15 @@ except Exception:
 __author__ = "CLARITY-DIGITAL-TWIN"
 __email__ = "contact@clarity-digital-twin.org"
 
+from typing import Any
+
 # Lazy import Config to avoid circular dependencies at module import time
 __all__ = ["Config"]
 
-def __getattr__(name):
+
+def __getattr__(name: str) -> Any:
     if name == "Config":
         from .application.config.base import Config
+
         return Config
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

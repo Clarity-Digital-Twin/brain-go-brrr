@@ -8,19 +8,21 @@ import importlib
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 from scipy import signal
 from scipy.stats import kurtosis, skew
 
-if TYPE_CHECKING:
-    import yasa
+from brain_go_brrr import mne_compat
+from brain_go_brrr._typing import MNERaw
+from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 
 # Lazy import mechanism for YASA
-_yasa: Optional[Any] = None
-_yasa_err: Optional[BaseException] = None
+_yasa: Any | None = None
+_yasa_err: BaseException | None = None
+
 
 def _ensure_yasa() -> Any:
     """Lazy import YASA to avoid hanging on module import."""
@@ -36,9 +38,6 @@ def _ensure_yasa() -> Any:
         raise _yasa_err
     return _yasa
 
-from brain_go_brrr import mne_compat
-from brain_go_brrr._typing import MNERaw
-from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 
 logger = logging.getLogger(__name__)
 
