@@ -107,7 +107,7 @@ def preprocess_for_eegpt(
     std = data.std(axis=1, keepdims=True) + 1e-6
     data = (data - mean) / std
 
-    return data
+    return data  # type: ignore[return-value]
 
 
 def extract_windows(

@@ -171,19 +171,19 @@ class EEGPTProbe(nn.Module):
                 if hasattr(self.backbone, 'extract_features') and callable(
                     self.backbone.extract_features
                 ):
-                    features = self.backbone.extract_features(  # type: ignore[attr-defined]
+                    features = self.backbone.extract_features(
                         x, return_all_temporal=return_all_temporal
                     )
                 else:
-                    features = self.backbone(x)  # type: ignore[operator]
+                    features = self.backbone(x)
             else:
                 # Fallback for older backbones
                 if hasattr(self.backbone, 'extract_features') and callable(
                     self.backbone.extract_features
                 ):
-                    features = self.backbone.extract_features(x)  # type: ignore[attr-defined]
+                    features = self.backbone.extract_features(x)
                 else:
-                    features = self.backbone(x)  # type: ignore[operator]
+                    features = self.backbone(x)
 
         # Handle different feature shapes
         if return_all_temporal:

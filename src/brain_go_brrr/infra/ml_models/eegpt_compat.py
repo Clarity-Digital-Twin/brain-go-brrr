@@ -121,7 +121,7 @@ class EEGPTModel:
         if features.shape[0] == 1 and data.ndim == 2:
             features = features.squeeze(0)
 
-        return features.astype(np.float64)
+        return features.astype(np.float64)  # type: ignore[return-value]
 
     def extract_windows(
         self,
@@ -165,7 +165,7 @@ class EEGPTModel:
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        return features.astype(np.float64)
+        return features.astype(np.float64)  # type: ignore[return-value]
 
     def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:  # noqa: ARG002
         """Predict abnormality (stub for compatibility)."""
@@ -220,4 +220,4 @@ def extract_features_from_raw(
     # Extract features
     features = model.extract_features(data, raw.ch_names)
 
-    return features
+    return features.astype(np.float32)
