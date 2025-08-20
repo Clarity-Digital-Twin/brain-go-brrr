@@ -3,6 +3,8 @@
 
 from typing import Any
 
+yasa: Any = None  # Let tests patch brain_go_brrr.services.yasa_adapter.yasa
+
 
 def __getattr__(name: str) -> Any:
     """Lazy redirect to new location."""
