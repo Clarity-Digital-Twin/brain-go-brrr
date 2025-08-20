@@ -68,9 +68,9 @@ def pytest_collection_modifyitems(config, items):
 # Type checking imports only - don't trigger actual imports
 
 # Import benchmark fixtures to make them available
-# benchmark_data can cause pytest to hang during collection - import it carefully
+# benchmark_data causes pytest to hang during collection - disabled
 pytest_plugins = [
-    "tests.fixtures.benchmark_data",  # Re-enabled now that collection is fixed
+    # "tests.fixtures.benchmark_data",  # DISABLED - causes hang
     "tests.fixtures.cache_fixtures",
     "tests.fixtures.synthetic_data",
 ]
