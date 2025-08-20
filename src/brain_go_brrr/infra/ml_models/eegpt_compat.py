@@ -21,6 +21,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 class EEGPTConfig:
     """Configuration for EEGPT model (compatibility class)."""
 
+    # Core parameters
     sampling_rate: int = 256
     window_duration: float = 4.0
     window_samples: int = 1024
@@ -29,9 +30,26 @@ class EEGPTConfig:
     device: str = "auto"
     batch_size: int = 32
 
+    # Legacy fields for test compatibility
+    model_size: str = "large"
+    embed_dim: int = 512
+    max_channels: int = 58
+
+    @property
+    def n_patches_per_window(self) -> int:
+        """Compute number of patches per window for legacy compatibility."""
+        return self.window_samples // self.patch_size
+
     def __post_init__(self) -> None:
         """Compute window_samples based on duration and sampling rate."""
         self.window_samples = int(self.window_duration * self.sampling_rate)
+
+        # Legacy validation for divisibility
+        if self.window_samples % self.patch_size != 0:
+            raise ValueError(
+                f"window_samples ({self.window_samples}) must be divisible by "
+                f"patch_size ({self.patch_size})"
+            )
 
 
 class EEGPTModel:
