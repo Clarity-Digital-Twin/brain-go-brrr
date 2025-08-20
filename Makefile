@@ -34,8 +34,8 @@ PIP := $(if $(UV),uv pip,python -m pip)
 TEST_ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 BGBR_DISABLE_YASA=1
 PYTEST := env $(TEST_ENV) $(RUN) pytest
 RUFF := uvx ruff==0.6.9
-# Use pytest with coverage - same environment flags
-PYTEST_WITH_COV := env $(TEST_ENV) $(RUN) pytest
+# Use pytest with coverage - need to explicitly load pytest-cov plugin
+PYTEST_WITH_COV := env BGBR_DISABLE_YASA=1 $(RUN) pytest -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
