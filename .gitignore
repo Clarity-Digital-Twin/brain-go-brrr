@@ -386,3 +386,6 @@ DOWNLOAD_*.md
 *_DOWNLOAD_*.md
 *password*
 *credentials*
+
+# Coverage reports
+coverage_html_report/
