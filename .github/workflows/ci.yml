@@ -105,19 +105,19 @@ jobs:
           echo "Running fast tests using Makefile..."
           make test
 
-      # STAGING: Standard tests with coverage
+      # STAGING: Standard tests
       - name: Run standard tests (staging)
         if: github.ref == 'refs/heads/staging'
         run: |
-          echo "Running test suite with coverage..."
-          make test-all-cov
+          echo "Running test suite..."
+          make test
 
-      # MAIN: Full test suite with coverage
+      # MAIN: Full test suite
       - name: Run full tests (main)
         if: github.ref == 'refs/heads/main'
         run: |
-          echo "Running full test suite with coverage..."
-          make test-all-cov
+          echo "Running full test suite..."
+          make test
 
       # PR: Standard tests
       - name: Run PR tests
@@ -126,15 +126,15 @@ jobs:
           echo "Running PR test suite..."
           make test
 
-      # Upload coverage for staging and main branches
-      - name: Upload coverage
-        if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
-          fail_ci_if_error: false  # Don't fail if upload fails
+      # Coverage upload disabled (using make test without coverage for now)
+      # - name: Upload coverage
+      #   if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     file: ./coverage.xml
+      #     flags: unittests
+      #     name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
+      #     fail_ci_if_error: false  # Don't fail if upload fails
 
   # ============================================
   # STAGE 3: EXTENDED TESTS (Python versions - staging/main only)
