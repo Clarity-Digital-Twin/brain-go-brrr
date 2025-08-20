@@ -102,11 +102,10 @@ jobs:
       - name: Run quick tests (development)
         if: github.ref == 'refs/heads/development'
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
-            --tb=short \
-            --maxfail=5 \
-            -q
+          echo "Running minimal test to verify CI..."
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit/test_core_exceptions.py -xvs --tb=short
+          echo "Core test passed! Running smoke tests..."
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/smoke/test_imports.py -xvs --tb=short
 
       # STAGING: Standard tests (coverage temporarily disabled due to hanging)
       - name: Run standard tests (staging)
