@@ -480,6 +480,9 @@ class TestEEGPTConfig:
 
     def test_config_validation(self):
         """Test configuration validation."""
-        # Compat config doesn't validate, just test creation
-        config = EEGPTConfig(window_duration=3.9)
+        # Use a valid window_duration that's divisible by patch_size
+        # 4.0 seconds * 256 Hz = 1024 samples / 64 patch_size = 16 patches ✓
+        config = EEGPTConfig(window_duration=4.0)
         assert config is not None
+        assert config.window_samples == 1024
+        assert config.window_samples % config.patch_size == 0
