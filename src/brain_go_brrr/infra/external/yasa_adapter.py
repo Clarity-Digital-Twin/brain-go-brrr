@@ -27,17 +27,19 @@ warnings.filterwarnings("ignore", message=".*Scikit-learn.*version.*", category=
 # Lazy import mechanism for YASA
 _yasa: Any | None = None
 _yasa_err: BaseException | None = None
+yasa = None  # Allow tests to patch brain_go_brrr.infra.external.yasa_adapter.yasa
 
 
 def _ensure_yasa() -> Any:
     """Lazy import YASA to avoid hanging on module import."""
-    global _yasa, _yasa_err
+    global _yasa, _yasa_err, yasa
     if os.getenv("BGBR_DISABLE_YASA") == "1":
         # Keep importable surface, but don't load YASA
         raise RuntimeError("YASA disabled via BGBR_DISABLE_YASA=1")
     if _yasa is None and _yasa_err is None:
         try:
             _yasa = importlib.import_module("yasa")
+            yasa = _yasa  # Keep alias in sync for tests that patch 'yasa'
         except BaseException as e:
             _yasa_err = e
     if _yasa_err:
