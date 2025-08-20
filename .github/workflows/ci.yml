@@ -110,9 +110,7 @@ jobs:
             -m "not integration and not benchmark and not slow and not gpu" \
             --tb=short \
             --maxfail=5 \
-            -q \
-            --timeout=60 \
-            --timeout-method=thread
+            -q
 
       # STAGING: Standard tests with coverage
       - name: Run standard tests (staging)
@@ -130,8 +128,6 @@ jobs:
             --cov-report=xml \
             --cov-report=term \
             --cov-fail-under=64 \
-            --timeout=60 \
-            --timeout-method=thread \
             -q
 
       # MAIN: Full test suite with coverage
@@ -150,9 +146,7 @@ jobs:
             --cov=brain_go_brrr \
             --cov-report=xml \
             --cov-report=term \
-            --cov-fail-under=64 \
-            --timeout=60 \
-            --timeout-method=thread
+            --cov-fail-under=64
 
       # PR: Standard tests
       - name: Run PR tests
@@ -302,9 +296,7 @@ jobs:
             -m "integration" \
             --run-integration \
             -v \
-            --tb=short \
-            --timeout=120 \
-            --timeout-method=thread
+            --tb=short
 
   # ============================================
   # STAGE 6: BENCHMARKS (Main Only)
@@ -342,9 +334,7 @@ jobs:
             -m "not gpu" \
             --benchmark-json=benchmark_results.json \
             --benchmark-autosave \
-            --tb=short \
-            --timeout=180 \
-            --timeout-method=thread || true
+            --tb=short || true
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
