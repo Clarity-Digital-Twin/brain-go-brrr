@@ -101,68 +101,30 @@ jobs:
       # DEVELOPMENT: Quick tests only
       - name: Run quick tests (development)
         if: github.ref == 'refs/heads/development'
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
         run: |
-          echo "Running unit and smoke tests..."
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow and not gpu" \
-            --tb=short \
-            --maxfail=5 \
-            -q
+          echo "Running fast tests using Makefile..."
+          make test
 
       # STAGING: Standard tests with coverage
       - name: Run standard tests (staging)
         if: github.ref == 'refs/heads/staging'
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
         run: |
-          echo "Running standard test suite with coverage..."
-          uv run pytest tests \
-            -m "not integration and not benchmark and not slow and not gpu" \
-            --tb=short \
-            --maxfail=10 \
-            --cov=brain_go_brrr \
-            --cov-report=xml \
-            --cov-report=term \
-            --cov-fail-under=64 \
-            -q
+          echo "Running test suite with coverage..."
+          make test-all-cov
 
       # MAIN: Full test suite with coverage
       - name: Run full tests (main)
         if: github.ref == 'refs/heads/main'
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
         run: |
           echo "Running full test suite with coverage..."
-          uv run pytest tests \
-            -m "not integration and not benchmark and not slow and not gpu" \
-            -v \
-            --tb=short \
-            --maxfail=10 \
-            --cov=brain_go_brrr \
-            --cov-report=xml \
-            --cov-report=term \
-            --cov-fail-under=64
+          make test-all-cov
 
       # PR: Standard tests
       - name: Run PR tests
         if: github.event_name == 'pull_request'
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
         run: |
           echo "Running PR test suite..."
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow and not gpu" \
-            --tb=short \
-            --maxfail=5 \
-            --timeout=60 \
-            --timeout-method=thread \
-            -q
+          make test
 
       # Upload coverage for staging and main branches
       - name: Upload coverage
@@ -204,17 +166,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        env:
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
-        run: |
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow and not gpu" \
-            --tb=short \
-            --maxfail=5 \
-            --timeout=60 \
-            --timeout-method=thread \
-            -q
+        run: make test
 
   # ============================================
   # STAGE 4: SECURITY (Staging & Main Only)
@@ -289,14 +241,7 @@ jobs:
       - name: Run integration tests
         env:
           REDIS_URL: redis://localhost:6379
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
-        run: |
-          uv run pytest tests \
-            -m "integration" \
-            --run-integration \
-            -v \
-            --tb=short
+        run: make test-integration
 
   # ============================================
   # STAGE 6: BENCHMARKS (Main Only)
@@ -327,14 +272,8 @@ jobs:
       - name: Run benchmarks
         env:
           CI_BENCHMARKS: "0"
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-          BGBR_DISABLE_YASA: "1"
         run: |
-          uv run pytest tests/benchmarks \
-            -m "not gpu" \
-            --benchmark-json=benchmark_results.json \
-            --benchmark-autosave \
-            --tb=short || true
+          make test-benchmarks || true
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
