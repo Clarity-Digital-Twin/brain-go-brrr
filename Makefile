@@ -164,9 +164,9 @@ validate: ## Full pre-push validation - ensures you stay in banger-town! 🚀
 
 ##@ Testing
 
-test: ## Run fast tests only (excludes integration, slow, external, gpu) with parallel execution
-	@echo "$(GREEN)Running fast tests with parallel execution...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov --benchmark-disable
+test: ## Run fast tests only (excludes integration, slow, external, gpu)
+	@echo "$(GREEN)Running fast tests...$(NC)"
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
