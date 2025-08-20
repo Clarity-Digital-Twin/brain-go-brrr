@@ -52,7 +52,7 @@ scripts/
 
 The following files were updated to reflect the new script locations:
 
-1. **Makefile**: 
+1. **Makefile**:
    - `scripts/validate_before_push.sh` → `scripts/tools/validate_before_push.sh`
 
 2. **CLAUDE.md**:

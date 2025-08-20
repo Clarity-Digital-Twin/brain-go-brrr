@@ -15,7 +15,7 @@ The `logs/` folder has been cleaned and organized:
 logs/
 └── archive/
     ├── 2025-07-31/     # July logs
-    ├── 2025-08-01/     # August 1st logs  
+    ├── 2025-08-01/     # August 1st logs
     ├── 2025-08-02/     # August 2nd training runs
     ├── 2025-08-03/     # August 3rd experiments
     ├── 2025-08-05/     # August 5th paper-aligned training
@@ -31,11 +31,11 @@ logs/
 - This is generated output that should not be tracked in git
 
 ### 3. Benefits
-✅ **Cleaner root**: No stray log files in `logs/` root  
-✅ **Better organization**: Logs organized by date and purpose  
-✅ **Git-friendly**: Coverage reports properly gitignored  
-✅ **Historical preservation**: All logs preserved in archive  
-✅ **Easy navigation**: Clear folder names by date  
+✅ **Cleaner root**: No stray log files in `logs/` root
+✅ **Better organization**: Logs organized by date and purpose
+✅ **Git-friendly**: Coverage reports properly gitignored
+✅ **Historical preservation**: All logs preserved in archive
+✅ **Easy navigation**: Clear folder names by date
 
 ## What's Preserved
 - All training logs are preserved in `logs/archive/` organized by date
