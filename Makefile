@@ -29,10 +29,13 @@ export UV_LINK_MODE := copy
 RUN := $(if $(UV),uv run,python -m)
 PYTHON := $(RUN) python
 PIP := $(if $(UV),uv pip,python -m pip)
-PYTEST := $(RUN) pytest
+
+# Lock pytest flags for deterministic test runs
+TEST_ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 BGBR_DISABLE_YASA=1
+PYTEST := env $(TEST_ENV) $(RUN) pytest
 RUFF := uvx ruff==0.6.9
-# Use pytest with coverage - no need to disable autoload
-PYTEST_WITH_COV := $(RUN) pytest
+# Use pytest with coverage - need to explicitly load pytest-cov plugin
+PYTEST_WITH_COV := env BGBR_DISABLE_YASA=1 $(RUN) pytest -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
@@ -169,6 +172,31 @@ test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
 	$(PYTEST) tests/unit $(PYTEST_BASE_OPTS) -q $(PYTEST_NO_PLUGINS)
 
+test-sanity: ## Run sanity check sequence (imports only - quick canary)
+	@echo "$(CYAN)Running import sanity check...$(NC)"
+	$(PYTEST) -q tests/smoke/test_imports.py -vv -s --maxfail=1
+	@echo "$(GREEN)Import sanity check passed!$(NC)"
+
+test-quick: ## Run unit + smoke tests (no integrations/benchmarks), show slowest tests
+	@echo "$(CYAN)Running quick test suite...$(NC)"
+	$(PYTEST) -q tests/unit tests/smoke --maxfail=1 --durations=20 \
+		-m "not integration and not benchmark"
+	@echo "$(GREEN)Quick tests passed!$(NC)"
+
+test-api: ## Run API layer tests
+	@echo "$(CYAN)Running API tests...$(NC)"
+	$(PYTEST) -q tests/api --maxfail=1
+	@echo "$(GREEN)API tests passed!$(NC)"
+
+test-green: ## Run full green baseline check sequence
+	@echo "$(CYAN)Running full green baseline check...$(NC)"
+	@make test-sanity
+	@make test-quick
+	@make test-api
+	@make lint
+	@make type-fast
+	@echo "$(GREEN)✅ GREEN BASELINE ACHIEVED!$(NC)"
+
 test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
 	$(PYTEST_WITH_COV) tests/unit -m "not integration and not slow" \
@@ -187,7 +215,9 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
+		--cov-fail-under=64 \
 		--tb=short \
+		--maxfail=10 \
 		-q
 
 test-integration: ## Run integration tests with GPU and local data
@@ -207,7 +237,7 @@ test-coverage: ## Run tests with full coverage report
 
 coverage: ## Run unit tests with coverage enforcement
 	@echo "$(GREEN)Running coverage analysis...$(NC)"
-	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=59 -m "not integration and not slow" -rs -q
+	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=64 -m "not integration and not slow" -rs -q
 	@echo "$(CYAN)Coverage report generated$(NC)"
 
 test-integration-local: ## Run integration tests with local resources
@@ -293,14 +323,16 @@ test-ci: ## Run tests for CI with coverage and XML report
 
 test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchmarks)
 	@echo "$(GREEN)Running all tests with full coverage (excluding integration/benchmarks)...$(NC)"
-	$(PYTEST_WITH_COV) $(TEST_DIR) \
+	$(PYTEST_WITH_COV) tests \
 		--cov=brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		--cov-fail-under=59 \
+		--cov-fail-under=64 \
 		-m "not integration and not benchmark" \
-		--ignore=tests/benchmarks
+		--ignore=tests/benchmarks \
+		--maxfail=10 \
+		--timeout=300
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(UV) run coverage html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"

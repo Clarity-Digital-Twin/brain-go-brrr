@@ -15,7 +15,7 @@ from brain_go_brrr.domain.abnormal.ports import FeatureExtractorPort
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 
 class EEGPTFeatureExtractorAdapter(FeatureExtractorPort):

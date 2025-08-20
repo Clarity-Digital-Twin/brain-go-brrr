@@ -4,8 +4,8 @@ import tempfile
 from datetime import UTC
 from pathlib import Path
 
-from brain_go_brrr.core.config import Config, DataConfig, ModelConfig, TrainingConfig
-from brain_go_brrr.core.exceptions import (
+from brain_go_brrr.application.config import Config, DataConfig, ModelConfig, TrainingConfig
+from brain_go_brrr.domain.exceptions import (
     BrainGoBrrrError,
     ConfigurationError,
     EdfLoadError,

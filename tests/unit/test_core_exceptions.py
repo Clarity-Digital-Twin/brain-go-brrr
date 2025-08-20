@@ -2,7 +2,7 @@
 
 import pytest
 
-from brain_go_brrr.core.exceptions import (
+from brain_go_brrr.domain.exceptions import (
     BrainGoBrrrError,
     ConfigurationError,
     EdfLoadError,

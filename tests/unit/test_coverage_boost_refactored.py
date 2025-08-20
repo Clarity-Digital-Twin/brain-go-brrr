@@ -25,7 +25,7 @@ from tests.fakes import (
 
 def test_parallel_pipeline_processes_data():
     """Test that parallel pipeline actually processes EEG data."""
-    from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
     # Arrange: Create pipeline with fake dependencies
     fake_extractor = FakeFeatureExtractor(feature_dim=128)
@@ -125,28 +125,26 @@ def test_job_store_manages_jobs():
 
 def test_linear_probe_produces_predictions():
     """Test linear probe produces correct shaped predictions."""
-    from brain_go_brrr.infra.ml_models.eegpt_linear_probe import EEGPTLinearProbe
+    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 
-    with patch(
-        "brain_go_brrr.infra.ml_models.eegpt_linear_probe.create_normalized_eegpt"
-    ) as mock_create:
-        # Mock the backbone creation
-        fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
-        mock_create.return_value = fake_backbone
+    # Use backbone directly to avoid file loading
+    fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
+    probe = EEGPTProbe(
+        architecture='linear',
+        backbone=fake_backbone,  # Provide backbone directly
+        n_input_channels=20,
+        n_classes=2,
+    )
 
-        probe = EEGPTLinearProbe(
-            checkpoint_path="/fake/path.ckpt", n_input_channels=20, n_classes=2
-        )
+    # Act: Forward pass with batch of EEG windows
+    x = torch.randn(8, 20, 1024)  # batch_size=8, channels=20, samples=1024
+    output = probe(x)
 
-        # Act: Forward pass with batch of EEG windows
-        x = torch.randn(8, 20, 1024)  # batch_size=8, channels=20, samples=1024
-        output = probe(x)
-
-        # Assert: Output shape matches expected classes
-        assert output.shape == (8, 2)
-        # Probabilities should be valid
-        probs = torch.softmax(output, dim=-1)
-        assert torch.allclose(probs.sum(dim=-1), torch.ones(8), atol=1e-5)
+    # Assert: Output shape matches expected classes
+    assert output.shape == (8, 2)
+    # Probabilities should be valid
+    probs = torch.softmax(output, dim=-1)
+    assert torch.allclose(probs.sum(dim=-1), torch.ones(8), atol=1e-5)
 
 
 def test_sleep_analyzer_analyzes_sleep():
@@ -168,7 +166,7 @@ def test_sleep_analyzer_analyzes_sleep():
 
 def test_abnormal_detector_detects_abnormalities():
     """Test abnormality detector produces valid predictions."""
-    from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
+    from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
     # Arrange: Use fake classifier to avoid loading weights
     fake_path = Path("/fake/model.ckpt")
@@ -335,10 +333,22 @@ def test_cached_dataset_loads_from_cache():
 
 def test_two_layer_probe_forward_pass():
     """Test two-layer probe produces correct outputs."""
-    from brain_go_brrr.infra.ml_models.eegpt_two_layer_probe import EEGPTTwoLayerProbe
+    # Two layer probe is now part of unified probe
+    # Arrange - provide a dummy checkpoint path to satisfy initialization
 
-    # Arrange
-    probe = EEGPTTwoLayerProbe(n_classes=3, hidden_dim=512)
+    from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
+
+    # Use backbone directly to avoid file loading
+    from tests.fakes import FakeEEGPTBackbone
+
+    fake_backbone = FakeEEGPTBackbone(feature_dim=2048)
+
+    probe = EEGPTProbe(
+        architecture='two_layer',
+        backbone=fake_backbone,  # Provide backbone directly
+        n_classes=3,
+        hidden_dim=512,
+    )
 
     # Act: Forward pass
     x = torch.randn(16, 2048)  # batch=16, features=2048
@@ -435,7 +445,7 @@ def test_edf_validator():
 
 def test_model_config():
     """Test model configuration."""
-    from brain_go_brrr.core.config import ModelConfig
+    from brain_go_brrr.application.config import ModelConfig
 
     # Test default config
     config = ModelConfig()
@@ -450,7 +460,7 @@ def test_model_config():
 
 def test_eegpt_config():
     """Test EEGPT configuration."""
-    from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTConfig
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTConfig
 
     # Test default config
     config = EEGPTConfig()
@@ -488,7 +498,7 @@ def test_api_422_validation_error():
 
 def test_pipeline_error_path_with_traceback():
     """Test pipeline error handling includes traceback in result."""
-    from brain_go_brrr.core.pipeline.parallel import ParallelEEGPipeline
+    from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
     # Create pipeline with broken extractor
     class BrokenExtractor:

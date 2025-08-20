@@ -10,7 +10,7 @@ import numpy.typing as npt
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.domain.ports import EEGModelPort, LoggerPort, PreprocessorPort
 from brain_go_brrr.infra.logger import get_logger as get_infra_logger
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 from brain_go_brrr.infra.preprocessing.eeg_preprocessor import EEGPreprocessor
 
 

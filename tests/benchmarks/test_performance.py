@@ -10,7 +10,7 @@ import numpy as np
 import psutil
 import pytest
 
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 
 @pytest.mark.perf
@@ -20,7 +20,7 @@ class TestPerformanceBenchmarks:
     @pytest.fixture
     def eegpt_model(self):
         """Load EEGPT model for performance tests."""
-        from brain_go_brrr.core.config import ModelConfig
+        from brain_go_brrr.application.config import ModelConfig
         from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
         config = ModelConfig(device="cpu")

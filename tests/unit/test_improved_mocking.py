@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import torch
 
-from brain_go_brrr.core.abnormal import AbnormalityDetector
+from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
 
 class TestImprovedMocking:
@@ -61,7 +61,7 @@ class TestImprovedMocking:
 
     def test_classifier_head_with_realistic_embeddings(self):
         """Test that classifier head works properly with realistic embeddings."""
-        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel"):
+        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
             # Test with normal embedding
@@ -95,7 +95,7 @@ class TestImprovedMocking:
         mock_model.extract_features.side_effect = mock_extract_features
         mock_model.is_loaded = True
 
-        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_model_class:
+        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel") as mock_model_class:
             mock_model_class.return_value = mock_model
 
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")

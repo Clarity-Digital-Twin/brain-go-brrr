@@ -1,5 +1,14 @@
 # CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
 
+## 🚧 ACTIVE REFACTORING (Aug 19, 2025)
+
+**Current Work**: Cleaning up technical debt from two major refactorings:
+1. **Clean Architecture** - Migrating from `core.*` to proper DDD layers
+2. **EEGPT Unification** - Replacing 3 deprecated models with unified `EEGPTProbe`
+
+**Status**: 110+ files need updates, 31 deprecation warnings to fix
+**Docs**: See `COMPREHENSIVE_REFACTORING_FIX_PLAN.md` for details
+
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
 **DO NOT USE PYTORCH LIGHTNING FOR TRAINING!** Lightning 2.5.2 has a critical bug that causes training to hang indefinitely at:

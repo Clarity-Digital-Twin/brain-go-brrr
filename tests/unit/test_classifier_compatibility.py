@@ -20,7 +20,7 @@ class TestClassifierCompatibility:
     def test_classifier_matches_config_feature_dim(self) -> None:
         """Test that classifier input dimension matches config feature_dim."""
         with (
-            patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel"),
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"),
             patch("brain_go_brrr.application.config.ModelConfig"),
         ):
             # Create detector with default config (768-dim)
@@ -37,7 +37,7 @@ class TestClassifierCompatibility:
     def test_incompatible_classifier_raises_error(self) -> None:
         """Test that loading incompatible classifier weights raises clear error."""
         with (
-            patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel"),
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"),
             patch("brain_go_brrr.application.config.ModelConfig"),
         ):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
@@ -62,7 +62,7 @@ class TestClassifierCompatibility:
         custom_config.model.feature_dim = 512  # Different from default 768
 
         with (
-            patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel"),
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"),
             patch("brain_go_brrr.application.config.ModelConfig"),
         ):
             detector = AbnormalityDetector(
@@ -77,7 +77,7 @@ class TestClassifierCompatibility:
 
     def test_validate_model_compatibility_method(self) -> None:
         """Test the validate_model_compatibility method."""
-        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_model_class:
+        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel") as mock_model_class:
             # Mock EEGPT model with correct dimensions
             mock_model = MagicMock()
             mock_model.embedding_dim = 512  # Correct embedding dim from checkpoint
@@ -97,7 +97,7 @@ class TestClassifierCompatibility:
 
     def test_runtime_validation_on_detect(self) -> None:
         """Test that dimension validation happens during detection."""
-        with patch("brain_go_brrr.infra.ml_models.eegpt_model.EEGPTModel") as mock_model_class:
+        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel") as mock_model_class:
             # Create mock with wrong dimensions
             mock_model = MagicMock()
             mock_model.embedding_dim = 256  # Wrong! (should be 512)

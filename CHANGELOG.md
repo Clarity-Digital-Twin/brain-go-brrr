@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2025-08-19)
+- **BREAKING**: Removed deprecated `brain_go_brrr.infra.ml_models.eegpt_model` module
+  - Migration: Use `brain_go_brrr.infra.ml_models.eegpt_compat` for compatibility
+  - Or better: Use `brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt()` directly
+- **BREAKING**: Removed all `brain_go_brrr.core.*` redirect shims
+  - Migration: Update imports to new locations:
+    - `core.quality` → `domain.quality.controller`
+    - `core.sleep` → `domain.sleep`
+    - `core.exceptions` → `domain.exceptions`
+    - `core.config` → `application.config`
+    - `core.logger` → `application.logging`
+- **Cache Control**: Added environment-configurable cache TTL via `BGBR_CACHE_TTL_SECONDS`
+- **Clean Migration**: All deprecation warnings from our code eliminated
+
 ## [1.0.0] - 2025-08-16
 
 ### 🎯 MAJOR RELEASE: Clean Architecture Implementation

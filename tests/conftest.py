@@ -19,7 +19,6 @@ import random
 import socket
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -67,12 +66,11 @@ def pytest_collection_modifyitems(config, items):
 
 
 # Type checking imports only - don't trigger actual imports
-if TYPE_CHECKING:
-    import mne
 
 # Import benchmark fixtures to make them available
+# benchmark_data causes pytest to hang during collection - disabled
 pytest_plugins = [
-    "tests.fixtures.benchmark_data",
+    # "tests.fixtures.benchmark_data",  # DISABLED - causes hang
     "tests.fixtures.cache_fixtures",
     "tests.fixtures.synthetic_data",
 ]
@@ -128,6 +126,8 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "external: requires external services or data")
     config.addinivalue_line("markers", "redis: requires Redis server")
     config.addinivalue_line("markers", "gpu: requires CUDA GPU")
+    config.addinivalue_line("markers", "benchmark: benchmark test")
+    config.addinivalue_line("markers", "network: requires network access")
 
 
 def pytest_sessionstart(session):
@@ -281,7 +281,7 @@ def sleep_edf_path(project_root) -> Path:
 
 
 @pytest.fixture
-def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> mne.io.Raw:
+def sleep_edf_raw_cropped(sleep_edf_path, mne_mod):
     """Load Sleep-EDF file cropped to 60 seconds for fast tests."""
     mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
@@ -293,7 +293,7 @@ def sleep_edf_raw_cropped(sleep_edf_path, mne_mod) -> mne.io.Raw:
 
 
 @pytest.fixture
-def sleep_edf_raw_full(sleep_edf_path, mne_mod) -> mne.io.Raw:
+def sleep_edf_raw_full(sleep_edf_path, mne_mod):
     """Load full Sleep-EDF file (for slow tests only)."""
     mne = mne_mod
     raw = mne.io.read_raw_edf(sleep_edf_path, preload=True)
@@ -345,7 +345,7 @@ def mock_eeg_data():
 @pytest.fixture
 def mock_qc_controller():
     """Mock QC controller with proper spec and expected behavior."""
-    from brain_go_brrr.core.quality import EEGQualityController
+    from brain_go_brrr.domain.quality.controller import EEGQualityController
 
     controller = MagicMock(spec=EEGQualityController)
     controller.eegpt_model = MagicMock()  # Model is loaded
@@ -438,7 +438,7 @@ def patched_qc_endpoint(mock_qc_controller):
 @pytest.fixture
 def mock_abnormality_detector():
     """Mock abnormality detector with proper spec."""
-    from brain_go_brrr.core.abnormal.detector import AbnormalityDetector
+    from brain_go_brrr.domain.abnormal.detector import AbnormalityDetector
 
     detector = MagicMock(spec=AbnormalityDetector)
     detector.detect_abnormality = MagicMock(

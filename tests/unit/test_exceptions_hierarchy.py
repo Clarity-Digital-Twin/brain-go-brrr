@@ -1,6 +1,6 @@
 """Final tests to push coverage over 60%."""
 
-from brain_go_brrr.core.exceptions import (
+from brain_go_brrr.domain.exceptions import (
     AbnormalityDetectionError,
     FeatureExtractionError,
     FileFormatError,
@@ -40,7 +40,7 @@ def test_all_exceptions_instantiate():
 
 def test_exception_inheritance_chain():
     """Test exception inheritance chain."""
-    from brain_go_brrr.core.exceptions import (
+    from brain_go_brrr.domain.exceptions import (
         BrainGoBrrrError,
         EdfLoadError,
         ModelError,

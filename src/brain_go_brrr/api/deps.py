@@ -71,9 +71,10 @@ class CacheMode(str, Enum):
     The distinction allows tests to explicitly request cache usage
     vs relying on default production behavior.
     """
-    AUTO = "auto"      # Normal production behavior
+
+    AUTO = "auto"  # Normal production behavior
     BYPASS = "bypass"  # Skip cache (for most tests)
-    FORCE = "force"    # Always use cache (for cache tests)
+    FORCE = "force"  # Always use cache (for cache tests)
 
 
 def get_cache_mode() -> CacheMode:

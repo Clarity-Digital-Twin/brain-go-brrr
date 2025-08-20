@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, "src")
 
 # Import the exceptions
-from brain_go_brrr.core.exceptions import (
+from brain_go_brrr.domain.exceptions import (
     BrainGoBrrrError,
     ConfigurationError,
     EdfLoadError,

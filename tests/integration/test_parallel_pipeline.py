@@ -45,7 +45,7 @@ class TestParallelPipeline:
 
     def test_parallel_pipeline_initialization(self):
         """Test pipeline can be initialized."""
-        from brain_go_brrr.core.pipeline import ParallelEEGPipeline
+        from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
         pipeline = ParallelEEGPipeline()
         assert pipeline is not None
@@ -54,7 +54,7 @@ class TestParallelPipeline:
 
     def test_parallel_processing(self, sample_raw):
         """Test both pipelines run independently."""
-        from brain_go_brrr.core.pipeline import ParallelEEGPipeline
+        from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
         pipeline = ParallelEEGPipeline()
         results = pipeline.process(sample_raw)
@@ -85,7 +85,7 @@ class TestParallelPipeline:
         """Test that services can fail independently without affecting the pipeline."""
         from unittest.mock import patch
 
-        from brain_go_brrr.core.pipeline import ParallelEEGPipeline
+        from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
         pipeline = ParallelEEGPipeline()
 
@@ -114,7 +114,7 @@ class TestParallelPipeline:
         if not sleep_edf_path.exists():
             pytest.skip("Sleep-EDF data not found")
 
-        from brain_go_brrr.core.pipeline import ParallelEEGPipeline
+        from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 
         pipeline = ParallelEEGPipeline()
 

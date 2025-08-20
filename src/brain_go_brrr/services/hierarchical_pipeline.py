@@ -1,12 +1,33 @@
-# shim for backward compatibility
-from brain_go_brrr.application.pipeline.hierarchical_pipeline import *  # noqa: F403
-from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
-    AnalysisResult,
-    HierarchicalEEGAnalyzer,
-    PipelineConfig,
-)
+# shim for backward compatibility - lazy import to avoid side effects
 
-# Provide backward compatible alias
-HierarchicalPipeline = HierarchicalEEGAnalyzer
+from typing import Any
 
-__all__ = ["HierarchicalPipeline", "HierarchicalEEGAnalyzer", "PipelineConfig", "AnalysisResult"]
+# Don't use __all__ with lazy imports to avoid F822 errors
+# __all__ is handled dynamically via __getattr__
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy import from new location."""
+    from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
+        AbnormalityScreener,
+        AnalysisResult,
+        EpileptiformDetector,
+        HierarchicalEEGAnalyzer,
+        ParallelExecutor,
+        PipelineConfig,
+        SleepStager,
+    )
+
+    mapping = {
+        "HierarchicalPipeline": HierarchicalEEGAnalyzer,  # Backward compatible alias
+        "HierarchicalEEGAnalyzer": HierarchicalEEGAnalyzer,
+        "PipelineConfig": PipelineConfig,
+        "AnalysisResult": AnalysisResult,
+        "AbnormalityScreener": AbnormalityScreener,
+        "EpileptiformDetector": EpileptiformDetector,
+        "ParallelExecutor": ParallelExecutor,
+        "SleepStager": SleepStager,
+    }
+    if name in mapping:
+        return mapping[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

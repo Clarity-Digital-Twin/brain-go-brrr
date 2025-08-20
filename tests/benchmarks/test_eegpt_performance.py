@@ -18,8 +18,8 @@ import numpy as np
 import pytest
 import torch
 
-from brain_go_brrr.core.config import ModelConfig
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.application.config import ModelConfig
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 # Import complexity budget calculator
 try:

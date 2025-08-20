@@ -30,9 +30,9 @@ sys.path.insert(0, str(project_root / "reference_repos" / "pyEDFlib"))
 sys.path.insert(0, str(project_root / "reference_repos" / "mne-python"))
 
 # Import our services
-from brain_go_brrr.core.quality import EEGQualityController  # noqa: E402
-from brain_go_brrr.core.sleep import SleepAnalyzer  # noqa: E402
-from brain_go_brrr.core.snippets import EEGSnippetMaker  # noqa: E402
+from brain_go_brrr.domain.quality.controller import EEGQualityController  # noqa: E402
+from brain_go_brrr.domain.sleep import SleepAnalyzer  # noqa: E402
+from brain_go_brrr.domain.snippets import EEGSnippetMaker  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

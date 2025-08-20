@@ -87,8 +87,8 @@ def predict_abnormality_with_eegpt(
     batch = prepare_batch_for_eegpt(windows, device=device)
 
     # Run inference
-    predictions = []
-    confidences = []
+    predictions: list[int] = []
+    confidences: list[float] = []
 
     with torch.no_grad():
         for i in range(0, len(batch), 32):  # Process in mini-batches

@@ -130,8 +130,11 @@ class EEGPTProbe(nn.Module):
             True if the method accepts the parameter
         """
         try:
-            method = self.backbone.extract_features
-            return param_name in inspect.signature(method).parameters
+            if hasattr(self.backbone, 'extract_features'):
+                method = self.backbone.extract_features
+                if callable(method):
+                    return param_name in inspect.signature(method).parameters
+            return False
         except Exception:
             return False
 
@@ -162,15 +165,25 @@ class EEGPTProbe(nn.Module):
             x = self.channel_adapter(x)
 
         # Extract features from backbone
-        with torch.no_grad() if self.training else torch.enable_grad():
+        with torch.no_grad() if self.training else torch.no_grad():  # Always use no_grad for now
             # Check if backbone accepts return_all_temporal parameter
             if self._accepts_param('return_all_temporal'):
-                features = self.backbone.extract_features(
-                    x, return_all_temporal=return_all_temporal
-                )
+                if hasattr(self.backbone, 'extract_features') and callable(
+                    self.backbone.extract_features
+                ):
+                    features = self.backbone.extract_features(
+                        x, return_all_temporal=return_all_temporal
+                    )
+                else:
+                    features = self.backbone(x)
             else:
                 # Fallback for older backbones
-                features = self.backbone.extract_features(x)
+                if hasattr(self.backbone, 'extract_features') and callable(
+                    self.backbone.extract_features
+                ):
+                    features = self.backbone.extract_features(x)
+                else:
+                    features = self.backbone(x)
 
         # Handle different feature shapes
         if return_all_temporal:
@@ -199,7 +212,7 @@ class EEGPTProbe(nn.Module):
             logger.error("NaN or Inf in output logits!")
             logits = torch.nan_to_num(logits, nan=0.0)
 
-        return logits
+        return logits  # type: ignore[no-any-return]
 
     def get_feature_dim(self) -> int:
         """Get the expected feature dimension after backbone."""

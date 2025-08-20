@@ -239,15 +239,15 @@ class TestRedisCaching:
         try:
             files = {"edf_file": ("test.edf", valid_edf_content, "application/octet-stream")}
             response = client_for_cache_tests.post(
-                "/api/v1/eeg/analyze/detailed",
-                files=files,
-                data={"include_report": "false"},
+                "/api/v1/eeg/analyze/detailed", files=files, data={"include_report": "false"}
             )
 
             assert response.status_code == 200
 
             # Should use "detailed" analysis type for cache key
-            gen_key_calls = [call for call in dummy_cache.mock_calls if call[0] == "generate_cache_key"]
+            gen_key_calls = [
+                call for call in dummy_cache.mock_calls if call[0] == "generate_cache_key"
+            ]
             assert len(gen_key_calls) == 1
             assert gen_key_calls[0][2] == "detailed"  # analysis_type
         finally:

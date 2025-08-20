@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from brain_go_brrr.services.yasa_adapter import (
+from brain_go_brrr.infra.external.yasa_adapter import (
     HierarchicalPipelineYASAAdapter,
     YASAConfig,
     YASASleepStager,
@@ -45,7 +45,7 @@ class TestYASASleepStager:
     @pytest.fixture
     def mock_yasa(self):
         """Mock YASA module."""
-        with patch("brain_go_brrr.infra.external.yasa_adapter.yasa") as mock:
+        with patch("brain_go_brrr.infra.external.yasa_adapter._yasa") as mock:
             # Mock SleepStaging class - return 10 epochs for 5 minutes
             mock_sls = MagicMock()
             # 10 epochs: variety of stages
@@ -165,7 +165,7 @@ class TestYASASleepStager:
         # Check confidence
         assert 0.7 < metrics["mean_confidence"] < 0.9
 
-    @patch("brain_go_brrr.services.yasa_adapter.mne.io.read_raw")
+    @patch("brain_go_brrr.infra.external.yasa_adapter.mne.io.read_raw")
     def test_process_full_night(self, mock_read_raw, mock_yasa):
         """Test processing full night recording."""
         # Mock raw data
@@ -195,7 +195,7 @@ class TestYASASleepStager:
 class TestHierarchicalPipelineYASAAdapter:
     """Test the pipeline adapter."""
 
-    @patch("brain_go_brrr.services.yasa_adapter.yasa")
+    @patch("brain_go_brrr.infra.external.yasa_adapter._yasa")
     def test_adapter_interface(self, mock_yasa):
         """Test adapter matches our pipeline interface."""
         # Setup mock
