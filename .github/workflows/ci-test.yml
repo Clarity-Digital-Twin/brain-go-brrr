@@ -1,0 +1,14 @@
+name: CI Test
+
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Echo test
+        run: echo "CI is working!"
