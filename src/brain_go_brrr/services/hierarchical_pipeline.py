@@ -9,9 +9,13 @@ from typing import Any
 def __getattr__(name: str) -> Any:
     """Lazy import from new location."""
     from brain_go_brrr.application.pipeline.hierarchical_pipeline import (
+        AbnormalityScreener,
         AnalysisResult,
+        EpileptiformDetector,
         HierarchicalEEGAnalyzer,
+        ParallelExecutor,
         PipelineConfig,
+        SleepStager,
     )
 
     mapping = {
@@ -19,6 +23,10 @@ def __getattr__(name: str) -> Any:
         "HierarchicalEEGAnalyzer": HierarchicalEEGAnalyzer,
         "PipelineConfig": PipelineConfig,
         "AnalysisResult": AnalysisResult,
+        "AbnormalityScreener": AbnormalityScreener,
+        "EpileptiformDetector": EpileptiformDetector,
+        "ParallelExecutor": ParallelExecutor,
+        "SleepStager": SleepStager,
     }
     if name in mapping:
         return mapping[name]
