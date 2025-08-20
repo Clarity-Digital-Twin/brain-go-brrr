@@ -102,7 +102,7 @@ jobs:
       - name: Run quick tests (development)
         if: github.ref == 'refs/heads/development'
         run: |
-          uv run pytest tests/unit tests/smoke \
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
             -m "not integration and not benchmark and not slow" \
             --tb=short \
             --maxfail=5 \
@@ -132,7 +132,7 @@ jobs:
       - name: Run PR tests
         if: github.event_name == 'pull_request'
         run: |
-          uv run pytest tests/unit tests/smoke \
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
             -m "not integration and not benchmark and not slow" \
             --tb=short \
             -q
@@ -177,7 +177,7 @@ jobs:
 
       - name: Run tests
         run: |
-          uv run pytest tests/unit tests/smoke \
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
             -m "not integration and not benchmark and not slow" \
             --tb=short \
             -q
@@ -256,7 +256,7 @@ jobs:
         env:
           REDIS_URL: redis://localhost:6379
         run: |
-          uv run pytest tests \
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
             -m "integration" \
             --run-integration \
             -v \
@@ -291,6 +291,7 @@ jobs:
       - name: Run benchmarks
         env:
           CI_BENCHMARKS: 0
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
         run: |
           uv run pytest tests/benchmarks \
             -m "not gpu" \
