@@ -363,7 +363,7 @@ Based on ROUGH_DRAFT.md, implement in this order:
 
 ```bash
 # Test basic model loading and inference
-uv run python scripts/test_sleep_analysis.py
+uv run python scripts/testing/test_sleep_analysis.py
 
 # Create core pipeline test
 think hard about implementing the basic EEG processing pipeline
@@ -472,7 +472,7 @@ print(f'Model size: {model_path.stat().st_size / 1e6:.1f} MB')
 "
 
 # Profile memory usage
-uv run python -m memory_profiler scripts/test_sleep_analysis.py
+uv run python -m memory_profiler scripts/testing/test_sleep_analysis.py
 
 # Check Sleep-EDF data
 find data/datasets/external/sleep-edf -name "*.edf" | wc -l
