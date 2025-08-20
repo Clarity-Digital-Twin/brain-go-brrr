@@ -215,7 +215,9 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
+		--cov-fail-under=59 \
 		--tb=short \
+		--maxfail=10 \
 		-q
 
 test-integration: ## Run integration tests with GPU and local data
@@ -328,7 +330,9 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 		--no-cov-on-fail \
 		--cov-fail-under=59 \
 		-m "not integration and not benchmark" \
-		--ignore=tests/benchmarks
+		--ignore=tests/benchmarks \
+		--maxfail=10 \
+		--timeout=300
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(UV) run coverage html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
