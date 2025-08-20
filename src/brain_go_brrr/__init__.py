@@ -27,6 +27,3 @@ def __getattr__(name: str) -> Any:
 
         return Config
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-# Trigger CI
