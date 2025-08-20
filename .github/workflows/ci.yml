@@ -43,7 +43,7 @@ jobs:
 
       - name: Import smoke test
         run: |
-          uv run python -c "from brain_go_brrr.domain.core.exceptions import BrainGoBrrr; print('✅ All imports work')"
+          uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"
 
       - name: Run linting
         run: make lint-ci
