@@ -4,7 +4,7 @@
 
 External audit raised 7 concerns. After first-principles analysis:
 - **3 Valid issues FIXED**: Hardcoded dimensions, missing logging, verification
-- **2 Architecture decisions DOCUMENTED**: Window sizes, cross-patch attention  
+- **2 Architecture decisions DOCUMENTED**: Window sizes, cross-patch attention
 - **2 Non-issues**: Import paths work via redirect, configs already correct
 
 ## Detailed Analysis & Fixes
@@ -49,13 +49,13 @@ logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.res
 ### 🔬 Issue 4: Cross-Patch Attention → WORKING AS INTENDED
 
 **Concern**: Processing patches independently removes cross-patch attention
-**Analysis**: 
+**Analysis**:
 1. Our implementation processes each temporal patch separately
 2. This actually PRESERVES temporal locality better than global attention
 3. Each patch gets its own summary tokens (temporal-specific features)
 
 **Decision**: Keep current implementation
-**Rationale**: 
+**Rationale**:
 - More interpretable (features tied to specific time windows)
 - Likely how EEGPT was pretrained (masked autoencoding works on patches)
 - Working in verification tests

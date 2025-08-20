@@ -44,7 +44,7 @@ tests/integration/test_sleep_enhanced.py: 3 patch strings only
 ```bash
 # Deprecated model usage:
 EEGPTLinearProbe: 2 files
-EEGPTTwoLayerProbe: 2 files  
+EEGPTTwoLayerProbe: 2 files
 eegpt_model.EEGPTModel: 1 patch reference
 models.eegpt_model: 1 import
 
@@ -68,7 +68,7 @@ assert len(processed[0]) == expected_samples  # ndarray check
 ```python
 # Tests expect these fields (4 files):
 - model_size: str
-- max_channels: int  
+- max_channels: int
 - embed_dim: int
 - n_patches_per_window: property
 
@@ -113,7 +113,7 @@ assert len(processed[0]) == expected_samples  # ndarray check
 ### Surprise Finding #1
 **Most refactoring is already complete!** Previous work already updated 90% of imports. We're just cleaning up the last 10%.
 
-### Surprise Finding #2  
+### Surprise Finding #2
 **No production code changes needed!** All fixes are in test expectations, not actual functionality.
 
 ### Surprise Finding #3

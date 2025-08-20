@@ -75,7 +75,7 @@ from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 def test_preprocess_returns_raw(self):
     raw = create_test_raw()
     processed = preprocess_for_eegpt(raw)
-    
+
     assert hasattr(processed, 'info')
     assert processed.info["sfreq"] == 256
     assert processed.ch_names == expected_channels
@@ -85,7 +85,7 @@ def test_preprocess_returns_raw(self):
 def test_preprocess_returns_array(self):
     raw = create_test_raw()
     processed = preprocess_for_eegpt(raw)
-    
+
     assert isinstance(processed, np.ndarray)
     assert processed.shape[0] == len(expected_channels)
     # To check sampling rate, keep reference to original
@@ -142,13 +142,13 @@ These test deprecated implementation details:
 
 def test_config_model_size_property(self):
     """Tests deprecated model_size field"""
-    
+
 def test_config_max_channels(self):
     """Tests deprecated max_channels field"""
-    
+
 def test_n_patches_per_window_calculation(self):
     """Tests deprecated computed property"""
-    
+
 def test_embed_dim_validation(self):
     """Tests internal implementation detail"""
 ```

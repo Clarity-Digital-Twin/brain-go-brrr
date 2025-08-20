@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class TUEVCachedDatasetPadded(Dataset):
     """TUEV cached dataset that pads from 1000 to 1024 samples for EEGPT."""
-    
+
     def __init__(
         self,
         cache_dir: Path,
@@ -22,7 +22,7 @@ class TUEVCachedDatasetPadded(Dataset):
         padding: str = 'edge'  # 'edge' or 'zero'
     ):
         """Initialize cached dataset with padding.
-        
+
         Args:
             cache_dir: Path to cache directory
             split: 'train' or 'eval'
@@ -32,41 +32,41 @@ class TUEVCachedDatasetPadded(Dataset):
         self.split = split
         self.split_cache = self.cache_dir / f"tuev_{split}_cache"
         self.padding = padding
-        
+
         if not self.split_cache.exists():
             raise ValueError(f"Cache not found at {self.split_cache}")
-        
+
         # Load index
         index_file = self.split_cache / "index.json"
         if not index_file.exists():
             raise ValueError(f"Index file not found at {index_file}")
-        
+
         with open(index_file, 'r') as f:
             self.index = json.load(f)
-        
+
         self.samples = self.index['samples']
         self.class_counts = self.index['class_counts']
-        
+
         logger.info(f"Loaded cached dataset with {len(self.samples)} samples")
         logger.info(f"Will pad from 1000 to 1024 samples using '{padding}' padding")
-    
+
     def __len__(self):
         return len(self.samples)
-    
+
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         """Get padded sample.
-        
+
         Returns:
             Tuple of (data, label) where data is shape (23, 1024)
         """
         sample_info = self.samples[idx]
         cache_file = self.split_cache / sample_info['cache_file']
-        
+
         # Load cached data
         data = torch.load(cache_file, weights_only=True)
         x = data['x']  # Shape: (23, 1000)
         y = data['y']
-        
+
         # Pad from 1000 to 1024
         if self.padding == 'edge':
             # Repeat last 24 samples
@@ -78,11 +78,11 @@ class TUEVCachedDatasetPadded(Dataset):
             x_padded = torch.cat([x, padding], dim=1)
         else:
             raise ValueError(f"Unknown padding type: {self.padding}")
-        
+
         assert x_padded.shape == (23, 1024), f"Wrong shape after padding: {x_padded.shape}"
-        
+
         return x_padded, y
-    
+
     def get_class_weights(self) -> torch.Tensor:
         """Compute class weights for balanced loss."""
         # Convert dict to list if needed
@@ -90,7 +90,7 @@ class TUEVCachedDatasetPadded(Dataset):
             counts_list = [self.class_counts[str(i)] for i in range(6)]
         else:
             counts_list = self.class_counts
-        
+
         counts = torch.tensor(counts_list, dtype=torch.float32)
         # Inverse frequency weighting
         weights = 1.0 / (counts + 1e-8)

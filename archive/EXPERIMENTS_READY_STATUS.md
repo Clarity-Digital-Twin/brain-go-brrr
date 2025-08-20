@@ -18,7 +18,7 @@ The code has NOT been fixed yet. Major bugs remain:
    - Missing `return_all_temporal` flag implementation
 
 2. **Training Scripts**
-   - `train_tuab.py:67`: Averages features with `.mean(dim=1)` 
+   - `train_tuab.py:67`: Averages features with `.mean(dim=1)`
    - `train_tuev.py:96`: Expects only 2,048 features instead of 30,720
 
 3. **Configurations**
@@ -32,7 +32,7 @@ The code has NOT been fixed yet. Major bugs remain:
 python train_tuab.py --config configs/tuab.yaml
 # Error: Linear layer expects 512 but gets different size
 
-python train_tuev.py  
+python train_tuev.py
 # Error: Classifier expects 2048 features but needs 30,720
 ```
 
@@ -50,7 +50,7 @@ python train_tuev.py
 ## Critical Path to Fix
 
 1. **First**: Fix EEGPT architecture to return all temporal features
-2. **Second**: Update training scripts to flatten properly  
+2. **Second**: Update training scripts to flatten properly
 3. **Third**: Fix all config files with correct dimensions
 4. **Fourth**: Update classifier heads with right input sizes
 5. **Finally**: Verify with test run

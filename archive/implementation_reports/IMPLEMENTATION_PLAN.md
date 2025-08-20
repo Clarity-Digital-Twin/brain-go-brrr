@@ -9,15 +9,15 @@ Our EEGPT returns only 4 summary tokens (2,048 features) but TUEV needs 60 summa
 ### Our Current Implementation
 ```python
 # All patches processed together
-Input (B, 20, 1000) 
-→ Patches (B, 15*20, 512) 
-→ Add 4 summary tokens 
-→ Transformer 
-→ Extract last 4 tokens 
+Input (B, 20, 1000)
+→ Patches (B, 15*20, 512)
+→ Add 4 summary tokens
+→ Transformer
+→ Extract last 4 tokens
 → Output (B, 4, 512) = 2,048 features
 ```
 
-### Reference Implementation  
+### Reference Implementation
 ```python
 # Each temporal position processed separately
 Input (B, 20, 1000)
@@ -36,7 +36,7 @@ Input (B, 20, 1000)
 **File**: `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py`
 
 ```python
-def forward(self, x: Tensor, chan_ids: Tensor | None = None, 
+def forward(self, x: Tensor, chan_ids: Tensor | None = None,
             return_all_temporal: bool = False) -> Tensor:
     """
     Args:
@@ -44,26 +44,26 @@ def forward(self, x: Tensor, chan_ids: Tensor | None = None,
                            If False, return (B, 4, 512) for backward compat
     """
     # ... existing patch embedding ...
-    
+
     if return_all_temporal:
         # NEW PATH: Process each temporal position separately
         B, N, C, D = x.shape  # After patch_embed
-        
+
         # Flatten batch and temporal dims
         x = x.flatten(0, 1)  # (B*N, C, D)
-        
+
         # Add summary tokens to EACH temporal position
         summary_tokens = self.summary_token.repeat(x.shape[0], 1, 1)
         x = torch.cat([x, summary_tokens], dim=1)  # (B*N, C+4, D)
-        
+
         # Apply transformer blocks
         for block in self.blocks:
             x = block(x)
-        
+
         # Extract summary tokens from each position
         x = x[:, -self.embed_num:, :]  # (B*N, 4, D)
         x = self.norm(x)
-        
+
         # Reshape to preserve temporal structure
         x = x.reshape(B, N, self.embed_num, -1)  # (B, N, 4, 512)
         return x
@@ -82,17 +82,17 @@ class TUEVModel(nn.Module):
         super().__init__()
         self.encoder = create_eegpt_model(checkpoint_path)
         self.encoder.eval()
-        
+
         # TUEV: 15 temporal × 4 summary × 512 dim = 30,720
         self.classifier = nn.Linear(30720, 6)
         self.dropout = nn.Dropout(0.5)  # Paper Table 13
-        
+
     def forward(self, x):
         with torch.no_grad():
             # Get features for all temporal positions
             features = self.encoder(x, return_all_temporal=True)
             # Shape: (B, 15, 4, 512)
-        
+
         # Flatten for classifier
         features = features.flatten(1)  # (B, 30720)
         features = self.dropout(features)
@@ -115,12 +115,12 @@ features = self.encoder(x, return_all_temporal=False)  # (B, 4, 512)
 def test_temporal_mode():
     model = create_eegpt_model(checkpoint_path)
     x = torch.randn(2, 20, 1000)  # TUEV input
-    
+
     # Test new mode
     out = model(x, return_all_temporal=True)
     assert out.shape == (2, 15, 4, 512)  # 15 patches for 1000 samples
-    
-    # Test legacy mode  
+
+    # Test legacy mode
     out = model(x, return_all_temporal=False)
     assert out.shape == (2, 4, 512)
 ```
@@ -130,7 +130,7 @@ def test_temporal_mode():
 def test_feature_dimensions():
     model = TUEVModel(checkpoint_path)
     x = torch.randn(2, 20, 1000)
-    
+
     with torch.no_grad():
         features = model.encoder(x, return_all_temporal=True)
         flat = features.flatten(1)
@@ -147,12 +147,12 @@ criterion = nn.CrossEntropyLoss()
 for i in range(10):
     x = torch.randn(4, 20, 1000)
     y = torch.randint(0, 6, (4,))
-    
+
     out = model(x)
     loss = criterion(out, y)
     loss.backward()
     optimizer.step()
-    
+
     print(f"Step {i}: Loss = {loss.item():.4f}")
 ```
 
@@ -164,7 +164,7 @@ for i in range(10):
 - [ ] Create unit tests
 - [ ] Verify shapes match reference
 
-### Week 2  
+### Week 2
 - [ ] Create `train_tuev_fixed.py`
 - [ ] Test on small TUEV subset
 - [ ] Compare to random baseline (0.167)

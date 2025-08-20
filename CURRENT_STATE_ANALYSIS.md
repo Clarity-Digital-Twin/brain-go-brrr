@@ -12,7 +12,7 @@
 ### Deprecation Warning Sources (7 files)
 ```
 1. cli.py:117                     - EEGPTModel import
-2. api/routers/eegpt.py:16       - EEGPTModel import  
+2. api/routers/eegpt.py:16       - EEGPTModel import
 3. api/routers/sleep.py:30       - EEGPTModel import
 4. domain/quality/controller.py:118 - EEGPTModel fallback (intentional)
 5. training/sleep_probe_trainer.py - EEGPTModel import

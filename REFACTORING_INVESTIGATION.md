@@ -103,7 +103,7 @@ src/brain_go_brrr/infra/ml_models/
 1. Replace `EEGPTModel` with `create_normalized_eegpt()` in:
    - `domain/quality/controller.py`
    - `infra/adapters/model_adapter.py`
-   
+
 2. Replace `EEGPTTwoLayerProbe` with `EEGPTProbe(architecture='two_layer')` in:
    - `application/use_cases/tasks/enhanced_abnormality_detection.py`
 

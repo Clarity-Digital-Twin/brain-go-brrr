@@ -27,7 +27,7 @@ uv run python scripts/verify_tuev_dataset.py
 
 ### 3️⃣ Key Differences from TUAB (FINAL - Use Table 13!)
 
-| Parameter | TUAB (Table 12) | TUEV (Table 13) | 
+| Parameter | TUAB (Table 12) | TUEV (Table 13) |
 |-----------|-----------------|-----------------|
 | **Input Size** | 23 × 2000 | **23 × 1000** ([Paper/Table 13]) |
 | **Actual Window** | 7.8 seconds | **[Paper/Table] 3.9s, [Paper/Text] claims 5s** |
@@ -77,13 +77,13 @@ Cohen's Kappa:     0.6351 ± 0.0134
 ## Why TUEV After TUAB?
 
 ```
-Patient EEG → TUAB (abnormal?) 
+Patient EEG → TUAB (abnormal?)
               ↓ if yes
               TUEV (what type?)
               ↓
               Clinical Report:
-              "Abnormal EEG with periodic 
-               lateralized epileptiform 
+              "Abnormal EEG with periodic
+               lateralized epileptiform
                discharges (PLED)"
 ```
 

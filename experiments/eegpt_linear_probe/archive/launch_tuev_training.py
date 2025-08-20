@@ -43,20 +43,20 @@ train_cache = CACHE_DIR / 'tuev_train_cache'
 if not train_cache.exists():
     print("⚠️  Cache not found. Building cache first...")
     print("")
-    
+
     # Build cache
     cmd = [
         sys.executable, 'build_tuev_cache.py',
         '--config', 'configs/tuev_table13_aligned.yaml',
         '--output', str(CACHE_DIR)
     ]
-    
+
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("❌ Cache building failed:")
         print(result.stderr)
         sys.exit(1)
-    
+
     print("✅ Cache built successfully!")
     print("")
 else:
@@ -92,16 +92,16 @@ cmd = [
 # Run training
 with open(log_file, 'w') as f:
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    
+
     # Stream output
     for line in iter(process.stdout.readline, ''):
         if line:
             print(line.rstrip())
             f.write(line)
             f.flush()
-    
+
     process.wait()
-    
+
 if process.returncode == 0:
     print("")
     print("✅ Training completed successfully!")

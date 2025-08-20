@@ -8,7 +8,7 @@ We have **TWO COLLIDING REALITIES**:
 
 ### The Brutal Truth
 - ✅ **Type checking**: 100% green (zero errors)
-- ✅ **Linting**: 100% green (zero issues) 
+- ✅ **Linting**: 100% green (zero issues)
 - ❌ **Tests**: 32+ failures from missing legacy imports
 - ❌ **Compatibility**: Broken for anyone using old APIs
 
@@ -156,7 +156,7 @@ class EEGPTConfig:
     model_size: str = "large"
     embed_dim: int = 512
     max_channels: int = 58
-    
+
     # Original fields
     sampling_rate: int = 256
     window_duration: float = 4.0
@@ -165,11 +165,11 @@ class EEGPTConfig:
     n_channels: int = 20
     device: str = "auto"
     batch_size: int = 32
-    
+
     @property
     def window_samples(self) -> int:
         return int(self.window_duration * self.sampling_rate)
-    
+
     @property
     def n_patches_per_window(self) -> int:
         return self.window_samples // self.patch_size
@@ -185,18 +185,18 @@ def preprocess_for_eegpt(
     """Compatibility function that returns MNERaw."""
     sfreq = target_sfreq or sampling_rate
     raw = raw.copy()
-    
+
     if raw.info["sfreq"] != sfreq:
         raw = raw.resample(sfreq)
-    
+
     raw = raw.filter(l_freq=bandpass[0], h_freq=bandpass[1])
     raw = raw.notch_filter(freqs=notch)
-    
+
     return raw  # Return Raw object for test compatibility
 
 class EEGPTModel:
     # ... existing code ...
-    
+
     def extract_features(self, data, channel_names=None):
         # ... existing code ...
         # Ensure float32 return
@@ -218,7 +218,7 @@ __all__ = ["ParallelEEGPipeline"]
 - **Cons**: 4-5 hours work, must update 60+ test files
 - **Risk**: Medium - could break unknown external dependencies
 
-### Option B Impact  
+### Option B Impact
 - **Pros**: All tests green in 1 hour, ship today
 - **Cons**: Carries minimal tech debt forward
 - **Risk**: Low - purely additive, removes nothing

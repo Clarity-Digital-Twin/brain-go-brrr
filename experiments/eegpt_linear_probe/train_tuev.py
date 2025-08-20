@@ -45,10 +45,10 @@ logger = logging.getLogger(__name__)
 
 class TUEVLinearProbe(nn.Module):
     """TUEV Linear Probe - EXACT Table 13 Architecture."""
-    
+
     def __init__(self, eegpt_checkpoint: str, device: str = 'cuda'):
         """Initialize with frozen EEGPT backbone and TUEV-specific layers.
-        
+
         Architecture from Table 13 (lines 606-613):
         1. Conv1d: 23→20 channels (kernel=1)
         2. BatchNorm + GELU
@@ -59,14 +59,14 @@ class TUEVLinearProbe(nn.Module):
         7. Linear: 15×4×512 → 6 classes
         """
         super().__init__()
-        
+
         # Load frozen EEGPT backbone
         self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
         self.eegpt.model.eval()
         for param in self.eegpt.model.parameters():
             param.requires_grad = False
         self.eegpt.model = self.eegpt.model.to(device)
-        
+
         # Layer 1: Channel reduction (23 → 20)
         self.channel_reducer = nn.Conv1d(
             in_channels=23,
@@ -76,7 +76,7 @@ class TUEVLinearProbe(nn.Module):
             padding=0
         )
         self.bn1 = nn.BatchNorm1d(20)
-        
+
         # Layer 2: Temporal convolution (depthwise)
         self.temporal_conv = nn.Conv1d(
             in_channels=20,
@@ -87,61 +87,61 @@ class TUEVLinearProbe(nn.Module):
             padding=27  # Maintains size
         )
         self.bn2 = nn.BatchNorm1d(20)
-        
+
         # Dropout - CRITICAL: 0.5 for TUEV, not 0.25!
         self.dropout = nn.Dropout(0.5)
-        
+
         # Linear probe using LazyLinear to adapt to actual input size
         # Will automatically handle:
         # - 1000 samples (paper) → 15 patches × 4 × 512 = 30,720 features
         # - 1024 samples (EEGPT pretrain) → 16 patches × 4 × 512 = 32,768 features
         self.classifier = nn.LazyLinear(6)
-        
+
         self.device = device
         self.to(device)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass following Table 13 exactly.
-        
+
         Args:
             x: Input tensor of shape (batch, 23, 1024)
-            
+
         Returns:
             Logits of shape (batch, 6)
         """
-        # Verify input shape  
+        # Verify input shape
         assert x.shape[1:] == (23, 1024), f"Wrong input shape: {x.shape}, expected (batch, 23, 1024)"
-        
+
         # Channel reduction: 23 → 20
         x = self.channel_reducer(x)  # (batch, 20, 1024)
         x = F.gelu(self.bn1(x))
-        
+
         # Temporal convolution (depthwise)
         x = self.temporal_conv(x)  # (batch, 20, 1024)
         x = F.gelu(self.bn2(x))
-        
+
         # Dropout
         x = self.dropout(x)  # (batch, 20, 1024)
-        
+
         # EEGPT encoder (frozen) - get all temporal features
         with torch.no_grad():
             # EEGPT expects (batch, channels, time)
             features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, N_patches, 4, 512)
-        
+
         # Verify patch count matches expected (1024 samples / 64 = 16 patches)
         n_patches = features.shape[1]
         expected_patches = x.shape[-1] // 64
         assert n_patches == expected_patches, f"TUEV patch mismatch: got {n_patches}, expected {expected_patches} from {x.shape[-1]} samples"
-        
+
         # Log shape on first forward for debugging
         if not hasattr(self, '_logged_shape'):
             logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
             self._logged_shape = True
-        
+
         # Flatten all temporal and summary features
         features = features.view(features.size(0), -1)  # (batch, N_patches*4*512)
         logits = self.classifier(features)  # (batch, 6)
-        
+
         return logits
 
 
@@ -157,42 +157,42 @@ def train_epoch(
     model.train()
     # Keep EEGPT frozen
     model.eegpt.model.eval()
-    
+
     all_preds = []
     all_labels = []
     total_loss = 0
-    
+
     pbar = tqdm(train_loader, desc=f"Epoch {epoch:03d} Train")
-    
+
     for batch_idx, (data, labels) in enumerate(pbar):
         data = data.to(device)
         labels = labels.to(device)
-        
+
         # Forward pass
         logits = model(data)
         loss = criterion(logits, labels)
-        
+
         # Backward pass
         optimizer.zero_grad()
         loss.backward()
-        
+
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        
+
         optimizer.step()
-        
+
         # Track predictions
         preds = logits.argmax(dim=1)
         all_preds.extend(preds.cpu().numpy())
         all_labels.extend(labels.cpu().numpy())
         total_loss += loss.item()
-        
+
         # Update progress bar
         pbar.set_postfix({
             'loss': f"{loss.item():.4f}",
             'acc': f"{(preds == labels).float().mean():.3f}"
         })
-    
+
     # Compute metrics
     metrics = {
         'loss': total_loss / len(train_loader),
@@ -200,7 +200,7 @@ def train_epoch(
         'weighted_f1': f1_score(all_labels, all_preds, average='weighted'),
         'cohen_kappa': cohen_kappa_score(all_labels, all_preds)
     }
-    
+
     return metrics
 
 
@@ -213,34 +213,34 @@ def evaluate(
 ) -> Dict[str, float]:
     """Evaluate model."""
     model.eval()
-    
+
     all_preds = []
     all_labels = []
     total_loss = 0
-    
+
     with torch.no_grad():
         pbar = tqdm(val_loader, desc=f"Epoch {epoch:03d} Eval")
-        
+
         for batch_idx, (data, labels) in enumerate(pbar):
             data = data.to(device)
             labels = labels.to(device)
-            
+
             # Forward pass
             logits = model(data)
             loss = criterion(logits, labels)
-            
+
             # Track predictions
             preds = logits.argmax(dim=1)
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
             total_loss += loss.item()
-            
+
             # Update progress bar
             pbar.set_postfix({
                 'loss': f"{loss.item():.4f}",
                 'acc': f"{(preds == labels).float().mean():.3f}"
             })
-    
+
     # Compute metrics
     metrics = {
         'loss': total_loss / len(val_loader),
@@ -249,13 +249,13 @@ def evaluate(
         'cohen_kappa': cohen_kappa_score(all_labels, all_preds),
         'confusion_matrix': confusion_matrix(all_labels, all_preds).tolist()
     }
-    
+
     # Per-class F1
     per_class_f1 = f1_score(all_labels, all_preds, average=None)
     class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
     for i, name in enumerate(class_names):
         metrics[f'f1_{name}'] = per_class_f1[i] if i < len(per_class_f1) else 0.0
-    
+
     return metrics
 
 
@@ -265,29 +265,29 @@ def main(args):
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     random.seed(args.seed)
-    
+
     # Load config
     config = OmegaConf.load(args.config)
-    
+
     # Setup output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = Path(f"output/tuev_{timestamp}_seed{args.seed}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Setup logging
     log_file = output_dir / "training.log"
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
     logger.addHandler(file_handler)
-    
+
     logger.info(f"Starting TUEV training with seed {args.seed}")
     logger.info(f"Config: {config}")
     logger.info(f"Output directory: {output_dir}")
-    
+
     # Critical assertions from Table 13
     assert config.data.batch_size == 500, "Batch size must be 500 (paper line 587)"
     assert config.training.learning_rate == 5e-4, "LR must be 5e-4 (paper line 587)"
-    
+
     # Create datasets
     if args.use_cache:
         logger.info("Using cached dataset with padding to 1024 samples")
@@ -311,7 +311,7 @@ def main(args):
             root_dir=Path(config.data.root_dir),
             split='eval'
         )
-    
+
     # Create data loaders
     train_loader = DataLoader(
         train_dataset,
@@ -321,7 +321,7 @@ def main(args):
         pin_memory=True,
         persistent_workers=True
     )
-    
+
     val_loader = DataLoader(
         val_dataset,
         batch_size=config.data.batch_size,
@@ -330,22 +330,22 @@ def main(args):
         pin_memory=True,
         persistent_workers=True
     )
-    
+
     logger.info(f"Train samples: {len(train_dataset)}")
     logger.info(f"Eval samples: {len(val_dataset)}")
-    
+
     # Create model
     model = TUEVLinearProbe(
         eegpt_checkpoint=config.model.eegpt_checkpoint,
         device=args.device
     )
-    
+
     # Setup loss (weighted for class imbalance)
     class_weights = train_dataset.get_class_weights().to(args.device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     logger.info(f"Class weights: {class_weights}")
-    
-    # Setup optimizer 
+
+    # Setup optimizer
     # [Paper] says "same optimizer" and lr=5e-4 but doesn't name it
     # [Decision] Use AdamW (from pretraining) with constant LR (schedule not specified)
     optimizer = torch.optim.AdamW(
@@ -353,30 +353,30 @@ def main(args):
         lr=config.training.learning_rate,
         weight_decay=config.training.weight_decay
     )
-    
+
     # Training loop
     best_balanced_acc = 0
     best_epoch = 0
     history = []
-    
+
     logger.info("=" * 50)
     logger.info("TUEV Training - Target Performance (from paper):")
     logger.info("  Balanced Accuracy: 0.6232 ± 0.0114")
     logger.info("  Weighted F1:       0.8187 ± 0.0063")
     logger.info("  Cohen's Kappa:     0.6351 ± 0.0134")
     logger.info("=" * 50)
-    
+
     for epoch in range(1, config.training.n_epochs + 1):
         # Train
         train_metrics = train_epoch(
             model, train_loader, optimizer, criterion, args.device, epoch
         )
-        
+
         # Evaluate
         val_metrics = evaluate(
             model, val_loader, criterion, args.device, epoch
         )
-        
+
         # Log metrics
         logger.info(f"Epoch {epoch:03d}:")
         logger.info(f"  Train - Loss: {train_metrics['loss']:.4f}, "
@@ -387,12 +387,12 @@ def main(args):
                    f"BAcc: {val_metrics['balanced_acc']:.4f}, "
                    f"F1: {val_metrics['weighted_f1']:.4f}, "
                    f"Kappa: {val_metrics['cohen_kappa']:.4f}")
-        
+
         # Save best model
         if val_metrics['balanced_acc'] > best_balanced_acc:
             best_balanced_acc = val_metrics['balanced_acc']
             best_epoch = epoch
-            
+
             # Save checkpoint
             checkpoint = {
                 'epoch': epoch,
@@ -403,18 +403,18 @@ def main(args):
             }
             torch.save(checkpoint, output_dir / 'best_model.pt')
             logger.info(f"  → New best model! BAcc: {best_balanced_acc:.4f}")
-        
+
         # Store history
         history.append({
             'epoch': epoch,
             'train': train_metrics,
             'val': val_metrics
         })
-        
+
         # Save history
         with open(output_dir / 'history.json', 'w') as f:
             json.dump(history, f, indent=2)
-    
+
     # Final report
     logger.info("=" * 50)
     logger.info("Training Complete!")
@@ -422,7 +422,7 @@ def main(args):
     logger.info(f"Target from paper:      0.6232")
     logger.info(f"Achievement rate:       {best_balanced_acc/0.6232*100:.1f}%")
     logger.info("=" * 50)
-    
+
     return best_balanced_acc
 
 
@@ -432,8 +432,8 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda', help='Device to use')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--use-cache', action='store_true', help='Use cached dataset')
-    
+
     args = parser.parse_args()
-    
+
     # Run training
     main(args)

@@ -56,7 +56,7 @@ Need to add `return_all_temporal` flag to return:
 ## Why Training Will Fail Now
 
 1. **EEGPT only returns 4 tokens** - Missing temporal dimension
-2. **Train scripts average those 4 to 1** - Losing 75% more features  
+2. **Train scripts average those 4 to 1** - Losing 75% more features
 3. **Configs expect wrong dimensions** - Will crash on model creation
 4. **Linear heads have wrong input size** - Dimension mismatch errors
 

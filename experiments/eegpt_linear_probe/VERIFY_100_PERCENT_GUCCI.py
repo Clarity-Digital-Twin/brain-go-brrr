@@ -91,13 +91,13 @@ try:
         nn.Dropout(0.1),
         nn.Linear(128, 2)
     )
-    
+
     # Test with 16 patches (4s window)
     x = torch.randn(4, 16*4*512)  # batch=4, features=32768
     out = probe(x)
     assert out.shape == (4, 2), f"Wrong output shape: {out.shape}"
     print(f"   ✅ LazyLinear works: {x.shape} -> {out.shape}")
-    
+
     # Verify it's initialized with correct size
     first_layer = probe[0]
     assert first_layer.in_features == 32768, f"Wrong input features: {first_layer.in_features}"

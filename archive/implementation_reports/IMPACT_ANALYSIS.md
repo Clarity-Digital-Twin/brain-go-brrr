@@ -57,7 +57,7 @@ All these tests assert shape == (B, 4, 512):
 
 ### Phase 1: Add Backward-Compatible Flag
 ```python
-def forward(self, x: Tensor, chan_ids: Tensor | None = None, 
+def forward(self, x: Tensor, chan_ids: Tensor | None = None,
             return_all_temporal: bool = False) -> Tensor:
     """
     Returns:
@@ -129,23 +129,23 @@ def forward(self, x: Tensor, chan_ids: Tensor | None = None,
     # ... existing code until line 461 ...
     x = self.patch_embed(x)
     B, N, C, D = x.shape  # (B, num_patches, num_channels, embed_dim)
-    
+
     if return_all_temporal:
         # NEW PATH: Process each temporal position
         x = x.flatten(0, 1)  # (B*N, C, D)
-        
+
         # Add summary tokens to each temporal position
         summary_tokens = self.summary_token.repeat(B * N, 1, 1)
         x = torch.cat([x, summary_tokens], dim=1)
-        
+
         # Transformer blocks
         for block in self.blocks:
             x = block(x)
-        
+
         # Extract summary tokens from each position
         x = x[:, -self.embed_num:, :]  # (B*N, 4, D)
         x = self.norm(x)
-        
+
         # Reshape to preserve temporal
         x = x.reshape(B, N, self.embed_num, D)  # (B, N, 4, 512)
         return x

@@ -17,9 +17,9 @@ Patches (B, 15*20, 512) → Add 4 tokens → Transformer → Extract last 4 → 
 ```
 
 **REFERENCE IMPLEMENTATION**: Processes each temporal position separately:
-```python  
+```python
 # Reference EEGPT
-Patches (B, 15, 20, 512) → Flatten (B*15, 20, 512) → Add 4 tokens to EACH → 
+Patches (B, 15, 20, 512) → Flatten (B*15, 20, 512) → Add 4 tokens to EACH →
 Transformer → Extract 4 from EACH → (B, 15, 4, 512)
 ```
 
@@ -93,55 +93,55 @@ From `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_c
 
 def forward(self, x: Tensor, chan_ids: Tensor | None = None, return_all_tokens: bool = False) -> Tensor:
     """Forward pass through EEG Transformer encoder.
-    
+
     Args:
         x: Input tensor of shape (B, C, T)
         chan_ids: Channel IDs for positional embedding
         return_all_tokens: If True, return all temporal positions × summary tokens
                           If False, return only last 4 summary tokens (legacy)
-    
+
     Returns:
         If return_all_tokens: (B, num_patches, embed_num, embed_dim)
         Else: (B, embed_num, embed_dim) - legacy behavior
     """
     # ... existing code until line 494 ...
-    
+
     # Apply transformer blocks
     for block in self.blocks:
         x = block(x)
-    
+
     if return_all_tokens:
         # NEW: Return ALL temporal positions with their summary tokens
         # Split patches and summary tokens
         num_patches = num_patches * num_channels  # Total patch tokens
         patch_tokens = x[:, :num_patches, :]
         summary_tokens = x[:, -self.embed_num:, :]
-        
+
         # Reshape to preserve temporal structure
         # patch_tokens shape: (B, num_temporal * num_channels, embed_dim)
         # We need: (B, num_temporal, embed_num, embed_dim)
-        
+
         # The reference code reshapes this way (lines 549-550, 558):
         B = batch_size
         N = time_steps // self.patch_size  # num_temporal_patches
-        
+
         # They use the summary tokens PER temporal position
         # So we need to replicate or track summary tokens per patch
-        
+
         # Actually, looking closer at line 536-543:
         # They concatenate summary tokens AFTER flattening patches
         # So each temporal position gets the SAME summary tokens
-        
+
         # Return shape matching reference: (B, N, embed_num, embed_dim)
         summary_tokens = summary_tokens.unsqueeze(1).repeat(1, N, 1, 1)
         x = summary_tokens  # Shape: (B, N, 4, 512)
     else:
-        # Legacy: Extract only the last summary tokens  
+        # Legacy: Extract only the last summary tokens
         x = x[:, -self.embed_num:, :]
-    
+
     # Final normalization
     x = self.norm(x)
-    
+
     return x
 ```
 
@@ -156,20 +156,20 @@ class TUEVLinearProbeFixed(nn.Module):
         # Load EEGPT encoder
         self.encoder = create_eegpt_model(checkpoint_path)
         self.encoder.eval()  # Freeze encoder
-        
+
         # Classifier expects 30,720 features (15 × 4 × 512)
         # This matches reference line 769: LinearWithConstraint(30720, num_classes)
         self.classifier = nn.Linear(15 * 4 * 512, 6)
         self.dropout = nn.Dropout(0.5)  # Match paper Table 13
-    
+
     def forward(self, x):
         with torch.no_grad():
             # Get ALL temporal positions × summary tokens
             features = self.encoder(x, return_all_tokens=True)  # (B, 15, 4, 512)
-        
+
         # Flatten to match reference (line 843)
         features = features.flatten(1)  # (B, 30720)
-        
+
         # Apply dropout and classify
         features = self.dropout(features)
         return self.classifier(features)
@@ -189,7 +189,7 @@ Fix: Process each temporal patch separately, get 4 tokens each
 1. **Matches Reference Exactly**: 30,720 features hardcoded in their classifier
 2. **Preserves Temporal Structure**: Each 250ms window analyzed separately
 3. **Proven Architecture**: Reference achieves 0.62 BAcc with this approach
-4. **Pattern Consistency**: 
+4. **Pattern Consistency**:
    - TUEV: 1000 samples → 15 patches → 15×4×512 = 30,720 features
    - TUAB: 2000 samples → 31 patches → 31×4×512 = 63,488 features
 5. **Fixes Root Cause**: Temporal information preserved, not collapsed
