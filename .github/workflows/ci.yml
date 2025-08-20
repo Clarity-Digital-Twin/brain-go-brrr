@@ -102,49 +102,39 @@ jobs:
       - name: Run quick tests (development)
         if: github.ref == 'refs/heads/development'
         run: |
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
-            --tb=short \
-            --maxfail=5 \
-            -q
+          echo "Running fast tests using Makefile..."
+          make test
 
-      # STAGING: Standard tests (coverage temporarily disabled due to hanging)
+      # STAGING: Standard tests with coverage
       - name: Run standard tests (staging)
         if: github.ref == 'refs/heads/staging'
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
-            -m "not integration and not benchmark and not slow" \
-            --tb=short \
-            --maxfail=10 \
-            -q
+          echo "Running test suite with coverage..."
+          make test-all-cov
 
-      # MAIN: Full test suite (coverage temporarily disabled due to hanging)
+      # MAIN: Full test suite with coverage
       - name: Run full tests (main)
         if: github.ref == 'refs/heads/main'
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
-            -m "not integration and not benchmark and not slow" \
-            -v \
-            --tb=short \
-            --maxfail=10
+          echo "Running full test suite with coverage..."
+          make test-all-cov
 
       # PR: Standard tests
       - name: Run PR tests
         if: github.event_name == 'pull_request'
         run: |
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
-            --tb=short \
-            -q
+          echo "Running PR test suite..."
+          make test
 
-      # Coverage upload disabled (not generating coverage currently)
-      # - name: Upload coverage
-      #   if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     file: ./coverage.xml
-      #     flags: unittests
-      #     name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
+      # Upload coverage for staging and main branches
+      - name: Upload coverage
+        if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
+          fail_ci_if_error: false  # Don't fail if upload fails
 
   # ============================================
   # STAGE 3: EXTENDED TESTS (Python versions - staging/main only)
@@ -176,11 +166,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        run: |
-          uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
-            --tb=short \
-            -q
+        run: make test
 
   # ============================================
   # STAGE 4: SECURITY (Staging & Main Only)
@@ -255,12 +241,7 @@ jobs:
       - name: Run integration tests
         env:
           REDIS_URL: redis://localhost:6379
-        run: |
-          uv run pytest tests \
-            -m "integration" \
-            --run-integration \
-            -v \
-            --tb=short
+        run: make test-integration
 
   # ============================================
   # STAGE 6: BENCHMARKS (Main Only)
@@ -290,13 +271,9 @@ jobs:
 
       - name: Run benchmarks
         env:
-          CI_BENCHMARKS: 0
+          CI_BENCHMARKS: "0"
         run: |
-          uv run pytest tests/benchmarks \
-            -m "not gpu" \
-            --benchmark-json=benchmark_results.json \
-            --benchmark-autosave \
-            --tb=short || true
+          make test-benchmarks || true
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
