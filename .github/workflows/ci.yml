@@ -101,49 +101,84 @@ jobs:
       # DEVELOPMENT: Quick tests only
       - name: Run quick tests (development)
         if: github.ref == 'refs/heads/development'
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          echo "Running minimal test to verify CI..."
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit/test_core_exceptions.py -xvs --tb=short
-          echo "Core test passed! Running smoke tests..."
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/smoke/test_imports.py -xvs --tb=short
+          echo "Running unit and smoke tests..."
+          uv run pytest tests/unit tests/smoke \
+            -m "not integration and not benchmark and not slow and not gpu" \
+            --tb=short \
+            --maxfail=5 \
+            -q \
+            --timeout=60 \
+            --timeout-method=thread
 
-      # STAGING: Standard tests (coverage temporarily disabled due to hanging)
+      # STAGING: Standard tests with coverage
       - name: Run standard tests (staging)
         if: github.ref == 'refs/heads/staging'
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
-            -m "not integration and not benchmark and not slow" \
+          echo "Running standard test suite with coverage..."
+          uv run pytest tests \
+            -m "not integration and not benchmark and not slow and not gpu" \
             --tb=short \
             --maxfail=10 \
+            --cov=brain_go_brrr \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=64 \
+            --timeout=60 \
+            --timeout-method=thread \
             -q
 
-      # MAIN: Full test suite (coverage temporarily disabled due to hanging)
+      # MAIN: Full test suite with coverage
       - name: Run full tests (main)
         if: github.ref == 'refs/heads/main'
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
-            -m "not integration and not benchmark and not slow" \
+          echo "Running full test suite with coverage..."
+          uv run pytest tests \
+            -m "not integration and not benchmark and not slow and not gpu" \
             -v \
             --tb=short \
-            --maxfail=10
+            --maxfail=10 \
+            --cov=brain_go_brrr \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-fail-under=64 \
+            --timeout=60 \
+            --timeout-method=thread
 
       # PR: Standard tests
       - name: Run PR tests
         if: github.event_name == 'pull_request'
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
+          echo "Running PR test suite..."
+          uv run pytest tests/unit tests/smoke \
+            -m "not integration and not benchmark and not slow and not gpu" \
             --tb=short \
+            --maxfail=5 \
+            --timeout=60 \
+            --timeout-method=thread \
             -q
 
-      # Coverage upload disabled (not generating coverage currently)
-      # - name: Upload coverage
-      #   if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     file: ./coverage.xml
-      #     flags: unittests
-      #     name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
+      # Upload coverage for staging and main branches
+      - name: Upload coverage
+        if: (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/main') && always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
+          fail_ci_if_error: false  # Don't fail if upload fails
 
   # ============================================
   # STAGE 3: EXTENDED TESTS (Python versions - staging/main only)
@@ -175,10 +210,16 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/unit tests/smoke \
-            -m "not integration and not benchmark and not slow" \
+          uv run pytest tests/unit tests/smoke \
+            -m "not integration and not benchmark and not slow and not gpu" \
             --tb=short \
+            --maxfail=5 \
+            --timeout=60 \
+            --timeout-method=thread \
             -q
 
   # ============================================
@@ -254,12 +295,16 @@ jobs:
       - name: Run integration tests
         env:
           REDIS_URL: redis://localhost:6379
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
+          uv run pytest tests \
             -m "integration" \
             --run-integration \
             -v \
-            --tb=short
+            --tb=short \
+            --timeout=120 \
+            --timeout-method=thread
 
   # ============================================
   # STAGE 6: BENCHMARKS (Main Only)
@@ -289,14 +334,17 @@ jobs:
 
       - name: Run benchmarks
         env:
-          CI_BENCHMARKS: 0
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: 1
+          CI_BENCHMARKS: "0"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          BGBR_DISABLE_YASA: "1"
         run: |
           uv run pytest tests/benchmarks \
             -m "not gpu" \
             --benchmark-json=benchmark_results.json \
             --benchmark-autosave \
-            --tb=short || true
+            --tb=short \
+            --timeout=180 \
+            --timeout-method=thread || true
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
