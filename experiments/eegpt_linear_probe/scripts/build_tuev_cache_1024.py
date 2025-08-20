@@ -13,15 +13,15 @@ from tuev_dataset import TUEVDataset, build_tuev_cache
 
 def main():
     """Rebuild TUEV cache with correct window size."""
-    
+
     print("=" * 60)
     print("🔧 REBUILDING TUEV CACHE WITH 1024 SAMPLES")
     print("=" * 60)
     print()
-    
+
     # Cache directory
     cache_dir = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_table13_1024")
-    
+
     # Remove old cache if exists
     old_cache = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_table13")
     if old_cache.exists():
@@ -33,14 +33,14 @@ def main():
             print("   ✅ Old cache deleted")
         else:
             print("   ⏩ Keeping old cache, using new directory")
-    
+
     # Build new cache
     print()
     print(f"📦 Building new cache at: {cache_dir}")
     print("   Window size: 1024 samples (4.0s @ 256Hz)")
     print("   This is compatible with EEGPT patch size of 64")
     print()
-    
+
     # Build for both splits
     for split in ['train', 'eval']:
         print(f"\n🔨 Building {split.upper()} cache...")
@@ -50,7 +50,7 @@ def main():
             split=split,
             max_workers=8
         )
-    
+
     print()
     print("=" * 60)
     print("✅ CACHE REBUILD COMPLETE!")

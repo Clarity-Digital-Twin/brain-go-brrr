@@ -13,26 +13,26 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 def main():
     """Test EEGPT output shape."""
-    
+
     # Load EEGPT
     checkpoint = "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
     eegpt = EEGPTWrapper(checkpoint_path=checkpoint)
     eegpt.model.eval()
-    
+
     # Create dummy input (batch=2, channels=20, time=1024)
     x = torch.randn(2, 20, 1024)
-    
+
     print("Input shape:", x.shape)
     print()
-    
+
     # Get features
     with torch.no_grad():
         features = eegpt.extract_features(x)
-    
+
     print("Output shape:", features.shape)
     print("Expected shape: (2, 16, 4, 512) for 16 patches")
     print()
-    
+
     # If it's flattened
     if len(features.shape) == 2:
         print("Features are already flattened!")

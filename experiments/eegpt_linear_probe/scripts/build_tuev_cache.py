@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def build_cache(config_path: str, output_dir: str):
     """Build cached TUEV dataset.
-    
+
     Args:
         config_path: Path to TUEV config file
         output_dir: Directory to save cache
@@ -40,27 +40,27 @@ def build_cache(config_path: str, output_dir: str):
     if 'BGB_DATA_ROOT' not in os.environ:
         os.environ['BGB_DATA_ROOT'] = '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data'
         logger.info(f"Set BGB_DATA_ROOT to {os.environ['BGB_DATA_ROOT']}")
-    
+
     # Load config
     config = OmegaConf.load(config_path)
-    
+
     # Setup cache directory
     cache_dir = Path(output_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    
+
     logger.info(f"Building TUEV cache at {cache_dir}")
     logger.info(f"Config: {config_path}")
-    
+
     # Process both splits
     for split in ['train', 'eval']:
         logger.info(f"\n{'='*50}")
         logger.info(f"Processing {split} split")
         logger.info(f"{'='*50}")
-        
+
         # Create split cache directory
         split_cache = cache_dir / f"tuev_{split}_cache"
         split_cache.mkdir(parents=True, exist_ok=True)
-        
+
         # Create dataset (without cache to force loading)
         dataset = TUEVDataset(
             root_dir=Path(config.data.root_dir),
@@ -69,39 +69,39 @@ def build_cache(config_path: str, output_dir: str):
             resample=True,
             normalize=True
         )
-        
+
         logger.info(f"Found {len(dataset)} windows in {split} split")
-        
+
         # Process and cache all samples
         samples_info = []
         class_counts = {i: 0 for i in range(6)}
-        
+
         for idx in tqdm(range(len(dataset)), desc=f"Caching {split}"):
             # Get sample
             x, y = dataset[idx]
-            
+
             # Verify shape
             assert x.shape == (23, 1000), f"Wrong shape: {x.shape}"
             assert y in range(6), f"Wrong label: {y}"
-            
+
             # Save to disk
             cache_file = f"sample_{idx:06d}.pt"
             cache_path = split_cache / cache_file
-            
+
             torch.save({
                 'x': x,
                 'y': y
             }, cache_path)
-            
+
             # Track info
             samples_info.append({
                 'idx': idx,
                 'cache_file': cache_file,
                 'label': int(y)
             })
-            
+
             class_counts[int(y)] += 1
-        
+
         # Compute class weights
         total = sum(class_counts.values())
         class_weights = []
@@ -109,11 +109,11 @@ def build_cache(config_path: str, output_dir: str):
             count = class_counts[i]
             weight = 1.0 / (count + 1e-6) if count > 0 else 0.0
             class_weights.append(weight)
-        
+
         # Normalize weights
         class_weights = np.array(class_weights)
         class_weights = class_weights / class_weights.sum() * len(class_weights)
-        
+
         # Save index
         index = {
             'split': split,
@@ -125,11 +125,11 @@ def build_cache(config_path: str, output_dir: str):
             'samples': samples_info,
             'config': OmegaConf.to_container(config)
         }
-        
+
         index_path = split_cache / 'index.json'
         with open(index_path, 'w') as f:
             json.dump(index, f, indent=2)
-        
+
         # Report statistics
         logger.info(f"\n{split} Split Statistics:")
         logger.info(f"  Total samples: {len(samples_info)}")
@@ -140,37 +140,37 @@ def build_cache(config_path: str, output_dir: str):
             logger.info(f"    {name}: {count} ({pct:.1f}%)")
         logger.info(f"  Class weights: {class_weights}")
         logger.info(f"  Cache size: {split_cache}")
-    
+
     logger.info(f"\n{'='*50}")
     logger.info("Cache building complete!")
     logger.info(f"Cache directory: {cache_dir}")
-    
+
     # Verify cache
     logger.info("\nVerifying cache...")
     for split in ['train', 'eval']:
         split_cache = cache_dir / f"tuev_{split}_cache"
         index_path = split_cache / 'index.json'
-        
+
         with open(index_path, 'r') as f:
             index = json.load(f)
-        
+
         # Check a few samples
         for i in range(min(3, len(index['samples']))):
             sample_info = index['samples'][i]
             cache_file = split_cache / sample_info['cache_file']
-            
+
             if not cache_file.exists():
                 logger.error(f"Missing cache file: {cache_file}")
                 continue
-            
+
             data = torch.load(cache_file, weights_only=True)
             assert data['x'].shape == (23, 1000), f"Wrong shape in {cache_file}"
             assert data['y'] in range(6), f"Wrong label in {cache_file}"
-        
+
         logger.info(f"✓ {split} cache verified")
-    
+
     logger.info("\n✅ Cache building successful!")
-    
+
     # Print usage instructions
     print("\n" + "="*60)
     print("TUEV CACHE BUILT SUCCESSFULLY!")
@@ -190,7 +190,7 @@ def build_cache(config_path: str, output_dir: str):
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Build TUEV cache")
     parser.add_argument(
         '--config',
@@ -204,11 +204,11 @@ if __name__ == "__main__":
         default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_table13',
         help='Output cache directory'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Set environment variable if not set
     if 'BGB_DATA_ROOT' not in os.environ:
         os.environ['BGB_DATA_ROOT'] = '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data'
-    
+
     build_cache(args.config, args.output)

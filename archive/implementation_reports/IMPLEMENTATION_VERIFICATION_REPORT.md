@@ -7,7 +7,7 @@
 #### 1. EEGPT Architecture - Temporal Features (FIXED ✅)
 **Documentation**: CRITICAL_ISSUES_DEEP_AUDIT.md, EEGPT_FIX_SUMMARY.md
 **Issue**: EEGPT only returning 4 summary tokens instead of N_temporal × 4 × 512
-**Fix Applied**: 
+**Fix Applied**:
 - `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py` line 437-532
 - Added `return_all_temporal` parameter
 - Returns (B, N_temporal, 4, 512) when True
@@ -78,7 +78,7 @@ Based on IMPACT_ANALYSIS.md, these files were mentioned but don't need immediate
 1. ✅ `eegpt_architecture.py` - Added return_all_temporal mode
 2. ✅ `eegpt_wrapper.py` - Pass through temporal flag
 
-### Training Script Changes  
+### Training Script Changes
 3. ✅ `train_tuab.py` - Fixed averaging, use temporal features
 4. ✅ `train_tuev.py` - Fixed classifier dimensions
 
@@ -100,7 +100,7 @@ Based on IMPACT_ANALYSIS.md, these files were mentioned but don't need immediate
 - **Correctness**: ✅ This is CORRECT - config specifies window_duration: 4.0
 
 #### TUEV Features Match
-- **Documented**: 30,720 features (15 patches × 4 × 512) 
+- **Documented**: 30,720 features (15 patches × 4 × 512)
 - **Implemented**: 32,768 features (16 patches × 4 × 512)
 - **Reason**: We're using 1024 samples (4s) which gives 16 patches
 - **Note**: Paper mentions ~3.9s but we use 4.0s for EEGPT compatibility
@@ -123,7 +123,7 @@ Based on IMPACT_ANALYSIS.md, these files were mentioned but don't need immediate
 ```bash
 # Test run output:
 ✅ TUAB 4s: Returns (B, 16, 4, 512) = 32,768 features
-✅ TUEV 4s: Returns (B, 16, 4, 512) = 32,768 features  
+✅ TUEV 4s: Returns (B, 16, 4, 512) = 32,768 features
 ✅ TUAB 8s: Returns (B, 32, 4, 512) = 65,536 features
 ✅ Backward compatibility maintained
 ✅ Training scripts handle new dimensions

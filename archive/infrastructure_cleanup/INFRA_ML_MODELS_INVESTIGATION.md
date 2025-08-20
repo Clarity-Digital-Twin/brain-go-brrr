@@ -30,7 +30,7 @@ The `infra/ml_models` directory is a **MESS** with:
 - **Status**: WIDELY IMPORTED but probably redundant
 - **Used by**: CLI, API routes, adapters
 - **Key classes**: `EEGPTModel`, `EEGPTConfig`, preprocessing functions
-- **Problems**: 
+- **Problems**:
   - Duplicates functionality from `eegpt_wrapper.py`
   - Has its own config system
   - Mixes model with preprocessing
@@ -134,7 +134,7 @@ linear_probe.py (standalone, generic)
 ```python
 # Single configurable probe in eegpt_probe.py
 class EEGPTProbe(nn.Module):
-    def __init__(self, 
+    def __init__(self,
                  n_layers=1,  # 1 or 2 layer
                  robust=False,  # NaN handling
                  channel_adapter=True):  # Channel adaptation

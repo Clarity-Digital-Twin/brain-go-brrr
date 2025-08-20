@@ -2,7 +2,7 @@
 
 ## 🚨 NEW CRITICAL FINDINGS BEYOND EEGPT FEATURES
 
-### 1. **AVERAGING BUG in train_paper_aligned.py** 
+### 1. **AVERAGING BUG in train_paper_aligned.py**
 **Location**: `experiments/eegpt_linear_probe/train_paper_aligned.py:67`
 ```python
 x = features.mean(dim=1)  # (batch_size, embed_dim)
@@ -114,7 +114,7 @@ These aren't minor bugs - they're FUNDAMENTAL ARCHITECTURAL ERRORS!
 
 **Finding**: Train/eval splits appear correct at the file level
 - TUAB: Uses separate directories for train/eval
-- TUEV: Has edf/train and edf/eval structure  
+- TUEV: Has edf/train and edf/eval structure
 - No evidence of data leakage between splits
 - Split happens at subject/recording level, not window level
 

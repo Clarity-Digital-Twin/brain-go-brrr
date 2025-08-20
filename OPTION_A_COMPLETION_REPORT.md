@@ -9,7 +9,7 @@ We successfully executed **Option A: 100% Clean, v2 Semantics** - the complete c
 ### Before Option A
 - ❌ **32+ test failures** from legacy expectations
 - ❌ **19 redirect shim files** in `core/`
-- ❌ **3 deprecated model files** 
+- ❌ **3 deprecated model files**
 - ❌ **Backward compatibility tests** expecting old imports
 
 ### After Option A
@@ -142,7 +142,7 @@ These can be fixed by either:
 
 We achieved a **clean break with 98% test pass rate**. The codebase is now:
 - ✅ Clean architecture with no legacy code
-- ✅ Single unified API 
+- ✅ Single unified API
 - ✅ Zero technical debt
 - ✅ Ready for v2.0
 

@@ -6,7 +6,7 @@ Achieve 100% clean codebase with zero legacy support, zero failing tests.
 ## ⏱️ TIMELINE: 2 HOURS TO VICTORY
 
 ### Phase 1: Quick Wins (15 minutes)
-### Phase 2: Import Updates (30 minutes)  
+### Phase 2: Import Updates (30 minutes)
 ### Phase 3: Test Expectations (45 minutes)
 ### Phase 4: Validation & Cleanup (30 minutes)
 
@@ -43,7 +43,7 @@ rm -rf src/brain_go_brrr/core/
 ```python
 # OLD (lines 44-48)
 from brain_go_brrr.core import preprocessing_utils
-from brain_go_brrr.core.jobs.models import JobData, JobPriority, JobStatus  
+from brain_go_brrr.core.jobs.models import JobData, JobPriority, JobStatus
 from brain_go_brrr.core.cache_port import AsyncCachePort, CachePort
 
 # NEW
@@ -125,7 +125,7 @@ def test_max_channels_property(self):
     assert config.max_channels == 58  # DELETE - deprecated field
 
 def test_n_patches_calculation(self):
-    config = EEGPTConfig()  
+    config = EEGPTConfig()
     assert config.n_patches_per_window == 16  # DELETE - deprecated property
 ```
 

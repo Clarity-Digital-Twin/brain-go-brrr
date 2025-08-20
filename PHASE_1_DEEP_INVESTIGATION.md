@@ -158,7 +158,7 @@ class EEGPTModelAdapter(EEGModelPort):
         # Move to device
         self.model = self.model.to(device)
         # No load_model() needed
-    
+
     def extract_features(self, eeg_data, sampling_rate=256):
         # Convert to torch tensor
         import torch
@@ -174,16 +174,16 @@ Create a compatibility wrapper that matches old API exactly:
 ```python
 class EEGPTModelCompat:
     """Compatibility wrapper for old EEGPTModel API."""
-    
+
     def __init__(self, checkpoint_path: str, device: str = "cpu"):
         self.wrapper = create_normalized_eegpt(checkpoint_path)
         self.device = device
         self.wrapper = self.wrapper.to(device)
-    
+
     def load_model(self):
         """No-op for compatibility."""
         pass
-    
+
     def extract_features(self, eeg_data, channel_names=None):
         """Match old API signature."""
         # Implementation to match old behavior
@@ -224,7 +224,7 @@ probe = EEGPTProbe(architecture='two_layer', n_classes=2)
 2. How to handle channel names vs IDs
 3. Whether backbone_dim=768 is critical
 
-**Recommendation**: 
+**Recommendation**:
 1. First, test the new APIs manually to understand their behavior
 2. Then choose between Solution B (Adapter) or Solution C (Compatibility Wrapper)
 3. Only then proceed with Phase 1 changes

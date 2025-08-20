@@ -61,13 +61,13 @@ Create a thin compatibility wrapper to maintain the same interface:
 # New class in cli.py or separate file
 class CLIModelWrapper:
     """Wrapper to maintain CLI interface compatibility."""
-    
+
     def __init__(self, device: str = "cpu"):
         self.device = device
         self.encoder = create_normalized_eegpt(checkpoint_path=None)
         if self.encoder is not None:
             self.encoder = self.encoder.to(device)
-    
+
     def extract_features(self, data_window, channel_names):
         """Extract features with old API signature."""
         import torch

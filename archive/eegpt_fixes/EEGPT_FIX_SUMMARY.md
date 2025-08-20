@@ -38,7 +38,7 @@ Where N_temporal = Time / 64:
 - Expected: 0.87 AUROC (paper's result)
 - Why it "works": Global features sufficient for abnormal/normal
 
-### TUEV (6-class Events)  
+### TUEV (6-class Events)
 - Current: 0.15 BAcc (worse than random 0.167)
 - Expected: 0.62 BAcc (paper's result)
 - Why it fails: Events need temporal localization

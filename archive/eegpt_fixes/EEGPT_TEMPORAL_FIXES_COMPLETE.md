@@ -61,7 +61,7 @@ input_dim: 32768  # 16 patches × 4 tokens × 512
 
 ```
 ✅ TUAB 4s: Returns (B, 16, 4, 512) = 32,768 features
-✅ TUEV 4s: Returns (B, 16, 4, 512) = 32,768 features  
+✅ TUEV 4s: Returns (B, 16, 4, 512) = 32,768 features
 ✅ TUAB 8s: Returns (B, 32, 4, 512) = 65,536 features
 ✅ Backward compatibility maintained
 ✅ Training scripts handle new dimensions
@@ -91,7 +91,7 @@ cd experiments/eegpt_linear_probe
 # Train TUAB (binary abnormality detection)
 python train_tuab.py --config configs/tuab.yaml
 
-# Train TUEV (6-class event detection)  
+# Train TUEV (6-class event detection)
 python train_tuev.py --config configs/tuev.yaml --use-cache
 ```
 

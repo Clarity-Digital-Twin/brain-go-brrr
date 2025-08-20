@@ -29,7 +29,7 @@ warnings.warn(
 # src/brain_go_brrr/infra/ml_models/eegpt_probe_unified.py
 class EEGPTProbe(nn.Module):
     """Unified EEGPT probe - replaces all variants."""
-    
+
     def __init__(
         self,
         checkpoint_path: Path,
@@ -42,20 +42,20 @@ class EEGPTProbe(nn.Module):
         freeze_backbone: bool = True,
     ):
         super().__init__()
-        
+
         # Load EEGPT backbone
         self.backbone = create_normalized_eegpt(checkpoint_path)
         if freeze_backbone:
             self.backbone.eval()
             for param in self.backbone.parameters():
                 param.requires_grad = False
-        
+
         # Optional channel adapter
         if channel_adapter:
             self.channel_adapter = nn.Conv1d(n_input_channels, 20, 1)
         else:
             self.channel_adapter = None
-        
+
         # Probe architecture
         if architecture == "linear":
             self.probe = nn.Sequential(
@@ -74,28 +74,28 @@ class EEGPTProbe(nn.Module):
                 nn.Dropout(dropout),
                 nn.Linear(hidden_dim // 2, n_classes)
             )
-        
+
         self.robust_mode = robust_mode
-    
+
     def forward(self, x, return_all_temporal=False):
         # Robust mode checks
         if self.robust_mode:
             x = torch.clamp(x, -50, 50)
             assert not torch.isnan(x).any(), "NaN in input"
-        
+
         # Channel adaptation
         if self.channel_adapter:
             x = self.channel_adapter(x)
-        
+
         # Extract features
         features = self.backbone.extract_features(x, return_all_temporal=return_all_temporal)
-        
+
         # Flatten if temporal
         if return_all_temporal:
             features = features.flatten(1)
         else:
             features = features.mean(dim=1) if features.dim() == 3 else features
-        
+
         # Probe
         return self.probe(features)
 ```
@@ -143,11 +143,11 @@ def analyze(model, raw: MNERaw, analysis_type: str) -> dict:
 # eegpt_model.py becomes thin compatibility layer:
 class EEGPTModel:
     """Deprecated - use EEGPTWrapper directly."""
-    
+
     def __init__(self, *args, **kwargs):
         warnings.warn("Use EEGPTWrapper", DeprecationWarning)
         self.encoder = create_normalized_eegpt(...)
-    
+
     # Delegate methods for compatibility
     def extract_features(self, x):
         return self.encoder.extract_features(x)
@@ -216,7 +216,7 @@ from .linear_probe import LinearProbeHead  # Keep generic version
 
 __all__ = [
     "EEGTransformer",
-    "EEGPTWrapper", 
+    "EEGPTWrapper",
     "EEGPTProbe",
     "LinearProbeHead",
     "create_eegpt_model",

@@ -17,7 +17,7 @@ After major refactoring of EEGPT embeddings, TUAB/TUEV training, and DI cache co
 
 ### 2. Probe Model Deprecations (Medium Priority)
 **Files using deprecated probes:**
-- `EEGPTLinearProbe` → `EEGPTProbe` 
+- `EEGPTLinearProbe` → `EEGPTProbe`
   - `tests/unit/test_coverage_boost_refactored.py:137`
 - `EEGPTTwoLayerProbe` → `EEGPTProbe(architecture='two_layer')`
   - `tests/unit/test_coverage_boost_refactored.py:341`
