@@ -341,8 +341,8 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
 	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
 	CI_BENCHMARKS=0 $(PYTEST) tests/benchmarks -m "not gpu" --benchmark-json=benchmark_results.json --benchmark-autosave -v --tb=short || true
-	@# Ensure file exists even if no benchmarks ran (CI artifact upload needs it)
-	@touch benchmark_results.json
+	@# Ensure valid JSON exists even if no benchmarks ran (CI artifact upload needs it)
+	@[ -s benchmark_results.json ] || echo '{"benchmarks": []}' > benchmark_results.json
 
 test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
 	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
