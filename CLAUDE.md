@@ -1,13 +1,15 @@
 # CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
 
-## 🚧 ACTIVE REFACTORING (Aug 19, 2025)
+## 🚧 ACTIVE CI/CD FIXES (Aug 21, 2025)
 
-**Current Work**: Cleaning up technical debt from two major refactorings:
-1. **Clean Architecture** - Migrating from `core.*` to proper DDD layers
-2. **EEGPT Unification** - Replacing 3 deprecated models with unified `EEGPTProbe`
+**Current Work**: Fixing integration and benchmark test failures after refactoring
+1. **Clean Architecture** - Migration from `core.*` to DDD layers (MOSTLY COMPLETE)
+2. **EEGPT Unification** - Compatibility layer created but needs completion
 
-**Status**: 110+ files need updates, 31 deprecation warnings to fix
-**Docs**: See `COMPREHENSIVE_REFACTORING_FIX_PLAN.md` for details
+**Status**: 
+- Integration tests: 34 failures (was 41, fixed 7)
+- Benchmark tests: Empty JSON output issue
+- See `CI_CD_INVESTIGATION.md` for current investigation
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -29,13 +31,26 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.
 
+## ✅ What's Currently Working
+- **YASA Sleep Analysis**: 100% functional, all tests pass
+- **Autoreject QC**: 87% tests pass, core functionality intact
+- **Unit Tests**: ~800+ pass reliably
+- **Basic API**: Health checks and core endpoints work
+- **CI/CD Pipeline**: Staging branch fully green
+
+## ❌ Known Issues (Being Fixed)
+- **Integration Tests**: 34 failures in EEGPT model tests
+- **Benchmark Tests**: Empty JSON output in CI
+- **EEGPT Compatibility**: Missing some expected attributes
+- **Feature Discrimination**: Summary tokens too similar (99.6% correlation)
+
 ## 📚 Project Overview
 
 - **Purpose**: Production-ready Python wrapper around EEGPT for EEG analysis (QC, abnormality detection, sleep staging, event detection)
 - **Model**: EEGPT 10M parameters at `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 - **Architecture**: Service-oriented (not microservices yet), FastAPI + PyTorch + MNE
 - **License**: Apache 2.0 (NOT MIT)
-- **Python**: 3.11+ (current venv uses 3.13.2)
+- **Python**: 3.11-3.12 (3.13 not supported due to scipy/OpenBLAS issues)
 
 ## 📖 Essential Reading Before Starting
 
@@ -123,16 +138,17 @@ This repository has Claude bot integration for autonomous development:
 ```
 brain-go-brrr/
 ├── src/brain_go_brrr/      # Main package (underscore naming!)
-│   ├── core/               # Configuration, logging, exceptions
-│   ├── models/             # EEGPT & task-specific models
-│   ├── data/               # Data loading & preprocessing
-│   ├── training/           # Fine-tuning pipelines
-│   ├── inference/          # Prediction & serving
+│   ├── api/                # FastAPI routes and endpoints
+│   ├── application/        # Application layer (use cases, services)
+│   ├── domain/             # Domain layer (entities, business logic)
+│   ├── infra/              # Infrastructure layer (external services, ML models)
+│   │   └── ml_models/      # EEGPT models and wrappers
+│   ├── services/           # Service layer (orchestration)
+│   ├── models/             # Legacy models (being migrated)
+│   ├── utils/              # Utilities and helpers
 │   └── cli.py              # Typer CLI interface
-├── services/               # High-level processing services
-│   ├── qc_flagger.py      # Autoreject + EEGPT quality control
-│   ├── sleep_metrics.py   # YASA sleep staging & metrics
-│   └── snippet_maker.py   # Snippet extraction + tsfresh
+├── experiments/            # Training scripts and experiments
+│   └── eegpt_linear_probe/ # EEGPT fine-tuning (USE THIS FOR TRAINING)
 ├── reference_repos/        # 9 critical EEG/ML libraries
 │   ├── EEGPT/             # Original implementation
 │   ├── mne-python/        # EEG processing foundation
