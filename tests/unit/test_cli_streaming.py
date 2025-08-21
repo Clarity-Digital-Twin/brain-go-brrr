@@ -411,7 +411,7 @@ class TestCLIStreamingIntegrationWithModel:
     @pytest.fixture
     def model_checkpoint_path(self, project_root) -> Path:
         """Get model checkpoint path if available."""
-        checkpoint = project_root / "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+        checkpoint = project_root / "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
         if not checkpoint.exists():
             pytest.skip("Model checkpoint not available")
         return checkpoint

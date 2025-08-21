@@ -236,7 +236,7 @@ test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_R
 
 test-with-model: ## Run tests requiring trained EEGPT model (accuracy, discrimination)
 	@echo "$(YELLOW)Running model-dependent tests...$(NC)"
-	@if [ ! -f "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then \
+	@if [ ! -f "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then \
 		echo "$(RED)EEGPT model checkpoint not found, skipping$(NC)"; exit 0; \
 	fi
 	$(PYTEST) tests --run-integration -m "requires_model" -v --tb=short
