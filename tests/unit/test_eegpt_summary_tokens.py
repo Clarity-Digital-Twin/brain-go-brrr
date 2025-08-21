@@ -133,31 +133,15 @@ class TestEEGPTSummaryTokens:
 
     def test_encoder_output_contains_summary_tokens(self, eegpt_model, channel_names):
         """Check that encoder actually outputs summary tokens."""
-        # Generate test data
+        # Generate test data - encoder expects (B, C, T)
         data = np.random.randn(19, 1024) * 50e-6
-
-        # We need to check what the encoder actually outputs
-        # This will help us understand the architecture
-
-        # Prepare data for encoder
-        patch_size = 64
-        n_patches = 1024 // patch_size  # 16 patches
-
-        # Reshape data into patches
-        data_patched = data.reshape(19, n_patches, patch_size)
-        data_rearranged = np.transpose(data_patched, (1, 0, 2))
-        data_flattened = data_rearranged.reshape(-1, patch_size)
-
-        # Convert to tensor
-        data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(eegpt_model.device)
-
-        # Get channel IDs and convert to tensor
-        chan_ids = eegpt_model._get_cached_channel_ids(channel_names)
-        chan_ids_tensor = torch.tensor(chan_ids, dtype=torch.long, device=eegpt_model.device)
-
-        # Run through encoder
+        
+        # Convert to tensor with correct shape (batch, channels, time)
+        data_tensor = torch.FloatTensor(data).unsqueeze(0).to(eegpt_model.device)
+        
+        # Run through encoder - it handles channel IDs internally
         with torch.no_grad():
-            encoder_output = eegpt_model.encoder(data_tensor, chan_ids_tensor)
+            encoder_output = eegpt_model.encoder(data_tensor)
 
         # Check output shape - should contain summary tokens
 

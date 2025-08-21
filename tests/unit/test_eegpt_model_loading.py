@@ -67,50 +67,33 @@ class TestEEGPTModelLoading:
         # so we skip this test as it's covered by other tests
 
     def test_feature_extraction_requires_loaded_model(self):
-        """Test that feature extraction requires a loaded model."""
-        # Given: An unloaded model
-        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
-
-        # When: We try to extract features
+        """Test that feature extraction auto-loads model if needed."""
+        # Given: An unloaded model (no checkpoint file exists)
+        model = EEGPTModel(checkpoint_path=None, auto_load=False)
+        
+        # When: We extract features, model should auto-load
         import numpy as np
-
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
-
-        # The model should auto-load if not loaded
-        with patch("brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt") as mock_create:
-            mock_encoder = MagicMock()
-            # Mock extract_features method to return correct shape
-            mock_encoder.extract_features.return_value = torch.randn(1, 4, 512)  # batch, tokens, embed_dim
-            mock_create.return_value = mock_encoder
-
-            with patch.object(Path, "exists", return_value=True):
-                features = model.extract_features(data, channel_names)
-
-        # Then: Features should be extracted (model auto-loaded)
+        
+        features = model.extract_features(data, channel_names)
+        
+        # Then: Should return features with correct shape
         assert features is not None
+        assert features.shape == (4, 512)  # Summary tokens
+        assert model.is_loaded is True
 
     def test_feature_extraction_with_loaded_model(self):
-        """Test feature extraction with a loaded model."""
-        # Given: A loaded model
-        model = EEGPTModel(checkpoint_path=Path("test.ckpt"), auto_load=False)
-
-        # Mock the model loading
-        with patch("brain_go_brrr.infra.ml_models.eegpt_wrapper.create_normalized_eegpt") as mock_create:
-            mock_encoder = MagicMock()
-            # Mock extract_features method to return correct shape
-            mock_encoder.extract_features.return_value = torch.randn(1, 4, 512)  # batch, tokens, embed_dim
-            mock_create.return_value = mock_encoder
-
-            with patch.object(Path, "exists", return_value=True):
-                model.load_model()
-
+        """Test feature extraction with a pre-loaded model."""
+        # Given: A model that auto-loads on init
+        model = EEGPTModel(checkpoint_path=None, auto_load=True)
+        assert model.is_loaded is True
+        
         # When: We extract features
         import numpy as np
-
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
         features = model.extract_features(data, channel_names)
-
+        
         # Then: Features should have the correct shape
         assert features.shape == (4, 512)  # 4 summary tokens, 512 embedding dim

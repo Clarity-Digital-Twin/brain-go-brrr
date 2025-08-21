@@ -221,9 +221,9 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--maxfail=10 \
 		-q
 
-test-integration: ## Run integration tests (CI-friendly: skip GPU and data tests)
+test-integration: ## Run integration tests (CI-friendly: skip GPU, data, and model-requiring tests)
 	@echo "$(GREEN)Running CI-friendly integration tests...$(NC)"
-	$(PYTEST) tests --run-integration -m "integration and not gpu and not data" -v --tb=short
+	$(PYTEST) tests --run-integration -m "integration and not gpu and not data and not requires_model" -v --tb=short
 	@echo "$(GREEN)Integration tests complete!$(NC)"
 
 test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_ROOT)
@@ -233,6 +233,14 @@ test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_R
 	fi
 	$(PYTEST) tests --run-integration --run-data -m "integration and data and not gpu" -v --tb=short
 	@echo "$(GREEN)Data integration tests complete!$(NC)"
+
+test-with-model: ## Run tests requiring trained EEGPT model (accuracy, discrimination)
+	@echo "$(YELLOW)Running model-dependent tests...$(NC)"
+	@if [ ! -f "data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then \
+		echo "$(RED)EEGPT model checkpoint not found, skipping$(NC)"; exit 0; \
+	fi
+	$(PYTEST) tests --run-integration -m "requires_model" -v --tb=short
+	@echo "$(GREEN)Model tests complete!$(NC)"
 
 test-all: ## Run ALL tests including integration (full suite)
 	@echo "$(GREEN)Running full test suite with integration tests...$(NC)"
