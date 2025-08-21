@@ -1,8 +1,10 @@
 # EEGPT Implementation Guide
 
+**Current Status**: ✅ Implemented and working for feature extraction
+
 ## Overview
 
-EEGPT is a 10-million-parameter pretrained transformer model designed for universal EEG feature extraction. This guide provides comprehensive implementation details extracted from the original paper.
+EEGPT is a 10-million-parameter pretrained transformer model designed for universal EEG feature extraction. This guide documents our actual implementation in Brain-Go-Brrr.
 
 ## Core Architecture
 
@@ -63,16 +65,28 @@ mask_ratio_time: 0.5
 mask_ratio_channel: 0.8
 ```
 
-### Data Preprocessing
-1. **Resampling**: Standardize to 256Hz
-2. **Filtering**: 0.5-50Hz bandpass
+### Data Preprocessing (Production Requirements)
+1. **Resampling**: MUST be 256Hz (EEGPT requirement)
+2. **Filtering**: 0.5-50Hz bandpass (optional but recommended)
 3. **Normalization**: Z-score per channel
-4. **Windowing**: 4-second segments (1024 samples)
-5. **Channel Mapping**: Handle different montages
+4. **Windowing**: **CRITICAL - Must be exactly 4-second segments (1024 samples)**
+5. **Channel Mapping**: Automatic conversion (T3→T7, T4→T8, T5→P7, T6→P8)
 
-## Implementation Details
+## Actual Implementation
 
-### 1. Patch Embedding
+### Production Code Location
+- **Main Model**: `src/brain_go_brrr/infra/ml_models/eegpt_compat.py`
+- **Architecture**: `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py`
+- **Wrapper**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py`
+- **Checkpoint**: `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+
+### Known Issues
+1. **Summary Token Similarity**: All 4 summary tokens have 99.6% correlation
+   - Expected: Diverse representations
+   - Actual: Near-identical embeddings
+   - Impact: Reduced discriminative power
+
+### 1. Patch Embedding (Theoretical)
 ```python
 class PatchEmbedding(nn.Module):
     def __init__(self, patch_size=64, d_model=768):

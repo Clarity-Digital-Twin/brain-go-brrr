@@ -1,8 +1,25 @@
 # API Design Patterns for Brain-Go-Brrr
 
+**Current Status**: Mixed - some patterns implemented, others planned
+
 ## Executive Summary
 
-This document defines RESTful API design patterns for the Brain-Go-Brrr EEG analysis platform. We follow industry best practices for medical data APIs, ensuring security, reliability, and developer-friendly interfaces while maintaining HIPAA compliance.
+This document defines RESTful API design patterns for the Brain-Go-Brrr EEG analysis platform. It includes both implemented patterns and planned future patterns for a production-ready medical API.
+
+## Implementation Status
+
+### ✅ Implemented
+- Basic RESTful endpoints (`/api/v1/eeg/analyze`)
+- File upload handling
+- JSON responses with triage flags
+- Error handling
+
+### 🔴 Not Implemented (Planned)
+- Authentication/Authorization (JWT)
+- HIPAA compliance features
+- Rate limiting
+- Audit trails
+- Patient management endpoints
 
 ## Core API Design Principles
 

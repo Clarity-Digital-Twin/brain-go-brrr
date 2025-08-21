@@ -14,7 +14,7 @@ Brain-Go-Brrr is a research-grade EEG analysis platform integrating the EEGPT fo
 │                    (API Endpoints, CLI)                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                         APPLICATION                             │
-│              (Use Cases, Factories, Orchestration)             │
+│              (Use Cases, Factories, Orchestration)              │
 ├─────────────────────────────────────────────────────────────────┤
 │                           DOMAIN                                │
 │            (Business Logic, Ports, Domain Services)             │
@@ -22,8 +22,8 @@ Brain-Go-Brrr is a research-grade EEG analysis platform integrating the EEGPT fo
 └─────────────────────────────────────────────────────────────────┘
         ↑                       ↑                        ↑
 ┌───────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│ INFRASTRUCTURE│    │   INFRASTRUCTURE  │    │  INFRASTRUCTURE  │
-│   (ML Models) │    │     (External)    │    │   (Data Access)  │
+│ INFRASTRUCTURE│    │  INFRASTRUCTURE  │    │  INFRASTRUCTURE  │
+│   (ML Models) │    │    (External)    │    │   (Data Access)  │
 └───────────────┘    └──────────────────┘    └──────────────────┘
 ```
 

@@ -1,4 +1,6 @@
-# PC Setup Guide - File Placement Map
+# Data Transfer Setup Guide
+
+**Purpose**: Instructions for setting up Brain-Go-Brrr with pre-downloaded data package
 
 ## 📦 What's in the transfer package
 
