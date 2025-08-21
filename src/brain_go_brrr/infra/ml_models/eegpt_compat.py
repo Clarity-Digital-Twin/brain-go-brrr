@@ -83,9 +83,21 @@ class EEGPTModel:
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.is_loaded = False
         self.encoder: Any | None = None
-        
+
         # Add missing attributes that tests expect
-        self.config = EEGPTConfig(**(config or {}))
+        # Handle both dict and object config
+        if config is not None:
+            if hasattr(config, '__dict__'):
+                # It's an object (like ModelConfig), convert to dict
+                config_dict = {k: v for k, v in config.__dict__.items()
+                              if not k.startswith('_') and k in EEGPTConfig.__dataclass_fields__}
+            else:
+                # It's already a dict
+                config_dict = config
+        else:
+            config_dict = {}
+
+        self.config = EEGPTConfig(**config_dict)
         self.n_summary_tokens = 4  # Tests expect this
 
         # Auto-load if requested
@@ -107,7 +119,7 @@ class EEGPTModel:
             if self.encoder is not None:
                 self.encoder = self.encoder.to(self.device)
         self.is_loaded = True
-    
+
     def _get_cached_channel_ids(self, channel_names: list[str]) -> list[int]:
         """Get channel IDs for compatibility (tests expect this method)."""
         # Simple mapping for now - can be enhanced with actual channel mapping logic
@@ -172,7 +184,7 @@ class EEGPTModel:
                         # Repeat to get 4 tokens
                         repeats = 4 // features.shape[0] + 1
                         features = np.tile(features, (repeats, 1))[:4]
-            
+
             # Ensure correct shape for summary tokens
             if features.shape != (4, 512) and self.n_summary_tokens == 4:
                 # Last resort: create dummy shape
