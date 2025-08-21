@@ -112,19 +112,19 @@ jobs:
           echo "Running fast tests using Makefile..."
           make test
 
-      # STAGING: Standard tests
-      - name: Run standard tests (staging)
+      # STAGING: Standard tests with coverage
+      - name: Run standard tests with coverage (staging)
         if: github.ref == 'refs/heads/staging'
         run: |
-          echo "Running test suite..."
-          make test
+          echo "Running test suite with coverage..."
+          make test-all-cov
 
-      # MAIN: Full test suite
-      - name: Run full tests (main)
+      # MAIN: Full test suite with coverage
+      - name: Run full tests with coverage (main)
         if: github.ref == 'refs/heads/main'
         run: |
-          echo "Running full test suite..."
-          make test
+          echo "Running full test suite with coverage..."
+          make test-all-cov
 
       # PR: Standard tests
       - name: Run PR tests

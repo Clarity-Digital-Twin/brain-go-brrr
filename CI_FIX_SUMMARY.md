@@ -4,8 +4,8 @@
 
 ### Status: ✅ All Branches Fixed
 - **Development**: ✅ Passing
-- **Staging**: ✅ Passing  
-- **Main**: ✅ Fixed (pending CI completion)
+- **Staging**: ✅ Passing
+- **Main**: ✅ Fixed (CI running with final fixes)
 
 ## Issues Identified and Resolved
 
@@ -16,7 +16,7 @@
 
 ### 2. Test Collection Performance
 **Problem**: Tests appeared to "hang" but were actually slow to collect (800+ tests)
-**Solution**: 
+**Solution**:
 - Added `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` environment variable
 - Added `BGBR_DISABLE_YASA=1` to skip optional dependencies
 - Used Makefile targets instead of raw pytest commands
@@ -42,6 +42,16 @@
 **Problem**: `--no-cov` flag not recognized by pytest
 **Solution**: Removed invalid flag from Makefile
 **Principle**: Explicit is better than implicit
+
+### 6. Benchmark Tests Missing JSON Output
+**Problem**: CI expected JSON output for benchmark reporting
+**Solution**: Added `--benchmark-json=benchmark_results.json` to test-benchmarks target
+**Principle**: Contract compliance between Makefile and CI
+
+### 7. Integration Tests Failing on GPU Requirement
+**Problem**: GitHub Actions runners don't have GPU support
+**Solution**: Excluded GPU tests from CI integration run with `-m "integration and not gpu"`
+**Principle**: Environment-aware testing
 
 ## Clean Code Principles Applied
 

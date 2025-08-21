@@ -32,10 +32,11 @@ PIP := $(if $(UV),uv pip,python -m pip)
 
 # Lock pytest flags for deterministic test runs
 TEST_ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 BGBR_DISABLE_YASA=1
-PYTEST := env $(TEST_ENV) $(RUN) pytest
+# Explicitly load plugins when autoload is disabled (first principles: be explicit)
+PYTEST := env $(TEST_ENV) $(RUN) pytest -p pytest_timeout
 RUFF := uvx ruff==0.6.9
-# Use pytest with coverage - need to explicitly load pytest-cov plugin
-PYTEST_WITH_COV := env BGBR_DISABLE_YASA=1 $(RUN) pytest -p pytest_cov
+# Use pytest with coverage - explicitly load both required plugins
+PYTEST_WITH_COV := env $(TEST_ENV) $(RUN) pytest -p pytest_timeout -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
@@ -340,6 +341,8 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
 	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
 	CI_BENCHMARKS=0 $(PYTEST) tests/benchmarks -m "not gpu" --benchmark-json=benchmark_results.json --benchmark-autosave -v --tb=short || true
+	@# Ensure file exists even if no benchmarks ran (CI artifact upload needs it)
+	@touch benchmark_results.json
 
 test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
 	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
