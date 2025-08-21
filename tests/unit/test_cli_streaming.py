@@ -431,7 +431,7 @@ class TestCLIStreamingIntegrationWithModel:
         raw = mne.io.read_raw_edf(short_edf_path, preload=False, verbose=False)
         if raw.info["sfreq"] < 256:
             pytest.skip(f"EDF file at {raw.info['sfreq']}Hz, EEGPT needs 256Hz")
-        
+
         # Set environment variable for model path
         monkeypatch.setenv("EEGPT_CHECKPOINT_PATH", str(model_checkpoint_path))
 
