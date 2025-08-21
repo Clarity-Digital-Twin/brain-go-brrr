@@ -1,8 +1,10 @@
 # Failure Mode Analysis for Brain-Go-Brrr
 
+**Current Status**: Basic error handling implemented, comprehensive failure analysis planned
+
 ## Executive Summary
 
-This document provides a comprehensive analysis of potential failure modes in the Brain-Go-Brrr EEG analysis pipeline, along with detection strategies, mitigation approaches, and recovery procedures. Given the medical nature of the application, we prioritize patient safety and result reliability.
+This document analyzes potential failure modes in the Brain-Go-Brrr EEG analysis pipeline. Note: This is research software, not a clinical system. Failure modes are documented for reliability, not patient safety compliance.
 
 ## Critical Failure Categories
 

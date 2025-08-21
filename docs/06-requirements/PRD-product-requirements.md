@@ -1,26 +1,27 @@
 # Product Requirements Document (PRD)
-## EEGPT Clinical Decision Support System
+## EEGPT Research Analysis System
 
 ### Document Control
 - **Version**: 1.0.0
-- **Status**: Draft
-- **Last Updated**: 2025-01-17
-- **Owner**: Product Management
-- **Approvers**: Clinical Lead, Engineering Lead, Regulatory Lead
+- **Status**: Research Software
+- **Last Updated**: 2025-08-21
+- **Purpose**: Research and Development
 
 ### Executive Summary
-This PRD defines the requirements for an AI-powered EEG analysis system that provides clinical decision support for neurologists and EEG technicians. The system leverages the EEGPT foundation model to automate quality control, abnormality detection, and event classification.
+This PRD defines the requirements for a research-grade AI-powered EEG analysis system. The system leverages the EEGPT foundation model to automate quality control, abnormality detection, and sleep staging for research purposes.
+
+⚠️ **DISCLAIMER**: This is research software only. Not intended for clinical use or FDA approval.
 
 ### Problem Statement
-Current EEG workflow challenges:
-- 48+ hour backlogs in EEG reading
-- Manual markup takes 1+ hours per study
-- 20% of subtle abnormalities missed
-- No triage system for urgent cases
+Research EEG analysis challenges:
+- Time-consuming manual analysis
+- Need for automated feature extraction
+- Lack of standardized preprocessing
 - Inconsistent quality control
+- Limited availability of trained annotators
 
 ### Product Vision
-Create an FDA Class II medical device software that serves as an AI co-pilot for EEG analysis, reducing turnaround time by 50% while maintaining or improving diagnostic accuracy.
+Create a research platform that accelerates EEG analysis for academic and research purposes, providing automated preprocessing, feature extraction, and classification capabilities.
 
 ### Target Users
 1. **Primary Users**

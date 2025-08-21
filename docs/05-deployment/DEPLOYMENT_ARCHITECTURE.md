@@ -1,34 +1,39 @@
 # Deployment Architecture for Brain-Go-Brrr
 
+**Current Status**: Docker deployment ready, Kubernetes planned
+
 ## Executive Summary
 
-This document defines the production deployment architecture for Brain-Go-Brrr, designed for high availability, scalability, and HIPAA compliance. We use a containerized microservices architecture with Kubernetes orchestration, ensuring zero-downtime deployments and automatic scaling based on demand.
+This document describes the deployment architecture for Brain-Go-Brrr. Currently, we support Docker deployment with docker-compose. Advanced Kubernetes deployment is planned but not implemented.
 
 ## Architecture Overview
 
-### High-Level Architecture
+### ✅ Current Architecture (Docker)
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   CloudFront    │────▶│ Load Balancer   │────▶│   API Gateway   │
-│      (CDN)      │     │     (ALB)       │     │   (Kong/Nginx)  │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                                                          │
-                              ┌──────────────────────────┼──────────────────────────┐
-                              │                          │                          │
-                              ▼                          ▼                          ▼
-                     ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-                     │   API Service   │      │ Analysis Worker │      │  Admin Service  │
-                     │   (FastAPI)     │      │   (Celery)      │      │   (Django)      │
-                     └─────────────────┘      └─────────────────┘      └─────────────────┘
-                              │                          │                          │
-                  ┌──────────┴──────────┬───────────────┴──────────┬──────────────┘
-                  │                     │                           │
-                  ▼                     ▼                           ▼
-         ┌─────────────────┐  ┌─────────────────┐      ┌─────────────────┐
-         │   PostgreSQL    │  │     Redis       │      │   S3 Storage    │
-         │  (TimescaleDB)  │  │ (Cache/Queue)   │      │  (EEG Files)    │
-         └─────────────────┘  └─────────────────┘      └─────────────────┘
+┌─────────────────┐
+│   Client/User   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   FastAPI       │ Port 8000
+│   (API Service) │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│     Redis       │ Port 6379
+│    (Cache)      │
+└─────────────────┘
 ```
+
+### 🔴 Planned Architecture (Not Implemented)
+- Load balancing with Nginx
+- Kubernetes orchestration
+- PostgreSQL database
+- S3 storage for EEG files
+- Celery workers for async processing
+- Authentication service
 
 ## Container Architecture
 

@@ -1,8 +1,10 @@
 # Performance Benchmarking Guide for Brain-Go-Brrr
 
+**Current Status**: Basic benchmarks implemented in `tests/benchmarks/`
+
 ## Executive Summary
 
-This guide provides comprehensive performance benchmarking specifications for the Brain-Go-Brrr EEG analysis pipeline. We define metrics, targets, and testing procedures to ensure the system meets real-time processing requirements while maintaining accuracy.
+This guide documents performance benchmarking for the Brain-Go-Brrr EEG analysis pipeline, including both achieved metrics and future targets.
 
 ## Performance Requirements Overview
 
@@ -14,15 +16,15 @@ This guide provides comprehensive performance benchmarking specifications for th
 - **GPU Utilization**: >80% during inference
 - **Cache Hit Rate**: >90% for repeated analyses
 
-### Model-Specific Targets
+### Achieved Performance Metrics
 
-| Component | Accuracy Target | Speed Target | Memory Budget |
-|-----------|----------------|--------------|---------------|
-| EEGPT | - | 32 windows/sec | 1.5GB |
-| AutoReject | 87.5% agreement | <5s per recording | 500MB |
-| Abnormal Detection | 80% BAC, 0.93 AUROC | <1s per window | 200MB |
-| YASA Sleep | 87.46% accuracy | <30s per hour | 1GB |
-| Event Detection | 80% sensitivity | <2s per minute | 300MB |
+| Component | Status | Accuracy Achieved | Speed Achieved | Memory Usage |
+|-----------|--------|------------------|----------------|--------------|
+| EEGPT | ✅ Working | N/A (features only) | ~10 windows/sec (CPU) | 1.5GB |
+| AutoReject | ✅ Working | 87% agreement | <30s per recording | ~2GB |
+| YASA Sleep | ✅ Working | 87% accuracy | <30s per 8-hour | 1GB |
+| Abnormal Detection | 🟡 Training | TBD | TBD | TBD |
+| Event Detection | 🔴 Not implemented | - | - | - |
 
 ## Benchmarking Framework
 

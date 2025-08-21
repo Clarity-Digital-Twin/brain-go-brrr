@@ -1,12 +1,14 @@
 # Technical Requirements Document (TRD)
-## EEGPT Clinical Decision Support System
+## EEGPT Research Analysis System
 
 ### Document Control
 - **Version**: 1.0.0
-- **Status**: Draft
-- **Last Updated**: 2025-01-17
-- **Owner**: Engineering Lead
+- **Status**: Research Software
+- **Last Updated**: 2025-08-21
+- **Purpose**: Technical Specification for Research
 - **References**: PRD-product-requirements.md, literature-master-reference.md
+
+⚠️ **DISCLAIMER**: This is research software only. Not for clinical use.
 
 ### System Architecture
 

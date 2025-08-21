@@ -1,8 +1,10 @@
 # Integration Test Scenarios for Brain-Go-Brrr
 
+**Current Status**: Partially implemented - basic integration tests exist
+
 ## Executive Summary
 
-This document defines comprehensive integration test scenarios for the Brain-Go-Brrr EEG analysis pipeline. These tests ensure that all components work together seamlessly to deliver accurate, reliable results in real-world scenarios.
+This document defines integration test scenarios for the Brain-Go-Brrr EEG analysis pipeline. It includes both implemented tests and planned scenarios for future development.
 
 ## Integration Testing Philosophy
 
@@ -15,46 +17,35 @@ This document defines comprehensive integration test scenarios for the Brain-Go-
 
 ## Test Environment Setup
 
-### Infrastructure Requirements
+### ✅ Currently Implemented
+- Redis for caching (via docker-compose.yml)
+- FastAPI test client
+- Mock EEG fixtures in `tests/fixtures/eeg/`
+- EEGPT model testing with real checkpoint
+
+### 🔴 Not Implemented (Planned)
+- PostgreSQL database
+- MinIO/S3 storage
+- Full Kubernetes testing environment
+
+### Actual Test Infrastructure
 ```yaml
-# docker-compose.test.yml
+# docker-compose.yml (simplified, actual)
 version: '3.8'
 services:
-  postgres:
-    image: timescale/timescaledb:2.11.0-pg15
-    environment:
-      POSTGRES_DB: braintest
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpass
-    volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass testpass
-
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - ./test-data:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
 
   api:
     build: .
     environment:
-      DATABASE_URL: postgresql://testuser:testpass@postgres:5432/braintest
-      REDIS_URL: redis://:testpass@redis:6379/0
-      S3_ENDPOINT: http://minio:9000
-      MODEL_PATH: /models
+      REDIS_URL: redis://redis:6379
+      EEGPT_MODEL_PATH: /app/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
     volumes:
-      - ./models:/models
-    depends_on:
-      - postgres
-      - redis
-      - minio
+      - ./data:/app/data
 ```
 
 ## Component Integration Scenarios
