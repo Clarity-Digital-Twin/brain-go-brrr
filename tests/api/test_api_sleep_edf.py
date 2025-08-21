@@ -238,10 +238,8 @@ class TestAPIRobustness:
         assert response.status_code == 200
         data = response.json()
         assert data["flag"] == "ERROR"
-        assert data["flag"] == "ERROR"
 
     @pytest.mark.integration
-    @pytest.mark.slow
     @pytest.mark.slow
     def test_concurrent_sleep_edf_processing(self, client):
         """Test concurrent processing of Sleep-EDF files."""
