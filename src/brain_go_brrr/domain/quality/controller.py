@@ -118,14 +118,16 @@ class CleanQualityController:
                 try:
                     from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
-                    model = EEGPTModel(eegpt_model_path)  # type: ignore[assignment]
+                    model = EEGPTModel(checkpoint_path=eegpt_model_path, auto_load=False)  # type: ignore[assignment]
                     self.model = model
                 except Exception:
                     # If both fail, continue with None
                     pass
 
         # Store model reference for backward compatibility
-        self.eegpt_model = model
+        # Only set if we actually created a model
+        if model is not None:
+            self.eegpt_model = model
 
     @property
     def eegpt_model(self) -> Any | None:
