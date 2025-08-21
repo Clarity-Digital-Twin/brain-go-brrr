@@ -15,7 +15,7 @@ Multiple fundamental issues with the EEGPT model wrapper:
 
 #### Missing Attributes
 - `EEGPTModel` missing `config` attribute
-- `EEGPTModel` missing `n_summary_tokens` attribute  
+- `EEGPTModel` missing `n_summary_tokens` attribute
 - `EEGPTModel` missing `_get_cached_channel_ids` method
 
 #### Wrong Output Shapes
@@ -41,7 +41,7 @@ Multiple fundamental issues with the EEGPT model wrapper:
 - Concurrent processing
 - CLI streaming functionality
 
-#### EEGPT Core (10 failures)  
+#### EEGPT Core (10 failures)
 - Model architecture tests
 - Feature extraction pipeline
 - Abnormality prediction
@@ -50,7 +50,7 @@ Multiple fundamental issues with the EEGPT model wrapper:
 
 #### Accuracy Tests (8 failures)
 - Sensitivity below 80% requirement
-- AUROC below 0.85 requirement  
+- AUROC below 0.85 requirement
 - Cross-validation inconsistent
 - Confidence calibration poor
 
@@ -75,7 +75,7 @@ Unit Tests: ~812 passing (from earlier runs)
 3. ❌ Fix EEGPT model wrapper implementation
 4. ❌ Add missing model attributes and methods
 
-### High Priority  
+### High Priority
 1. Fix summary token generation (should return 4 tokens)
 2. Fix feature discrimination between patterns
 3. Fix abnormality detection accuracy
@@ -107,7 +107,7 @@ Unit Tests: ~812 passing (from earlier runs)
 ## 🚨 Current Status
 
 - **Development Branch**: Core tests passing, integration not tested
-- **Staging Branch**: Core tests passing, integration not tested  
+- **Staging Branch**: Core tests passing, integration not tested
 - **Main Branch**: Core tests passing, integration/benchmarks failing
 
 The codebase is **NOT stable for production** until these EEGPT model issues are fixed. The refactoring is incomplete and has broken critical functionality.

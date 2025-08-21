@@ -254,11 +254,12 @@ jobs:
             make test-integration
           else
             echo "Running integration tests directly..."
-            env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests \
-              -m "integration" \
+            env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 BGBR_DISABLE_YASA=1 uv run pytest -p pytest_timeout tests \
+              -m "integration and not gpu and not data and not requires_model" \
               --run-integration \
               -v \
-              --tb=short || echo "Integration tests not available"
+              --tb=short \
+              -o addopts="" || echo "Integration tests not available"
           fi
 
   # ============================================
@@ -295,10 +296,11 @@ jobs:
           if make -n test-benchmarks >/dev/null 2>&1; then
             make test-benchmarks || true
           else
-            env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/benchmarks \
+            env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest -p benchmark tests/benchmarks \
               -m "not gpu" \
+              --benchmark-only \
               --benchmark-json=benchmark_results.json \
-              --benchmark-autosave \
+              -xvs \
               --tb=short || true
           fi
           # Ensure benchmark file exists for upload

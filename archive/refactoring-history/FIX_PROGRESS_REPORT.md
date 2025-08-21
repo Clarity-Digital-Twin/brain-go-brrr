@@ -3,7 +3,7 @@
 ## ✅ What We Fixed (7 tests now passing)
 
 ### 1. EEGPT Model Attributes (3 fixes)
-- ✅ Added `self.config = EEGPTConfig()` attribute 
+- ✅ Added `self.config = EEGPTConfig()` attribute
 - ✅ Added `self.n_summary_tokens = 4` attribute
 - ✅ Added `_get_cached_channel_ids()` method
 
@@ -31,7 +31,7 @@ These are from `test_eegpt_integration.py` and appear to be import errors with `
 ## 📝 Remaining Issues to Fix
 
 ### Priority 1: Fix the 6 ERROR states
-- `test_model_architecture` 
+- `test_model_architecture`
 - `test_window_extraction`
 - `test_feature_extraction`
 - `test_abnormality_prediction`

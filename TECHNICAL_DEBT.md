@@ -6,7 +6,7 @@
 
 **Issue**: Sleep-EDF data is sampled at 100Hz, but EEGPT requires 256Hz input. The CLI streaming functionality doesn't automatically resample, causing failures when processing Sleep-EDF files with EEGPT.
 
-**Impact**: 
+**Impact**:
 - Cannot process Sleep-EDF recordings through EEGPT pipeline
 - Affects sleep analysis accuracy when using EEGPT features
 - Blocks integration of sleep staging with abnormality detection

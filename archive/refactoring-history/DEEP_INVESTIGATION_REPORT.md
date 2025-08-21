@@ -62,7 +62,7 @@ Results: 41 failed, 51 passed, 12 skipped
 
 Breakdown by Component:
 - EEGPT Core: 10/14 FAILED (71% failure rate)
-- API Endpoints: 7/15 FAILED (47% failure rate)  
+- API Endpoints: 7/15 FAILED (47% failure rate)
 - Accuracy Tests: 8/15 FAILED (53% failure rate)
 - YASA: 6/6 PASSED (100% success)
 - Autoreject: 7/8 PASSED (87% success)
@@ -73,9 +73,9 @@ Breakdown by Component:
 ### The Refactoring Timeline (Reconstructed):
 1. **Phase 1**: Clean Architecture migration (`core.*` → DDD layers)
    - Status: MOSTLY COMPLETE (just one import path issue found)
-   
+
 2. **Phase 2**: EEGPT Unification (3 models → 1)
-   - Status: **INCOMPLETE/FAKE** 
+   - Status: **INCOMPLETE/FAKE**
    - Created compatibility wrapper but didn't implement required methods
    - Tests still expect old model interface
 
@@ -131,7 +131,7 @@ src/brain_go_brrr/
 
 ### Immediate (Blocking Everything):
 1. **Fix EEGPTModel class**:
-   - Add `self.config = EEGPTConfig(...)` 
+   - Add `self.config = EEGPTConfig(...)`
    - Add `n_summary_tokens = 4` attribute
    - Add `_get_cached_channel_ids()` method
    - Fix output shape to return 4 tokens

@@ -1,19 +1,19 @@
 # CI/CD Investigation Report
-**Date**: August 21, 2025  
-**Status**: 🔍 Active Investigation  
+**Date**: August 21, 2025
+**Status**: 🔍 Active Investigation
 **Goal**: Fix integration and benchmark test failures from first principles
 
 ## Executive Summary
 
 After a deep refactoring of the codebase to implement Clean Architecture and unify EEGPT models, our CI/CD pipeline is experiencing failures in:
-1. **Integration tests**: 26 failures related to EEGPTModel 
+1. **Integration tests**: 26 failures related to EEGPTModel
 2. **Benchmark tests**: Empty JSON output causing CI failure
 
 ## Current CI/CD Status
 
 ### Branch Status
 - **Development**: ❌ Failing (integration + benchmarks)
-- **Staging**: ✅ Passing (integration/benchmarks skipped)  
+- **Staging**: ✅ Passing (integration/benchmarks skipped)
 - **Main**: ❌ Failing (integration + benchmarks)
 
 ### Test Categories
@@ -46,7 +46,7 @@ After a deep refactoring of the codebase to implement Clean Architecture and uni
 
 ### Symptoms
 ```
-FAILED tests/unit/test_eegpt_model_loading.py::TestEEGPTModelLoading::test_eegpt_model_initialization_without_checkpoint 
+FAILED tests/unit/test_eegpt_model_loading.py::TestEEGPTModelLoading::test_eegpt_model_initialization_without_checkpoint
 - AttributeError: 'EEGPTModel' object has no attribute 'config'
 ```
 
@@ -83,7 +83,7 @@ FAILED tests/unit/test_eegpt_model_loading.py::TestEEGPTModelLoading::test_eegpt
 
 ### Symptoms
 ```
-Error: No benchmark result was found in benchmark_results.json. 
+Error: No benchmark result was found in benchmark_results.json.
 Benchmark output was '{"benchmarks": []}'
 ```
 

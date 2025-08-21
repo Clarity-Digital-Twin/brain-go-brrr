@@ -41,7 +41,7 @@ if model is not None:
     self.eegpt_model = model
 ```
 
-**Explanation**: 
+**Explanation**:
 1. Added `auto_load=False` when creating EEGPTModel in tests to prevent it from trying to load a fake checkpoint
 2. Only set the `eegpt_model` property if we successfully created a model, preventing the property setter from being called with None
 

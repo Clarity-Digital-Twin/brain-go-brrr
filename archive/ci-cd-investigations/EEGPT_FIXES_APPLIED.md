@@ -11,7 +11,7 @@ Applied minimal, professional fixes to EEGPT compatibility layer following TDD p
 - Now exceptions bubble up properly for testing and debugging
 - Mocks can now intercept function calls
 
-### 2. ✅ Fixed Summary Token Shapes  
+### 2. ✅ Fixed Summary Token Shapes
 **File**: `src/brain_go_brrr/infra/ml_models/eegpt_compat.py`
 - Removed token duplication hack that created 4 identical tokens
 - Now properly extracts real (B, 4, 512) shape from model output
@@ -48,12 +48,12 @@ Applied minimal, professional fixes to EEGPT compatibility layer following TDD p
 ## What's Still Needed
 
 1. **Load real EEGPT weights** for proper feature discrimination
-2. **Fix channel IDs** conversion (list → tensor) 
+2. **Fix channel IDs** conversion (list → tensor)
 3. **Run full integration suite** to verify all fixes
 
 ## CI/CD Status
 - **development**: ✅ Core tests pass
-- **staging**: ✅ Coverage meets 64% threshold  
+- **staging**: ✅ Coverage meets 64% threshold
 - **main**: Partial - integration tests improving
 
 ## Next Steps

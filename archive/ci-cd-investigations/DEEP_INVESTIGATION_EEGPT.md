@@ -1,7 +1,7 @@
 # 🔬 DEEP INVESTIGATION: EEGPT Model Architecture & Test Failures
 
-**Date**: August 21, 2025  
-**Investigator**: Claude  
+**Date**: August 21, 2025
+**Investigator**: Claude
 **Goal**: Understand EXACTLY what's happening from first principles
 
 ## 🎯 The Real Problem
@@ -30,7 +30,7 @@ This means our mock NEVER gets called because the real function runs and handles
 
 We have MULTIPLE test files testing the same thing:
 - `test_eegpt_model_loading.py` - Unit tests (6 tests)
-- `test_eegpt_integration.py` - Integration tests (14 tests)  
+- `test_eegpt_integration.py` - Integration tests (14 tests)
 - `test_eegpt_summary_tokens.py` - Token tests (5 tests)
 - `test_eegpt_pipeline.py` - Pipeline tests (8 tests)
 
@@ -45,7 +45,7 @@ graph TD
     C --> D[EEGPTWrapper]
     D --> E[EEGTransformer]
     E --> F[torch.nn.Module]
-    
+
     B -.->|Fallback| C2[create_normalized_eegpt(None)]
     C2 --> D
 ```

@@ -8,7 +8,7 @@ We identified and properly categorized test failures:
 
 1. **Tests requiring trained models** (14 tests) - Marked with `@pytest.mark.requires_model`
    - Abnormality accuracy tests
-   - Feature discrimination tests  
+   - Feature discrimination tests
    - Pattern recognition tests
 
 2. **Tests requiring real data** (8 tests) - Marked with `@pytest.mark.data`
@@ -60,7 +60,7 @@ test-with-model      # With trained EEGPT weights
 ## CI/CD Status
 
 - **Unit tests**: ✅ 800+ passing
-- **Integration tests**: 46 passing, 10 failing  
+- **Integration tests**: 46 passing, 10 failing
 - **Benchmarks**: ✅ Working with real metrics
 - **Coverage**: ✅ Meets 64% threshold
 

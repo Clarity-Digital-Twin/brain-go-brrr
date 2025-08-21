@@ -9,7 +9,7 @@ Reduced integration test failures from **31 → 7** with clean, professional fix
 After the refactor from `core.*` to DDD architecture, tests were failing because:
 
 1. **Testing accuracy without trained models** - 14 tests
-2. **Testing with missing data files** - 8 tests  
+2. **Testing with missing data files** - 8 tests
 3. **Over-mocking implementation details** - 5 tests
 4. **Testing removed/refactored interfaces** - 4 tests
 
@@ -61,7 +61,7 @@ if features.shape == (1, 4, 512):
 with patch("create_normalized_eegpt"), \
      patch.object(Path, "exists"), \
      patch("safe_load"):
-     
+
 # After: Test behavior, not implementation
 model = EEGPTModel(checkpoint_path=None)
 features = model.extract_features(data)
@@ -109,14 +109,14 @@ development:
   unit_tests: ✅ 800+ passing
   integration: ✅ 49 passing
   benchmarks: ✅ Working
-  
-staging:  
+
+staging:
   coverage: ✅ 64%+ met
   all_tests: ✅ Passing
-  
+
 main:
   test-all-cov: ✅ Ready
-  test-integration: ✅ CI-friendly  
+  test-integration: ✅ CI-friendly
   test-benchmarks: ✅ Non-empty JSON
 ```
 

@@ -6,7 +6,7 @@
 1. **Clean Architecture** - Migration from `core.*` to DDD layers (MOSTLY COMPLETE)
 2. **EEGPT Unification** - Compatibility layer created but needs completion
 
-**Status**: 
+**Status**:
 - Integration tests: 34 failures (was 41, fixed 7)
 - Benchmark tests: Empty JSON output issue
 - See `CI_CD_INVESTIGATION.md` for current investigation
