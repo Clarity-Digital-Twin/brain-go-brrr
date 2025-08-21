@@ -219,6 +219,7 @@ class TestEEGPTModel:
 
     @pytest.mark.integration
     @pytest.mark.slow
+    @pytest.mark.data
     def test_end_to_end_pipeline(self, model_path):
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
