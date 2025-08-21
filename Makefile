@@ -222,7 +222,7 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 
 test-integration: ## Run integration tests with GPU and local data
 	@echo "$(GREEN)Running integration tests with GPU (no coverage)...$(NC)"
-	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -m "integration or gpu" --no-cov -v --tb=short
+	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -m "integration or gpu" -v --tb=short
 	@echo "$(GREEN)Integration tests complete!$(NC)"
 
 test-all: ## Run ALL tests including integration (full suite)
