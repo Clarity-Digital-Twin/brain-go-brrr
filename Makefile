@@ -324,7 +324,7 @@ cov: ## Quick coverage check - shows TOTAL coverage percentage
 
 test-ci: ## Run tests for CI with coverage and XML report
 	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
-	$(PYTEST) $(TEST_DIR) -n auto \
+	$(PYTEST_WITH_COV) $(TEST_DIR) -p xdist -n auto \
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--dist=loadfile \
