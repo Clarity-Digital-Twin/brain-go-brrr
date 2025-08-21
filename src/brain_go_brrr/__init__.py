@@ -30,3 +30,4 @@ def __getattr__(name: str) -> Any:
 
 
 # CI validation timestamp: 1755740751
+# CI Status Badge: 20250820_222645
