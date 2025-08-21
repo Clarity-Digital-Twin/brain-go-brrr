@@ -75,7 +75,7 @@ training:
 
 TUAB uses old channel naming. The dataset automatically converts:
 - T3 → T7
-- T4 → T8  
+- T4 → T8
 - T5 → P7
 - T6 → P8
 
@@ -118,7 +118,7 @@ tensorboard --logdir experiments/eegpt_linear_probe/lightning_logs
 **Solution**: Use the provided `train_paper_aligned.py` (pure PyTorch)
 
 ### 3. NaN Loss
-**Causes**: 
+**Causes**:
 - Learning rate too high (try 1e-4)
 - Bad data samples (enable data validation)
 - Gradient explosion (enable gradient clipping)

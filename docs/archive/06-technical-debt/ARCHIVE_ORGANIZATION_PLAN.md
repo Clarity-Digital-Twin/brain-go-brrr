@@ -10,7 +10,7 @@
 ```
 archive/
 ├── 01-checkpoints/           # Date-stamped progress checkpoints
-├── 02-investigations/        # Bug investigations and fixes  
+├── 02-investigations/        # Bug investigations and fixes
 ├── 03-planning/             # Old roadmaps and plans
 ├── 04-refactoring/          # Architecture refactoring history
 ├── 05-training/             # EEGPT training documentation
