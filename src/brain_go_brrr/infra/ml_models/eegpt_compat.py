@@ -89,8 +89,11 @@ class EEGPTModel:
         if config is not None:
             if hasattr(config, '__dict__'):
                 # It's an object (like ModelConfig), convert to dict
-                config_dict = {k: v for k, v in config.__dict__.items()
-                              if not k.startswith('_') and k in EEGPTConfig.__dataclass_fields__}
+                config_dict = {
+                    k: v
+                    for k, v in config.__dict__.items()
+                    if not k.startswith('_') and k in EEGPTConfig.__dataclass_fields__
+                }
             else:
                 # It's already a dict
                 config_dict = config
@@ -169,7 +172,10 @@ class EEGPTModel:
                 else:
                     # Unexpected shape, log warning and create placeholder
                     import logging
-                    logging.warning(f"Unexpected feature shape {features.shape}, expected (1, 4, 512)")
+
+                    logging.warning(
+                        f"Unexpected feature shape {features.shape}, expected (1, 4, 512)"
+                    )
                     features = np.zeros((4, 512), dtype=np.float32)
             elif features.ndim == 2 and features.shape == (4, 512):
                 # Already correct shape
@@ -177,6 +183,7 @@ class EEGPTModel:
             else:
                 # Unexpected shape, log and create placeholder
                 import logging
+
                 logging.warning(f"Unexpected feature shape {features.shape} for single sample")
                 features = np.zeros((4, 512), dtype=np.float32)
         else:
@@ -239,37 +246,39 @@ class EEGPTModel:
         # Extract windows from raw data
         data = raw.get_data()
         sfreq = raw.info["sfreq"]
-        
+
         # Calculate window parameters
         window_duration = 4.0  # seconds
         window_samples = int(window_duration * sfreq)
         stride_duration = 2.0  # 50% overlap
         stride_samples = int(stride_duration * sfreq)
-        
+
         # Extract overlapping windows
         n_samples = data.shape[1]
         window_scores = []
-        
+
         for start in range(0, n_samples - window_samples + 1, stride_samples):
             end = start + window_samples
             window = data[:, start:end]
-            
+
             # Extract features for this window
             features = self.extract_features(window, raw.ch_names)
-            
+
             # Simple mock score based on feature mean
             # Real implementation would use a trained classifier
             score = float(np.clip(np.abs(features.mean()) * 0.1, 0, 1))
             window_scores.append(score)
-        
+
         # Aggregate scores
         if window_scores:
             abnormal_prob = float(np.mean(window_scores))
-            confidence = 1.0 - float(np.std(window_scores))  # Higher consistency = higher confidence
+            confidence = 1.0 - float(
+                np.std(window_scores)
+            )  # Higher consistency = higher confidence
         else:
             abnormal_prob = 0.5
             confidence = 0.0
-        
+
         return {
             "abnormal_probability": abnormal_prob,
             "confidence": max(0, confidence),

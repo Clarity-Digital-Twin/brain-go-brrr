@@ -125,6 +125,7 @@ class TestRealSleepEDFData:
         """Get path to a real Sleep-EDF file."""
         # Use relative path from project root or environment variable
         import os
+
         if os.environ.get("BGB_DATA_ROOT"):
             base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
         else:
@@ -142,6 +143,7 @@ class TestRealSleepEDFData:
         """Get path to corresponding hypnogram."""
         # Use relative path from project root or environment variable
         import os
+
         if os.environ.get("BGB_DATA_ROOT"):
             base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
         else:

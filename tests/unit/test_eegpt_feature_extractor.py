@@ -192,7 +192,7 @@ class TestEEGPTFeatureExtractor:
     @pytest.mark.integration
     def test_real_eegpt_model_loading(self):
         """Test loading real EEGPT model if available."""
-        model_path = Path("data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
+        model_path = Path("data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt")
 
         if not model_path.exists():
             pytest.skip("EEGPT model not found")

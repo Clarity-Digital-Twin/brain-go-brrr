@@ -224,28 +224,29 @@ class TestAPIRobustness:
     def client(self):
         """Create test client with proper startup."""
         from unittest.mock import MagicMock
-        from brain_go_brrr.api.main import app
+
         from brain_go_brrr.api import deps
-        
+        from brain_go_brrr.api.main import app
+
         # Mock the QC controller to avoid EEGPT model requirement
         mock_controller = MagicMock()
         mock_controller.run_full_qc_pipeline.return_value = {
             "confidence": 0.75,
             "flag": "ROUTINE",
-            "processing_time": 1.5
+            "processing_time": 1.5,
         }
         mock_controller.run_quality_check.return_value = {
             "confidence": 0.75,
             "flag": "ROUTINE",
-            "processing_time": 1.5
+            "processing_time": 1.5,
         }
-        
+
         # Override the dependency
         app.dependency_overrides[deps.get_qc_controller] = lambda: mock_controller
-        
+
         client = TestClient(app)
         yield client
-        
+
         # Clear overrides after test
         app.dependency_overrides.clear()
 
@@ -282,4 +283,6 @@ class TestAPIRobustness:
 
         # All should succeed with mocked controller
         assert all(r.status_code == 200 for r in responses)
-        assert all(r.json()["flag"] in ["ROUTINE", "EXPEDITE", "URGENT", "ERROR"] for r in responses)
+        assert all(
+            r.json()["flag"] in ["ROUTINE", "EXPEDITE", "URGENT", "ERROR"] for r in responses
+        )

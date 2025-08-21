@@ -94,8 +94,6 @@ class TestEEGPTSummaryTokens:
         """Different EEG patterns should produce different features."""
         # Generate very different patterns
         alpha_waves = self.generate_sine_wave(10)  # 10 Hz alpha
-        beta_waves = self.generate_sine_wave(25)  # 25 Hz beta
-        theta_waves = self.generate_sine_wave(6)  # 6 Hz theta
 
         # Generate spike-wave pattern (seizure-like)
         spike_wave = np.zeros((19, 1024))
@@ -106,56 +104,44 @@ class TestEEGPTSummaryTokens:
 
         # Extract features
         feat_alpha = eegpt_model.extract_features(alpha_waves, channel_names)
-        feat_beta = eegpt_model.extract_features(beta_waves, channel_names)
-        feat_theta = eegpt_model.extract_features(theta_waves, channel_names)
         feat_spike = eegpt_model.extract_features(spike_wave, channel_names)
-
-        # Flatten for comparison
-        feat_alpha_flat = feat_alpha.flatten()
-        feat_beta_flat = feat_beta.flatten()
-        feat_theta_flat = feat_theta.flatten()
-        feat_spike_flat = feat_spike.flatten()
-
-        # Calculate similarities
-        def cosine_similarity(a, b):
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-        sim_alpha_beta = cosine_similarity(feat_alpha_flat, feat_beta_flat)
-        sim_alpha_theta = cosine_similarity(feat_alpha_flat, feat_theta_flat)
-        sim_alpha_spike = cosine_similarity(feat_alpha_flat, feat_spike_flat)
-        sim_beta_spike = cosine_similarity(feat_beta_flat, feat_spike_flat)
 
         # Without trained weights, we can only check that features aren't identical
         # Real discrimination requires trained model weights
         # For CI, just ensure features have correct shape and aren't all the same
         assert feat_alpha.shape == (4, 512), "Wrong shape for alpha features"
         assert feat_spike.shape == (4, 512), "Wrong shape for spike features"
-        
+
         # At minimum, features shouldn't be exactly identical
-        assert not np.allclose(feat_alpha, feat_spike, rtol=1e-5), \
-            "Features are identical - model may not be initialized properly"
+        assert not np.allclose(
+            feat_alpha, feat_spike, rtol=1e-5
+        ), "Features are identical - model may not be initialized properly"
 
     def test_encoder_output_contains_summary_tokens(self, eegpt_model, channel_names):
         """Check that encoder actually outputs summary tokens."""
         # Generate test data - encoder expects (B, C, T)
         data = np.random.randn(19, 1024) * 50e-6
-        
+
         # Convert to tensor with correct shape (batch, channels, time)
         data_tensor = torch.FloatTensor(data).unsqueeze(0).to(eegpt_model.device)
-        
+
         # Run through encoder - it handles channel IDs internally
         with torch.no_grad():
             encoder_output = eegpt_model.encoder(data_tensor)
 
         # Check output shape - should be (batch, 4, 512) for summary tokens
         assert encoder_output.dim() == 3, f"Expected 3D output, got {encoder_output.dim()}D"
-        assert encoder_output.shape[1] == 4, f"Expected 4 summary tokens, got {encoder_output.shape[1]}"
-        assert encoder_output.shape[2] == 512, f"Expected 512 embed dim, got {encoder_output.shape[2]}"
-        
+        assert (
+            encoder_output.shape[1] == 4
+        ), f"Expected 4 summary tokens, got {encoder_output.shape[1]}"
+        assert (
+            encoder_output.shape[2] == 512
+        ), f"Expected 512 embed dim, got {encoder_output.shape[2]}"
+
         # Summary tokens should not all be identical
         tokens = encoder_output[0].cpu().numpy()
         for i in range(4):
-            for j in range(i+1, 4):
+            for j in range(i + 1, 4):
                 similarity = np.corrcoef(tokens[i], tokens[j])[0, 1]
                 # Allow high similarity but not identical (would be 1.0)
                 assert similarity < 0.999, f"Tokens {i} and {j} are too similar: {similarity:.3f}"
@@ -177,25 +163,19 @@ class TestEEGPTSummaryTokens:
         signal1 = self.generate_sine_wave(freq1)
         signal2 = self.generate_sine_wave(freq2)
 
-        # Extract features
-        feat1 = eegpt_model.extract_features(signal1, channel_names).flatten()
-        feat2 = eegpt_model.extract_features(signal2, channel_names).flatten()
-
-        # Calculate similarity
-        similarity = np.dot(feat1, feat2) / (np.linalg.norm(feat1) * np.linalg.norm(feat2))
-
         # Without trained weights, just check basic properties
         # Real frequency discrimination requires trained model
         features1 = eegpt_model.extract_features(signal1, channel_names)
         features2 = eegpt_model.extract_features(signal2, channel_names)
-        
+
         assert features1.shape == (4, 512), "Wrong shape"
         assert features2.shape == (4, 512), "Wrong shape"
-        
+
         # Different frequencies shouldn't produce exactly identical features
         if freq1 != freq2:
-            assert not np.allclose(features1, features2, rtol=1e-5), \
-                "Different frequencies produced identical features"
+            assert not np.allclose(
+                features1, features2, rtol=1e-5
+            ), "Different frequencies produced identical features"
 
 
 class TestLinearProbeIntegration:

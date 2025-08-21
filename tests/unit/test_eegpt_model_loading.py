@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
 
 from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
@@ -70,14 +69,15 @@ class TestEEGPTModelLoading:
         """Test that feature extraction auto-loads model if needed."""
         # Given: An unloaded model (no checkpoint file exists)
         model = EEGPTModel(checkpoint_path=None, auto_load=False)
-        
+
         # When: We extract features, model should auto-load
         import numpy as np
+
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
-        
+
         features = model.extract_features(data, channel_names)
-        
+
         # Then: Should return features with correct shape
         assert features is not None
         assert features.shape == (4, 512)  # Summary tokens
@@ -88,12 +88,13 @@ class TestEEGPTModelLoading:
         # Given: A model that auto-loads on init
         model = EEGPTModel(checkpoint_path=None, auto_load=True)
         assert model.is_loaded is True
-        
+
         # When: We extract features
         import numpy as np
+
         data = np.random.randn(19, 1024)
         channel_names = [f"CH{i}" for i in range(19)]
         features = model.extract_features(data, channel_names)
-        
+
         # Then: Features should have the correct shape
         assert features.shape == (4, 512)  # 4 summary tokens, 512 embedding dim

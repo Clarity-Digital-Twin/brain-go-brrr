@@ -421,9 +421,17 @@ class TestCLIStreamingIntegrationWithModel:
             pytest.skip("Model checkpoint not available")
         return checkpoint
 
-    @pytest.mark.skip(reason="Sleep-EDF at 100Hz needs resampling to 256Hz for EEGPT")
+    @pytest.mark.integration
+    @pytest.mark.slow
     def test_stream_with_real_model(self, short_edf_path, model_checkpoint_path, monkeypatch):
         """Test streaming with real model weights."""
+        # Skip if using Sleep-EDF data which is at 100Hz
+        # EEGPT needs 256Hz and the CLI doesn't resample automatically yet
+        import mne
+        raw = mne.io.read_raw_edf(short_edf_path, preload=False, verbose=False)
+        if raw.info["sfreq"] < 256:
+            pytest.skip(f"EDF file at {raw.info['sfreq']}Hz, EEGPT needs 256Hz")
+        
         # Set environment variable for model path
         monkeypatch.setenv("EEGPT_CHECKPOINT_PATH", str(model_checkpoint_path))
 
