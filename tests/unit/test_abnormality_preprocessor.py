@@ -344,7 +344,7 @@ class TestEEGPreprocessor:
         """Test that preprocessing preserves important EEG patterns."""
         # Create EEG with known patterns
         sfreq = 500
-        duration = 10
+        duration = 30  # Need more data for AutoReject cross-validation
         t = np.arange(int(sfreq * duration)) / sfreq
 
         # Use standard 10-20 channel names that match the montage

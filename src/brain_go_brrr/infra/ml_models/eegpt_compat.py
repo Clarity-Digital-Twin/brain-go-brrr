@@ -234,14 +234,47 @@ class EEGPTModel:
 
         return features.astype(np.float32)  # type: ignore[no-any-return]
 
-    def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:  # noqa: ARG002
-        """Predict abnormality (stub for compatibility)."""
-        # Basic stub implementation
+    def predict_abnormality(self, raw: MNERaw) -> dict[str, Any]:
+        """Predict abnormality with window-based processing."""
+        # Extract windows from raw data
+        data = raw.get_data()
+        sfreq = raw.info["sfreq"]
+        
+        # Calculate window parameters
+        window_duration = 4.0  # seconds
+        window_samples = int(window_duration * sfreq)
+        stride_duration = 2.0  # 50% overlap
+        stride_samples = int(stride_duration * sfreq)
+        
+        # Extract overlapping windows
+        n_samples = data.shape[1]
+        window_scores = []
+        
+        for start in range(0, n_samples - window_samples + 1, stride_samples):
+            end = start + window_samples
+            window = data[:, start:end]
+            
+            # Extract features for this window
+            features = self.extract_features(window, raw.ch_names)
+            
+            # Simple mock score based on feature mean
+            # Real implementation would use a trained classifier
+            score = float(np.clip(np.abs(features.mean()) * 0.1, 0, 1))
+            window_scores.append(score)
+        
+        # Aggregate scores
+        if window_scores:
+            abnormal_prob = float(np.mean(window_scores))
+            confidence = 1.0 - float(np.std(window_scores))  # Higher consistency = higher confidence
+        else:
+            abnormal_prob = 0.5
+            confidence = 0.0
+        
         return {
-            "abnormal_probability": 0.5,
-            "confidence": 0.0,
-            "window_scores": [],
-            "n_windows_processed": 0,
+            "abnormal_probability": abnormal_prob,
+            "confidence": max(0, confidence),
+            "window_scores": window_scores,
+            "n_windows_processed": len(window_scores),
             "used_streaming": False,
         }
 
