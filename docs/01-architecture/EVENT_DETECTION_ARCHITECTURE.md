@@ -2,9 +2,11 @@
 
 ## Overview
 
-This document details the implementation of epileptiform discharge detection using state-of-the-art time-series classification methods (InceptionTime and MiniRocket) integrated with EEGPT features. The system detects 6 types of events in EEG recordings.
+This document outlines the **planned** architecture for epileptiform discharge detection using time-series classification methods. This feature is designed but not yet implemented.
 
-## Event Classes
+**CURRENT STATUS**: 🔴 Not implemented - architecture designed only
+
+## Event Classes (Planned)
 
 1. **SPSW** - Spike and Sharp Wave (epileptiform)
 2. **GPED** - Generalized Periodic Epileptiform Discharges
@@ -13,10 +15,10 @@ This document details the implementation of epileptiform discharge detection usi
 5. **ARTF** - Other Artifacts
 6. **BCKG** - Background (normal activity)
 
-## Performance Benchmarks
+## Performance Targets (From Literature)
 
-### Target Metrics (from paper)
-- **AUC**: 0.99
+### Target Metrics (when implemented)
+- **AUC**: 0.99 (MiniRocket paper)
 - **AUPRC**: 0.99
 - **F1 Score**: 0.97
 - **Processing**: Real-time capable (<100ms per window)

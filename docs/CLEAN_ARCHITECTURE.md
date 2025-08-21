@@ -10,7 +10,7 @@ This codebase follows Robert C. Martin's Clean Architecture principles to the le
 │                    (API Endpoints, CLI, UI)                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                         APPLICATION                             │
-│              (Use Cases, Factories, Orchestration)             │
+│              (Use Cases, Factories, Orchestration)              │
 ├─────────────────────────────────────────────────────────────────┤
 │                           DOMAIN                                │
 │            (Entities, Value Objects, Domain Services)           │
@@ -19,8 +19,8 @@ This codebase follows Robert C. Martin's Clean Architecture principles to the le
         ↑                       ↑                        ↑
         │                       │                        │
 ┌───────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│ INFRASTRUCTURE│    │   INFRASTRUCTURE  │    │  INFRASTRUCTURE  │
-│   (Database)  │    │   (File System)   │    │    (External)    │
+│ INFRASTRUCTURE│    │  INFRASTRUCTURE  │    │  INFRASTRUCTURE  │
+│   (Database)  │    │  (File System)   │    │    (External)    │
 └───────────────┘    └──────────────────┘    └──────────────────┘
 ```
 

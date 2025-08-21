@@ -2,82 +2,80 @@
 
 ## Overview
 
-This document details the implementation of EEG abnormality detection based on the BioSerenity-E1 paper and our EEGPT adaptation. The pipeline achieves state-of-the-art performance for binary classification of EEG recordings as normal or abnormal.
+This document details the implementation of EEG abnormality detection using EEGPT with a linear probe trained on the TUAB dataset. The pipeline performs binary classification of EEG recordings as normal or abnormal.
+
+**CURRENT STATUS**: 🟡 Training in progress - linear probe on TUAB dataset
 
 ## Key Performance Metrics
 
-### Target Benchmarks
-- **BioSerenity-E1**: 94.63% balanced accuracy (closed source)
-- **EEGPT (Our Implementation)**: Target >80% balanced accuracy, AUROC ≥0.93
-- **Baseline CNN-LSTM**: 86% balanced accuracy
+### Target Benchmarks (From Literature)
+- **EEGPT Paper**: AUROC ≥0.869 on TUAB
+- **BioSerenity-E1**: 94.63% balanced accuracy (different dataset)
 - **Processing Time**: <30 seconds for 20-minute EEG
+
+### Current Implementation
+- **Training Script**: `experiments/eegpt_linear_probe/train_paper_aligned.py`
+- **Window Size**: 4 seconds at 256Hz (EEGPT requirement)
+- **Dataset**: TUAB with 20 channels
 
 ## Data Specifications
 
 ### Input Requirements
-- **Duration**: 20 minutes standard (flexible)
-- **Sampling Rate**: 256Hz (resampled if needed)
-- **Channels**: 19 channels (10-20 system)
-- **Format**: EDF/BDF files
+- **Duration**: Flexible (typically 10-30 minutes)
+- **Sampling Rate**: 256Hz (EEGPT requirement)
+- **Channels**: 20 channels (TUAB subset)
+- **Format**: EDF files
 
-### Preprocessing Pipeline
+### Channel Configuration (TUAB)
 ```python
-def preprocess_eeg(raw_eeg):
-    # 1. Channel selection (19 channels)
-    channels = ['FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
-                'T3', 'C3', 'CZ', 'C4', 'T4',
-                'T5', 'P3', 'PZ', 'P4', 'T6',
-                'O1', 'O2']
+# TUAB uses old nomenclature - we handle conversion automatically
+TUAB_20_CHANNELS = [
+    'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
+    'T3',  # Maps to T7 in modern naming
+    'C3', 'CZ', 'C4',
+    'T4',  # Maps to T8 in modern naming
+    'T5',  # Maps to P7 in modern naming
+    'P3', 'PZ', 'P4',
+    'T6',  # Maps to P8 in modern naming
+    'O1', 'O2', 'A1'  # A1 as 20th channel
+]
 
-    # 2. Re-referencing to average
-    raw_eeg.set_eeg_reference('average')
-
-    # 3. Filtering
-    raw_eeg.filter(l_freq=0.5, h_freq=50.0, method='iir')
-    raw_eeg.notch_filter(freqs=50.0)  # or 60Hz for US
-
-    # 4. Resampling
-    raw_eeg.resample(256)
-
-    # 5. Windowing (8s windows, 50% overlap)
-    windows = create_windows(raw_eeg, window_size=8.0, overlap=0.5)
-
-    return windows
+# Automatic conversion handled by dataset
+OLD_TO_NEW = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}
 ```
 
 ## Model Architecture
 
-### 1. EEGPT Feature Extraction
+### 1. EEGPT Feature Extraction (Current Implementation)
 ```python
-class AbnormalityDetectionPipeline:
+# experiments/eegpt_linear_probe/train_paper_aligned.py
+class EEGPTWithLinearProbe(nn.Module):
     def __init__(self, checkpoint_path):
-        # Load pretrained EEGPT
-        self.backbone = create_normalized_eegpt(checkpoint_path)
-        self.backbone.eval()  # Freeze during inference
+        # Load pretrained EEGPT (10M parameters)
+        self.backbone = load_eegpt_checkpoint(checkpoint_path)
+        self.backbone.eval()  # Frozen during training
 
-        # Two-layer probe (matching paper)
-        self.probe = EEGPTTwoLayerProbe(
-            backbone_dim=768,
-            n_input_channels=20,
-            n_adapted_channels=19,
-            hidden_dim=16,
-            n_classes=2,
-            dropout=0.5
+        # Simple linear probe (as per paper)
+        self.probe = nn.Sequential(
+            nn.Linear(2048, 256),  # EEGPT outputs 4*512=2048 features
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, 2)  # Binary classification
         )
 ```
 
-### 2. Two-Layer Probe Architecture
-Based on the paper's CNN-LSTM approach, adapted for EEGPT features:
-
+### 2. Training Configuration
 ```python
-# Layer 1: Channel adaptation + feature projection
-conv1: 20 -> 22 channels (1x1 conv, max_norm=1.0)
-conv2: 22 -> 19 channels (1x1 conv, max_norm=1.0)
-linear1: 2048 -> 16 (max_norm=1.0)
-
-# Layer 2: Classification
-dropout: p=0.5
-linear2: 256 -> 2 (max_norm=0.25)
+# Actual training parameters being used
+config = {
+    'window_size': 4.0,  # seconds (EEGPT requirement)
+    'sampling_rate': 256,  # Hz
+    'batch_size': 256,  # Large batch for stable training
+    'learning_rate': 1e-3,
+    'weight_decay': 1e-4,
+    'epochs': 100,
+    'early_stopping_patience': 10
+}
 ```
 
 ### 3. Training Configuration

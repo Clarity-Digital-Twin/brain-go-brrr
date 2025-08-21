@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document outlines the complete hierarchical architecture for EEG analysis, integrating EEGPT-based abnormality detection, event classification, sleep analysis, and quality control into a unified system.
+This document describes the implemented hierarchical architecture for EEG analysis, integrating EEGPT-based abnormality detection, sleep analysis (YASA), and quality control (AutoReject) into a unified system.
+
+**CURRENT STATUS**: ✅ Core pipeline implemented, event detection pending
 
 ## System Architecture
 
@@ -40,23 +42,30 @@ This document outlines the complete hierarchical architecture for EEG analysis, 
     └─────────┘    └─────────┘
 ```
 
-## Implementation Architecture
+## Actual Implementation
 
-### 1. Main Pipeline Controller
+### 1. Production Pipeline Controller
 ```python
-class HierarchicalEEGPipeline:
-    """
-    Unified pipeline orchestrating all analysis components
+# src/brain_go_brrr/application/pipeline/hierarchical_pipeline.py
+class HierarchicalEEGAnalyzer:
+    """Production implementation of hierarchical pipeline.
+
+    Components:
+    - ✅ Quality Control (AutoReject)
+    - ✅ Abnormality Detection (EEGPT probe)
+    - ✅ Sleep Staging (YASA)
+    - 🔴 Event Detection (not implemented)
     """
 
-    def __init__(self, config_path="configs/pipeline_config.yaml"):
-        self.config = load_config(config_path)
+    def __init__(self, config: PipelineConfig):
+        self.config = config
 
-        # Initialize all components
-        self.quality_controller = QualityController(
-            use_autoreject=self.config.quality.use_autoreject,
-            ar_params=self.config.quality.autoreject_params
-        )
+        # Initialize implemented components
+        if config.enable_abnormality_screening:
+            self.abnormality_detector = self._create_abnormality_detector()
+
+        if config.enable_sleep_staging:
+            self.sleep_stager = YASASleepStager()
 
         self.sleep_analyzer = SleepAnalyzer(
             use_yasa=self.config.sleep.use_yasa,

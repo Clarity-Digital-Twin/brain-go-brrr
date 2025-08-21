@@ -1,8 +1,10 @@
 # 🚀 AUTOREJECT TDD IMPLEMENTATION PLAN
 
-## 🎯 MISSION: INTEGRATE AUTOREJECT INTO EEGPT TRAINING PIPELINE
+**NOTE**: This is a planning document for enhanced AutoReject integration. Basic AutoReject is already working in production via `infra/adapters/autoreject_adapter.py`.
 
-Despite significant architectural challenges, we CAN make this work with creative solutions. This document outlines a comprehensive TDD approach to integrate AutoReject while maintaining performance.
+## 🎯 MISSION: ENHANCE AUTOREJECT FOR EEGPT TRAINING PIPELINE
+
+This document outlines a comprehensive TDD approach for advanced AutoReject features beyond the current working implementation.
 
 ## 📊 CURRENT SITUATION ANALYSIS
 

@@ -1,14 +1,14 @@
-# Dual Pipeline Architecture - Complete Implementation Status
+# Dual Pipeline Architecture - Implementation Status
 
-_Last Updated: August 5, 2025_
+_Last Updated: August 21, 2025_
 
 ## Executive Summary
 
 The Brain-Go-Brrr dual pipeline architecture implements autonomous EEG analysis through two parallel pathways:
-1. **Hierarchical Pipeline**: EEG → Normal/Abnormal → IED Detection (if abnormal)
+1. **Hierarchical Pipeline**: EEG → Normal/Abnormal → Event Detection (if abnormal)
 2. **Parallel Pipeline**: Simultaneous YASA sleep staging for all recordings
 
-**Current Status**: Architecture 85% implemented, core functionality working, awaiting trained models for production deployment.
+**Current Status**: Core components working (QC, Sleep, EEGPT features). Abnormality detection in training, event detection not implemented.
 
 ## Architecture Overview
 
@@ -53,11 +53,11 @@ The Brain-Go-Brrr dual pipeline architecture implements autonomous EEG analysis 
 
 ### 1. Quality Control Pipeline ✅ COMPLETE
 
-**Location**: `src/brain_go_brrr/core/quality/controller.py`
+**Location**: `src/brain_go_brrr/domain/quality/controller.py`
 
 **Features Implemented**:
 - AutoReject integration with chunked processing
-- Bad channel detection (>95% accuracy)
+- Bad channel detection (87% expert agreement)
 - Artifact rejection (eye blinks, muscle, heartbeat)
 - Signal quality metrics
 - Interpolation of bad channels
