@@ -428,6 +428,7 @@ class TestCLIStreamingIntegrationWithModel:
         # Skip if using Sleep-EDF data which is at 100Hz
         # EEGPT needs 256Hz and the CLI doesn't resample automatically yet
         import mne
+
         raw = mne.io.read_raw_edf(short_edf_path, preload=False, verbose=False)
         if raw.info["sfreq"] < 256:
             pytest.skip(f"EDF file at {raw.info['sfreq']}Hz, EEGPT needs 256Hz")
