@@ -7,6 +7,7 @@ from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 
 @pytest.mark.integration
+@pytest.mark.requires_model  # Needs trained weights for pattern discrimination
 def test_extreme_pattern_discrimination():
     """Test with extremely different patterns that should produce very different features."""
     model = EEGPTModel()
