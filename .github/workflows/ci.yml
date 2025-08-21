@@ -306,13 +306,12 @@ jobs:
           # Ensure benchmark file exists for upload
           touch benchmark_results.json
 
-      - name: Store benchmark result
-        uses: benchmark-action/github-action-benchmark@v1
+      - name: Upload benchmark results as artifact
+        uses: actions/upload-artifact@v4
         with:
-          tool: 'pytest'
-          output-file-path: benchmark_results.json
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          auto-push: true
+          name: benchmark-results
+          path: benchmark_results.json
+          retention-days: 30
 
   # ============================================
   # STAGE 7: BUILD & DEPLOY (Main Only)
