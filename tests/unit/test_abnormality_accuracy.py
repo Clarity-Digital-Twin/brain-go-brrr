@@ -36,6 +36,9 @@ def tuh_test_subset():
 
 
 @pytest.mark.integration  # Requires TUH dataset and real model
+@pytest.mark.requires_model  # These tests need trained EEGPT weights
+@pytest.mark.accuracy  # Testing accuracy metrics, not code functionality
+@pytest.mark.data  # Requires TUH dataset files
 class TestAbnormalityAccuracy:
     """Test suite for accuracy requirements (>80% balanced accuracy)."""
 

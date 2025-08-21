@@ -161,7 +161,7 @@ check: test-fast quality ## Run all tests and quality checks
 
 validate: ## Full pre-push validation - ensures you stay in banger-town! 🚀
 	@echo "$(CYAN)Running full validation suite...$(NC)"
-	@./scripts/validate_before_push.sh
+	@./scripts/tools/validate_before_push.sh
 
 ##@ Testing
 
@@ -221,9 +221,9 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--maxfail=10 \
 		-q
 
-test-integration: ## Run integration tests (CI-friendly: skip GPU and data tests)
+test-integration: ## Run integration tests (CI-friendly: skip GPU, data, and model-requiring tests)
 	@echo "$(GREEN)Running CI-friendly integration tests...$(NC)"
-	$(PYTEST) tests --run-integration -m "integration and not gpu and not data" -v --tb=short
+	$(PYTEST) tests --run-integration -m "integration and not gpu and not data and not requires_model" -v --tb=short
 	@echo "$(GREEN)Integration tests complete!$(NC)"
 
 test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_ROOT)
@@ -233,6 +233,14 @@ test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_R
 	fi
 	$(PYTEST) tests --run-integration --run-data -m "integration and data and not gpu" -v --tb=short
 	@echo "$(GREEN)Data integration tests complete!$(NC)"
+
+test-with-model: ## Run tests requiring trained EEGPT model (accuracy, discrimination)
+	@echo "$(YELLOW)Running model-dependent tests...$(NC)"
+	@if [ ! -f "data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt" ]; then \
+		echo "$(RED)EEGPT model checkpoint not found, skipping$(NC)"; exit 0; \
+	fi
+	$(PYTEST) tests --run-integration -m "requires_model" -v --tb=short
+	@echo "$(GREEN)Model tests complete!$(NC)"
 
 test-all: ## Run ALL tests including integration (full suite)
 	@echo "$(GREEN)Running full test suite with integration tests...$(NC)"
@@ -316,7 +324,7 @@ cov: ## Quick coverage check - shows TOTAL coverage percentage
 
 test-ci: ## Run tests for CI with coverage and XML report
 	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
-	$(PYTEST) $(TEST_DIR) -n auto \
+	$(PYTEST_WITH_COV) $(TEST_DIR) -p xdist -n auto \
 		--cov=brain_go_brrr \
 		--cov-config=.coveragerc \
 		--dist=loadfile \
@@ -348,13 +356,13 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
 	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
-	CI_BENCHMARKS=0 $(PYTEST) tests/benchmarks -m "not gpu" --benchmark-json=benchmark_results.json --benchmark-autosave -v --tb=short || true
+	CI_BENCHMARKS=0 $(PYTEST) -p benchmark tests/benchmarks -m "not gpu" --benchmark-json=benchmark_results.json --benchmark-autosave -v --tb=short || true
 	@# Ensure valid JSON exists even if no benchmarks ran (CI artifact upload needs it)
 	@[ -s benchmark_results.json ] || echo '{"benchmarks": []}' > benchmark_results.json
 
 test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
 	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
-	CI_BENCHMARKS=1 $(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
+	CI_BENCHMARKS=1 $(PYTEST) -p benchmark tests/benchmarks -m "benchmark or slow" --benchmark-only -v
 
 test-watch: ## Run tests in watch mode
 	@echo "$(GREEN)Running tests in watch mode...$(NC)"

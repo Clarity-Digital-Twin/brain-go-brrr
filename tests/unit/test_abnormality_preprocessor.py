@@ -340,11 +340,12 @@ class TestEEGPreprocessor:
                 assert psd[idx_50hz] < mid_freq_power * 0.1
 
     @pytest.mark.integration  # Test requires longer data for Autoreject cross-validation
+    @pytest.mark.slow  # Takes time due to long data generation
     def test_preprocessing_preserves_eeg_patterns(self, preprocessor):
         """Test that preprocessing preserves important EEG patterns."""
         # Create EEG with known patterns
         sfreq = 500
-        duration = 10
+        duration = 120  # 2 minutes to have enough epochs for AutoReject
         t = np.arange(int(sfreq * duration)) / sfreq
 
         # Use standard 10-20 channel names that match the montage

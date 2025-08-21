@@ -64,9 +64,8 @@ class TestEEGPTModel:
         """Test that extract_features returns correct shape."""
         from pathlib import Path
 
-        config = {"model_path": Path("/tmp/nonexistent_model.ckpt")}
-
-        model = EEGPTModel(config=config, auto_load=False)
+        # model_path is a separate parameter, not part of config
+        model = EEGPTModel(checkpoint_path=Path("/tmp/nonexistent_model.ckpt"), auto_load=False)
 
         # Mark as loaded to prevent loading attempt
         model.is_loaded = True
