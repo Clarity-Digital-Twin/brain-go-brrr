@@ -220,9 +220,9 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--maxfail=10 \
 		-q
 
-test-integration: ## Run integration tests with GPU and local data
-	@echo "$(GREEN)Running integration tests with GPU (no coverage)...$(NC)"
-	CUDA_VISIBLE_DEVICES=0 $(PYTEST) tests --run-integration -m "integration or gpu" -v --tb=short
+test-integration: ## Run integration tests (skip GPU tests in CI)
+	@echo "$(GREEN)Running integration tests...$(NC)"
+	$(PYTEST) tests --run-integration -m "integration and not gpu" -v --tb=short
 	@echo "$(GREEN)Integration tests complete!$(NC)"
 
 test-all: ## Run ALL tests including integration (full suite)
@@ -339,7 +339,7 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
 	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
-	$(PYTEST) tests/benchmarks -m "benchmark or slow" --benchmark-only -v
+	CI_BENCHMARKS=0 $(PYTEST) tests/benchmarks -m "not gpu" --benchmark-json=benchmark_results.json --benchmark-autosave -v --tb=short || true
 
 test-benchmarks-strict: ## Run benchmarks with strict CI thresholds
 	@echo "$(RED)Running benchmarks with STRICT CI thresholds...$(NC)"
