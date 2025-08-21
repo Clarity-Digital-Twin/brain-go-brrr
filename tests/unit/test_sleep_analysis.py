@@ -133,7 +133,8 @@ class TestSleepAnalyzer:
 
         # With synthetic data, just verify we get valid stages
         # YASA may not reliably detect deep sleep in synthetic data
-        valid_stages = {"W", "N1", "N2", "N3", "REM", "ART", "UNS"}
+        # Also include 'R' as YASA sometimes uses that for REM
+        valid_stages = {"W", "N1", "N2", "N3", "REM", "R", "ART", "UNS"}
         assert len(hypnogram) > 0
         assert all(stage in valid_stages for stage in hypnogram)
 

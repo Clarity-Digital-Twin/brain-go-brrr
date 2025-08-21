@@ -123,9 +123,12 @@ class TestRealSleepEDFData:
     @pytest.fixture
     def sleep_edf_path(self):
         """Get path to a real Sleep-EDF file."""
-        base_path = Path(
-            "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/datasets/external/sleep-edf"
-        )
+        # Use relative path from project root or environment variable
+        import os
+        if os.environ.get("BGB_DATA_ROOT"):
+            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
+        else:
+            base_path = Path("data/datasets/external/sleep-edf")
         # Use first cassette file
         edf_path = base_path / "sleep-cassette" / "SC4001E0-PSG.edf"
 
@@ -137,9 +140,12 @@ class TestRealSleepEDFData:
     @pytest.fixture
     def hypnogram_path(self):
         """Get path to corresponding hypnogram."""
-        base_path = Path(
-            "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/datasets/external/sleep-edf"
-        )
+        # Use relative path from project root or environment variable
+        import os
+        if os.environ.get("BGB_DATA_ROOT"):
+            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
+        else:
+            base_path = Path("data/datasets/external/sleep-edf")
         hypno_path = base_path / "sleep-cassette" / "SC4001EC-Hypnogram.edf"
 
         if not hypno_path.exists():
