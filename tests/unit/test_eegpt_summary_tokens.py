@@ -89,6 +89,7 @@ class TestEEGPTSummaryTokens:
 
                 assert cos_sim < 0.99, f"Tokens {i} and {j} are too similar: {cos_sim:.3f}"
 
+    @pytest.mark.requires_model  # Needs trained weights to discriminate patterns
     def test_features_discriminate_between_patterns(self, eegpt_model, channel_names):
         """Different EEG patterns should produce different features."""
         # Generate very different patterns
@@ -150,12 +151,13 @@ class TestEEGPTSummaryTokens:
         # Convert to tensor
         data_tensor = torch.FloatTensor(data_flattened).unsqueeze(0).to(eegpt_model.device)
 
-        # Get channel IDs
+        # Get channel IDs and convert to tensor
         chan_ids = eegpt_model._get_cached_channel_ids(channel_names)
+        chan_ids_tensor = torch.tensor(chan_ids, dtype=torch.long, device=eegpt_model.device)
 
         # Run through encoder
         with torch.no_grad():
-            encoder_output = eegpt_model.encoder(data_tensor, chan_ids)
+            encoder_output = eegpt_model.encoder(data_tensor, chan_ids_tensor)
 
         # Check output shape - should contain summary tokens
 
@@ -177,6 +179,7 @@ class TestEEGPTSummaryTokens:
             np.mean(potential_summary)
             np.mean(other_tokens)
 
+    @pytest.mark.requires_model  # Needs trained weights to discriminate frequencies
     @pytest.mark.parametrize(
         "freq1,freq2,expected_similarity",
         [
