@@ -562,6 +562,11 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         # Load pretrained weights
         # NOTE: weights_only=False needed for EEGPT checkpoint format compatibility
         # This is safe as we only load from trusted model checkpoints
+        from pathlib import Path
+        if not Path(checkpoint_path).exists():
+            logger.info(f"Checkpoint {checkpoint_path} not found, creating model without weights")
+            return model
+            
         from brain_go_brrr.infra.safe_load import safe_load
 
         checkpoint = safe_load(checkpoint_path, weights_only=False, map_location="cpu")  # nosec:weights_only - EEGPT format

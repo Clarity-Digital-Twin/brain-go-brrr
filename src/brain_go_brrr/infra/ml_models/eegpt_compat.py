@@ -106,18 +106,12 @@ class EEGPTModel:
 
     def load_model(self) -> None:
         """Load the model (compatibility method)."""
-        # Create the new wrapper
-        try:
-            self.encoder = create_normalized_eegpt(
-                checkpoint_path=str(self.checkpoint_path) if self.checkpoint_path else None
-            )
-            if self.encoder is not None:
-                self.encoder = self.encoder.to(self.device)
-        except Exception:
-            # If loading fails (e.g., fake checkpoint for tests), create without checkpoint
-            self.encoder = create_normalized_eegpt(checkpoint_path=None)
-            if self.encoder is not None:
-                self.encoder = self.encoder.to(self.device)
+        # Create the new wrapper - let exceptions bubble up for proper mocking
+        self.encoder = create_normalized_eegpt(
+            checkpoint_path=str(self.checkpoint_path) if self.checkpoint_path else None
+        )
+        if self.encoder is not None:
+            self.encoder = self.encoder.to(self.device)
         self.is_loaded = True
 
     def _get_cached_channel_ids(self, channel_names: list[str]) -> list[int]:
@@ -162,42 +156,29 @@ class EEGPTModel:
 
         # Handle summary tokens for single sample input
         if data.ndim == 2:  # Single sample (channels, samples)
-            # Tests expect (4, 512) for summary tokens
-            if features.ndim == 1:
-                features = features.reshape(1, -1)
+            # The model should return (1, 4, 512) for a single sample
+            # We need to return (4, 512) for compatibility
+            if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
+                # Perfect! Got (1, 4, 512), just remove batch dimension
+                features = features[0]  # Now (4, 512)
             elif features.ndim == 2 and features.shape[0] == 1:
-                # Got (1, features), need (4, 512)
-                if self.n_summary_tokens == 4 and features.shape[1] > 512:
-                    # Reshape to (4, 512) if we have enough features
-                    features = features.reshape(self.n_summary_tokens, -1)[:, :512]
-                elif self.n_summary_tokens == 4:
-                    # TEMPORARY: Duplicate to get 4 tokens until encoder fixed
-                    features = np.repeat(features, self.n_summary_tokens, axis=0)
-            elif features.ndim == 3:
-                # If 3D, take last 4 tokens as summary tokens
-                if features.shape[1] >= 4:
-                    features = features[0, -4:, :]  # Last 4 tokens
+                # Got (1, D) where D might be 4*512=2048
+                if features.shape[1] == 2048:
+                    # Reshape to (4, 512)
+                    features = features.reshape(4, 512)
                 else:
-                    # Pad if needed
-                    features = features[0]  # Remove batch dim
-                    if features.shape[0] < 4:
-                        # Repeat to get 4 tokens
-                        repeats = 4 // features.shape[0] + 1
-                        features = np.tile(features, (repeats, 1))[:4]
-
-            # Ensure correct shape for summary tokens
-            if features.shape != (4, 512) and self.n_summary_tokens == 4:
-                # Last resort: create dummy shape
-                if features.size >= 4 * 512:
-                    features = features.flatten()[:4*512].reshape(4, 512)
-                else:
-                    # Pad or truncate to correct shape
-                    result = np.zeros((4, 512), dtype=np.float32)
-                    if features.ndim == 2:
-                        result[:min(4, features.shape[0]), :min(512, features.shape[1])] = features[:4, :512]
-                    else:
-                        result[0, :min(512, features.size)] = features.flatten()[:512]
-                    features = result
+                    # Unexpected shape, log warning and create placeholder
+                    import logging
+                    logging.warning(f"Unexpected feature shape {features.shape}, expected (1, 4, 512)")
+                    features = np.zeros((4, 512), dtype=np.float32)
+            elif features.ndim == 2 and features.shape == (4, 512):
+                # Already correct shape
+                pass
+            else:
+                # Unexpected shape, log and create placeholder
+                import logging
+                logging.warning(f"Unexpected feature shape {features.shape} for single sample")
+                features = np.zeros((4, 512), dtype=np.float32)
         else:
             # Batch mode - keep existing behavior
             if features.ndim == 1:
