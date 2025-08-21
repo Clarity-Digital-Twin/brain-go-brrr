@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 
+@pytest.mark.data  # These tests require real Sleep-EDF dataset files
 class TestSleepEDFIntegration:
     """Test API with real Sleep-EDF data."""
 
