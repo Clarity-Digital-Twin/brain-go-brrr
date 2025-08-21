@@ -39,6 +39,7 @@ class TestRealTUABAutoRejectIntegration:
 
         pytest.skip("No TUAB EDF files found")
 
+    @pytest.mark.data
     def test_load_real_edf_with_autoreject(self, real_tuab_file):
         """Test loading a real EDF file through the whole pipeline."""
         logger.info(f"Testing with real file: {real_tuab_file}")
@@ -68,6 +69,7 @@ class TestRealTUABAutoRejectIntegration:
         assert len(raw_reconstructed.ch_names) == len(raw.ch_names)
 
     @pytest.mark.slow
+    @pytest.mark.data
     def test_real_dataset_with_autoreject(self):
         """Test the full dataset with AutoReject enabled on real data."""
         data_root = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data")
@@ -96,6 +98,7 @@ class TestRealTUABAutoRejectIntegration:
         assert data.shape[0] == len(dataset.channels)  # Channels
         assert data.shape[1] == 2000  # 10s @ 200Hz
 
+    @pytest.mark.data
     def test_amplitude_cleaning_on_real_data(self, real_tuab_file):
         """Test amplitude-based cleaning on real noisy data."""
         # Load raw
@@ -155,6 +158,7 @@ class TestRealTUABAutoRejectIntegration:
             logger.info("No cached params - would fit on subset in production")
 
     @pytest.mark.integration
+    @pytest.mark.data
     def test_end_to_end_with_real_file(self, real_tuab_file):
         """Full end-to-end test with a real TUAB file."""
         logger.info(f"End-to-end test with: {real_tuab_file.name}")

@@ -107,6 +107,7 @@ class TestParallelPipeline:
             assert results["yasa"]["status"] in ["success", "failed"]
 
     @pytest.mark.integration
+    @pytest.mark.data
     def test_with_real_sleep_edf(self):
         """Test with real Sleep-EDF data."""
         sleep_edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")

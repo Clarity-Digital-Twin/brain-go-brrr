@@ -47,7 +47,13 @@ def pytest_collection_modifyitems(config, items):
     Handles:
     1. Skip network tests when BGB_ALLOW_NET is not set
     2. Deselect integration tests unless --run-integration is passed
+    3. Skip data tests unless --run-data is passed AND BGB_DATA_ROOT exists
+    4. Skip GPU tests when CUDA is not available
     """
+    from pathlib import Path
+
+    import torch
+
     # Handle network tests
     allow_network = os.environ.get("BGB_ALLOW_NET", "0") == "1"
     if not allow_network:
@@ -63,6 +69,25 @@ def pytest_collection_modifyitems(config, items):
         if drop:
             config.hook.pytest_deselected(items=drop)
             items[:] = [it for it in items if it not in drop]
+
+    # Handle data-backed tests
+    run_data = config.getoption("--run-data", default=False)
+    data_root = os.environ.get("BGB_DATA_ROOT", "")
+    has_data = bool(data_root and Path(data_root).exists())
+
+    if not (run_data and has_data):
+        reason = "skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)"
+        skip_data = pytest.mark.skip(reason=reason)
+        for item in items:
+            if "data" in item.keywords:
+                item.add_marker(skip_data)
+
+    # Handle GPU tests
+    if not torch.cuda.is_available():
+        skip_gpu = pytest.mark.skip(reason="no CUDA available in CI")
+        for item in items:
+            if "gpu" in item.keywords:
+                item.add_marker(skip_gpu)
 
 
 # Type checking imports only - don't trigger actual imports
@@ -156,6 +181,12 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="run integration tests that require models/data",
+    )
+    parser.addoption(
+        "--run-data",
+        action="store_true",
+        default=False,
+        help="run tests that require real datasets (TUAB/TUEV/Sleep-EDF)",
     )
 
 
