@@ -200,12 +200,22 @@ This release implements the complete dual pipeline architecture for autonomous E
 
 ### 🔬 Technical Specifications
 
-#### Pipeline Architecture
+#### Pipeline Architecture - Parallel Dual Pathways
 ```
-Input EEG → QC Check → EEGPT Features → Dual Pipeline:
-                                        ├── Abnormality Detection
-                                        │   └── (if abnormal) → IED Detection
-                                        └── Sleep Staging (parallel)
+                  Input EEG
+                      │
+                  QC Check
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+   Full EEG (19+ch)          Sleep-EDF (2ch)
+        │                           │
+   EEGPT Features              YASA Direct
+        │                           │
+   ┌────┴────┐                Sleep Staging
+   │         │                      │
+Abnormality Sleep Probe        Sleep Stats
+Detection   (EEGPT-based)
 ```
 
 #### Training Configuration

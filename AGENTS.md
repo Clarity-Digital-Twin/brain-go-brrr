@@ -260,8 +260,13 @@ TUAB uses OLD naming → Convert to MODERN naming:
 ### Processing Pipeline
 
 ```python
-# Standard pipeline order:
+# PARALLEL PATHWAYS (not sequential!):
+
+# Path 1: Full EEG (19+ channels, 256Hz)
 Raw EEG → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
+
+# Path 2: Sleep-EDF (2 channels, 100Hz)
+Sleep-EDF → Channel Aliasing → YASA → Sleep Stages
 
 # Filtering standards:
 - Bandpass: 0.5-50 Hz typical

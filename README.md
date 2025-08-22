@@ -44,13 +44,31 @@ uv run pytest tests/unit -q
 ### ❌ Not Implemented
 - Event detection, authentication, production deployment
 
-## Architecture
+## Architecture - Parallel Dual Pathways
 
 ```
-EEG Input → Quality Control → EEGPT Features → Task Heads
-                                               ├── Sleep Staging
-                                               └── Abnormality Detection
+                    EEG Input (.edf files)
+                          │
+                          ▼
+                   Quality Control (QC)
+                  [Autoreject + Bad Channels]
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+    Path 1: Full EEG              Path 2: Sleep-EDF
+    (19+ channels)                   (2 channels)
+          │                               │
+          ▼                               ▼
+    EEGPT Features                   YASA Sleep
+    (512-dim embeddings)              (Direct staging)
+          │                               │
+    ┌─────┴─────┐                        │
+    │           │                         │
+Abnormality  Sleep Probe              Sleep Stats
+Detection    (EEGPT-based)            & Hypnogram
 ```
+
+**IMPORTANT**: EEGPT and YASA run in PARALLEL, not sequentially. Sleep-EDF data (2 channels, 100Hz) goes directly to YASA. Full EEG data (19+ channels, 256Hz) goes through EEGPT for feature extraction.
 
 Clean Architecture with dependency injection and adapter pattern for third-party libraries.
 

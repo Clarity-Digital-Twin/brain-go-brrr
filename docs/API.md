@@ -10,6 +10,14 @@ http://localhost:8000
 
 ⚠️ **Currently no authentication implemented** - API is open access
 
+## Pathway Selection
+
+The API automatically routes to the appropriate processing pathway based on your data:
+
+- **Sleep-EDF data (2 channels, 100Hz)** → YASA pathway (`/api/v1/sleep/analyze`)
+- **Full EEG (19+ channels, 256Hz)** → EEGPT pathway (`/api/v1/eeg/eegpt/analyze`)
+- **Parallel processing** → Both pathways (`/api/v1/eeg/analyze`)
+
 ## Endpoints
 
 ### Health Check

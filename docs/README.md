@@ -36,13 +36,31 @@
 3. **API Users**: See [API.md](API.md)
 4. **ML Engineers**: Check [TRAINING.md](TRAINING.md)
 
-## System Overview
+## System Overview - Parallel Processing Pathways
 
 ```
-EEG Input (.edf) → Quality Control → EEGPT Features → Task Heads
-                                                      ├── Sleep Staging (YASA)
-                                                      └── Abnormality Detection
+                    EEG Input (.edf files)
+                          │
+                          ▼
+                   Quality Control (QC)
+                  [Autoreject + Bad Channels]
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+    Path 1: Full EEG              Path 2: Sleep-EDF
+    (19+ channels, 256Hz)          (2 channels, 100Hz)
+          │                               │
+          ▼                               ▼
+    EEGPT Features                   YASA Sleep
+    (512-dim embeddings)              (Direct staging)
+          │                               │
+    ┌─────┴─────┐                        │
+    │           │                         │
+Abnormality  Sleep Probe              Sleep Stats
+Detection    (EEGPT-based)            & Hypnogram
 ```
+
+**Key Insight**: EEGPT and YASA are PARALLEL pathways, not sequential. The system automatically routes data based on channel count and sampling rate.
 
 ## Key Technologies
 
