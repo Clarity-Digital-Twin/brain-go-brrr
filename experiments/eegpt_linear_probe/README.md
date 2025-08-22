@@ -75,14 +75,14 @@ eegpt_linear_probe/
 - **Features**: All temporal patches × summary tokens × embedding dimension
 
 ### TUAB Specifications
-- **Window Size**: 4 seconds (1024 samples @ 256Hz)  
+- **Window Size**: 4 seconds (1024 samples @ 256Hz)
 - **Features**: 16 patches × 4 tokens × 512 dims = 32,768
 - **Classes**: 2 (normal/abnormal)
 - **Dataset**: ~1.86M training windows
 - **Batch Size**: 256 (optimized for WSL)
 
 ### TUEV Specifications
-- **Window Size**: 10 seconds (2560 samples) 
+- **Window Size**: 10 seconds (2560 samples)
 - **Features**: 40 patches × 4 tokens × 512 dims = 81,920
 - **Classes**: 6 (background, seizure types, patterns)
 - **Dataset**: ~264k training windows
@@ -124,7 +124,7 @@ Training results are saved to:
 
 Based on EEGPT paper:
 ```
-Song, Y., Zheng, Q., Liu, B., & Gao, X. (2023). 
-EEG conformer: Convolutional transformer for EEG decoding and visualization. 
+Song, Y., Zheng, Q., Liu, B., & Gao, X. (2023).
+EEG conformer: Convolutional transformer for EEG decoding and visualization.
 IEEE Transactions on Neural Systems and Rehabilitation Engineering, 31, 710-719.
 ```
