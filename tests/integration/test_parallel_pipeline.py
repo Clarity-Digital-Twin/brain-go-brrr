@@ -119,7 +119,7 @@ class TestParallelPipeline:
     @pytest.mark.integration
     @pytest.mark.data
     def test_with_real_sleep_edf(self):
-        """Test with real Sleep-EDF data."""
+        """Test with real Sleep-EDF data - demonstrates pathway separation."""
         sleep_edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
 
         if not sleep_edf_path.exists():
@@ -136,9 +136,13 @@ class TestParallelPipeline:
 
         results = pipeline.process(raw)
 
-        # Both should return results
-        assert results["eegpt"]["status"] in ["success", "failed"]
-        assert results["yasa"]["status"] in ["success", "failed"]
-
-        # At least one should succeed
-        assert results["eegpt"]["status"] == "success" or results["yasa"]["status"] == "success"
+        # Sleep-EDF has only 2 channels, so EEGPT MUST fail
+        assert results["eegpt"]["status"] == "failed"
+        assert "channels" in results["eegpt"]["error"].lower() or "insufficient" in results["eegpt"]["error"].lower()
+        
+        # YASA should succeed (works with any channel count)
+        assert results["yasa"]["status"] == "success"
+        
+        # This demonstrates the parallel pathways:
+        # - EEGPT pathway fails due to insufficient channels (expected)
+        # - YASA pathway succeeds (handles Sleep-EDF correctly)
