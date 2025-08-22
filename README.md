@@ -44,10 +44,11 @@ uv run pytest tests/unit -q
 ### ❌ Not Implemented
 - Event detection, authentication, production deployment
 
-## Architecture - Parallel Dual Pathways
+## Architecture - Parallel Processing Pathways
 
 ```
                     EEG Input (.edf files)
+                   (Any channel count)
                           │
                           ▼
                    Quality Control (QC)
@@ -55,20 +56,29 @@ uv run pytest tests/unit -q
                           │
           ┌───────────────┴───────────────┐
           │                               │
-    Path 1: Full EEG              Path 2: Sleep-EDF
-    (19+ channels)                   (2 channels)
+    EEGPT Pipeline                  YASA Pipeline
+    (Requires 19+ ch)            (Works with ANY count)
+    (256Hz sampling)              (Resamples to 100Hz)
           │                               │
           ▼                               ▼
-    EEGPT Features                   YASA Sleep
-    (512-dim embeddings)              (Direct staging)
+    EEGPT Features               Channel Selection
+    (512-dim embeddings)         (Picks best central)
           │                               │
-    ┌─────┴─────┐                        │
-    │           │                         │
-Abnormality  Sleep Probe              Sleep Stats
-Detection    (EEGPT-based)            & Hypnogram
+    ┌─────┴─────┐                         ▼
+    │           │                   Sleep Staging
+Abnormality  Sleep Probe            (5 stages: W,N1,N2,N3,REM)
+Detection    (Linear probe)              │
+                                         ▼
+                                    Sleep Metrics
+                                  (Efficiency, TST, etc.)
 ```
 
-**IMPORTANT**: EEGPT and YASA run in PARALLEL, not sequentially. Sleep-EDF data (2 channels, 100Hz) goes directly to YASA. Full EEG data (19+ channels, 256Hz) goes through EEGPT for feature extraction.
+**KEY INSIGHTS**:
+- **YASA works with ANY channel count** (not just 2) - it selects the best central channel (C3/C4)
+- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement  
+- **Both pipelines run in PARALLEL** and can process the same data
+- **EEGPT requires 19+ channels** for meaningful clinical results
+- **YASA achieves 85%+ accuracy** with just 1 central EEG channel
 
 Clean Architecture with dependency injection and adapter pattern for third-party libraries.
 

@@ -68,13 +68,16 @@ open http://localhost:8000/docs
 
 Brain-Go-Brrr has two PARALLEL processing pathways:
 
-1. **YASA Pathway** (for Sleep-EDF data, 2 channels)
+1. **YASA Pathway** (works with ANY channel count)
    - Direct sleep staging without EEGPT
+   - Automatically selects best central channel (C3/C4 preferred)
+   - 85%+ accuracy with just 1 EEG channel
    - Optimized for overnight PSG recordings
 
-2. **EEGPT Pathway** (for full EEG, 19+ channels)
+2. **EEGPT Pathway** (requires 19+ channels for clinical use)
    - Extract 512-dim embeddings
    - Feed to task-specific linear probes
+   - Provides richer features but needs more channels
 
 ### Python Example - Sleep Analysis (YASA)
 
@@ -83,16 +86,17 @@ from brain_go_brrr.services import YASASleepStager
 from pathlib import Path
 import mne
 
-# Load Sleep-EDF data (2 channels)
+# Load EEG data (ANY channel count - YASA will auto-select best)
 edf_path = Path("data/sample.edf")
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
-# Run YASA sleep analysis (no EEGPT needed)
+# Run YASA sleep analysis (works with 1 channel or 100 channels!)
 stager = YASASleepStager()
 results = stager.stage_sleep(raw)
 
 print(f"Sleep efficiency: {results['efficiency']:.1f}%")
 print(f"Sleep stages: {results['stages']}")
+print(f"Channels used: {results.get('channel_used', 'auto-selected')}")
 ```
 
 ### Python Example - Parallel Processing
