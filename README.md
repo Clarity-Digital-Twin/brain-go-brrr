@@ -44,13 +44,41 @@ uv run pytest tests/unit -q
 ### ❌ Not Implemented
 - Event detection, authentication, production deployment
 
-## Architecture
+## Architecture - Parallel Processing Pathways
 
 ```
-EEG Input → Quality Control → EEGPT Features → Task Heads
-                                               ├── Sleep Staging
-                                               └── Abnormality Detection
+                    EEG Input (.edf files)
+                   (Any channel count)
+                          │
+                          ▼
+                   Quality Control (QC)
+                  [Autoreject + Bad Channels]
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+    EEGPT Pipeline                  YASA Pipeline
+    (Requires 19+ ch)            (Works with ANY count)
+    (256Hz sampling)              (Resamples to 100Hz)
+          │                               │
+          ▼                               ▼
+    EEGPT Features               Channel Selection
+    (512-dim embeddings)         (Picks best central)
+          │                               │
+    ┌─────┴─────┐                         ▼
+    │           │                   Sleep Staging
+Abnormality  Sleep Probe            (5 stages: W,N1,N2,N3,REM)
+Detection    (Linear probe)              │
+                                         ▼
+                                    Sleep Metrics
+                                  (Efficiency, TST, etc.)
 ```
+
+**KEY INSIGHTS**:
+- **YASA works with ANY channel count** (not just 2) - it selects the best central channel (C3/C4)
+- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement  
+- **Both pipelines run in PARALLEL** and can process the same data
+- **EEGPT requires 19+ channels** for meaningful clinical results
+- **YASA achieves 85%+ accuracy** with just 1 central EEG channel
 
 Clean Architecture with dependency injection and adapter pattern for third-party libraries.
 

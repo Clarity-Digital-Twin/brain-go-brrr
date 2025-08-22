@@ -23,4 +23,4 @@ All old/debugging/experimental scripts have been moved to `/archive/` subdirecto
 ## Note
 
 The main training pipeline is now in `/experiments/eegpt_linear_probe/` directory.
-Use `train_paper_aligned.py` there for EEGPT linear probe training.
+Use `train_tuab.py` there for EEGPT linear probe training.

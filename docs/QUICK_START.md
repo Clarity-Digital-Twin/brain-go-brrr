@@ -64,23 +64,57 @@ open http://localhost:8000/docs
 
 ## Running Analysis
 
-### Python Example
+### Understanding the Dual Pathways
+
+Brain-Go-Brrr has two PARALLEL processing pathways:
+
+1. **YASA Pathway** (works with ANY channel count)
+   - Direct sleep staging without EEGPT
+   - Automatically selects best central channel (C3/C4 preferred)
+   - 85%+ accuracy with just 1 EEG channel
+   - Optimized for overnight PSG recordings
+
+2. **EEGPT Pathway** (requires 19+ channels for clinical use)
+   - Extract 512-dim embeddings
+   - Feed to task-specific linear probes
+   - Provides richer features but needs more channels
+
+### Python Example - Sleep Analysis (YASA)
 
 ```python
 from brain_go_brrr.services import YASASleepStager
 from pathlib import Path
 import mne
 
-# Load EEG data
+# Load EEG data (ANY channel count - YASA will auto-select best)
 edf_path = Path("data/sample.edf")
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
-# Run sleep analysis
+# Run YASA sleep analysis (works with 1 channel or 100 channels!)
 stager = YASASleepStager()
 results = stager.stage_sleep(raw)
 
 print(f"Sleep efficiency: {results['efficiency']:.1f}%")
 print(f"Sleep stages: {results['stages']}")
+print(f"Channels used: {results.get('channel_used', 'auto-selected')}")
+```
+
+### Python Example - Parallel Processing
+
+```python
+from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
+
+# Run both pathways in parallel
+pipeline = ParallelEEGPipeline()
+results = pipeline.process(raw)
+
+# EEGPT results (if 19+ channels)
+if results["eegpt"]["status"] == "success":
+    print(f"EEGPT embeddings: {results['eegpt']['embedding_shape']}")
+
+# YASA results (works with any channel count)
+if results["yasa"]["status"] == "success":
+    print(f"Sleep stages: {results['yasa']['hypnogram']}")
 ```
 
 ### CLI Usage
