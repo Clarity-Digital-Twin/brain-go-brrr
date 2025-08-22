@@ -212,22 +212,26 @@ brain-go-brrr/
 - Implementation: `/src/brain_go_brrr/services/yasa_adapter.py`
 - Reference: YASA (87.46% accuracy)
 
-#### ⚠️ CRITICAL: Channel Aliasing for Sleep-EDF
-Sleep-EDF uses **Fpz-Cz** instead of **C3/C4** channels. Our YASA adapter includes automatic channel aliasing:
+#### ⚠️ CRITICAL: Channel Aliasing for Non-Standard Montages
+YASA works with ANY channel count but prefers central channels (C3/C4). For datasets like Sleep-EDF that use non-standard montages, our adapter includes automatic channel aliasing:
 
 ```python
-# Automatic aliasing for Sleep-EDF
+# Automatic aliasing for non-standard montages (e.g., Sleep-EDF)
 DEFAULT_ALIASES = {
-    "EEG Fpz-Cz": "C4",  # Frontal→Central
-    "EEG Pz-Oz": "O2",   # Parietal→Occipital
+    "EEG Fpz-Cz": "C4",  # Frontal→Central (Sleep-EDF specific)
+    "EEG Pz-Oz": "O2",   # Parietal→Occipital (Sleep-EDF specific)
+    "Fpz": "C3",         # Single electrode mapping
 }
 
-# Usage
+# Usage - works with ANY channel count
 stager = YASASleepStager()
-results = stager.process_sleep_edf(edf_path)
+results = stager.stage_sleep(raw)  # Auto-selects best channel
 ```
 
-This restores accuracy from ~83% to **~87%** without retraining!
+**Key Facts**:
+- YASA achieves 85%+ accuracy with just 1 central EEG channel
+- With aliasing, accuracy improves to ~87% for non-standard montages
+- NOT limited to 2 channels - that's just Sleep-EDF's configuration
 
 ## 🎯 Performance Targets
 

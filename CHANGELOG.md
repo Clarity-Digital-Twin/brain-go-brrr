@@ -203,19 +203,22 @@ This release implements the complete dual pipeline architecture for autonomous E
 #### Pipeline Architecture - Parallel Dual Pathways
 ```
                   Input EEG
+                 (Any channel count)
                       │
                   QC Check
                       │
         ┌─────────────┴─────────────┐
         │                           │
-   Full EEG (19+ch)          Sleep-EDF (2ch)
+   EEGPT Pipeline              YASA Pipeline
+   (19+ channels)            (ANY channel count)
         │                           │
-   EEGPT Features              YASA Direct
+   EEGPT Features           Auto Channel Selection
+   (512-dim)                  (Prefers C3/C4)
         │                           │
    ┌────┴────┐                Sleep Staging
-   │         │                      │
-Abnormality Sleep Probe        Sleep Stats
-Detection   (EEGPT-based)
+   │         │                 (85%+ w/ 1ch)
+Abnormality Sleep Probe              │
+Detection   (EEGPT-based)      Sleep Stats
 ```
 
 #### Training Configuration

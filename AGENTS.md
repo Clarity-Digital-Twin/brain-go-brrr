@@ -262,11 +262,12 @@ TUAB uses OLD naming → Convert to MODERN naming:
 ```python
 # PARALLEL PATHWAYS (not sequential!):
 
-# Path 1: Full EEG (19+ channels, 256Hz)
+# Path 1: EEGPT Pipeline (requires 19+ channels, 256Hz)
 Raw EEG → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
 
-# Path 2: Sleep-EDF (2 channels, 100Hz)
-Sleep-EDF → Channel Aliasing → YASA → Sleep Stages
+# Path 2: YASA Pipeline (works with ANY channel count)
+Any EEG → Auto Channel Selection → YASA → Sleep Stages
+# Note: YASA achieves 85%+ accuracy with just 1 central channel
 
 # Filtering standards:
 - Bandpass: 0.5-50 Hz typical
