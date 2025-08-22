@@ -10,10 +10,6 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, staging, development]
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'archive/**'
   pull_request:
     branches: [main, staging, development]
   workflow_dispatch:
@@ -34,10 +30,42 @@ env:
 
 jobs:
   # ============================================
+  # CHANGE DETECTION - Determine what needs to run
+  # ============================================
+  changes:
+    name: Detect Changes 🔍
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'tests/**'
+              - 'scripts/**'
+              - '*.py'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - '.github/workflows/**'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+              - 'literature/**'
+
+  # ============================================
   # STAGE 1: QUALITY GATES (Always Run, Fail Fast)
   # ============================================
   quality:
     name: Code Quality ✨
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -355,12 +383,22 @@ jobs:
   ci-status:
     name: CI Status ✅
     runs-on: ubuntu-latest
-    needs: [quality, test]
+    needs: [changes, quality, test]
     if: always()
 
     steps:
       - name: Check CI Status
         run: |
+          echo "Code changes: ${{ needs.changes.outputs.code }}"
+          echo "Docs changes: ${{ needs.changes.outputs.docs }}"
+
+          # If only docs changed, pass immediately
+          if [[ "${{ needs.changes.outputs.code }}" != "true" ]]; then
+            echo "✅ Docs-only change - CI Passed"
+            exit 0
+          fi
+
+          # If code changed, check that tests passed
           if [[ "${{ needs.quality.result }}" != "success" ]] || \
              [[ "${{ needs.test.result }}" != "success" ]]; then
             echo "❌ CI Failed"
