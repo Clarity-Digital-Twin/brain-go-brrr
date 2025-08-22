@@ -1,9 +1,13 @@
 """Enhanced abnormality detection probe with paper-matching features.
 
-WARNING: This module uses PyTorch Lightning which has a CRITICAL BUG in v2.5.2
-that causes training to hang with large cached datasets (>100k samples).
-DO NOT USE for training! Use experiments/eegpt_linear_probe/train_pytorch_stable.py instead.
-See experiments/eegpt_linear_probe/LIGHTNING_BUG_REPORT.md for details.
+⚠️ CRITICAL: DO NOT USE THIS MODULE FOR TRAINING!
+PyTorch Lightning 2.5.2 has a CRITICAL BUG that causes training to hang/crash
+with large cached datasets (>100k samples). This module is kept ONLY for:
+- Unit test compatibility
+- Reference implementation
+
+FOR ACTUAL TRAINING: Use experiments/eegpt_linear_probe/train_tuab.py (pure PyTorch)
+See AGENTS.md and CLAUDE.md for details on the Lightning bug.
 """
 
 import logging

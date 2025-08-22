@@ -24,7 +24,7 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 - `num_sanity_val_steps=0` ❌
 - `fast_dev_run=True` ❌
 
-**SOLUTION**: Use `experiments/eegpt_linear_probe/train_paper_aligned.py` (pure PyTorch)
+**SOLUTION**: Use `experiments/eegpt_linear_probe/train_tuab.py` (pure PyTorch)
 
 ## 🧠 Critical Context
 
@@ -209,7 +209,7 @@ brain-go-brrr/
 - 5-stage classification (W, N1, N2, N3, REM)
 - Hypnogram visualization
 - Sleep metrics: efficiency, REM%, N3%, WASO
-- Implementation: `/src/brain_go_brrr/services/yasa_adapter.py`
+- Implementation: `/src/brain_go_brrr/infra/external/yasa_adapter.py`
 - Reference: YASA (87.46% accuracy)
 
 #### ⚠️ CRITICAL: Channel Aliasing for Sleep-EDF
@@ -242,7 +242,7 @@ This restores accuracy from ~83% to **~87%** without retraining!
 ### EEGPT Specifications
 
 - **Sampling**: 256 Hz (resample if needed)
-- **Windows**: 8 seconds (2048 samples) for TUAB linear probe
+- **Windows**: 4 seconds (1024 samples) for TUAB linear probe
 - **Channels**: 20 standard channels (modern naming)
 - **Patch size**: 64 samples (250ms)
 - **Architecture**: Vision Transformer with masked autoencoding
@@ -260,8 +260,14 @@ TUAB uses OLD naming → Convert to MODERN naming:
 ### Processing Pipeline
 
 ```python
-# Standard pipeline order:
+# PARALLEL PATHWAYS (not sequential!):
+
+# Path 1: EEGPT Pipeline (requires 19+ channels, 256Hz)
 Raw EEG → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
+
+# Path 2: YASA Pipeline (works with ANY channel count)
+Any EEG → Auto Channel Selection → YASA → Sleep Stages
+# Note: YASA achieves 85%+ accuracy with just 1 central channel
 
 # Filtering standards:
 - Bandpass: 0.5-50 Hz typical

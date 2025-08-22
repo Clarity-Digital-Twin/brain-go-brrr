@@ -200,12 +200,25 @@ This release implements the complete dual pipeline architecture for autonomous E
 
 ### 🔬 Technical Specifications
 
-#### Pipeline Architecture
+#### Pipeline Architecture - Parallel Dual Pathways
 ```
-Input EEG → QC Check → EEGPT Features → Dual Pipeline:
-                                        ├── Abnormality Detection
-                                        │   └── (if abnormal) → IED Detection
-                                        └── Sleep Staging (parallel)
+                  Input EEG
+                 (Any channel count)
+                      │
+                  QC Check
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+   EEGPT Pipeline              YASA Pipeline
+   (19+ channels)            (ANY channel count)
+        │                           │
+   EEGPT Features           Auto Channel Selection
+   (512-dim)                  (Prefers C3/C4)
+        │                           │
+   ┌────┴────┐                Sleep Staging
+   │         │                 (85%+ w/ 1ch)
+Abnormality Sleep Probe              │
+Detection   (EEGPT-based)      Sleep Stats
 ```
 
 #### Training Configuration
@@ -258,8 +271,8 @@ uv pip install brain-go-brrr==0.6.0
 ### 🔄 Migration from 0.5.0
 
 1. **Update window size**: Change from 8s to 4s windows
-2. **Use new training script**: `train_paper_aligned.py` instead of Lightning
-3. **Update configs**: Use `tuab_4s_paper_aligned.yaml`
+2. **Use new training script**: `experiments/eegpt_linear_probe/train_tuab.py` instead of Lightning
+3. **Update configs**: Use `experiments/eegpt_linear_probe/configs/tuab.yaml`
 4. **Clear caches**: Rebuild with 4s windows
 
 ### 📋 Next Steps
@@ -300,7 +313,7 @@ This release adds complete EEGPT linear probe training for TUAB abnormality dete
   - Fixed channel mapping: T3→T7, T4→T8, T5→P7, T6→P8
   - Reduced from 23 to 20 channels (removed A1/A2 references)
   - Added file caching for 100x faster loading
-  - Window size: 8 seconds (2048 samples at 256Hz)
+  - Window size: 4 seconds (1024 samples at 256Hz)
   - Zero-padding for missing channels
 
 ### 🐛 Fixed

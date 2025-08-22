@@ -9,7 +9,7 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        EEG Input                            │
-│                    (.edf/.bdf files)                        │
+│                (.edf/.bdf files - ANY channel count)        │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼
@@ -22,28 +22,30 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
         ┌───────────────┴───────────────┐
         │                               │
         ▼                               ▼
-   Full EEG Data                   Sleep-EDF Data
-  (19+ channels)                    (2 channels)
-  (256Hz or resample)                 (100Hz)
+   EEGPT Pipeline                  YASA Pipeline
+  (Requires 19+ channels)         (Works with ANY count)
+  (256Hz or resample)             (Auto-selects best channel)
         │                               │
         ▼                               ▼
 ┌──────────────────────┐    ┌──────────────────────┐
 │  EEGPT Features      │    │   YASA Sleep Staging │
-│  512-dim embeddings  │    │   Native processing  │
+│  512-dim embeddings  │    │  85%+ accuracy w/ 1ch│
 │  Status: ✅ WORKING  │    │   Status: ✅ WORKING │
 └──────┬───────────────┘    └──────────────────────┘
-       │
-       ├──────────────┐
-       │              │
-       ▼              ▼
-┌──────────────┐  ┌──────────────┐
+       │                                │
+       ├──────────────┐                 │
+       │              │                 ▼
+       ▼              ▼           Sleep Metrics
+┌──────────────┐  ┌──────────────┐  & Hypnogram
 │ Abnormality  │  │ Sleep Probe  │
 │ Detection    │  │ (EEGPT-based)│
 │ Status: 🟡   │  │ Status: 🔬   │
 └──────────────┘  └──────────────┘
 
 IMPORTANT: EEGPT and YASA are PARALLEL pathways, not sequential.
-- Sleep-EDF (100Hz, 2ch) → YASA only
+- YASA works with ANY channel count (1-100+), not just 2
+- YASA auto-selects the best central channel (C3/C4 preferred)
+- Sleep-EDF has 2 channels but that's dataset-specific, not a YASA limitation
 - Full EEG (256Hz, 19+ch) → EEGPT → Linear Probes
 ```
 
@@ -118,14 +120,22 @@ class EEGPTModel:
 
 **Implementation**:
 - 5-stage classification (W, N1, N2, N3, REM)
-- 87% accuracy on Sleep-EDF dataset
-- Automatic channel aliasing for compatibility
+- 85%+ accuracy with just 1 central EEG channel
+- 87% accuracy with 1 EEG + 1 EOG channel
+- Works with ANY channel count (auto-selects best)
+- Automatic channel aliasing for non-standard montages
 - Hypnogram and sleep metrics generation
 
-**Channel Aliasing** (for Sleep-EDF compatibility):
+**Key Facts**:
+- **NOT limited to 2 channels** - works with 1 to 100+ channels
+- Prefers central channels (C3/C4) for best accuracy
+- Sleep-EDF happens to have 2 channels, but that's dataset-specific
+
+**Channel Aliasing** (improves accuracy for non-standard montages):
 ```python
-"EEG Fpz-Cz" → "C4"  # Frontal to Central
-"EEG Pz-Oz" → "O2"   # Parietal to Occipital
+"EEG Fpz-Cz" → "C4"  # Frontal to Central (Sleep-EDF)
+"EEG Pz-Oz" → "O2"   # Parietal to Occipital (Sleep-EDF)
+"Fpz" → "C3"         # Single electrode mapping
 ```
 
 ### 4. Abnormality Detection 🟡 (Training)

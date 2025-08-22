@@ -10,6 +10,16 @@ http://localhost:8000
 
 ⚠️ **Currently no authentication implemented** - API is open access
 
+## Pathway Selection
+
+The API automatically routes to the appropriate processing pathway based on your data:
+
+- **Any EEG data** → YASA pathway (`/api/v1/sleep/analyze`) - works with 1-100+ channels
+- **Full EEG (19+ channels, 256Hz)** → EEGPT pathway (`/api/v1/eeg/eegpt/analyze`) 
+- **Parallel processing** → Both pathways (`/api/v1/eeg/analyze`)
+
+**Note**: YASA is NOT limited to 2-channel data. It works with any channel count and automatically selects the best central channel (C3/C4 preferred) for optimal accuracy.
+
 ## Endpoints
 
 ### Health Check
