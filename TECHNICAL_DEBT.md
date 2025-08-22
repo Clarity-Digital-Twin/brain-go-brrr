@@ -4,22 +4,23 @@
 
 ### 🔴 Critical: Sleep-EDF and EEGPT Pathway Separation
 
-**Issue**: Sleep-EDF data (100Hz, 2 channels) is incompatible with EEGPT (256Hz, 19+ channels). These should be separate, parallel processing pathways, not combined.
+**Issue**: EEGPT requires 19+ channels for meaningful results. Data should be routed to appropriate pathways based on channel count.
 
 **Impact**:
-- `/eeg/sleep/stages` endpoint incorrectly tries to use EEGPT on Sleep-EDF
-- Tests incorrectly skip Sleep-EDF + EEGPT combinations instead of preventing them
-- Documentation implies these pathways should be integrated
+- `/eeg/sleep/stages` endpoint should route based on channel count
+- Tests incorrectly skip combinations instead of routing appropriately
+- Documentation previously implied sequential processing
 
 **Current Architecture** (CORRECT):
-- **YASA pathway**: Sleep-EDF (100Hz, 2 channels) → YASA sleep staging ✅
+- **YASA pathway**: ANY channel count (auto-selects best channel) → YASA sleep staging ✅
 - **EEGPT pathway**: Full EEG (256Hz, 19+ channels) → EEGPT features → Linear probes ✅
 - These are PARALLEL, not sequential
+- Note: YASA achieves 85%+ accuracy with just 1 channel
 
 **Solution Required**:
-1. Fix `/eeg/sleep/stages` endpoint to check channel count and reject Sleep-EDF
+1. Route inputs intelligently: <19 channels → YASA only, 19+ channels → both pathways available
 2. Refactor tests to explicitly separate YASA and EEGPT pathways
-3. Update documentation to clarify parallel processing architecture
+3. ✅ DONE: Documentation updated to clarify parallel processing architecture
 
 **Files to Modify**:
 - `src/brain_go_brrr/api/routers/sleep.py` (add channel validation)
