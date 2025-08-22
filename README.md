@@ -75,7 +75,7 @@ Detection    (Linear probe)              │
 
 **KEY INSIGHTS**:
 - **YASA works with ANY channel count** (not just 2) - it selects the best central channel (C3/C4)
-- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement  
+- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement
 - **Both pipelines run in PARALLEL** and can process the same data
 - **EEGPT requires 19+ channels** for meaningful clinical results
 - **YASA achieves 85%+ accuracy** with just 1 central EEG channel
