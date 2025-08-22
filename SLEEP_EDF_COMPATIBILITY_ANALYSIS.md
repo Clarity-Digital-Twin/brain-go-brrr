@@ -20,7 +20,7 @@
 - Processes Sleep-EDF natively without any issues
 - Achieves 87% accuracy on Sleep-EDF
 
-### 3. EEGPT Requirements  
+### 3. EEGPT Requirements
 - Target sampling: **256 Hz** (patch size 64 → 250 ms windows)
 - Paper resamples all datasets to 256 Hz (EEGPT literature notes)
 - Channel expectation: typically 19+ standard 10–20 channels (up to 58). Sleep-EDF has far fewer; extraction must handle this explicitly.
@@ -32,7 +32,7 @@
 1. **EEGPT Paper (EEGPT.md)**:
    - Line 189: "preprocessing steps, including... resampling (256Hz)"
    - Line 477: "first downsampled to 256 Hz"
-   - Line 493: "first downsampled to 256 Hz"  
+   - Line 493: "first downsampled to 256 Hz"
    - Line 513: "first upsampled to 256 Hz" (for data below 256 Hz)
 
 2. **YASA Paper (yasa.md)**:
@@ -63,11 +63,11 @@
 def prepare_for_eegpt(raw_eeg, target_rate=256):
     """Resample EEG data for EEGPT processing."""
     current_rate = raw_eeg.info['sfreq']
-    
+
     if current_rate != target_rate:
         # MNE's resample preserves signal integrity
         raw_eeg.resample(target_rate)
-    
+
     return raw_eeg
 ```
 
@@ -199,13 +199,13 @@ def test_resampling_preserves_sleep_stages():
     """Verify resampling doesn't corrupt sleep stage boundaries."""
     # Create synthetic sleep EEG at 100 Hz
     raw_100 = create_sleep_eeg(sfreq=100)
-    
+
     # Mark stage transitions
     transitions_100 = find_stage_transitions(raw_100)
-    
+
     # Resample to 256 Hz
     raw_256 = raw_100.copy().resample(256)
-    
+
     # Verify transitions preserved (within 1 sample tolerance)
     transitions_256 = find_stage_transitions(raw_256)
     for t100, t256 in zip(transitions_100, transitions_256):
