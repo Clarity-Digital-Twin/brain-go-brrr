@@ -399,7 +399,7 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
             raise HTTPException(
                 status_code=400,
                 detail=f"EEGPT requires at least 19 EEG channels, found {n_channels}. "
-                       f"For Sleep-EDF data (2 channels), use /sleep/analyze endpoint with YASA instead."
+                f"For Sleep-EDF data (2 channels), use /sleep/analyze endpoint with YASA instead.",
             )
 
         # Check sampling rate and resample if needed

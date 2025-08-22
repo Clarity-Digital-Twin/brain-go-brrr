@@ -265,7 +265,7 @@ TUAB uses OLD naming → Convert to MODERN naming:
 # Path 1: Full EEG (19+ channels) → EEGPT pipeline
 Raw EEG (256Hz) → Autoreject (QC) → EEGPT (Features) → Task Head (Prediction)
 
-# Path 2: Sleep-EDF (2 channels) → YASA pipeline  
+# Path 2: Sleep-EDF (2 channels) → YASA pipeline
 Sleep-EDF (100Hz) → Channel Aliasing → YASA → Sleep Stages
 
 # NEVER combine Sleep-EDF with EEGPT (incompatible!)
