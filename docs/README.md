@@ -1,77 +1,101 @@
 # Brain-Go-Brrr Documentation
 
-## 📁 Documentation Structure
+## Quick Navigation
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [QUICK_START.md](QUICK_START.md) | Get running in 5 minutes | ✅ Current |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System design and components | ✅ Current |
+| [API.md](API.md) | REST API endpoints | ✅ Current |
+| [TRAINING.md](TRAINING.md) | Model training guide | ✅ Current |
+| [TESTING.md](TESTING.md) | Testing guidelines | ✅ Current |
+
+## Project Status
+
+### ✅ Working Components
+- **YASA Sleep Analysis** - 5-stage classification, 87% accuracy
+- **Autoreject QC** - Bad channel detection, artifact rejection
+- **EEGPT Features** - 512-dim embeddings extraction
+- **FastAPI Server** - REST API with Redis caching
+- **CI/CD Pipeline** - GitHub Actions on all branches
+
+### 🟡 In Progress
+- **TUAB Abnormality Detection** - Linear probe training (4% complete)
+- **Documentation Cleanup** - Consolidating 130+ docs to <10
+
+### ❌ Not Implemented
+- **Event Detection** - Seizure/IED detection
+- **Authentication** - OAuth2/JWT
+- **Production Deployment** - Kubernetes, PostgreSQL
+- **Message Queue** - Celery async processing
+
+## Getting Started
+
+1. **New Users**: Start with [QUICK_START.md](QUICK_START.md)
+2. **Developers**: Read [ARCHITECTURE.md](ARCHITECTURE.md)
+3. **API Users**: See [API.md](API.md)
+4. **ML Engineers**: Check [TRAINING.md](TRAINING.md)
+
+## System Overview
 
 ```
-docs/
-├── 00-overview/          # Project status and high-level documentation
-│   ├── README.md         # Documentation hub (START HERE)
-│   └── IMPLEMENTATION_STATUS_DETAILED.md
-│
-├── 01-architecture/      # System design and architecture
-│   ├── DUAL_PIPELINE_ARCHITECTURE.md ⭐
-│   ├── HIERARCHICAL_PIPELINE_DESIGN.md
-│   ├── QUALITY_CONTROL_SYSTEM.md
-│   ├── SLEEP_ANALYSIS_INTEGRATION.md
-│   ├── EVENT_DETECTION_ARCHITECTURE.md
-│   ├── ABNORMALITY_DETECTION_PIPELINE.md
-│   └── SOLID_ARCHITECTURE_PATTERNS.md
-│
-├── 02-implementation/    # Implementation guides and technical specs
-│   ├── EEGPT_IMPLEMENTATION_GUIDE.md
-│   ├── HYPERPARAMETER_OPTIMIZATION.md
-│   └── AUTOREJECT_PRECISE_INTEGRATION_SPEC.md
-│
-├── 03-api/              # API documentation
-│   └── API_DESIGN_PATTERNS.md
-│
-├── 04-testing/          # Testing documentation
-│   ├── INTEGRATION_TEST_SCENARIOS.md
-│   └── PERFORMANCE_BENCHMARKING_GUIDE.md
-│
-├── 05-deployment/       # Deployment and operations
-│   ├── DEPLOYMENT_ARCHITECTURE.md
-│   └── FAILURE_MODE_ANALYSIS.md
-│
-├── 06-clinical/         # Clinical and regulatory docs
-│   └── (Requirements and compliance docs)
-│
-└── archive/             # Historical documentation
-    ├── old-planning/    # Original planning docs
-    ├── old-tdd/         # TDD phase documentation
-    └── old-technical/   # Technical debt docs
+EEG Input (.edf) → Quality Control → EEGPT Features → Task Heads
+                                                      ├── Sleep Staging (YASA)
+                                                      └── Abnormality Detection
 ```
 
-## 🚀 Quick Start
+## Key Technologies
 
-### For New Users
-👉 **Start here**: [00-overview/README.md](00-overview/README.md)
+- **Models**: EEGPT (10M params), YASA, Autoreject
+- **Backend**: FastAPI, PyTorch, MNE-Python
+- **Infrastructure**: Redis, Docker, GitHub Actions
+- **Languages**: Python 3.11+
 
-### Key Documents
+## Performance Metrics
 
-| Document | Purpose | Importance |
-|----------|---------|------------|
-| [DUAL_PIPELINE_ARCHITECTURE.md](01-architecture/DUAL_PIPELINE_ARCHITECTURE.md) | Complete system architecture | ⭐⭐⭐ |
-| [IMPLEMENTATION_STATUS_DETAILED.md](00-overview/IMPLEMENTATION_STATUS_DETAILED.md) | Current implementation status | ⭐⭐⭐ |
-| [API_DESIGN_PATTERNS.md](03-api/API_DESIGN_PATTERNS.md) | API design and endpoints | ⭐⭐ |
-| [DEPLOYMENT_ARCHITECTURE.md](05-deployment/DEPLOYMENT_ARCHITECTURE.md) | Production deployment | ⭐⭐ |
+| Component | Performance | Status |
+|-----------|------------|--------|
+| Sleep Staging | 87% accuracy | ✅ Production |
+| QC Agreement | 87% with experts | ✅ Production |
+| API Response | <100ms cached | ✅ Production |
+| TUAB Target | 0.87 AUROC | 🟡 Training |
 
-## 📊 Current Status
+## Repository Structure
 
-- **Overall Completion**: 75%
-- **Documentation**: ✅ Complete and organized
-- **Architecture**: ✅ Fully designed
-- **Implementation**: 🟡 Training in progress
-- **Testing**: ✅ 454 tests passing
-- **Deployment**: ❌ Not started
+```
+brain-go-brrr/
+├── src/brain_go_brrr/    # Main package
+│   ├── domain/           # Business logic
+│   ├── application/      # Use cases
+│   ├── infra/           # External services
+│   └── api/             # REST API
+├── experiments/         # Training scripts
+├── tests/              # Test suite
+└── docs/               # Documentation (you are here)
+```
 
-## 🔗 External References
+## Contributing
 
-- [Project Root README](../README.md)
-- [CLAUDE.md](../CLAUDE.md) - AI assistant instructions
-- [PROJECT_STATUS.md](../PROJECT_STATUS.md) - Live status
-- [Training Progress](../experiments/eegpt_linear_probe/TRAINING_STATUS.md)
+1. Read [ARCHITECTURE.md](ARCHITECTURE.md) for design principles
+2. Follow [TESTING.md](TESTING.md) for test requirements
+3. Use pre-commit hooks: `pre-commit install`
+4. All PRs require passing CI/CD
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues)
+- **Discussions**: Use issue comments
+- **Security**: Report to security@clarity.ai
+
+## Archive Notice
+
+Previous documentation (130+ files) has been archived in `docs/archive/`. The current documentation set is intentionally minimal and focused on actual implemented features.
+
+## License
+
+Apache 2.0 - See [LICENSE](../LICENSE)
 
 ---
 
-_Last Updated: August 5, 2025_
+_Last Updated: August 22, 2025_
+_Documentation Version: 2.0 (Post-Consolidation)_

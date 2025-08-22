@@ -1,15 +1,14 @@
 # CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
 
-## 🚧 ACTIVE CI/CD FIXES (Aug 21, 2025)
+## 🚀 Current Status (Aug 22, 2025)
 
-**Current Work**: Fixing integration and benchmark test failures after refactoring
-1. **Clean Architecture** - Migration from `core.*` to DDD layers (MOSTLY COMPLETE)
-2. **EEGPT Unification** - Compatibility layer created but needs completion
+**Active Work**: TUAB abnormality detection training
+- Training linear probe on frozen EEGPT features
+- Progress: Batch 292/7286 (4% complete)
+- Target: 0.87 AUROC (paper performance)
+- Monitor: `tmux attach -t tuab_training`
 
-**Status**:
-- Integration tests: 34 failures (was 41, fixed 7)
-- Benchmark tests: Empty JSON output issue
-- See `CI_CD_INVESTIGATION.md` for current investigation
+**CI/CD Status**: ✅ All branches green (after formatting fixes)
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -32,17 +31,22 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.
 
 ## ✅ What's Currently Working
-- **YASA Sleep Analysis**: 100% functional, all tests pass
-- **Autoreject QC**: 87% tests pass, core functionality intact
-- **Unit Tests**: ~800+ pass reliably
-- **Basic API**: Health checks and core endpoints work
-- **CI/CD Pipeline**: Staging branch fully green
+- **YASA Sleep Analysis**: 100% functional, 87% accuracy
+- **Autoreject QC**: Bad channel detection, artifact rejection
+- **EEGPT Features**: 512-dim embeddings extraction working
+- **FastAPI Server**: REST API with Redis caching
+- **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
+- **Unit Tests**: 454 passing tests
 
-## ❌ Known Issues (Being Fixed)
-- **Integration Tests**: 34 failures in EEGPT model tests
-- **Benchmark Tests**: Empty JSON output in CI
-- **EEGPT Compatibility**: Missing some expected attributes
-- **Feature Discrimination**: Summary tokens too similar (99.6% correlation)
+## 🟡 In Progress
+- **TUAB Abnormality Detection**: Training linear probe (4% complete)
+- **Documentation**: Consolidated from 130 files to 6 clean docs
+
+## ❌ Not Implemented
+- **Event Detection**: Architecture docs only, no code
+- **Authentication**: No OAuth2/JWT
+- **Production Deployment**: No Kubernetes/PostgreSQL
+- **Message Queue**: No Celery implementation
 
 ## 📚 Project Overview
 
@@ -52,16 +56,20 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **License**: Apache 2.0 (NOT MIT)
 - **Python**: 3.11-3.12 (3.13 not supported due to scipy/OpenBLAS issues)
 
-## 📖 Essential Reading Before Starting
+## 📖 Essential Documentation
 
 ```bash
-# Technical specifications and requirements
-/docs/literature-master-reference.md    # Complete technical reference
-/docs/PRD-product-requirements.md      # What we're building
-/docs/TRD-technical-requirements.md    # How we're building it
-/docs/BDD-behavior-driven-development.md # Behavior scenarios
-/docs/agentic-workflow.md              # AI-assisted development guide
-/ROUGH_DRAFT.md                        # MVP implementation plan
+# Consolidated, accurate documentation (6 files total)
+/docs/README.md           # Documentation hub - START HERE
+/docs/QUICK_START.md     # Get running in 5 minutes
+/docs/ARCHITECTURE.md    # System design (actual implementation)
+/docs/API.md            # REST endpoints (working only)
+/docs/TRAINING.md       # Model training guide
+/docs/TESTING.md        # Testing guidelines
+
+# Root documentation
+/README.md              # Project overview
+/CLAUDE.md             # This file - AI assistant context
 ```
 
 ## 🔧 Development Commands
