@@ -39,10 +39,10 @@ echo "  - Features: Full temporal (32,768 dimensions)"
 echo "  - Max epochs: 10 with early stopping"
 echo "================================================"
 
-# Check if tmux session exists
+# Check if tmux session exists (log the error to file as well)
 if tmux has-session -t tuab_training 2>/dev/null; then
-    echo "❌ ERROR: tmux session 'tuab_training' already exists!"
-    echo "Kill it with: tmux kill-session -t tuab_training"
+    echo "❌ ERROR: tmux session 'tuab_training' already exists!" | tee -a ${LOG_FILE}
+    echo "Kill it with: tmux kill-session -t tuab_training" | tee -a ${LOG_FILE}
     exit 1
 fi
 

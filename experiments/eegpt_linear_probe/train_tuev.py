@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import random
+import signal
 import sys
 import time
 from datetime import datetime
@@ -271,7 +272,7 @@ def main(args):
 
     # Setup output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(f"output/tuev_{timestamp}_seed{args.seed}")
+    output_dir = Path(args.output_dir) if getattr(args, 'output_dir', None) else Path(f"output/tuev_{timestamp}_seed{args.seed}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Setup logging
@@ -354,10 +355,40 @@ def main(args):
         weight_decay=config.training.weight_decay
     )
 
-    # Training loop
+    # Training loop with graceful shutdown and incremental history logging
     best_balanced_acc = 0
     best_epoch = 0
     history = []
+    history_path = output_dir / 'history.jsonl'
+
+    # Prepare signal-safe checkpoint saving
+    state = {"model": None, "optimizer": None, "epoch": 0, "best_bacc": 0.0}
+
+    def save_checkpoint(tag: str = 'signal') -> None:
+        try:
+            if state["model"] is None:
+                return
+            checkpoint = {
+                'epoch': state['epoch'],
+                'model_state_dict': state['model'].state_dict(),
+                'optimizer_state_dict': state['optimizer'].state_dict() if state['optimizer'] else None,
+                'best_balanced_acc': state['best_bacc'],
+                'config': OmegaConf.to_container(config),
+                'tag': tag,
+            }
+            torch.save(checkpoint, output_dir / 'last_model.pt')
+            logger.info(f"Saved checkpoint (tag={tag}) at epoch {state['epoch']}")
+        except Exception:
+            logger.exception('Failed to save checkpoint on signal/exception')
+
+    def _handle_signal(signum, _frame):
+        signame = {signal.SIGINT: 'SIGINT', signal.SIGTERM: 'SIGTERM'}.get(signum, str(signum))
+        logger.error(f"Received {signame}; saving checkpoint and exiting...")
+        save_checkpoint(tag=f'signal_{signame}')
+        sys.exit(128 + signum)
+
+    signal.signal(signal.SIGINT, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
 
     logger.info("=" * 50)
     logger.info("TUEV Training - Target Performance (from paper):")
@@ -367,6 +398,10 @@ def main(args):
     logger.info("=" * 50)
 
     for epoch in range(1, config.training.n_epochs + 1):
+        state['model'] = model
+        state['optimizer'] = optimizer
+        state['epoch'] = epoch
+        state['best_bacc'] = best_balanced_acc
         # Train
         train_metrics = train_epoch(
             model, train_loader, optimizer, criterion, args.device, epoch
@@ -404,6 +439,16 @@ def main(args):
             torch.save(checkpoint, output_dir / 'best_model.pt')
             logger.info(f"  → New best model! BAcc: {best_balanced_acc:.4f}")
 
+        # Append to history.jsonl incrementally for robustness
+        try:
+            with open(history_path, 'a', encoding='utf-8') as hf:
+                json.dump({'epoch': epoch, 'split': 'train', **train_metrics}, hf)
+                hf.write('\n')
+                json.dump({'epoch': epoch, 'split': 'val', **val_metrics}, hf)
+                hf.write('\n')
+        except Exception:
+            logger.exception('Failed writing incremental history to history.jsonl')
+
         # Store history
         history.append({
             'epoch': epoch,
@@ -432,8 +477,15 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default='cuda', help='Device to use')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--use-cache', action='store_true', help='Use cached dataset')
+    parser.add_argument('--output_dir', type=str, default=None, help='Output directory (optional)')
 
     args = parser.parse_args()
 
-    # Run training
-    main(args)
+    # Run training with exception capture
+    try:
+        main(args)
+    except SystemExit:
+        raise
+    except Exception:
+        logging.exception("Fatal exception during TUEV training")
+        sys.exit(1)

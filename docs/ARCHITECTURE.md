@@ -8,31 +8,31 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        EEG Input                             │
+│                        EEG Input                            │
 │                    (.edf/.bdf files)                        │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                   Quality Control (QC)                       │
-│              AutoReject + Bad Channel Detection              │
-│                    Status: ✅ WORKING                        │
+│                   Quality Control (QC)                      │
+│              AutoReject + Bad Channel Detection             │
+│                    Status: ✅ WORKING                       │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    EEGPT Feature Extraction                  │
-│                  512-dim embeddings (frozen)                 │
-│                    Status: ✅ WORKING                        │
+│                    EEGPT Feature Extraction                 │
+│                  512-dim embeddings (frozen)                │
+│                    Status: ✅ WORKING                       │
 └───────────────────────┬─────────────────────────────────────┘
                         │
            ┌────────────┴────────────┐
            │                         │
            ▼                         ▼
 ┌──────────────────────┐  ┌──────────────────────┐
-│  Abnormality Detection│  │    Sleep Staging     │
-│  Linear Probe (TUAB)  │  │    YASA (5-stage)    │
-│  Status: 🟡 TRAINING  │  │   Status: ✅ WORKING  │
+│ Abnormality Detection│  │    Sleep Staging     │
+│ Linear Probe (TUAB)  │  │    YASA (5-stage)    │
+│ Status: 🟡 TRAINING  │  │ Status: ✅ WORKING  │
 └──────────────────────┘  └──────────────────────┘
 ```
 

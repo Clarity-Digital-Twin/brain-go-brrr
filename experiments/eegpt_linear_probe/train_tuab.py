@@ -2,10 +2,13 @@
 """Train EEGPT linear probe with paper-aligned settings for TUAB abnormality detection."""
 
 import argparse
+import json
 import logging
 import os
+import signal
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -24,9 +27,9 @@ sys.path.insert(0, str(project_root))
 
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
-# Import custom dataset and collate
+# Import custom dataset and collate (use utils module to avoid duplication)
 sys.path.insert(0, str(Path(__file__).parent))
-from custom_collate_fixed import collate_eeg_batch_fixed
+from utils.custom_collate_fixed import collate_eeg_batch_fixed
 from tuab_dataset import TUABMemoryMappedDataset
 
 # Configure logging
@@ -157,11 +160,12 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
         # Compute loss
         if config["training"].get("weighted_loss", False):
-            # Compute class weights
-            class_counts = torch.bincount(labels)
+            # Compute class weights robustly even if a batch has a single class
+            n_classes = logits.size(1)
+            class_counts = torch.bincount(labels, minlength=n_classes)
             class_weights = 1.0 / (class_counts.float() + 1e-5)
             class_weights = class_weights / class_weights.sum()
-            loss = F.cross_entropy(logits, labels, weight=class_weights)
+            loss = F.cross_entropy(logits, labels, weight=class_weights.to(logits.device))
         else:
             loss = F.cross_entropy(logits, labels)
 
@@ -238,7 +242,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/tuab_4s_paper_aligned.yaml",
+        default="configs/tuab.yaml",
         help="Path to config file",
     )
     parser.add_argument(
@@ -329,11 +333,53 @@ def main():
     )
     logger.info(f"{'=' * 60}\n")
 
+    # Prepare graceful shutdown handling and history logging
+    history_path = output_dir / "history.jsonl"
+    state = {
+        "probe": None,
+        "optimizer": None,
+        "scheduler": None,
+        "epoch": -1,
+        "best_val_auroc": 0.0,
+    }
+
+    def save_checkpoint(tag: str = "manual") -> None:
+        try:
+            if state["probe"] is None:
+                return
+            checkpoint = {
+                "epoch": state["epoch"],
+                "probe_state_dict": state["probe"].state_dict(),
+                "optimizer_state_dict": state["optimizer"].state_dict() if state["optimizer"] else None,
+                "scheduler_state_dict": state["scheduler"].state_dict() if state["scheduler"] else None,
+                "best_val_auroc": state["best_val_auroc"],
+                "config": config,
+                "tag": tag,
+            }
+            torch.save(checkpoint, output_dir / "last_model.pt")
+            logger.info(f"Saved checkpoint (tag={tag}) at epoch {state['epoch']}")
+        except Exception:
+            logger.exception("Failed to save checkpoint on signal/exception")
+
+    def _handle_signal(signum, _frame):
+        signame = {signal.SIGINT: "SIGINT", signal.SIGTERM: "SIGTERM"}.get(signum, str(signum))
+        logger.error(f"Received {signame}; saving checkpoint and exiting...")
+        save_checkpoint(tag=f"signal_{signame}")
+        sys.exit(128 + signum)
+
+    signal.signal(signal.SIGINT, _handle_signal)
+    signal.signal(signal.SIGTERM, _handle_signal)
+
     # Training loop
     best_val_auroc = 0
     patience_counter = 0
 
     for epoch in range(config["training"]["max_epochs"]):
+        state["probe"] = probe
+        state["optimizer"] = optimizer
+        state["scheduler"] = scheduler
+        state["epoch"] = epoch
+        state["best_val_auroc"] = best_val_auroc
         logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
         # Train
@@ -346,6 +392,14 @@ def main():
             f"BACC: {train_metrics['bacc']:.4f}"
         )
 
+        # Persist train metrics incrementally
+        try:
+            with open(history_path, "a", encoding="utf-8") as hf:
+                json.dump({"epoch": epoch + 1, "split": "train", **train_metrics}, hf)
+                hf.write("\n")
+        except Exception:
+            logger.exception("Failed writing train metrics to history.jsonl")
+
         # Validate
         if (epoch + 1) % 2 == 0:  # Validate every 2 epochs
             val_metrics = validate(backbone, probe, val_loader, device)
@@ -354,6 +408,14 @@ def main():
                 f"AUROC: {val_metrics['auroc']:.4f}, "
                 f"BACC: {val_metrics['bacc']:.4f}"
             )
+
+            # Persist val metrics incrementally
+            try:
+                with open(history_path, "a", encoding="utf-8") as hf:
+                    json.dump({"epoch": epoch + 1, "split": "val", **val_metrics}, hf)
+                    hf.write("\n")
+            except Exception:
+                logger.exception("Failed writing val metrics to history.jsonl")
 
             # Save checkpoint if best
             if val_metrics["auroc"] > best_val_auroc:
@@ -383,4 +445,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception:
+        logging.exception("Fatal exception during training")
+        # Best-effort: exit with non-zero to signal failure in logs
+        sys.exit(1)

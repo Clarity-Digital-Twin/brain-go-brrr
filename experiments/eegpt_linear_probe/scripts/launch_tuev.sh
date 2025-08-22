@@ -24,6 +24,13 @@ echo "Output: $OUTPUT_DIR"
 echo "Logs: $LOG_FILE"
 echo "Monitor with: tmux attach -t tuev_training"
 
+# Guard: ensure no conflicting tmux session is running
+if tmux has-session -t tuev_training 2>/dev/null; then
+    echo "❌ ERROR: tmux session 'tuev_training' already exists!" | tee -a "$LOG_FILE"
+    echo "Kill it with: tmux kill-session -t tuev_training" | tee -a "$LOG_FILE"
+    exit 1
+fi
+
 # Launch in tmux
 tmux new-session -d -s tuev_training \
     "cd $EXPERIMENT_DIR && \
