@@ -42,10 +42,73 @@ class TestAPILinearProbeIntegration:
         # Should return 405 Method Not Allowed (GET not supported)
         assert response.status_code in [405, 422]
 
-    def test_sleep_staging_with_edf_upload(
-        self, client, tiny_edf, mock_eegpt_model, mock_sleep_probe
-    ):
+    def test_sleep_staging_with_edf_upload(self, client, mock_eegpt_model, mock_sleep_probe):
         """Test sleep staging with EDF file upload."""
+        # Create a 19-channel EDF for EEGPT compatibility
+        import tempfile
+        from pathlib import Path
+
+        import numpy as np
+        from pyedflib import EdfWriter
+
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        writer = EdfWriter(tmp_path, n_channels=19)
+
+        # Standard 10-20 channel names
+        channel_names = [
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T3",
+            "C3",
+            "Cz",
+            "C4",
+            "T4",
+            "T5",
+            "P3",
+            "Pz",
+            "P4",
+            "T6",
+            "O1",
+            "O2",
+        ]
+
+        for i, ch_name in enumerate(channel_names):
+            writer.setSignalHeader(
+                i,
+                {
+                    "label": ch_name,
+                    "dimension": "uV",
+                    "sample_frequency": 256,
+                    "physical_max": 250,
+                    "physical_min": -250,
+                    "digital_max": 2047,
+                    "digital_min": -2048,
+                    "prefilter": "HP:0.1Hz LP:75Hz",
+                    "transducer": "AgAgCl electrode",
+                },
+            )
+
+        # Write 30 seconds of data
+        all_data = []
+        for _ch in range(19):
+            channel_data = np.random.randint(-100, 100, 30 * 256, dtype=np.int32)
+            all_data.append(channel_data)
+
+        writer.writeSamples(all_data)
+        writer.close()
+
+        # Read the file content
+        tmp = Path(tmp_path)
+        edf_content = tmp.read_bytes()
+        tmp.unlink()  # Clean up
+
         with (
             patch("brain_go_brrr.api.routers.sleep.get_eegpt_model") as mock_get_model,
             patch("brain_go_brrr.api.routers.sleep.get_sleep_probe") as mock_get_probe,
@@ -53,8 +116,7 @@ class TestAPILinearProbeIntegration:
             mock_get_model.return_value = mock_eegpt_model
             mock_get_probe.return_value = mock_sleep_probe
 
-            # tiny_edf fixture returns bytes content directly
-            files = {"edf_file": ("test.edf", tiny_edf, "application/octet-stream")}
+            files = {"edf_file": ("test.edf", edf_content, "application/octet-stream")}
             response = client.post("/api/v1/eeg/sleep/stages", files=files)
 
             if response.status_code != 200:
