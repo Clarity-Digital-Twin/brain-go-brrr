@@ -62,7 +62,7 @@ Abnormality  Sleep Probe            (Efficiency, TST, etc.)
 Detection    (EEGPT-based)
 ```
 
-**Key Insights**: 
+**Key Insights**:
 - EEGPT and YASA are PARALLEL pathways that can process the same data
 - YASA works with ANY channel count (not limited to 2) - it intelligently selects the best central channel
 - Sleep-EDF's 2 channels are dataset-specific, not a YASA limitation
