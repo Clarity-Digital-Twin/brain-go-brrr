@@ -6,7 +6,7 @@ experiment:
 data:
   root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
   cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
-  batch_size: 256  # Reasonable batch size
+  batch_size: 64  # Reduced from 256 to prevent OOM on WSL2
   num_workers: 0   # Ignored - hardcoded to 0 in train_tuab.py
   pin_memory: false  # Ignored - hardcoded to false in train_tuab.py
   persistent_workers: false

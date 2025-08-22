@@ -138,15 +138,29 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     losses = []
     all_preds = []
     all_labels = []
-
+    
+    # Micro-batching configuration
+    micro_batch_size = 16  # Process 16 samples at a time for feature extraction
+    
     pbar = tqdm(train_loader, desc="Training")
     for batch_idx, (data, labels) in enumerate(pbar):
         data = data.to(device)
         labels = labels.to(device)
+        batch_size = data.size(0)
 
-        # Forward through frozen backbone with temporal features
+        # Forward through frozen backbone with temporal features using micro-batching
         with torch.no_grad():
-            features = model.extract_features(data, return_all_temporal=True)
+            # Process in smaller chunks to reduce memory pressure
+            features_list = []
+            for i in range(0, batch_size, micro_batch_size):
+                end_idx = min(i + micro_batch_size, batch_size)
+                micro_batch = data[i:end_idx]
+                micro_features = model.extract_features(micro_batch, return_all_temporal=True)
+                features_list.append(micro_features)
+            
+            # Concatenate all micro-batch features
+            features = torch.cat(features_list, dim=0)
+            
             # Verify patch count matches expected
             n_patches = features.shape[1]
             expected_patches = data.shape[-1] // 64
@@ -154,6 +168,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
             # Log shape on first batch for verification
             if batch_idx == 0 and epoch == 0:
                 logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+                logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
 
         # Forward through probe
         logits = probe(features)
@@ -206,14 +221,27 @@ def validate(model, probe, val_loader, device):
     losses = []
     all_preds = []
     all_labels = []
+    
+    # Micro-batching configuration (same as training)
+    micro_batch_size = 16
 
     with torch.no_grad():
         for batch_idx, (data, labels) in enumerate(tqdm(val_loader, desc="Validation")):
             data = data.to(device)
             labels = labels.to(device)
+            batch_size = data.size(0)
 
-            # Forward with temporal features
-            features = model.extract_features(data, return_all_temporal=True)
+            # Forward with temporal features using micro-batching
+            features_list = []
+            for i in range(0, batch_size, micro_batch_size):
+                end_idx = min(i + micro_batch_size, batch_size)
+                micro_batch = data[i:end_idx]
+                micro_features = model.extract_features(micro_batch, return_all_temporal=True)
+                features_list.append(micro_features)
+            
+            # Concatenate all micro-batch features
+            features = torch.cat(features_list, dim=0)
+            
             # Verify patch count
             n_patches = features.shape[1]
             expected_patches = data.shape[-1] // 64
