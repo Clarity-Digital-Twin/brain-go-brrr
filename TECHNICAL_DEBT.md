@@ -2,32 +2,29 @@
 
 ## Priority Issues to Address
 
-### 🔴 Critical: Sleep-EDF Resampling (100Hz → 256Hz)
+### 🔴 Critical: Sleep-EDF and EEGPT Pathway Separation
 
-**Issue**: Sleep-EDF data is sampled at 100Hz, but EEGPT requires 256Hz input. The CLI streaming functionality doesn't automatically resample, causing failures when processing Sleep-EDF files with EEGPT.
+**Issue**: Sleep-EDF data (100Hz, 2 channels) is incompatible with EEGPT (256Hz, 19+ channels). These should be separate, parallel processing pathways, not combined.
 
 **Impact**:
-- Cannot process Sleep-EDF recordings through EEGPT pipeline
-- Affects sleep analysis accuracy when using EEGPT features
-- Blocks integration of sleep staging with abnormality detection
+- `/eeg/sleep/stages` endpoint incorrectly tries to use EEGPT on Sleep-EDF
+- Tests incorrectly skip Sleep-EDF + EEGPT combinations instead of preventing them
+- Documentation implies these pathways should be integrated
 
-**Current Workaround**: Tests skip Sleep-EDF files when EEGPT is involved
+**Current Architecture** (CORRECT):
+- **YASA pathway**: Sleep-EDF (100Hz, 2 channels) → YASA sleep staging ✅
+- **EEGPT pathway**: Full EEG (256Hz, 19+ channels) → EEGPT features → Linear probes ✅
+- These are PARALLEL, not sequential
 
 **Solution Required**:
-```python
-# In brain_go_brrr/infra/data/edf_streaming.py
-def load_header(self):
-    # After loading raw
-    if self._sfreq < 256:
-        # Resample to 256Hz for EEGPT compatibility
-        self._raw.resample(256, npad="auto")
-        self._sfreq = 256
-```
+1. Fix `/eeg/sleep/stages` endpoint to check channel count and reject Sleep-EDF
+2. Refactor tests to explicitly separate YASA and EEGPT pathways
+3. Update documentation to clarify parallel processing architecture
 
 **Files to Modify**:
-- `src/brain_go_brrr/infra/data/edf_streaming.py`
-- `src/brain_go_brrr/cli.py` (stream command)
-- `tests/unit/test_cli_streaming.py` (remove skip after fix)
+- `src/brain_go_brrr/api/routers/sleep.py` (add channel validation)
+- `tests/unit/test_cli_streaming.py` (refactor, not skip)
+- `docs/ARCHITECTURE.md` (clarify parallel pathways)
 
 ---
 

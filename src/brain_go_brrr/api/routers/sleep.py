@@ -393,13 +393,29 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
         # Load EDF data
         raw = load_edf_safe(tmp_path, preload=True, verbose=False)
 
+        # Validate channel count for EEGPT
+        n_channels = len(raw.ch_names)
+        if n_channels < 19:
+            raise HTTPException(
+                status_code=400,
+                detail=f"EEGPT requires at least 19 EEG channels, found {n_channels}. "
+                       f"For Sleep-EDF data (2 channels), use /sleep/analyze endpoint with YASA instead."
+            )
+        
+        # Check sampling rate and resample if needed
+        sfreq = raw.info["sfreq"]
+        if sfreq < 256:
+            logger.info(f"Resampling from {sfreq}Hz to 256Hz for EEGPT compatibility")
+            raw.resample(256)
+            sfreq = 256
+
         # Get EEGPT model and sleep probe
         eegpt_model = get_eegpt_model()
         sleep_probe = get_sleep_probe()
 
         # Extract windows from raw data
         data = raw.get_data()
-        sfreq = int(raw.info["sfreq"])
+        sfreq = int(sfreq)
         channel_names = raw.ch_names
 
         # Process in 4-second windows

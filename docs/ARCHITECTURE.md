@@ -4,7 +4,7 @@
 
 Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture principles with frozen EEGPT features and specialized task heads.
 
-## System Architecture
+## System Architecture - Parallel Processing Pathways
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -19,21 +19,32 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
 │                    Status: ✅ WORKING                       │
 └───────────────────────┬─────────────────────────────────────┘
                         │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    EEGPT Feature Extraction                 │
-│                  512-dim embeddings (frozen)                │
-│                    Status: ✅ WORKING                       │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-           ┌────────────┴────────────┐
-           │                         │
-           ▼                         ▼
-┌──────────────────────┐  ┌──────────────────────┐
-│ Abnormality Detection│  │    Sleep Staging     │
-│ Linear Probe (TUAB)  │  │    YASA (5-stage)    │
-│ Status: 🟡 TRAINING  │  │ Status: ✅ WORKING  │
-└──────────────────────┘  └──────────────────────┘
+        ┌───────────────┴───────────────┐
+        │                               │
+        ▼                               ▼
+   Full EEG Data                   Sleep-EDF Data
+  (19+ channels)                    (2 channels)
+  (256Hz or resample)                 (100Hz)
+        │                               │
+        ▼                               ▼
+┌──────────────────────┐    ┌──────────────────────┐
+│  EEGPT Features      │    │   YASA Sleep Staging │
+│  512-dim embeddings  │    │   Native processing  │
+│  Status: ✅ WORKING  │    │   Status: ✅ WORKING │
+└──────┬───────────────┘    └──────────────────────┘
+       │
+       ├──────────────┐
+       │              │
+       ▼              ▼
+┌──────────────┐  ┌──────────────┐
+│ Abnormality  │  │ Sleep Probe  │
+│ Detection    │  │ (EEGPT-based)│
+│ Status: 🟡   │  │ Status: 🔬   │
+└──────────────┘  └──────────────┘
+
+IMPORTANT: EEGPT and YASA are PARALLEL pathways, not sequential.
+- Sleep-EDF (100Hz, 2ch) → YASA only
+- Full EEG (256Hz, 19+ch) → EEGPT → Linear Probes
 ```
 
 ## Clean Architecture Layers
