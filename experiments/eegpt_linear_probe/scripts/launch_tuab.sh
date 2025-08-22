@@ -54,7 +54,7 @@ tmux new-session -d -s tuab_training \
      /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python train_tuab.py \
      --config configs/tuab.yaml \
      --output_dir ${OUTPUT_DIR} \
-     2>&1 | tee ${LOG_FILE}"
+     2>&1 | tee -a ${LOG_FILE}"
 
 echo "✅ Training started!"
 echo ""
