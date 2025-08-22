@@ -430,12 +430,12 @@ class TestCLIStreamingIntegrationWithModel:
         import mne
 
         raw = mne.io.read_raw_edf(short_edf_path, preload=False, verbose=False)
-        
+
         # Check channel count first (Sleep-EDF has only 2 channels)
         if len(raw.ch_names) < 19:
             pytest.skip(f"EDF file has only {len(raw.ch_names)} channels, EEGPT needs 19+. "
                        f"This is expected for Sleep-EDF data which uses YASA pathway instead.")
-        
+
         # Sampling rate can be resampled, so we don't skip for that
 
         # Set environment variable for model path

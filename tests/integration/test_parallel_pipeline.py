@@ -139,7 +139,7 @@ class TestParallelPipeline:
         # NOTE: EEGPT actually CAN work with 2 channels (it pads internally)
         # But it won't give meaningful clinical results with only 2 channels
         # The important thing is the pathways are independent
-        
+
         # Check EEGPT results - may succeed or fail depending on implementation
         if results["eegpt"]["status"] == "success":
             # EEGPT can pad channels internally, so it might work
@@ -148,12 +148,12 @@ class TestParallelPipeline:
         else:
             # Or it might fail if validation is added
             assert "error" in results["eegpt"]
-        
+
         # YASA pathway should handle its own errors independently
         # It may fail due to the all-wake hypnogram issue we saw
         assert "yasa" in results
         assert results["yasa"]["status"] in ["success", "failed"]
-        
+
         # This demonstrates the parallel pathways:
         # - EEGPT and YASA run independently
         # - Failure in one doesn't affect the other
