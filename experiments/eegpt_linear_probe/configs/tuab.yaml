@@ -6,11 +6,11 @@ experiment:
 data:
   root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
   cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
-  batch_size: 100  # Paper-aligned batch size from Table 12
-  num_workers: 2   # Try 2 workers for WSL (was 0)
+  batch_size: 256  # Increased for faster training
+  num_workers: 0   # Single-threaded for WSL stability
   pin_memory: true
-  persistent_workers: true  # Keep workers alive
-  prefetch_factor: 2  # Prefetch batches
+  persistent_workers: false  # Disabled to prevent crashes
+  prefetch_factor: null  # Not used with num_workers=0
   # Paper-aligned parameters
   window_duration: 4.0  # 4 seconds as per paper
   window_stride: 2.0    # 50% overlap for training
@@ -31,9 +31,9 @@ model:
     use_channel_adapter: false
 
 training:
-  max_epochs: 50  # Shorter training, should converge faster with correct window size
+  max_epochs: 20  # Reduced for practical training time
   early_stopping:
-    patience: 10
+    patience: 5  # Reduced patience
     min_delta: 0.001
     mode: max
     monitor: val_auroc
@@ -46,7 +46,7 @@ training:
   scheduler:
     name: OneCycleLR
     max_lr: 3.0e-3
-    epochs: 50
+    epochs: 20  # Match max_epochs
     pct_start: 0.2
     anneal_strategy: cos
     div_factor: 25.0
