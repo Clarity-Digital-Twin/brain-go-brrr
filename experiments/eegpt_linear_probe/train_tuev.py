@@ -36,8 +36,8 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
-from datasets.tuev_dataset import TUEVDataset
-from datasets.tuev_dataset_cached import TUEVCachedDatasetPadded
+from tuev_dataset import TUEVDataset
+from tuev_dataset_cached import TUEVCachedDatasetPadded
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

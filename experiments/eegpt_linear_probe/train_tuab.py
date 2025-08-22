@@ -26,8 +26,8 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Import custom dataset and collate
 sys.path.insert(0, str(Path(__file__).parent))
-from datasets.tuab_dataset import TUABMemoryMappedDataset
-from utils.custom_collate_fixed import collate_eeg_batch_fixed
+from custom_collate_fixed import collate_eeg_batch_fixed
+from tuab_dataset import TUABMemoryMappedDataset
 
 # Configure logging
 logging.basicConfig(
