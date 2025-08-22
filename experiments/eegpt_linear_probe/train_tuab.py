@@ -26,8 +26,8 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Import custom dataset and collate
 sys.path.insert(0, str(Path(__file__).parent))
-from custom_collate_fixed import collate_eeg_batch_fixed
-from tuab_dataset import TUABMemoryMappedDataset
+from datasets.tuab_dataset import TUABMemoryMappedDataset
+from utils.custom_collate_fixed import collate_eeg_batch_fixed
 
 # Configure logging
 logging.basicConfig(
@@ -104,19 +104,14 @@ def create_dataloaders(config):
     # Validation dataset
     val_dataset = TUABMemoryMappedDataset(cache_dir=cache_dir, split="eval")
 
-    # Create dataloaders
+    # Create dataloaders - SIMPLE AND RELIABLE FOR WSL
+    # Force single-threaded for WSL stability with memory-mapped data
     train_loader = DataLoader(
         train_dataset,
         batch_size=config["data"]["batch_size"],
         shuffle=True,
-        num_workers=config["data"].get("num_workers", 0),
-        pin_memory=config["data"].get("pin_memory", True),
-        persistent_workers=config["data"].get("persistent_workers", False)
-        if config["data"].get("num_workers", 0) > 0
-        else False,
-        prefetch_factor=config["data"].get("prefetch_factor", 2)
-        if config["data"].get("num_workers", 0) > 0
-        else None,
+        num_workers=0,  # Always 0 for WSL stability
+        pin_memory=False,  # Disable for WSL with mmap
         collate_fn=collate_eeg_batch_fixed,
     )
 
@@ -124,14 +119,8 @@ def create_dataloaders(config):
         val_dataset,
         batch_size=config["data"]["batch_size"],
         shuffle=False,
-        num_workers=config["data"].get("num_workers", 0),
-        pin_memory=config["data"].get("pin_memory", True),
-        persistent_workers=config["data"].get("persistent_workers", False)
-        if config["data"].get("num_workers", 0) > 0
-        else False,
-        prefetch_factor=config["data"].get("prefetch_factor", 2)
-        if config["data"].get("num_workers", 0) > 0
-        else None,
+        num_workers=0,  # Always 0 for WSL stability
+        pin_memory=False,  # Disable for WSL with mmap
         collate_fn=collate_eeg_batch_fixed,
     )
 

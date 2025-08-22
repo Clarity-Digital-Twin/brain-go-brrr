@@ -45,13 +45,15 @@ eegpt_linear_probe/
 ├── README.md                # This file
 ├── train_tuab.py           # TUAB training script
 ├── train_tuev.py           # TUEV training script
-├── tuab_dataset.py         # TUAB dataset loader (memory-mapped)
-├── tuev_dataset.py         # TUEV dataset loader
-├── tuev_dataset_cached.py  # TUEV cached variant
-├── custom_collate_fixed.py # Collate function for dataloaders
 ├── configs/
-│   ├── tuab.yaml          # TUAB configuration (4s windows, batch=100)
+│   ├── tuab.yaml          # TUAB configuration (4s windows, batch=256)
 │   └── tuev.yaml          # TUEV configuration (10s windows, batch=500)
+├── datasets/               # Dataset implementations
+│   ├── tuab_dataset.py    # TUAB dataset loader (memory-mapped)
+│   ├── tuev_dataset.py    # TUEV dataset loader
+│   └── tuev_dataset_cached.py  # TUEV cached variant with padding
+├── utils/                  # Utility functions
+│   └── custom_collate_fixed.py # Collate function for dataloaders
 ├── scripts/
 │   ├── launch_tuab.sh     # TUAB launch script
 │   ├── launch_tuev.sh     # TUEV launch script
@@ -73,11 +75,11 @@ eegpt_linear_probe/
 - **Features**: All temporal patches × summary tokens × embedding dimension
 
 ### TUAB Specifications
-- **Window Size**: 4 seconds (1024 samples)
+- **Window Size**: 4 seconds (1024 samples @ 256Hz)  
 - **Features**: 16 patches × 4 tokens × 512 dims = 32,768
 - **Classes**: 2 (normal/abnormal)
 - **Dataset**: ~1.86M training windows
-- **Batch Size**: 100 (paper-aligned)
+- **Batch Size**: 256 (optimized for WSL)
 
 ### TUEV Specifications
 - **Window Size**: 10 seconds (2560 samples) 

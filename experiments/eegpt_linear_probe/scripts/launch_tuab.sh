@@ -34,9 +34,9 @@ echo "------------------------------------------------"
 echo "Configuration:"
 echo "  - Model: EEGPT (frozen backbone)"
 echo "  - Dataset: TUAB (4s windows, 50% overlap)"
-echo "  - Batch size: 100 (paper-aligned)"
-echo "  - Features: Full temporal (16 × 4 × 512 = 32,768)"
-echo "  - Probe: Two-layer with LazyLinear"
+echo "  - Batch size: 256"
+echo "  - Features: Full temporal (32,768 dimensions)"
+echo "  - Max epochs: 10 with early stopping"
 echo "================================================"
 
 # Check if tmux session exists
