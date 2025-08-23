@@ -115,7 +115,7 @@ class TestRealEEGPreprocessing:
         # Manual window extraction (WindowExtractor API differs)
         window_size = 1024  # 4 seconds
         step_size = 512     # 50% overlap
-        
+
         windows = []
         for start in range(0, data.shape[1] - window_size + 1, step_size):
             window = data[:, start:start + window_size]
