@@ -31,12 +31,23 @@ if tmux has-session -t tuev_training 2>/dev/null; then
     exit 1
 fi
 
-# Launch in tmux
+# Launch in tmux with automatic restart on crash
 tmux new-session -d -s tuev_training \
     "cd $EXPERIMENT_DIR && \
-     $PROJECT_ROOT/.venv/bin/python train_tuev.py \
-     --config configs/tuev.yaml \
-     --output_dir $OUTPUT_DIR \
-     2>&1 | tee $LOG_FILE"
+     while true; do \
+         echo 'Starting/Resuming TUEV training at \$(date)' | tee -a $LOG_FILE; \
+         $PROJECT_ROOT/.venv/bin/python train_tuev.py \
+         --config configs/tuev.yaml \
+         --output_dir $OUTPUT_DIR \
+         2>&1 | tee -a $LOG_FILE; \
+         EXIT_CODE=\$?; \
+         if [ \$EXIT_CODE -eq 0 ]; then \
+             echo 'Training completed successfully!' | tee -a $LOG_FILE; \
+             break; \
+         else \
+             echo 'Training crashed with code '\$EXIT_CODE'! Restarting in 10 seconds...' | tee -a $LOG_FILE; \
+             sleep 10; \
+         fi; \
+     done"
 
 echo "Training launched successfully!"

@@ -14,7 +14,8 @@ data:
   n_classes: 6          # SPSW, GPED, PLED, EYEM, ARTF, BCKG
 
   # Paper line 587: batch size 500 for TUEV
-  batch_size: 500
+  # REDUCED FOR WSL: Using 128 to prevent OOM (can increase if stable)
+  batch_size: 128  # was 500 in paper, reduced for memory safety
   num_workers: 4
   pin_memory: true
 

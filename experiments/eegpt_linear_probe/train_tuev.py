@@ -166,33 +166,59 @@ def train_epoch(
     pbar = tqdm(train_loader, desc=f"Epoch {epoch:03d} Train")
 
     for batch_idx, (data, labels) in enumerate(pbar):
-        data = data.to(device)
-        labels = labels.to(device)
+        try:
+            data = data.to(device)
+            labels = labels.to(device)
 
-        # Forward pass
-        logits = model(data)
-        loss = criterion(logits, labels)
+            # Forward pass
+            logits = model(data)
+            loss = criterion(logits, labels)
 
-        # Backward pass
-        optimizer.zero_grad()
-        loss.backward()
+            # Backward pass
+            optimizer.zero_grad()
+            loss.backward()
 
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-        optimizer.step()
+            optimizer.step()
 
-        # Track predictions
-        preds = logits.argmax(dim=1)
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
-        total_loss += loss.item()
+            # Track predictions
+            preds = logits.argmax(dim=1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+            total_loss += loss.item()
 
-        # Update progress bar
-        pbar.set_postfix({
-            'loss': f"{loss.item():.4f}",
-            'acc': f"{(preds == labels).float().mean():.3f}"
-        })
+            # Update progress bar
+            pbar.set_postfix({
+                'loss': f"{loss.item():.4f}",
+                'acc': f"{(preds == labels).float().mean():.3f}"
+            })
+            
+            # Periodic memory cleanup (every 100 batches)
+            if batch_idx % 100 == 0 and batch_idx > 0:
+                torch.cuda.empty_cache()
+                logger.info(f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache")
+            
+            # Save checkpoint every 500 batches for crash recovery
+            if batch_idx % 500 == 0 and batch_idx > 0:
+                checkpoint_path = Path(args.output_dir) / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
+                torch.save({
+                    'epoch': epoch,
+                    'batch': batch_idx,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': loss.item(),
+                }, checkpoint_path)
+                logger.info(f"Saved checkpoint at batch {batch_idx}")
+                
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                logger.error(f"OOM at batch {batch_idx}, epoch {epoch}")
+                torch.cuda.empty_cache()
+                continue
+            else:
+                raise
 
     # Compute metrics
     metrics = {
