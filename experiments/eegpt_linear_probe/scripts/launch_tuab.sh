@@ -1,69 +1,53 @@
 #!/bin/bash
-# Launch TUAB abnormality detection training with verified configuration
-# Target: 0.87 AUROC (paper performance)
+# Safe training with crash recovery and better monitoring
 
-set -e  # Exit on error
-
-# Navigate to correct directory
 cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe
 
-# Set environment variables
 export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
 export PYTHONUNBUFFERED=1
 export CUDA_VISIBLE_DEVICES=0
+# Add memory monitoring
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
 
-# Create timestamp for this run
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-LOG_DIR="logs"
+LOG_FILE="logs/tuab_training_${TIMESTAMP}.log"
 OUTPUT_DIR="output/tuab_${TIMESTAMP}"
-LOG_FILE="${LOG_DIR}/tuab_training_${TIMESTAMP}.log"
 
-# Create directories
-mkdir -p ${LOG_DIR}
+echo "===================================="
+echo "Starting TUAB training with improvements:"
+echo "- Batch size: 64 (reduced from 256)"
+echo "- Periodic checkpointing every 500 batches"
+echo "- Memory cleanup every 100 batches"
+echo "- Better error handling and logging"
+echo "- Output: ${OUTPUT_DIR}"
+echo "- Log: ${LOG_FILE}"
+echo "===================================="
+
+# Create output directories
+mkdir -p logs
 mkdir -p ${OUTPUT_DIR}
 
-# Display training info
-echo "================================================"
-echo "🚀 TUAB ABNORMALITY DETECTION TRAINING"
-echo "================================================"
-echo "Timestamp: ${TIMESTAMP}"
-echo "Log file: ${LOG_FILE}"
-echo "Output dir: ${OUTPUT_DIR}"
-echo "Target AUROC: 0.87 (paper performance)"
-echo "------------------------------------------------"
-echo "Configuration:"
-echo "  - Model: EEGPT (frozen backbone)"
-echo "  - Dataset: TUAB (4s windows, 50% overlap)"
-echo "  - Batch size: 256"
-echo "  - Features: Full temporal (32,768 dimensions)"
-echo "  - Max epochs: 10 with early stopping"
-echo "================================================"
-
-# Check if tmux session exists (log the error to file as well)
-if tmux has-session -t tuab_training 2>/dev/null; then
-    echo "❌ ERROR: tmux session 'tuab_training' already exists!" | tee -a ${LOG_FILE}
-    echo "Kill it with: tmux kill-session -t tuab_training" | tee -a ${LOG_FILE}
-    exit 1
-fi
-
-# Launch in tmux
-echo ""
-echo "Starting training in tmux session 'tuab_training'..."
+# Run with error catching and auto-restart capability
 tmux new-session -d -s tuab_training \
-    "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe && \
-     /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python train_tuab.py \
+    "while true; do \
+     echo 'Starting/Resuming training at $(date)' | tee -a ${LOG_FILE}; \
+     /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python -u train_tuab.py \
      --config configs/tuab.yaml \
      --output_dir ${OUTPUT_DIR} \
-     2>&1 | tee -a ${LOG_FILE}"
+     2>&1 | tee -a ${LOG_FILE}; \
+     EXIT_CODE=\$?; \
+     echo 'Training exited with code: '\$EXIT_CODE | tee -a ${LOG_FILE}; \
+     if [ \$EXIT_CODE -eq 0 ]; then \
+       echo 'Training completed successfully!' | tee -a ${LOG_FILE}; \
+       break; \
+     else \
+       echo 'Training crashed! Check log for details. Waiting 10s before potential restart...' | tee -a ${LOG_FILE}; \
+       sleep 10; \
+       echo 'To restart, press Enter. To exit, press Ctrl+C' | tee -a ${LOG_FILE}; \
+       read -t 30 || break; \
+     fi; \
+     done"
 
-echo "✅ Training started!"
-echo ""
-echo "Monitor with:"
-echo "  tmux attach -t tuab_training"
-echo ""
-echo "Check logs:"
-echo "  tail -f ${LOG_FILE}"
-echo ""
-echo "Kill if needed:"
-echo "  tmux kill-session -t tuab_training"
-echo "================================================"
+echo "Started in tmux session 'tuab_training'"
+echo "Monitor with: tmux attach -t tuab_training"
+echo "View logs: tail -f ${LOG_FILE}"
