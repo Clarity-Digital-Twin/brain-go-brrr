@@ -42,9 +42,9 @@ def pick_types(
     exclude: str | list[str] = "bads",
 ) -> list[int]:
     """Pick channel indices by type.
-    
+
     Direct wrapper around mne.pick_types for compatibility.
-    
+
     Args:
         info: MNE Info object
         meg: Include MEG channels
@@ -52,7 +52,7 @@ def pick_types(
         eog: Include EOG channels
         emg: Include EMG channels
         exclude: Channels to exclude ('bads' or list of channel names)
-    
+
     Returns:
         List of channel indices
     """

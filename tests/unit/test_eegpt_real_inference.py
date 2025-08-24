@@ -67,7 +67,7 @@ class TestRealEEGPTInference:
         # Features should be bounded (not NaN or Inf)
         assert not np.isnan(features).any()
         assert not np.isinf(features).any()
-        
+
         # Also test token-level features (summary=False)
         token_features = model.extract_features(real_eeg_data, summary=False)
         # With strict API, should be (1, 4, 512) for single sample
@@ -128,7 +128,7 @@ class TestRealEEGPTInference:
         data_8s = np.random.randn(20, 2048).astype(np.float32) * 50e-6
         features_8s = model.extract_features(data_8s, summary=True)
         assert features_8s.shape == (1, 512)  # Summary mode returns (1, 512)
-        
+
         # Also test token mode for completeness
         tokens_2s = model.extract_features(data_2s, summary=False)
         assert tokens_2s.shape == (1, 4, 512)  # Token mode returns (1, 4, 512)
@@ -193,7 +193,7 @@ class TestEEGPTWithLinearProbe:
         """Test full pipeline: EEG → EEGPT → Linear Probe → Prediction."""
         # Initialize model
         model = EEGPTModel(auto_load=False)
-        
+
         # For token-level classification, we need all 4 tokens
         # So we use summary=False to get (1, 4, 512), then flatten
         classifier = torch.nn.Linear(4 * 512, 2)
@@ -206,7 +206,7 @@ class TestEEGPTWithLinearProbe:
             # 1. Extract token features (not summary)
             features = model.extract_features(eeg_data, summary=False)
             assert features.shape == (1, 4, 512)  # Batch of 1, 4 tokens, 512 dims
-            
+
             # 2. Flatten for classifier
             features_flat = features.reshape(1, -1)  # (1, 2048)
 

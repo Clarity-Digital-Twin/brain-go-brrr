@@ -253,16 +253,15 @@ class EEGPTModel:
                 )
 
         # Legacy single-sample handling ONLY in compat mode
-        if self.compat_coerce and single_sample and not summary:
+        if self.compat_coerce and single_sample and not summary and features.shape == (1, 4, 512):
             # Old tests expect (4, 512) for single sample token mode
-            if features.shape == (1, 4, 512):
-                warnings.warn(
-                    "Removing batch dimension for legacy single-sample compatibility. "
-                    "This will be removed in future versions.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                features = features[0]  # Return (4, 512)
+            warnings.warn(
+                "Removing batch dimension for legacy single-sample compatibility. "
+                "This will be removed in future versions.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            features = features[0]  # Return (4, 512)
 
         return features.astype(np.float32)  # type: ignore[no-any-return]
 

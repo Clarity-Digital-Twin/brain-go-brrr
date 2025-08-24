@@ -34,7 +34,7 @@ class AsyncCapable(ABC):
         """
         try:
             # Try to get existing event loop
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             # If we get here, loop is running - this is an error
             raise RuntimeError("launch() called from async context. Use launch_async() instead.")
         except RuntimeError:
@@ -52,7 +52,7 @@ class AsyncCapable(ABC):
 class AsyncAnalyzer(AsyncCapable):
     """Base class for analyzers that may perform async operations."""
 
-    def supports(self, data: Any) -> bool:
+    def supports(self, data: Any) -> bool:  # noqa: ARG002
         """Check if this analyzer supports the given data.
 
         Args:
