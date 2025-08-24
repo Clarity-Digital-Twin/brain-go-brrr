@@ -27,7 +27,7 @@ class TestRealEEGPreprocessing:
         sfreq = 500
         duration = 10
         n_channels = 19
-        times = np.arange(0, duration, 1/sfreq)
+        times = np.arange(0, duration, 1 / sfreq)
 
         # Build realistic EEG with known components
         data = np.zeros((n_channels, len(times)))
@@ -114,11 +114,11 @@ class TestRealEEGPreprocessing:
 
         # Manual window extraction (WindowExtractor API differs)
         window_size = 1024  # 4 seconds
-        step_size = 512     # 50% overlap
+        step_size = 512  # 50% overlap
 
         windows = []
         for start in range(0, data.shape[1] - window_size + 1, step_size):
-            window = data[:, start:start + window_size]
+            window = data[:, start : start + window_size]
             windows.append(window)
 
         # Should get (10-4)/(2) + 1 = 4 windows with 50% overlap
@@ -150,7 +150,7 @@ class TestRealEEGPreprocessing:
         data_max = data.max(axis=1, keepdims=True)
         minmax_normalized = (data - data_min) / (data_max - data_min + 1e-8)
         assert minmax_normalized.min() >= -0.01  # Close to 0
-        assert minmax_normalized.max() <= 1.01   # Close to 1
+        assert minmax_normalized.max() <= 1.01  # Close to 1
 
         # Robust scaling (median/IQR)
         median = np.median(data, axis=1, keepdims=True)
@@ -170,10 +170,29 @@ class TestChannelOperations:
         """Test selecting standard 10-20 channels."""
         # Full channel names from typical EEG
         all_channels = [
-            'Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8',
-            'T3', 'C3', 'Cz', 'C4', 'T4',  # Old naming
-            'T5', 'P3', 'Pz', 'P4', 'T6',  # Old naming
-            'O1', 'O2', 'A1', 'A2', 'EOG', 'ECG'
+            'Fp1',
+            'Fp2',
+            'F7',
+            'F3',
+            'Fz',
+            'F4',
+            'F8',
+            'T3',
+            'C3',
+            'Cz',
+            'C4',
+            'T4',  # Old naming
+            'T5',
+            'P3',
+            'Pz',
+            'P4',
+            'T6',  # Old naming
+            'O1',
+            'O2',
+            'A1',
+            'A2',
+            'EOG',
+            'ECG',
         ]
 
         # Target channels (modern naming)
@@ -191,12 +210,7 @@ class TestChannelOperations:
     def test_channel_name_mapping(self):
         """Test old to new channel name mapping."""
         # TUAB uses old naming convention
-        old_to_new = {
-            'T3': 'T7',
-            'T4': 'T8',
-            'T5': 'P7',
-            'T6': 'P8'
-        }
+        old_to_new = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}
 
         old_channels = ['Fp1', 'F3', 'T3', 'C3', 'T5', 'P3', 'O1']
         new_channels = [old_to_new.get(ch, ch) for ch in old_channels]
@@ -272,7 +286,7 @@ class TestEndToEndPipeline:
         sfreq_orig = 1000
         duration = 10
         n_channels = 23
-        times = np.arange(0, duration, 1/sfreq_orig)
+        times = np.arange(0, duration, 1 / sfreq_orig)
 
         raw_data = np.random.randn(n_channels, len(times)) * 100e-6
 
@@ -283,7 +297,7 @@ class TestEndToEndPipeline:
 
         # Step 2: Bandpass filter (0.5-50Hz)
         nyq = 256 / 2
-        b, a = signal.butter(4, [0.5/nyq, 50/nyq], btype='band')
+        b, a = signal.butter(4, [0.5 / nyq, 50 / nyq], btype='band')
         filtered = signal.filtfilt(b, a, resampled, axis=1)
 
         # Step 3: Channel selection (23 → 20)
@@ -336,4 +350,3 @@ if __name__ == "__main__":
     print("✓ Full pipeline works end-to-end")
 
     print("\nAll data pipeline tests pass.")
-

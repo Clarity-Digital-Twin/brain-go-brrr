@@ -60,9 +60,7 @@ def sanitize_data(data: T, method: str = "zero", name: str = "input") -> T:
         inf_mask = np.isinf(data)
 
         if nan_mask.any() or inf_mask.any():
-            logger.warning(
-                f"Sanitizing {name}: {nan_mask.sum()} NaN, {inf_mask.sum()} Inf values"
-            )
+            logger.warning(f"Sanitizing {name}: {nan_mask.sum()} NaN, {inf_mask.sum()} Inf values")
 
             if method == "zero":
                 data = np.where(nan_mask | inf_mask, 0, data)
@@ -102,9 +100,7 @@ def sanitize_data(data: T, method: str = "zero", name: str = "input") -> T:
         inf_mask = torch.isinf(data)
 
         if nan_mask.any() or inf_mask.any():
-            logger.warning(
-                f"Sanitizing {name}: {nan_mask.sum()} NaN, {inf_mask.sum()} Inf values"
-            )
+            logger.warning(f"Sanitizing {name}: {nan_mask.sum()} NaN, {inf_mask.sum()} Inf values")
 
             if method == "zero":
                 data = torch.where(nan_mask | inf_mask, torch.zeros_like(data), data)

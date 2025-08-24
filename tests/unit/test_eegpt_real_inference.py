@@ -10,7 +10,6 @@ Testing what actually matters:
 Behavior-driven testing following clean code principles.
 """
 
-
 import numpy as np
 import pytest
 import torch
@@ -291,4 +290,3 @@ if __name__ == "__main__":
     print("✓ Features are deterministic")
 
     print("\nAll behavior tests pass - no mocks needed.")
-

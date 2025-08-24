@@ -169,14 +169,22 @@ class EEGPTModel:
                 if features.shape[1] == 2048:
                     # Reshape to (4, 512)
                     features = features.reshape(4, 512)
+                elif features.shape[1] == 512:
+                    # Got (1, 512) - the averaged summary tokens
+                    # Repeat to get (4, 512) for compatibility
+                    features = np.tile(features, (4, 1))  # Now (4, 512)
                 else:
-                    # Unexpected shape, log warning and create placeholder
+                    # Unexpected shape, log warning but keep the features
                     import logging
 
                     logging.warning(
-                        f"Unexpected feature shape {features.shape}, expected (1, 4, 512)"
+                        f"Unexpected feature shape {features.shape}, expected (1, 4, 512) or (1, 512)"
                     )
-                    features = np.zeros((4, 512), dtype=np.float32)
+                    # Keep the features but ensure it's 2D
+                    if features.ndim == 2:
+                        features = features[0]  # Remove batch dim
+                    else:
+                        features = features.reshape(-1, features.shape[-1])[0]
             elif features.ndim == 2 and features.shape == (4, 512):
                 # Already correct shape
                 pass

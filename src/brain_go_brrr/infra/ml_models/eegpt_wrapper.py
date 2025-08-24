@@ -140,10 +140,7 @@ class EEGPTWrapper(nn.Module):
             return cast("torch.Tensor", self.model(x, chan_ids))
 
     def extract_features(
-        self,
-        x: torch.Tensor,
-        chan_ids: torch.Tensor | None = None,
-        summary: bool = True,
+        self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, summary: bool = True
     ) -> torch.Tensor:
         """Extract features with explicit shape contract.
 

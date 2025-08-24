@@ -9,7 +9,6 @@ What we're testing:
 Testing behavior, not implementation.
 """
 
-
 import numpy as np
 
 
@@ -80,8 +79,8 @@ class TestRealAbnormalityPatterns:
             if blink_idx + blink_duration < n_samples:
                 # Create blink waveform
                 blink = 150e-6 * np.sin(np.linspace(0, np.pi, blink_duration))
-                data[0, blink_idx:blink_idx+blink_duration] += blink  # Fp1
-                data[1, blink_idx:blink_idx+blink_duration] += blink  # Fp2
+                data[0, blink_idx : blink_idx + blink_duration] += blink  # Fp1
+                data[1, blink_idx : blink_idx + blink_duration] += blink  # Fp2
 
         return data.astype(np.float32)
 
@@ -97,6 +96,7 @@ class TestRealAbnormalityPatterns:
 
         # Check spectral characteristics
         from scipy import signal
+
         f, psd = signal.welch(normal_eeg[0], fs=256)
 
         # Alpha band should dominate
@@ -119,6 +119,7 @@ class TestRealAbnormalityPatterns:
 
         # Check for rhythmic activity
         from scipy import signal
+
         f, psd = signal.welch(seizure_eeg[0], fs=256)
 
         # Should have peak at seizure frequency (3-4 Hz)
@@ -146,6 +147,7 @@ class TestRealAbnormalityPatterns:
 
         # Check for broadband noise (muscle artifact)
         from scipy import signal
+
         f, psd_frontal = signal.welch(artifact_eeg[0], fs=256)
         f, psd_posterior = signal.welch(artifact_eeg[-1], fs=256)
 
@@ -170,14 +172,14 @@ class TestConfidenceScoring:
         noisy = clean + np.random.randn(20, 1024) * 50e-6
 
         # Calculate SNR
-        signal_power = np.mean(clean ** 2)
+        signal_power = np.mean(clean**2)
         noise_power = np.mean((noisy - clean) ** 2)
         snr_clean = signal_power / (1e-12)  # Clean has minimal noise
         snr_noisy = signal_power / noise_power
 
         # Convert SNR to confidence (0-1)
-        confidence_clean = 1 / (1 + np.exp(-snr_clean/10))
-        confidence_noisy = 1 / (1 + np.exp(-snr_noisy/10))
+        confidence_clean = 1 / (1 + np.exp(-snr_clean / 10))
+        confidence_noisy = 1 / (1 + np.exp(-snr_noisy / 10))
 
         # Clean should have higher confidence
         assert confidence_clean > confidence_noisy
@@ -219,7 +221,7 @@ class TestClinicalValidation:
             'amplitude_std': 150e-6,
             'dominant_frequency': 3.5,
             'rhythmicity': 0.9,
-            'spatial_correlation': 0.8  # Generalized pattern
+            'spatial_correlation': 0.8,  # Generalized pattern
         }
 
         def classify_urgency(features: dict) -> str:
@@ -240,17 +242,23 @@ class TestClinicalValidation:
             'amplitude_std': 120e-6,  # High amplitude
             'dominant_frequency': 50,  # Line noise frequency
             'rhythmicity': 0.3,  # Not rhythmic
-            'spatial_correlation': 0.2  # Localized
+            'spatial_correlation': 0.2,  # Localized
         }
 
         def is_likely_artifact(features: dict) -> bool:
             """Check if pattern is likely artifact."""
             # High amplitude but not rhythmic and localized
-            if features['amplitude_std'] > 100e-6 and features['rhythmicity'] < 0.5 and features['spatial_correlation'] < 0.3:
+            if (
+                features['amplitude_std'] > 100e-6
+                and features['rhythmicity'] < 0.5
+                and features['spatial_correlation'] < 0.3
+            ):
                 return True
 
             # Line noise frequency
-            return 48 < features['dominant_frequency'] < 52 or 58 < features['dominant_frequency'] < 62
+            return (
+                48 < features['dominant_frequency'] < 52 or 58 < features['dominant_frequency'] < 62
+            )
 
         assert is_likely_artifact(artifact_features)
 
@@ -268,15 +276,16 @@ class TestClinicalValidation:
 
             # Create spike waveform (sharp peak)
             spike = np.zeros(spike_duration)
-            spike[spike_duration//2] = spike_amplitude
+            spike[spike_duration // 2] = spike_amplitude
 
             # Smooth slightly
             from scipy.ndimage import gaussian_filter1d
+
             spike = gaussian_filter1d(spike, sigma=1)
 
             # Add to multiple channels
             for ch in range(10):
-                normal[ch, t:t+spike_duration] += spike
+                normal[ch, t : t + spike_duration] += spike
 
         # Detect spikes
         def detect_spikes(data: np.ndarray, threshold: float = 3.0) -> list:
@@ -287,9 +296,10 @@ class TestClinicalValidation:
             for ch in range(data.shape[0]):
                 # Find peaks above threshold
                 from scipy.signal import find_peaks
-                peaks, _ = find_peaks(np.abs(data[ch]),
-                                     height=threshold * baseline_std,
-                                     distance=50)  # Min 200ms between spikes
+
+                peaks, _ = find_peaks(
+                    np.abs(data[ch]), height=threshold * baseline_std, distance=50
+                )  # Min 200ms between spikes
                 spikes.extend(peaks.tolist())
 
             return sorted(set(spikes))
@@ -318,7 +328,7 @@ class TestEndToEndAbnormalityDetection:
         test_cases = [
             ("normal", patterns.generate_normal_eeg(), "ROUTINE"),
             ("seizure", patterns.generate_seizure_pattern(), "URGENT"),
-            ("artifact", patterns.generate_artifact_pattern(), "REVIEW")
+            ("artifact", patterns.generate_artifact_pattern(), "REVIEW"),
         ]
 
         for name, data, expected_flag in test_cases:
@@ -326,7 +336,7 @@ class TestEndToEndAbnormalityDetection:
             features = {
                 'amplitude': data.std(),
                 'max_amplitude': np.abs(data).max(),
-                'mean_frequency': 10.0  # Placeholder
+                'mean_frequency': 10.0,  # Placeholder
             }
 
             # Simple classification logic
@@ -374,4 +384,3 @@ if __name__ == "__main__":
     print("✓ Interictal spike detection works")
 
     print("\nAll abnormality detection tests pass.")
-
