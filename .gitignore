@@ -189,6 +189,10 @@ datasets/
 !src/brain_go_brrr/infra/data/**/*.py
 !src/brain_go_brrr/data/**   # allow the Python package
 !src/brain_go_brrr/*/data/** # allow data subdirs in source code
+
+# Allow data directory structure files
+!data/README.md
+!data/**/.gitkeep
 datasets/*/raw/
 datasets/*/processed/
 *.csv
