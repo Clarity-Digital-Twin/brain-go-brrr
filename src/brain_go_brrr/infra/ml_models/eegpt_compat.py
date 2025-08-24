@@ -180,11 +180,20 @@ class EEGPTModel:
                     logging.warning(
                         f"Unexpected feature shape {features.shape}, expected (1, 4, 512) or (1, 512)"
                     )
-                    # Keep the features but ensure it's 2D
-                    if features.ndim == 2:
-                        features = features[0]  # Remove batch dim
+                    # For (1, 768) or similar, create a compatible 2D output
+                    if features.shape[0] == 1 and features.ndim == 2:
+                        # Single batch, unknown feature dim - keep as 2D but reshape to (4, D/4)
+                        feat_dim = features.shape[1]
+                        if feat_dim % 4 == 0:
+                            # Can reshape to (4, D/4)
+                            features = features.reshape(4, feat_dim // 4)
+                        else:
+                            # Can't evenly divide, just remove batch dim
+                            features = features[0]
                     else:
-                        features = features.reshape(-1, features.shape[-1])[0]
+                        # Unknown shape, remove batch if present
+                        if features.ndim > 1:
+                            features = features[0]
             elif features.ndim == 2 and features.shape == (4, 512):
                 # Already correct shape
                 pass
