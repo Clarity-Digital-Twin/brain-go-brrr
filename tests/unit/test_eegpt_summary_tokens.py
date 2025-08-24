@@ -62,25 +62,28 @@ class TestEEGPTSummaryTokens:
         # Generate any EEG data
         data = np.random.randn(19, 1024) * 50e-6  # 4s at 256Hz
 
-        # Extract features
-        features = eegpt_model.extract_features(data, channel_names)
+        # Extract features - explicitly get tokens
+        features = eegpt_model.extract_features(data, channel_names, summary=False)
 
-        # Should be (4, 512) for 4 summary tokens
-        assert features.shape == (4, 512), f"Expected (4, 512), got {features.shape}"
+        # Should be (1, 4, 512) for batch=1, 4 summary tokens
+        assert features.shape == (1, 4, 512), f"Expected (1, 4, 512), got {features.shape}"
 
     def test_summary_tokens_are_different(self, eegpt_model, channel_names):
         """The 4 summary tokens should not be identical."""
         # Generate test data
         data = self.generate_sine_wave(10)  # 10Hz alpha
 
-        # Extract features
-        features = eegpt_model.extract_features(data, channel_names)
+        # Extract features - explicitly get tokens
+        features = eegpt_model.extract_features(data, channel_names, summary=False)
+        
+        # Extract the tokens from batch dimension
+        tokens = features[0]  # Shape: (4, 512)
 
         # Check that tokens are not identical
         for i in range(4):
             for j in range(i + 1, 4):
-                token_i = features[i]
-                token_j = features[j]
+                token_i = tokens[i]
+                token_j = tokens[j]
 
                 # Cosine similarity
                 cos_sim = np.dot(token_i, token_j) / (

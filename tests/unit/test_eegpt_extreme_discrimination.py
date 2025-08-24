@@ -105,16 +105,17 @@ def test_check_averaging_bug():
     for i in range(19):
         data[i, :] = i  # Channel i has value i
 
-    features = model.extract_features(data, ch_names)
+    # Get tokens explicitly to check if they're different
+    features = model.extract_features(data, ch_names, summary=False)
+    tokens = features[0]  # Extract from batch dimension, shape: (4, 512)
 
     # If we're averaging across channels, all features should be similar
     # and equal to the mean of 0-18 = 9
     np.mean(range(19))  # Should be 9
 
-    # This loop was doing nothing - removed
     # Check if tokens are just copies
     for i in range(1, 4):
-        np.allclose(features[0], features[i])
+        assert not np.allclose(tokens[0], tokens[i]), f"Token 0 and {i} are identical!"
 
 
 if __name__ == "__main__":

@@ -78,10 +78,14 @@ class TestEEGPTModelLoading:
 
         features = model.extract_features(data, channel_names)
 
-        # Then: Should return features with correct shape
+        # Then: Should return features with correct shape (summary mode by default)
         assert features is not None
-        assert features.shape == (4, 512)  # Summary tokens
+        assert features.shape == (1, 512)  # Pooled summary (batch=1)
         assert model.is_loaded is True
+        
+        # Also test token mode
+        tokens = model.extract_features(data, channel_names, summary=False)
+        assert tokens.shape == (1, 4, 512)  # Batch=1, 4 tokens, 512 dims
 
     def test_feature_extraction_with_loaded_model(self):
         """Test feature extraction with a pre-loaded model."""
@@ -96,5 +100,9 @@ class TestEEGPTModelLoading:
         channel_names = [f"CH{i}" for i in range(19)]
         features = model.extract_features(data, channel_names)
 
-        # Then: Features should have the correct shape
-        assert features.shape == (4, 512)  # 4 summary tokens, 512 embedding dim
+        # Then: Features should have the correct shape (summary mode by default)
+        assert features.shape == (1, 512)  # Pooled summary (batch=1)
+        
+        # Also test token mode
+        tokens = model.extract_features(data, channel_names, summary=False)
+        assert tokens.shape == (1, 4, 512)  # Batch=1, 4 tokens, 512 dims
