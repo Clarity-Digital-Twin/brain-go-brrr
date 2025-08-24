@@ -31,10 +31,10 @@ class TestEEGPTConfigEdgeCases:
 
     def test_config_validation_raises_on_indivisible_samples(self):
         """Test config raises error when window_samples not divisible by patch_size."""
-        # 3.0 * 256 = 768, which is divisible by 64, so use different values
-        # 3.5 * 256 = 896, which is NOT divisible by 64 
+        # 1.5 * 256 = 384, which is NOT divisible by 64 (384 = 64 * 6 = 384, wait that's divisible)
+        # 1.2 * 256 = 307.2 -> 307, which is NOT divisible by 64
         with pytest.raises(ValueError, match="must be divisible"):
-            EEGPTConfig(window_duration=3.5, sampling_rate=256, patch_size=64)
+            EEGPTConfig(window_duration=1.2, sampling_rate=256, patch_size=64)
 
 
 class TestEEGPTModelEdgeCases:
@@ -68,14 +68,14 @@ class TestEEGPTModelEdgeCases:
         """Test extract_features_batch with numpy input."""
         model = EEGPTModel(auto_load=False)
         model.is_loaded = True
-        
+
         # Mock encoder
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 768))
-        
+
         windows = np.random.randn(4, 20, 1024).astype(np.float32)
         features = model.extract_features_batch(windows)
-        
+
         assert features.shape == (4, 768)
         assert features.dtype == np.float32
 
@@ -83,14 +83,14 @@ class TestEEGPTModelEdgeCases:
         """Test extract_features_batch with torch input."""
         model = EEGPTModel(auto_load=False)
         model.is_loaded = True
-        
+
         # Mock encoder
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 768))
-        
+
         windows = torch.randn(4, 20, 1024)
         features = model.extract_features_batch(windows)
-        
+
         assert features.shape == (4, 768)
         assert features.dtype == np.float32
 
@@ -98,10 +98,10 @@ class TestEEGPTModelEdgeCases:
         """Test extract_features_batch fallback when encoder is None."""
         model = EEGPTModel(auto_load=False)
         model.encoder = None
-        
+
         windows = np.random.randn(4, 20, 1024).astype(np.float32)
         features = model.extract_features_batch(windows)
-        
+
         # Should return zeros as fallback
         assert features.shape == (4, 768)
         assert np.allclose(features, 0)
@@ -109,23 +109,23 @@ class TestEEGPTModelEdgeCases:
     def test_predict_abnormality_method(self):
         """Test predict_abnormality method."""
         import mne
-        
+
         model = EEGPTModel(auto_load=False)
         model.is_loaded = True
-        
+
         # Mock encoder to return consistent features
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.ones(1, 512))
-        
+
         # Create test raw
         sfreq = 256
         data = np.random.randn(20, 2048) * 1e-6  # 8 seconds
         ch_names = [f"CH{i}" for i in range(20)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         result = model.predict_abnormality(raw)
-        
+
         assert "abnormal_probability" in result
         assert "confidence" in result
         assert "window_scores" in result
@@ -153,14 +153,14 @@ class TestCompatibilityFunctions:
     def test_preprocess_for_eegpt_with_filters(self):
         """Test preprocessing with filters."""
         import mne
-        
+
         # Create test raw
         sfreq = 512
         data = np.random.randn(20, 2048) * 1e-6
         ch_names = [f"CH{i}" for i in range(20)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Preprocess with resampling and filtering
         processed = preprocess_for_eegpt(
             raw,
@@ -168,66 +168,66 @@ class TestCompatibilityFunctions:
             bandpass=(1.0, 40.0),
             notch=60.0
         )
-        
+
         assert processed.info["sfreq"] == 256
         assert isinstance(processed, mne.io.BaseRaw)
 
     def test_preprocess_for_eegpt_with_target_sfreq(self):
         """Test preprocessing with target_sfreq parameter."""
         import mne
-        
+
         # Create test raw
         sfreq = 512
         data = np.random.randn(20, 2048) * 1e-6
         ch_names = [f"CH{i}" for i in range(20)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Use target_sfreq parameter (legacy name)
         processed = preprocess_for_eegpt(raw, target_sfreq=128)
-        
+
         assert processed.info["sfreq"] == 128
 
     def test_extract_features_from_raw(self):
         """Test extract_features_from_raw convenience function."""
         import mne
-        
+
         # Create test raw
         sfreq = 256
         data = np.random.randn(20, 1024) * 1e-6
         ch_names = [f"CH{i}" for i in range(20)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Mock model
         mock_model = MagicMock()
         mock_model.extract_features = MagicMock(return_value=np.zeros((1, 512), dtype=np.float32))
-        
+
         with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel", return_value=mock_model):
             features = extract_features_from_raw(raw, model=None)
-        
+
         assert features.dtype == np.float32
         assert features.shape == (1, 512)
 
     def test_extract_features_from_raw_with_existing_model(self):
         """Test extract_features_from_raw with provided model."""
         import mne
-        
+
         # Create test raw
         sfreq = 256
         data = np.random.randn(20, 1024) * 1e-6
         ch_names = [f"CH{i}" for i in range(20)]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Create model
         model = EEGPTModel(auto_load=False)
         model.is_loaded = True
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.zeros(1, 512))
-        
+
         features = extract_features_from_raw(raw, model=model)
-        
+
         assert features.dtype == np.float32
         assert features.shape == (1, 512)
 
@@ -239,17 +239,17 @@ class TestDeprecationWarnings:
         """Test that compat_coerce triggers deprecation warnings."""
         model = EEGPTModel(auto_load=False, compat_coerce=True)
         model.is_loaded = True
-        
+
         # Mock encoder that returns wrong shape
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.ones(1, 768))
-        
+
         data = np.random.randn(20, 1024).astype(np.float32)
-        
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             features = model.extract_features(data, summary=True)
-            
+
             # Should have triggered deprecation warning about 768 dimensions
             assert len(w) == 1
             assert issubclass(w[0].category, DeprecationWarning)
@@ -259,17 +259,17 @@ class TestDeprecationWarnings:
         """Test warning for single sample batch dimension removal."""
         model = EEGPTModel(auto_load=False, compat_coerce=True)
         model.is_loaded = True
-        
+
         # Mock encoder that returns (1, 4, 512)
         model.encoder = MagicMock()
         model.encoder.extract_features = MagicMock(return_value=torch.ones(1, 4, 512))
-        
+
         data = np.random.randn(20, 1024).astype(np.float32)
-        
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             features = model.extract_features(data, summary=False)
-            
+
             # Should have triggered deprecation warning about batch removal
             assert len(w) == 1
             assert issubclass(w[0].category, DeprecationWarning)
