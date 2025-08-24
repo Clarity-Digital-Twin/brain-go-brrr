@@ -187,7 +187,7 @@ If you use this software in your research, please cite:
   - TUAB (Abnormal EEG Corpus) - Binary classification (120GB compressed)
   - TUEV (EEG Events) - Event detection (60GB compressed)
   - Requires academic agreement and registration
-  
+
 - **PhysioNet Sleep-EDF**: [physionet.org/content/sleep-edfx](https://physionet.org/content/sleep-edfx/1.0.0/)
   - 197 whole-night PSG recordings
   - Free download after PhysioNet registration
