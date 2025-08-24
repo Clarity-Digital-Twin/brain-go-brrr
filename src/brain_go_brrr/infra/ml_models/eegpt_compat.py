@@ -53,6 +53,26 @@ class EEGPTModel:
     This class provides the exact same interface as the old EEGPTModel
     but uses the new EEGPTWrapper internally. This allows existing code
     to work without modification during migration.
+    
+    Migration Notes (v2.0.0):
+        - Removed compat_coerce parameter - strict shape validation only
+        - extract_features now requires explicit summary parameter:
+            * summary=True returns (B, 512) - averaged features
+            * summary=False returns (B, 4, 512) - token-level features
+        - Shape mismatches now raise ValueError immediately:
+            * "Unexpected summary shape (B, X). Expected (B, 512)"
+            * "Unexpected token shape (B, X, Y). Expected (B, 4, 512)"
+        
+    Examples:
+        >>> # Summary mode - get averaged features
+        >>> model = EEGPTModel()
+        >>> data = np.random.randn(20, 1024)  # (channels, samples)
+        >>> features = model.extract_features(data, summary=True)
+        >>> assert features.shape == (1, 512)
+        
+        >>> # Token mode - get all 4 summary tokens
+        >>> features = model.extract_features(data, summary=False)
+        >>> assert features.shape == (1, 4, 512)
     """
 
     def __init__(

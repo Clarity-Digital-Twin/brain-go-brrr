@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from hypothesis import assume, given, strategies as st
+from hypothesis import assume, given, strategies as st, settings
 from unittest.mock import MagicMock
 import torch
 
@@ -58,6 +58,8 @@ class TestEEGPTContractFuzzing:
         n_samples=st.integers(min_value=50, max_value=2000),
         target_multiple=st.sampled_from([64, 128, 256]),
     )
+    @settings(deadline=None)  # MNE operations can be slow on first call
+    @pytest.mark.slow
     def test_prepare_for_eegpt_padding_contract(self, n_samples, target_multiple):
         """Fuzz test that prepare_for_eegpt ensures T % target_multiple == 0."""
         import mne
