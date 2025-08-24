@@ -30,11 +30,6 @@ class EEGPTConfig:
     device: str = "auto"
     batch_size: int = 32
 
-    # Legacy fields for test compatibility
-    model_size: str = "large"
-    embed_dim: int = 512
-    max_channels: int = 58
-
     @property
     def n_patches_per_window(self) -> int:
         """Compute number of patches per window for legacy compatibility."""
@@ -58,6 +53,26 @@ class EEGPTModel:
     This class provides the exact same interface as the old EEGPTModel
     but uses the new EEGPTWrapper internally. This allows existing code
     to work without modification during migration.
+
+    Migration Notes (v2.0.0):
+        - Removed compat_coerce parameter - strict shape validation only
+        - extract_features now requires explicit summary parameter:
+            * summary=True returns (B, 512) - averaged features
+            * summary=False returns (B, 4, 512) - token-level features
+        - Shape mismatches now raise ValueError immediately:
+            * "Unexpected summary shape (B, X). Expected (B, 512)"
+            * "Unexpected token shape (B, X, Y). Expected (B, 4, 512)"
+
+    Examples:
+        >>> # Summary mode - get averaged features
+        >>> model = EEGPTModel()
+        >>> data = np.random.randn(20, 1024)  # (channels, samples)
+        >>> features = model.extract_features(data, summary=True)
+        >>> assert features.shape == (1, 512)
+
+        >>> # Token mode - get all 4 summary tokens
+        >>> features = model.extract_features(data, summary=False)
+        >>> assert features.shape == (1, 4, 512)
     """
 
     def __init__(
@@ -68,7 +83,14 @@ class EEGPTModel:
         auto_load: bool = True,
         **_kwargs: Any,
     ) -> None:
-        """Initialize compatibility wrapper with old API signature."""
+        """Initialize compatibility wrapper with old API signature.
+
+        Args:
+            checkpoint_path: Path to model checkpoint
+            device: Device to use ('auto', 'cpu', 'cuda')
+            config: Configuration dictionary
+            auto_load: Whether to load model immediately
+        """
         # Handle device
         if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,10 +148,28 @@ class EEGPTModel:
         self,
         data: npt.NDArray[np.float64],
         channel_names: list[str] | None = None,  # noqa: ARG002  # Not used but kept for compatibility
+        summary: bool = True,
     ) -> npt.NDArray[np.float64]:
-        """Extract features with old API signature."""
+        """Extract features with explicit shape contract.
+
+        Args:
+            data: EEG data array (channels, samples) or (batch, channels, samples)
+            channel_names: Channel names (kept for API compatibility)
+            summary: If True, return averaged summary (B, 512). If False, return tokens (B, 4, 512).
+
+        Returns:
+            Features array with shape:
+            - summary=True: (B, 512) where B is batch size
+            - summary=False: (B, 4, 512) for token-level features
+
+        Raises:
+            ValueError: If features have unexpected shape
+        """
         if not self.is_loaded:
             self.load_model()
+
+        # Track input shape for later
+        single_sample = data.ndim == 2
 
         # Convert numpy to tensor
         if isinstance(data, np.ndarray):
@@ -146,55 +186,42 @@ class EEGPTModel:
         # Extract features using new API
         with torch.no_grad():
             if self.encoder is not None and hasattr(self.encoder, 'extract_features'):
-                features = self.encoder.extract_features(data_tensor)
+                # Try to pass summary parameter if the encoder accepts it
+                import inspect
+
+                sig = inspect.signature(self.encoder.extract_features)
+                if 'summary' in sig.parameters:
+                    features = self.encoder.extract_features(data_tensor, summary=summary)
+                else:
+                    # Old-style encoder without summary parameter
+                    features = self.encoder.extract_features(data_tensor)
             elif self.encoder is not None:
                 features = self.encoder(data_tensor)
             else:
-                # Fallback if encoder is None (shouldn't happen after load_model)
-                features = torch.zeros((data_tensor.shape[0], 768))
+                raise RuntimeError("Model encoder not loaded properly")
 
-        # Convert back to numpy with shape compatibility
+        # Convert back to numpy
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        # Handle summary tokens for single sample input
-        if data.ndim == 2:  # Single sample (channels, samples)
-            # The model should return (1, 4, 512) for a single sample
-            # We need to return (4, 512) for compatibility
-            if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
-                # Perfect! Got (1, 4, 512), just remove batch dimension
-                features = features[0]  # Now (4, 512)
-            elif features.ndim == 2 and features.shape[0] == 1:
-                # Got (1, D) where D might be 4*512=2048
-                if features.shape[1] == 2048:
-                    # Reshape to (4, 512)
-                    features = features.reshape(4, 512)
-                else:
-                    # Unexpected shape, log warning and create placeholder
-                    import logging
+        # Validate shape based on summary mode
+        expected_batch = 1 if single_sample else data.shape[0]
 
-                    logging.warning(
-                        f"Unexpected feature shape {features.shape}, expected (1, 4, 512)"
-                    )
-                    features = np.zeros((4, 512), dtype=np.float32)
-            elif features.ndim == 2 and features.shape == (4, 512):
-                # Already correct shape
-                pass
-            else:
-                # Unexpected shape, log and create placeholder
-                import logging
-
-                logging.warning(f"Unexpected feature shape {features.shape} for single sample")
-                features = np.zeros((4, 512), dtype=np.float32)
+        if summary:
+            # Expecting (B, 512) for summary mode
+            if features.shape != (expected_batch, 512):
+                raise ValueError(
+                    f"Unexpected summary shape {features.shape}. "
+                    f"Expected ({expected_batch}, 512) for summary=True"
+                )
         else:
-            # Batch mode - keep existing behavior
-            if features.ndim == 1:
-                features = features.reshape(1, -1)
-            elif features.ndim == 3:
-                # If 3D (batch, seq, features), average across sequence
-                features = features.mean(axis=1)
+            # Expecting (B, 4, 512) for token mode
+            if features.shape != (expected_batch, 4, 512):
+                raise ValueError(
+                    f"Unexpected token shape {features.shape}. "
+                    f"Expected ({expected_batch}, 4, 512) for summary=False"
+                )
 
-        # Don't squeeze batch dimension - tests expect 2D
         return features.astype(np.float32)  # type: ignore[no-any-return]
 
     def extract_windows(

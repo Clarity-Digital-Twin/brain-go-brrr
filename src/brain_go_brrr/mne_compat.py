@@ -33,6 +33,32 @@ def is_mne_raw(obj: Any) -> "TypeGuard[MNERaw]":
     )
 
 
+def pick_types(
+    info: Any,
+    meg: bool = False,
+    eeg: bool = True,
+    eog: bool = False,
+    emg: bool = False,
+    exclude: str | list[str] = "bads",
+) -> list[int]:
+    """Pick channel indices by type.
+
+    Direct wrapper around mne.pick_types for compatibility.
+
+    Args:
+        info: MNE Info object
+        meg: Include MEG channels
+        eeg: Include EEG channels
+        eog: Include EOG channels
+        emg: Include EMG channels
+        exclude: Channels to exclude ('bads' or list of channel names)
+
+    Returns:
+        List of channel indices
+    """
+    return list(mne.pick_types(info, meg=meg, eeg=eeg, eog=eog, emg=emg, exclude=exclude))
+
+
 def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:
     """Get indices of EEG channels.
 
@@ -43,8 +69,8 @@ def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:
     Returns:
         List of channel indices
     """
-    exclude = "bads" if exclude_bads else []
-    return list(mne.pick_types(raw.info, meg=False, eeg=True, eog=False, exclude=exclude))
+    exclude: str | list[str] = "bads" if exclude_bads else []
+    return pick_types(raw.info, meg=False, eeg=True, eog=False, exclude=exclude)
 
 
 def get_all_picks(raw: MNERaw, eeg: bool = True, eog: bool = False, emg: bool = False) -> list[int]:
@@ -59,7 +85,7 @@ def get_all_picks(raw: MNERaw, eeg: bool = True, eog: bool = False, emg: bool = 
     Returns:
         List of channel indices
     """
-    return list(mne.pick_types(raw.info, meg=False, eeg=eeg, eog=eog, emg=emg, exclude="bads"))
+    return pick_types(raw.info, meg=False, eeg=eeg, eog=eog, emg=emg, exclude="bads")
 
 
 def has_montage(raw: MNERaw) -> bool:
