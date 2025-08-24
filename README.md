@@ -182,7 +182,7 @@ If you use this software in your research, please cite:
 
 ### EEGPT Pretrained Model
 - **Official Repository**: [github.com/BINE022/EEGPT](https://github.com/BINE022/EEGPT)
-- **Paper**: NeurIPS 2024 - Universal EEG Representation Learning
+- **Paper**: "EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals" (NeurIPS 2024)
 
 Download the pretrained weights:
 - **Figshare**: [EEGPT Large Model](https://figshare.com/s/e37df4f8a907a866df4b)
