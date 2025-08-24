@@ -66,9 +66,19 @@ class EEGPTModel:
         device: str = "auto",
         config: dict[str, Any] | None = None,
         auto_load: bool = True,
+        compat_coerce: bool = True,
         **_kwargs: Any,
     ) -> None:
-        """Initialize compatibility wrapper with old API signature."""
+        """Initialize compatibility wrapper with old API signature.
+        
+        Args:
+            checkpoint_path: Path to model checkpoint
+            device: Device to use ('auto', 'cpu', 'cuda')
+            config: Configuration dictionary
+            auto_load: Whether to load model immediately
+            compat_coerce: If True, coerce outputs to match old API shapes.
+                          Set False to get raw model outputs.
+        """
         # Handle device
         if device == "auto":
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -83,6 +93,7 @@ class EEGPTModel:
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.is_loaded = False
         self.encoder: Any | None = None
+        self.compat_coerce = compat_coerce
 
         # Add missing attributes that tests expect
         # Handle both dict and object config
@@ -157,59 +168,62 @@ class EEGPTModel:
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        # Handle summary tokens for single sample input
-        if data.ndim == 2:  # Single sample (channels, samples)
-            # The model should return (1, 4, 512) for a single sample
-            # We need to return (4, 512) for compatibility
-            if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
-                # Perfect! Got (1, 4, 512), just remove batch dimension
-                features = features[0]  # Now (4, 512)
-            elif features.ndim == 2 and features.shape[0] == 1:
-                # Got (1, D) where D might be 4*512=2048
-                if features.shape[1] == 2048:
-                    # Reshape to (4, 512)
-                    features = features.reshape(4, 512)
-                elif features.shape[1] == 512:
-                    # Got (1, 512) - the averaged summary tokens
-                    # Repeat to get (4, 512) for compatibility
-                    features = np.tile(features, (4, 1))  # Now (4, 512)
+        # Apply compatibility coercion if enabled
+        if self.compat_coerce:
+            # Handle summary tokens for single sample input
+            if data.ndim == 2:  # Single sample (channels, samples)
+                # The model should return (1, 4, 512) for a single sample
+                # We need to return (4, 512) for compatibility
+                if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
+                    # Perfect! Got (1, 4, 512), just remove batch dimension
+                    features = features[0]  # Now (4, 512)
+                elif features.ndim == 2 and features.shape[0] == 1:
+                    # Got (1, D) where D might be 4*512=2048
+                    if features.shape[1] == 2048:
+                        # Reshape to (4, 512)
+                        features = features.reshape(4, 512)
+                    elif features.shape[1] == 512:
+                        # Got (1, 512) - the averaged summary tokens
+                        # Repeat to get (4, 512) for compatibility
+                        features = np.tile(features, (4, 1))  # Now (4, 512)
+                    else:
+                        # Unexpected shape, log warning but keep the features
+                        import logging
+
+                        logging.warning(
+                            f"Unexpected feature shape {features.shape}, expected (1, 4, 512) or (1, 512)"
+                        )
+                        # For (1, 768) or similar, create a compatible 2D output
+                        if features.shape[0] == 1 and features.ndim == 2:
+                            # Single batch, unknown feature dim - keep as 2D but reshape to (4, D/4)
+                            feat_dim = features.shape[1]
+                            if feat_dim % 4 == 0:
+                                # Can reshape to (4, D/4)
+                                features = features.reshape(4, feat_dim // 4)
+                            else:
+                                # Can't evenly divide, just remove batch dim
+                                features = features[0]
+                        else:
+                            # Unknown shape, remove batch if present
+                            if features.ndim > 1:
+                                features = features[0]
+                elif features.ndim == 2 and features.shape == (4, 512):
+                    # Already correct shape
+                    pass
                 else:
-                    # Unexpected shape, log warning but keep the features
+                    # Unexpected shape, log and create placeholder
                     import logging
 
-                    logging.warning(
-                        f"Unexpected feature shape {features.shape}, expected (1, 4, 512) or (1, 512)"
-                    )
-                    # For (1, 768) or similar, create a compatible 2D output
-                    if features.shape[0] == 1 and features.ndim == 2:
-                        # Single batch, unknown feature dim - keep as 2D but reshape to (4, D/4)
-                        feat_dim = features.shape[1]
-                        if feat_dim % 4 == 0:
-                            # Can reshape to (4, D/4)
-                            features = features.reshape(4, feat_dim // 4)
-                        else:
-                            # Can't evenly divide, just remove batch dim
-                            features = features[0]
-                    else:
-                        # Unknown shape, remove batch if present
-                        if features.ndim > 1:
-                            features = features[0]
-            elif features.ndim == 2 and features.shape == (4, 512):
-                # Already correct shape
-                pass
+                    logging.warning(f"Unexpected feature shape {features.shape} for single sample")
+                    features = np.zeros((4, 512), dtype=np.float32)
             else:
-                # Unexpected shape, log and create placeholder
-                import logging
-
-                logging.warning(f"Unexpected feature shape {features.shape} for single sample")
-                features = np.zeros((4, 512), dtype=np.float32)
-        else:
-            # Batch mode - keep existing behavior
-            if features.ndim == 1:
-                features = features.reshape(1, -1)
-            elif features.ndim == 3:
-                # If 3D (batch, seq, features), average across sequence
-                features = features.mean(axis=1)
+                # Batch mode - keep existing behavior
+                if features.ndim == 1:
+                    features = features.reshape(1, -1)
+                elif features.ndim == 3:
+                    # If 3D (batch, seq, features), average across sequence
+                    features = features.mean(axis=1)
+        # else: return raw features without coercion
 
         # Don't squeeze batch dimension - tests expect 2D
         return features.astype(np.float32)  # type: ignore[no-any-return]
