@@ -33,7 +33,7 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 ## ✅ What's Currently Working
 - **YASA Sleep Analysis**: 100% functional, 87% accuracy
 - **Autoreject QC**: Bad channel detection, artifact rejection
-- **EEGPT Features**: 512-dim embeddings extraction working
+- **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
 - **Unit Tests**: 454 passing tests
@@ -193,9 +193,10 @@ brain-go-brrr/
 - Confidence scoring (0-1)
 - Triage flags: routine/expedite/urgent
 - **CRITICAL**: Must use 4-second windows (EEGPT pretrained on 4s)
+- **FEATURES**: 2,048 dimensions (4 summary tokens × 512, flattened) - NOT 512, NOT 32,768
 - **IMPLEMENTED**: Linear probe training in `experiments/eegpt_linear_probe/`
 - **FIXED**: Channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)
-- **STATUS**: Training with 4s windows @ 256Hz - `tmux attach -t eegpt_4s_final`
+- **STATUS**: Training with 4s windows @ 256Hz - `tmux attach -t tuab_training`
 
 ### 3. Event Detection
 
