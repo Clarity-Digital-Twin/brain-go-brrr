@@ -248,11 +248,11 @@ class TestEEGPTRobustness:
         # All zeros (flat EEG)
         data = np.zeros((20, 1024), dtype=np.float32)
 
-        features = model.extract_features(data)
+        features = model.extract_features(data, summary=True)
 
         # Should produce valid features (not NaN)
         assert not np.isnan(features).any()
-        assert features.shape == (4, 512)
+        assert features.shape == (1, 512)  # Summary mode returns (1, 512)
 
     def test_handles_extreme_values(self):
         """Test model handles extreme but valid EEG values."""
@@ -261,11 +261,12 @@ class TestEEGPTRobustness:
         # Extreme but possible EEG (seizure-like)
         data = np.random.randn(20, 1024).astype(np.float32) * 500e-6  # 500 µV
 
-        features = model.extract_features(data)
+        features = model.extract_features(data, summary=True)
 
         # Should still work
         assert not np.isnan(features).any()
         assert not np.isinf(features).any()
+        assert features.shape == (1, 512)  # Summary mode returns (1, 512)
 
 
 def generate_test_eeg_data():
