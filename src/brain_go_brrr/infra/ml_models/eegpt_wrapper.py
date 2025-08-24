@@ -14,6 +14,8 @@ from typing import Any, cast
 import torch
 import torch.nn as nn
 
+from brain_go_brrr.domain.preprocessing.nan_policy import validate_no_nan
+
 from .eegpt_architecture import create_eegpt_model
 
 logger = logging.getLogger(__name__)
@@ -141,20 +143,46 @@ class EEGPTWrapper(nn.Module):
         self,
         x: torch.Tensor,
         chan_ids: torch.Tensor | None = None,
-        return_all_temporal: bool = False,
+        summary: bool = True,
     ) -> torch.Tensor:
-        """Extract features (alias for forward).
+        """Extract features with explicit shape contract.
 
         Args:
             x: Input tensor of shape (B, C, T)
-            chan_ids: Channel IDs
-            return_all_temporal: If True, return all temporal features
+            chan_ids: Channel IDs for positional embedding
+            summary: If True, return flattened summary (B, 512). If False, return (B, 4, 512)
 
         Returns:
-            If return_all_temporal=False: Features of shape (B, embed_num, embed_dim)
-            If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
+            If summary=True: Features of shape (B, 512)
+            If summary=False: Features of shape (B, 4, 512)
+
+        Raises:
+            ValueError: If input contains NaN or Inf values
         """
-        return self.forward(x, chan_ids, return_all_temporal)
+        # Validate input - reject NaN/Inf
+        validate_no_nan(x, "EEG input")
+
+        # Get features from model
+        features = self.forward(x, chan_ids, return_all_temporal=False)
+
+        # Ensure consistent output shape based on summary flag
+        if features.ndim == 3 and features.shape[1] == 4:  # (B, 4, 512)
+            if summary:
+                # Flatten the 4 summary tokens to (B, 512) by averaging
+                return features.mean(dim=1)  # (B, 512)
+            else:
+                return features  # (B, 4, 512)
+        elif features.ndim == 2:  # Already flattened or averaged
+            if summary:
+                return features  # (B, 512)
+            else:
+                # Can't unflatten, return as is with warning
+                logger.warning("Cannot unflatten features to (B, 4, 512)")
+                return features
+        else:
+            # Unexpected shape, log and return
+            logger.warning(f"Unexpected feature shape: {features.shape}")
+            return features
 
 
 def create_normalized_eegpt(

@@ -1,13 +1,13 @@
-"""REAL data pipeline tests - Testing actual transformations!
+"""Real data pipeline tests - Testing actual transformations.
 
-NO MOCKS. Test what we ACTUALLY do to EEG data:
+Behavior-driven tests for what we actually do to EEG data:
 - Resampling
 - Filtering
 - Windowing
 - Normalization
 - Channel selection
 
-This is how you test data processing, Uncle Bob!
+Clean testing following SOLID principles.
 """
 
 import numpy as np
@@ -18,7 +18,7 @@ from scipy import signal
 
 
 class TestRealEEGPreprocessing:
-    """Test REAL preprocessing with REAL signal processing."""
+    """Test real preprocessing with actual signal processing."""
 
     @pytest.fixture
     def raw_eeg_signal(self):
@@ -335,5 +335,5 @@ if __name__ == "__main__":
     pipeline_test.test_full_preprocessing_pipeline()
     print("✓ Full pipeline works end-to-end")
 
-    print("\n🚀 REAL DATA PIPELINE TESTS PASS!")
+    print("\nAll data pipeline tests pass.")
 

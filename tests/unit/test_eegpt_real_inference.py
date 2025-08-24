@@ -1,13 +1,13 @@
-"""REAL EEGPT inference tests - NO MOCKS, PURE BEHAVIOR!
+"""Real EEGPT inference tests - Pure behavior testing without mocks.
 
-Testing what ACTUALLY MATTERS:
+Testing what actually matters:
 - Can we load a real checkpoint?
 - Can we process real EEG data?
 - Do we get the right output shapes?
 - Are the features deterministic?
 - Does batching work correctly?
 
-FUCK MOCKS. Test the REAL THING.
+Behavior-driven testing following clean code principles.
 """
 
 
@@ -20,7 +20,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 
 class TestRealEEGPTInference:
-    """Test EEGPT with REAL data, REAL models, REAL behavior."""
+    """Test EEGPT with real data, real models, real behavior."""
 
     @pytest.fixture
     def real_eeg_data(self):
@@ -51,7 +51,7 @@ class TestRealEEGPTInference:
         assert not model.is_loaded
 
     def test_eegpt_processes_single_sample(self, real_eeg_data):
-        """Test single sample inference - THE CORE BEHAVIOR."""
+        """Test single sample inference - core behavior."""
         model = EEGPTModel(auto_load=False)
 
         # Process single sample
@@ -69,7 +69,7 @@ class TestRealEEGPTInference:
         assert not np.isinf(features).any()
 
     def test_eegpt_batch_processing(self, real_eeg_data):
-        """Test batch processing - CRITICAL for training."""
+        """Test batch processing - critical for training."""
         model = EEGPTModel(auto_load=False)
 
         # Create batch of 8 samples
@@ -79,14 +79,14 @@ class TestRealEEGPTInference:
         # Process batch
         features = model.extract_features(batch)
 
-        # Check batch output shape - model flattens the 4 summary tokens
-        assert features.shape == (8, 512) or features.shape == (8, 4, 512)
+        # Check batch output shape - should be (8, 512) with summary=True by default
+        assert features.shape == (8, 512), f"Expected (8, 512), got {features.shape}"
 
         # All samples should produce valid features
         assert not np.isnan(features).any()
 
     def test_eegpt_deterministic_features(self, real_eeg_data):
-        """Test that same input gives same output - REPRODUCIBILITY."""
+        """Test that same input gives same output - reproducibility."""
         model = EEGPTModel(auto_load=False)
 
         # Process same data twice
@@ -104,11 +104,11 @@ class TestRealEEGPTInference:
         # Convert to torch tensor with batch dimension
         data_tensor = torch.from_numpy(real_eeg_data).unsqueeze(0)
 
-        # Extract features (no return_summary_only parameter)
-        features = wrapper.extract_features(data_tensor)
+        # Extract features with summary=True (default)
+        features = wrapper.extract_features(data_tensor, summary=True)
 
-        # Should return (batch=1, 512) - flattened summary tokens
-        assert features.shape == (1, 512) or features.shape == (1, 4, 512)
+        # Should return (batch=1, 512) with summary=True
+        assert features.shape == (1, 512), f"Expected (1, 512), got {features.shape}"
 
     def test_different_window_sizes(self):
         """Test that model handles different window sizes correctly."""
@@ -214,23 +214,19 @@ class TestEEGPTRobustness:
     """Test EEGPT handles edge cases and errors gracefully."""
 
     def test_handles_nan_input(self):
-        """Test model handles NaN values in input."""
+        """Test model rejects NaN values in input."""
         model = EEGPTModel(auto_load=False)
 
         # Data with NaN
         data = np.random.randn(20, 1024).astype(np.float32)
         data[5, 100:200] = np.nan
 
-        # Model may return NaN for NaN input (GIGO principle)
-        # OR it may raise an error - both are acceptable
-        try:
-            features = model.extract_features(data)
-            # If model returns features with NaN, that's acceptable
-            # (garbage in, garbage out)
-            assert features.shape == (4, 512)  # Shape should be correct at least
-        except (ValueError, RuntimeError) as e:
-            # If it raises an error about NaN/invalid, that's also good
-            assert "nan" in str(e).lower() or "invalid" in str(e).lower()
+        # Model should reject NaN input with clear error
+        with pytest.raises(ValueError) as exc_info:
+            model.extract_features(data)
+
+        # Error message should mention NaN
+        assert "nan" in str(exc_info.value).lower()
 
     def test_handles_zero_input(self):
         """Test model handles all-zero input."""
@@ -294,5 +290,5 @@ if __name__ == "__main__":
     test.test_eegpt_deterministic_features(data)
     print("✓ Features are deterministic")
 
-    print("\n🚀 ALL REAL TESTS PASS! NO MOCKS NEEDED!")
+    print("\nAll behavior tests pass - no mocks needed.")
 
