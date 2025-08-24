@@ -427,11 +427,24 @@ def main():
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
+    # Resume from checkpoint if specified
+    start_epoch = 0
+    if args.resume:
+        logger.info(f"Loading checkpoint: {args.resume}")
+        checkpoint = torch.load(args.resume)
+        probe.load_state_dict(checkpoint["probe_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        start_epoch = checkpoint["epoch"]
+        best_val_auroc = checkpoint.get("best_val_auroc", 0)
+        logger.info(f"Resumed from epoch {start_epoch}, will continue from epoch {start_epoch + 1}")
+    else:
+        best_val_auroc = 0
+    
     # Training loop
-    best_val_auroc = 0
     patience_counter = 0
 
-    for epoch in range(config["training"]["max_epochs"]):
+    for epoch in range(start_epoch, config["training"]["max_epochs"]):
         state["probe"] = probe
         state["optimizer"] = optimizer
         state["scheduler"] = scheduler
