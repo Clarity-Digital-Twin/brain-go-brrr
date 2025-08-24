@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import torch
 
-from brain_go_brrr.infra.ml_models.eegpt_model import EEGPTModel
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 
@@ -53,11 +53,12 @@ class TestRealEEGPTInference:
         """Test single sample inference - core behavior."""
         model = EEGPTModel(auto_load=False)
 
-        # Process single sample
-        features = model.extract_features(real_eeg_data)
+        # Process single sample with summary=True (default)
+        features = model.extract_features(real_eeg_data, summary=True)
 
-        # Check output shape: 4 summary tokens x 512 dimensions
-        assert features.shape == (4, 512), f"Wrong shape: {features.shape}"
+        # Check output shape: With new strict API, single sample summary should be (512,) or (1, 512)
+        # Since input is 2D (channels, samples), output should be (1, 512) with batch dimension
+        assert features.shape == (1, 512), f"Wrong shape: {features.shape}"
 
         # Features should be numpy arrays (model returns numpy, not torch)
         assert isinstance(features, np.ndarray)
@@ -66,6 +67,11 @@ class TestRealEEGPTInference:
         # Features should be bounded (not NaN or Inf)
         assert not np.isnan(features).any()
         assert not np.isinf(features).any()
+        
+        # Also test token-level features (summary=False)
+        token_features = model.extract_features(real_eeg_data, summary=False)
+        # With strict API, should be (1, 4, 512) for single sample
+        assert token_features.shape == (1, 4, 512), f"Wrong token shape: {token_features.shape}"
 
     def test_eegpt_batch_processing(self, real_eeg_data):
         """Test batch processing - critical for training."""
@@ -113,15 +119,19 @@ class TestRealEEGPTInference:
         """Test that model handles different window sizes correctly."""
         model = EEGPTModel(auto_load=False)
 
-        # Test 2-second window (512 samples)
+        # Test 2-second window (512 samples) with summary=True
         data_2s = np.random.randn(20, 512).astype(np.float32) * 50e-6
-        features_2s = model.extract_features(data_2s)
-        assert features_2s.shape == (4, 512)  # Still 4 summary tokens
+        features_2s = model.extract_features(data_2s, summary=True)
+        assert features_2s.shape == (1, 512)  # Summary mode returns (1, 512)
 
-        # Test 8-second window (2048 samples)
+        # Test 8-second window (2048 samples) with summary=True
         data_8s = np.random.randn(20, 2048).astype(np.float32) * 50e-6
-        features_8s = model.extract_features(data_8s)
-        assert features_8s.shape == (4, 512)  # Still 4 summary tokens
+        features_8s = model.extract_features(data_8s, summary=True)
+        assert features_8s.shape == (1, 512)  # Summary mode returns (1, 512)
+        
+        # Also test token mode for completeness
+        tokens_2s = model.extract_features(data_2s, summary=False)
+        assert tokens_2s.shape == (1, 4, 512)  # Token mode returns (1, 4, 512)
 
     def test_channel_count_validation(self):
         """Test that model validates channel count."""
@@ -145,10 +155,10 @@ class TestRealEEGPTInference:
 
         # Process many samples
         for _ in range(100):
-            features = model.extract_features(real_eeg_data)
+            features = model.extract_features(real_eeg_data, summary=True)
 
-        # Features should be consistent size
-        assert features.shape == (4, 512)
+        # Features should be consistent size with summary mode
+        assert features.shape == (1, 512)
 
         # No gradients should accumulate (eval mode)
         if hasattr(model, 'encoder') and model.encoder is not None:
@@ -183,6 +193,9 @@ class TestEEGPTWithLinearProbe:
         """Test full pipeline: EEG → EEGPT → Linear Probe → Prediction."""
         # Initialize model
         model = EEGPTModel(auto_load=False)
+        
+        # For token-level classification, we need all 4 tokens
+        # So we use summary=False to get (1, 4, 512), then flatten
         classifier = torch.nn.Linear(4 * 512, 2)
 
         # Generate test data
@@ -190,11 +203,12 @@ class TestEEGPTWithLinearProbe:
 
         # Full pipeline
         with torch.no_grad():
-            # 1. Extract features
-            features = model.extract_features(eeg_data)
-
-            # 2. Flatten for classifier (numpy reshape)
-            features_flat = features.reshape(1, -1)  # Add batch dim
+            # 1. Extract token features (not summary)
+            features = model.extract_features(eeg_data, summary=False)
+            assert features.shape == (1, 4, 512)  # Batch of 1, 4 tokens, 512 dims
+            
+            # 2. Flatten for classifier
+            features_flat = features.reshape(1, -1)  # (1, 2048)
 
             # 3. Classify (convert to torch for classifier)
             features_tensor = torch.from_numpy(features_flat)
@@ -204,7 +218,7 @@ class TestEEGPTWithLinearProbe:
             prediction = torch.softmax(logits, dim=1)
 
         # Validate outputs
-        assert features.shape == (4, 512)
+        assert features.shape == (1, 4, 512)
         assert logits.shape == (1, 2)
         assert prediction.sum().item() == pytest.approx(1.0)  # Softmax sums to 1
 
