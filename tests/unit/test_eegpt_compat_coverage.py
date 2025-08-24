@@ -1,6 +1,5 @@
 """Additional tests to boost coverage for eegpt_compat module."""
 
-import warnings
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 

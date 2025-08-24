@@ -3,7 +3,6 @@
 Tests the fail-fast behavior and explicit shape contracts.
 """
 
-import warnings
 
 import numpy as np
 import pytest

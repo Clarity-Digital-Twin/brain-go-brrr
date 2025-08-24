@@ -145,7 +145,6 @@ class EEGPTModel:
         Raises:
             ValueError: If features have unexpected shape
         """
-
         if not self.is_loaded:
             self.load_model()
 
