@@ -178,6 +178,22 @@ If you use this software in your research, please cite:
 }
 ```
 
+## Datasets
+
+### Available EEG Datasets
+For training and research, the following datasets are available:
+
+- **Temple University Hospital EEG Corpus**: [isip.piconepress.com/projects/nedc/html/tuh_eeg](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/)
+  - TUAB (Abnormal EEG Corpus) - Binary classification
+  - TUEV (EEG Events) - Event detection (seizures, artifacts)
+  - Free for academic use with registration
+  
+- **PhysioNet Sleep-EDF**: [physionet.org/content/sleep-edfx](https://physionet.org/content/sleep-edfx/1.0.0/)
+  - 197 whole-night PSG recordings
+  - Already included in `data/datasets/external/sleep-edf/`
+
+See [docs/TRAINING.md](docs/TRAINING.md) for detailed dataset setup instructions.
+
 ## Model Weights
 
 ### EEGPT Pretrained Model
