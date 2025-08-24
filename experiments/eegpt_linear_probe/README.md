@@ -10,12 +10,15 @@ We train lightweight linear probes on top of frozen EEGPT features for two clini
 
 ## Current Status
 
-✅ **Ready for Training** - All critical bugs fixed, using EEGPT summary tokens (2,048 dimensions for TUAB)
+🔄 **Active Training** - TUAB abnormality detection
+- Progress: ~33% complete (9,600/29,143 batches)
+- Speed: ~1.4 it/s
+- Monitor: `tmux attach -t tuab_training`
 
 ### Expected Performance
 | Dataset | Metric | Target | Status |
 |---------|--------|--------|--------|
-| TUAB | AUROC | 0.87 | Training |
+| TUAB | AUROC | 0.87 | Training (33%) |
 | TUEV | BAcc | 0.62 | Pending |
 
 ## Quick Start
@@ -42,26 +45,25 @@ tmux attach -t tuev_training
 
 ```
 eegpt_linear_probe/
-├── README.md                # This file
-├── train_tuab.py           # TUAB training script
-├── train_tuev.py           # TUEV training script
+├── train_tuab.py              # TUAB training script (ACTIVE)
+├── train_tuev.py              # TUEV training script
+├── tuab_dataset.py            # TUAB memory-mapped dataset
+├── tuev_dataset.py            # TUEV dataset loader
+├── tuev_dataset_cached.py    # TUEV cached variant
 ├── configs/
-│   ├── tuab.yaml          # TUAB configuration (4s windows, batch=256)
-│   └── tuev.yaml          # TUEV configuration (10s windows, batch=500)
-├── datasets/               # Dataset implementations
-│   ├── tuab_dataset.py    # TUAB dataset loader (memory-mapped)
-│   ├── tuev_dataset.py    # TUEV dataset loader
-│   └── tuev_dataset_cached.py  # TUEV cached variant with padding
-├── utils/                  # Utility functions
-│   └── custom_collate_fixed.py # Collate function for dataloaders
+│   ├── tuab.yaml             # TUAB config (4s windows, batch=64)
+│   └── tuev.yaml             # TUEV config (10s windows, batch=500)
 ├── scripts/
-│   ├── launch_tuab.sh     # TUAB launch script
-│   ├── launch_tuev.sh     # TUEV launch script
-│   ├── build_tuev_cache.py      # Build TUEV cache (2048 samples)
-│   └── build_tuev_cache_1024.py # Build TUEV cache (1024 samples)
-├── logs/                   # Training logs
-├── output/                 # Model checkpoints and results
-└── archive/               # Old experiments and documentation
+│   ├── launch_tuab.sh        # TUAB training launcher
+│   ├── launch_tuev.sh        # TUEV training launcher
+│   ├── monitor_training.sh   # Training progress monitor
+│   ├── build_tuev_cache.py  # TUEV cache builder
+│   └── deployment/           # Deployment utilities
+├── utils/
+│   └── custom_collate_fixed.py  # Batch collation
+├── logs/                      # Training logs
+├── output/                    # Model checkpoints
+└── __pycache__/              # Python cache
 
 ```
 
@@ -79,7 +81,7 @@ eegpt_linear_probe/
 - **Probe Features**: 2,048 dims (4 summary tokens × 512, flattened)
 - **Classes**: 2 (normal/abnormal)
 - **Dataset**: ~1.86M training windows
-- **Batch Size**: 256 (optimized for WSL)
+- **Batch Size**: 64 (reduced for memory stability on WSL)
 
 ### TUEV Specifications
 - **Window Size**: 10 seconds (2560 samples)
