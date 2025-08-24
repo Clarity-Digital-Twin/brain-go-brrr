@@ -93,9 +93,8 @@ class TUEVLinearProbe(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
         # Linear probe using LazyLinear to adapt to actual input size
-        # Will automatically handle:
-        # - 1000 samples (paper) → 15 patches × 4 × 512 = 30,720 features
-        # - 1024 samples (EEGPT pretrain) → 16 patches × 4 × 512 = 32,768 features
+        # Using summary tokens only: 4 × 512 = 2,048 features
+        # (Changed from temporal patches which would be 16×4×512 = 32,768)
         self.classifier = nn.LazyLinear(6)
 
         self.device = device
@@ -124,23 +123,20 @@ class TUEVLinearProbe(nn.Module):
         # Dropout
         x = self.dropout(x)  # (batch, 20, 1024)
 
-        # EEGPT encoder (frozen) - get all temporal features
+        # EEGPT encoder (frozen) - get summary tokens only
         with torch.no_grad():
             # EEGPT expects (batch, channels, time)
-            features = self.eegpt.extract_features(x, return_all_temporal=True)  # (batch, N_patches, 4, 512)
-
-        # Verify patch count matches expected (1024 samples / 64 = 16 patches)
-        n_patches = features.shape[1]
-        expected_patches = x.shape[-1] // 64
-        assert n_patches == expected_patches, f"TUEV patch mismatch: got {n_patches}, expected {expected_patches} from {x.shape[-1]} samples"
+            # Get all 4 summary tokens, NOT averaged (summary=False)
+            features = self.eegpt.extract_features(x, summary=False)  # (batch, 4, 512)
 
         # Log shape on first forward for debugging
         if not hasattr(self, '_logged_shape'):
             logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+            logger.info(f"Using summary tokens only (4×512 = 2048 features), not temporal patches")
             self._logged_shape = True
 
-        # Flatten all temporal and summary features
-        features = features.view(features.size(0), -1)  # (batch, N_patches*4*512)
+        # Flatten the 4 summary tokens
+        features = features.view(features.size(0), -1)  # (batch, 4*512=2048)
         logits = self.classifier(features)  # (batch, 6)
 
         return logits

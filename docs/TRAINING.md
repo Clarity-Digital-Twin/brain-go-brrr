@@ -24,6 +24,13 @@ This guide covers training linear probes on frozen EEGPT features for EEG classi
 
 ## TUAB Training (Abnormality Detection)
 
+### IMPORTANT: Feature Extraction Details
+
+EEGPT outputs 4 summary tokens of 512 dimensions each. For linear probing:
+- **Correct approach**: Flatten all 4 tokens → 2,048 features total
+- **NOT**: Use temporal patches (would be 32,768 - way too many)
+- **NOT**: Average the 4 tokens to 512 (loses information)
+
 ### Quick Start
 
 ```bash
@@ -74,7 +81,7 @@ model:
 
 - **Windows**: ~1.86M training samples
 - **Classes**: Binary (0=normal, 1=abnormal)
-- **Features**: 32,768 dimensions (16 patches × 4 tokens × 512)
+- **Features**: 2,048 dimensions (4 summary tokens × 512, flattened)
 
 ## TUEV Training (Event Detection)
 

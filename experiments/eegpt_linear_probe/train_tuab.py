@@ -65,11 +65,20 @@ class LinearProbe(nn.Module):
 
     def forward(self, features):
         """Forward pass through probe."""
-        # features: (batch_size, n_temporal, n_summary_tokens, embed_dim)
-        # For TUAB with 4s windows: (B, 16, 4, 512)
-        # Flatten all features: 16 * 4 * 512 = 32,768 features
+        # features: (batch_size, n_summary_tokens, embed_dim) or (batch_size, embed_dim)
+        # EEGPT outputs 4 summary tokens of 512 dims each
+        # Correct approach: flatten to 4 * 512 = 2,048 features
         batch_size = features.shape[0]
-        x = features.reshape(batch_size, -1)  # Flatten to (batch_size, 32768)
+        
+        # Handle both (B, 4, 512) and (B, 512) shapes
+        if features.ndim == 3:
+            # (B, 4, 512) -> flatten to (B, 2048)
+            x = features.reshape(batch_size, -1)
+        else:
+            # (B, 512) - this is wrong, but handle gracefully
+            logger.warning(f"Got averaged features {features.shape}, expected (B, 4, 512)")
+            x = features
+            
         return self.probe(x)
 
 
@@ -156,7 +165,8 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                 for i in range(0, batch_size, micro_batch_size):
                     end_idx = min(i + micro_batch_size, batch_size)
                     micro_batch = data[i:end_idx]
-                    micro_features = model.extract_features(micro_batch)
+                    # Get all 4 summary tokens, NOT averaged (summary=False)
+                    micro_features = model.extract_features(micro_batch, summary=False)
                     features_list.append(micro_features)
 
                 # Concatenate all micro-batch features
@@ -165,6 +175,8 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                 # Log shape on first batch for verification
                 if batch_idx == 0 and epoch == 0:
                     logger.info(f"EEGPT features shape: {features.shape}")
+                    logger.info(f"Expected shape: (batch_size={batch_size}, 4 tokens, 512 dims)")
+                    logger.info(f"Flattened probe input: ({batch_size}, {4*512})")
                     logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
 
             # Forward through probe
@@ -264,7 +276,8 @@ def validate(model, probe, val_loader, device):
             for i in range(0, batch_size, micro_batch_size):
                 end_idx = min(i + micro_batch_size, batch_size)
                 micro_batch = data[i:end_idx]
-                micro_features = model.extract_features(micro_batch)
+                # Get all 4 summary tokens, NOT averaged (summary=False)
+                micro_features = model.extract_features(micro_batch, summary=False)
                 features_list.append(micro_features)
 
             # Concatenate all micro-batch features

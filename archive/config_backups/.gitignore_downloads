@@ -1,8 +1,0 @@
-# DO NOT COMMIT - Add to main .gitignore
-**/download_*.py
-**/download_*.sh
-**/*_secure.*
-**/*password*
-**/*credentials*
-DOWNLOAD_*.md
-*_DOWNLOAD_*.md
