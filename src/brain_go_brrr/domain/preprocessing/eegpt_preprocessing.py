@@ -1,6 +1,8 @@
 """EEGPT-specific preprocessing functions.
 
 Extracted from eegpt_model.py to proper domain layer.
+Note: For basic EEGPT input preparation, use domain.preprocessing.eegpt_prepare.prepare_for_eegpt
+This module provides additional preprocessing with filtering and normalization.
 """
 
 import logging
@@ -10,6 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 from brain_go_brrr._typing import MNERaw
+from brain_go_brrr.domain.preprocessing.eegpt_prepare import prepare_for_eegpt as prepare_basic
 
 if TYPE_CHECKING:
     import torch

@@ -98,6 +98,7 @@ pytest_plugins = [
     # "tests.fixtures.benchmark_data",  # DISABLED - causes hang
     "tests.fixtures.cache_fixtures",
     "tests.fixtures.synthetic_data",
+    "tests.fixtures",  # Add centralized fixtures with deterministic seed
 ]
 
 # Set deterministic random seeds for reproducible tests
