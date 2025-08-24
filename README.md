@@ -2,8 +2,7 @@
 
 **Production-Ready EEG Analysis System with EEGPT Foundation Model**
 
-[![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg?branch=main&cache=bust)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
-[![CI/CD Development](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg?branch=development&cache=bust)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
+[![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
