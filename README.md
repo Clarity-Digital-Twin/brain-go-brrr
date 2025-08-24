@@ -65,13 +65,15 @@ uv run pytest tests/unit -q
     (4×512 summary tokens →      (Picks best central)
      2,048 flattened)
           │                               │
-    ┌─────┴─────┐                         ▼
-    │           │                   Sleep Staging
-Abnormality  Sleep Probe*           (5 stages: W,N1,N2,N3,REM)
-Detection    (Linear probe)              │
-                                         ▼
-                                    Sleep Metrics
-                                  (Efficiency, TST, etc.)
+          ▼                               ▼
+    Abnormality Detection          Sleep Staging
+    (Normal vs Abnormal)           (5 stages: W,N1,N2,N3,REM)
+          │                               │
+      [IF ABNORMAL]                       ▼
+          │                        Sleep Metrics
+          ▼                        (Efficiency, TST, etc.)
+    Event Detection
+    (TUEV: SPSW/GPED/PLED/etc)
 ```
 
 **KEY INSIGHTS**:
@@ -80,7 +82,6 @@ Detection    (Linear probe)              │
 - **Both pipelines run in PARALLEL** and can process the same data
 - **EEGPT requires 19+ channels** for meaningful clinical results
 - **YASA achieves 87% accuracy** with just 1 central EEG channel
-- ***Sleep Probe**: EEGPT CAN do sleep staging (69% accuracy per paper) but YASA is better (87%)
 
 Clean Architecture with dependency injection and adapter pattern for third-party libraries.
 

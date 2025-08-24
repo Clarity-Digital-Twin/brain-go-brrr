@@ -57,10 +57,15 @@
     (4×512 summary tokens →        (85%+ accuracy with 1 ch)
      2,048 flattened)
           │                               │
-    ┌─────┴─────┐                         ▼
-    │           │                    Sleep Metrics
-Abnormality  Sleep Probe            (Efficiency, TST, etc.)
-Detection    (EEGPT-based)
+          ▼                               ▼
+    Abnormality Detection           Sleep Metrics
+    (Normal vs Abnormal)            (Efficiency, TST, etc.)
+          │
+      [IF ABNORMAL]
+          │
+          ▼
+    Event Detection
+    (TUEV: SPSW/GPED/PLED/etc)
 ```
 
 **Key Insights**:
