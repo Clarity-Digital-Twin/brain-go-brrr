@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from .nan_policy import validate_no_nan
 
@@ -45,7 +46,7 @@ def prepare_for_eegpt(
     target_sfreq: int = 256,
     required_channels: int = 19,
     pad_to_multiple: int = 64,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Prepare raw EEG data for EEGPT model input.
 
     Single entry point for all EEGPT preprocessing:
@@ -125,7 +126,7 @@ def prepare_for_eegpt(
 
     logger.debug(f"Prepared EEGPT input: shape {data.shape}, dtype {data.dtype}")
 
-    return data
+    return data  # type: ignore[no-any-return]
 
 
 def supports_eegpt(raw: Any) -> bool:

@@ -8,11 +8,12 @@ import logging
 from typing import TypeVar
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T", np.ndarray, torch.Tensor)
+T = TypeVar("T", npt.NDArray[np.float32], torch.Tensor)
 
 
 def validate_no_nan(data: T, name: str = "input") -> T:

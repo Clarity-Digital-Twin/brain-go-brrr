@@ -101,7 +101,7 @@ def predict_abnormality_with_eegpt(
                 abnormal_prob = probs[:, 1]  # Abnormal class probability
             else:
                 # Use features directly (no trained probe)
-                features = model.extract_features(mini_batch, return_all_temporal=True)
+                features = model.extract_features(mini_batch, summary=False)
                 # Simple heuristic: use mean activation as abnormality score
                 abnormal_prob = features.mean(dim=(1, 2, 3))
                 abnormal_prob = torch.sigmoid(abnormal_prob)  # Convert to probability

@@ -78,8 +78,10 @@ class AsyncAnalyzer(AsyncCapable):
 
     def analyze(self, data: Any) -> dict[str, Any]:
         """Synchronous analyze method for backward compatibility."""
-        return self.launch(data)
+        result = self.launch(data)
+        return result  # type: ignore[no-any-return]
 
     async def analyze_async(self, data: Any) -> dict[str, Any]:
         """Async analyze method for async contexts."""
-        return await self.launch_async(data)
+        result = await self.launch_async(data)
+        return result  # type: ignore[no-any-return]
