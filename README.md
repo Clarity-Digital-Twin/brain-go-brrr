@@ -181,7 +181,10 @@ If you use this software in your research, please cite:
 ## Model Weights
 
 ### EEGPT Pretrained Model
-Download the pretrained EEGPT model from:
+- **Official Repository**: [github.com/BINE022/EEGPT](https://github.com/BINE022/EEGPT)
+- **Paper**: NeurIPS 2024 - Universal EEG Representation Learning
+
+Download the pretrained weights:
 - **Figshare**: [EEGPT Large Model](https://figshare.com/s/e37df4f8a907a866df4b)
   - Navigate to: `Files/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt`
   - Place in: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
