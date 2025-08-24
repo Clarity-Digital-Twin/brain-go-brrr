@@ -69,7 +69,7 @@ def get_eeg_picks(raw: MNERaw, exclude_bads: bool = True) -> list[int]:
     Returns:
         List of channel indices
     """
-    exclude = "bads" if exclude_bads else []
+    exclude: str | list[str] = "bads" if exclude_bads else []
     return pick_types(raw.info, meg=False, eeg=True, eog=False, exclude=exclude)
 
 
