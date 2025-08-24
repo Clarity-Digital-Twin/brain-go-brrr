@@ -31,8 +31,10 @@ class TestEEGPTConfigEdgeCases:
 
     def test_config_validation_raises_on_indivisible_samples(self):
         """Test config raises error when window_samples not divisible by patch_size."""
+        # 3.0 * 256 = 768, which is divisible by 64, so use different values
+        # 3.5 * 256 = 896, which is NOT divisible by 64 
         with pytest.raises(ValueError, match="must be divisible"):
-            EEGPTConfig(window_duration=3.0, sampling_rate=256, patch_size=64)
+            EEGPTConfig(window_duration=3.5, sampling_rate=256, patch_size=64)
 
 
 class TestEEGPTModelEdgeCases:
