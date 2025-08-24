@@ -30,11 +30,6 @@ class EEGPTConfig:
     device: str = "auto"
     batch_size: int = 32
 
-    # Legacy fields for test compatibility
-    model_size: str = "large"
-    embed_dim: int = 512
-    max_channels: int = 58
-
     @property
     def n_patches_per_window(self) -> int:
         """Compute number of patches per window for legacy compatibility."""
@@ -66,7 +61,6 @@ class EEGPTModel:
         device: str = "auto",
         config: dict[str, Any] | None = None,
         auto_load: bool = True,
-        compat_coerce: bool = False,  # Default to False for production
         **_kwargs: Any,
     ) -> None:
         """Initialize compatibility wrapper with old API signature.
@@ -76,9 +70,6 @@ class EEGPTModel:
             device: Device to use ('auto', 'cpu', 'cuda')
             config: Configuration dictionary
             auto_load: Whether to load model immediately
-            compat_coerce: If True, coerce outputs to match old API shapes.
-                          Default False for fail-fast behavior in production.
-                          Set True only for legacy test compatibility.
         """
         # Handle device
         if device == "auto":
@@ -94,7 +85,6 @@ class EEGPTModel:
         self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.is_loaded = False
         self.encoder: Any | None = None
-        self.compat_coerce = compat_coerce
 
         # Add missing attributes that tests expect
         # Handle both dict and object config
@@ -151,12 +141,10 @@ class EEGPTModel:
             Features array with shape:
             - summary=True: (B, 512) where B is batch size
             - summary=False: (B, 4, 512) for token-level features
-            - In compat_coerce mode with single sample: may return (4, 512) for legacy tests
 
         Raises:
-            ValueError: If features have unexpected shape and compat_coerce=False
+            ValueError: If features have unexpected shape
         """
-        import warnings
 
         if not self.is_loaded:
             self.load_model()
@@ -201,67 +189,18 @@ class EEGPTModel:
 
         if summary:
             # Expecting (B, 512) for summary mode
-            if features.shape == (expected_batch, 512):
-                pass  # Good shape
-            elif self.compat_coerce and features.shape == (expected_batch, 4, 512):
-                # Got tokens but requested summary - average them
-                warnings.warn(
-                    "Averaging token features to create summary. Use summary=False for tokens.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                features = features.mean(axis=1)
-            elif self.compat_coerce and features.shape == (expected_batch, 768):
-                # Legacy test encoder returns 768 features - accept in compat mode
-                warnings.warn(
-                    f"Accepting non-standard feature dimension {features.shape[1]} in compat mode. "
-                    "Standard EEGPT should return 512 features.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                pass  # Accept as-is for legacy tests
-            else:
+            if features.shape != (expected_batch, 512):
                 raise ValueError(
                     f"Unexpected summary shape {features.shape}. "
                     f"Expected ({expected_batch}, 512) for summary=True"
                 )
         else:
             # Expecting (B, 4, 512) for token mode
-            if features.shape == (expected_batch, 4, 512):
-                pass  # Good shape
-            elif self.compat_coerce and features.shape == (expected_batch, 2048):
-                # Packed tokens - reshape
-                warnings.warn(
-                    "Coercing packed tokens (B, 2048) to (B, 4, 512). "
-                    "This coercion will be removed in future versions.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                features = features.reshape(expected_batch, 4, 512)
-            elif self.compat_coerce and features.shape == (expected_batch, 512):
-                # Got summary but requested tokens - tile for compatibility
-                warnings.warn(
-                    "Tiling summary to create fake tokens. Use summary=True for summaries.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                features = np.tile(features[:, np.newaxis, :], (1, 4, 1))
-            else:
+            if features.shape != (expected_batch, 4, 512):
                 raise ValueError(
                     f"Unexpected token shape {features.shape}. "
                     f"Expected ({expected_batch}, 4, 512) for summary=False"
                 )
-
-        # Legacy single-sample handling ONLY in compat mode
-        if self.compat_coerce and single_sample and not summary and features.shape == (1, 4, 512):
-            # Old tests expect (4, 512) for single sample token mode
-            warnings.warn(
-                "Removing batch dimension for legacy single-sample compatibility. "
-                "This will be removed in future versions.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            features = features[0]  # Return (4, 512)
 
         return features.astype(np.float32)  # type: ignore[no-any-return]
 

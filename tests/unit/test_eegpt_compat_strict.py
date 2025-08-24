@@ -13,12 +13,12 @@ from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 
 class TestStrictShapeContracts:
-    """Test strict shape contracts with compat_coerce=False."""
+    """Test strict shape contracts (default behavior)."""
 
     def test_unexpected_shape_raises_without_coerce(self):
-        """Test that unexpected shapes raise ValueError when compat_coerce=False."""
-        # Create model with compat_coerce=False (default)
-        model = EEGPTModel(auto_load=False, compat_coerce=False)
+        """Test that unexpected shapes raise ValueError in strict mode."""
+        # Create model in strict mode (default)
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder that returns unexpected shape
@@ -36,37 +36,28 @@ class TestStrictShapeContracts:
         with pytest.raises(ValueError, match="Unexpected summary shape"):
             model.extract_features(data, summary=True)
 
-    def test_packed_tokens_with_coerce(self):
-        """Test that packed tokens (1, 2048) are coerced properly with warning."""
-        model = EEGPTModel(auto_load=False, compat_coerce=True)
+    def test_packed_tokens_raises_without_coerce(self):
+        """Test that packed tokens (1, 2048) raise error in strict mode."""
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder that returns packed tokens
         class PackedEncoder:
             def extract_features(self, x, summary=False):
-                # Return packed tokens (1, 2048)
+                # Return packed tokens (1, 2048) - wrong shape!
                 return torch.zeros(1, 2048)
 
         model.encoder = PackedEncoder()
 
         data = np.random.randn(19, 1024).astype(np.float32)
 
-        # Should coerce with deprecation warning
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            features = model.extract_features(data, summary=False)
-
-            # Check warning was raised
-            assert len(w) >= 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "Coercing packed tokens" in str(w[0].message)
-
-        # Check output shape (4, 512) for legacy single sample
-        assert features.shape == (4, 512)
+        # Should raise ValueError for unexpected shape
+        with pytest.raises(ValueError, match="Unexpected token shape"):
+            model.extract_features(data, summary=False)
 
     def test_summary_true_returns_batch_512(self):
         """Test that summary=True always returns (B, 512)."""
-        model = EEGPTModel(auto_load=False, compat_coerce=False)
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder that returns correct summary
@@ -92,7 +83,7 @@ class TestStrictShapeContracts:
 
     def test_summary_false_returns_batch_4_512(self):
         """Test that summary=False returns (B, 4, 512)."""
-        model = EEGPTModel(auto_load=False, compat_coerce=False)
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder
@@ -115,7 +106,7 @@ class TestStrictShapeContracts:
 
     def test_tiling_summary_raises_without_coerce(self):
         """Test that tiling summary to tokens raises without compat_coerce."""
-        model = EEGPTModel(auto_load=False, compat_coerce=False)
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder that returns summary when tokens requested
@@ -132,34 +123,21 @@ class TestStrictShapeContracts:
         with pytest.raises(ValueError, match="Unexpected token shape"):
             model.extract_features(data, summary=False)
 
-    def test_legacy_single_sample_with_coerce(self):
-        """Test legacy single sample returns (4, 512) only with compat_coerce."""
-        # With compat_coerce=True
-        model_compat = EEGPTModel(auto_load=False, compat_coerce=True)
-        model_compat.is_loaded = True
+    def test_single_sample_keeps_batch_dimension(self):
+        """Test that single samples always keep batch dimension in strict mode."""
+        model = EEGPTModel(auto_load=False)
+        model.is_loaded = True
 
         class TokenEncoder:
             def extract_features(self, x, summary=False):
                 return torch.zeros(x.shape[0], 4, 512)
 
-        model_compat.encoder = TokenEncoder()
+        model.encoder = TokenEncoder()
 
         data = np.random.randn(19, 1024).astype(np.float32)
 
-        # Should return (4, 512) for legacy compatibility
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            features = model_compat.extract_features(data, summary=False)
-            assert features.shape == (4, 512)
-            # Should have deprecation warning
-            assert any("legacy single-sample" in str(warning.message) for warning in w)
-
-        # Without compat_coerce - should keep batch
-        model_strict = EEGPTModel(auto_load=False, compat_coerce=False)
-        model_strict.is_loaded = True
-        model_strict.encoder = TokenEncoder()
-
-        features = model_strict.extract_features(data, summary=False)
+        # Should always keep batch dimension in strict mode
+        features = model.extract_features(data, summary=False)
         assert features.shape == (1, 4, 512)  # Keeps batch dimension
 
 

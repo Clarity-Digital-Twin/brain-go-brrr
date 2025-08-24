@@ -65,8 +65,7 @@ class TestEEGPTModel:
         from pathlib import Path
 
         # model_path is a separate parameter, not part of config
-        # Use compat_coerce=True for legacy test compatibility
-        model = EEGPTModel(checkpoint_path=Path("/tmp/nonexistent_model.ckpt"), auto_load=False, compat_coerce=True)
+        model = EEGPTModel(checkpoint_path=Path("/tmp/nonexistent_model.ckpt"), auto_load=False)
 
         # Mark as loaded to prevent loading attempt
         model.is_loaded = True
@@ -75,11 +74,14 @@ class TestEEGPTModel:
         class DummyEncoder:
             def __call__(self, *args, **kwargs):
                 # Return a fixed shape output
-                return torch.zeros(1, 768, dtype=torch.float32)  # Common embedding size
+                return torch.zeros(1, 512, dtype=torch.float32)  # Standard EEGPT embedding size
 
-            def extract_features(self, x):
+            def extract_features(self, x, summary=True):
                 # Return features with shape matching EEGPT output
-                return torch.zeros(x.shape[0], 768, dtype=torch.float32)
+                if summary:
+                    return torch.zeros(x.shape[0], 512, dtype=torch.float32)
+                else:
+                    return torch.zeros(x.shape[0], 4, 512, dtype=torch.float32)
 
             def prepare_chan_ids(self, channel_names):
                 return torch.arange(len(channel_names))

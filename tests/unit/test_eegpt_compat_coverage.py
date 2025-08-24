@@ -232,12 +232,12 @@ class TestCompatibilityFunctions:
         assert features.shape == (1, 512)
 
 
-class TestDeprecationWarnings:
-    """Test that deprecation warnings are raised correctly."""
+class TestStrictModeValidation:
+    """Test that strict mode properly validates shapes."""
 
-    def test_compat_coerce_warnings(self):
-        """Test that compat_coerce triggers deprecation warnings."""
-        model = EEGPTModel(auto_load=False, compat_coerce=True)
+    def test_wrong_summary_shape_raises(self):
+        """Test that wrong summary shape raises ValueError in strict mode."""
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
         # Mock encoder that returns wrong shape
@@ -246,32 +246,21 @@ class TestDeprecationWarnings:
 
         data = np.random.randn(20, 1024).astype(np.float32)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            features = model.extract_features(data, summary=True)
+        # Should raise ValueError for unexpected shape
+        with pytest.raises(ValueError, match="Unexpected summary shape"):
+            model.extract_features(data, summary=True)
 
-            # Should have triggered deprecation warning about 768 dimensions
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "non-standard feature dimension" in str(w[0].message)
-
-    def test_single_sample_batch_removal_warning(self):
-        """Test warning for single sample batch dimension removal."""
-        model = EEGPTModel(auto_load=False, compat_coerce=True)
+    def test_wrong_token_shape_raises(self):
+        """Test that wrong token shape raises ValueError in strict mode."""
+        model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 
-        # Mock encoder that returns (1, 4, 512)
+        # Mock encoder that returns wrong token shape
         model.encoder = MagicMock()
-        model.encoder.extract_features = MagicMock(return_value=torch.ones(1, 4, 512))
+        model.encoder.extract_features = MagicMock(return_value=torch.ones(1, 2048))
 
         data = np.random.randn(20, 1024).astype(np.float32)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            features = model.extract_features(data, summary=False)
-
-            # Should have triggered deprecation warning about batch removal
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "Removing batch dimension" in str(w[0].message)
-            assert features.shape == (4, 512)  # Batch removed in compat mode
+        # Should raise ValueError for unexpected shape
+        with pytest.raises(ValueError, match="Unexpected token shape"):
+            model.extract_features(data, summary=False)
