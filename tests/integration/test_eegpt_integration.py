@@ -159,12 +159,15 @@ class TestEEGPTModel:
         window = np.random.randn(19, 1024) * 50e-6  # (channels, samples) in V scale (50 µV)
         channel_names = [f"EEG{i:03d}" for i in range(19)]
 
-        # Extract features
-        features = eegpt_model.extract_features(window, channel_names)
+        # Extract features - get tokens explicitly
+        features = eegpt_model.extract_features(window, channel_names, summary=False)
 
-        # Check output shape - should be summary tokens
-        assert features.shape[0] == 4  # 4 summary tokens
-        assert features.shape[1] > 0  # Feature dimension
+        # Check output shape - should be (1, 4, 512) for tokens
+        assert features.shape == (1, 4, 512)  # Batch=1, 4 tokens, 512 dims
+        
+        # Also test summary mode
+        summary = eegpt_model.extract_features(window, channel_names, summary=True)
+        assert summary.shape == (1, 512)  # Batch=1, pooled 512 dims
 
     def test_abnormality_prediction(self, eegpt_model):
         """Test abnormality score prediction."""

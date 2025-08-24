@@ -208,14 +208,19 @@ class EEGPTModel:
         expected_batch = 1 if single_sample else data.shape[0]
 
         if summary:
-            # Expecting (B, 512) for summary mode
+            # For summary mode, we expect (B, 512) - pool tokens if needed
+            if features.ndim == 3 and features.shape[1:] == (4, 512):
+                # Got tokens (B, 4, 512), pool them to (B, 512)
+                features = features.mean(axis=1)
+            
+            # Now validate we have the correct summary shape
             if features.shape != (expected_batch, 512):
                 raise ValueError(
                     f"Unexpected summary shape {features.shape}. "
                     f"Expected ({expected_batch}, 512) for summary=True"
                 )
         else:
-            # Expecting (B, 4, 512) for token mode
+            # For token mode, we expect (B, 4, 512)
             if features.shape != (expected_batch, 4, 512):
                 raise ValueError(
                     f"Unexpected token shape {features.shape}. "
