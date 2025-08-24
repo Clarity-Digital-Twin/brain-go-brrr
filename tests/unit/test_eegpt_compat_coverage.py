@@ -161,12 +161,7 @@ class TestCompatibilityFunctions:
         raw = mne.io.RawArray(data, info)
 
         # Preprocess with resampling and filtering
-        processed = preprocess_for_eegpt(
-            raw,
-            sampling_rate=256,
-            bandpass=(1.0, 40.0),
-            notch=60.0
-        )
+        processed = preprocess_for_eegpt(raw, sampling_rate=256, bandpass=(1.0, 40.0), notch=60.0)
 
         assert processed.info["sfreq"] == 256
         assert isinstance(processed, mne.io.BaseRaw)
@@ -202,7 +197,9 @@ class TestCompatibilityFunctions:
         mock_model = MagicMock()
         mock_model.extract_features = MagicMock(return_value=np.zeros((1, 512), dtype=np.float32))
 
-        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel", return_value=mock_model):
+        with patch(
+            "brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel", return_value=mock_model
+        ):
             features = extract_features_from_raw(raw, model=None)
 
         assert features.dtype == np.float32
