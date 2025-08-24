@@ -305,6 +305,7 @@ def main():
         "--output_dir", type=str, default=None, help="Output directory (default: auto-generated)"
     )
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
+    parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
     args = parser.parse_args()
 
     # Load config
