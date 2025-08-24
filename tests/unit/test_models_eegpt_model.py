@@ -65,7 +65,8 @@ class TestEEGPTModel:
         from pathlib import Path
 
         # model_path is a separate parameter, not part of config
-        model = EEGPTModel(checkpoint_path=Path("/tmp/nonexistent_model.ckpt"), auto_load=False)
+        # Use compat_coerce=True for legacy test compatibility
+        model = EEGPTModel(checkpoint_path=Path("/tmp/nonexistent_model.ckpt"), auto_load=False, compat_coerce=True)
 
         # Mark as loaded to prevent loading attempt
         model.is_loaded = True
