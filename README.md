@@ -139,6 +139,55 @@ tmux attach -t tuab_training
 2. Follow [TESTING.md](docs/TESTING.md)
 3. All PRs require passing CI/CD
 
+## Citations
+
+If you use this software in your research, please cite:
+
+### EEGPT Model
+```bibtex
+@inproceedings{wang2024eegpt,
+  title={EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals},
+  author={Wang, Guangyu and He, Yuhong and Ma, Lin and Liu, Wenchao and Xu, Cong and Li, Haifeng},
+  booktitle={38th Conference on Neural Information Processing Systems (NeurIPS 2024)},
+  year={2024},
+  url={https://github.com/BINE022/EEGPT}
+}
+```
+
+### YASA Sleep Staging
+```bibtex
+@article{vallat2021yasa,
+  title={YASA: Yet Another Spindle Algorithm},
+  author={Vallat, Raphael and Walker, Matthew P},
+  journal={bioRxiv},
+  year={2021},
+  doi={10.1101/2021.05.28.446165}
+}
+```
+
+### Autoreject
+```bibtex
+@article{jas2017autoreject,
+  title={Autoreject: Automated artifact rejection for MEG and EEG data},
+  author={Jas, Mainak and Engemann, Denis A and Bekhti, Yousra and Raimondo, Federico and Gramfort, Alexandre},
+  journal={NeuroImage},
+  volume={159},
+  pages={417--429},
+  year={2017},
+  doi={10.1016/j.neuroimage.2017.06.030}
+}
+```
+
+## Model Weights
+
+### EEGPT Pretrained Model
+Download the pretrained EEGPT model from:
+- **Figshare**: [EEGPT Large Model](https://figshare.com/s/e37df4f8a907a866df4b)
+  - Navigate to: `Files/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt`
+  - Place in: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+  - Size: ~40MB
+  - Architecture: 10M parameters, 58 channels, 256Hz, 4s windows
+
 ## License
 
 Apache 2.0 - See [LICENSE](LICENSE)

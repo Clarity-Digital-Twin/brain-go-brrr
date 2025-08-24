@@ -40,8 +40,13 @@ uv sync
 # Create directories
 mkdir -p data/models/pretrained
 
-# Download checkpoint (58MB)
-# Place at: data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+# Download pretrained EEGPT model (~40MB):
+# 1. Go to: https://figshare.com/s/e37df4f8a907a866df4b
+# 2. Navigate to: Files/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt
+# 3. Download and save to: data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+
+# Verify download
+ls -lh data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
 ```
 
 ## Running the API

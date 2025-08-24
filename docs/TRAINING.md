@@ -6,21 +6,53 @@ This guide covers training linear probes on frozen EEGPT features for EEG classi
 
 ## Prerequisites
 
-1. **EEGPT Checkpoint**: Download the pretrained model
-   ```bash
-   # Place at: data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
-   ```
+### 1. Download EEGPT Pretrained Weights
 
-2. **Datasets**: Prepare TUAB/TUEV datasets
-   ```bash
-   # TUAB: data/datasets/tuab/
-   # TUEV: data/datasets/tuev/
-   ```
+**Official EEGPT Model** (Required):
+- **Download from**: [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
+- **File path**: `Files/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt`
+- **Place at**: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+- **Size**: ~40MB
+- **Architecture**: 10M parameters, Vision Transformer
+- **Training**: 58 channels, 256Hz, 4s windows
 
-3. **Environment**: Python 3.11 with PyTorch
-   ```bash
-   uv sync  # Install dependencies
-   ```
+```bash
+# Create directory and download
+mkdir -p data/models/pretrained
+# Download manually from Figshare link above
+# Or use wget if you have direct link
+```
+
+### 2. Obtain EEG Datasets
+
+#### TUAB Dataset (Abnormality Detection)
+- **Source**: [Temple University Hospital EEG Corpus](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/)
+- **Dataset**: TUH Abnormal EEG Corpus v2.0.0
+- **Request access**: Follow instructions on website
+- **Place at**: `data/datasets/tuab/`
+- **Size**: ~120GB compressed
+
+#### TUEV Dataset (Event Detection)
+- **Source**: [Temple University Hospital EEG Corpus](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/)
+- **Dataset**: TUH EEG Events v2.0.0
+- **Request access**: Academic agreement required
+- **Place at**: `data/datasets/tuev/`
+- **Size**: ~60GB compressed
+
+#### Sleep-EDF Dataset (Sleep Staging - Optional)
+- **Source**: [PhysioNet Sleep-EDF](https://physionet.org/content/sleep-edfx/1.0.0/)
+- **Already downloaded**: Located at `data/datasets/external/sleep-edf/`
+- **Size**: 197 PSG recordings
+
+### 3. Environment Setup
+
+```bash
+# Install dependencies with uv
+uv sync
+
+# Verify PyTorch and CUDA
+uv run python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}')"
+```
 
 ## TUAB Training (Abnormality Detection)
 
