@@ -110,3 +110,15 @@ forbidden_modules =
     brain_go_brrr.infra
     brain_go_brrr.application
     brain_go_brrr.api
+
+# Contract 10: ML MODELS PURITY
+[importlinter:contract:ml_models_clean]
+name = ML models cannot import tests or deprecated code
+type = forbidden
+source_modules =
+    brain_go_brrr.infra.ml_models
+forbidden_modules =
+    tests
+    brain_go_brrr.models
+    brain_go_brrr.preprocessing
+    brain_go_brrr.config

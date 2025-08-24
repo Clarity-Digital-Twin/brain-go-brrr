@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2025-08-24)
+- **BREAKING**: Removed `compat_coerce` parameter from `EEGPTModel` - strict shape validation only
+  - Migration: Remove `compat_coerce=True` from all calls
+  - `extract_features(..., summary=True)` now strictly returns `(B, 512)`
+  - `extract_features(..., summary=False)` now strictly returns `(B, 4, 512)`
+  - Any shape mismatch raises `ValueError` immediately (fail-fast)
+  - Example error: "Unexpected summary shape (1, 768). Expected (1, 512)"
+
 ### Changed (2025-08-19)
 - **BREAKING**: Removed deprecated `brain_go_brrr.infra.ml_models.eegpt_model` module
   - Migration: Use `brain_go_brrr.infra.ml_models.eegpt_compat` for compatibility

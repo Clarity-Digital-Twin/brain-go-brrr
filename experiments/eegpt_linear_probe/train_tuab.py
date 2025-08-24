@@ -130,7 +130,7 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0):
+def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None):
     """Train for one epoch."""
     model.eval()  # Backbone stays frozen
     probe.train()
@@ -144,67 +144,99 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
     pbar = tqdm(train_loader, desc="Training")
     for batch_idx, (data, labels) in enumerate(pbar):
-        data = data.to(device)
-        labels = labels.to(device)
-        batch_size = data.size(0)
+        try:
+            data = data.to(device)
+            labels = labels.to(device)
+            batch_size = data.size(0)
 
-        # Forward through frozen backbone with temporal features using micro-batching
-        with torch.no_grad():
-            # Process in smaller chunks to reduce memory pressure
-            features_list = []
-            for i in range(0, batch_size, micro_batch_size):
-                end_idx = min(i + micro_batch_size, batch_size)
-                micro_batch = data[i:end_idx]
-                micro_features = model.extract_features(micro_batch, return_all_temporal=True)
-                features_list.append(micro_features)
+            # Forward through frozen backbone with temporal features using micro-batching
+            with torch.no_grad():
+                # Process in smaller chunks to reduce memory pressure
+                features_list = []
+                for i in range(0, batch_size, micro_batch_size):
+                    end_idx = min(i + micro_batch_size, batch_size)
+                    micro_batch = data[i:end_idx]
+                    micro_features = model.extract_features(micro_batch, return_all_temporal=True)
+                    features_list.append(micro_features)
 
-            # Concatenate all micro-batch features
-            features = torch.cat(features_list, dim=0)
+                # Concatenate all micro-batch features
+                features = torch.cat(features_list, dim=0)
 
-            # Verify patch count matches expected
-            n_patches = features.shape[1]
-            expected_patches = data.shape[-1] // 64
-            assert n_patches == expected_patches, f"Patch count mismatch: got {n_patches}, expected {expected_patches} from {data.shape[-1]} samples"
-            # Log shape on first batch for verification
-            if batch_idx == 0 and epoch == 0:
-                logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
-                logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
+                # Verify patch count matches expected
+                n_patches = features.shape[1]
+                expected_patches = data.shape[-1] // 64
+                assert n_patches == expected_patches, f"Patch count mismatch: got {n_patches}, expected {expected_patches} from {data.shape[-1]} samples"
+                # Log shape on first batch for verification
+                if batch_idx == 0 and epoch == 0:
+                    logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+                    logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
 
-        # Forward through probe
-        logits = probe(features)
+            # Forward through probe
+            logits = probe(features)
 
-        # Compute loss
-        if config["training"].get("weighted_loss", False):
-            # Compute class weights robustly even if a batch has a single class
-            n_classes = logits.size(1)
-            class_counts = torch.bincount(labels, minlength=n_classes)
-            class_weights = 1.0 / (class_counts.float() + 1e-5)
-            class_weights = class_weights / class_weights.sum()
-            loss = F.cross_entropy(logits, labels, weight=class_weights.to(logits.device))
-        else:
-            loss = F.cross_entropy(logits, labels)
+            # Compute loss
+            if config["training"].get("weighted_loss", False):
+                # Compute class weights robustly even if a batch has a single class
+                n_classes = logits.size(1)
+                class_counts = torch.bincount(labels, minlength=n_classes)
+                class_weights = 1.0 / (class_counts.float() + 1e-5)
+                class_weights = class_weights / class_weights.sum()
+                loss = F.cross_entropy(logits, labels, weight=class_weights.to(logits.device))
+            else:
+                loss = F.cross_entropy(logits, labels)
 
-        # Backward
-        optimizer.zero_grad()
-        loss.backward()
+            # Backward
+            optimizer.zero_grad()
+            loss.backward()
 
-        # Gradient clipping
-        if config["training"]["gradient_clip_val"] > 0:
-            torch.nn.utils.clip_grad_norm_(
-                probe.parameters(), config["training"]["gradient_clip_val"]
-            )
+            # Gradient clipping
+            if config["training"]["gradient_clip_val"] > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    probe.parameters(), config["training"]["gradient_clip_val"]
+                )
 
-        optimizer.step()
-        scheduler.step()
+            optimizer.step()
+            scheduler.step()
 
-        # Track metrics
-        losses.append(loss.item())
-        preds = torch.softmax(logits, dim=1)[:, 1].detach().cpu().numpy()
-        all_preds.extend(preds)
-        all_labels.extend(labels.cpu().numpy())
+            # Track metrics
+            losses.append(loss.item())
+            preds = torch.softmax(logits, dim=1)[:, 1].detach().cpu().numpy()
+            all_preds.extend(preds)
+            all_labels.extend(labels.cpu().numpy())
 
-        # Update progress bar
-        pbar.set_postfix({"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"})
+            # Update progress bar
+            pbar.set_postfix({"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"})
+
+            # Periodic memory cleanup and checkpointing
+            if batch_idx % 100 == 0 and batch_idx > 0:
+                torch.cuda.empty_cache()
+                logger.info(f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache")
+
+            # Save checkpoint every 500 batches for crash recovery
+            if batch_idx % 500 == 0 and batch_idx > 0:
+                checkpoint_path = output_dir / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
+                torch.save({
+                    'epoch': epoch,
+                    'batch_idx': batch_idx,
+                    'probe_state_dict': probe.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'loss': loss.item(),
+                }, checkpoint_path)
+                logger.info(f"Saved checkpoint at batch {batch_idx}")
+
+        except RuntimeError as e:
+            if "out of memory" in str(e):
+                logger.error(f"OOM at batch {batch_idx}, epoch {epoch}")
+                torch.cuda.empty_cache()
+                continue
+            else:
+                logger.error(f"Runtime error at batch {batch_idx}: {e}")
+                raise
+        except Exception as e:
+            logger.error(f"Unexpected error at batch {batch_idx}: {e}")
+            logger.error(f"Data shape: {data.shape if 'data' in locals() else 'N/A'}")
+            raise
 
     # Compute epoch metrics
     auroc = roc_auc_score(all_labels, all_preds)
@@ -412,7 +444,7 @@ def main():
 
         # Train
         train_metrics = train_epoch(
-            backbone, probe, train_loader, optimizer, scheduler, device, config, epoch
+            backbone, probe, train_loader, optimizer, scheduler, device, config, epoch, output_dir
         )
         logger.info(
             f"Train - Loss: {train_metrics['loss']:.4f}, "
