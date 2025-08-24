@@ -37,11 +37,19 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
        ├──────────────┐                 │
        │              │                 ▼
        ▼              ▼           Sleep Metrics
-┌──────────────┐  ┌──────────────┐  & Hypnogram
-│ Abnormality  │  │ Sleep Probe  │
-│ Detection    │  │ (EEGPT-based)│
-│ Status: 🟡   │  │ Status: 🔬   │
-└──────────────┘  └──────────────┘
+┌──────────────┐                 & Hypnogram
+│ Abnormality  │
+│ Detection    │
+│ Status: 🟡   │
+└──────┬───────┘
+   [IF ABNORMAL]
+        │
+        ▼
+┌────────────────────────┐
+│    Event Detection     │
+│ (TUEV: IED/Seizure)    │
+│   Status: 🟡 TODO      │
+└────────────────────────┘
 
 IMPORTANT: EEGPT and YASA are PARALLEL pathways, not sequential.
 - YASA works with ANY channel count (1-100+), not just 2
