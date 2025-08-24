@@ -75,7 +75,7 @@ class TestEEGPTSummaryTokens:
 
         # Extract features - explicitly get tokens
         features = eegpt_model.extract_features(data, channel_names, summary=False)
-        
+
         # Extract the tokens from batch dimension
         tokens = features[0]  # Shape: (4, 512)
 

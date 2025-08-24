@@ -82,7 +82,7 @@ class TestEEGPTModelLoading:
         assert features is not None
         assert features.shape == (1, 512)  # Pooled summary (batch=1)
         assert model.is_loaded is True
-        
+
         # Also test token mode
         tokens = model.extract_features(data, channel_names, summary=False)
         assert tokens.shape == (1, 4, 512)  # Batch=1, 4 tokens, 512 dims
@@ -102,7 +102,7 @@ class TestEEGPTModelLoading:
 
         # Then: Features should have the correct shape (summary mode by default)
         assert features.shape == (1, 512)  # Pooled summary (batch=1)
-        
+
         # Also test token mode
         tokens = model.extract_features(data, channel_names, summary=False)
         assert tokens.shape == (1, 4, 512)  # Batch=1, 4 tokens, 512 dims
