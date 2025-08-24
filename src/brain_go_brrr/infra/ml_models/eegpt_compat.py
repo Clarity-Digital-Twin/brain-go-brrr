@@ -179,7 +179,14 @@ class EEGPTModel:
         # Extract features using new API
         with torch.no_grad():
             if self.encoder is not None and hasattr(self.encoder, 'extract_features'):
-                features = self.encoder.extract_features(data_tensor, summary=summary)
+                # Try to pass summary parameter if the encoder accepts it
+                import inspect
+                sig = inspect.signature(self.encoder.extract_features)
+                if 'summary' in sig.parameters:
+                    features = self.encoder.extract_features(data_tensor, summary=summary)
+                else:
+                    # Old-style encoder without summary parameter
+                    features = self.encoder.extract_features(data_tensor)
             elif self.encoder is not None:
                 features = self.encoder(data_tensor)
             else:
