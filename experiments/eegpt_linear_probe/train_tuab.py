@@ -156,19 +156,15 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                 for i in range(0, batch_size, micro_batch_size):
                     end_idx = min(i + micro_batch_size, batch_size)
                     micro_batch = data[i:end_idx]
-                    micro_features = model.extract_features(micro_batch, return_all_temporal=True)
+                    micro_features = model.extract_features(micro_batch)
                     features_list.append(micro_features)
 
                 # Concatenate all micro-batch features
                 features = torch.cat(features_list, dim=0)
 
-                # Verify patch count matches expected
-                n_patches = features.shape[1]
-                expected_patches = data.shape[-1] // 64
-                assert n_patches == expected_patches, f"Patch count mismatch: got {n_patches}, expected {expected_patches} from {data.shape[-1]} samples"
                 # Log shape on first batch for verification
                 if batch_idx == 0 and epoch == 0:
-                    logger.info(f"EEGPT features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+                    logger.info(f"EEGPT features shape: {features.shape}")
                     logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
 
             # Forward through probe
@@ -268,7 +264,7 @@ def validate(model, probe, val_loader, device):
             for i in range(0, batch_size, micro_batch_size):
                 end_idx = min(i + micro_batch_size, batch_size)
                 micro_batch = data[i:end_idx]
-                micro_features = model.extract_features(micro_batch, return_all_temporal=True)
+                micro_features = model.extract_features(micro_batch)
                 features_list.append(micro_features)
 
             # Concatenate all micro-batch features
