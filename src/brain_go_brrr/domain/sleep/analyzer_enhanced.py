@@ -150,13 +150,13 @@ class EnhancedSleepAnalyzer:
         # Track performance metrics
         self.stages_processed = 0
         self.success_rate = 1.0
-    
+
     def supports(self, raw: MNERaw) -> bool:
         """Check if this analyzer supports the given EEG data.
-        
+
         Args:
             raw: MNE Raw object with EEG data
-            
+
         Returns:
             True if data meets requirements for sleep analysis
         """
@@ -165,19 +165,19 @@ class EnhancedSleepAnalyzer:
         if len(eeg_channels) == 0:
             logger.debug("No EEG channels found")
             return False
-        
+
         # Check sampling rate (YASA works best with 100-500 Hz)
         sfreq = raw.info['sfreq']
         if sfreq < 50 or sfreq > 1000:
             logger.debug(f"Sampling rate {sfreq} Hz out of optimal range")
             return False
-        
+
         # Check duration (need at least 30 seconds for one epoch)
         duration = len(raw.times) / sfreq
         if duration < 30:
             logger.debug(f"Duration {duration:.1f}s too short for sleep analysis")
             return False
-        
+
         return True
 
     def _validate_yasa_installation(self) -> None:

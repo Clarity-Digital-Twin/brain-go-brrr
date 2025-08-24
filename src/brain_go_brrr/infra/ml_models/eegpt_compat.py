@@ -66,18 +66,19 @@ class EEGPTModel:
         device: str = "auto",
         config: dict[str, Any] | None = None,
         auto_load: bool = True,
-        compat_coerce: bool = True,
+        compat_coerce: bool = False,  # Default to False for production
         **_kwargs: Any,
     ) -> None:
         """Initialize compatibility wrapper with old API signature.
-        
+
         Args:
             checkpoint_path: Path to model checkpoint
             device: Device to use ('auto', 'cpu', 'cuda')
             config: Configuration dictionary
             auto_load: Whether to load model immediately
             compat_coerce: If True, coerce outputs to match old API shapes.
-                          Set False to get raw model outputs.
+                          Default False for fail-fast behavior in production.
+                          Set True only for legacy test compatibility.
         """
         # Handle device
         if device == "auto":
@@ -137,10 +138,31 @@ class EEGPTModel:
         self,
         data: npt.NDArray[np.float64],
         channel_names: list[str] | None = None,  # noqa: ARG002  # Not used but kept for compatibility
+        summary: bool = True,
     ) -> npt.NDArray[np.float64]:
-        """Extract features with old API signature."""
+        """Extract features with explicit shape contract.
+
+        Args:
+            data: EEG data array (channels, samples) or (batch, channels, samples)
+            channel_names: Channel names (kept for API compatibility)
+            summary: If True, return averaged summary (B, 512). If False, return tokens (B, 4, 512).
+
+        Returns:
+            Features array with shape:
+            - summary=True: (B, 512) where B is batch size
+            - summary=False: (B, 4, 512) for token-level features
+            - In compat_coerce mode with single sample: may return (4, 512) for legacy tests
+
+        Raises:
+            ValueError: If features have unexpected shape and compat_coerce=False
+        """
+        import warnings
+
         if not self.is_loaded:
             self.load_model()
+
+        # Track input shape for later
+        single_sample = data.ndim == 2
 
         # Convert numpy to tensor
         if isinstance(data, np.ndarray):
@@ -157,75 +179,75 @@ class EEGPTModel:
         # Extract features using new API
         with torch.no_grad():
             if self.encoder is not None and hasattr(self.encoder, 'extract_features'):
-                features = self.encoder.extract_features(data_tensor)
+                features = self.encoder.extract_features(data_tensor, summary=summary)
             elif self.encoder is not None:
                 features = self.encoder(data_tensor)
             else:
-                # Fallback if encoder is None (shouldn't happen after load_model)
-                features = torch.zeros((data_tensor.shape[0], 768))
+                raise RuntimeError("Model encoder not loaded properly")
 
-        # Convert back to numpy with shape compatibility
+        # Convert back to numpy
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()
 
-        # Apply compatibility coercion if enabled
-        if self.compat_coerce:
-            # Handle summary tokens for single sample input
-            if data.ndim == 2:  # Single sample (channels, samples)
-                # The model should return (1, 4, 512) for a single sample
-                # We need to return (4, 512) for compatibility
-                if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
-                    # Perfect! Got (1, 4, 512), just remove batch dimension
-                    features = features[0]  # Now (4, 512)
-                elif features.ndim == 2 and features.shape[0] == 1:
-                    # Got (1, D) where D might be 4*512=2048
-                    if features.shape[1] == 2048:
-                        # Reshape to (4, 512)
-                        features = features.reshape(4, 512)
-                    elif features.shape[1] == 512:
-                        # Got (1, 512) - the averaged summary tokens
-                        # Repeat to get (4, 512) for compatibility
-                        features = np.tile(features, (4, 1))  # Now (4, 512)
-                    else:
-                        # Unexpected shape, log warning but keep the features
-                        import logging
+        # Validate shape based on summary mode
+        expected_batch = 1 if single_sample else data.shape[0]
 
-                        logging.warning(
-                            f"Unexpected feature shape {features.shape}, expected (1, 4, 512) or (1, 512)"
-                        )
-                        # For (1, 768) or similar, create a compatible 2D output
-                        if features.shape[0] == 1 and features.ndim == 2:
-                            # Single batch, unknown feature dim - keep as 2D but reshape to (4, D/4)
-                            feat_dim = features.shape[1]
-                            if feat_dim % 4 == 0:
-                                # Can reshape to (4, D/4)
-                                features = features.reshape(4, feat_dim // 4)
-                            else:
-                                # Can't evenly divide, just remove batch dim
-                                features = features[0]
-                        else:
-                            # Unknown shape, remove batch if present
-                            if features.ndim > 1:
-                                features = features[0]
-                elif features.ndim == 2 and features.shape == (4, 512):
-                    # Already correct shape
-                    pass
-                else:
-                    # Unexpected shape, log and create placeholder
-                    import logging
-
-                    logging.warning(f"Unexpected feature shape {features.shape} for single sample")
-                    features = np.zeros((4, 512), dtype=np.float32)
+        if summary:
+            # Expecting (B, 512) for summary mode
+            if features.shape == (expected_batch, 512):
+                pass  # Good shape
+            elif self.compat_coerce and features.shape == (expected_batch, 4, 512):
+                # Got tokens but requested summary - average them
+                warnings.warn(
+                    "Averaging token features to create summary. Use summary=False for tokens.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                features = features.mean(axis=1)
             else:
-                # Batch mode - keep existing behavior
-                if features.ndim == 1:
-                    features = features.reshape(1, -1)
-                elif features.ndim == 3:
-                    # If 3D (batch, seq, features), average across sequence
-                    features = features.mean(axis=1)
-        # else: return raw features without coercion
+                raise ValueError(
+                    f"Unexpected summary shape {features.shape}. "
+                    f"Expected ({expected_batch}, 512) for summary=True"
+                )
+        else:
+            # Expecting (B, 4, 512) for token mode
+            if features.shape == (expected_batch, 4, 512):
+                pass  # Good shape
+            elif self.compat_coerce and features.shape == (expected_batch, 2048):
+                # Packed tokens - reshape
+                warnings.warn(
+                    "Coercing packed tokens (B, 2048) to (B, 4, 512). "
+                    "This coercion will be removed in future versions.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                features = features.reshape(expected_batch, 4, 512)
+            elif self.compat_coerce and features.shape == (expected_batch, 512):
+                # Got summary but requested tokens - tile for compatibility
+                warnings.warn(
+                    "Tiling summary to create fake tokens. Use summary=True for summaries.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                features = np.tile(features[:, np.newaxis, :], (1, 4, 1))
+            else:
+                raise ValueError(
+                    f"Unexpected token shape {features.shape}. "
+                    f"Expected ({expected_batch}, 4, 512) for summary=False"
+                )
 
-        # Don't squeeze batch dimension - tests expect 2D
+        # Legacy single-sample handling ONLY in compat mode
+        if self.compat_coerce and single_sample and not summary:
+            # Old tests expect (4, 512) for single sample token mode
+            if features.shape == (1, 4, 512):
+                warnings.warn(
+                    "Removing batch dimension for legacy single-sample compatibility. "
+                    "This will be removed in future versions.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                features = features[0]  # Return (4, 512)
+
         return features.astype(np.float32)  # type: ignore[no-any-return]
 
     def extract_windows(
