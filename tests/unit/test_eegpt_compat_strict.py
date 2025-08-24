@@ -93,7 +93,7 @@ class TestStrictShapeContracts:
 
         model.encoder = GoodEncoder()
 
-        # Test single sample - should keep batch dim without compat_coerce
+        # Test single sample - should always keep batch dimension in strict mode
         data_single = np.random.randn(19, 1024).astype(np.float32)
         features = model.extract_features(data_single, summary=False)
         assert features.shape == (1, 4, 512)
@@ -104,7 +104,7 @@ class TestStrictShapeContracts:
         assert features.shape == (3, 4, 512)
 
     def test_tiling_summary_raises_without_coerce(self):
-        """Test that tiling summary to tokens raises without compat_coerce."""
+        """Test that returning summary shape when tokens requested raises error."""
         model = EEGPTModel(auto_load=False)
         model.is_loaded = True
 

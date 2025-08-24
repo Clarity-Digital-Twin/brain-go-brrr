@@ -1,7 +1,7 @@
 # Brain Go Brrr - Modern Python ML Project Makefile
 # 2025 Best Practices with uv, ruff, and modern tooling
 
-.PHONY: help install dev-install test test-fast test-cov lint format type-check quality check pre-commit clean build docs serve-docs train preprocess evaluate serve notebook mlflow dvc-setup docker-build docker-run benchmark profile
+.PHONY: help install dev-install test test-fast test-cov lint format type-check typecheck quality check pre-commit clean build docs serve-docs train preprocess evaluate serve notebook mlflow dvc-setup docker-build docker-run benchmark profile
 
 # Colors for output
 RED := \033[0;31m
@@ -129,6 +129,9 @@ type-check: ## Run full strict type checking (CI/pre-commit)
 	@rm -rf .mypy_cache_strict 2>/dev/null || true
 	$(MYPY) --config-file mypy.ini src/brain_go_brrr
 	@echo "$(GREEN)Type checking complete!$(NC)"
+
+# Alias for consistency
+typecheck: type-check
 
 type-fast: ## Fast type checking for development (no hangs)
 	@echo "$(CYAN)Running fast type checks...$(NC)"
