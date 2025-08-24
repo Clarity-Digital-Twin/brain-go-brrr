@@ -1,5 +1,0 @@
-
-=========================== short test summary info ============================
-ERROR tests/unit/test_enhanced_abnormality.py - OSError: [Errno 12] Cannot al...
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-83 deselected, 1 error in 56.22s
