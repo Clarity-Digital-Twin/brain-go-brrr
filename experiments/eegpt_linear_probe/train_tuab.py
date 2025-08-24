@@ -69,7 +69,7 @@ class LinearProbe(nn.Module):
         # EEGPT outputs 4 summary tokens of 512 dims each
         # Correct approach: flatten to 4 * 512 = 2,048 features
         batch_size = features.shape[0]
-        
+
         # Handle both (B, 4, 512) and (B, 512) shapes
         if features.ndim == 3:
             # (B, 4, 512) -> flatten to (B, 2048)
@@ -78,7 +78,7 @@ class LinearProbe(nn.Module):
             # (B, 512) - this is wrong, but handle gracefully
             logger.warning(f"Got averaged features {features.shape}, expected (B, 4, 512)")
             x = features
-            
+
         return self.probe(x)
 
 
@@ -283,10 +283,11 @@ def validate(model, probe, val_loader, device):
             # Concatenate all micro-batch features
             features = torch.cat(features_list, dim=0)
 
-            # Verify patch count
-            n_patches = features.shape[1]
-            expected_patches = data.shape[-1] // 64
-            assert n_patches == expected_patches, f"Val patch mismatch: {n_patches} != {expected_patches}"
+            # Sanity check: summary tokens shape
+            if features.dim() == 3:
+                assert (
+                    features.shape[1] == 4 and features.shape[2] == 512
+                ), f"Expected (B, 4, 512) summary tokens, got {features.shape}"
             # Log shape on first validation batch
             if batch_idx == 0:
                 logger.debug(f"Val features shape: {features.shape}")
@@ -453,7 +454,7 @@ def main():
         logger.info(f"Resumed from epoch {start_epoch}, will continue from epoch {start_epoch + 1}")
     else:
         best_val_auroc = 0
-    
+
     # Training loop
     patience_counter = 0
 

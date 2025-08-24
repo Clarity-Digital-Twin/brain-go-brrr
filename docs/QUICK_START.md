@@ -75,7 +75,7 @@ Brain-Go-Brrr has two PARALLEL processing pathways:
    - Optimized for overnight PSG recordings
 
 2. **EEGPT Pathway** (requires 19+ channels for clinical use)
-   - Extract 512-dim embeddings
+   - Extract 4×512 summary tokens (2,048 flattened)
    - Feed to task-specific linear probes
    - Provides richer features but needs more channels
 

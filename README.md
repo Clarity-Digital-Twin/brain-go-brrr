@@ -34,7 +34,7 @@ uv run pytest tests/unit -q
 ### ✅ Working
 - **Sleep Analysis** - 5-stage classification with 87% accuracy (YASA)
 - **Quality Control** - Bad channel detection, artifact rejection (Autoreject)
-- **EEGPT Features** - 512-dimensional embeddings from frozen backbone
+- **EEGPT Features** - 2,048-dim flattened features (4×512 summary tokens)
 - **REST API** - FastAPI with Redis caching
 - **CI/CD** - GitHub Actions on all branches
 
@@ -62,11 +62,12 @@ uv run pytest tests/unit -q
           │                               │
           ▼                               ▼
     EEGPT Features               Channel Selection
-    (512-dim embeddings)         (Picks best central)
+    (4×512 summary tokens →      (Picks best central)
+     2,048 flattened)
           │                               │
     ┌─────┴─────┐                         ▼
     │           │                   Sleep Staging
-Abnormality  Sleep Probe            (5 stages: W,N1,N2,N3,REM)
+Abnormality  Sleep Probe*           (5 stages: W,N1,N2,N3,REM)
 Detection    (Linear probe)              │
                                          ▼
                                     Sleep Metrics
@@ -78,7 +79,8 @@ Detection    (Linear probe)              │
 - **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement
 - **Both pipelines run in PARALLEL** and can process the same data
 - **EEGPT requires 19+ channels** for meaningful clinical results
-- **YASA achieves 85%+ accuracy** with just 1 central EEG channel
+- **YASA achieves 87% accuracy** with just 1 central EEG channel
+- ***Sleep Probe**: EEGPT CAN do sleep staging (69% accuracy per paper) but YASA is better (87%)
 
 Clean Architecture with dependency injection and adapter pattern for third-party libraries.
 

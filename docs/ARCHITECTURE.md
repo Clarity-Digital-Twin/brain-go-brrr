@@ -29,7 +29,8 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
         ▼                               ▼
 ┌──────────────────────┐    ┌──────────────────────┐
 │  EEGPT Features      │    │   YASA Sleep Staging │
-│  512-dim embeddings  │    │  85%+ accuracy w/ 1ch│
+│  4×512 summary toks  │    │  85%+ accuracy w/ 1ch│
+│  → 2,048 flattened   │    │                      │
 │  Status: ✅ WORKING  │    │   Status: ✅ WORKING │
 └──────┬───────────────┘    └──────────────────────┘
        │                                │

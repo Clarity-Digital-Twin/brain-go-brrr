@@ -15,7 +15,7 @@
 ### ✅ Working Components
 - **YASA Sleep Analysis** - 5-stage classification, 87% accuracy
 - **Autoreject QC** - Bad channel detection, artifact rejection
-- **EEGPT Features** - 512-dim embeddings extraction
+- **EEGPT Features** - 2,048-dim flattened features (4×512 summary tokens)
 - **FastAPI Server** - REST API with Redis caching
 - **CI/CD Pipeline** - GitHub Actions on all branches
 
@@ -54,7 +54,8 @@
           │                               │
           ▼                               ▼
     EEGPT Features                 Sleep Staging
-    (512-dim embeddings)           (85%+ accuracy with 1 ch)
+    (4×512 summary tokens →        (85%+ accuracy with 1 ch)
+     2,048 flattened)
           │                               │
     ┌─────┴─────┐                         ▼
     │           │                    Sleep Metrics

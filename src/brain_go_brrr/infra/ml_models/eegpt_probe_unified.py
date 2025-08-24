@@ -187,16 +187,20 @@ class EEGPTProbe(nn.Module):
 
         # Handle different feature shapes
         if return_all_temporal:
-            # Features shape: (B, N_temporal, 4, 512)
-            # Flatten all temporal and summary features
+            # Deprecated for production: do NOT use all temporal patches for probes.
+            # If explicitly requested, flatten everything for backward compatibility.
+            # Expected features: (B, N_temporal, 4, 512)
             batch_size = features.shape[0]
             features = features.reshape(batch_size, -1)
         else:
-            # Features shape: (B, 4, 512) or (B, embed_dim)
-            if features.dim() == 3:
-                # Average over summary tokens if needed
-                features = features.mean(dim=1)
-            elif features.dim() != 2:
+            # Preferred production path: use summary tokens only.
+            # Expected features: (B, 4, 512) → flatten to (B, 2048)
+            if features.dim() == 3 and features.shape[1] == 4 and features.shape[2] == 512:
+                features = features.reshape(features.size(0), -1)
+            elif features.dim() == 2:
+                # Already flattened (e.g., 2048) or averaged (512). Pass through.
+                pass
+            else:
                 raise ValueError(f"Unexpected feature shape: {features.shape}")
 
         # Robust mode: check features

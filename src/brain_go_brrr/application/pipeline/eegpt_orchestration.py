@@ -95,15 +95,15 @@ def predict_abnormality_with_eegpt(
             mini_batch = batch[i : i + 32]
 
             if probe:
-                # Use trained probe
-                logits = probe(mini_batch, return_all_temporal=True)
+                # Use trained probe with summary-token features (flattened to 2,048 internally)
+                logits = probe(mini_batch, return_all_temporal=False)
                 probs = torch.softmax(logits, dim=-1)
                 abnormal_prob = probs[:, 1]  # Abnormal class probability
             else:
                 # Use features directly (no trained probe)
-                features = model.extract_features(mini_batch, summary=False)
-                # Simple heuristic: use mean activation as abnormality score
-                abnormal_prob = features.mean(dim=(1, 2, 3))
+                features = model.extract_features(mini_batch, summary=False)  # (B, 4, 512)
+                # Simple heuristic: mean across summary tokens and embedding dims
+                abnormal_prob = features.mean(dim=(1, 2))
                 abnormal_prob = torch.sigmoid(abnormal_prob)  # Convert to probability
 
             predictions.extend((abnormal_prob > 0.5).cpu().numpy())

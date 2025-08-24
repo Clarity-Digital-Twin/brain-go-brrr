@@ -57,7 +57,7 @@ class TUEVLinearProbe(nn.Module):
         4. BatchNorm + GELU
         5. Dropout(0.5)
         6. EEGPT encoder (frozen)
-        7. Linear: 15×4×512 → 6 classes
+        7. Linear: 4×512 (flattened to 2,048) → 6 classes
         """
         super().__init__()
 
@@ -190,12 +190,12 @@ def train_epoch(
                 'loss': f"{loss.item():.4f}",
                 'acc': f"{(preds == labels).float().mean():.3f}"
             })
-            
+
             # Periodic memory cleanup (every 100 batches)
             if batch_idx % 100 == 0 and batch_idx > 0:
                 torch.cuda.empty_cache()
                 logger.info(f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache")
-            
+
             # Save checkpoint every 500 batches for crash recovery
             if batch_idx % 500 == 0 and batch_idx > 0:
                 checkpoint_path = Path(args.output_dir) / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
@@ -207,7 +207,7 @@ def train_epoch(
                     'loss': loss.item(),
                 }, checkpoint_path)
                 logger.info(f"Saved checkpoint at batch {batch_idx}")
-                
+
         except RuntimeError as e:
             if "out of memory" in str(e):
                 logger.error(f"OOM at batch {batch_idx}, epoch {epoch}")

@@ -10,7 +10,7 @@ We train lightweight linear probes on top of frozen EEGPT features for two clini
 
 ## Current Status
 
-✅ **Ready for Training** - All critical bugs fixed, using 100% of EEGPT features (32,768 dimensions for TUAB)
+✅ **Ready for Training** - All critical bugs fixed, using EEGPT summary tokens (2,048 dimensions for TUAB)
 
 ### Expected Performance
 | Dataset | Metric | Target | Status |
@@ -72,18 +72,18 @@ eegpt_linear_probe/
 - **Checkpoint**: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 - **Input**: 20 EEG channels @ 256Hz
 - **Patch Size**: 64 samples (250ms)
-- **Features**: All temporal patches × summary tokens × embedding dimension
+- **Features**: 4 summary tokens × 512 dims → flattened to 2,048 for probes
 
 ### TUAB Specifications
 - **Window Size**: 4 seconds (1024 samples @ 256Hz)
-- **Features**: 16 patches × 4 tokens × 512 dims = 32,768
+- **Probe Features**: 2,048 dims (4 summary tokens × 512, flattened)
 - **Classes**: 2 (normal/abnormal)
 - **Dataset**: ~1.86M training windows
 - **Batch Size**: 256 (optimized for WSL)
 
 ### TUEV Specifications
 - **Window Size**: 10 seconds (2560 samples)
-- **Features**: 40 patches × 4 tokens × 512 dims = 81,920
+- **Probe Features**: 2,048 dims (4 summary tokens × 512, flattened)
 - **Classes**: 6 (background, seizure types, patterns)
 - **Dataset**: ~264k training windows
 - **Batch Size**: 500 (paper-aligned)
