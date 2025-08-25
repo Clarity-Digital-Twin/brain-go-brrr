@@ -2,6 +2,9 @@
 # Install with: pre-commit install
 # Run manually: pre-commit run --all-files
 
+# Global exclusions
+exclude: '^literature/.*'
+
 repos:
   # Ruff - Fast Python linter and formatter (aligned with CI/local)
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -10,10 +13,10 @@ repos:
       - id: ruff
         args: [--fix]
         files: ^(src|tests|scripts)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/)
+        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/|literature/)
       - id: ruff-format
         files: ^(src|tests|scripts)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/)
+        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/|literature/)
 
   # Type checking with mypy (temporarily disabled - pydantic issue)
   # - repo: https://github.com/pre-commit/mirrors-mypy
