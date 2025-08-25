@@ -40,13 +40,15 @@ def test_subset_resume():
         if i >= 10:
             break
         # Store batch info (use mean as fingerprint since we can't access indices directly)
-        full_batch_shapes.append({
-            'batch_idx': i,
-            'shape': data.shape,
-            'mean': data.mean().item(),
-            'std': data.std().item(),
-            'label_sum': labels.sum().item()
-        })
+        full_batch_shapes.append(
+            {
+                'batch_idx': i,
+                'shape': data.shape,
+                'mean': data.mean().item(),
+                'std': data.std().item(),
+                'label_sum': labels.sum().item(),
+            }
+        )
 
     # Now simulate resume at batch 5
     start_batch = 5
@@ -69,13 +71,15 @@ def test_subset_resume():
     for i, (data, labels) in enumerate(subset_loader):
         if i >= 5:  # Get 5 batches
             break
-        subset_batch_shapes.append({
-            'batch_idx': start_batch + i,
-            'shape': data.shape,
-            'mean': data.mean().item(),
-            'std': data.std().item(),
-            'label_sum': labels.sum().item()
-        })
+        subset_batch_shapes.append(
+            {
+                'batch_idx': start_batch + i,
+                'shape': data.shape,
+                'mean': data.mean().item(),
+                'std': data.std().item(),
+                'label_sum': labels.sum().item(),
+            }
+        )
 
     # Compare: subset batches should match full batches 5-9
     matches = 0

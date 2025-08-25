@@ -20,7 +20,7 @@ def test_heartbeat_write_read():
                 "global_step": batch_idx,
                 "walltime": time.time(),
                 "loss": 0.5 - batch_idx * 0.1,
-                "lr": 0.001
+                "lr": 0.001,
             }
 
             with open(heartbeat_path, 'w') as f:
@@ -34,9 +34,15 @@ def test_heartbeat_write_read():
             final_heartbeat = json.load(f)
 
         # Verify we got the latest values
-        assert final_heartbeat["batch_idx"] == 4, f"Expected batch_idx=4, got {final_heartbeat['batch_idx']}"
-        assert final_heartbeat["global_step"] == 4, f"Expected global_step=4, got {final_heartbeat['global_step']}"
-        assert abs(final_heartbeat["loss"] - 0.1) < 1e-6, f"Expected loss=0.1, got {final_heartbeat['loss']}"
+        assert (
+            final_heartbeat["batch_idx"] == 4
+        ), f"Expected batch_idx=4, got {final_heartbeat['batch_idx']}"
+        assert (
+            final_heartbeat["global_step"] == 4
+        ), f"Expected global_step=4, got {final_heartbeat['global_step']}"
+        assert (
+            abs(final_heartbeat["loss"] - 0.1) < 1e-6
+        ), f"Expected loss=0.1, got {final_heartbeat['loss']}"
 
         print("✓ Heartbeat write/read test passed")
         print(f"  Final batch_idx: {final_heartbeat['batch_idx']}")
@@ -58,7 +64,7 @@ def test_heartbeat_freshness():
                 "global_step": batch_idx,
                 "walltime": time.time(),
                 "loss": 1.0 / (batch_idx + 1),
-                "lr": 0.001 * (1 - batch_idx / 100)  # Decay
+                "lr": 0.001 * (1 - batch_idx / 100),  # Decay
             }
 
             with open(heartbeat_path, 'w') as f:
@@ -70,15 +76,19 @@ def test_heartbeat_freshness():
 
         # Verify freshness
         assert signal_heartbeat["epoch"] == 1, f"Expected epoch=1, got {signal_heartbeat['epoch']}"
-        assert signal_heartbeat["batch_idx"] == 49, f"Expected batch_idx=49, got {signal_heartbeat['batch_idx']}"
-        assert signal_heartbeat["global_step"] == 99, f"Expected global_step=99, got {signal_heartbeat['global_step']}"
+        assert (
+            signal_heartbeat["batch_idx"] == 49
+        ), f"Expected batch_idx=49, got {signal_heartbeat['batch_idx']}"
+        assert (
+            signal_heartbeat["global_step"] == 99
+        ), f"Expected global_step=99, got {signal_heartbeat['global_step']}"
 
         # Simulate creating checkpoint from heartbeat
         checkpoint = {
             "epoch": signal_heartbeat["epoch"],
             "batch_idx": signal_heartbeat["batch_idx"],
             "global_step": signal_heartbeat["global_step"],
-            "tag": "signal_SIGTERM"
+            "tag": "signal_SIGTERM",
         }
 
         print("✓ Heartbeat freshness test passed")
@@ -99,11 +109,7 @@ def test_heartbeat_missing():
             print(f"Unexpected: heartbeat exists with {heartbeat}")
         else:
             # This is expected - use fallback values
-            fallback_state = {
-                "epoch": 0,
-                "batch_idx": 0,
-                "global_step": 0
-            }
+            fallback_state = {"epoch": 0, "batch_idx": 0, "global_step": 0}
             print("✓ Missing heartbeat handled gracefully")
             print(f"  Using fallback: {fallback_state}")
 

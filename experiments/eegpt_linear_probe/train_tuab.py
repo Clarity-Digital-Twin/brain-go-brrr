@@ -138,7 +138,21 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None, start_batch=0, global_step=0, total_batches=None, initial_batch=0):
+def train_epoch(
+    model,
+    probe,
+    train_loader,
+    optimizer,
+    scheduler,
+    device,
+    config,
+    epoch=0,
+    output_dir=None,
+    start_batch=0,
+    global_step=0,
+    total_batches=None,
+    initial_batch=0,
+):
     """Train for one epoch with batch-level resume support."""
     model.eval()  # Backbone stays frozen
     probe.train()
@@ -153,7 +167,9 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     # Use total_batches if provided (for subset loaders), else use train_loader length
     total = total_batches if total_batches is not None else len(train_loader)
 
-    pbar = tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), initial=initial_batch)
+    pbar = tqdm(
+        enumerate(train_loader), desc="Training", total=len(train_loader), initial=initial_batch
+    )
     for batch_idx, (data, labels) in pbar:
         # No skipping needed - Subset already handles it!
         try:
@@ -180,7 +196,9 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                     logger.info(f"EEGPT features shape: {features.shape}")
                     logger.info(f"Expected shape: (batch_size={batch_size}, 4 tokens, 512 dims)")
                     logger.info(f"Flattened probe input: ({batch_size}, {4*512})")
-                    logger.info(f"Using micro-batching: {micro_batch_size} samples per forward pass")
+                    logger.info(
+                        f"Using micro-batching: {micro_batch_size} samples per forward pass"
+                    )
 
             # Forward through probe
             logits = probe(features)
@@ -218,7 +236,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                     "global_step": global_step,
                     "walltime": time.time(),
                     "loss": loss.item(),
-                    "lr": scheduler.get_last_lr()[0]
+                    "lr": scheduler.get_last_lr()[0],
                 }
                 # Atomic write: write to temp file then rename
                 heartbeat_path = output_dir / "heartbeat.json"
@@ -236,25 +254,32 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
             all_labels.extend(labels.cpu().numpy())
 
             # Update progress bar
-            pbar.set_postfix({"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"})
+            pbar.set_postfix(
+                {"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"}
+            )
 
             # Periodic memory cleanup and checkpointing
             if batch_idx % 100 == 0 and batch_idx > 0:
                 torch.cuda.empty_cache()
-                logger.info(f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache")
+                logger.info(
+                    f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache"
+                )
 
             # Save checkpoint every 500 batches for crash recovery
             if batch_idx % 500 == 0 and batch_idx > 0:
                 checkpoint_path = output_dir / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
-                torch.save({
-                    'epoch': epoch,
-                    'batch_idx': batch_idx,
-                    'global_step': global_step,
-                    'probe_state_dict': probe.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
-                    'loss': loss.item(),
-                }, checkpoint_path)
+                torch.save(
+                    {
+                        'epoch': epoch,
+                        'batch_idx': batch_idx,
+                        'global_step': global_step,
+                        'probe_state_dict': probe.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'scheduler_state_dict': scheduler.state_dict(),
+                        'loss': loss.item(),
+                    },
+                    checkpoint_path,
+                )
                 logger.info(f"Saved checkpoint at batch {batch_idx}")
 
         except RuntimeError as e:
@@ -334,16 +359,15 @@ def validate(model, probe, val_loader, device):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config",
-        type=str,
-        default="configs/tuab.yaml",
-        help="Path to config file",
+        "--config", type=str, default="configs/tuab.yaml", help="Path to config file"
     )
     parser.add_argument(
         "--output_dir", type=str, default=None, help="Output directory (default: auto-generated)"
     )
     parser.add_argument("--device", type=str, default="cuda", help="Device to use")
-    parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
+    parser.add_argument(
+        "--resume", type=str, default=None, help="Path to checkpoint to resume from"
+    )
     args = parser.parse_args()
 
     # Load config
@@ -449,8 +473,12 @@ def main():
                 "batch_idx": state["batch_idx"],
                 "global_step": state["global_step"],
                 "probe_state_dict": state["probe"].state_dict(),
-                "optimizer_state_dict": state["optimizer"].state_dict() if state["optimizer"] else None,
-                "scheduler_state_dict": state["scheduler"].state_dict() if state["scheduler"] else None,
+                "optimizer_state_dict": state["optimizer"].state_dict()
+                if state["optimizer"]
+                else None,
+                "scheduler_state_dict": state["scheduler"].state_dict()
+                if state["scheduler"]
+                else None,
                 "best_val_auroc": state["best_val_auroc"],
                 "config": config,
                 "tag": tag,
@@ -472,7 +500,9 @@ def main():
                 state["epoch"] = heartbeat.get("epoch", state["epoch"])
                 state["batch_idx"] = heartbeat.get("batch_idx", state["batch_idx"])
                 state["global_step"] = heartbeat.get("global_step", state["global_step"])
-                logger.info(f"Loaded heartbeat: epoch={state['epoch']}, batch={state['batch_idx']}, step={state['global_step']}")
+                logger.info(
+                    f"Loaded heartbeat: epoch={state['epoch']}, batch={state['batch_idx']}, step={state['global_step']}"
+                )
             except:
                 logger.warning("Failed to read heartbeat, using cached state values")
         save_checkpoint(tag=f"signal_{signame}")
@@ -500,7 +530,9 @@ def main():
         scheduler.last_epoch = global_step - 1
 
         # Log scheduler state for verification
-        logger.info(f"Scheduler state after resume: last_epoch={scheduler.last_epoch}, lr={scheduler.get_last_lr()[0]:.6f}")
+        logger.info(
+            f"Scheduler state after resume: last_epoch={scheduler.last_epoch}, lr={scheduler.get_last_lr()[0]:.6f}"
+        )
 
         # Check if we need to move to next epoch
         if start_batch >= len(train_loader):
@@ -508,7 +540,9 @@ def main():
             start_batch = 0
             logger.info(f"Completed epoch {checkpoint['epoch']}, starting epoch {start_epoch}")
         else:
-            logger.info(f"Resuming from epoch {start_epoch}, batch {start_batch}, global_step {global_step}")
+            logger.info(
+                f"Resuming from epoch {start_epoch}, batch {start_batch}, global_step {global_step}"
+            )
     else:
         best_val_auroc = 0
 
@@ -530,6 +564,7 @@ def main():
         if current_start_batch > 0:
             # Use Subset to skip I/O on already-processed samples
             from torch.utils.data import Subset
+
             sample_offset = current_start_batch * config["data"]["batch_size"]
             remaining_indices = list(range(sample_offset, len(train_loader.dataset)))
             subset = Subset(train_loader.dataset, remaining_indices)
@@ -541,10 +576,23 @@ def main():
                 pin_memory=False,
                 collate_fn=collate_eeg_batch_fixed,
             )
-            logger.info(f"Created subset loader skipping {sample_offset} samples ({current_start_batch} batches)")
+            logger.info(
+                f"Created subset loader skipping {sample_offset} samples ({current_start_batch} batches)"
+            )
             train_metrics, global_step = train_epoch(
-                backbone, probe, resume_loader, optimizer, scheduler, device, config,
-                epoch, output_dir, 0, global_step, total_batches=len(train_loader), initial_batch=current_start_batch
+                backbone,
+                probe,
+                resume_loader,
+                optimizer,
+                scheduler,
+                device,
+                config,
+                epoch,
+                output_dir,
+                0,
+                global_step,
+                total_batches=len(train_loader),
+                initial_batch=current_start_batch,
             )
         else:
             # Normal epoch - use shuffled loader for better training
@@ -558,14 +606,32 @@ def main():
                     collate_fn=collate_eeg_batch_fixed,
                 )
                 train_metrics, global_step = train_epoch(
-                    backbone, probe, shuffled_loader, optimizer, scheduler, device, config,
-                    epoch, output_dir, 0, global_step
+                    backbone,
+                    probe,
+                    shuffled_loader,
+                    optimizer,
+                    scheduler,
+                    device,
+                    config,
+                    epoch,
+                    output_dir,
+                    0,
+                    global_step,
                 )
             else:
                 # First epoch - use original loader (no shuffle for reproducibility)
                 train_metrics, global_step = train_epoch(
-                    backbone, probe, train_loader, optimizer, scheduler, device, config,
-                    epoch, output_dir, 0, global_step
+                    backbone,
+                    probe,
+                    train_loader,
+                    optimizer,
+                    scheduler,
+                    device,
+                    config,
+                    epoch,
+                    output_dir,
+                    0,
+                    global_step,
                 )
 
         # Update state after epoch completes

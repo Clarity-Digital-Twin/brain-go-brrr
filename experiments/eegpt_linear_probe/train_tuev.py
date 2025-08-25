@@ -21,12 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import OmegaConf
-from sklearn.metrics import (
-    balanced_accuracy_score,
-    cohen_kappa_score,
-    confusion_matrix,
-    f1_score,
-)
+from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, confusion_matrix, f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -67,11 +62,7 @@ class TUEVLinearProbe(nn.Module):
 
         # Layer 1: Channel reduction (23 → 20)
         self.channel_reducer = nn.Conv1d(
-            in_channels=23,
-            out_channels=20,
-            kernel_size=1,
-            stride=1,
-            padding=0
+            in_channels=23, out_channels=20, kernel_size=1, stride=1, padding=0
         )
         self.bn1 = nn.BatchNorm1d(20)
 
@@ -82,7 +73,7 @@ class TUEVLinearProbe(nn.Module):
             kernel_size=55,  # CRITICAL: 55, not 15!
             stride=1,
             groups=20,  # Depthwise convolution
-            padding=27  # Maintains size
+            padding=27,  # Maintains size
         )
         self.bn2 = nn.BatchNorm1d(20)
 
@@ -107,7 +98,10 @@ class TUEVLinearProbe(nn.Module):
             Logits of shape (batch, 6)
         """
         # Verify input shape
-        assert x.shape[1:] == (23, 1024), f"Wrong input shape: {x.shape}, expected (batch, 23, 1024)"
+        assert x.shape[1:] == (
+            23,
+            1024,
+        ), f"Wrong input shape: {x.shape}, expected (batch, 23, 1024)"
 
         # Channel reduction: 23 → 20
         x = self.channel_reducer(x)  # (batch, 20, 1024)
@@ -128,7 +122,9 @@ class TUEVLinearProbe(nn.Module):
 
         # Log shape on first forward for debugging
         if not hasattr(self, '_logged_shape'):
-            logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
+            logger.info(
+                f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features"
+            )
             logger.info("Using summary tokens only (4×512 = 2048 features), not temporal patches")
             self._logged_shape = True
 
@@ -146,7 +142,7 @@ def train_epoch(
     criterion: nn.Module,
     device: str,
     epoch: int,
-    output_dir: Path
+    output_dir: Path,
 ) -> dict[str, float]:
     """Train for one epoch."""
     model.train()
@@ -184,26 +180,30 @@ def train_epoch(
             total_loss += loss.item()
 
             # Update progress bar
-            pbar.set_postfix({
-                'loss': f"{loss.item():.4f}",
-                'acc': f"{(preds == labels).float().mean():.3f}"
-            })
+            pbar.set_postfix(
+                {'loss': f"{loss.item():.4f}", 'acc': f"{(preds == labels).float().mean():.3f}"}
+            )
 
             # Periodic memory cleanup (every 100 batches)
             if batch_idx % 100 == 0 and batch_idx > 0:
                 torch.cuda.empty_cache()
-                logger.info(f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache")
+                logger.info(
+                    f"Batch {batch_idx}/{len(train_loader)}: loss={loss.item():.4f}, clearing cache"
+                )
 
             # Save checkpoint every 500 batches for crash recovery
             if batch_idx % 500 == 0 and batch_idx > 0:
                 checkpoint_path = output_dir / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
-                torch.save({
-                    'epoch': epoch,
-                    'batch': batch_idx,
-                    'model_state_dict': model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'loss': loss.item(),
-                }, checkpoint_path)
+                torch.save(
+                    {
+                        'epoch': epoch,
+                        'batch': batch_idx,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'loss': loss.item(),
+                    },
+                    checkpoint_path,
+                )
                 logger.info(f"Saved checkpoint at batch {batch_idx}")
 
         except RuntimeError as e:
@@ -219,18 +219,14 @@ def train_epoch(
         'loss': total_loss / len(train_loader),
         'balanced_acc': balanced_accuracy_score(all_labels, all_preds),
         'weighted_f1': f1_score(all_labels, all_preds, average='weighted'),
-        'cohen_kappa': cohen_kappa_score(all_labels, all_preds)
+        'cohen_kappa': cohen_kappa_score(all_labels, all_preds),
     }
 
     return metrics
 
 
 def evaluate(
-    model: TUEVLinearProbe,
-    val_loader: DataLoader,
-    criterion: nn.Module,
-    device: str,
-    epoch: int
+    model: TUEVLinearProbe, val_loader: DataLoader, criterion: nn.Module, device: str, epoch: int
 ) -> dict[str, float]:
     """Evaluate model."""
     model.eval()
@@ -257,10 +253,9 @@ def evaluate(
             total_loss += loss.item()
 
             # Update progress bar
-            pbar.set_postfix({
-                'loss': f"{loss.item():.4f}",
-                'acc': f"{(preds == labels).float().mean():.3f}"
-            })
+            pbar.set_postfix(
+                {'loss': f"{loss.item():.4f}", 'acc': f"{(preds == labels).float().mean():.3f}"}
+            )
 
     # Compute metrics
     metrics = {
@@ -268,7 +263,7 @@ def evaluate(
         'balanced_acc': balanced_accuracy_score(all_labels, all_preds),
         'weighted_f1': f1_score(all_labels, all_preds, average='weighted'),
         'cohen_kappa': cohen_kappa_score(all_labels, all_preds),
-        'confusion_matrix': confusion_matrix(all_labels, all_preds).tolist()
+        'confusion_matrix': confusion_matrix(all_labels, all_preds).tolist(),
     }
 
     # Per-class F1
@@ -292,7 +287,11 @@ def main(args):
 
     # Setup output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path(args.output_dir) if getattr(args, 'output_dir', None) else Path(f"output/tuev_{timestamp}_seed{args.seed}")
+    output_dir = (
+        Path(args.output_dir)
+        if getattr(args, 'output_dir', None)
+        else Path(f"output/tuev_{timestamp}_seed{args.seed}")
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Setup logging
@@ -315,23 +314,15 @@ def main(args):
         train_dataset = TUEVCachedDatasetPadded(
             cache_dir=Path(config.data.cache_dir),
             split='train',
-            padding='edge'  # Repeat last samples for padding
+            padding='edge',  # Repeat last samples for padding
         )
         val_dataset = TUEVCachedDatasetPadded(
-            cache_dir=Path(config.data.cache_dir),
-            split='eval',
-            padding='edge'
+            cache_dir=Path(config.data.cache_dir), split='eval', padding='edge'
         )
     else:
         logger.info("Loading dataset from EDF files")
-        train_dataset = TUEVDataset(
-            root_dir=Path(config.data.root_dir),
-            split='train'
-        )
-        val_dataset = TUEVDataset(
-            root_dir=Path(config.data.root_dir),
-            split='eval'
-        )
+        train_dataset = TUEVDataset(root_dir=Path(config.data.root_dir), split='train')
+        val_dataset = TUEVDataset(root_dir=Path(config.data.root_dir), split='eval')
 
     # Create data loaders
     train_loader = DataLoader(
@@ -340,7 +331,7 @@ def main(args):
         shuffle=True,
         num_workers=config.data.num_workers,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     val_loader = DataLoader(
@@ -349,17 +340,14 @@ def main(args):
         shuffle=False,
         num_workers=config.data.num_workers,
         pin_memory=True,
-        persistent_workers=True
+        persistent_workers=True,
     )
 
     logger.info(f"Train samples: {len(train_dataset)}")
     logger.info(f"Eval samples: {len(val_dataset)}")
 
     # Create model
-    model = TUEVLinearProbe(
-        eegpt_checkpoint=config.model.eegpt_checkpoint,
-        device=args.device
-    )
+    model = TUEVLinearProbe(eegpt_checkpoint=config.model.eegpt_checkpoint, device=args.device)
 
     # Setup loss (weighted for class imbalance)
     class_weights = train_dataset.get_class_weights().to(args.device)
@@ -372,7 +360,7 @@ def main(args):
     optimizer = torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=config.training.learning_rate,
-        weight_decay=config.training.weight_decay
+        weight_decay=config.training.weight_decay,
     )
 
     # Training loop with graceful shutdown and incremental history logging
@@ -391,7 +379,9 @@ def main(args):
             checkpoint = {
                 'epoch': state['epoch'],
                 'model_state_dict': state['model'].state_dict(),
-                'optimizer_state_dict': state['optimizer'].state_dict() if state['optimizer'] else None,
+                'optimizer_state_dict': state['optimizer'].state_dict()
+                if state['optimizer']
+                else None,
                 'best_balanced_acc': state['best_bacc'],
                 'config': OmegaConf.to_container(config),
                 'tag': tag,
@@ -428,20 +418,22 @@ def main(args):
         )
 
         # Evaluate
-        val_metrics = evaluate(
-            model, val_loader, criterion, args.device, epoch
-        )
+        val_metrics = evaluate(model, val_loader, criterion, args.device, epoch)
 
         # Log metrics
         logger.info(f"Epoch {epoch:03d}:")
-        logger.info(f"  Train - Loss: {train_metrics['loss']:.4f}, "
-                   f"BAcc: {train_metrics['balanced_acc']:.4f}, "
-                   f"F1: {train_metrics['weighted_f1']:.4f}, "
-                   f"Kappa: {train_metrics['cohen_kappa']:.4f}")
-        logger.info(f"  Val   - Loss: {val_metrics['loss']:.4f}, "
-                   f"BAcc: {val_metrics['balanced_acc']:.4f}, "
-                   f"F1: {val_metrics['weighted_f1']:.4f}, "
-                   f"Kappa: {val_metrics['cohen_kappa']:.4f}")
+        logger.info(
+            f"  Train - Loss: {train_metrics['loss']:.4f}, "
+            f"BAcc: {train_metrics['balanced_acc']:.4f}, "
+            f"F1: {train_metrics['weighted_f1']:.4f}, "
+            f"Kappa: {train_metrics['cohen_kappa']:.4f}"
+        )
+        logger.info(
+            f"  Val   - Loss: {val_metrics['loss']:.4f}, "
+            f"BAcc: {val_metrics['balanced_acc']:.4f}, "
+            f"F1: {val_metrics['weighted_f1']:.4f}, "
+            f"Kappa: {val_metrics['cohen_kappa']:.4f}"
+        )
 
         # Save best model
         if val_metrics['balanced_acc'] > best_balanced_acc:
@@ -454,7 +446,7 @@ def main(args):
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'val_metrics': val_metrics,
-                'config': OmegaConf.to_container(config)
+                'config': OmegaConf.to_container(config),
             }
             torch.save(checkpoint, output_dir / 'best_model.pt')
             logger.info(f"  → New best model! BAcc: {best_balanced_acc:.4f}")
@@ -470,11 +462,7 @@ def main(args):
             logger.exception('Failed writing incremental history to history.jsonl')
 
         # Store history
-        history.append({
-            'epoch': epoch,
-            'train': train_metrics,
-            'val': val_metrics
-        })
+        history.append({'epoch': epoch, 'train': train_metrics, 'val': val_metrics})
 
         # Save history
         with open(output_dir / 'history.json', 'w') as f:
