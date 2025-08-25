@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -113,6 +114,21 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
+def dump_crash(output_dir, epoch, batch_idx, global_step, exc):
+    """Write crash info to JSON for debugging."""
+    out = {
+        "ts": time.time(),
+        "epoch": epoch,
+        "batch_idx": batch_idx,
+        "global_step": global_step,
+        "exc": repr(exc),
+        "traceback": traceback.format_exc(limit=5),
+    }
+    p = output_dir / "crash.jsonl"
+    with open(p, "a") as f:
+        f.write(json.dumps(out) + "\n")
+
+
 def train_epoch(
     model,
     probe,
@@ -181,9 +197,24 @@ def train_epoch(
 
             # Forward through probe
             logits = probe(features)  # (B,) for binary
+            
+            # CRASH GUARD 1: Ensure shapes/types are correct for BCE
+            logits = logits.reshape(-1, 1).float()
+            labels = labels.reshape(-1, 1).float()  # BCE expects float
+            
+            # CRASH GUARD 2: Check for NaNs/Infs before loss
+            if not torch.isfinite(logits).all():
+                logger.error(f"Non-finite logits at step {global_step}: "
+                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                raise RuntimeError(f"Non-finite logits at step {global_step}")
 
             # Compute loss - BCEWithLogitsLoss as in EEGPT paper
             loss = criterion(logits, labels)
+            
+            # CRASH GUARD 3: Check for NaN loss
+            if not torch.isfinite(loss):
+                logger.error(f"Non-finite loss at step {global_step}: {loss.item()}")
+                raise RuntimeError(f"Non-finite loss at step {global_step}")
 
             # Backward
             optimizer.zero_grad()
@@ -252,7 +283,10 @@ def train_epoch(
 
         except Exception as e:
             logger.error(f"Error in batch {batch_idx}: {e}")
-            # Continue training on error - don't crash the whole run
+            # Dump crash info for debugging
+            dump_crash(output_dir, epoch, batch_idx, global_step, e)
+            # Re-raise to stop training and debug
+            raise
             continue
 
     # Calculate epoch metrics
@@ -409,7 +443,9 @@ def main():
 
         # Validate
         val_metrics = validate(backbone, probe, val_loader, device)
-        logger.info(f"Validation: AUROC={val_metrics['auroc']:.4f}, Acc={val_metrics['accuracy']:.4f}")
+        logger.info(
+            f"Validation: AUROC={val_metrics['auroc']:.4f}, Acc={val_metrics['accuracy']:.4f}"
+        )
 
         # Save best model
         if val_metrics["auroc"] > best_val_auroc:
