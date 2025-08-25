@@ -128,6 +128,10 @@ type-check: ## Run full strict type checking (CI/pre-commit)
 	@echo "$(CYAN)Running full type checks...$(NC)"
 	@rm -rf .mypy_cache_strict 2>/dev/null || true
 	$(MYPY) --config-file mypy.ini src/brain_go_brrr
+
+type-experiments: ## Type check experiments folder (training scripts)
+	@echo "$(CYAN)Type checking experiments...$(NC)"
+	$(MYPY) --config-file mypy-fast.ini experiments --ignore-missing-imports
 	@echo "$(GREEN)Type checking complete!$(NC)"
 
 # Alias for consistency
