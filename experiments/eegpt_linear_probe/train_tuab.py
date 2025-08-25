@@ -139,7 +139,7 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None, start_batch=0, global_step=0):
+def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None, start_batch=0, global_step=0, total_batches=None, initial_batch=0):
     """Train for one epoch with batch-level resume support."""
     model.eval()  # Backbone stays frozen
     probe.train()
@@ -151,11 +151,12 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     # Micro-batching configuration
     micro_batch_size = 16  # Process 16 samples at a time for feature extraction
 
-    pbar = tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), initial=start_batch)
+    # Use total_batches if provided (for subset loaders), else use train_loader length
+    total = total_batches if total_batches is not None else len(train_loader)
+    
+    pbar = tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), initial=initial_batch)
     for batch_idx, (data, labels) in pbar:
-        # Skip already processed batches when resuming
-        if batch_idx < start_batch:
-            continue
+        # No skipping needed - Subset already handles it!
         try:
             data = data.to(device)
             labels = labels.to(device)
@@ -444,6 +445,15 @@ def main():
     def _handle_signal(signum, _frame):
         signame = {signal.SIGINT: "SIGINT", signal.SIGTERM: "SIGTERM"}.get(signum, str(signum))
         logger.error(f"Received {signame}; saving checkpoint and exiting...")
+        # Read latest checkpoint to get fresh batch_idx and global_step
+        latest_ckpt = sorted(output_dir.glob("checkpoint_epoch*_batch*.pt"))
+        if latest_ckpt:
+            try:
+                ckpt = torch.load(latest_ckpt[-1], map_location='cpu')
+                state["batch_idx"] = ckpt.get("batch_idx", state["batch_idx"])
+                state["global_step"] = ckpt.get("global_step", state["global_step"])
+            except:
+                pass  # Use existing state values if load fails
         save_checkpoint(tag=f"signal_{signame}")
         sys.exit(128 + signum)
 
@@ -491,12 +501,33 @@ def main():
         state["best_val_auroc"] = best_val_auroc
         logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
-        # Train with proper batch resume support
+        # Create subset for resumed epoch to avoid loading/skipping batches
         current_start_batch = start_batch if epoch == start_epoch else 0
-        train_metrics, global_step = train_epoch(
-            backbone, probe, train_loader, optimizer, scheduler, device, config, 
-            epoch, output_dir, current_start_batch, global_step
-        )
+        if current_start_batch > 0:
+            # Use Subset to skip I/O on already-processed samples
+            from torch.utils.data import Subset
+            sample_offset = current_start_batch * config["data"]["batch_size"]
+            remaining_indices = list(range(sample_offset, len(train_loader.dataset)))
+            subset = Subset(train_loader.dataset, remaining_indices)
+            resume_loader = DataLoader(
+                subset,
+                batch_size=config["data"]["batch_size"],
+                shuffle=False,  # Must be False for deterministic resume
+                num_workers=0,
+                pin_memory=False,
+                collate_fn=collate_eeg_batch_fixed,
+            )
+            logger.info(f"Created subset loader skipping {sample_offset} samples ({current_start_batch} batches)")
+            train_metrics, global_step = train_epoch(
+                backbone, probe, resume_loader, optimizer, scheduler, device, config, 
+                epoch, output_dir, 0, global_step, total_batches=len(train_loader), initial_batch=current_start_batch
+            )
+        else:
+            # Normal epoch - can use shuffle if desired (but keeping False for consistency)
+            train_metrics, global_step = train_epoch(
+                backbone, probe, train_loader, optimizer, scheduler, device, config, 
+                epoch, output_dir, 0, global_step
+            )
         
         # Update state after epoch completes
         state["global_step"] = global_step
