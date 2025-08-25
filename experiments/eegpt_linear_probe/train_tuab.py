@@ -418,6 +418,8 @@ def main():
         "optimizer": None,
         "scheduler": None,
         "epoch": -1,
+        "batch_idx": 0,
+        "global_step": 0,
         "best_val_auroc": 0.0,
     }
 
@@ -427,6 +429,8 @@ def main():
                 return
             checkpoint = {
                 "epoch": state["epoch"],
+                "batch_idx": state["batch_idx"],
+                "global_step": state["global_step"],
                 "probe_state_dict": state["probe"].state_dict(),
                 "optimizer_state_dict": state["optimizer"].state_dict() if state["optimizer"] else None,
                 "scheduler_state_dict": state["scheduler"].state_dict() if state["scheduler"] else None,
@@ -463,6 +467,9 @@ def main():
         global_step = checkpoint.get("global_step", 0)
         best_val_auroc = checkpoint.get("best_val_auroc", 0)
         
+        # Sync scheduler with global_step
+        scheduler.last_epoch = global_step - 1
+        
         # Check if we need to move to next epoch
         if start_batch >= len(train_loader):
             start_epoch += 1
@@ -481,6 +488,8 @@ def main():
         state["optimizer"] = optimizer
         state["scheduler"] = scheduler
         state["epoch"] = epoch
+        state["batch_idx"] = start_batch if epoch == start_epoch else 0
+        state["global_step"] = global_step
         state["best_val_auroc"] = best_val_auroc
         logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
