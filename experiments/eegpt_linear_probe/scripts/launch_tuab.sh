@@ -31,9 +31,16 @@ mkdir -p ${OUTPUT_DIR}
 tmux new-session -d -s tuab_training \
     "while true; do \
      echo 'Starting/Resuming training at $(date)' | tee -a ${LOG_FILE}; \
+     LATEST_CKPT=\$(ls -t ${OUTPUT_DIR}/checkpoint_epoch*_batch*.pt 2>/dev/null | head -1); \
+     RESUME_ARG=''; \
+     if [ -n \"\$LATEST_CKPT\" ]; then \
+       echo 'Found checkpoint: '\$LATEST_CKPT | tee -a ${LOG_FILE}; \
+       RESUME_ARG=\"--resume \$LATEST_CKPT\"; \
+     fi; \
      /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python -u train_tuab.py \
      --config configs/tuab.yaml \
      --output_dir ${OUTPUT_DIR} \
+     \$RESUME_ARG \
      2>&1 | tee -a ${LOG_FILE}; \
      EXIT_CODE=\$?; \
      echo 'Training exited with code: '\$EXIT_CODE | tee -a ${LOG_FILE}; \
