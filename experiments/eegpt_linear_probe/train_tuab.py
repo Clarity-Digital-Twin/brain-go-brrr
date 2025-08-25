@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import yaml
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 # Add project root to path
@@ -151,13 +151,11 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     # Micro-batching configuration
     micro_batch_size = 16  # Process 16 samples at a time for feature extraction
 
-    pbar = tqdm(train_loader, desc="Training", total=len(train_loader), initial=start_batch)
-    for batch_idx, (data, labels) in enumerate(train_loader):
+    pbar = tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), initial=start_batch)
+    for batch_idx, (data, labels) in pbar:
         # Skip already processed batches when resuming
         if batch_idx < start_batch:
             continue
-        
-        pbar.update(1)
         try:
             data = data.to(device)
             labels = labels.to(device)
@@ -499,6 +497,11 @@ def main():
             backbone, probe, train_loader, optimizer, scheduler, device, config, 
             epoch, output_dir, current_start_batch, global_step
         )
+        
+        # Update state after epoch completes
+        state["global_step"] = global_step
+        state["batch_idx"] = len(train_loader) - 1  # Last batch of epoch
+        
         logger.info(
             f"Train - Loss: {train_metrics['loss']:.4f}, "
             f"AUROC: {train_metrics['auroc']:.4f}, "
