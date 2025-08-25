@@ -257,7 +257,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     auroc = roc_auc_score(all_labels, all_preds)
     bacc = balanced_accuracy_score(all_labels, np.array(all_preds) > 0.5)
 
-    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}
+    return {"loss": np.mean(losses), "auroc": auroc, "bacc": bacc}, global_step
 
 
 def validate(model, probe, val_loader, device):
@@ -450,6 +450,8 @@ def main():
 
     # Resume from checkpoint if specified
     start_epoch = 0
+    start_batch = 0
+    global_step = 0
     if args.resume:
         logger.info(f"Loading checkpoint: {args.resume}")
         checkpoint = torch.load(args.resume)
@@ -457,13 +459,17 @@ def main():
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         start_epoch = checkpoint["epoch"]
+        start_batch = checkpoint.get("batch_idx", 0) + 1  # Resume from next batch
+        global_step = checkpoint.get("global_step", 0)
         best_val_auroc = checkpoint.get("best_val_auroc", 0)
-        # WARNING: Currently resumes from start of epoch, not from batch_idx
-        # TODO: Implement proper batch-level resume to avoid wasted computation
-        batch_idx = checkpoint.get("batch_idx", 0)
-        if batch_idx > 0:
-            logger.warning(f"Checkpoint was at batch {batch_idx}, but resuming from start of epoch {start_epoch + 1}")
-        logger.info(f"Resumed from epoch {start_epoch}, will continue from epoch {start_epoch + 1}")
+        
+        # Check if we need to move to next epoch
+        if start_batch >= len(train_loader):
+            start_epoch += 1
+            start_batch = 0
+            logger.info(f"Completed epoch {checkpoint['epoch']}, starting epoch {start_epoch}")
+        else:
+            logger.info(f"Resuming from epoch {start_epoch}, batch {start_batch}, global_step {global_step}")
     else:
         best_val_auroc = 0
 
