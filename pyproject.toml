@@ -200,11 +200,16 @@ ignore = [
 "scripts/*.py" = ["E402", "ANN"]  # Allow imports after env var setup, relaxed types
 "tests/conftest.py" = ["TCH004"]  # Allow type-checking imports with future annotations
 "tests/fixtures/mock_eeg_generator.py" = ["TCH004"]  # Allow type-checking imports with future annotations
-# Minimal exceptions for experiments (only what's truly needed)
+# Reasonable exceptions for experiments (professional but practical)
 "experiments/**/*.py" = [
     "D",       # Skip docstrings (not API code)
+    "ANN",     # Skip type annotations (training scripts, not library code)
     "E402",    # Allow imports after sys.path manipulation (required for local imports)
     "E722",    # Allow bare except in signal handlers only
+    "PTH123",  # Allow open() instead of Path.open() (existing code)
+    "RUF001",  # Allow unicode in strings (for math symbols)
+    "RUF003",  # Allow unicode in comments (for math symbols)
+    "B007",    # Allow unused loop variables (common in training loops)
 ]
 
 [tool.ruff.lint.pydocstyle]
