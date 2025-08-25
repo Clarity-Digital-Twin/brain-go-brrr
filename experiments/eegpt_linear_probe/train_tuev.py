@@ -148,7 +148,8 @@ def train_epoch(
     optimizer: torch.optim.Optimizer,
     criterion: nn.Module,
     device: str,
-    epoch: int
+    epoch: int,
+    output_dir: Path
 ) -> Dict[str, float]:
     """Train for one epoch."""
     model.train()
@@ -198,7 +199,7 @@ def train_epoch(
 
             # Save checkpoint every 500 batches for crash recovery
             if batch_idx % 500 == 0 and batch_idx > 0:
-                checkpoint_path = Path(args.output_dir) / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
+                checkpoint_path = output_dir / f"checkpoint_epoch{epoch}_batch{batch_idx}.pt"
                 torch.save({
                     'epoch': epoch,
                     'batch': batch_idx,
