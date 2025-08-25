@@ -225,7 +225,7 @@ class TUABPreprocessor:
         else:
             notch_freq = 60.0  # Default to US standard
             logger.info("No line frequency in data, defaulting to 60 Hz")
-        
+
         logger.info(f"Applying notch filter at {notch_freq} Hz")
         raw.notch_filter([notch_freq, notch_freq * 2], fir_design='firwin', verbose=False)
 
