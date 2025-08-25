@@ -20,12 +20,12 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Imports assume PYTHONPATH is set to repository root by launch script
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-
 # Import custom dataset and collate from local modules
 from experiments.eegpt_linear_probe.datasets.tuab_dataset import TUABMemoryMappedDataset
 from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
+
+# Imports assume PYTHONPATH is set to repository root by launch script
+from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Configure logging
 logging.basicConfig(
