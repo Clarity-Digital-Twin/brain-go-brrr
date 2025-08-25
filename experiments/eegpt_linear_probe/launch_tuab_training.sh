@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# FIXED training with BCEWithLogitsLoss matching EEGPT paper
+# TUAB training with BCEWithLogitsLoss matching EEGPT paper
 
 # Get repository root and set PYTHONPATH
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -19,7 +19,7 @@ LOG_FILE="logs/tuab_fixed_${TIMESTAMP}.log"
 OUTPUT_DIR="output/tuab_fixed_${TIMESTAMP}"
 
 echo "====================================="
-echo "FIXED TUAB Training (BCEWithLogitsLoss)"
+echo "TUAB Training (BCEWithLogitsLoss)"
 echo "====================================="
 echo "- Binary classification (1 output neuron)"
 echo "- BCEWithLogitsLoss (no class weights)"
@@ -33,7 +33,7 @@ mkdir -p ${OUTPUT_DIR}
 
 # Launch in tmux
 tmux new-session -d -s tuab_fixed \
-    "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python -u train_tuab_FIXED.py \
+    "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/bin/python -u train_tuab.py \
     --config configs/tuab.yaml \
     --output_dir ${OUTPUT_DIR} \
     2>&1 | tee ${LOG_FILE}"
