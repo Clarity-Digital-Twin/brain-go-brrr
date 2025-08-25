@@ -5,7 +5,7 @@ Implements the verified preprocessing pipeline to improve EEGPT from 56% to 87% 
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any
 
 import mne
 from autoreject import AutoReject, Ransac
@@ -32,31 +32,31 @@ class TUABPreprocessor:
     # TUAB channel mapping from old to modern naming
     CHANNEL_MAPPING = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}
 
-    # Standard 20 channels for TUAB (after mapping)
+    # Standard 20 channels for TUAB (after mapping) - MNE standard casing
     STANDARD_CHANNELS = [
-        'FP1',
-        'FP2',
+        'Fp1',  # Note: MNE uses 'Fp' not 'FP'
+        'Fp2',
         'F7',
         'F3',
-        'FZ',
+        'Fz',  # Note: MNE uses lowercase 'z'
         'F4',
         'F8',
         'T7',
         'C3',
-        'CZ',
+        'Cz',
         'C4',
         'T8',
         'P7',
         'P3',
-        'PZ',
+        'Pz',
         'P4',
         'P8',
         'O1',
         'O2',
-        'OZ',
+        'Oz',
     ]
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize preprocessor with configuration.
 
         Args:
@@ -78,14 +78,17 @@ class TUABPreprocessor:
 
         logger.info(f"Initialized TUABPreprocessor with config: {self.config}")
 
-    def process_raw(self, edf_path: Path) -> mne.Epochs:
+    def process_raw(self, edf_path: Path) -> tuple:
         """Apply full preprocessing pipeline to raw EDF file.
 
         Args:
             edf_path: Path to EDF file
 
         Returns:
-            Clean epochs after MNE+Autoreject preprocessing
+            Tuple of (clean_epochs, info_dict) where info_dict contains:
+                - n_epochs_before: Number of epochs before Autoreject
+                - n_epochs_after: Number of epochs after Autoreject
+                - n_rejected: Number of rejected epochs
         """
         logger.info(f"Processing {edf_path}")
 
@@ -114,30 +117,83 @@ class TUABPreprocessor:
 
         # 6. Create 4-second epochs
         epochs = self._create_epochs(raw)
+        n_epochs_before = len(epochs)
 
         # 7. Apply Autoreject
         epochs_clean = self._apply_autoreject(epochs)
+        n_epochs_after = len(epochs_clean)
 
-        return epochs_clean
+        # Create info dict
+        info = {
+            'n_epochs_before': n_epochs_before,
+            'n_epochs_after': n_epochs_after,
+            'n_rejected': n_epochs_before - n_epochs_after,
+        }
+
+        return epochs_clean, info
 
     def _apply_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Apply TUAB channel mapping from old to modern naming.
+
+        Handles various TUAB channel name formats:
+        - 'T3', 'EEG T3-REF', 'T3-REF' -> 'T7'
+        - Case insensitive matching
 
         Args:
             raw: Raw MNE object
 
         Returns:
-            Raw object with renamed channels
+            Raw object with renamed channels and only standard 20 channels
         """
-        # Check which channels need renaming
+        import re
+
+        # Create rename dictionary for various TUAB formats
         rename_dict = {}
-        for old_name, new_name in self.CHANNEL_MAPPING.items():
-            if old_name in raw.ch_names and new_name not in raw.ch_names:
-                rename_dict[old_name] = new_name
+        for ch_name in raw.ch_names:
+            # Strip common prefixes and suffixes (case insensitive)
+            clean_name = re.sub(r'^EEG\s+', '', ch_name, flags=re.IGNORECASE)
+            clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
+            clean_name = clean_name.strip().upper()
+
+            # Check if this matches an old channel name
+            for old_name, new_name in self.CHANNEL_MAPPING.items():
+                if clean_name == old_name.upper() and new_name not in raw.ch_names:
+                    rename_dict[ch_name] = new_name
+                    break
 
         if rename_dict:
             logger.info(f"Renaming channels: {rename_dict}")
             raw.rename_channels(rename_dict)
+
+        # Now standardize channel names to match expected casing
+        case_mapping = {}
+        for ch_name in raw.ch_names:
+            for std_name in self.STANDARD_CHANNELS:
+                if ch_name.upper() == std_name.upper() and ch_name != std_name:
+                    case_mapping[ch_name] = std_name
+                    break
+
+        if case_mapping:
+            logger.info(f"Standardizing channel case: {case_mapping}")
+            raw.rename_channels(case_mapping)
+
+        # Select and reorder to standard 20 channels
+        available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
+        missing_channels = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
+
+        if missing_channels:
+            logger.warning(f"Missing standard channels: {missing_channels}")
+            if len(available_standard) < 19:  # Minimum requirement
+                raise ValueError(
+                    f"Too few standard channels ({len(available_standard)}/20). Need at least 19."
+                )
+
+        # Pick and reorder channels
+        if len(available_standard) < 20:
+            logger.warning(f"Only {len(available_standard)}/20 standard channels available")
+
+        raw.pick_channels(available_standard, ordered=True)
+        logger.info(f"Selected {len(raw.ch_names)} standard channels")
 
         return raw
 
@@ -160,11 +216,11 @@ class TUABPreprocessor:
 
         # Detect and annotate muscle artifacts
         try:
-            muscle_annot = mne.preprocessing.annotate_muscle_zscore(
+            muscle_annot, muscle_scores = mne.preprocessing.annotate_muscle_zscore(
                 raw, threshold=4.0, ch_type='eeg', min_length_good=0.2, filter_freq=(110, 140)
             )
             raw.set_annotations(raw.annotations + muscle_annot)
-            logger.info(f"Found {len(muscle_annot)} muscle artifacts")
+            logger.info(f"Found {len(muscle_annot)} muscle artifact segments")
         except Exception as e:
             logger.warning(f"Could not detect muscle artifacts: {e}")
 

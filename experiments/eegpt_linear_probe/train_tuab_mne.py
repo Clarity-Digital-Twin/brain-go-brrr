@@ -41,10 +41,10 @@ class LinearProbe(nn.Module):
 
         # Two-layer probe using LazyLinear to infer input dimension
         self.probe = nn.Sequential(
-            nn.LazyLinear(config["probe"]["hidden_dim"]),
+            nn.LazyLinear(config["model"]["probe"]["hidden_dim"]),
             nn.ReLU(),
-            nn.Dropout(config["probe"]["dropout"]),
-            nn.Linear(config["probe"]["hidden_dim"], 1),  # Binary output
+            nn.Dropout(config["model"]["probe"]["dropout"]),
+            nn.Linear(config["model"]["probe"]["hidden_dim"], 1),  # Binary output
         )
 
     def forward(self, features):
@@ -241,7 +241,7 @@ def main():
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
-    eegpt_checkpoint = Path(config['model']['checkpoint_path'])
+    eegpt_checkpoint = Path(config['model']['backbone']['checkpoint_path'])
     if not eegpt_checkpoint.exists():
         raise FileNotFoundError(f"EEGPT checkpoint not found at {eegpt_checkpoint}")
 
@@ -255,17 +255,17 @@ def main():
     # Setup optimizer
     optimizer = torch.optim.AdamW(
         probe.parameters(),
-        lr=config['optimizer']['lr'],
-        weight_decay=config['optimizer']['weight_decay'],
+        lr=config['training']['optimizer']['lr'],
+        weight_decay=config['training']['optimizer']['weight_decay'],
     )
 
     # Setup scheduler
-    total_steps = len(train_loader) * config['training']['epochs']
+    total_steps = len(train_loader) * config['training']['max_epochs']
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=config['optimizer']['lr'],
+        max_lr=config['training']['scheduler']['max_lr'],
         total_steps=total_steps,
-        pct_start=config['scheduler']['pct_start'],
+        pct_start=config['training']['scheduler']['pct_start'],
         anneal_strategy='cos',
     )
 
@@ -288,7 +288,7 @@ def main():
 
     # Training loop
     logger.info("Starting training...")
-    for epoch in range(start_epoch, config['training']['epochs']):
+    for epoch in range(start_epoch, config['training']['max_epochs']):
         # Train
         train_loss, train_auroc = train_epoch(
             model, probe, train_loader, optimizer, scheduler, criterion, device, epoch
@@ -316,8 +316,8 @@ def main():
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved best model with AUROC: {best_auroc:.4f}")
 
-        # Save regular checkpoint
-        if epoch % config['training']['save_every'] == 0:
+        # Save regular checkpoint every 2 epochs
+        if epoch % 2 == 0:  # Default save frequency
             checkpoint = {
                 'epoch': epoch,
                 'probe_state_dict': probe.state_dict(),
