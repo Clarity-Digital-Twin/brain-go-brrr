@@ -210,6 +210,20 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
             optimizer.step()
             scheduler.step()
             global_step += 1
+            
+            # Write heartbeat for signal handler (lightweight JSON for fresh values)
+            if output_dir:
+                heartbeat = {
+                    "epoch": epoch,
+                    "batch_idx": batch_idx, 
+                    "global_step": global_step,
+                    "walltime": time.time(),
+                    "loss": loss.item(),
+                    "lr": scheduler.get_last_lr()[0]
+                }
+                heartbeat_path = output_dir / "heartbeat.json"
+                with open(heartbeat_path, 'w') as f:
+                    json.dump(heartbeat, f)
 
             # Track metrics
             losses.append(loss.item())
@@ -445,15 +459,18 @@ def main():
     def _handle_signal(signum, _frame):
         signame = {signal.SIGINT: "SIGINT", signal.SIGTERM: "SIGTERM"}.get(signum, str(signum))
         logger.error(f"Received {signame}; saving checkpoint and exiting...")
-        # Read latest checkpoint to get fresh batch_idx and global_step
-        latest_ckpt = sorted(output_dir.glob("checkpoint_epoch*_batch*.pt"))
-        if latest_ckpt:
+        # Read heartbeat for fresh batch_idx and global_step
+        heartbeat_path = output_dir / "heartbeat.json"
+        if heartbeat_path.exists():
             try:
-                ckpt = torch.load(latest_ckpt[-1], map_location='cpu')
-                state["batch_idx"] = ckpt.get("batch_idx", state["batch_idx"])
-                state["global_step"] = ckpt.get("global_step", state["global_step"])
+                with open(heartbeat_path, 'r') as f:
+                    heartbeat = json.load(f)
+                state["epoch"] = heartbeat.get("epoch", state["epoch"])
+                state["batch_idx"] = heartbeat.get("batch_idx", state["batch_idx"])
+                state["global_step"] = heartbeat.get("global_step", state["global_step"])
+                logger.info(f"Loaded heartbeat: epoch={state['epoch']}, batch={state['batch_idx']}, step={state['global_step']}")
             except:
-                pass  # Use existing state values if load fails
+                logger.warning("Failed to read heartbeat, using cached state values")
         save_checkpoint(tag=f"signal_{signame}")
         sys.exit(128 + signum)
 

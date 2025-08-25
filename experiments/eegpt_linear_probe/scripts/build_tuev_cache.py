@@ -201,8 +201,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '--output',
         type=str,
-        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_table13',
-        help='Output cache directory'
+        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_4s_256hz_v2',
+        help='Output cache directory (v2 = 1024 samples)'
     )
 
     args = parser.parse_args()
