@@ -211,7 +211,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
             scheduler.step()
             global_step += 1
             
-            # Write heartbeat for signal handler (lightweight JSON for fresh values)
+            # Write heartbeat for signal handler (atomic write for safety)
             if output_dir:
                 heartbeat = {
                     "epoch": epoch,
@@ -221,9 +221,14 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                     "loss": loss.item(),
                     "lr": scheduler.get_last_lr()[0]
                 }
+                # Atomic write: write to temp file then rename
                 heartbeat_path = output_dir / "heartbeat.json"
-                with open(heartbeat_path, 'w') as f:
+                heartbeat_tmp = output_dir / "heartbeat.json.tmp"
+                with open(heartbeat_tmp, 'w') as f:
                     json.dump(heartbeat, f)
+                    f.flush()
+                    os.fsync(f.fileno())  # Force write to disk
+                os.replace(heartbeat_tmp, heartbeat_path)  # Atomic rename
 
             # Track metrics
             losses.append(loss.item())
