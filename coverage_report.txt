@@ -1,0 +1,6 @@
+ERROR: usage: pytest [options] [file_or_dir] [file_or_dir] [...]
+pytest: error: unrecognized arguments: --cov=brain_go_brrr --cov-report=term-missing --cov-report=html --no-cov-on-fail
+  inifile: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/pytest.ini
+  rootdir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr
+
+COVERAGE COMPLETE
