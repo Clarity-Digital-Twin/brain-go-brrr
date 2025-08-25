@@ -25,11 +25,9 @@ from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, confusio
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from datasets.tuev_dataset import TUEVDataset
-from datasets.tuev_dataset_cached import TUEVCachedDatasetPadded
-
+# Imports assume PYTHONPATH is set to repository root by launch script
+from experiments.eegpt_linear_probe.datasets.tuev_dataset import TUEVDataset
+from experiments.eegpt_linear_probe.datasets.tuev_dataset_cached import TUEVCachedDatasetPadded
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 logging.basicConfig(level=logging.INFO)
