@@ -1,15 +1,28 @@
 # Technical Debt & Future Improvements
 
+## Recently Resolved Issues ✅
+
+### ✅ RESOLVED: PyTorch Lightning Training Bug (August 25, 2025)
+- **Issue**: Lightning 2.5.2 hangs on large cached datasets
+- **Solution**: Implemented pure PyTorch training scripts with crash guards
+- **Files Fixed**:
+  - `experiments/eegpt_linear_probe/train_tuab.py` (added crash guards)
+  - `experiments/eegpt_linear_probe/train_tuev.py` (added crash guards)
+
+### ✅ RESOLVED: CI/CD Pipeline Failures (August 25, 2025)
+- **Issue**: Literature folder with Windows paths breaking pre-commit hooks
+- **Solution**: Excluded from pre-commit but kept in repo for contributors
+- **Files Fixed**: `.pre-commit-config.yaml`
+
 ## Priority Issues to Address
 
-### 🔴 Critical: Sleep-EDF and EEGPT Pathway Separation
+### 🔴 Critical: Intelligent Channel Routing
 
 **Issue**: EEGPT requires 19+ channels for meaningful results. Data should be routed to appropriate pathways based on channel count.
 
 **Impact**:
 - `/eeg/sleep/stages` endpoint should route based on channel count
 - Tests incorrectly skip combinations instead of routing appropriately
-- Documentation previously implied sequential processing
 
 **Current Architecture** (CORRECT):
 - **YASA pathway**: ANY channel count (auto-selects best channel) → YASA sleep staging ✅
@@ -20,12 +33,10 @@
 **Solution Required**:
 1. Route inputs intelligently: <19 channels → YASA only, 19+ channels → both pathways available
 2. Refactor tests to explicitly separate YASA and EEGPT pathways
-3. ✅ DONE: Documentation updated to clarify parallel processing architecture
 
 **Files to Modify**:
 - `src/brain_go_brrr/api/routers/sleep.py` (add channel validation)
 - `tests/unit/test_cli_streaming.py` (refactor, not skip)
-- `docs/ARCHITECTURE.md` (clarify parallel pathways)
 
 ---
 
@@ -120,10 +131,12 @@
 
 | Issue | Priority | Effort | Impact | Status |
 |-------|----------|--------|--------|--------|
-| Sleep-EDF Resampling | 🔴 High | 2-4 hrs | Critical | Open |
+| Intelligent Channel Routing | 🔴 High | 2-4 hrs | Critical | Open |
 | TestClient DI Override | 🟡 Medium | 4-8 hrs | Medium | Open |
 | AutoReject Memory | 🟡 Medium | 2-4 hrs | Low | Open |
 | Redis Testing | 🟢 Low | 1-2 hrs | Low | Open |
+| PyTorch Lightning Bug | ✅ | - | - | Resolved |
+| CI/CD Pipeline | ✅ | - | - | Resolved |
 
 ---
 
@@ -133,4 +146,4 @@
 - Current test pass rate: 100% (58 passed, 4 legitimately skipped)
 - Code quality: 100% (lint + type checks passing)
 
-Last Updated: August 21, 2025
+Last Updated: August 25, 2025
