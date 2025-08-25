@@ -232,6 +232,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
                 torch.save({
                     'epoch': epoch,
                     'batch_idx': batch_idx,
+                    'global_step': global_step,
                     'probe_state_dict': probe.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
                     'scheduler_state_dict': scheduler.state_dict(),
