@@ -116,7 +116,7 @@ import-lint: ## Check import boundaries with import-linter
 
 format: ## Format code with ruff
 	@echo "$(GREEN)Formatting code...$(NC)"
-	$(RUFF) format $(SRC_DIR) $(TEST_DIR) scripts
+	$(RUFF) format $(SRC_DIR) $(TEST_DIR) scripts experiments
 	@echo "$(GREEN)Code formatted!$(NC)"
 
 format-check: ## Check formatting without changing files (CI-style)
