@@ -13,7 +13,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import numpy as np
 import torch
@@ -133,7 +132,7 @@ def build_cache(config_path: str, output_dir: str):
         # Report statistics
         logger.info(f"\n{split} Split Statistics:")
         logger.info(f"  Total samples: {len(samples_info)}")
-        logger.info(f"  Class distribution:")
+        logger.info("  Class distribution:")
         for i, name in enumerate(index['class_names']):
             count = class_counts[i]
             pct = count / total * 100 if total > 0 else 0
@@ -151,7 +150,7 @@ def build_cache(config_path: str, output_dir: str):
         split_cache = cache_dir / f"tuev_{split}_cache"
         index_path = split_cache / 'index.json'
 
-        with open(index_path, 'r') as f:
+        with open(index_path) as f:
             index = json.load(f)
 
         # Check a few samples
@@ -177,10 +176,10 @@ def build_cache(config_path: str, output_dir: str):
     print("="*60)
     print(f"\nCache location: {cache_dir}")
     print("\nTo use this cache in training:")
-    print(f"  python train_tuev.py \\")
-    print(f"    --config configs/tuev.yaml \\")
-    print(f"    --use-cache \\")
-    print(f"    --device cuda")
+    print("  python train_tuev.py \\")
+    print("    --config configs/tuev.yaml \\")
+    print("    --use-cache \\")
+    print("    --device cuda")
     print("\nExpected performance (from paper):")
     print("  Balanced Accuracy: 0.6232 ± 0.0114")
     print("  Weighted F1:       0.8187 ± 0.0063")
