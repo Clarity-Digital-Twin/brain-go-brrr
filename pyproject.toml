@@ -206,10 +206,12 @@ ignore = [
     "ANN",     # Skip type annotations (training scripts, not library code)
     "E402",    # Allow imports after sys.path manipulation (required for local imports)
     "E722",    # Allow bare except in signal handlers only
-    "PTH123",  # Allow open() instead of Path.open() (existing code)
+    "PTH",     # Allow os.path operations (existing code)
     "RUF001",  # Allow unicode in strings (for math symbols)
+    "RUF002",  # Allow unicode in docstrings (for math symbols)
     "RUF003",  # Allow unicode in comments (for math symbols)
     "B007",    # Allow unused loop variables (common in training loops)
+    "N812",    # Allow uppercase aliases like F for functional
 ]
 
 [tool.ruff.lint.pydocstyle]
