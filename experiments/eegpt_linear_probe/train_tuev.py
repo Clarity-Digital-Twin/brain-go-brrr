@@ -10,14 +10,11 @@ Based on TUEV_UNIFIED_SPECS.md:
 import argparse
 import json
 import logging
-import os
 import random
 import signal
 import sys
-import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -35,10 +32,10 @@ from tqdm import tqdm
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
-
 from datasets.tuev_dataset import TUEVDataset
 from datasets.tuev_dataset_cached import TUEVCachedDatasetPadded
+
+from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,7 +129,7 @@ class TUEVLinearProbe(nn.Module):
         # Log shape on first forward for debugging
         if not hasattr(self, '_logged_shape'):
             logger.info(f"TUEV features shape: {features.shape} -> flattened: {features.reshape(features.size(0), -1).shape[1]} features")
-            logger.info(f"Using summary tokens only (4×512 = 2048 features), not temporal patches")
+            logger.info("Using summary tokens only (4×512 = 2048 features), not temporal patches")
             self._logged_shape = True
 
         # Flatten the 4 summary tokens
@@ -150,7 +147,7 @@ def train_epoch(
     device: str,
     epoch: int,
     output_dir: Path
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Train for one epoch."""
     model.train()
     # Keep EEGPT frozen
@@ -234,7 +231,7 @@ def evaluate(
     criterion: nn.Module,
     device: str,
     epoch: int
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Evaluate model."""
     model.eval()
 
@@ -487,7 +484,7 @@ def main(args):
     logger.info("=" * 50)
     logger.info("Training Complete!")
     logger.info(f"Best Balanced Accuracy: {best_balanced_acc:.4f} (epoch {best_epoch})")
-    logger.info(f"Target from paper:      0.6232")
+    logger.info("Target from paper:      0.6232")
     logger.info(f"Achievement rate:       {best_balanced_acc/0.6232*100:.1f}%")
     logger.info("=" * 50)
 

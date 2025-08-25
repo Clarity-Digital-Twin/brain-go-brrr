@@ -8,7 +8,6 @@ import os
 import signal
 import sys
 import time
-import traceback
 from pathlib import Path
 
 import numpy as np
@@ -18,7 +17,7 @@ import torch.nn.functional as F
 import yaml
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 # Add project root to path
@@ -29,8 +28,8 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Import custom dataset and collate (use utils module to avoid duplication)
 sys.path.insert(0, str(Path(__file__).parent))
-from utils.custom_collate_fixed import collate_eeg_batch_fixed
 from datasets.tuab_dataset import TUABMemoryMappedDataset
+from utils.custom_collate_fixed import collate_eeg_batch_fixed
 
 # Configure logging
 logging.basicConfig(
@@ -153,7 +152,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
     # Use total_batches if provided (for subset loaders), else use train_loader length
     total = total_batches if total_batches is not None else len(train_loader)
-    
+
     pbar = tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), initial=initial_batch)
     for batch_idx, (data, labels) in pbar:
         # No skipping needed - Subset already handles it!
@@ -210,12 +209,12 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
             optimizer.step()
             scheduler.step()
             global_step += 1
-            
+
             # Write heartbeat for signal handler (atomic write for safety)
             if output_dir:
                 heartbeat = {
                     "epoch": epoch,
-                    "batch_idx": batch_idx, 
+                    "batch_idx": batch_idx,
                     "global_step": global_step,
                     "walltime": time.time(),
                     "loss": loss.item(),
@@ -468,7 +467,7 @@ def main():
         heartbeat_path = output_dir / "heartbeat.json"
         if heartbeat_path.exists():
             try:
-                with open(heartbeat_path, 'r') as f:
+                with open(heartbeat_path) as f:
                     heartbeat = json.load(f)
                 state["epoch"] = heartbeat.get("epoch", state["epoch"])
                 state["batch_idx"] = heartbeat.get("batch_idx", state["batch_idx"])
@@ -496,13 +495,13 @@ def main():
         start_batch = checkpoint.get("batch_idx", 0) + 1  # Resume from next batch
         global_step = checkpoint.get("global_step", 0)
         best_val_auroc = checkpoint.get("best_val_auroc", 0)
-        
+
         # Sync scheduler with global_step
         scheduler.last_epoch = global_step - 1
-        
+
         # Log scheduler state for verification
         logger.info(f"Scheduler state after resume: last_epoch={scheduler.last_epoch}, lr={scheduler.get_last_lr()[0]:.6f}")
-        
+
         # Check if we need to move to next epoch
         if start_batch >= len(train_loader):
             start_epoch += 1
@@ -544,7 +543,7 @@ def main():
             )
             logger.info(f"Created subset loader skipping {sample_offset} samples ({current_start_batch} batches)")
             train_metrics, global_step = train_epoch(
-                backbone, probe, resume_loader, optimizer, scheduler, device, config, 
+                backbone, probe, resume_loader, optimizer, scheduler, device, config,
                 epoch, output_dir, 0, global_step, total_batches=len(train_loader), initial_batch=current_start_batch
             )
         else:
@@ -559,20 +558,20 @@ def main():
                     collate_fn=collate_eeg_batch_fixed,
                 )
                 train_metrics, global_step = train_epoch(
-                    backbone, probe, shuffled_loader, optimizer, scheduler, device, config, 
+                    backbone, probe, shuffled_loader, optimizer, scheduler, device, config,
                     epoch, output_dir, 0, global_step
                 )
             else:
                 # First epoch - use original loader (no shuffle for reproducibility)
                 train_metrics, global_step = train_epoch(
-                    backbone, probe, train_loader, optimizer, scheduler, device, config, 
+                    backbone, probe, train_loader, optimizer, scheduler, device, config,
                     epoch, output_dir, 0, global_step
                 )
-        
+
         # Update state after epoch completes
         state["global_step"] = global_step
         state["batch_idx"] = len(train_loader) - 1  # Last batch of epoch
-        
+
         logger.info(
             f"Train - Loss: {train_metrics['loss']:.4f}, "
             f"AUROC: {train_metrics['auroc']:.4f}, "
