@@ -16,8 +16,7 @@ from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEData
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -28,65 +27,60 @@ def main():
         '--data-root',
         type=str,
         default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuab',
-        help='Root directory containing TUAB EDF files'
+        help='Root directory containing TUAB EDF files',
     )
     parser.add_argument(
         '--cache-dir',
         type=str,
         default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_preprocessed',
-        help='Directory to save preprocessed cache'
+        help='Directory to save preprocessed cache',
     )
     parser.add_argument(
         '--split',
         type=str,
         choices=['train', 'eval', 'both'],
         default='both',
-        help='Which split(s) to build cache for'
+        help='Which split(s) to build cache for',
     )
     parser.add_argument(
-        '--force-rebuild',
-        action='store_true',
-        help='Force rebuilding cache even if it exists'
+        '--force-rebuild', action='store_true', help='Force rebuilding cache even if it exists'
     )
-    
+
     args = parser.parse_args()
-    
+
     # Determine which splits to process
-    if args.split == 'both':
-        splits = ['train', 'eval']
-    else:
-        splits = [args.split]
-    
+    splits = ['train', 'eval'] if args.split == 'both' else [args.split]
+
     # Build cache for each split
     for split in splits:
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"Building cache for {split} split")
-        logger.info(f"{'='*60}")
-        
+        logger.info(f"{'=' * 60}")
+
         try:
             dataset = TUABMNEDataset(
                 root_dir=Path(args.data_root),
                 split=split,
                 cache_dir=Path(args.cache_dir),
-                force_rebuild=args.force_rebuild
+                force_rebuild=args.force_rebuild,
             )
-            
+
             logger.info(f"Successfully built cache for {split} split")
             logger.info(f"Dataset contains {len(dataset)} windows")
-            
+
             # Test loading a sample
             if len(dataset) > 0:
                 x, y = dataset[0]
                 logger.info(f"Sample shape: {x.shape}, Label: {y.item()}")
-            
+
         except Exception as e:
             logger.error(f"Failed to build cache for {split} split: {e}")
             raise
-    
-    logger.info(f"\n{'='*60}")
+
+    logger.info(f"\n{'=' * 60}")
     logger.info("Cache building complete!")
     logger.info(f"Cache saved to: {args.cache_dir}")
-    logger.info(f"{'='*60}")
+    logger.info(f"{'=' * 60}")
 
 
 if __name__ == '__main__':

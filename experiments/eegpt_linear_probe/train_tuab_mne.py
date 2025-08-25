@@ -6,14 +6,11 @@ Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
 """
 
 import argparse
-import json
 import logging
-import os
 import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -31,8 +28,7 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -53,169 +49,177 @@ class LinearProbe(nn.Module):
 
     def forward(self, features):
         """Forward pass through probe.
-        
+
         Args:
             features: EEGPT features (B, 4, 512) or flattened (B, 2048)
-        
+
         Returns:
             Logits for binary classification (B, 1)
         """
         # Flatten if needed (B, 4, 512) -> (B, 2048)
         if features.dim() == 3:
             features = features.flatten(1)
-        
+
         return self.probe(features)
 
 
 def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, device, epoch):
     """Train for one epoch."""
     probe.train()
-    
+
     total_loss = 0
     all_preds = []
     all_labels = []
-    
+
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
-    
+
     for batch_idx, (x, y) in enumerate(pbar):
         x, y = x.to(device), y.to(device)
-        
+
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
             features = model.extract_features(x, summary=False)  # (B, 4, 512)
-        
+
         # Forward through probe
         logits = probe(features).squeeze(-1)  # (B,)
-        
+
         # Compute loss
         loss = criterion(logits, y)
-        
+
         # Backward pass
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         scheduler.step()
-        
+
         # Track metrics
         total_loss += loss.item()
         preds = torch.sigmoid(logits).detach().cpu().numpy()
         all_preds.extend(preds)
         all_labels.extend(y.cpu().numpy())
-        
+
         # Update progress bar
         if batch_idx % 10 == 0:
-            current_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
-            pbar.set_postfix({
-                'loss': f'{loss.item():.4f}',
-                'auroc': f'{current_auroc:.4f}',
-                'lr': f'{scheduler.get_last_lr()[0]:.6f}'
-            })
-    
+            current_auroc = (
+                roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
+            )
+            pbar.set_postfix(
+                {
+                    'loss': f'{loss.item():.4f}',
+                    'auroc': f'{current_auroc:.4f}',
+                    'lr': f'{scheduler.get_last_lr()[0]:.6f}',
+                }
+            )
+
     # Calculate epoch metrics
     avg_loss = total_loss / len(train_loader)
     epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
-    
+
     return avg_loss, epoch_auroc
 
 
 def evaluate(model, probe, eval_loader, criterion, device):
     """Evaluate model."""
     probe.eval()
-    
+
     total_loss = 0
     all_preds = []
     all_labels = []
-    
+
     with torch.no_grad():
         for x, y in tqdm(eval_loader, desc="Evaluating"):
             x, y = x.to(device), y.to(device)
-            
+
             # Extract features
             features = model.extract_features(x, summary=False)
-            
+
             # Forward through probe
             logits = probe(features).squeeze(-1)
-            
+
             # Compute loss
             loss = criterion(logits, y)
             total_loss += loss.item()
-            
+
             # Track predictions
             preds = torch.sigmoid(logits).cpu().numpy()
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
-    
+
     # Calculate metrics
     avg_loss = total_loss / len(eval_loader)
     auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
-    
+
     return avg_loss, auroc, all_preds, all_labels
 
 
 def main():
     parser = argparse.ArgumentParser(description='Train TUAB with MNE preprocessing')
-    parser.add_argument('--config', type=str, default='configs/tuab.yaml',
-                        help='Path to config file')
-    parser.add_argument('--output-dir', type=str, default=None,
-                        help='Output directory for checkpoints')
-    parser.add_argument('--cache-dir', type=str, 
-                        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_preprocessed',
-                        help='MNE preprocessed cache directory')
-    parser.add_argument('--resume', type=str, default=None,
-                        help='Path to checkpoint to resume from')
-    
+    parser.add_argument(
+        '--config', type=str, default='configs/tuab.yaml', help='Path to config file'
+    )
+    parser.add_argument(
+        '--output-dir', type=str, default=None, help='Output directory for checkpoints'
+    )
+    parser.add_argument(
+        '--cache-dir',
+        type=str,
+        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_preprocessed',
+        help='MNE preprocessed cache directory',
+    )
+    parser.add_argument(
+        '--resume', type=str, default=None, help='Path to checkpoint to resume from'
+    )
+
     args = parser.parse_args()
-    
+
     # Load config
-    with open(args.config, 'r') as f:
+    with open(args.config) as f:
         config = yaml.safe_load(f)
-    
+
     # Setup output directory
     if args.output_dir is None:
         timestamp = time.strftime('%Y%m%d_%H%M%S')
         args.output_dir = f"output/tuab_mne_{timestamp}"
-    
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Save config
     with open(output_dir / 'config.yaml', 'w') as f:
         yaml.dump(config, f)
-    
+
     # Setup logging to file
     log_file = output_dir / 'training.log'
     file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    file_handler.setFormatter(
+        logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    )
     logger.addHandler(file_handler)
-    
+
     logger.info("=" * 60)
     logger.info("Starting TUAB training with MNE+Autoreject preprocessing")
     logger.info("=" * 60)
     logger.info(f"Config: {args.config}")
     logger.info(f"Cache directory: {args.cache_dir}")
     logger.info(f"Output directory: {args.output_dir}")
-    
+
     # Setup device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info(f"Using device: {device}")
-    
+
     # Create datasets
     logger.info("Loading MNE-preprocessed datasets...")
     train_dataset = TUABMNEDataset(
-        root_dir=Path(config['data']['root_dir']),
-        split='train',
-        cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), split='train', cache_dir=Path(args.cache_dir)
     )
-    
+
     eval_dataset = TUABMNEDataset(
-        root_dir=Path(config['data']['root_dir']),
-        split='eval',
-        cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), split='eval', cache_dir=Path(args.cache_dir)
     )
-    
+
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Eval dataset: {len(eval_dataset)} windows")
-    
+
     # Create data loaders
     train_loader = DataLoader(
         train_dataset,
@@ -223,38 +227,38 @@ def main():
         shuffle=True,
         num_workers=config['data']['num_workers'],
         pin_memory=True,
-        collate_fn=collate_eeg_batch_fixed
+        collate_fn=collate_eeg_batch_fixed,
     )
-    
+
     eval_loader = DataLoader(
         eval_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=False,
         num_workers=config['data']['num_workers'],
         pin_memory=True,
-        collate_fn=collate_eeg_batch_fixed
+        collate_fn=collate_eeg_batch_fixed,
     )
-    
+
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
     eegpt_checkpoint = Path(config['model']['checkpoint_path'])
     if not eegpt_checkpoint.exists():
         raise FileNotFoundError(f"EEGPT checkpoint not found at {eegpt_checkpoint}")
-    
+
     model = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
     model = model.to(device)
     model.eval()  # Freeze EEGPT backbone
-    
+
     # Create probe
     probe = LinearProbe(config).to(device)
-    
+
     # Setup optimizer
     optimizer = torch.optim.AdamW(
         probe.parameters(),
         lr=config['optimizer']['lr'],
-        weight_decay=config['optimizer']['weight_decay']
+        weight_decay=config['optimizer']['weight_decay'],
     )
-    
+
     # Setup scheduler
     total_steps = len(train_loader) * config['training']['epochs']
     scheduler = OneCycleLR(
@@ -262,16 +266,16 @@ def main():
         max_lr=config['optimizer']['lr'],
         total_steps=total_steps,
         pct_start=config['scheduler']['pct_start'],
-        anneal_strategy='cos'
+        anneal_strategy='cos',
     )
-    
+
     # Setup loss
     criterion = nn.BCEWithLogitsLoss()
-    
+
     # Resume from checkpoint if specified
     start_epoch = 0
     best_auroc = 0
-    
+
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
         checkpoint = torch.load(args.resume, map_location=device)
@@ -281,7 +285,7 @@ def main():
         start_epoch = checkpoint['epoch'] + 1
         best_auroc = checkpoint.get('best_auroc', 0)
         logger.info(f"Resumed from epoch {start_epoch}, best AUROC: {best_auroc:.4f}")
-    
+
     # Training loop
     logger.info("Starting training...")
     for epoch in range(start_epoch, config['training']['epochs']):
@@ -289,14 +293,14 @@ def main():
         train_loss, train_auroc = train_epoch(
             model, probe, train_loader, optimizer, scheduler, criterion, device, epoch
         )
-        
+
         # Evaluate
         eval_loss, eval_auroc, _, _ = evaluate(model, probe, eval_loader, criterion, device)
-        
+
         # Log metrics
         logger.info(f"Epoch {epoch}: Train Loss: {train_loss:.4f}, Train AUROC: {train_auroc:.4f}")
         logger.info(f"Epoch {epoch}: Eval Loss: {eval_loss:.4f}, Eval AUROC: {eval_auroc:.4f}")
-        
+
         # Save checkpoint if best
         if eval_auroc > best_auroc:
             best_auroc = eval_auroc
@@ -306,12 +310,12 @@ def main():
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
-                'config': config
+                'config': config,
             }
-            checkpoint_path = output_dir / f'best_model.pt'
+            checkpoint_path = output_dir / 'best_model.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved best model with AUROC: {best_auroc:.4f}")
-        
+
         # Save regular checkpoint
         if epoch % config['training']['save_every'] == 0:
             checkpoint = {
@@ -320,12 +324,12 @@ def main():
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
-                'config': config
+                'config': config,
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint at epoch {epoch}")
-    
+
     logger.info("=" * 60)
     logger.info("Training complete!")
     logger.info(f"Best AUROC: {best_auroc:.4f}")
