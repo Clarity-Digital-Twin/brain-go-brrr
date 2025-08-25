@@ -495,6 +495,9 @@ def main():
         # Sync scheduler with global_step
         scheduler.last_epoch = global_step - 1
         
+        # Log scheduler state for verification
+        logger.info(f"Scheduler state after resume: last_epoch={scheduler.last_epoch}, lr={scheduler.get_last_lr()[0]:.6f}")
+        
         # Check if we need to move to next epoch
         if start_batch >= len(train_loader):
             start_epoch += 1
