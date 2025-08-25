@@ -19,10 +19,8 @@ import torch
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from datasets.tuev_dataset import TUEVDataset
+# Imports assume PYTHONPATH is set to repository root
+from experiments.eegpt_linear_probe.datasets.tuev_dataset import TUEVDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
