@@ -7,6 +7,7 @@ Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
@@ -152,6 +153,18 @@ def evaluate(model, probe, eval_loader, criterion, device):
     return avg_loss, auroc, all_preds, all_labels
 
 
+def resolve_env_vars(obj):
+    """Recursively resolve environment variables in config."""
+    if isinstance(obj, str) and obj.startswith("${") and obj.endswith("}"):
+        env_var = obj[2:-1]
+        return os.environ.get(env_var, obj)
+    elif isinstance(obj, dict):
+        return {k: resolve_env_vars(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [resolve_env_vars(item) for item in obj]
+    return obj
+
+
 def main():
     parser = argparse.ArgumentParser(description='Train TUAB with MNE preprocessing')
     parser.add_argument(
@@ -172,9 +185,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Load config
+    # Load config and resolve environment variables
     with open(args.config) as f:
         config = yaml.safe_load(f)
+    config = resolve_env_vars(config)
 
     # Setup output directory
     if args.output_dir is None:
@@ -316,8 +330,9 @@ def main():
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved best model with AUROC: {best_auroc:.4f}")
 
-        # Save regular checkpoint every 2 epochs
-        if epoch % 2 == 0:  # Default save frequency
+        # Save regular checkpoint
+        save_every = config.get('training', {}).get('save_every', 2)  # Default 2 if not in config
+        if epoch % save_every == 0:
             checkpoint = {
                 'epoch': epoch,
                 'probe_state_dict': probe.state_dict(),

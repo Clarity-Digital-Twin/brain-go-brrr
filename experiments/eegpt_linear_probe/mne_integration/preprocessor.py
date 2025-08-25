@@ -3,6 +3,8 @@ MNE+Autoreject preprocessing for TUAB dataset.
 Implements the verified preprocessing pipeline to improve EEGPT from 56% to 87% AUROC.
 """
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from typing import Any
@@ -69,7 +71,8 @@ class TUABPreprocessor:
         self.window_duration = self.config.get('window_duration', 4.0)
         self.bandpass_low = self.config.get('bandpass_low', 0.5)
         self.bandpass_high = self.config.get('bandpass_high', 45.0)
-        self.notch_freq = self.config.get('notch_freq', 60.0)
+        # Notch frequency: use config, then raw.info line_freq, then default to 60Hz (US)
+        self.notch_freq = self.config.get('notch_freq', None)  # Will be set per file if None
 
         # TUAB-specific Autoreject parameters (verified)
         self.ar_n_interpolate = self.config.get('ar_n_interpolate', [1, 2, 3, 4])
@@ -78,7 +81,7 @@ class TUABPreprocessor:
 
         logger.info(f"Initialized TUABPreprocessor with config: {self.config}")
 
-    def process_raw(self, edf_path: Path) -> tuple:
+    def process_raw(self, edf_path: Path) -> tuple[mne.Epochs, dict[str, int]]:
         """Apply full preprocessing pipeline to raw EDF file.
 
         Args:
@@ -192,7 +195,9 @@ class TUABPreprocessor:
         if len(available_standard) < 20:
             logger.warning(f"Only {len(available_standard)}/20 standard channels available")
 
-        raw.pick_channels(available_standard, ordered=True)
+        # Use raw.pick() for better compatibility across MNE versions
+        # The order is preserved based on the input list
+        raw.pick(available_standard)
         logger.info(f"Selected {len(raw.ch_names)} standard channels")
 
         return raw
@@ -211,8 +216,18 @@ class TUABPreprocessor:
         raw.filter(self.bandpass_low, self.bandpass_high, fir_design='firwin', verbose=False)
 
         # Notch filter for line noise
-        logger.info(f"Applying notch filter at {self.notch_freq} Hz")
-        raw.notch_filter([self.notch_freq, self.notch_freq * 2], fir_design='firwin', verbose=False)
+        # Determine notch frequency: config > raw.info > default 60Hz
+        if self.notch_freq is not None:
+            notch_freq = self.notch_freq
+        elif 'line_freq' in raw.info and raw.info['line_freq'] is not None:
+            notch_freq = raw.info['line_freq']
+            logger.info(f"Using line frequency from data: {notch_freq} Hz")
+        else:
+            notch_freq = 60.0  # Default to US standard
+            logger.info("No line frequency in data, defaulting to 60 Hz")
+        
+        logger.info(f"Applying notch filter at {notch_freq} Hz")
+        raw.notch_filter([notch_freq, notch_freq * 2], fir_design='firwin', verbose=False)
 
         # Detect and annotate muscle artifacts
         try:
@@ -266,18 +281,15 @@ class TUABPreprocessor:
         Returns:
             Epochs object
         """
-        # Create fixed-length events
-        events = mne.make_fixed_length_events(raw, duration=self.window_duration)
-
-        # Create epochs
-        epochs = mne.Epochs(
+        # Use make_fixed_length_epochs to avoid off-by-one sample issues
+        # This properly handles window boundaries and annotations
+        epochs = mne.make_fixed_length_epochs(
             raw,
-            events,
-            tmin=0,
-            tmax=self.window_duration,
+            duration=self.window_duration,
+            overlap=0.0,  # No overlap for now (can be configured later)
             baseline=None,  # No baseline for EEGPT
+            reject_by_annotation=True,  # Respect bad segments from muscle detection
             preload=True,
-            reject=None,  # Let Autoreject handle this
             verbose=False,
         )
 
