@@ -222,23 +222,23 @@ def autoreject_adaptive_processing(
     # 5. AutoReject local threshold estimation
     from autoreject import AutoReject
     
-    # Adapt n_interpolate based on channel quality
+    # Adapt n_interpolate based on channel quality (custom grids, not defaults)
     if interpolated:
-        n_interpolate = [1, 2]  # Already interpolated some
+        n_interpolate = [1, 2]  # Custom: Already interpolated some
     else:
-        n_interpolate = [1, 2, 3, 4]  # More interpolation options
+        n_interpolate = [1, 2, 3, 4]  # Custom: More options (default is [1, 4, 32])
     
-    # Adapt consensus based on artifact percentage
+    # Adapt consensus based on artifact percentage (custom values)
     if metadata['artifact_percentage'] > 30:
-        consensus = [0.3, 0.5, 0.7]  # More aggressive rejection
+        consensus = [0.3, 0.5, 0.7]  # Custom: More aggressive rejection
     else:
-        consensus = [0.5, 0.7, 0.9]  # Standard consensus
+        consensus = [0.5, 0.7, 0.9]  # Custom: Standard (default is np.linspace(0, 1, 11))
     
     ar = AutoReject(
         n_interpolate=n_interpolate,
         consensus=consensus,
         thresh_method='bayesian_optimization',  # Better than random search
-        cv=5,  # 5-fold cross-validation
+        cv=5,  # Reduced from default=10 for speed
         n_jobs=1,
         random_state=42,
         verbose=False

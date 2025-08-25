@@ -571,9 +571,15 @@ class MNEPreprocessedDataset(torch.utils.data.Dataset):
         raw = apply_optimal_reference(raw, self.config['reference'])
         epochs = create_intelligent_epochs(raw, self.config['window_size'])
         
-        # Apply Autoreject
+        # Apply Autoreject with TUAB-optimized parameters
         from autoreject import AutoReject
-        ar = AutoReject(n_interpolate=[1, 2, 3], random_state=42, n_jobs=1)
+        ar = AutoReject(
+            n_interpolate=[1, 2, 3, 4],  # TUAB-specific (default is [1, 4, 32])
+            consensus=[0.3, 0.5, 0.7],   # TUAB-specific (default is np.linspace(0, 1, 11))
+            cv=5,  # Reduced from default=10 for speed
+            random_state=42, 
+            n_jobs=1
+        )
         epochs_clean = ar.fit_transform(epochs)
         
         # Extract features
