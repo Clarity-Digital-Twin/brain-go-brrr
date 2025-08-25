@@ -101,7 +101,7 @@ notebook: ## Start Jupyter Lab
 
 lint: ## Run linting with ruff (with auto-fix)
 	@echo "$(GREEN)Running linting checks...$(NC)"
-	$(RUFF) check $(SRC_DIR) $(TEST_DIR) scripts --fix
+	$(RUFF) check $(SRC_DIR) $(TEST_DIR) scripts experiments --fix
 	@echo "$(GREEN)Linting complete!$(NC)"
 
 lint-ci: ## Run linter exactly as CI does (no auto-fix)
