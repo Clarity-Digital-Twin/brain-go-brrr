@@ -251,6 +251,8 @@ def apply_optimal_reference(raw: mne.io.Raw, strategy: str = 'average') -> mne.i
         
     elif strategy == 'rest':
         # REST reference (Reference Electrode Standardization Technique)
+        # Note: REST requires a forward solution. This example uses a sphere model.
+        # For real data, consider using mne.read_forward_solution() with a pre-computed forward model
         import mne.preprocessing
         sphere = mne.make_sphere_model('auto', 'auto', raw.info)
         raw.set_eeg_reference('REST', forward=sphere)
