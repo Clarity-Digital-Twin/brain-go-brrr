@@ -178,7 +178,7 @@ def build_cache(config_path: str, output_dir: str):
     print(f"\nCache location: {cache_dir}")
     print("\nTo use this cache in training:")
     print(f"  python train_tuev.py \\")
-    print(f"    --config configs/tuev.yaml \\"
+    print(f"    --config configs/tuev.yaml \\")
     print(f"    --use-cache \\")
     print(f"    --device cuda")
     print("\nExpected performance (from paper):")
