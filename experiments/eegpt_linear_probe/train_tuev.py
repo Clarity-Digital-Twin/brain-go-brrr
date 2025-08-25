@@ -427,7 +427,7 @@ def main(args):
         state['best_bacc'] = best_balanced_acc
         # Train
         train_metrics = train_epoch(
-            model, train_loader, optimizer, criterion, args.device, epoch
+            model, train_loader, optimizer, criterion, args.device, epoch, output_dir
         )
 
         # Evaluate
