@@ -200,21 +200,11 @@ ignore = [
 "scripts/*.py" = ["E402", "ANN"]  # Allow imports after env var setup, relaxed types
 "tests/conftest.py" = ["TCH004"]  # Allow type-checking imports with future annotations
 "tests/fixtures/mock_eeg_generator.py" = ["TCH004"]  # Allow type-checking imports with future annotations
-# More lenient rules for experiments (training scripts)
+# Minimal exceptions for experiments (only what's truly needed)
 "experiments/**/*.py" = [
-    "ANN",     # Skip type annotations (these are research scripts)
     "D",       # Skip docstrings (not API code)
-    "S101",    # Allow assert statements (common in training)
-    "PLR0913", # Allow many arguments (configs have many params)
-    "PLR2004", # Allow magic values (hyperparameters)
-    "PTH",     # Allow os.path (existing code uses it)
-    "N",       # Naming conventions (some vars use caps)
-    "SIM",     # Simplification (research code can be verbose)
-    "ARG",     # Unused arguments (callbacks may not use all)
-    "B",       # Bugbear rules too strict for experiments
-    "RUF",     # Ruff-specific rules too strict
-    "E402",    # Allow imports after sys.path manipulation
-    "E722",    # Allow bare except for signal handlers
+    "E402",    # Allow imports after sys.path manipulation (required for local imports)
+    "E722",    # Allow bare except in signal handlers only
 ]
 
 [tool.ruff.lint.pydocstyle]
