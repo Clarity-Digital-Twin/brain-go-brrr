@@ -54,11 +54,7 @@ class LinearProbe(nn.Module):
         batch_size = features.shape[0]
 
         # Handle both (B, 4, 512) and (B, 512) shapes
-        if features.ndim == 3:
-            # (B, 4, 512) -> flatten to (B, 2048)
-            x = features.reshape(batch_size, -1)
-        else:
-            x = features
+        x = features.reshape(batch_size, -1) if features.ndim == 3 else features
 
         return self.probe(x).squeeze(-1)  # (B, 1) -> (B,) for BCEWithLogitsLoss
 
@@ -127,7 +123,7 @@ def train_epoch(
     config,
     epoch,
     output_dir,
-    start_batch,
+    start_batch,  # noqa: ARG001 - kept for API compatibility
     global_step,
     total_batches=None,
     initial_batch=0,
@@ -261,10 +257,7 @@ def train_epoch(
 
     # Calculate epoch metrics
     epoch_loss = np.mean(losses)
-    if len(set(all_labels)) > 1:  # Only compute if we have both classes
-        epoch_auroc = roc_auc_score(all_labels, all_preds)
-    else:
-        epoch_auroc = 0.5  # Default if only one class
+    epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
 
     logger.info(f"Epoch {epoch}: Loss={epoch_loss:.4f}, AUROC={epoch_auroc:.4f}")
 
@@ -295,10 +288,7 @@ def validate(model, probe, val_loader, device):
             all_labels.extend(labels.cpu().numpy())
 
     # Calculate metrics
-    if len(set(all_labels)) > 1:
-        auroc = roc_auc_score(all_labels, all_preds)
-    else:
-        auroc = 0.5
+    auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
 
     accuracy = np.mean((np.array(all_preds) > 0.5) == np.array(all_labels))
 
