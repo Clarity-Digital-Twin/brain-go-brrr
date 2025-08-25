@@ -393,3 +393,6 @@ DOWNLOAD_*.md
 
 # Coverage reports
 coverage_html_report/
+
+# Literature folder (contains Windows-specific paths breaking CI)
+literature/
