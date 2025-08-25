@@ -13,6 +13,8 @@ import logging
 import random
 import signal
 import sys
+import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -32,6 +34,21 @@ from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def dump_crash(output_dir, epoch, batch_idx, global_step, exc):
+    """Write crash info to JSON for debugging."""
+    out = {
+        "ts": time.time(),
+        "epoch": epoch,
+        "batch_idx": batch_idx,
+        "global_step": global_step,
+        "exc": repr(exc),
+        "traceback": traceback.format_exc(limit=5),
+    }
+    p = output_dir / "crash.jsonl"
+    with open(p, "a") as f:
+        f.write(json.dumps(out) + "\n")
 
 
 class TUEVLinearProbe(nn.Module):
@@ -160,7 +177,25 @@ def train_epoch(
 
             # Forward pass
             logits = model(data)
+            
+            # CRASH GUARD 1: Ensure correct shapes/types for CrossEntropyLoss
+            # CrossEntropyLoss expects (batch_size, num_classes) and integer labels
+            if logits.dim() != 2:
+                logger.error(f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)")
+                raise RuntimeError(f"Wrong logits shape at step {batch_idx}")
+            
+            # CRASH GUARD 2: Check for NaNs/Infs before loss
+            if not torch.isfinite(logits).all():
+                logger.error(f"Non-finite logits at batch {batch_idx}: "
+                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                raise RuntimeError(f"Non-finite logits at batch {batch_idx}")
+            
             loss = criterion(logits, labels)
+            
+            # CRASH GUARD 3: Check for NaN loss
+            if not torch.isfinite(loss):
+                logger.error(f"Non-finite loss at batch {batch_idx}: {loss.item()}")
+                raise RuntimeError(f"Non-finite loss at batch {batch_idx}")
 
             # Backward pass
             optimizer.zero_grad()
@@ -210,6 +245,9 @@ def train_epoch(
                 torch.cuda.empty_cache()
                 continue
             else:
+                logger.error(f"Crash at epoch {epoch}, batch {batch_idx}: {e}")
+                global_step = epoch * len(train_loader) + batch_idx
+                dump_crash(output_dir, epoch, batch_idx, global_step, e)
                 raise
 
     # Compute metrics
@@ -242,7 +280,25 @@ def evaluate(
 
             # Forward pass
             logits = model(data)
+            
+            # CRASH GUARD 1: Ensure correct shapes/types for CrossEntropyLoss
+            # CrossEntropyLoss expects (batch_size, num_classes) and integer labels
+            if logits.dim() != 2:
+                logger.error(f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)")
+                raise RuntimeError(f"Wrong logits shape at step {batch_idx}")
+            
+            # CRASH GUARD 2: Check for NaNs/Infs before loss
+            if not torch.isfinite(logits).all():
+                logger.error(f"Non-finite logits at batch {batch_idx}: "
+                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                raise RuntimeError(f"Non-finite logits at batch {batch_idx}")
+            
             loss = criterion(logits, labels)
+            
+            # CRASH GUARD 3: Check for NaN loss
+            if not torch.isfinite(loss):
+                logger.error(f"Non-finite loss at batch {batch_idx}: {loss.item()}")
+                raise RuntimeError(f"Non-finite loss at batch {batch_idx}")
 
             # Track predictions
             preds = logits.argmax(dim=1)
