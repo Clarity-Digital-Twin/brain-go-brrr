@@ -191,10 +191,10 @@ Find optimal parameters using validation curves:
 ```python
 from autoreject import validation_curve
 
-# Test different consensus values
-param_range = [0.1, 0.3, 0.5, 0.7, 0.9]
+# Test different threshold values for global AR
+param_range = None  # Will use default range from min to max PTP
 train_scores, test_scores = validation_curve(
-    ar, epochs, 
+    epochs,  # epochs is first argument, not ar
     param_name='thresh',  # For global AR, varies threshold
     param_range=param_range,
     cv=5
@@ -204,7 +204,7 @@ train_scores, test_scores = validation_curve(
 import matplotlib.pyplot as plt
 plt.plot(param_range, train_scores.mean(axis=1), label='train')
 plt.plot(param_range, test_scores.mean(axis=1), label='test')
-plt.xlabel('Consensus')
+plt.xlabel('Threshold')  # Changed from 'Consensus' to 'Threshold'
 plt.ylabel('Score')
 plt.legend()
 ```
