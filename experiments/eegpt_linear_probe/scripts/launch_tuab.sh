@@ -41,10 +41,8 @@ tmux new-session -d -s tuab_training \
        echo 'Training completed successfully!' | tee -a ${LOG_FILE}; \
        break; \
      else \
-       echo 'Training crashed! Check log for details. Waiting 10s before potential restart...' | tee -a ${LOG_FILE}; \
+       echo 'Training crashed! AUTO-RESTARTING in 10s...' | tee -a ${LOG_FILE}; \
        sleep 10; \
-       echo 'To restart, press Enter. To exit, press Ctrl+C' | tee -a ${LOG_FILE}; \
-       read -t 30 || break; \
      fi; \
      done"
 
