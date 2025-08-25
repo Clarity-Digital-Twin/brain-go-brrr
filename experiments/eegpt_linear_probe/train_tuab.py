@@ -484,14 +484,17 @@ def main():
         state["best_val_auroc"] = best_val_auroc
         logger.info(f"\nEpoch {epoch + 1}/{config['training']['max_epochs']}")
 
-        # Train
-        train_metrics = train_epoch(
-            backbone, probe, train_loader, optimizer, scheduler, device, config, epoch, output_dir
+        # Train with proper batch resume support
+        current_start_batch = start_batch if epoch == start_epoch else 0
+        train_metrics, global_step = train_epoch(
+            backbone, probe, train_loader, optimizer, scheduler, device, config, 
+            epoch, output_dir, current_start_batch, global_step
         )
         logger.info(
             f"Train - Loss: {train_metrics['loss']:.4f}, "
             f"AUROC: {train_metrics['auroc']:.4f}, "
-            f"BACC: {train_metrics['bacc']:.4f}"
+            f"BACC: {train_metrics['bacc']:.4f}, "
+            f"Global step: {global_step}"
         )
 
         # Persist train metrics incrementally
