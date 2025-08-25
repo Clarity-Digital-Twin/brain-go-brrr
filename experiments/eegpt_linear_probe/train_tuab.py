@@ -249,9 +249,9 @@ def train_epoch(
             all_preds.extend(preds)
             all_labels.extend(labels.cpu().numpy())
 
-            # Update progress bar
+            # Update progress bar (use scientific notation for tiny losses)
             pbar.set_postfix(
-                {"loss": f"{loss.item():.4f}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"}
+                {"loss": f"{loss.item():.6e}", "lr": f"{scheduler.get_last_lr()[0]:.2e}"}
             )
 
             # Periodic memory cleanup and checkpointing
