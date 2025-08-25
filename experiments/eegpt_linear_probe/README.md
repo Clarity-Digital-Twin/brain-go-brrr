@@ -10,15 +10,15 @@ We train lightweight linear probes on top of frozen EEGPT features for two clini
 
 ## Current Status
 
-🔄 **Active Training** - TUAB abnormality detection
-- Progress: ~33% complete (9,600/29,143 batches)
-- Speed: ~1.4 it/s
-- Monitor: `tmux attach -t tuab_training`
+✅ **FIXED & RUNNING** - TUAB abnormality detection with BCEWithLogitsLoss
+- Progress: Batch 95/29,143 (0.3% complete, just started)
+- Loss: ~0.55-0.65 (healthy, no longer zero!)
+- Monitor: `tmux attach -t tuab_fixed`
 
 ### Expected Performance
 | Dataset | Metric | Target | Status |
 |---------|--------|--------|--------|
-| TUAB | AUROC | 0.87 | Training (33%) |
+| TUAB | AUROC | 0.869 | Training (0.3%) |
 | TUEV | BAcc | 0.62 | Pending |
 
 ## Quick Start
@@ -26,10 +26,10 @@ We train lightweight linear probes on top of frozen EEGPT features for two clini
 ### 1. Train TUAB (Abnormality Detection)
 ```bash
 cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh
+./launch_tuab_training.sh
 
 # Monitor progress
-tmux attach -t tuab_training
+tmux attach -t tuab_fixed
 ```
 
 ### 2. Train TUEV (Event Detection)
@@ -45,25 +45,24 @@ tmux attach -t tuev_training
 
 ```
 eegpt_linear_probe/
-├── train_tuab.py              # TUAB training script (ACTIVE)
-├── train_tuev.py              # TUEV training script
-├── tuab_dataset.py            # TUAB memory-mapped dataset
-├── tuev_dataset.py            # TUEV dataset loader
-├── tuev_dataset_cached.py    # TUEV cached variant
+├── train_tuab.py                  # TUAB training (FIXED with BCEWithLogitsLoss)
+├── train_tuev.py                  # TUEV training script
+├── launch_tuab_training.sh        # Launch script for TUAB
+├── datasets/
+│   ├── tuab_cached_dataset.py    # Loads .pt cache files correctly
+│   ├── tuev_dataset.py           # TUEV dataset loader
+│   └── tuev_dataset_cached.py    # TUEV cached variant
 ├── configs/
-│   ├── tuab.yaml             # TUAB config (4s windows, batch=64)
-│   └── tuev.yaml             # TUEV config (10s windows, batch=500)
+│   ├── tuab.yaml                 # TUAB config (4s windows, batch=64)
+│   └── tuev.yaml                 # TUEV config (10s windows, batch=500)
 ├── scripts/
-│   ├── launch_tuab.sh        # TUAB training launcher
-│   ├── launch_tuev.sh        # TUEV training launcher
-│   ├── monitor_training.sh   # Training progress monitor
-│   ├── build_tuev_cache.py  # TUEV cache builder
-│   └── deployment/           # Deployment utilities
+│   ├── launch_tuev.sh            # TUEV training launcher
+│   ├── monitor_training.sh       # Training progress monitor
+│   └── build_tuev_cache.py       # TUEV cache builder
 ├── utils/
-│   └── custom_collate_fixed.py  # Batch collation
-├── logs/                      # Training logs
-├── output/                    # Model checkpoints
-└── __pycache__/              # Python cache
+│   └── custom_collate_fixed.py   # Batch collation
+├── logs/                          # Training logs
+└── output/                        # Model checkpoints
 
 ```
 

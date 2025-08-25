@@ -8,7 +8,6 @@ import argparse
 import json
 import logging
 import os
-import signal
 import sys
 import time
 from pathlib import Path
@@ -16,12 +15,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import yaml
-from omegaconf import OmegaConf
 from sklearn.metrics import roc_auc_score
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 # Add parent dir to path for imports
@@ -43,7 +40,7 @@ class LinearProbe(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        
+
         # Two-layer probe using LazyLinear to infer input dimension
         self.probe = nn.Sequential(
             nn.LazyLinear(config["probe"]["hidden_dim"]),
@@ -55,14 +52,14 @@ class LinearProbe(nn.Module):
     def forward(self, features):
         """Forward pass through probe."""
         batch_size = features.shape[0]
-        
+
         # Handle both (B, 4, 512) and (B, 512) shapes
         if features.ndim == 3:
             # (B, 4, 512) -> flatten to (B, 2048)
             x = features.reshape(batch_size, -1)
         else:
             x = features
-        
+
         return self.probe(x).squeeze(-1)  # (B, 1) -> (B,) for BCEWithLogitsLoss
 
 
@@ -148,7 +145,7 @@ def train_epoch(
 
     # Binary classification criterion matching EEGPT
     criterion = nn.BCEWithLogitsLoss()
-    
+
     # Optional: Add FIXED pos_weight for class imbalance (NOT dynamic!)
     # Based on TUAB's ~80% normal, ~20% abnormal distribution
     # pos_weight = torch.tensor([4.0]).to(device)  # Weight for positive class
