@@ -139,8 +139,8 @@ def create_dataloaders(config):
     return train_loader, val_loader
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None):
-    """Train for one epoch."""
+def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config, epoch=0, output_dir=None, start_batch=0, global_step=0):
+    """Train for one epoch with batch-level resume support."""
     model.eval()  # Backbone stays frozen
     probe.train()
 
@@ -151,8 +151,13 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
     # Micro-batching configuration
     micro_batch_size = 16  # Process 16 samples at a time for feature extraction
 
-    pbar = tqdm(train_loader, desc="Training")
-    for batch_idx, (data, labels) in enumerate(pbar):
+    pbar = tqdm(train_loader, desc="Training", total=len(train_loader), initial=start_batch)
+    for batch_idx, (data, labels) in enumerate(train_loader):
+        # Skip already processed batches when resuming
+        if batch_idx < start_batch:
+            continue
+        
+        pbar.update(1)
         try:
             data = data.to(device)
             labels = labels.to(device)
@@ -205,6 +210,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, device, config
 
             optimizer.step()
             scheduler.step()
+            global_step += 1
 
             # Track metrics
             losses.append(loss.item())
@@ -451,6 +457,11 @@ def main():
         scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
         start_epoch = checkpoint["epoch"]
         best_val_auroc = checkpoint.get("best_val_auroc", 0)
+        # WARNING: Currently resumes from start of epoch, not from batch_idx
+        # TODO: Implement proper batch-level resume to avoid wasted computation
+        batch_idx = checkpoint.get("batch_idx", 0)
+        if batch_idx > 0:
+            logger.warning(f"Checkpoint was at batch {batch_idx}, but resuming from start of epoch {start_epoch + 1}")
         logger.info(f"Resumed from epoch {start_epoch}, will continue from epoch {start_epoch + 1}")
     else:
         best_val_auroc = 0
