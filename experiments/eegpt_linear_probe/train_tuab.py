@@ -523,11 +523,26 @@ def main():
                 epoch, output_dir, 0, global_step, total_batches=len(train_loader), initial_batch=current_start_batch
             )
         else:
-            # Normal epoch - can use shuffle if desired (but keeping False for consistency)
-            train_metrics, global_step = train_epoch(
-                backbone, probe, train_loader, optimizer, scheduler, device, config, 
-                epoch, output_dir, 0, global_step
-            )
+            # Normal epoch - use shuffled loader for better training
+            if epoch > 0:  # Shuffle for all epochs except first (for reproducibility)
+                shuffled_loader = DataLoader(
+                    train_loader.dataset,
+                    batch_size=config["data"]["batch_size"],
+                    shuffle=True,  # Shuffle for fresh epochs
+                    num_workers=0,
+                    pin_memory=False,
+                    collate_fn=collate_eeg_batch_fixed,
+                )
+                train_metrics, global_step = train_epoch(
+                    backbone, probe, shuffled_loader, optimizer, scheduler, device, config, 
+                    epoch, output_dir, 0, global_step
+                )
+            else:
+                # First epoch - use original loader (no shuffle for reproducibility)
+                train_metrics, global_step = train_epoch(
+                    backbone, probe, train_loader, optimizer, scheduler, device, config, 
+                    epoch, output_dir, 0, global_step
+                )
         
         # Update state after epoch completes
         state["global_step"] = global_step

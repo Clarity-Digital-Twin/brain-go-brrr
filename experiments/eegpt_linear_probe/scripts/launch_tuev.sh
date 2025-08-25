@@ -1,7 +1,6 @@
 #!/bin/bash
+set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 # Launch TUEV event detection training in tmux session
-
-set -e
 
 # Configuration
 PROJECT_ROOT="/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr"
