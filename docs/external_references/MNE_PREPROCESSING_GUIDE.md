@@ -72,14 +72,15 @@ annotations_muscle, scores_muscle = annotate_muscle_zscore(
 )
 ```
 
-3. **Movement Artifact Detection**
+3. **Movement Artifact Detection (MEG only)**
 ```python
+# NOTE: annotate_movement requires head position data, typically only available in MEG recordings
 from mne.preprocessing import annotate_movement
 
-# Detect movement artifacts
+# Detect movement artifacts (MEG with head position tracking)
 annotations_movement, displacement = annotate_movement(
     raw, 
-    pos=head_pos,  # head position data
+    pos=head_pos,  # head position data (MEG-specific)
     threshold=0.01
 )
 ```
@@ -350,10 +351,10 @@ del raw  # Free memory
 from mne.parallel import parallel_func
 
 # For ICA
-ica = ICA(n_components=20, n_jobs=4)
+ica = ICA(n_components=20)  # Note: ICA doesn't support n_jobs parameter
 
 # For Autoreject
-ar = AutoReject(n_jobs=4)
+ar = AutoReject(n_jobs=4)  # Autoreject does support n_jobs
 ```
 
 ## Common Pitfalls and Solutions

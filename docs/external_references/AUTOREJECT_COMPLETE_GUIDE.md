@@ -408,6 +408,7 @@ epochs_clean.plot_image()  # Time-frequency image
 # Save fitted Autoreject object
 import pickle
 
+# Option 1: Pickle (always works)
 # Save
 with open('autoreject_model.pkl', 'wb') as f:
     pickle.dump(ar, f)
@@ -416,13 +417,14 @@ with open('autoreject_model.pkl', 'wb') as f:
 with open('autoreject_model.pkl', 'rb') as f:
     ar_loaded = pickle.load(f)
 
-# Or use built-in functions
+# Option 2: HDF5 format (requires h5io package)
+# NOTE: Requires `pip install h5io` for HDF5 support
 from autoreject import read_auto_reject
 
-# Save
-ar.save('ar_model.hdf5')
+# Save (requires h5io)
+ar.save('ar_model.hdf5')  # Will error if h5io not installed
 
-# Load
+# Load (requires h5io)
 ar_loaded = read_auto_reject('ar_model.hdf5')
 ```
 

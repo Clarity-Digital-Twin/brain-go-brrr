@@ -81,8 +81,10 @@ def mne_global_preprocessing(raw: mne.io.Raw) -> Tuple[mne.io.Raw, Dict[str, Any
     raw.set_annotations(raw.annotations + muscle_annot)
     metadata['n_muscle_artifacts'] = len(muscle_annot)
     
-    # Movement artifacts (large, slow drifts)
-    movement_annot = annotate_movement_custom(raw, threshold=100e-6)
+    # Movement artifacts (MEG only - requires head position data)
+    # For EEG, use custom amplitude-based detection instead
+    # movement_annot = annotate_movement(raw, pos=head_pos)  # MEG only
+    movement_annot = annotate_movement_custom(raw, threshold=100e-6)  # EEG alternative
     raw.set_annotations(raw.annotations + movement_annot)
     metadata['n_movement_artifacts'] = len(movement_annot)
     

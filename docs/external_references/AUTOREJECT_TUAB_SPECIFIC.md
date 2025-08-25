@@ -226,8 +226,9 @@ def process_tuab_dataset(data_dir, cache_dir, split='train'):
             'n_windows': len(data)
         }, cache_file)
     
-    # Save fitted AR model
-    ar.save(cache_dir / 'autoreject_model.hdf5')
+    # Save fitted AR model (requires h5io package for HDF5 format)
+    # Note: Install with `pip install h5io` if using HDF5 format
+    ar.save(cache_dir / 'autoreject_model.hdf5')  # Requires h5io
     print(f"Saved Autoreject model to {cache_dir}/autoreject_model.hdf5")
 ```
 

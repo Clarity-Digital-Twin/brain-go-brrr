@@ -41,7 +41,7 @@ This document outlines a comprehensive strategy to integrate MNE-Python's advanc
 ```python
 # New preprocessing module: experiments/eegpt_linear_probe/preprocessing/mne_pipeline.py
 - annotate_muscle_zscore() - detect muscle artifacts
-- annotate_movement() - detect movement artifacts  
+- annotate_movement() - detect movement artifacts (MEG only, requires head position data)
 - annotate_bad_channels() - automatic bad channel detection
 - compute_psd() - power spectral density for quality metrics
 ```
@@ -176,7 +176,7 @@ experiments/eegpt_linear_probe/
 ```python
 # Optimal artifact rejection flow:
 1. MNE annotate_muscle_zscore() → detect muscle artifacts
-2. MNE annotate_movement() → detect movement
+2. MNE annotate_movement() → detect movement (MEG only, needs head-pos)
 3. Autoreject local → channel-specific thresholds
 4. MNE interpolate_bads() → repair bad channels
 5. Quality scoring → filter training data
