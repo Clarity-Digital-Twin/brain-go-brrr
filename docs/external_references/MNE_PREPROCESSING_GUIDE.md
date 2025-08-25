@@ -81,7 +81,8 @@ from mne.preprocessing import annotate_movement
 annotations_movement, displacement = annotate_movement(
     raw, 
     pos=head_pos,  # head position data (MEG-specific)
-    threshold=0.01
+    rotation_velocity_limit=30.0,  # degrees/second
+    translation_velocity_limit=0.01  # meters/second
 )
 ```
 
