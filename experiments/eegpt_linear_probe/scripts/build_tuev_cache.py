@@ -2,7 +2,7 @@
 
 This script:
 1. Loads all TUEV EDF files and annotations
-2. Extracts 3.90625-second windows (1000 samples @ 256Hz)
+2. Extracts 4-second windows (1024 samples @ 256Hz for EEGPT compatibility)
 3. Resamples from 250Hz to 256Hz
 4. Selects 23 channels
 5. Saves as memory-mapped .pt files
@@ -23,7 +23,7 @@ from tqdm import tqdm
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from tuev_dataset import TUEVDataset
+from datasets.tuev_dataset import TUEVDataset
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -80,8 +80,8 @@ def build_cache(config_path: str, output_dir: str):
             # Get sample
             x, y = dataset[idx]
 
-            # Verify shape
-            assert x.shape == (23, 1000), f"Wrong shape: {x.shape}"
+            # Verify shape (EEGPT requires 1024 samples divisible by 64)
+            assert x.shape == (23, 1024), f"Wrong shape: {x.shape}, expected (23, 1024)"
             assert y in range(6), f"Wrong label: {y}"
 
             # Save to disk
@@ -164,7 +164,7 @@ def build_cache(config_path: str, output_dir: str):
                 continue
 
             data = torch.load(cache_file, weights_only=True)
-            assert data['x'].shape == (23, 1000), f"Wrong shape in {cache_file}"
+            assert data['x'].shape == (23, 1024), f"Wrong shape in {cache_file}, expected (23, 1024)"
             assert data['y'] in range(6), f"Wrong label in {cache_file}"
 
         logger.info(f"✓ {split} cache verified")
@@ -177,8 +177,8 @@ def build_cache(config_path: str, output_dir: str):
     print("="*60)
     print(f"\nCache location: {cache_dir}")
     print("\nTo use this cache in training:")
-    print(f"  python train_tuev_aligned.py \\")
-    print(f"    --config configs/tuev_table13_aligned.yaml \\")
+    print(f"  python train_tuev.py \\")
+    print(f"    --config configs/tuev.yaml \\"
     print(f"    --use-cache \\")
     print(f"    --device cuda")
     print("\nExpected performance (from paper):")
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--config',
         type=str,
-        default='configs/tuev_table13_aligned.yaml',
+        default='../configs/tuev.yaml',
         help='Path to config file'
     )
     parser.add_argument(
