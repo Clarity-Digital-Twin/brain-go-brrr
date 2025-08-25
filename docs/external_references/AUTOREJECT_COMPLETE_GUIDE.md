@@ -65,7 +65,7 @@ AutoReject(
     n_interpolate=None,      # List of values to try for channel interpolation
     consensus=None,          # Consensus parameter values to try  
     thresh_method='bayesian_optimization',  # How to find optimal threshold
-    cv=5,                   # Cross-validation folds
+    cv=10,                  # Cross-validation folds (default=10)
     picks=None,             # Channels to use
     random_state=None,      # For reproducibility
     n_jobs=1,              # Parallel processing
@@ -77,20 +77,25 @@ AutoReject(
 
 #### n_interpolate
 ```python
-# Default tries multiple values
-n_interpolate = [1, 2, 3, 4]  # Try interpolating 1-4 channels
+# Default (per AutoReject 0.4.2)
+n_interpolate = [1, 4, 32]  # Default grid: try interpolating 1, 4, or 32 channels
 
 # For faster processing
 n_interpolate = [1, 2]  # Only try 1-2 channels
 
 # For cleaner data
 n_interpolate = [0, 1]  # Sometimes no interpolation needed
+
+# TUAB recommended grid (not default)
+n_interpolate = [1, 2, 3, 4]  # For 20-channel data
 ```
 
 #### consensus  
 ```python
-# Proportion of channels that must be good
-consensus = [0.1, 0.3, 0.5, 0.7, 0.9]  # Try multiple values
+# Default (per AutoReject 0.4.2)
+import numpy as np
+consensus = np.linspace(0, 1.0, 11)  # Default: 11 values from 0 to 1
+# [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 # Stricter cleaning
 consensus = [0.7, 0.8, 0.9]  # Require 70-90% good channels
@@ -109,12 +114,12 @@ consensus = [0.3, 0.4, 0.5]  # Allow more bad channels
 ### Advanced Usage
 
 ```python
-# Custom parameters for TUAB dataset
+# Custom parameters for TUAB dataset (not defaults!)
 ar = AutoReject(
-    n_interpolate=[1, 2, 3, 4],
-    consensus=[0.3, 0.5, 0.7],
+    n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid for 20 channels
+    consensus=[0.3, 0.5, 0.7],   # TUAB-specific consensus values
     thresh_method='bayesian_optimization',
-    cv=5,
+    cv=5,  # Reduced from default 10 for speed
     random_state=42,
     n_jobs=4,  # Use parallel processing
     verbose=True
@@ -127,8 +132,9 @@ ar.fit(epochs_train)
 epochs_test_clean = ar.transform(epochs_test)
 
 # Access the learned parameters
-print(f"Optimal n_interpolate: {ar.n_interpolate_}")
-print(f"Optimal consensus: {ar.consensus_}")
+# Note: n_interpolate_ and consensus_ are dicts by channel type
+print(f"Optimal n_interpolate (EEG): {ar.n_interpolate_.get('eeg', 'N/A')}")
+print(f"Optimal consensus (EEG): {ar.consensus_.get('eeg', 'N/A')}")
 ```
 
 ## Reject Log
@@ -144,7 +150,9 @@ bad_epochs = reject_log.bad_epochs  # Shape: (n_epochs,)
 
 # Labels for each epoch/channel
 labels = reject_log.labels  # Shape: (n_epochs, n_channels)
-# 0 = good, 1 = bad/repaired, 2 = bad/rejected
+# 0 = good
+# 1 = bad (not interpolated)
+# 2 = bad & interpolated (repaired)
 
 # Visualize
 reject_log.plot()  # Heat map of rejection
@@ -187,7 +195,7 @@ from autoreject import validation_curve
 param_range = [0.1, 0.3, 0.5, 0.7, 0.9]
 train_scores, test_scores = validation_curve(
     ar, epochs, 
-    param_name='consensus',
+    param_name='thresh',  # For global AR, varies threshold
     param_range=param_range,
     cv=5
 )
@@ -278,8 +286,9 @@ def preprocess_with_autoreject(raw_file):
     
     # 5. Report results
     print(f"Kept {epochs_clean.get_data().shape[0]}/{len(epochs)} epochs")
-    print(f"Interpolated up to {ar.n_interpolate_} channels")
-    print(f"Used consensus threshold: {ar.consensus_}")
+    # n_interpolate_ and consensus_ are dicts by channel type
+    print(f"Interpolated up to {ar.n_interpolate_.get('eeg', 'N/A')} channels (EEG)")
+    print(f"Used consensus threshold: {ar.consensus_.get('eeg', 'N/A')} (EEG)")
     
     return epochs_clean, ar
 ```
@@ -291,7 +300,7 @@ def preprocess_with_autoreject(raw_file):
 ```python
 # For TUAB abnormality detection
 ar_tuab = AutoReject(
-    n_interpolate=[1, 2, 3, 4],  # TUAB has 20 channels, can interpolate more
+    n_interpolate=[1, 2, 3, 4],  # TUAB-specific: 20 channels, can interpolate more
     consensus=[0.3, 0.5, 0.7],    # Clinical data may have more artifacts
     thresh_method='bayesian_optimization',
     cv=5,

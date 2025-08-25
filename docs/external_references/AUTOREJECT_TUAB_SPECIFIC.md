@@ -15,12 +15,12 @@
 ```python
 from autoreject import AutoReject
 
-# Recommended for TUAB
+# Recommended for TUAB (not AutoReject defaults!)
 ar_tuab = AutoReject(
-    n_interpolate=[1, 2, 3, 4],  # Try interpolating 1-4 channels
-    consensus=[0.3, 0.5, 0.7],   # 30-70% channels must be good
+    n_interpolate=[1, 2, 3, 4],  # TUAB-specific: Try 1-4 channels (default is [1, 4, 32])
+    consensus=[0.3, 0.5, 0.7],   # TUAB-specific: 30-70% good (default is np.linspace(0, 1, 11))
     thresh_method='bayesian_optimization',
-    cv=5,
+    cv=5,  # Reduced from default=10 for speed
     random_state=42,
     n_jobs=4  # Parallel processing
 )
@@ -124,7 +124,7 @@ def preprocess_tuab_file(edf_path, window_duration=4.0, window_stride=2.0):
     
     # 8. Apply Autoreject
     ar = AutoReject(
-        n_interpolate=[1, 2, 3, 4],
+        n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
         consensus=[0.3, 0.5, 0.7],
         thresh_method='bayesian_optimization',
         cv=5,
@@ -193,15 +193,16 @@ def process_tuab_dataset(data_dir, cache_dir, split='train'):
     combined_epochs = mne.concatenate_epochs(all_epochs)
     
     ar = AutoReject(
-        n_interpolate=[1, 2, 3, 4],
+        n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
         consensus=[0.3, 0.5, 0.7],
         random_state=42,
         n_jobs=4
     )
     ar.fit(combined_epochs)
     
-    print(f"Autoreject fitted: n_interpolate={ar.n_interpolate_}, "
-          f"consensus={ar.consensus_}")
+    # Note: n_interpolate_ and consensus_ are dicts by channel type
+    print(f"Autoreject fitted: n_interpolate={ar.n_interpolate_.get('eeg', 'N/A')}, "
+          f"consensus={ar.consensus_.get('eeg', 'N/A')}")
     
     # Process all files with fitted AR
     for i, edf_file in enumerate(tqdm(files, desc=f"Processing {split}")):
@@ -271,10 +272,10 @@ def compute_quality_metrics(epochs_before, epochs_after, ar):
         'n_epochs_in': len(epochs_before),
         'n_epochs_out': len(epochs_after),
         'retention_rate': len(epochs_after) / len(epochs_before),
-        'n_interpolate_used': ar.n_interpolate_,
-        'consensus_used': ar.consensus_,
+        'n_interpolate_used': ar.n_interpolate_.get('eeg', 'N/A'),  # Dict by channel type
+        'consensus_used': ar.consensus_.get('eeg', 'N/A'),  # Dict by channel type
         'bad_epochs': ar.reject_log.bad_epochs.sum(),
-        'interpolated_channels': (ar.reject_log.labels == 1).sum()
+        'interpolated_channels': (ar.reject_log.labels == 2).sum()  # labels==2 means interpolated
     }
     
     # Signal quality improvement
@@ -314,7 +315,7 @@ def compare_with_without_autoreject(test_files):
         
         # With Autoreject
         ar = AutoReject(
-            n_interpolate=[1, 2, 3, 4],
+            n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
             consensus=[0.3, 0.5, 0.7]
         )
         epochs_clean = ar.fit_transform(epochs_raw)

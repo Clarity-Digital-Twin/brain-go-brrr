@@ -156,7 +156,7 @@ def complete_mne_autoreject_pipeline(edf_path,
     
     # 9. Apply Autoreject
     ar = AutoReject(
-        n_interpolate=[1, 2, 3, 4],
+        n_interpolate=[1, 4, 32],  # Default AutoReject grid
         consensus=[0.3, 0.5, 0.7],
         thresh_method='bayesian_optimization',
         cv=5,
@@ -175,8 +175,8 @@ def complete_mne_autoreject_pipeline(edf_path,
         'n_epochs_before': len(epochs),
         'n_epochs_after': len(epochs_clean),
         'retention_rate': len(epochs_clean) / len(epochs),
-        'autoreject_n_interpolate': ar.n_interpolate_,
-        'autoreject_consensus': ar.consensus_,
+        'autoreject_n_interpolate': ar.n_interpolate_.get('eeg', 'N/A'),  # Dict by channel type
+        'autoreject_consensus': ar.consensus_.get('eeg', 'N/A'),  # Dict by channel type
         'ica_components_removed': len(ica.exclude) if use_ica else 0
     }
     
@@ -186,15 +186,18 @@ def complete_mne_autoreject_pipeline(edf_path,
     print(f"Epochs: {preprocessing_info['n_epochs_before']} → "
           f"{preprocessing_info['n_epochs_after']} "
           f"({preprocessing_info['retention_rate']*100:.1f}% kept)")
-    print(f"Autoreject: n_interpolate={ar.n_interpolate_}, "
-          f"consensus={ar.consensus_}")
+    # Note: n_interpolate_ and consensus_ are dicts by channel type
+    print(f"Autoreject: n_interpolate={ar.n_interpolate_.get('eeg', 'N/A')}, "
+          f"consensus={ar.consensus_.get('eeg', 'N/A')}")
     
     return epochs_clean, preprocessing_info
 ```
 
 ## Order of Operations (Critical!)
 
-The order matters for optimal results:
+The order matters for optimal results. **Recommended approach**: Use two-stage Autoreject around ICA (see Pattern 1 below).
+
+### Standard Pipeline:
 
 1. **Load & Setup** (MNE)
    - Load raw data
@@ -214,15 +217,19 @@ The order matters for optimal results:
    - Apply after bad channel interpolation
    - Common average reference typical
 
-5. **ICA** (MNE, optional)
-   - Remove EOG/ECG artifacts
-   - Apply before epoching
-
-6. **Epoching** (MNE)
+5. **Epoching** (MNE)
    - Segment continuous data
    - Apply baseline correction
 
-7. **Autoreject** (Final cleaning)
+6. **Autoreject Stage 1** (Recommended)
+   - Light cleaning before ICA
+   - Preserve data for ICA fitting
+
+7. **ICA** (MNE, optional but recommended)
+   - Remove EOG/ECG artifacts
+   - Fit on lightly cleaned data
+
+8. **Autoreject Stage 2** (Final cleaning)
    - Adaptive artifact rejection
    - Repair/reject decisions
 
@@ -430,7 +437,11 @@ def ensemble_preprocessing(raw):
     # Strategy 3: Aggressive MNE + Autoreject
     raw3 = raw.copy()
     raw3.filter(1.0, 40)
-    raw3.set_eeg_reference('REST')
+    # REST reference requires a forward model
+    # fwd = mne.read_forward_solution('subject-fwd.fif')
+    # raw3 = mne.set_eeg_reference(raw3, ref_channels='REST', forward=fwd)
+    # For now, using average reference as placeholder
+    raw3, _ = mne.set_eeg_reference(raw3, 'average')
     epochs3 = create_epochs(raw3)
     ar3 = AutoReject(consensus=[0.4], n_interpolate=[2,3,4])
     clean3 = ar3.fit_transform(epochs3)
@@ -627,6 +638,23 @@ epochs_clean = ar.fit_transform(epochs)  # Double rejection
 epochs = mne.Epochs(raw, reject=None)  # No MNE rejection
 ar = AutoReject()
 epochs_clean = ar.fit_transform(epochs)  # Single rejection
+```
+
+## Data Type and Shape Considerations
+
+### Important Notes for Training
+```python
+# MNE epochs.get_data() returns (n_epochs, n_channels, n_times) in float64
+epochs_data = epochs_clean.get_data()  # Shape: (N, C, T), dtype: float64
+
+# For downstream training (e.g., EEGPT), convert to float32
+epochs_data = epochs_data.astype('float32')  # Save memory and match model expectations
+
+# When saving individual windows for training:
+for i, window in enumerate(epochs_data):
+    # window shape: (n_channels, n_times)
+    window_float32 = window.astype('float32')
+    # Save or cache as needed
 ```
 
 ## References

@@ -134,14 +134,20 @@ raw.set_eeg_reference(['M1', 'M2'])
 
 ### REST Reference
 ```python
-# Reference-free recording reference
-raw.set_eeg_reference('REST')
+# REST reference requires a forward model
+# fwd = mne.read_forward_solution('subject-fwd.fif')
+# raw, _ = mne.set_eeg_reference(raw, ref_channels='REST', forward=fwd)
+# For demonstration, using average reference:
+raw, _ = mne.set_eeg_reference(raw, 'average')
 ```
 
 ### Bipolar Reference
 ```python
-# Create bipolar montage
-raw.set_bipolar_reference(
+# Use the function form (not method)
+import mne
+# Create bipolar montage (result = anode - cathode)
+raw = mne.set_bipolar_reference(
+    raw,
     anode=['Fp1', 'F3'],
     cathode=['F3', 'C3']
 )
