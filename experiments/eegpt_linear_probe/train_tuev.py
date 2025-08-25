@@ -177,21 +177,25 @@ def train_epoch(
 
             # Forward pass
             logits = model(data)
-            
+
             # CRASH GUARD 1: Ensure correct shapes/types for CrossEntropyLoss
             # CrossEntropyLoss expects (batch_size, num_classes) and integer labels
             if logits.dim() != 2:
-                logger.error(f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)")
+                logger.error(
+                    f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)"
+                )
                 raise RuntimeError(f"Wrong logits shape at step {batch_idx}")
-            
+
             # CRASH GUARD 2: Check for NaNs/Infs before loss
             if not torch.isfinite(logits).all():
-                logger.error(f"Non-finite logits at batch {batch_idx}: "
-                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                logger.error(
+                    f"Non-finite logits at batch {batch_idx}: "
+                    f"min={logits.min().item():.3e} max={logits.max().item():.3e}"
+                )
                 raise RuntimeError(f"Non-finite logits at batch {batch_idx}")
-            
+
             loss = criterion(logits, labels)
-            
+
             # CRASH GUARD 3: Check for NaN loss
             if not torch.isfinite(loss):
                 logger.error(f"Non-finite loss at batch {batch_idx}: {loss.item()}")
@@ -280,21 +284,25 @@ def evaluate(
 
             # Forward pass
             logits = model(data)
-            
+
             # CRASH GUARD 1: Ensure correct shapes/types for CrossEntropyLoss
             # CrossEntropyLoss expects (batch_size, num_classes) and integer labels
             if logits.dim() != 2:
-                logger.error(f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)")
+                logger.error(
+                    f"Wrong logits shape: {logits.shape}, expected (batch_size, num_classes)"
+                )
                 raise RuntimeError(f"Wrong logits shape at step {batch_idx}")
-            
+
             # CRASH GUARD 2: Check for NaNs/Infs before loss
             if not torch.isfinite(logits).all():
-                logger.error(f"Non-finite logits at batch {batch_idx}: "
-                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                logger.error(
+                    f"Non-finite logits at batch {batch_idx}: "
+                    f"min={logits.min().item():.3e} max={logits.max().item():.3e}"
+                )
                 raise RuntimeError(f"Non-finite logits at batch {batch_idx}")
-            
+
             loss = criterion(logits, labels)
-            
+
             # CRASH GUARD 3: Check for NaN loss
             if not torch.isfinite(loss):
                 logger.error(f"Non-finite loss at batch {batch_idx}: {loss.item()}")
@@ -527,7 +535,7 @@ def main(args):
     logger.info("Training Complete!")
     logger.info(f"Best Balanced Accuracy: {best_balanced_acc:.4f} (epoch {best_epoch})")
     logger.info("Target from paper:      0.6232")
-    logger.info(f"Achievement rate:       {best_balanced_acc/0.6232*100:.1f}%")
+    logger.info(f"Achievement rate:       {best_balanced_acc / 0.6232 * 100:.1f}%")
     logger.info("=" * 50)
 
     return best_balanced_acc

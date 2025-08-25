@@ -51,9 +51,9 @@ def build_cache(config_path: str, output_dir: str):
 
     # Process both splits
     for split in ['train', 'eval']:
-        logger.info(f"\n{'='*50}")
+        logger.info(f"\n{'=' * 50}")
         logger.info(f"Processing {split} split")
-        logger.info(f"{'='*50}")
+        logger.info(f"{'=' * 50}")
 
         # Create split cache directory
         split_cache = cache_dir / f"tuev_{split}_cache"
@@ -72,7 +72,7 @@ def build_cache(config_path: str, output_dir: str):
 
         # Process and cache all samples
         samples_info = []
-        class_counts = {i: 0 for i in range(6)}
+        class_counts = dict.fromkeys(range(6), 0)
 
         for idx in tqdm(range(len(dataset)), desc=f"Caching {split}"):
             # Get sample
@@ -132,7 +132,7 @@ def build_cache(config_path: str, output_dir: str):
         logger.info(f"  Class weights: {class_weights}")
         logger.info(f"  Cache size: {split_cache}")
 
-    logger.info(f"\n{'='*50}")
+    logger.info(f"\n{'=' * 50}")
     logger.info("Cache building complete!")
     logger.info(f"Cache directory: {cache_dir}")
 

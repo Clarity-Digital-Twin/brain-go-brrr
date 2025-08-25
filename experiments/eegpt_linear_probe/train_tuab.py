@@ -193,24 +193,26 @@ def train_epoch(
                 if batch_idx == 0 and epoch == 0:
                     logger.info(f"EEGPT features shape: {features.shape}")
                     logger.info(f"Expected shape: (batch_size={batch_size}, 4 tokens, 512 dims)")
-                    logger.info(f"Flattened probe input: ({batch_size}, {4*512})")
+                    logger.info(f"Flattened probe input: ({batch_size}, {4 * 512})")
 
             # Forward through probe
             logits = probe(features)  # (B,) for binary
-            
+
             # CRASH GUARD 1: Ensure shapes/types are correct for BCE
             logits = logits.reshape(-1, 1).float()
             labels = labels.reshape(-1, 1).float()  # BCE expects float
-            
+
             # CRASH GUARD 2: Check for NaNs/Infs before loss
             if not torch.isfinite(logits).all():
-                logger.error(f"Non-finite logits at step {global_step}: "
-                           f"min={logits.min().item():.3e} max={logits.max().item():.3e}")
+                logger.error(
+                    f"Non-finite logits at step {global_step}: "
+                    f"min={logits.min().item():.3e} max={logits.max().item():.3e}"
+                )
                 raise RuntimeError(f"Non-finite logits at step {global_step}")
 
             # Compute loss - BCEWithLogitsLoss as in EEGPT paper
             loss = criterion(logits, labels)
-            
+
             # CRASH GUARD 3: Check for NaN loss
             if not torch.isfinite(loss):
                 logger.error(f"Non-finite loss at step {global_step}: {loss.item()}")
