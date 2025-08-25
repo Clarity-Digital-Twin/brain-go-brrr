@@ -2,6 +2,10 @@
 set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 # Safe training with crash recovery and better monitoring
 
+# Get repository root and set PYTHONPATH
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+export PYTHONPATH="$REPO_ROOT"
+
 cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe
 
 export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data

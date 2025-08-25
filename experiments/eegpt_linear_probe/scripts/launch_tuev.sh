@@ -3,6 +3,9 @@ set -euo pipefail  # Exit on error, undefined variables, and pipe failures
 # Launch TUEV event detection training in tmux session
 
 # Configuration
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+export PYTHONPATH="$REPO_ROOT"
+
 PROJECT_ROOT="/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr"
 EXPERIMENT_DIR="$PROJECT_ROOT/experiments/eegpt_linear_probe"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
