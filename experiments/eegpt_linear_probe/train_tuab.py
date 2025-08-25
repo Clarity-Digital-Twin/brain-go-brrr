@@ -121,7 +121,7 @@ def create_dataloaders(config):
     train_loader = DataLoader(
         train_dataset,
         batch_size=config["data"]["batch_size"],
-        shuffle=True,
+        shuffle=False,  # MUST be False for deterministic resume
         num_workers=0,  # Always 0 for WSL stability
         pin_memory=False,  # Disable for WSL with mmap
         collate_fn=collate_eeg_batch_fixed,
