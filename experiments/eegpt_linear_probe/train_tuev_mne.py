@@ -12,7 +12,6 @@ import sys
 import time
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -39,10 +38,8 @@ class TUEVLinearProbe(nn.Module):
     """Linear probe for 6-class TUEV event detection (Table 13 architecture)."""
 
     def __init__(self, config):
-        super().__init__(
-            
-        )
-        
+        super().__init__()
+
         # Channel reduction: 23 → 20 (handled in preprocessing)
         # Temporal convolution (kernel=55 for TUEV)
         self.temporal_conv = nn.Conv1d(
@@ -50,15 +47,15 @@ class TUEVLinearProbe(nn.Module):
             out_channels=20,
             kernel_size=config["model"]["temporal_conv"]["kernel_size"],  # 55
             padding=config["model"]["temporal_conv"]["padding"],  # 27
-            groups=config["model"]["temporal_conv"]["groups"]  # 20 (depthwise)
+            groups=config["model"]["temporal_conv"]["groups"],  # 20 (depthwise)
         )
-        
+
         # Classification head
         self.probe = nn.Sequential(
             nn.LazyLinear(256),  # Hidden layer
             nn.ReLU(),
             nn.Dropout(config["model"]["dropout"]),  # 0.5 for TUEV
-            nn.Linear(256, 6)  # 6 classes
+            nn.Linear(256, 6),  # 6 classes
         )
 
     def forward(self, features):
@@ -164,11 +161,11 @@ def evaluate(model, probe, eval_loader, criterion, device):
     balanced_acc = balanced_accuracy_score(all_labels, all_preds)
     weighted_f1 = f1_score(all_labels, all_preds, average='weighted')
     kappa = cohen_kappa_score(all_labels, all_preds)
-    
+
     # Per-class F1
     per_class_f1 = f1_score(all_labels, all_preds, average=None)
     class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
-    per_class_results = {name: f1 for name, f1 in zip(class_names, per_class_f1)}
+    per_class_results = dict(zip(class_names, per_class_f1, strict=False))
 
     return avg_loss, balanced_acc, weighted_f1, kappa, all_preds, all_labels, per_class_results
 
@@ -182,6 +179,7 @@ def resolve_env_vars(obj):
         def replacer(match):
             env_var = match.group(1)
             return os.environ.get(env_var, match.group(0))
+
         return re.sub(r'\$\{([^}]+)\}', replacer, obj)
     elif isinstance(obj, dict):
         return {k: resolve_env_vars(v) for k, v in obj.items()}
@@ -253,15 +251,11 @@ def main():
     # Create datasets
     logger.info("Loading MNE-preprocessed datasets...")
     train_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), 
-        split='train', 
-        cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), split='train', cache_dir=Path(args.cache_dir)
     )
 
     eval_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), 
-        split='eval', 
-        cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), split='eval', cache_dir=Path(args.cache_dir)
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} windows")
@@ -350,8 +344,12 @@ def main():
 
         # Log metrics
         logger.info(f"Epoch {epoch}:")
-        logger.info(f"  Train - Loss: {train_loss:.4f}, Bal Acc: {train_acc:.4f}, F1: {train_f1:.4f}, Kappa: {train_kappa:.4f}")
-        logger.info(f"  Eval  - Loss: {eval_loss:.4f}, Bal Acc: {eval_acc:.4f}, F1: {eval_f1:.4f}, Kappa: {eval_kappa:.4f}")
+        logger.info(
+            f"  Train - Loss: {train_loss:.4f}, Bal Acc: {train_acc:.4f}, F1: {train_f1:.4f}, Kappa: {train_kappa:.4f}"
+        )
+        logger.info(
+            f"  Eval  - Loss: {eval_loss:.4f}, Bal Acc: {eval_acc:.4f}, F1: {eval_f1:.4f}, Kappa: {eval_kappa:.4f}"
+        )
         logger.info(f"  Per-class F1: {per_class}")
 
         # Save checkpoint if best
@@ -369,7 +367,9 @@ def main():
             }
             checkpoint_path = output_dir / 'best_model.pt'
             torch.save(checkpoint, checkpoint_path)
-            logger.info(f"Saved best model - Bal Acc: {best_balanced_acc:.4f}, Kappa: {best_kappa:.4f}")
+            logger.info(
+                f"Saved best model - Bal Acc: {best_balanced_acc:.4f}, Kappa: {best_kappa:.4f}"
+            )
 
         # Save regular checkpoint
         save_every = config.get('training', {}).get('save_every', 5)

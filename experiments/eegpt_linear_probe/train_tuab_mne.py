@@ -165,6 +165,7 @@ def resolve_env_vars(obj):
         def replacer(match):
             env_var = match.group(1)
             return os.environ.get(env_var, match.group(0))
+
         return re.sub(r'\$\{([^}]+)\}', replacer, obj)
     elif isinstance(obj, dict):
         return {k: resolve_env_vars(v) for k, v in obj.items()}
