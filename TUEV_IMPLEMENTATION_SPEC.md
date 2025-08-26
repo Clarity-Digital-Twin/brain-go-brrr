@@ -21,12 +21,12 @@ This document defines the **exact** implementation requirements for TUEV dataset
 - Page 6: "we strictly follow the same strategy as BIOT" (BIOT uses average reference)
 - No mention of bipolar montage for any dataset
 
-**Why not TCP bipolar**: TCP bipolar creates a distribution shift from EEGPT's training data, materially changing the learned representations. TCP is kept only as an optional ablation study.
+**Why not TCP bipolar**: TCP bipolar creates a distribution shift from EEGPT's training data. EEGPT was trained on average-referenced data, and using TCP would harm feature extraction. We're focusing on high-ROI approaches only.
 
 **Current Implementation Issues**:
-- `experiments/eegpt_linear_probe/datasets/tuev_dataset.py` lines 314-319: **INCORRECTLY** attempts TCP bipolar
-- `experiments/eegpt_linear_probe/tests/test_tuev_bipolar.py`: Entire test file should be **DELETED**
-- `TCP_BIPOLAR_PAIRS` definition (lines 64-71): Should be **REMOVED**
+- `experiments/eegpt_linear_probe/datasets/tuev_dataset.py`: Contains TCP bipolar code that must be **REMOVED**
+- `experiments/eegpt_linear_probe/tests/test_tuev_bipolar.py`: **DELETE** this file entirely
+- All TCP/bipolar constants and functions: **DELETE** completely
 
 **Correct Implementation**:
 ```python
@@ -166,8 +166,8 @@ if high_freq <= low_freq:
 
 ## 2. Files Requiring Changes
 
-### 2.1 ARCHIVE These Files
-- `experiments/eegpt_linear_probe/tests/test_tuev_bipolar.py` - Move to `tests/ablation/` or mark `@pytest.mark.xfail` with comment "kept for optional TCP ablation study"
+### 2.1 DELETE These Files
+- `experiments/eegpt_linear_probe/tests/test_tuev_bipolar.py` - DELETE completely (no ablation needed)
 
 ### 2.2 MODIFY These Files
 
