@@ -158,16 +158,18 @@ class TUEVPreprocessor(TUABPreprocessor):
     def process_raw_with_annotations(
         self, 
         edf_path: Path, 
-        annotations: List[Dict[str, float | str]]
-    ) -> tuple[mne.Epochs, dict[str, int]]:
-        """Process raw EDF file with event annotations.
+        annotations: List[Dict[str, float | str]],
+        window_overlap: float = 0.0
+    ) -> tuple[mne.Epochs, dict[str, int], List[str]]:
+        """Process raw EDF file with fixed-grid windows and overlap-based labeling.
         
         Args:
             edf_path: Path to EDF file
             annotations: List of dicts with 'start', 'end', 'label' keys
+            window_overlap: Overlap fraction (0.0 or 0.5)
             
         Returns:
-            Tuple of (clean_epochs, info_dict)
+            Tuple of (clean_epochs, info_dict, window_labels)
         """
         logger.info(f"Processing {edf_path} with {len(annotations)} annotations")
         
@@ -186,41 +188,43 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Apply MNE preprocessing
         raw = self._apply_mne_preprocessing(raw)
         
-        # Create epochs from annotations
+        # Create fixed-grid windows
+        windows = self._create_fixed_grid_windows(raw, window_overlap)
+        
+        # Label each window based on annotations
+        window_labels = []
+        for win_start, win_end in windows:
+            label = self._label_window(win_start, win_end, annotations)
+            window_labels.append(label)
+        
+        # Create epochs from fixed grid
         events = []
         event_id = {}
         
-        for i, ann in enumerate(annotations):
-            # Convert time to samples
-            start_sample = int(ann['start'] * raw.info['sfreq'])
-            events.append([start_sample, 0, i])  # Use index as event code
-            event_id[f"{ann['label']}_{i}"] = i
+        for i, (win_start, win_end) in enumerate(windows):
+            start_sample = int(win_start * raw.info['sfreq'])
+            events.append([start_sample, 0, i])
+            label = window_labels[i]
+            event_id[f"{label}_{i}"] = i
         
-        # Create epochs array
-        events_array = mne.events_from_annotations(raw, verbose=False)[0] if events else []
+        events_array = np.array(events)
         
-        if len(events) > 0:
-            events_array = np.array(events)
-            
-            # Create epochs
-            epochs = mne.Epochs(
-                raw,
-                events_array,
-                event_id=event_id,
-                tmin=0,
-                tmax=self.window_duration,
-                baseline=None,
-                preload=True,
-                verbose=False
-            )
-        else:
-            # Fallback to fixed-length epochs if no annotations
-            epochs = self._create_epochs(raw)
+        # Create epochs
+        epochs = mne.Epochs(
+            raw,
+            events_array,
+            event_id=event_id,
+            tmin=0,
+            tmax=self.window_duration,
+            baseline=None,
+            preload=True,
+            verbose=False
+        )
         
         n_epochs_before = len(epochs)
         
-        # Apply Autoreject
-        epochs_clean = self._apply_autoreject(epochs)
+        # Apply Autoreject with gentle parameters for TUEV
+        epochs_clean = self._apply_autoreject_tuev(epochs)
         n_epochs_after = len(epochs_clean)
         
         # Create info dict
@@ -228,6 +232,114 @@ class TUEVPreprocessor(TUABPreprocessor):
             'n_epochs_before': n_epochs_before,
             'n_epochs_after': n_epochs_after,
             'n_rejected': n_epochs_before - n_epochs_after,
+            'reject_rate': (n_epochs_before - n_epochs_after) / n_epochs_before if n_epochs_before > 0 else 0
         }
         
-        return epochs_clean, info
+        # Log warning if reject rate too high
+        if info['reject_rate'] > 0.15:
+            logger.warning(f"High reject rate: {info['reject_rate']:.2%}. Consider adjusting AR parameters.")
+        
+        return epochs_clean, info, window_labels
+    
+    def _create_fixed_grid_windows(self, raw: mne.io.Raw, overlap: float = 0.0) -> List[Tuple[float, float]]:
+        """Create fixed-grid windows with optional overlap.
+        
+        Args:
+            raw: MNE Raw object
+            overlap: Overlap fraction (0.0 = no overlap, 0.5 = 50% overlap)
+            
+        Returns:
+            List of (start, end) times in seconds
+        """
+        duration = raw.times[-1]
+        step = self.window_duration * (1 - overlap)
+        
+        windows = []
+        start = 0
+        while start + self.window_duration <= duration:
+            windows.append((start, start + self.window_duration))
+            start += step
+        
+        logger.info(f"Created {len(windows)} fixed-grid windows with {overlap*100:.0f}% overlap")
+        return windows
+    
+    def _label_window(self, win_start: float, win_end: float, 
+                      annotations: List[Dict[str, float | str]]) -> str:
+        """Label a window using argmax overlap with spike priority.
+        
+        Args:
+            win_start: Window start time in seconds
+            win_end: Window end time in seconds
+            annotations: List of annotations with 'start', 'end', 'label' keys
+            
+        Returns:
+            Label string (one of: 'spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg')
+        """
+        overlaps = {}
+        
+        for ann in annotations:
+            # Calculate overlap in seconds
+            overlap_start = max(win_start, ann['start'])
+            overlap_end = min(win_end, ann['end'])
+            overlap_duration = max(0, overlap_end - overlap_start)
+            
+            if overlap_duration > 0:
+                label = ann['label']
+                if label not in overlaps:
+                    overlaps[label] = 0
+                overlaps[label] += overlap_duration
+        
+        # Priority override: if spike has sufficient overlap (≥120ms), prioritize it
+        SPIKE_PRIORITY_THRESHOLD = 0.12  # 120ms
+        if overlaps.get('spsw', 0) >= SPIKE_PRIORITY_THRESHOLD:
+            return 'spsw'
+        
+        # Otherwise use argmax with minimum duration
+        MINIMUM_OVERLAP_THRESHOLD = 0.10  # 100ms
+        if overlaps:
+            # Only consider if overlap ≥ minimum threshold
+            valid_overlaps = {k: v for k, v in overlaps.items() if v >= MINIMUM_OVERLAP_THRESHOLD}
+            
+            if valid_overlaps:
+                # Find max overlap
+                max_overlap = max(valid_overlaps.values())
+                
+                # Handle ties with deterministic priority
+                PRIORITY_ORDER = ['spsw', 'gped', 'pled', 'artf', 'eyem', 'bckg']
+                for label in PRIORITY_ORDER:
+                    if label in valid_overlaps and valid_overlaps[label] == max_overlap:
+                        return label
+        
+        # Default to background
+        return 'bckg'
+    
+    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> mne.Epochs:
+        """Apply Autoreject with gentle parameters for TUEV spike preservation.
+        
+        Args:
+            epochs: Input epochs
+            
+        Returns:
+            Clean epochs after artifact rejection
+        """
+        from autoreject import AutoReject
+        
+        # Gentle parameters for TUEV
+        ar = AutoReject(
+            n_interpolate=[1, 2],  # Gentler than TUAB
+            consensus=[0.5, 0.7, 0.9],  # Higher thresholds
+            cv=3,  # Faster
+            thresh_method='bayesian_optimization',
+            random_state=42,
+            verbose=False
+        )
+        
+        epochs_clean = ar.fit_transform(epochs)
+        
+        # Log learned parameters
+        if hasattr(ar, 'n_interpolate_'):
+            logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
+        if hasattr(ar, 'consensus_'):
+            logger.info(f"Learned consensus: {ar.consensus_}")
+        
+        return epochs_clean

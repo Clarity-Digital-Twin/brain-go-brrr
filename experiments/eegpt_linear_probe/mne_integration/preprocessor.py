@@ -296,9 +296,9 @@ class TUABPreprocessor:
         except Exception as e:
             logger.warning(f"RANSAC failed: {e}")
 
-        # Re-reference to average
+        # Re-reference to average (use functional form)
         logger.info("Setting average reference")
-        raw.set_eeg_reference('average', projection=False)
+        raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 
         return raw
 
