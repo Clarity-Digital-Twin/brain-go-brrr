@@ -236,6 +236,22 @@ Not included due to size/licensing. Obtain separately:
 ```
 </details>
 
+<details>
+<summary>MNE-Python (click to expand)</summary>
+
+```bibtex
+@article{gramfort2013mne,
+  title={MEG and EEG data analysis with MNE-Python},
+  author={Gramfort, Alexandre and Luessi, Martin and Larson, Eric and Engemann, Denis A and Strohmeier, Daniel and Brodbeck, Christian and Goj, Roman and Jas, Mainak and Brooks, Teon and Parkkonen, Lauri and H{\"a}m{\"a}l{\"a}inen, Matti},
+  journal={Frontiers in Neuroscience},
+  volume={7},
+  pages={267},
+  year={2013},
+  doi={10.3389/fnins.2013.00267}
+}
+```
+</details>
+
 ## 🤝 Support & Community
 
 - **Issues:** [GitHub Issues](https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues)
