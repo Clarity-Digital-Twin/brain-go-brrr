@@ -256,10 +256,10 @@ class TUABPreprocessor:
             nyquist = raw.info['sfreq'] / 2.0
             muscle_band_low = 110.0
             muscle_band_high = min(140.0, nyquist * 0.98)  # Keep below Nyquist
-            
+
             if muscle_band_high > muscle_band_low:
                 muscle_annot, muscle_scores = mne.preprocessing.annotate_muscle_zscore(
-                    raw, threshold=4.0, ch_type='eeg', min_length_good=0.2, 
+                    raw, threshold=4.0, ch_type='eeg', min_length_good=0.2,
                     filter_freq=(muscle_band_low, muscle_band_high)
                 )
                 raw.set_annotations(raw.annotations + muscle_annot)
