@@ -44,6 +44,11 @@ raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 - "Each patch has a time length of d = 64" → 1024/64 = 16 patches (integer required)
 - Same as TUAB implementation (verified working)
 
+**Window Overlap**: 
+- **50% overlap** (2-second step) to increase coverage of brief events
+- Helps catch spikes that might fall on window boundaries
+- Trade-off: 2x more windows to process, but better event detection
+
 **Current Implementation**: 
 - Already using 1024 in `train_tuev.py` line 118
 - Cache builder expects 1024 samples
@@ -54,21 +59,32 @@ raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 
 **Decision**: Map TUEV's 23 channels to standard 20 channels.
 
-**Current Mapping** (experiments/eegpt_linear_probe/mne_integration/tuev_preprocessor.py):
+**CORRECT 20 Channels** (standard 10-20 system):
 ```python
-# Drop these 3 channels:
-'A1': None,  # Reference channel
-'A2': None,  # Reference channel  
-'Fpz': None  # Extra midline channel (note: MNE canonical casing)
+STANDARD_20_CHANNELS = [
+    'Fp1', 'Fp2',           # Frontal polar (NOT Fpz!)
+    'F7', 'F3', 'Fz', 'F4', 'F8',  # Frontal
+    'T7', 'C3', 'Cz', 'C4', 'T8',  # Temporal/Central
+    'P7', 'P3', 'Pz', 'P4', 'P8',  # Parietal
+    'O1', 'Oz', 'O2'        # Occipital
+]
+```
 
-# Keep standard 20 (with old→modern naming using MNE casing):
+**Channel Mapping Rules**:
+```python
+# Drop these 3 channels from TUEV's 23:
+'A1': None,  # Reference channel - DROP
+'A2': None,  # Reference channel - DROP
+'Fpz': None  # Extra midline channel - DROP (not in standard 20!)
+
+# Rename old to modern (required):
 'T3' → 'T7'
 'T4' → 'T8'
 'T5' → 'P7'
 'T6' → 'P8'
 ```
 
-**This is CORRECT** - matches EEGPT's expected input format.
+**CRITICAL**: Standard 20 does NOT include Fpz! Count should be exactly 20.
 
 ### 1.4 Window Labeling: ARGMAX WITH PRIORITY FOR SPIKES
 
@@ -202,7 +218,12 @@ preprocessing:
     n_interpolate: [1, 2]
     consensus: [0.5, 0.7, 0.9]
     cv: 3
-    max_reject_rate: 0.15  # Abort if exceeded
+    max_reject_rate: 0.15  # Fallback if exceeded
+  
+training:
+  class_weights: 'inverse_frequency'  # Handle imbalanced classes
+  # weights = 1.0 / (counts + 1e-6)
+  # weights = weights / weights.sum() * n_classes
 ```
 
 ---
@@ -318,7 +339,65 @@ From EEGPT paper Table 3 (page 7):
 
 ---
 
-## 8. Final Summary: The TUEV Pipeline
+## 8. CRITICAL IMPLEMENTATION GAPS (Found via Independent Audit)
+
+### 🔴 Must Fix Before Training
+
+1. **Channel List Inconsistency**:
+   - `tuev_dataset.py` line 45: **WRONG** - includes FPZ in TARGET_CHANNELS
+   - `tuev_preprocessor.py` line 59: **CORRECT** - excludes Fpz from STANDARD_CHANNELS
+   - **FIX**: Remove FPZ from TARGET_CHANNELS, should be exactly 20 channels
+
+2. **Event-Anchored vs Fixed Grid**:
+   - **CURRENT (WRONG)**: Creates epochs anchored to event starts (lines 193-214)
+   - **CORRECT**: Use fixed 4s grid, then label via overlap
+   - **WHY IT MATTERS**: Event-anchored biases toward onsets, misses background windows
+
+3. **Missing Overlap Labeling**:
+   - **CURRENT**: No argmax overlap calculation
+   - **NEEDED**: Implement the labeling algorithm from section 1.4
+
+### 🟡 Important Fixes
+
+4. **Autoreject Too Aggressive**:
+   - Currently inherits TUAB defaults
+   - Need explicit override: `n_interpolate=[1,2], consensus=[0.5,0.7,0.9]`
+
+5. **Cache Version Wrong**:
+   - Current: "mne-ar-v1" 
+   - Should be: "mne-ar-v3"
+
+---
+
+## 9. Fixed-Grid Windowing Algorithm (CORRECT APPROACH)
+
+```python
+def create_fixed_grid_windows(raw, window_duration=4.0, overlap=0.5):
+    """Create fixed-grid windows with specified overlap.
+    
+    Args:
+        raw: MNE Raw object
+        window_duration: Window size in seconds (4.0)
+        overlap: Overlap fraction (0.5 = 50%)
+    
+    Returns:
+        List of (start, end) times for windows
+    """
+    duration = raw.times[-1]
+    step = window_duration * (1 - overlap)
+    
+    windows = []
+    start = 0
+    while start + window_duration <= duration:
+        windows.append((start, start + window_duration))
+        start += step
+    
+    return windows
+```
+
+---
+
+## 10. Final Summary: The TUEV Pipeline
 
 **NO EXPERIMENTS, NO ABLATIONS** - Just one clean implementation:
 
