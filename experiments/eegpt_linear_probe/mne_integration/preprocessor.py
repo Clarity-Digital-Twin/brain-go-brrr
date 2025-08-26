@@ -174,7 +174,7 @@ class TUABPreprocessor:
         """
         import re
 
-        # Create rename dictionary for various TUAB formats
+        # First pass: clean all channel names and apply mapping
         rename_dict = {}
         for ch_name in raw.ch_names:
             # Strip common prefixes and suffixes (case insensitive)
@@ -182,27 +182,21 @@ class TUABPreprocessor:
             clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
             clean_name = clean_name.strip().upper()
 
-            # Check if this matches an old channel name
+            # Check if this matches an old channel name that needs mapping
             for old_name, new_name in self.CHANNEL_MAPPING.items():
-                if clean_name == old_name.upper() and new_name not in raw.ch_names:
+                if clean_name == old_name.upper():
                     rename_dict[ch_name] = new_name
                     break
+            else:
+                # Check if this is a standard channel with prefix/suffix
+                for std_name in self.STANDARD_CHANNELS:
+                    if clean_name == std_name.upper():
+                        rename_dict[ch_name] = std_name
+                        break
 
         if rename_dict:
-            logger.info(f"Renaming channels: {rename_dict}")
+            logger.info(f"Cleaned and mapped {len(rename_dict)} channels")
             raw.rename_channels(rename_dict)
-
-        # Now standardize channel names to match expected casing
-        case_mapping = {}
-        for ch_name in raw.ch_names:
-            for std_name in self.STANDARD_CHANNELS:
-                if ch_name.upper() == std_name.upper() and ch_name != std_name:
-                    case_mapping[ch_name] = std_name
-                    break
-
-        if case_mapping:
-            logger.info(f"Standardizing channel case: {case_mapping}")
-            raw.rename_channels(case_mapping)
 
         # Select and reorder to standard 20 channels
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
