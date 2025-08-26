@@ -6,8 +6,10 @@ Implements the verified preprocessing pipeline to improve EEGPT from 56% to 87% 
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 import mne
 from autoreject import AutoReject, Ransac
@@ -94,6 +96,7 @@ class TUABPreprocessor:
                 - n_epochs_after: Number of epochs after Autoreject
                 - n_rejected: Number of rejected epochs
         """
+
         logger.info(f"Processing {edf_path}")
 
         # 1. Load with MNE

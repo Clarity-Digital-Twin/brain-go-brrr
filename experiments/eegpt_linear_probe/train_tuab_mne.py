@@ -155,11 +155,11 @@ def evaluate(model, probe, eval_loader, criterion, device):
 
 def resolve_env_vars(obj):
     """Recursively resolve environment variables in config.
-    
+
     Handles both ${VAR} and ${VAR}/path patterns.
     """
     import re
-    
+
     if isinstance(obj, str):
         # Handle ${VAR} or ${VAR}/path patterns
         def replacer(match):
