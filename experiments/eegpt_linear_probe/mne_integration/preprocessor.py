@@ -250,13 +250,22 @@ class TUABPreprocessor:
         logger.info(f"Applying notch filter at {notch_freq} Hz")
         raw.notch_filter([notch_freq, notch_freq * 2], fir_design='firwin', verbose=False)
 
-        # Detect and annotate muscle artifacts
+        # Detect and annotate muscle artifacts (adaptive to sampling rate)
         try:
-            muscle_annot, muscle_scores = mne.preprocessing.annotate_muscle_zscore(
-                raw, threshold=4.0, ch_type='eeg', min_length_good=0.2, filter_freq=(110, 140)
-            )
-            raw.set_annotations(raw.annotations + muscle_annot)
-            logger.info(f"Found {len(muscle_annot)} muscle artifact segments")
+            # Adapt muscle detection band to Nyquist frequency
+            nyquist = raw.info['sfreq'] / 2.0
+            muscle_band_low = 110.0
+            muscle_band_high = min(140.0, nyquist * 0.98)  # Keep below Nyquist
+            
+            if muscle_band_high > muscle_band_low:
+                muscle_annot, muscle_scores = mne.preprocessing.annotate_muscle_zscore(
+                    raw, threshold=4.0, ch_type='eeg', min_length_good=0.2, 
+                    filter_freq=(muscle_band_low, muscle_band_high)
+                )
+                raw.set_annotations(raw.annotations + muscle_annot)
+                logger.info(f"Found {len(muscle_annot)} muscle artifact segments (band: {muscle_band_low:.1f}-{muscle_band_high:.1f} Hz)")
+            else:
+                logger.warning(f"Skipping muscle detection: sampling rate {raw.info['sfreq']} Hz too low for EMG band")
         except Exception as e:
             logger.warning(f"Could not detect muscle artifacts: {e}")
 
@@ -270,7 +279,7 @@ class TUABPreprocessor:
                 events,
                 tmin=0,
                 tmax=self.window_duration,
-                baseline=None,
+                baseline=None,  # This one is OK - mne.Epochs accepts baseline
                 preload=True,
                 verbose=False,
             )
@@ -308,7 +317,6 @@ class TUABPreprocessor:
             raw,
             duration=self.window_duration,
             overlap=self.window_duration * self.window_overlap,  # Configurable overlap
-            baseline=None,  # No baseline for EEGPT
             reject_by_annotation=True,  # Respect bad segments from muscle detection
             preload=True,
             verbose=False,
