@@ -154,7 +154,7 @@ def build_cache(config_path: str, output_dir: str):
                 logger.error(f"Missing cache file: {cache_file}")
                 continue
 
-            data = torch.load(cache_file, weights_only=True)
+            data = torch.load(cache_file, map_location='cpu')
             assert data['x'].shape == (
                 23,
                 1024,

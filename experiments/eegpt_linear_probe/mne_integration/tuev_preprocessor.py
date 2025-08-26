@@ -177,7 +177,15 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         # Critical: Enforce minimum channel requirement per SSOT
         if missing_channels:
-            logger.warning(f"Missing standard channels: {missing_channels}")
+            # Warn-once logic for missing channels
+            if not hasattr(self, '_warned_missing_channels'):
+                self._warned_missing_channels = set()
+
+            missing_key = frozenset(missing_channels)
+            if missing_key not in self._warned_missing_channels:
+                logger.warning(f"Missing standard channels: {missing_channels}")
+                self._warned_missing_channels.add(missing_key)
+
             if len(available_standard) < 19:  # Minimum requirement
                 error_msg = (
                     f"Too few standard channels ({len(available_standard)}/20). Need at least 19."
@@ -262,16 +270,17 @@ class TUEVPreprocessor(TUABPreprocessor):
             window_labels.append(label)
 
         # Create epochs from fixed grid
+        # MNE requires event codes > 0, so we use a single code for all windows
+        # Labels are tracked separately in window_labels
         events = []
-        event_id = {}
+        window_event_code = 1  # Single event code for all windows
 
         for i, (win_start, win_end) in enumerate(windows):
             start_sample = int(win_start * raw.info['sfreq'])
-            events.append([start_sample, 0, i])
-            label = window_labels[i]
-            event_id[f"{label}_{i}"] = i
+            events.append([start_sample, 0, window_event_code])  # All windows get code 1
 
         events_array = np.array(events, dtype=int)  # MNE requires int dtype for events
+        event_id = {"window": window_event_code}  # Simple event_id dict
 
         # Create epochs
         epochs = mne.Epochs(
@@ -288,10 +297,10 @@ class TUEVPreprocessor(TUABPreprocessor):
         n_epochs_before = len(epochs)
 
         # Apply Autoreject with gentle parameters for TUEV
-        epochs_clean = self._apply_autoreject_tuev(epochs)
+        epochs_clean, ar_params = self._apply_autoreject_tuev(epochs)
         n_epochs_after = len(epochs_clean)
 
-        # Create info dict
+        # Create info dict with comprehensive metadata
         info = {
             'n_epochs_before': n_epochs_before,
             'n_epochs_after': n_epochs_after,
@@ -300,13 +309,24 @@ class TUEVPreprocessor(TUABPreprocessor):
             if n_epochs_before > 0
             else 0,
             'missing_channels': missing_channels,  # Track for QC
+            'sfreq_after': raw.info['sfreq'],  # Should be 256 Hz after resampling
+            'window_overlap': window_overlap,  # Track overlap used
+            'final_channels': list(raw.ch_names),  # Track exact channel order
+            'ar_learned_params': ar_params,  # Track AR learned parameters
         }
 
-        # Log warning if reject rate too high
+        # Log warning if reject rate too high (warn-once per file)
         if info['reject_rate'] > 0.15:
-            logger.warning(
-                f"High reject rate: {info['reject_rate']:.2%}. Consider adjusting AR parameters."
-            )
+            # Create a unique warning key for this file
+            warning_key = f"high_reject_{edf_path.name}"
+            if not hasattr(self, '_warned_files'):
+                self._warned_files = set()
+
+            if warning_key not in self._warned_files:
+                logger.warning(
+                    f"High reject rate for {edf_path.name}: {info['reject_rate']:.2%}. Consider adjusting AR parameters."
+                )
+                self._warned_files.add(warning_key)
 
         return epochs_clean, info, window_labels
 
@@ -385,14 +405,14 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Default to background
         return 'bckg'
 
-    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> mne.Epochs:
+    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict]:
         """Apply Autoreject with gentle parameters for TUEV spike preservation.
 
         Args:
             epochs: Input epochs
 
         Returns:
-            Clean epochs after artifact rejection
+            Tuple of (clean epochs, learned parameters dict)
         """
         from autoreject import AutoReject
 
@@ -408,10 +428,13 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         epochs_clean = ar.fit_transform(epochs)
 
-        # Log learned parameters
+        # Collect learned parameters
+        ar_params = {}
         if hasattr(ar, 'n_interpolate_'):
+            ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
             logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
         if hasattr(ar, 'consensus_'):
+            ar_params['consensus'] = ar.consensus_.get('eeg', None)
             logger.info(f"Learned consensus: {ar.consensus_}")
 
-        return epochs_clean
+        return epochs_clean, ar_params
