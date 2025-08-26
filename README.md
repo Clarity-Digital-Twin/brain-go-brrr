@@ -111,52 +111,56 @@ curl http://localhost:8000/api/v1/health
 - 87% sleep staging accuracy (YASA)
 - 87% abnormality detection (with MNE preprocessing)
 
-### Development Workflow
+## Requirements
+
+- Python 3.11 or 3.12
+- 16GB RAM minimum  
+- GPU optional (speeds up training)
+- WSL2 (Windows users)
+
+## Development
+
 ```bash
-# Run tests with coverage
-make test
+# Install pre-commit hooks
+pre-commit install
 
-# Check code quality
-make lint typecheck
-
-# Watch tests during development
-make test-watch
-
-# Full CI/CD check before pushing
+# Run all checks
 make check-all
+
+# Watch tests
+make test-watch
 ```
 
-### Contributing
+## Training
 
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
-
-1. **Fork & Clone** the repository
-2. **Read** [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the design
-3. **Follow** [TESTING.md](docs/TESTING.md) for test guidelines
-4. **Create** a pull request with clear description
-
-**Good First Issues:**
-- Improve test coverage (currently 66%, target 70%)
-- Add more preprocessing options
-- Enhance documentation
-- Create example notebooks
-
-## 🔬 For Researchers
-
-### Training Custom Models
-
-We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
-
+### MNE-Preprocessed Training (NEW)
 ```bash
-# Train abnormality detection
+# Build MNE cache first
+cd experiments/eegpt_linear_probe
+./scripts/build_mne_cache.sh
+
+# Train with clean data (56% → 87% AUROC)
+./scripts/launch_tuab_mne.sh
+
+# Monitor progress
+tmux attach -t tuab_mne_training
+```
+
+### Standard Training
+```bash
+# Train TUAB abnormality detection
 cd experiments/eegpt_linear_probe
 ./scripts/launch_tuab.sh
 
-# Monitor training
+# Monitor progress
 tmux attach -t tuab_training
 ```
 
-See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
+## Contributing
+
+1. Read [ARCHITECTURE.md](docs/ARCHITECTURE.md)
+2. Follow [TESTING.md](docs/TESTING.md)  
+3. All PRs require passing CI/CD
 
 ### Pretrained Models
 
