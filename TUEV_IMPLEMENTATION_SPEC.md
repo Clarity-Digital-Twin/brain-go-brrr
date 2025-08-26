@@ -172,9 +172,10 @@ if high_freq <= low_freq:
 ### 2.2 MODIFY These Files
 
 #### `experiments/eegpt_linear_probe/datasets/tuev_dataset.py`
-- **REMOVE** `TCP_BIPOLAR_PAIRS` constant definition
-- **REMOVE** `compute_bipolar_derivation()` function and its usage
-- **REPLACE** window labeling in `_parse_lab_files()` method with correct argmax+priority algorithm
+- **REMOVE** lines 43-72: All TCP channel/bipolar pair definitions
+- **REMOVE** lines 75-120: `compute_bipolar_derivation()` function entirely
+- **REMOVE** lines 286-329: All bipolar derivation logic in `__getitem__()`
+- **REPLACE** lines 236-252: Window labeling with correct argmax+priority algorithm
 - **ADD** average reference using `mne.set_eeg_reference()` functional call
 
 #### `experiments/eegpt_linear_probe/mne_integration/tuev_preprocessor.py`
@@ -317,9 +318,30 @@ From EEGPT paper Table 3 (page 7):
 
 ---
 
+## 8. Final Summary: The TUEV Pipeline
+
+**NO EXPERIMENTS, NO ABLATIONS** - Just one clean implementation:
+
+1. **Input**: TUEV EDF files with 23 channels @ 250Hz
+2. **Channel mapping**: 23→20 (drop A1, A2, Fpz; rename T3/T4/T5/T6)
+3. **Reference**: Average reference ONLY (matches EEGPT training)
+4. **Filtering**: 0.5-45Hz bandpass + 60Hz notch (with Nyquist guard)
+5. **Resampling**: 250→256Hz (EEGPT requirement)
+6. **Windowing**: 4 seconds (1024 samples) with 50% overlap
+7. **Labeling**: Argmax overlap ≥100ms WITH spike priority ≥120ms
+8. **Autoreject**: Gentle parameters (n_interpolate=[1,2], consensus=[0.5,0.7,0.9])
+9. **Output**: (20, 1024) float32 tensors with labels 0-5
+10. **Cache**: `tuev_mne-ar-v3/` with QC flags in index
+
+**Success Metrics**:
+- Balanced Accuracy: ≥62.32%
+- Weighted F1: ≥81.87%
+- Cohen's Kappa: ≥0.635
+
+---
+
 ## References
 
 - EEGPT Paper: `/literature/markdown/EEGPT/EEGPT.md`
 - TUAB Working Implementation: `/experiments/eegpt_linear_probe/mne_integration/preprocessor.py`
 - Current TUEV Code: `/experiments/eegpt_linear_probe/datasets/tuev_dataset.py`
-- External Audit Feedback: Inline comments throughout
