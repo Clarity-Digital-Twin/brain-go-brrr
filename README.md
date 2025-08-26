@@ -7,7 +7,6 @@
 [![Coverage](https://img.shields.io/badge/coverage-66%25-yellow)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 ## 🎯 What We Do
 
@@ -46,33 +45,21 @@ curl http://localhost:8000/api/v1/health
 We use **parallel processing pipelines** optimized for different analysis tasks:
 
 ```
-                    EEG Input (.edf files)
-                   (Any channel count)
-                          │
-                          ▼
-                   Quality Control (QC)
-                  [Autoreject + Bad Channels]
-                          │
-          ┌───────────────┴───────────────┐
-          │                               │
-    EEGPT Pipeline                  YASA Pipeline
-    (Requires 19+ ch)            (Works with ANY count)
-    (256Hz sampling)              (Resamples to 100Hz)
-          │                               │
-          ▼                               ▼
-    EEGPT Features               Channel Selection
-    (4×512 summary tokens →      (Picks best central)
-     2,048 flattened)
-          │                               │
-          ▼                               ▼
-    Abnormality Detection          Sleep Staging
-    (Normal vs Abnormal)           (5 stages: W,N1,N2,N3,REM)
-          │                               │
-      [IF ABNORMAL]                       ▼
-          │                        Sleep Metrics
-          ▼                        (Efficiency, TST, etc.)
-    Event Detection
-    (TUEV: SPSW/GPED/PLED/etc)
+        Raw EEG (.edf files)
+               │
+        Quality Control
+         (Autoreject QC)
+               │
+    ┌──────────┴──────────┐
+    │                     │
+EEGPT Pipeline      YASA Pipeline
+(19+ channels)      (Any channels)
+    │                     │
+Abnormality          Sleep Staging
+Detection            (W,N1,N2,N3,REM)
+    │                     │
+Event Detection      Sleep Metrics
+(if abnormal)        (efficiency, TST)
 ```
 
 **Key Design Principles:**
@@ -135,11 +122,7 @@ We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
 ```bash
 # Train abnormality detection
 cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh  # Standard training
-
-# Or with MNE preprocessing for improved accuracy
-./scripts/build_mne_cache.sh  # Build preprocessed cache
-./scripts/launch_tuab_mne.sh  # Train with clean data
+./scripts/launch_tuab.sh
 
 # Monitor training
 tmux attach -t tuab_training
