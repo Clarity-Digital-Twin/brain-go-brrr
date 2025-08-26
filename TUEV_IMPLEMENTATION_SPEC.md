@@ -45,9 +45,10 @@ raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 - Same as TUAB implementation (verified working)
 
 **Window Overlap**: 
-- **50% overlap** (2-second step) to increase coverage of brief events
-- Helps catch spikes that might fall on window boundaries
-- Trade-off: 2x more windows to process, but better event detection
+- **Default: 0% overlap** (4-second step) for faster processing
+- **Optional: 50% overlap** (2-second step) for better event coverage
+- Trade-off: 50% overlap = 2x windows, 2x compute, but catches boundary events
+- Set via config: `window_overlap: 0.0` or `0.5`
 
 **Current Implementation**: 
 - Already using 1024 in `train_tuev.py` line 118
@@ -59,16 +60,18 @@ raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 
 **Decision**: Map TUEV's 23 channels to standard 20 channels.
 
-**CORRECT 20 Channels** (standard 10-20 system):
+**CORRECT 20 Channels** (project-wide standard):
 ```python
 STANDARD_20_CHANNELS = [
     'Fp1', 'Fp2',           # Frontal polar (NOT Fpz!)
     'F7', 'F3', 'Fz', 'F4', 'F8',  # Frontal
     'T7', 'C3', 'Cz', 'C4', 'T8',  # Temporal/Central
     'P7', 'P3', 'Pz', 'P4', 'P8',  # Parietal
-    'O1', 'Oz', 'O2'        # Occipital
+    'O1', 'Oz', 'O2'        # Occipital (keeping Oz for TUAB consistency)
 ]
 ```
+
+**Note on Table 13**: EEGPT paper's Table 13 lists Fpz instead of Oz for TUEV. We're using Oz to maintain consistency with our TUAB implementation. The 1×1 adapter layer handles minor channel differences.
 
 **Channel Mapping Rules**:
 ```python
@@ -123,17 +126,25 @@ def label_window(window_start, window_end, annotations):
             overlaps[label] += overlap_duration
     
     # Priority override: if spike has sufficient overlap (≥120ms), prioritize it
-    if overlaps.get('spsw', 0) >= 0.12:  # 120ms threshold for clear spike
+    SPIKE_PRIORITY_THRESHOLD = 0.12  # 120ms = 3% of 4s window
+    if overlaps.get('spsw', 0) >= SPIKE_PRIORITY_THRESHOLD:
         return 'spsw'
     
     # Otherwise use argmax with minimum duration
+    MINIMUM_OVERLAP_THRESHOLD = 0.10  # 100ms = 2.5% of 4s window
     if overlaps:
-        # Only consider if overlap ≥ 100ms (0.1s)
-        valid_overlaps = {k: v for k, v in overlaps.items() if v >= 0.1}
+        # Only consider if overlap ≥ minimum threshold
+        valid_overlaps = {k: v for k, v in overlaps.items() if v >= MINIMUM_OVERLAP_THRESHOLD}
         
         if valid_overlaps:
-            # Return class with max overlap
-            return max(valid_overlaps, key=valid_overlaps.get)
+            # Find max overlap
+            max_overlap = max(valid_overlaps.values())
+            
+            # Handle ties with deterministic priority
+            PRIORITY_ORDER = ['spsw', 'gped', 'pled', 'artf', 'eyem', 'bckg']
+            for label in PRIORITY_ORDER:
+                if label in valid_overlaps and valid_overlaps[label] == max_overlap:
+                    return label
     
     # Default to background
     return 'bckg'
@@ -165,17 +176,32 @@ thresh_method = 'bayesian_optimization'
 - Log learned `n_interpolate_['eeg']` and `consensus_['eeg']`
 - **FALLBACK if reject_rate > 15%**: Log warning, reduce aggressiveness or skip AR, flag in cache index (don't abort)
 
-### 1.6 Filtering Guard: NYQUIST SAFETY
+### 1.6 Filtering & Resampling: EXPLICIT REQUIREMENTS
 
-**Decision**: Clamp high-frequency filter below Nyquist limit.
+**Resampling**: Must resample from 250Hz to 256Hz for EEGPT compatibility
+```python
+if raw.info['sfreq'] != 256:
+    raw.resample(256, npad='auto')
+```
 
+**Filtering Guards**: Clamp all frequencies below Nyquist
 ```python
 # Guard against Nyquist violations (same as TUAB implementation)
 sfreq = raw.info['sfreq']
-high_freq = min(high_freq, 0.49 * sfreq)  # Stay below Nyquist
+
+# Bandpass filter
+high_freq = min(45.0, 0.49 * sfreq)  # Stay below Nyquist
 if high_freq <= low_freq:
-    logger.warning(f"Skipping filter: high_freq {high_freq} <= low_freq {low_freq}")
-    # Skip filtering for this file
+    logger.warning(f"Skipping bandpass: high_freq {high_freq} <= low_freq {low_freq}")
+
+# Notch filter and harmonics
+notch_freqs = [60]  # or 50 based on region
+if 2 * notch_freqs[0] < 0.95 * sfreq:
+    notch_freqs.append(2 * notch_freqs[0])  # Add harmonic if safe
+
+# Muscle band for artifact detection  
+muscle_low = min(110, 0.45 * sfreq)
+muscle_high = min(140, 0.49 * sfreq)
 ```
 
 ---
@@ -208,22 +234,32 @@ if high_freq <= low_freq:
 #### `experiments/eegpt_linear_probe/configs/tuev.yaml`
 ```yaml
 data:
-  window_samples: 1024  # KEEP THIS
-  sampling_rate: 256    # KEEP THIS
-  n_channels: 20        # AFTER preprocessing (was 23)
+  window_samples: 1024    # FIXED: 4s @ 256Hz
+  window_overlap: 0.0     # Default 0%, can set to 0.5 for 50%
+  sampling_rate: 256      # Target rate (resample from 250Hz)
+  n_channels: 20          # After preprocessing (was 23)
 
 preprocessing:
-  reference: 'average'  # NOT 'tcp_bipolar'
+  reference: 'average'    # NOT 'tcp_bipolar' 
+  resample_rate: 256      # Explicit resample target
+  bandpass: [0.5, 45]     # Hz, clamped to Nyquist
+  notch: 60               # Hz, with harmonics if safe
+  
   autoreject:
-    n_interpolate: [1, 2]
-    consensus: [0.5, 0.7, 0.9]
-    cv: 3
-    max_reject_rate: 0.15  # Fallback if exceeded
+    n_interpolate: [1, 2]         # Gentler than TUAB [1,2,3,4]
+    consensus: [0.5, 0.7, 0.9]    # Higher thresholds  
+    cv: 3                         # Faster than 5
+    max_reject_rate: 0.15         # Fallback threshold
+  
+  labeling:
+    min_overlap_ms: 100           # 2.5% of 4s window
+    spike_priority_ms: 120        # 3% of 4s window
+    tie_priority: ['spsw', 'gped', 'pled', 'artf', 'eyem', 'bckg']
   
 training:
-  class_weights: 'inverse_frequency'  # Handle imbalanced classes
-  # weights = 1.0 / (counts + 1e-6)
-  # weights = weights / weights.sum() * n_classes
+  class_weights: 'inverse_frequency'
+  # Formula: weights = 1.0 / (counts + 1e-6)
+  #          weights = weights / weights.sum() * n_classes
 ```
 
 ---
@@ -419,8 +455,40 @@ def create_fixed_grid_windows(raw, window_duration=4.0, overlap=0.5):
 
 ---
 
+## 11. Implementation Checklist
+
+### Phase 1: Fix Critical Bugs
+- [ ] Remove FPZ from TARGET_CHANNELS in `tuev_dataset.py` line 45
+- [ ] Delete all TCP/bipolar code from `tuev_dataset.py`
+- [ ] Change cache version to "mne-ar-v3" in `tuev_mne_dataset.py`
+
+### Phase 2: Implement Fixed-Grid Windowing
+- [ ] Replace event-anchored epochs with fixed-grid approach
+- [ ] Implement argmax overlap labeling with thresholds
+- [ ] Add spike priority logic (≥120ms)
+- [ ] Handle tie-breaking with priority order
+
+### Phase 3: Apply Preprocessing Updates
+- [ ] Add explicit resampling to 256Hz
+- [ ] Override Autoreject with gentle parameters
+- [ ] Add Nyquist guards for all filters
+- [ ] Use functional `mne.set_eeg_reference()` form
+
+### Phase 4: Build & Validate Cache
+- [ ] Build cache with new parameters
+- [ ] Verify all windows are (20, 1024) float32
+- [ ] Check no NaN values
+- [ ] Validate class distribution
+
+### Phase 5: Train & Evaluate
+- [ ] Train linear probe with frozen EEGPT
+- [ ] Monitor balanced accuracy, F1, kappa
+- [ ] Target: ≥62.32% balanced accuracy
+
+---
+
 ## References
 
-- EEGPT Paper: `/literature/markdown/EEGPT/EEGPT.md`
+- EEGPT Paper: `/literature/markdown/EEGPT/EEGPT.md` (see page 6 for T=1024, Table 13 for metrics)
 - TUAB Working Implementation: `/experiments/eegpt_linear_probe/mne_integration/preprocessor.py`
 - Current TUEV Code: `/experiments/eegpt_linear_probe/datasets/tuev_dataset.py`
