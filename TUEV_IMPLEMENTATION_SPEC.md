@@ -159,10 +159,10 @@ thresh_method = 'bayesian_optimization'
 ### 2.2 MODIFY These Files
 
 #### `experiments/eegpt_linear_probe/datasets/tuev_dataset.py`
-- **REMOVE** lines 64-71 (TCP_BIPOLAR_PAIRS definition)
-- **REMOVE** lines 314-324 (bipolar derivation logic)
-- **REPLACE** lines 236-252 with correct window labeling (argmax with ≥100ms)
-- **ADD** average reference application
+- **REMOVE** `TCP_BIPOLAR_PAIRS` constant definition
+- **REMOVE** `compute_bipolar_derivation()` function and its usage
+- **REPLACE** window labeling in `_parse_lab_files()` method with correct argmax+priority algorithm
+- **ADD** average reference using `mne.set_eeg_reference()` functional call
 
 #### `experiments/eegpt_linear_probe/mne_integration/tuev_preprocessor.py`
 - **KEEP** 23→20 channel mapping (already correct)
