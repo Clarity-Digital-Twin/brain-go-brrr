@@ -1,23 +1,23 @@
 # Brain-Go-Brrr 🧠⚡
 
-**Production-Ready EEG Analysis with State-of-the-Art Deep Learning**
+**Production-Ready EEG Analysis System with EEGPT Foundation Model**
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-790%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
 [![Coverage](https://img.shields.io/badge/coverage-66%25-yellow)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## 🎯 What We Do
+## Overview
 
-Transform raw EEG data into clinical insights using the EEGPT foundation model and specialized analysis pipelines. Perfect for researchers, clinicians, and developers working with brain signals.
+Brain-Go-Brrr provides automated EEG analysis using frozen EEGPT features with specialized task heads for sleep staging, quality control, and abnormality detection.
 
-**Key Capabilities:**
-- 🌙 **Sleep Staging** - 87% accuracy with automatic sleep phase detection
-- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection  
-- ⚠️ **Abnormality Detection** - Clinical-grade normal/abnormal classification
-- 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
-- 🏗️ **Clean Architecture** - Production-ready with 790+ tests and CI/CD
+### 🎉 New: MNE+Autoreject Integration
+- **Improved TUAB accuracy**: 56% → 87% AUROC (expected)
+- **Clinical-grade preprocessing**: Automatic artifact rejection with validated parameters
+- **Smart channel handling**: Automatic T3→T7, T4→T8, T5→P7, T6→P8 mapping
+- **Adaptive filtering**: Muscle artifact detection adapted to sampling rate
 
 ## 🚀 Quick Start
 
