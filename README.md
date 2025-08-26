@@ -93,20 +93,23 @@ curl http://localhost:8000/api/v1/health
 - **YASA achieves 87% accuracy** with just 1 central EEG channel
 - **MNE preprocessing** dramatically improves abnormality detection (56% → 87% AUROC)
 
-## 💻 For Developers
+## Documentation
 
-### Project Structure
-```
-brain-go-brrr/
-├── src/brain_go_brrr/     # Main package
-│   ├── domain/            # Business logic (pure, no dependencies)
-│   ├── application/       # Use cases and orchestration
-│   ├── infra/            # External adapters (EEGPT, YASA, etc.)
-│   └── api/              # REST API endpoints
-├── experiments/          # Training scripts and research
-├── tests/               # 790+ unit, integration, and smoke tests
-└── docs/               # Comprehensive documentation
-```
+| Document | Description |
+|----------|-------------|
+| [docs/QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design & patterns |
+| [docs/API.md](docs/API.md) | REST endpoints reference |
+| [docs/TRAINING.md](docs/TRAINING.md) | Model training guide |
+| [docs/TESTING.md](docs/TESTING.md) | Test philosophy & guidelines |
+
+## Performance
+
+- Process 20-minute EEG in <2 minutes
+- 790+ passing tests with 66% coverage
+- <100ms API response time (cached)
+- 87% sleep staging accuracy (YASA)
+- 87% abnormality detection (with MNE preprocessing)
 
 ### Development Workflow
 ```bash
