@@ -149,6 +149,19 @@ thresh_method = 'bayesian_optimization'
 - Log learned `n_interpolate_['eeg']` and `consensus_['eeg']`
 - **FALLBACK if reject_rate > 15%**: Log warning, reduce aggressiveness or skip AR, flag in cache index (don't abort)
 
+### 1.6 Filtering Guard: NYQUIST SAFETY
+
+**Decision**: Clamp high-frequency filter below Nyquist limit.
+
+```python
+# Guard against Nyquist violations (same as TUAB implementation)
+sfreq = raw.info['sfreq']
+high_freq = min(high_freq, 0.49 * sfreq)  # Stay below Nyquist
+if high_freq <= low_freq:
+    logger.warning(f"Skipping filter: high_freq {high_freq} <= low_freq {low_freq}")
+    # Skip filtering for this file
+```
+
 ---
 
 ## 2. Files Requiring Changes
@@ -165,13 +178,13 @@ thresh_method = 'bayesian_optimization'
 - **ADD** average reference using `mne.set_eeg_reference()` functional call
 
 #### `experiments/eegpt_linear_probe/mne_integration/tuev_preprocessor.py`
-- **KEEP** 23→20 channel mapping (already correct)
-- **UPDATE** Autoreject parameters (lines in `_apply_autoreject` method)
-- **ADD** window labeling logic per specification
+- **KEEP** 23→20 channel mapping (already correct but fix casing: `Fpz` not `FPZ`)
+- **UPDATE** Autoreject parameters in `_apply_autoreject()` method
+- **ADD** window labeling logic with spike priority per specification
 
 #### `experiments/eegpt_linear_probe/datasets/tuev_mne_dataset.py`
-- **UPDATE** window labeling in `_load_annotations` method
-- **ENSURE** cache version is bumped (e.g., "tuev-mne-v3")
+- **UPDATE** window labeling in `_load_annotations()` method to use priority algorithm
+- **ENSURE** cache version is bumped to "tuev_mne-ar-v3" (consistent naming)
 
 ### 2.3 Configuration Files
 
@@ -200,10 +213,10 @@ preprocessing:
 data/cache/
 ├── tuab_mne_preprocessed/     # Existing, working perfectly
 │   └── *_mne-ar-v2.pt         # Shape: (19-20, 1024)
-└── tuev_avg_ref_v3/           # NEW - average reference
-    ├── index_train_v3.json
-    ├── index_eval_v3.json
-    └── window_*_v3.pt         # Shape: (20, 1024)
+└── tuev_mne-ar-v3/            # NEW - consistent naming with TUAB
+    ├── index_train.json
+    ├── index_eval.json
+    └── window_*_mne-ar-v3.pt  # Shape: (20, 1024)
 ```
 
 **NEVER** mix old cache versions. The old `tuev_mne_preprocessed` should be deleted.
@@ -214,6 +227,11 @@ Each cached tensor MUST have:
 - Dtype: `float32`
 - No NaN values
 - Label: One of 6 classes (0-5)
+
+Cache index should include:
+- QC flags (e.g., "high_reject_rate", "fallback_applied")
+- Autoreject metrics (reject_rate, n_interpolate, consensus)
+- Missing/mapped channels per file
 
 ---
 
@@ -229,10 +247,15 @@ def test_spike_labeling():
     # Spike: 0.5-0.65 seconds (150ms)
     # Should label as 'spsw' not 'bckg'
     
-def test_argmax_overlap():
-    """Test that longest overlap wins."""
+def test_spike_priority():
+    """Test that spikes get priority when sufficient."""
     # Window with 200ms spike, 300ms artifact
-    # Should label as 'artf'
+    # Should label as 'spsw' (spike priority)
+    
+def test_argmax_overlap():
+    """Test that longest overlap wins (when no spike priority)."""
+    # Window with 50ms spike, 300ms artifact
+    # Should label as 'artf' (spike too short for priority)
     
 def test_minimum_duration():
     """Test that <100ms events are ignored."""
@@ -243,10 +266,16 @@ def test_minimum_duration():
 #### `tests/unit/test_tuev_shape_contract.py`
 ```python
 def test_cache_shape():
-    """Every cached window must be (20, 1024)."""
+    """Every cached window must be (20, 1024) float32."""
     
 def test_no_nans():
     """No NaN values in cached data."""
+    
+def test_labels_valid():
+    """Labels must be in {0: spsw, 1: gped, 2: pled, 3: eyem, 4: artf, 5: bckg}."""
+
+def test_qc_flags_logged():
+    """Cache index contains QC flags for high reject rate files."""
 ```
 
 ---
@@ -257,12 +286,13 @@ Each file processed must log:
 ```
 Processing: aaaaaaar_00000001.edf
 - Channels: 23 found, 20 after mapping
-- Dropped: ['A1', 'A2', 'FPZ']  
-- Reference: average
+- Dropped: ['A1', 'A2', 'Fpz']  # Note: MNE canonical casing
+- Reference: average (functional call)
 - Windows: 150 created
 - Labels: SPSW=12, GPED=3, PLED=2, EYEM=8, ARTF=15, BCKG=110
 - Autoreject: 150→142 epochs (5.3% rejected)
 - AR learned: n_interpolate=1, consensus=0.7
+- QC flags: None (or "high_reject_rate" if >15%)
 ```
 
 ---
