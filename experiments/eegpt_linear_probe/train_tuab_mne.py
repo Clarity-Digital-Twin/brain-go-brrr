@@ -154,10 +154,18 @@ def evaluate(model, probe, eval_loader, criterion, device):
 
 
 def resolve_env_vars(obj):
-    """Recursively resolve environment variables in config."""
-    if isinstance(obj, str) and obj.startswith("${") and obj.endswith("}"):
-        env_var = obj[2:-1]
-        return os.environ.get(env_var, obj)
+    """Recursively resolve environment variables in config.
+    
+    Handles both ${VAR} and ${VAR}/path patterns.
+    """
+    import re
+    
+    if isinstance(obj, str):
+        # Handle ${VAR} or ${VAR}/path patterns
+        def replacer(match):
+            env_var = match.group(1)
+            return os.environ.get(env_var, match.group(0))
+        return re.sub(r'\$\{([^}]+)\}', replacer, obj)
     elif isinstance(obj, dict):
         return {k: resolve_env_vars(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -239,8 +247,8 @@ def main():
         train_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=True,
-        num_workers=config['data']['num_workers'],
-        pin_memory=True,
+        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
+        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
         collate_fn=collate_eeg_batch_fixed,
     )
 
@@ -248,8 +256,8 @@ def main():
         eval_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=False,
-        num_workers=config['data']['num_workers'],
-        pin_memory=True,
+        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
+        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
         collate_fn=collate_eeg_batch_fixed,
     )
 

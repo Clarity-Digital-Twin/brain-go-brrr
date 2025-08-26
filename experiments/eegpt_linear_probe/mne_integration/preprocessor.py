@@ -69,6 +69,7 @@ class TUABPreprocessor:
         # Set defaults from verified documentation
         self.sampling_rate = self.config.get('sampling_rate', 256)
         self.window_duration = self.config.get('window_duration', 4.0)
+        self.window_overlap = self.config.get('window_overlap', 0.0)  # Overlap fraction (0.0 to 0.5)
         self.bandpass_low = self.config.get('bandpass_low', 0.5)
         self.bandpass_high = self.config.get('bandpass_high', 45.0)
         # Notch frequency: use config, then raw.info line_freq, then default to 60Hz (US)
@@ -108,7 +109,30 @@ class TUABPreprocessor:
             raw.resample(self.sampling_rate, npad='auto')
 
         # 4. Set channel types and montage
-        raw.set_channel_types(dict.fromkeys(raw.ch_names, 'eeg'))
+        # Only set channels to 'eeg' if they're in our standard set
+        # This avoids mis-typing EOG/ECG channels if present
+        channel_types = {}
+        standard_upper = {ch.upper() for ch in self.STANDARD_CHANNELS}
+
+        for ch in raw.ch_names:
+            ch_upper = ch.upper()
+            # Check if it's a standard EEG channel
+            if ch_upper in standard_upper:
+                channel_types[ch] = 'eeg'
+            # Detect EOG channels
+            elif 'EOG' in ch_upper:
+                channel_types[ch] = 'eog'
+            # Detect ECG/EKG channels
+            elif 'ECG' in ch_upper or 'EKG' in ch_upper:
+                channel_types[ch] = 'ecg'
+            # Leave others as-is
+
+        if channel_types:
+            raw.set_channel_types(channel_types)
+            logger.info(f"Set channel types: {len([c for c in channel_types.values() if c == 'eeg'])} EEG, "
+                       f"{len([c for c in channel_types.values() if c == 'eog'])} EOG, "
+                       f"{len([c for c in channel_types.values() if c == 'ecg'])} ECG")
+
         try:
             montage = mne.channels.make_standard_montage('standard_1020')
             raw.set_montage(montage, on_missing='warn')
@@ -286,7 +310,7 @@ class TUABPreprocessor:
         epochs = mne.make_fixed_length_epochs(
             raw,
             duration=self.window_duration,
-            overlap=0.0,  # No overlap for now (can be configured later)
+            overlap=self.window_duration * self.window_overlap,  # Configurable overlap
             baseline=None,  # No baseline for EEGPT
             reject_by_annotation=True,  # Respect bad segments from muscle detection
             preload=True,
