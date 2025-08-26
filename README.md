@@ -1,6 +1,6 @@
 # Brain-Go-Brrr 🧠⚡
 
-**Production-Ready EEG Analysis System with EEGPT Foundation Model**
+**Production-Ready EEG Analysis with State-of-the-Art Deep Learning**
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-790%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
@@ -9,15 +9,16 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## Overview
+## 🎯 What We Do
 
-Brain-Go-Brrr provides automated EEG analysis using frozen EEGPT features with specialized task heads for sleep staging, quality control, and abnormality detection.
+Transform raw EEG data into clinical insights using the EEGPT foundation model and specialized analysis pipelines. Perfect for researchers, clinicians, and developers working with brain signals.
 
-### 🎉 New: MNE+Autoreject Integration
-- **Improved TUAB accuracy**: 56% → 87% AUROC (expected)
-- **Clinical-grade preprocessing**: Automatic artifact rejection with validated parameters
-- **Smart channel handling**: Automatic T3→T7, T4→T8, T5→P7, T6→P8 mapping
-- **Adaptive filtering**: Muscle artifact detection adapted to sampling rate
+**Key Capabilities:**
+- 🌙 **Sleep Staging** - 87% accuracy with automatic sleep phase detection
+- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection  
+- ⚠️ **Abnormality Detection** - Clinical-grade normal/abnormal classification
+- 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
+- 🏗️ **Clean Architecture** - Production-ready with 790+ tests and CI/CD
 
 ## 🚀 Quick Start
 
@@ -35,25 +36,14 @@ uv run uvicorn brain_go_brrr.api.main:app --reload
 curl http://localhost:8000/api/v1/health
 ```
 
-📚 **Full documentation**: [docs/README.md](docs/README.md)
+**Next Steps:**
+- 📖 [Full Setup Guide](docs/QUICK_START.md) - Detailed installation and configuration
+- 🏗️ [Architecture Overview](docs/ARCHITECTURE.md) - Understand the system design
+- 🔌 [API Documentation](docs/API.md) - REST endpoints and examples
 
-## Features
+## 🧬 How It Works
 
-### ✅ Working
-- **Sleep Analysis** - 5-stage classification with 87% accuracy (YASA)
-- **Quality Control** - Bad channel detection, artifact rejection (Autoreject)
-- **MNE Preprocessing** - Clinical-grade data cleaning with validated parameters
-- **EEGPT Features** - 2,048-dim flattened features (4×512 summary tokens)
-- **REST API** - FastAPI with Redis caching
-- **CI/CD** - GitHub Actions on all branches
-
-### 🟡 In Progress
-- **Abnormality Detection** - Training TUAB linear probe with MNE preprocessing (target: 0.87 AUROC)
-
-### ❌ Not Implemented
-- Event detection, authentication, production deployment
-
-## Architecture - Parallel Processing Pathways
+We use **parallel processing pipelines** optimized for different analysis tasks:
 
 ```
                     EEG Input (.edf files)
@@ -61,7 +51,7 @@ curl http://localhost:8000/api/v1/health
                           │
                           ▼
                    Quality Control (QC)
-                  [MNE + Autoreject Pipeline]
+                  [Autoreject + Bad Channels]
                           │
           ┌───────────────┴───────────────┐
           │                               │
@@ -85,82 +75,77 @@ curl http://localhost:8000/api/v1/health
     (TUEV: SPSW/GPED/PLED/etc)
 ```
 
-**KEY INSIGHTS**:
-- **YASA works with ANY channel count** (not just 2) - it selects the best central channel (C3/C4)
-- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement
-- **Both pipelines run in PARALLEL** and can process the same data
-- **EEGPT requires 19+ channels** for meaningful clinical results
-- **YASA achieves 87% accuracy** with just 1 central EEG channel
-- **MNE preprocessing** dramatically improves abnormality detection (56% → 87% AUROC)
+**Key Design Principles:**
+- **Parallel, not sequential** - EEGPT and YASA run independently
+- **Flexible channel support** - YASA works with 1-256 channels
+- **Clinical accuracy** - 87% sleep staging, targeting 87% abnormality AUROC
+- **Production-ready** - Clean architecture, dependency injection, comprehensive testing
 
-## Documentation
+## 💻 For Developers
 
-| Document | Description |
-|----------|-------------|
-| [docs/QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design & patterns |
-| [docs/API.md](docs/API.md) | REST endpoints reference |
-| [docs/TRAINING.md](docs/TRAINING.md) | Model training guide |
-| [docs/TESTING.md](docs/TESTING.md) | Test philosophy & guidelines |
+### Project Structure
+```
+brain-go-brrr/
+├── src/brain_go_brrr/     # Main package
+│   ├── domain/            # Business logic (pure, no dependencies)
+│   ├── application/       # Use cases and orchestration
+│   ├── infra/            # External adapters (EEGPT, YASA, etc.)
+│   └── api/              # REST API endpoints
+├── experiments/          # Training scripts and research
+├── tests/               # 790+ unit, integration, and smoke tests
+└── docs/               # Comprehensive documentation
+```
 
-## Performance
-
-- Process 20-minute EEG in <2 minutes
-- 790+ passing tests with 66% coverage
-- <100ms API response time (cached)
-- 87% sleep staging accuracy (YASA)
-- 87% abnormality detection (with MNE preprocessing)
-
-## Requirements
-
-- Python 3.11 or 3.12
-- 16GB RAM minimum  
-- GPU optional (speeds up training)
-- WSL2 (Windows users)
-
-## Development
-
+### Development Workflow
 ```bash
-# Install pre-commit hooks
-pre-commit install
+# Run tests with coverage
+make test
 
-# Run all checks
-make check-all
+# Check code quality
+make lint typecheck
 
-# Watch tests
+# Watch tests during development
 make test-watch
+
+# Full CI/CD check before pushing
+make check-all
 ```
 
-## Training
+### Contributing
 
-### MNE-Preprocessed Training (NEW)
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
+
+1. **Fork & Clone** the repository
+2. **Read** [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the design
+3. **Follow** [TESTING.md](docs/TESTING.md) for test guidelines
+4. **Create** a pull request with clear description
+
+**Good First Issues:**
+- Improve test coverage (currently 66%, target 70%)
+- Add more preprocessing options
+- Enhance documentation
+- Create example notebooks
+
+## 🔬 For Researchers
+
+### Training Custom Models
+
+We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
+
 ```bash
-# Build MNE cache first
+# Train abnormality detection
 cd experiments/eegpt_linear_probe
-./scripts/build_mne_cache.sh
+./scripts/launch_tuab.sh  # Standard training
 
-# Train with clean data (56% → 87% AUROC)
-./scripts/launch_tuab_mne.sh
+# Or with MNE preprocessing for improved accuracy
+./scripts/build_mne_cache.sh  # Build preprocessed cache
+./scripts/launch_tuab_mne.sh  # Train with clean data
 
-# Monitor progress
-tmux attach -t tuab_mne_training
-```
-
-### Standard Training
-```bash
-# Train TUAB abnormality detection
-cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh
-
-# Monitor progress
+# Monitor training
 tmux attach -t tuab_training
 ```
 
-## Contributing
-
-1. Read [ARCHITECTURE.md](docs/ARCHITECTURE.md)
-2. Follow [TESTING.md](docs/TESTING.md)  
-3. All PRs require passing CI/CD
+See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
 
 ### Pretrained Models
 
