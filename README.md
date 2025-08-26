@@ -35,38 +35,63 @@ uv run uvicorn brain_go_brrr.api.main:app --reload
 curl http://localhost:8000/api/v1/health
 ```
 
-**Next Steps:**
-- 📖 [Full Setup Guide](docs/QUICK_START.md) - Detailed installation and configuration
-- 🏗️ [Architecture Overview](docs/ARCHITECTURE.md) - Understand the system design
-- 🔌 [API Documentation](docs/API.md) - REST endpoints and examples
+📚 **Full documentation**: [docs/README.md](docs/README.md)
 
-## 🧬 How It Works
+## Features
 
-We use **parallel processing pipelines** optimized for different analysis tasks:
+### ✅ Working
+- **Sleep Analysis** - 5-stage classification with 87% accuracy (YASA)
+- **Quality Control** - Bad channel detection, artifact rejection (Autoreject)
+- **MNE Preprocessing** - Clinical-grade data cleaning with validated parameters
+- **EEGPT Features** - 2,048-dim flattened features (4×512 summary tokens)
+- **REST API** - FastAPI with Redis caching
+- **CI/CD** - GitHub Actions on all branches
+
+### 🟡 In Progress
+- **Abnormality Detection** - Training TUAB linear probe with MNE preprocessing (target: 0.87 AUROC)
+
+### ❌ Not Implemented
+- Event detection, authentication, production deployment
+
+## Architecture - Parallel Processing Pathways
 
 ```
-        Raw EEG (.edf files)
-               │
-        Quality Control
-         (Autoreject QC)
-               │
-    ┌──────────┴──────────┐
-    │                     │
-EEGPT Pipeline      YASA Pipeline
-(19+ channels)      (Any channels)
-    │                     │
-Abnormality          Sleep Staging
-Detection            (W,N1,N2,N3,REM)
-    │                     │
-Event Detection      Sleep Metrics
-(if abnormal)        (efficiency, TST)
+                    EEG Input (.edf files)
+                   (Any channel count)
+                          │
+                          ▼
+                   Quality Control (QC)
+                  [MNE + Autoreject Pipeline]
+                          │
+          ┌───────────────┴───────────────┐
+          │                               │
+    EEGPT Pipeline                  YASA Pipeline
+    (Requires 19+ ch)            (Works with ANY count)
+    (256Hz sampling)              (Resamples to 100Hz)
+          │                               │
+          ▼                               ▼
+    EEGPT Features               Channel Selection
+    (4×512 summary tokens →      (Picks best central)
+     2,048 flattened)
+          │                               │
+          ▼                               ▼
+    Abnormality Detection          Sleep Staging
+    (Normal vs Abnormal)           (5 stages: W,N1,N2,N3,REM)
+          │                               │
+      [IF ABNORMAL]                       ▼
+          │                        Sleep Metrics
+          ▼                        (Efficiency, TST, etc.)
+    Event Detection
+    (TUEV: SPSW/GPED/PLED/etc)
 ```
 
-**Key Design Principles:**
-- **Parallel, not sequential** - EEGPT and YASA run independently
-- **Flexible channel support** - YASA works with 1-256 channels
-- **Clinical accuracy** - 87% sleep staging, targeting 87% abnormality AUROC
-- **Production-ready** - Clean architecture, dependency injection, comprehensive testing
+**KEY INSIGHTS**:
+- **YASA works with ANY channel count** (not just 2) - it selects the best central channel (C3/C4)
+- **Sleep-EDF has 2 channels** but that's dataset-specific, not a YASA requirement
+- **Both pipelines run in PARALLEL** and can process the same data
+- **EEGPT requires 19+ channels** for meaningful clinical results
+- **YASA achieves 87% accuracy** with just 1 central EEG channel
+- **MNE preprocessing** dramatically improves abnormality detection (56% → 87% AUROC)
 
 ## 💻 For Developers
 
