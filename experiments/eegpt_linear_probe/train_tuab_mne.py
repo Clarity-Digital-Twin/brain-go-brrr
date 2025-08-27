@@ -88,6 +88,10 @@ def train_epoch(
 
     for batch_idx, (x, y) in enumerate(pbar):
         x, y = x.to(device), y.to(device)
+        
+        # Log first batch shapes for diagnostics
+        if batch_idx == 0 and epoch == 0:
+            logger.info(f"First batch - x.shape: {x.shape}, y.dtype: {y.dtype}, y.shape: {y.shape}")
 
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():

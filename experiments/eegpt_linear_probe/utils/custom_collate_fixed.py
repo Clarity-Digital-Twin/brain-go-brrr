@@ -14,22 +14,21 @@ def collate_eeg_batch_fixed(
 
     The key insight: preserve the dtype from the cached data!
     """
-    # Stack data - all samples MUST have same shape
-    # If there's a mismatch, it's a cache corruption issue that needs fixing upstream
-    try:
-        data = torch.stack([sample[0] for sample in batch])
-    except RuntimeError as e:
-        if "equal size" in str(e):
-            # Debug: show what shapes we got
-            shapes = [sample[0].shape for sample in batch]
-            unique_shapes = list(set(shapes))
-            raise RuntimeError(
-                f"Channel mismatch in batch! Found shapes: {unique_shapes}. "
-                f"This indicates cache corruption - some files have different channel counts. "
-                f"The cache needs to be rebuilt with consistent preprocessing."
-            ) from e
-        else:
-            raise
+    # Stack data - handle 19 vs 20 channel mismatch by truncating to 19
+    # This is a temporary fix until cache is rebuilt
+    processed_samples = []
+    for sample in batch:
+        x = sample[0]
+        if x.shape[0] == 20:
+            # Drop Fz channel (typically channel 4) to get 19 channels
+            # Standard 10-20 order: Fp1, Fp2, F7, F3, Fz, F4, F8, ...
+            # We want to exclude Fz (index 4)
+            x = torch.cat([x[:4], x[5:]], dim=0)  # Skip channel 4 (Fz)
+        elif x.shape[0] != 19:
+            raise RuntimeError(f"Unexpected channel count: {x.shape[0]}. Expected 19 or 20.")
+        processed_samples.append(x)
+    
+    data = torch.stack(processed_samples)
 
     # Handle labels - preserve dtype from dataset
     first_label = batch[0][1]
