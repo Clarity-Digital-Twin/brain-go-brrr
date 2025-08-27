@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-TUAB training script with MNE+Autoreject preprocessing.
-Parallel implementation to train_tuab.py but using clean data.
-Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
+TUEV training script with MNE+Autoreject preprocessing.
+Multi-class event detection (6 classes) targeting Table 13 performance.
+Expected: 62.32% balanced accuracy, 81.87% weighted F1, 0.635 Cohen's kappa.
 """
 
 import argparse
@@ -15,7 +15,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 import yaml
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -23,7 +23,7 @@ from tqdm import tqdm
 # Add parent dir to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
+from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
 from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
 from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
 
@@ -34,18 +34,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class LinearProbe(nn.Module):
-    """Linear probe for binary classification (matching EEGPT paper)."""
+class TUEVLinearProbe(nn.Module):
+    """Linear probe for 6-class TUEV event detection (Table 13 architecture)."""
 
     def __init__(self, config):
         super().__init__()
 
-        # Two-layer probe using LazyLinear to infer input dimension
+        # Channel reduction: 23 → 20 (handled in preprocessing)
+        # Temporal convolution (kernel=55 for TUEV)
+        self.temporal_conv = nn.Conv1d(
+            in_channels=20,  # After channel reduction
+            out_channels=20,
+            kernel_size=config["model"]["temporal_conv"]["kernel_size"],  # 55
+            padding=config["model"]["temporal_conv"]["padding"],  # 27
+            groups=config["model"]["temporal_conv"]["groups"],  # 20 (depthwise)
+        )
+
+        # Classification head
         self.probe = nn.Sequential(
-            nn.LazyLinear(config["model"]["probe"]["hidden_dim"]),
+            nn.LazyLinear(256),  # Hidden layer
             nn.ReLU(),
-            nn.Dropout(config["model"]["probe"]["dropout"]),
-            nn.Linear(config["model"]["probe"]["hidden_dim"], 1),  # Binary output
+            nn.Dropout(config["model"]["dropout"]),  # 0.5 for TUEV
+            nn.Linear(256, 6),  # 6 classes
         )
 
     def forward(self, features):
@@ -55,7 +65,7 @@ class LinearProbe(nn.Module):
             features: EEGPT features (B, 4, 512) or flattened (B, 2048)
 
         Returns:
-            Logits for binary classification (B, 1)
+            Logits for 6-class classification (B, 6)
         """
         # Flatten if needed (B, 4, 512) -> (B, 2048)
         if features.dim() == 3:
@@ -82,7 +92,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
             features = model.extract_features(x, summary=False)  # (B, 4, 512)
 
         # Forward through probe
-        logits = probe(features).squeeze(-1)  # (B,)
+        logits = probe(features)  # (B, 6)
 
         # Compute loss
         loss = criterion(logits, y)
@@ -95,28 +105,28 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
 
         # Track metrics
         total_loss += loss.item()
-        preds = torch.sigmoid(logits).detach().cpu().numpy()
+        preds = torch.argmax(logits, dim=1).detach().cpu().numpy()
         all_preds.extend(preds)
         all_labels.extend(y.cpu().numpy())
 
         # Update progress bar
         if batch_idx % 10 == 0:
-            current_auroc = (
-                roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
-            )
+            current_acc = balanced_accuracy_score(all_labels, all_preds)
             pbar.set_postfix(
                 {
                     'loss': f'{loss.item():.4f}',
-                    'auroc': f'{current_auroc:.4f}',
+                    'bal_acc': f'{current_acc:.4f}',
                     'lr': f'{scheduler.get_last_lr()[0]:.6f}',
                 }
             )
 
     # Calculate epoch metrics
     avg_loss = total_loss / len(train_loader)
-    epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
+    balanced_acc = balanced_accuracy_score(all_labels, all_preds)
+    weighted_f1 = f1_score(all_labels, all_preds, average='weighted')
+    kappa = cohen_kappa_score(all_labels, all_preds)
 
-    return avg_loss, epoch_auroc
+    return avg_loss, balanced_acc, weighted_f1, kappa
 
 
 def evaluate(model, probe, eval_loader, criterion, device):
@@ -135,29 +145,33 @@ def evaluate(model, probe, eval_loader, criterion, device):
             features = model.extract_features(x, summary=False)
 
             # Forward through probe
-            logits = probe(features).squeeze(-1)
+            logits = probe(features)
 
             # Compute loss
             loss = criterion(logits, y)
             total_loss += loss.item()
 
             # Track predictions
-            preds = torch.sigmoid(logits).cpu().numpy()
+            preds = torch.argmax(logits, dim=1).cpu().numpy()
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
 
     # Calculate metrics
     avg_loss = total_loss / len(eval_loader)
-    auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
+    balanced_acc = balanced_accuracy_score(all_labels, all_preds)
+    weighted_f1 = f1_score(all_labels, all_preds, average='weighted')
+    kappa = cohen_kappa_score(all_labels, all_preds)
 
-    return avg_loss, auroc, all_preds, all_labels
+    # Per-class F1
+    per_class_f1 = f1_score(all_labels, all_preds, average=None)
+    class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
+    per_class_results = dict(zip(class_names, per_class_f1, strict=False))
+
+    return avg_loss, balanced_acc, weighted_f1, kappa, all_preds, all_labels, per_class_results
 
 
 def resolve_env_vars(obj):
-    """Recursively resolve environment variables in config.
-
-    Handles both ${VAR} and ${VAR}/path patterns.
-    """
+    """Recursively resolve environment variables in config."""
     import re
 
     if isinstance(obj, str):
@@ -175,9 +189,9 @@ def resolve_env_vars(obj):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train TUAB with MNE preprocessing')
+    parser = argparse.ArgumentParser(description='Train TUEV with MNE preprocessing')
     parser.add_argument(
-        '--config', type=str, default='configs/tuab.yaml', help='Path to config file'
+        '--config', type=str, default='configs/tuev.yaml', help='Path to config file'
     )
     parser.add_argument(
         '--output-dir', type=str, default=None, help='Output directory for checkpoints'
@@ -185,7 +199,7 @@ def main():
     parser.add_argument(
         '--cache-dir',
         type=str,
-        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_preprocessed',
+        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_mne_preprocessed',
         help='MNE preprocessed cache directory',
     )
     parser.add_argument(
@@ -202,7 +216,7 @@ def main():
     # Setup output directory
     if args.output_dir is None:
         timestamp = time.strftime('%Y%m%d_%H%M%S')
-        args.output_dir = f"output/tuab_mne_{timestamp}"
+        args.output_dir = f"output/tuev_mne_{timestamp}"
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -220,11 +234,15 @@ def main():
     logger.addHandler(file_handler)
 
     logger.info("=" * 60)
-    logger.info("Starting TUAB training with MNE+Autoreject preprocessing")
+    logger.info("Starting TUEV training with MNE+Autoreject preprocessing")
     logger.info("=" * 60)
     logger.info(f"Config: {args.config}")
     logger.info(f"Cache directory: {args.cache_dir}")
     logger.info(f"Output directory: {args.output_dir}")
+    logger.info("Target metrics (Table 13):")
+    logger.info("  - Balanced Accuracy: 62.32%")
+    logger.info("  - Weighted F1: 81.87%")
+    logger.info("  - Cohen's Kappa: 0.635")
 
     # Setup device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -232,11 +250,11 @@ def main():
 
     # Create datasets
     logger.info("Loading MNE-preprocessed datasets...")
-    train_dataset = TUABMNEDataset(
+    train_dataset = TUEVMNEDataset(
         root_dir=Path(config['data']['root_dir']), split='train', cache_dir=Path(args.cache_dir)
     )
 
-    eval_dataset = TUABMNEDataset(
+    eval_dataset = TUEVMNEDataset(
         root_dir=Path(config['data']['root_dir']), split='eval', cache_dir=Path(args.cache_dir)
     )
 
@@ -248,8 +266,8 @@ def main():
         train_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=True,
-        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
-        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
+        num_workers=config['data'].get('num_workers', 0),
+        pin_memory=config['data'].get('pin_memory', False),
         collate_fn=collate_eeg_batch_fixed,
     )
 
@@ -257,14 +275,14 @@ def main():
         eval_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=False,
-        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
-        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
+        num_workers=config['data'].get('num_workers', 0),
+        pin_memory=config['data'].get('pin_memory', False),
         collate_fn=collate_eeg_batch_fixed,
     )
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
-    eegpt_checkpoint = Path(config['model']['backbone']['checkpoint_path'])
+    eegpt_checkpoint = Path(config['model']['eegpt_checkpoint'])
     if not eegpt_checkpoint.exists():
         raise FileNotFoundError(f"EEGPT checkpoint not found at {eegpt_checkpoint}")
 
@@ -273,31 +291,32 @@ def main():
     model.eval()  # Freeze EEGPT backbone
 
     # Create probe
-    probe = LinearProbe(config).to(device)
+    probe = TUEVLinearProbe(config).to(device)
 
     # Setup optimizer
     optimizer = torch.optim.AdamW(
         probe.parameters(),
-        lr=config['training']['optimizer']['lr'],
-        weight_decay=config['training']['optimizer']['weight_decay'],
+        lr=config['training']['learning_rate'],  # 5e-4 for TUEV
+        weight_decay=config['training']['weight_decay'],
     )
 
     # Setup scheduler
-    total_steps = len(train_loader) * config['training']['max_epochs']
+    total_steps = len(train_loader) * config['training']['n_epochs']
     scheduler = OneCycleLR(
         optimizer,
-        max_lr=config['training']['scheduler']['max_lr'],
+        max_lr=config['training']['learning_rate'],
         total_steps=total_steps,
-        pct_start=config['training']['scheduler']['pct_start'],
+        pct_start=0.3,  # 30% warmup
         anneal_strategy='cos',
     )
 
-    # Setup loss
-    criterion = nn.BCEWithLogitsLoss()
+    # Setup loss (weighted for class imbalance)
+    criterion = nn.CrossEntropyLoss()
 
     # Resume from checkpoint if specified
     start_epoch = 0
-    best_auroc = 0
+    best_balanced_acc = 0
+    best_kappa = 0
 
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
@@ -306,48 +325,62 @@ def main():
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         start_epoch = checkpoint['epoch'] + 1
-        best_auroc = checkpoint.get('best_auroc', 0)
-        logger.info(f"Resumed from epoch {start_epoch}, best AUROC: {best_auroc:.4f}")
+        best_balanced_acc = checkpoint.get('best_balanced_acc', 0)
+        best_kappa = checkpoint.get('best_kappa', 0)
+        logger.info(f"Resumed from epoch {start_epoch}, best balanced acc: {best_balanced_acc:.4f}")
 
     # Training loop
     logger.info("Starting training...")
-    for epoch in range(start_epoch, config['training']['max_epochs']):
+    for epoch in range(start_epoch, config['training']['n_epochs']):
         # Train
-        train_loss, train_auroc = train_epoch(
+        train_loss, train_acc, train_f1, train_kappa = train_epoch(
             model, probe, train_loader, optimizer, scheduler, criterion, device, epoch
         )
 
         # Evaluate
-        eval_loss, eval_auroc, _, _ = evaluate(model, probe, eval_loader, criterion, device)
+        eval_loss, eval_acc, eval_f1, eval_kappa, _, _, per_class = evaluate(
+            model, probe, eval_loader, criterion, device
+        )
 
         # Log metrics
-        logger.info(f"Epoch {epoch}: Train Loss: {train_loss:.4f}, Train AUROC: {train_auroc:.4f}")
-        logger.info(f"Epoch {epoch}: Eval Loss: {eval_loss:.4f}, Eval AUROC: {eval_auroc:.4f}")
+        logger.info(f"Epoch {epoch}:")
+        logger.info(
+            f"  Train - Loss: {train_loss:.4f}, Bal Acc: {train_acc:.4f}, F1: {train_f1:.4f}, Kappa: {train_kappa:.4f}"
+        )
+        logger.info(
+            f"  Eval  - Loss: {eval_loss:.4f}, Bal Acc: {eval_acc:.4f}, F1: {eval_f1:.4f}, Kappa: {eval_kappa:.4f}"
+        )
+        logger.info(f"  Per-class F1: {per_class}")
 
         # Save checkpoint if best
-        if eval_auroc > best_auroc:
-            best_auroc = eval_auroc
+        if eval_acc > best_balanced_acc:
+            best_balanced_acc = eval_acc
+            best_kappa = eval_kappa
             checkpoint = {
                 'epoch': epoch,
                 'probe_state_dict': probe.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
-                'best_auroc': best_auroc,
+                'best_balanced_acc': best_balanced_acc,
+                'best_kappa': best_kappa,
                 'config': config,
             }
             checkpoint_path = output_dir / 'best_model.pt'
             torch.save(checkpoint, checkpoint_path)
-            logger.info(f"Saved best model with AUROC: {best_auroc:.4f}")
+            logger.info(
+                f"Saved best model - Bal Acc: {best_balanced_acc:.4f}, Kappa: {best_kappa:.4f}"
+            )
 
         # Save regular checkpoint
-        save_every = config.get('training', {}).get('save_every', 2)  # Default 2 if not in config
+        save_every = config.get('training', {}).get('save_every', 5)
         if epoch % save_every == 0:
             checkpoint = {
                 'epoch': epoch,
                 'probe_state_dict': probe.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
-                'best_auroc': best_auroc,
+                'best_balanced_acc': best_balanced_acc,
+                'best_kappa': best_kappa,
                 'config': config,
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
@@ -356,7 +389,8 @@ def main():
 
     logger.info("=" * 60)
     logger.info("Training complete!")
-    logger.info(f"Best AUROC: {best_auroc:.4f}")
+    logger.info(f"Best Balanced Accuracy: {best_balanced_acc:.4f} (target: 0.6232)")
+    logger.info(f"Best Cohen's Kappa: {best_kappa:.4f} (target: 0.6351)")
     logger.info("=" * 60)
 
 
