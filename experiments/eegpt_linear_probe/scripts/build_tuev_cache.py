@@ -1,11 +1,17 @@
-"""Build TUEV Cache - Preprocess and cache all windows for fast training.
+"""Build TUEV Cache - DEPRECATED LEGACY SCRIPT
 
-This script:
-1. Loads all TUEV EDF files and annotations
-2. Extracts 4-second windows (1024 samples @ 256Hz for EEGPT compatibility)
-3. Resamples from 250Hz to 256Hz
-4. Selects 23 channels
-5. Saves as memory-mapped .pt files
+⚠️ WARNING: This script uses the OLD TUEVDataset without MNE preprocessing.
+   USE INSTEAD: ./scripts/build_tuev_mne_cache.sh (MNE+Autoreject path)
+
+This legacy script:
+1. Loads raw TUEV EDF files (NO MNE preprocessing)
+2. Outputs 23 channels (not the standard 20)
+3. Does NOT apply Autoreject
+4. Does NOT match the training pipeline
+
+CORRECT WORKFLOW:
+  ./scripts/build_tuev_mne_cache.sh  # Build with MNE preprocessing
+  python train_tuev_mne.py           # Train with MNE cache
 """
 
 import json
@@ -154,7 +160,7 @@ def build_cache(config_path: str, output_dir: str):
                 logger.error(f"Missing cache file: {cache_file}")
                 continue
 
-            data = torch.load(cache_file, weights_only=True)
+            data = torch.load(cache_file, map_location='cpu')
             assert data['x'].shape == (
                 23,
                 1024,
@@ -184,6 +190,22 @@ def build_cache(config_path: str, output_dir: str):
 
 if __name__ == "__main__":
     import argparse
+
+    # Print deprecation warning
+    print("\n" + "=" * 70)
+    print("⚠️  DEPRECATION WARNING")
+    print("=" * 70)
+    print("This script uses the LEGACY TUEVDataset without MNE preprocessing.")
+    print("It outputs 23 channels and does NOT match the training pipeline.")
+    print("\nUSE INSTEAD:")
+    print("  ./scripts/build_tuev_mne_cache.sh  # For MNE preprocessing (20 channels)")
+    print("  python train_tuev_mne.py           # For training")
+    print("=" * 70)
+
+    response = input("\nContinue with LEGACY script anyway? (y/N): ")
+    if response.lower() != 'y':
+        print("Aborted. Please use the MNE path instead.")
+        exit(0)
 
     parser = argparse.ArgumentParser(description="Build TUEV cache")
     parser.add_argument(
