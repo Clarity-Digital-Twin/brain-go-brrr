@@ -181,8 +181,8 @@ cython_debug/
 # Data directories - NEVER commit these!
 /data/
 data/
+# Only ignore root-level datasets folder (actual data), not code
 /datasets/
-datasets/
 
 # BUT allow source code in src/brain_go_brrr/infra/data/
 !src/brain_go_brrr/infra/data/
@@ -193,8 +193,6 @@ datasets/
 # Allow data directory structure files
 !data/README.md
 !data/**/.gitkeep
-datasets/*/raw/
-datasets/*/processed/
 *.csv
 *.tsv
 # Don't ignore JSON in test fixtures
