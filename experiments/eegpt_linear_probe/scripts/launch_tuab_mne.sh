@@ -70,7 +70,7 @@ if command -v tmux &> /dev/null; then
     # Start new session
     tmux new-session -d -s "$SESSION_NAME" \
         "cd $EXPERIMENT_DIR && \
-         python train_tuab_mne.py \
+         uv run python train_tuab_mne.py \
             --config configs/tuab.yaml \
             --output-dir $OUTPUT_DIR \
             --cache-dir $CACHE_DIR \
@@ -81,7 +81,7 @@ if command -v tmux &> /dev/null; then
     echo "To detach: Ctrl+B, then D"
 else
     # Direct execution
-    python train_tuab_mne.py \
+    uv run python train_tuab_mne.py \
         --config configs/tuab.yaml \
         --output-dir "$OUTPUT_DIR" \
         --cache-dir "$CACHE_DIR" \
