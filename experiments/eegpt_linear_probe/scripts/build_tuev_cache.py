@@ -192,16 +192,16 @@ if __name__ == "__main__":
     import argparse
 
     # Print deprecation warning
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("⚠️  DEPRECATION WARNING")
-    print("="*70)
+    print("=" * 70)
     print("This script uses the LEGACY TUEVDataset without MNE preprocessing.")
     print("It outputs 23 channels and does NOT match the training pipeline.")
     print("\nUSE INSTEAD:")
     print("  ./scripts/build_tuev_mne_cache.sh  # For MNE preprocessing (20 channels)")
     print("  python train_tuev_mne.py           # For training")
-    print("="*70)
-    
+    print("=" * 70)
+
     response = input("\nContinue with LEGACY script anyway? (y/N): ")
     if response.lower() != 'y':
         print("Aborted. Please use the MNE path instead.")

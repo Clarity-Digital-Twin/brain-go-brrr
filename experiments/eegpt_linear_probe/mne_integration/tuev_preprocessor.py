@@ -218,9 +218,11 @@ class TUEVPreprocessor(TUABPreprocessor):
                     raw_channels_upper.add(mapped.upper())
             else:
                 # Standardize casing (but exclude FPZ which we drop)
-                if clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ'] and clean_name != 'FPZ':
-                    raw_channels_upper.add(clean_name)
-                elif clean_name not in ['FPZ']:  # Add any other non-FPZ channels
+                if (
+                    clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ']
+                    and clean_name != 'FPZ'
+                    or clean_name not in ['FPZ']
+                ):
                     raw_channels_upper.add(clean_name)
 
         # Find missing channels
