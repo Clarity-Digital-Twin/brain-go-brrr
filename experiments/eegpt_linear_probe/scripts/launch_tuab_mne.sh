@@ -39,10 +39,11 @@ fi
 # Change to experiment directory
 cd "$EXPERIMENT_DIR"
 
-# Set Python path
+# Set Python path and environment
 export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 export CUDA_VISIBLE_DEVICES=0
+export BGB_DATA_ROOT="$DATA_ROOT"  # Ensure config can resolve ${BGB_DATA_ROOT}
 
 # Check cache exists
 CACHE_DIR="$DATA_ROOT/cache/tuab_mne_preprocessed"

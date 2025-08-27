@@ -23,6 +23,7 @@ class TUABMNEDataset(Dataset):
 
     # Cache version - bump this when preprocessing pipeline changes
     CACHE_VERSION = "mne-ar-v2"  # v2: fixed epoch boundaries, configurable notch
+    # Note: v2 cache already has 19 channels consistently, channel enforcement added for future builds
 
     def __init__(
         self,

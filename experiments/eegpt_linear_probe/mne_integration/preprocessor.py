@@ -36,13 +36,14 @@ class TUABPreprocessor:
     # TUAB channel mapping from old to modern naming
     CHANNEL_MAPPING = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}
 
-    # Standard 20 channels for TUAB (after mapping) - MNE standard casing
+    # TUAB standard 19 channels (excluding Fz which is often missing)
+    # This ensures consistent cache output regardless of input file variations
     STANDARD_CHANNELS = [
         'Fp1',  # Note: MNE uses 'Fp' not 'FP'
         'Fp2',
         'F7',
         'F3',
-        'Fz',  # Note: MNE uses lowercase 'z'
+        # 'Fz' excluded - TUAB files typically don't have this channel
         'F4',
         'F8',
         'T7',
@@ -211,14 +212,14 @@ class TUABPreprocessor:
 
         if missing_channels:
             logger.warning(f"Missing standard channels: {missing_channels}")
-            if len(available_standard) < 19:  # Minimum requirement
+            if len(available_standard) < 19:  # Must have all 19 TUAB channels
                 raise ValueError(
-                    f"Too few standard channels ({len(available_standard)}/20). Need at least 19."
+                    f"Too few standard channels ({len(available_standard)}/19). Need exactly 19."
                 )
 
-        # Pick and reorder channels
-        if len(available_standard) < 20:
-            logger.warning(f"Only {len(available_standard)}/20 standard channels available")
+        # Pick and reorder channels - enforce exactly 19
+        if len(available_standard) != 19:
+            logger.warning(f"Expected 19 channels, found {len(available_standard)}")
 
         # Use raw.pick() for better compatibility across MNE versions
         # The order is preserved based on the input list
