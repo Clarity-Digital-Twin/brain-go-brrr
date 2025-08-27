@@ -71,7 +71,9 @@ class TUABPreprocessor:
         # Set defaults from verified documentation
         self.sampling_rate = self.config.get('sampling_rate', 256)
         self.window_duration = self.config.get('window_duration', 4.0)
-        self.window_overlap = self.config.get('window_overlap', 0.0)  # Overlap fraction (0.0 to 0.5)
+        self.window_overlap = self.config.get(
+            'window_overlap', 0.0
+        )  # Overlap fraction (0.0 to 0.5)
         self.bandpass_low = self.config.get('bandpass_low', 0.5)
         self.bandpass_high = self.config.get('bandpass_high', 45.0)
         # Notch frequency: use config, then raw.info line_freq, then default to 60Hz (US)
@@ -132,9 +134,11 @@ class TUABPreprocessor:
 
         if channel_types:
             raw.set_channel_types(channel_types)
-            logger.info(f"Set channel types: {len([c for c in channel_types.values() if c == 'eeg'])} EEG, "
-                       f"{len([c for c in channel_types.values() if c == 'eog'])} EOG, "
-                       f"{len([c for c in channel_types.values() if c == 'ecg'])} ECG")
+            logger.info(
+                f"Set channel types: {len([c for c in channel_types.values() if c == 'eeg'])} EEG, "
+                f"{len([c for c in channel_types.values() if c == 'eog'])} EOG, "
+                f"{len([c for c in channel_types.values() if c == 'ecg'])} ECG"
+            )
 
         try:
             montage = mne.channels.make_standard_montage('standard_1020')
@@ -259,13 +263,20 @@ class TUABPreprocessor:
 
             if muscle_band_high > muscle_band_low:
                 muscle_annot, muscle_scores = mne.preprocessing.annotate_muscle_zscore(
-                    raw, threshold=4.0, ch_type='eeg', min_length_good=0.2,
-                    filter_freq=(muscle_band_low, muscle_band_high)
+                    raw,
+                    threshold=4.0,
+                    ch_type='eeg',
+                    min_length_good=0.2,
+                    filter_freq=(muscle_band_low, muscle_band_high),
                 )
                 raw.set_annotations(raw.annotations + muscle_annot)
-                logger.info(f"Found {len(muscle_annot)} muscle artifact segments (band: {muscle_band_low:.1f}-{muscle_band_high:.1f} Hz)")
+                logger.info(
+                    f"Found {len(muscle_annot)} muscle artifact segments (band: {muscle_band_low:.1f}-{muscle_band_high:.1f} Hz)"
+                )
             else:
-                logger.warning(f"Skipping muscle detection: sampling rate {raw.info['sfreq']} Hz too low for EMG band")
+                logger.warning(
+                    f"Skipping muscle detection: sampling rate {raw.info['sfreq']} Hz too low for EMG band"
+                )
         except Exception as e:
             logger.warning(f"Could not detect muscle artifacts: {e}")
 
@@ -296,9 +307,9 @@ class TUABPreprocessor:
         except Exception as e:
             logger.warning(f"RANSAC failed: {e}")
 
-        # Re-reference to average
+        # Re-reference to average (use functional form)
         logger.info("Setting average reference")
-        raw.set_eeg_reference('average', projection=False)
+        raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 
         return raw
 
