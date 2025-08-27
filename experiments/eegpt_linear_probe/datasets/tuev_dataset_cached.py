@@ -19,7 +19,7 @@ class TUEVCachedDatasetPadded(Dataset):
         self,
         cache_dir: Path,
         split: str = 'train',
-        padding: str = 'edge'  # 'edge' or 'zero'
+        padding: str = 'edge',  # 'edge' or 'zero'
     ):
         """Initialize cached dataset with padding.
 

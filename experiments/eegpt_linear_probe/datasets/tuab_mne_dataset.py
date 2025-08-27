@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class TUABMNEDataset(Dataset):
     """TUAB dataset with MNE+Autoreject preprocessing.
-    
+
     This dataset can work in two modes:
     1. Cache mode: Load pre-preprocessed data from cache
     2. Build mode: Build cache by preprocessing raw EDF files
@@ -30,10 +30,10 @@ class TUABMNEDataset(Dataset):
         root_dir: Path,
         split: str = 'train',
         cache_dir: Path | None = None,
-        force_rebuild: bool = False
+        force_rebuild: bool = False,
     ):
         """Initialize MNE-preprocessed TUAB dataset.
-        
+
         Args:
             root_dir: Root directory containing TUAB EDF files
             split: 'train' or 'eval' split
@@ -42,7 +42,9 @@ class TUABMNEDataset(Dataset):
         """
         self.root_dir = Path(root_dir)
         self.split = split
-        self.cache_dir = Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'mne_preprocessed'
+        self.cache_dir = (
+            Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'mne_preprocessed'
+        )
 
         # Check if we need to import preprocessor (only for building)
         self.preprocessor = None
@@ -77,7 +79,9 @@ class TUABMNEDataset(Dataset):
                 self.samples.append(self.index['windows'][str(window_id)])
 
         logger.info(f"Loaded {len(self.samples)} windows for {self.split} split")
-        logger.info(f"From {self.index['n_files']} files, {self.index['n_rejected']} epochs rejected")
+        logger.info(
+            f"From {self.index['n_files']} files, {self.index['n_rejected']} epochs rejected"
+        )
 
     def _build_cache(self):
         """Build preprocessed cache with MNE+Autoreject."""
@@ -109,8 +113,8 @@ class TUABMNEDataset(Dataset):
                 'notch': 60,
                 'ar_n_interpolate': [1, 2, 3, 4],
                 'ar_consensus': [0.3, 0.5, 0.7],
-                'ar_cv': 5
-            }
+                'ar_cv': 5,
+            },
         }
 
         window_idx = 0
@@ -137,25 +141,30 @@ class TUABMNEDataset(Dataset):
                     # EEGPT expects (20, 1024) for 4s @ 256Hz
                     expected_samples = int(4.0 * 256)
                     if epoch_data.shape[1] != expected_samples:
-                        logger.warning(f"Unexpected shape {epoch_data.shape}, expected (20, {expected_samples})")
+                        logger.warning(
+                            f"Unexpected shape {epoch_data.shape}, expected (20, {expected_samples})"
+                        )
                         continue
 
                     # Save cache file
                     cache_file = f"window_{window_idx:06d}_{self.CACHE_VERSION}.pt"
                     cache_path = self.cache_dir / cache_file
 
-                    torch.save({
-                        'x': torch.from_numpy(epoch_data),
-                        'y': torch.tensor(label, dtype=torch.float32),
-                        'source_file': str(edf_path),
-                        'epoch_idx': epoch_idx
-                    }, cache_path)
+                    torch.save(
+                        {
+                            'x': torch.from_numpy(epoch_data),
+                            'y': torch.tensor(label, dtype=torch.float32),
+                            'source_file': str(edf_path),
+                            'epoch_idx': epoch_idx,
+                        },
+                        cache_path,
+                    )
 
                     # Update index
                     cache_index['windows'][str(window_idx)] = {
                         'cache_file': cache_file,
                         'label': label,
-                        'source': str(edf_path.name)
+                        'source': str(edf_path.name),
                     }
 
                     window_idx += 1
@@ -178,7 +187,7 @@ class TUABMNEDataset(Dataset):
 
     def _get_edf_files(self) -> list[tuple[Path, int]]:
         """Get list of EDF files for this split.
-        
+
         Returns:
             List of (file_path, label) tuples
         """
@@ -187,7 +196,7 @@ class TUABMNEDataset(Dataset):
         # TUAB has structure: root/train/normal|abnormal/01_tcp_ar/*.edf
         # or root/eval/normal|abnormal/01_tcp_ar/*.edf
         split_dir = self.root_dir / self.split
-        
+
         if not split_dir.exists():
             # Fallback: maybe we're already at the split level
             normal_dir = self.root_dir / 'normal'
@@ -217,10 +226,10 @@ class TUABMNEDataset(Dataset):
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Get preprocessed sample.
-        
+
         Args:
             idx: Sample index
-            
+
         Returns:
             Tuple of (eeg_data, label)
         """

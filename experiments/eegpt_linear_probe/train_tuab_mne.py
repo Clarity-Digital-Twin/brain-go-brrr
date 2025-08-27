@@ -300,12 +300,12 @@ def main():
         for sample_info in train_dataset.samples:
             label = sample_info['label']
             class_counts[label] = class_counts.get(label, 0) + 1
-        
+
         # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
         pos_weight = class_counts[0] / class_counts[1]
         logger.info(f"Class distribution - Normal: {class_counts[0]}, Abnormal: {class_counts[1]}")
         logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
-        
+
         criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
     else:
         criterion = nn.BCEWithLogitsLoss()

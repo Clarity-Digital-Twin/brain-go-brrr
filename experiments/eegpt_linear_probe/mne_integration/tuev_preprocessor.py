@@ -355,7 +355,7 @@ class TUEVPreprocessor(TUABPreprocessor):
             windows.append((start, start + self.window_duration))
             start += step
 
-        logger.info(f"Created {len(windows)} fixed-grid windows with {overlap*100:.0f}% overlap")
+        logger.info(f"Created {len(windows)} fixed-grid windows with {overlap * 100:.0f}% overlap")
         return windows
 
     def _label_window(

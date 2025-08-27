@@ -22,13 +22,13 @@ CLASS_MAPPING = {
     'pled': 2,  # Periodic Lateralized Epileptiform Discharges
     'eyem': 3,  # Eye Movement (artifact)
     'artf': 4,  # Other Artifacts
-    'bckg': 5   # Background (normal)
+    'bckg': 5,  # Background (normal)
 }
 
 
 class TUEVMNEDataset(Dataset):
     """TUEV dataset with MNE+Autoreject preprocessing.
-    
+
     This dataset handles:
     1. 23→20 channel mapping (TUEV-specific)
     2. Multi-class labels from .lab files
@@ -43,10 +43,10 @@ class TUEVMNEDataset(Dataset):
         root_dir: Path,
         split: str = 'train',
         cache_dir: Path | None = None,
-        force_rebuild: bool = False
+        force_rebuild: bool = False,
     ):
         """Initialize MNE-preprocessed TUEV dataset.
-        
+
         Args:
             root_dir: Root directory containing TUEV EDF files
             split: 'train' or 'eval' split
@@ -56,11 +56,13 @@ class TUEVMNEDataset(Dataset):
         self.root_dir = Path(root_dir)
         self.split = split
         self.split_dir = self.root_dir / 'edf' / split
-        
+
         if not self.split_dir.exists():
             raise ValueError(f"Dataset not found at {self.split_dir}")
-        
-        self.cache_dir = Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
+
+        self.cache_dir = (
+            Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
+        )
 
         # Check if we need to import preprocessor (only for building)
         self.preprocessor = None
@@ -95,8 +97,10 @@ class TUEVMNEDataset(Dataset):
                 self.samples.append(self.index['windows'][str(window_id)])
 
         logger.info(f"Loaded {len(self.samples)} windows for {self.split} split")
-        logger.info(f"From {self.index['n_files']} files, {self.index['n_rejected']} epochs rejected")
-        
+        logger.info(
+            f"From {self.index['n_files']} files, {self.index['n_rejected']} epochs rejected"
+        )
+
         # Log class distribution
         if 'class_counts' in self.index:
             logger.info(f"Class distribution: {self.index['class_counts']}")
@@ -125,7 +129,7 @@ class TUEVMNEDataset(Dataset):
             'total_windows': 0,
             'n_rejected': 0,
             'class_counts': {k: 0 for k in CLASS_MAPPING.keys()},
-            'version': self.CACHE_VERSION
+            'version': self.CACHE_VERSION,
         }
 
         window_id = 0
@@ -133,7 +137,7 @@ class TUEVMNEDataset(Dataset):
         for edf_path in tqdm(edf_files, desc=f"Building {self.split} cache"):
             # Load annotations for this file
             annotations = self._load_annotations(edf_path)
-            
+
             if not annotations:
                 logger.warning(f"No annotations found for {edf_path.name}")
                 continue
@@ -141,7 +145,9 @@ class TUEVMNEDataset(Dataset):
             try:
                 # Apply MNE preprocessing with fixed-grid windows
                 epochs_clean, info, window_labels = self.preprocessor.process_raw_with_annotations(
-                    edf_path, annotations, window_overlap=0.0  # Default no overlap
+                    edf_path,
+                    annotations,
+                    window_overlap=0.0,  # Default no overlap
                 )
 
                 # CRITICAL: Use epochs.selection to maintain correct label alignment after AR
@@ -152,67 +158,73 @@ class TUEVMNEDataset(Dataset):
                     # Fallback if selection not available (shouldn't happen with modern MNE)
                     logger.warning("epochs.selection not available, using sequential mapping")
                     kept_indices = range(len(epochs_clean))
-                
+
                 # Validate selection is sorted and within bounds (critical for correct labeling)
                 sel = np.asarray(kept_indices)
                 assert np.all(sel[:-1] <= sel[1:]), f"Selection not sorted: {sel[:10]}"
-                assert sel.max() < len(window_labels), f"Selection out of bounds: max={sel.max()}, n_labels={len(window_labels)}"
-                assert len(sel) == len(epochs_clean), f"Selection size mismatch: {len(sel)} != {len(epochs_clean)}"
-                
+                assert sel.max() < len(window_labels), (
+                    f"Selection out of bounds: max={sel.max()}, n_labels={len(window_labels)}"
+                )
+                assert len(sel) == len(epochs_clean), (
+                    f"Selection size mismatch: {len(sel)} != {len(epochs_clean)}"
+                )
+
                 # Save each epoch with its correctly aligned label
                 for epoch_idx, original_idx in enumerate(kept_indices):
                     epoch_data = epochs_clean.get_data()[epoch_idx]
                     label = window_labels[original_idx]  # Use original index for correct label
-                    
+
                     # epoch_data shape: (n_channels=20, n_samples=1024)
                     cache_file = self.cache_dir / f"window_{window_id:06d}_{self.CACHE_VERSION}.pt"
-                    
+
                     # Get numeric label from string label
                     label_int = CLASS_MAPPING.get(label, 5)  # Default to background
-                    
+
                     # Save preprocessed window
-                    torch.save({
-                        'x': torch.from_numpy(epoch_data).float(),
-                        'y': torch.tensor(label_int, dtype=torch.long),
-                        'file': edf_path.name
-                    }, cache_file)
+                    torch.save(
+                        {
+                            'x': torch.from_numpy(epoch_data).float(),
+                            'y': torch.tensor(label_int, dtype=torch.long),
+                            'file': edf_path.name,
+                        },
+                        cache_file,
+                    )
 
                     # Update index
                     cache_index['windows'][str(window_id)] = {
                         'cache_file': cache_file.name,
                         'label': label_int,
                         'label_str': label,
-                        'source_file': edf_path.name
+                        'source_file': edf_path.name,
                     }
-                    
+
                     # Update class counts
                     cache_index['class_counts'][label] += 1
-                    
+
                     window_id += 1
 
                 cache_index['n_files'] += 1
                 cache_index['n_rejected'] += info['n_rejected']
-                
+
                 # Add reject rate to index
                 if 'reject_rates' not in cache_index:
                     cache_index['reject_rates'] = []
                 cache_index['reject_rates'].append(info['reject_rate'])
-                
+
                 # Track missing channels per file for QC
                 if 'missing_channels' in info:
                     if 'file_missing_channels' not in cache_index:
                         cache_index['file_missing_channels'] = {}
                     cache_index['file_missing_channels'][edf_path.name] = info['missing_channels']
-                
+
                 # Track AR learned parameters for auditing
                 if 'ar_learned_params' in info and info['ar_learned_params']:
                     if 'ar_learned_params_summary' not in cache_index:
                         cache_index['ar_learned_params_summary'] = []
-                    cache_index['ar_learned_params_summary'].append({
-                        'file': edf_path.name,
-                        'params': info['ar_learned_params']
-                    })
-                
+                    cache_index['ar_learned_params_summary'].append(
+                        {'file': edf_path.name, 'params': info['ar_learned_params']}
+                    )
+
                 # Store first file's metadata as reference
                 if cache_index['n_files'] == 1:
                     cache_index['sfreq_after'] = info.get('sfreq_after', 256)
@@ -229,7 +241,9 @@ class TUEVMNEDataset(Dataset):
         with open(index_file, 'w') as f:
             json.dump(cache_index, f, indent=2)
 
-        logger.info(f"Cache build complete: {cache_index['total_windows']} windows from {cache_index['n_files']} files")
+        logger.info(
+            f"Cache build complete: {cache_index['total_windows']} windows from {cache_index['n_files']} files"
+        )
         logger.info(f"Class distribution: {cache_index['class_counts']}")
 
     def _get_edf_files(self) -> List[Path]:
@@ -238,23 +252,23 @@ class TUEVMNEDataset(Dataset):
 
     def _load_annotations(self, edf_path: Path) -> List[Dict]:
         """Load and parse TUEV annotations from .lab files.
-        
+
         Args:
             edf_path: Path to EDF file
-            
+
         Returns:
             List of annotation dicts with 'start', 'end', 'label' keys
         """
         annotations = []
-        
+
         # Find corresponding .lab files (one per channel)
         base_name = edf_path.stem
         lab_dir = edf_path.parent
         lab_files = sorted(lab_dir.glob(f"{base_name}_*.lab"))
-        
+
         if not lab_files:
             return annotations
-        
+
         # Parse annotations from .lab files
         for lab_file in lab_files:
             with open(lab_file) as f:
@@ -266,31 +280,33 @@ class TUEVMNEDataset(Dataset):
                                 start_us = float(parts[0])
                                 end_us = float(parts[1])
                                 label = parts[2].lower()
-                                
+
                                 # Convert microseconds to seconds
                                 start_sec = start_us / 1e6
                                 end_sec = end_us / 1e6
-                                
+
                                 # Only use known labels
                                 if label in CLASS_MAPPING:
                                     # Create 4-second windows from annotation
                                     window_duration = 4.0  # seconds
                                     current_start = start_sec
-                                    
+
                                     while current_start < end_sec:
                                         window_end = min(current_start + window_duration, end_sec)
-                                        
-                                        annotations.append({
-                                            'start': current_start,
-                                            'end': window_end,
-                                            'label': label
-                                        })
-                                        
+
+                                        annotations.append(
+                                            {
+                                                'start': current_start,
+                                                'end': window_end,
+                                                'label': label,
+                                            }
+                                        )
+
                                         current_start += window_duration
-                                        
+
                             except (ValueError, IndexError):
                                 continue
-        
+
         return annotations
 
     def __len__(self) -> int:
@@ -298,15 +314,15 @@ class TUEVMNEDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         """Get preprocessed window and label.
-        
+
         Returns:
             Tuple of (preprocessed EEG tensor, label)
             EEG tensor shape: (20, 1024) - 20 channels, 4 seconds @ 256Hz
         """
         sample = self.samples[idx]
         cache_file = self.cache_dir / sample['cache_file']
-        
+
         # Load cached preprocessed data
         data = torch.load(cache_file, map_location='cpu')
-        
+
         return data['x'], data['y']

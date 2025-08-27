@@ -11,7 +11,7 @@ def collate_eeg_batch_fixed(
     Works for both:
     - TUAB: BCEWithLogitsLoss expects float labels (0.0, 1.0)
     - TUEV: CrossEntropyLoss expects long labels (0, 1, 2, 3, 4, 5)
-    
+
     The key insight: preserve the dtype from the cached data!
     """
     # Stack data - all samples MUST have same shape
@@ -30,10 +30,10 @@ def collate_eeg_batch_fixed(
             ) from e
         else:
             raise
-    
+
     # Handle labels - preserve dtype from dataset
     first_label = batch[0][1]
-    
+
     if isinstance(first_label, torch.Tensor):
         # Labels are already tensors - stack and preserve dtype
         labels = torch.stack([sample[1] for sample in batch])
