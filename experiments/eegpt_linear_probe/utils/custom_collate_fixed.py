@@ -1,4 +1,4 @@
-"""Simple collate function for cached TUAB dataset with consistent 20 channels."""
+"""Simple collate function for cached TUAB dataset with consistent 19 channels."""
 
 import torch
 

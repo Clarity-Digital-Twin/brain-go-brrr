@@ -67,14 +67,9 @@ if command -v tmux &> /dev/null; then
     # Kill existing session if it exists
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
     
-    # Start new session
+    # Start new session - SINGLE LINE COMMAND
     tmux new-session -d -s "$SESSION_NAME" \
-        "cd $EXPERIMENT_DIR && \
-         uv run python train_tuab_mne.py \
-            --config configs/tuab.yaml \
-            --output-dir $OUTPUT_DIR \
-            --cache-dir $CACHE_DIR \
-            2>&1 | tee $LOG_FILE"
+        "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && uv run python train_tuab_mne.py --config configs/tuab.yaml --output-dir \"$OUTPUT_DIR\" --cache-dir \"$CACHE_DIR\" 2>&1 | tee \"$LOG_FILE\"'"
     
     echo "Training launched in tmux session: $SESSION_NAME"
     echo "To attach: tmux attach -t $SESSION_NAME"
