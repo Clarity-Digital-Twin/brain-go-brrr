@@ -1,6 +1,9 @@
 # Brain-Go-Brrr 🧠⚡
 
-**Production-Ready EEG Analysis with State-of-the-Art Deep Learning**
+**Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
+
+> 🚧 **Work in Progress** - This repository is under active development for research purposes.  
+> Not a medical device. Not for clinical use. External validation pending.
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-790%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
@@ -14,11 +17,11 @@
 Transform raw EEG data into clinical insights using the EEGPT foundation model and specialized analysis pipelines. Perfect for researchers, clinicians, and developers working with brain signals.
 
 **Key Capabilities:**
-- 🌙 **Sleep Staging** - 87% accuracy with automatic sleep phase detection
+- 🌙 **Sleep Staging** - 87% accuracy (using YASA baseline; Vallat & Walker 2021)
 - 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection  
-- ⚠️ **Abnormality Detection** - Clinical-grade normal/abnormal classification
+- ⚠️ **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC)
 - 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
-- 🏗️ **Clean Architecture** - Production-ready with 790+ tests and CI/CD
+- 🏗️ **Clean Architecture** - Research-grade with 790+ tests and CI/CD
 
 ## 🚀 Quick Start
 
@@ -78,8 +81,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 **Key Design Principles:**
 - **Parallel, not sequential** - EEGPT and YASA run independently
 - **Flexible channel support** - YASA works with 1-256 channels
-- **Clinical accuracy** - 87% sleep staging, targeting 87% abnormality AUROC
-- **Production-ready** - Clean architecture, dependency injection, comprehensive testing
+- **Research accuracy** - 87% sleep staging (YASA), targeting 87% abnormality AUROC
+- **Well-tested** - Clean architecture, dependency injection, comprehensive testing
 
 ## 💻 For Developers
 
@@ -161,15 +164,35 @@ Not included due to size/licensing. Obtain separately:
 - **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
 - **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
 
+## 🚦 Current Status & Roadmap
+
+### ✅ Completed
+- Sleep staging integration (YASA baseline, 87% accuracy)
+- Quality control pipeline (Autoreject + MNE)
+- REST API with Redis caching
+- 790+ tests with CI/CD
+
+### 🚧 In Progress
+- TUAB abnormality detection training (targeting 87% AUROC)
+- TUEV event detection (6-class: SPSW, GPED, PLED, etc.)
+- MNE preprocessing pipeline optimization
+
+### 📋 Planned
+- External validation on holdout datasets
+- Multi-site performance evaluation
+- Clinical validation study
+- Real-time streaming support
+
 ## 📊 Performance Metrics
 
-| Metric | Value | Details |
-|--------|-------|---------|
-| Sleep Staging Accuracy | 87% | 5-stage classification (YASA) |
-| Test Coverage | 66% | 790+ passing tests |
-| API Response Time | <100ms | With Redis caching |
-| Processing Speed | <2 min | For 20-minute recording |
-| Supported Channels | 1-256 | YASA: any, EEGPT: 19+ |
+| Metric | Value | Status |
+|--------|-------|--------|
+| Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
+| Abnormality Detection | Target: 87% AUROC | 🚧 Training in progress |
+| Event Detection (TUEV) | Target: 62% BAC | 🚧 Implementation phase |
+| Test Coverage | 66% | ✅ 790+ passing tests |
+| API Response Time | <100ms | ✅ With Redis caching |
+| Processing Speed | <2 min/20min EEG | ✅ Benchmarked |
 
 ## 🛠️ System Requirements
 
@@ -187,6 +210,14 @@ Not included due to size/licensing. Obtain separately:
 | [API.md](docs/API.md) | REST endpoint reference |
 | [TRAINING.md](docs/TRAINING.md) | Model training guide |
 | [TESTING.md](docs/TESTING.md) | Test philosophy and guidelines |
+
+## ⚠️ Limitations & Disclaimers
+
+- **Research Software**: This is an active research project, not a medical device
+- **No Clinical Use**: Not validated for clinical decision-making
+- **Performance Variability**: Results may vary across different EEG systems and populations
+- **Training Data**: Models trained on specific datasets; generalization to other data pending validation
+- **External Validation**: Independent validation studies not yet conducted
 
 ## 📄 License & Citations
 
