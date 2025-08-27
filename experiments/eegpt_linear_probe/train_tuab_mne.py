@@ -8,10 +8,13 @@ Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
 import argparse
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -37,7 +40,7 @@ logger = logging.getLogger(__name__)
 class LinearProbe(nn.Module):
     """Linear probe for binary classification (matching EEGPT paper)."""
 
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]) -> None:
         super().__init__()
 
         # Two-layer probe using LazyLinear to infer input dimension
@@ -48,7 +51,7 @@ class LinearProbe(nn.Module):
             nn.Linear(config["model"]["probe"]["hidden_dim"], 1),  # Binary output
         )
 
-    def forward(self, features):
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through probe.
 
         Args:
@@ -64,7 +67,16 @@ class LinearProbe(nn.Module):
         return self.probe(features)
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, device, epoch):
+def train_epoch(
+    model: nn.Module,
+    probe: nn.Module,
+    train_loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    scheduler: OneCycleLR,
+    criterion: nn.Module,
+    device: torch.device,
+    epoch: int
+) -> Tuple[float, float]:
     """Train for one epoch."""
     probe.train()
 
@@ -119,7 +131,13 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
     return avg_loss, epoch_auroc
 
 
-def evaluate(model, probe, eval_loader, criterion, device):
+def evaluate(
+    model: nn.Module,
+    probe: nn.Module,
+    eval_loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device
+) -> Tuple[float, float, List[float], List[float]]:
     """Evaluate model."""
     probe.eval()
 
@@ -153,16 +171,14 @@ def evaluate(model, probe, eval_loader, criterion, device):
     return avg_loss, auroc, all_preds, all_labels
 
 
-def resolve_env_vars(obj):
+def resolve_env_vars(obj: Any) -> Any:
     """Recursively resolve environment variables in config.
 
     Handles both ${VAR} and ${VAR}/path patterns.
     """
-    import re
-
     if isinstance(obj, str):
         # Handle ${VAR} or ${VAR}/path patterns
-        def replacer(match):
+        def replacer(match: re.Match) -> str:
             env_var = match.group(1)
             return os.environ.get(env_var, match.group(0))
 
