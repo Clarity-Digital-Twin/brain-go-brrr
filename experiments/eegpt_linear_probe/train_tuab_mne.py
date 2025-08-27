@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
-from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
+from experiments.eegpt_linear_probe.utils.collate_tuab import collate_tuab_batch
 
 # Configure logging
 logging.basicConfig(
@@ -269,7 +269,7 @@ def main():
         shuffle=True,
         num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
         pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
     eval_loader = DataLoader(
@@ -278,7 +278,7 @@ def main():
         shuffle=False,
         num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
         pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
     # Load EEGPT model
