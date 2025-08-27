@@ -6,7 +6,6 @@ Multi-class event detection (6 classes) with 23→20 channel mapping.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -128,7 +127,7 @@ class TUEVMNEDataset(Dataset):
             'n_files': 0,
             'total_windows': 0,
             'n_rejected': 0,
-            'class_counts': {k: 0 for k in CLASS_MAPPING.keys()},
+            'class_counts': {k: 0 for k in CLASS_MAPPING},
             'version': self.CACHE_VERSION,
         }
 
@@ -218,7 +217,7 @@ class TUEVMNEDataset(Dataset):
                     cache_index['file_missing_channels'][edf_path.name] = info['missing_channels']
 
                 # Track AR learned parameters for auditing
-                if 'ar_learned_params' in info and info['ar_learned_params']:
+                if info.get('ar_learned_params'):
                     if 'ar_learned_params_summary' not in cache_index:
                         cache_index['ar_learned_params_summary'] = []
                     cache_index['ar_learned_params_summary'].append(
@@ -246,11 +245,11 @@ class TUEVMNEDataset(Dataset):
         )
         logger.info(f"Class distribution: {cache_index['class_counts']}")
 
-    def _get_edf_files(self) -> List[Path]:
+    def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""
         return sorted(self.split_dir.glob('**/*.edf'))
 
-    def _load_annotations(self, edf_path: Path) -> List[Dict]:
+    def _load_annotations(self, edf_path: Path) -> list[dict]:
         """Load and parse TUEV annotations from .lab files.
 
         Args:
@@ -312,7 +311,7 @@ class TUEVMNEDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         """Get preprocessed window and label.
 
         Returns:

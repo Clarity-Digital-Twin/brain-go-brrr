@@ -12,9 +12,8 @@ import re
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
-import numpy as np
 import torch
 import torch.nn as nn
 import yaml
@@ -26,9 +25,9 @@ from tqdm import tqdm
 # Add parent dir to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
 from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
-from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 # Configure logging
 logging.basicConfig(
@@ -40,7 +39,7 @@ logger = logging.getLogger(__name__)
 class LinearProbe(nn.Module):
     """Linear probe for binary classification (matching EEGPT paper)."""
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         super().__init__()
 
         # Two-layer probe using LazyLinear to infer input dimension
@@ -76,7 +75,7 @@ def train_epoch(
     criterion: nn.Module,
     device: torch.device,
     epoch: int
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Train for one epoch."""
     probe.train()
 
@@ -88,7 +87,7 @@ def train_epoch(
 
     for batch_idx, (x, y) in enumerate(pbar):
         x, y = x.to(device), y.to(device)
-        
+
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
             logger.info(f"First batch - x.shape: {x.shape}, y.dtype: {y.dtype}, y.shape: {y.shape}")
@@ -141,7 +140,7 @@ def evaluate(
     eval_loader: DataLoader,
     criterion: nn.Module,
     device: torch.device
-) -> Tuple[float, float, List[float], List[float]]:
+) -> tuple[float, float, list[float], list[float]]:
     """Evaluate model."""
     probe.eval()
 

@@ -193,9 +193,28 @@ class TUEVPreprocessor(TUABPreprocessor):
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 
-        # Pick and reorder channels
+        # Pick and reorder channels - enforce exactly 19 for consistency
+        # CRITICAL: TUEV also needs exactly 19 channels like TUAB to prevent shape mismatches
+        if len(available_standard) != 19:
+            logger.warning(f"Expected 19 channels, found {len(available_standard)}")
+            if len(available_standard) == 20 and 'Fz' in available_standard:
+                logger.warning("Found 20 channels including Fz - removing Fz to ensure 19 channels")
+                available_standard = [ch for ch in available_standard if ch != 'Fz']
+            elif len(available_standard) > 19:
+                # Try to drop Fz if present, otherwise error
+                if 'Fz' in available_standard:
+                    available_standard = [ch for ch in available_standard if ch != 'Fz']
+                else:
+                    raise ValueError(
+                        f"Too many channels ({len(available_standard)}). Expected exactly 19. "
+                        f"Channels: {available_standard}"
+                    )
+
+        # Final sanity check - MUST be exactly 19 channels
+        assert len(available_standard) == 19, f"Must have exactly 19 channels, got {len(available_standard)}"
+
         raw.pick(available_standard)
-        logger.info(f"Selected {len(raw.ch_names)} standard channels from TUEV's 23")
+        logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 19)")
 
         return raw
 

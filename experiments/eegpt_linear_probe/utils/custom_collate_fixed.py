@@ -27,7 +27,7 @@ def collate_eeg_batch_fixed(
         elif x.shape[0] != 19:
             raise RuntimeError(f"Unexpected channel count: {x.shape[0]}. Expected 19 or 20.")
         processed_samples.append(x)
-    
+
     data = torch.stack(processed_samples)
 
     # Handle labels - preserve dtype from dataset

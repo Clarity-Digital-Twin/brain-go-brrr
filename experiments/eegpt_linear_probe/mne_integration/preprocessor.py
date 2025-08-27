@@ -220,11 +220,31 @@ class TUABPreprocessor:
         # Pick and reorder channels - enforce exactly 19
         if len(available_standard) != 19:
             logger.warning(f"Expected 19 channels, found {len(available_standard)}")
+            # CRITICAL: For TUAB cache builds, we MUST have exactly 19 channels
+            # If we have 20 (Fz included), remove it. This prevents the 20-channel bug.
+            if len(available_standard) == 20 and 'Fz' in available_standard:
+                logger.warning("Found 20 channels including Fz - removing Fz to ensure 19 channels")
+                available_standard = [ch for ch in available_standard if ch != 'Fz']
+            elif len(available_standard) > 19:
+                # If we have more than 19 but not exactly 20, something's wrong
+                raise ValueError(
+                    f"Too many channels ({len(available_standard)}). Expected exactly 19. "
+                    f"Channels: {available_standard}"
+                )
+            elif len(available_standard) < 19:
+                # Too few channels - can't proceed
+                raise ValueError(
+                    f"Too few channels ({len(available_standard)}). Need exactly 19. "
+                    f"Missing: {[ch for ch in self.STANDARD_CHANNELS if ch not in available_standard]}"
+                )
+
+        # Final sanity check - MUST be exactly 19 channels
+        assert len(available_standard) == 19, f"Must have exactly 19 channels, got {len(available_standard)}"
 
         # Use raw.pick() for better compatibility across MNE versions
         # The order is preserved based on the input list
         raw.pick(available_standard)
-        logger.info(f"Selected {len(raw.ch_names)} standard channels")
+        logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 19)")
 
         return raw
 

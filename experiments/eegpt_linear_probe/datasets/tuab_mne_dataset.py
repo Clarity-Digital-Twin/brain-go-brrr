@@ -115,6 +115,14 @@ class TUABMNEDataset(Dataset):
                 'ar_consensus': [0.3, 0.5, 0.7],
                 'ar_cv': 5,
             },
+            # CRITICAL: Expected shape for validation
+            'expected_shape': [19, 1024],  # Exactly 19 channels, 1024 samples
+            'cache_version': self.CACHE_VERSION,
+            'channel_info': {
+                'n_channels': 19,
+                'channel_order': 'Standard 10-20 without Fz',
+                'note': 'TUAB uses 19 channels (Fz excluded) to match EEGPT requirements',
+            },
         }
 
         window_idx = 0
@@ -137,16 +145,27 @@ class TUABMNEDataset(Dataset):
                     # Convert to float32 for training
                     epoch_data = epoch_data.astype('float32')
 
-                    # Ensure correct shape (channels, samples)
-                    # EEGPT expects (20, 1024) for 4s @ 256Hz
-                    expected_samples = int(4.0 * 256)
+                    # CRITICAL: Enforce exactly 19 channels for TUAB
+                    # This prevents the 20-channel bug that occurred with aaaaakfo_s00X files
+                    expected_channels = 19  # TUAB uses 19 channels (no Fz)
+                    expected_samples = int(4.0 * 256)  # 4s @ 256Hz = 1024 samples
+
+                    if epoch_data.shape[0] != expected_channels:
+                        logger.error(
+                            f"CHANNEL COUNT ERROR in {edf_path.name}: "
+                            f"Got {epoch_data.shape[0]} channels, expected exactly {expected_channels}. "
+                            f"Shape: {epoch_data.shape}. This window will be SKIPPED."
+                        )
+                        # SKIP this window to prevent cache corruption
+                        continue
+
                     if epoch_data.shape[1] != expected_samples:
                         logger.warning(
-                            f"Unexpected shape {epoch_data.shape}, expected (20, {expected_samples})"
+                            f"Sample count mismatch: {epoch_data.shape}, expected ({expected_channels}, {expected_samples})"
                         )
                         continue
 
-                    # Save cache file
+                    # Save cache file with channel info for validation
                     cache_file = f"window_{window_idx:06d}_{self.CACHE_VERSION}.pt"
                     cache_path = self.cache_dir / cache_file
 
@@ -156,15 +175,18 @@ class TUABMNEDataset(Dataset):
                             'y': torch.tensor(label, dtype=torch.float32),
                             'source_file': str(edf_path),
                             'epoch_idx': epoch_idx,
+                            'n_channels': epoch_data.shape[0],  # Store for validation
+                            'n_samples': epoch_data.shape[1],    # Store for validation
                         },
                         cache_path,
                     )
 
-                    # Update index
+                    # Update index with shape info
                     cache_index['windows'][str(window_idx)] = {
                         'cache_file': cache_file,
                         'label': label,
                         'source': str(edf_path.name),
+                        'shape': list(epoch_data.shape),  # Add shape to index for validation
                     }
 
                     window_idx += 1

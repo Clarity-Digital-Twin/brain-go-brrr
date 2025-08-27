@@ -13,6 +13,16 @@ echo "Building MNE-Preprocessed Cache for TUAB"
 echo "=============================================="
 echo "Project root: $PROJECT_ROOT"
 echo "Data root: $DATA_ROOT"
+echo ""
+echo "⚠️  CRITICAL: Channel Enforcement Active ⚠️"
+echo "This build enforces EXACTLY 19 channels per window."
+echo "Files with 20 channels (including Fz) will have Fz dropped."
+echo "This prevents the 20-channel bug found in older caches."
+echo ""
+echo "KNOWN ISSUE: Existing cache (mne-ar-v2) has 304 windows"
+echo "with 20 channels from files aaaaakfo_s004/s005_t000.edf"
+echo "See TECH_DEBT_CRITICAL.md for details."
+echo "=============================================="
 
 # Activate virtual environment if it exists
 if [ -f "$PROJECT_ROOT/.venv/bin/activate" ]; then

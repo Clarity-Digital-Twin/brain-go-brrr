@@ -3,9 +3,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Tuple
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -41,7 +39,7 @@ class TUEVCachedDatasetPadded(Dataset):
         if not index_file.exists():
             raise ValueError(f"Index file not found at {index_file}")
 
-        with open(index_file, 'r') as f:
+        with open(index_file) as f:
             self.index = json.load(f)
 
         self.samples = self.index['samples']
@@ -53,7 +51,7 @@ class TUEVCachedDatasetPadded(Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         """Get padded sample.
 
         Returns:
