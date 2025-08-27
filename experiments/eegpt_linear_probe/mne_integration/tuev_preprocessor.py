@@ -68,7 +68,8 @@ class TUEVPreprocessor(TUABPreprocessor):
         'FPZ': None,  # Drop extra midline channel
     }
 
-    # Final 20 channels we want (standard 10-20 without FPZ)
+    # Final 20 channels we want (standard 10-20 WITH Fz, WITHOUT Fpz)
+    # TUEV uses 20 channels per EEGPT paper Table 13 (unlike TUAB which uses 19)
     STANDARD_CHANNELS = [
         'Fp1',
         'Fp2',
@@ -193,28 +194,37 @@ class TUEVPreprocessor(TUABPreprocessor):
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 
-        # Pick and reorder channels - enforce exactly 19 for consistency
-        # CRITICAL: TUEV also needs exactly 19 channels like TUAB to prevent shape mismatches
-        if len(available_standard) != 19:
-            logger.warning(f"Expected 19 channels, found {len(available_standard)}")
-            if len(available_standard) == 20 and 'Fz' in available_standard:
-                logger.warning("Found 20 channels including Fz - removing Fz to ensure 19 channels")
-                available_standard = [ch for ch in available_standard if ch != 'Fz']
-            elif len(available_standard) > 19:
-                # Try to drop Fz if present, otherwise error
-                if 'Fz' in available_standard:
-                    available_standard = [ch for ch in available_standard if ch != 'Fz']
-                else:
+        # Pick and reorder channels - enforce exactly 20 for TUEV
+        # CRITICAL: TUEV needs exactly 20 channels (including Fz, excluding Fpz)
+        # This is different from TUAB which uses 19 channels (excluding Fz)
+        if len(available_standard) != 20:
+            logger.warning(f"Expected 20 channels for TUEV, found {len(available_standard)}")
+            missing = [ch for ch in self.STANDARD_CHANNELS if ch not in available_standard]
+            extra = [ch for ch in available_standard if ch not in self.STANDARD_CHANNELS]
+
+            if missing:
+                logger.error(f"Missing required channels: {missing}")
+            if extra:
+                logger.warning(f"Extra non-standard channels will be dropped: {extra}")
+
+            if len(available_standard) < 20:
+                raise ValueError(
+                    f"Too few channels ({len(available_standard)}). TUEV requires exactly 20. "
+                    f"Missing: {missing}"
+                )
+            elif len(available_standard) > 20:
+                # Drop any extra channels not in standard list
+                available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in available_standard]
+                if len(available_standard) != 20:
                     raise ValueError(
-                        f"Too many channels ({len(available_standard)}). Expected exactly 19. "
-                        f"Channels: {available_standard}"
+                        f"Could not get exactly 20 standard channels. Got {len(available_standard)}"
                     )
 
-        # Final sanity check - MUST be exactly 19 channels
-        assert len(available_standard) == 19, f"Must have exactly 19 channels, got {len(available_standard)}"
+        # Final sanity check - MUST be exactly 20 channels for TUEV
+        assert len(available_standard) == 20, f"TUEV must have exactly 20 channels, got {len(available_standard)}"
 
         raw.pick(available_standard)
-        logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 19)")
+        logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 20 for TUEV)")
 
         return raw
 

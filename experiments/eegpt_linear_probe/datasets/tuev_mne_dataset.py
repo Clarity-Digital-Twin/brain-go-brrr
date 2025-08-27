@@ -129,6 +129,13 @@ class TUEVMNEDataset(Dataset):
             'n_rejected': 0,
             'class_counts': {k: 0 for k in CLASS_MAPPING},
             'version': self.CACHE_VERSION,
+            # CRITICAL: Expected shape for TUEV
+            'expected_shape': [20, 1024],  # Exactly 20 channels, 1024 samples
+            'channel_info': {
+                'n_channels': 20,
+                'channel_order': 'Standard 10-20 with Fz, without Fpz',
+                'note': 'TUEV uses 20 channels (Fz included) per EEGPT Table 13',
+            },
         }
 
         window_id = 0
@@ -172,6 +179,25 @@ class TUEVMNEDataset(Dataset):
                 for epoch_idx, original_idx in enumerate(kept_indices):
                     epoch_data = epochs_clean.get_data()[epoch_idx]
                     label = window_labels[original_idx]  # Use original index for correct label
+
+                    # CRITICAL: Enforce exactly 20 channels for TUEV
+                    expected_channels = 20  # TUEV uses 20 channels (with Fz, without Fpz)
+                    expected_samples = 1024  # 4s @ 256Hz
+
+                    if epoch_data.shape[0] != expected_channels:
+                        logger.error(
+                            f"CHANNEL COUNT ERROR in {edf_path.name}: "
+                            f"Got {epoch_data.shape[0]} channels, expected exactly {expected_channels}. "
+                            f"Shape: {epoch_data.shape}. This window will be SKIPPED."
+                        )
+                        # SKIP this window to prevent cache corruption
+                        continue
+
+                    if epoch_data.shape[1] != expected_samples:
+                        logger.warning(
+                            f"Sample count mismatch: {epoch_data.shape}, expected ({expected_channels}, {expected_samples})"
+                        )
+                        continue
 
                     # epoch_data shape: (n_channels=20, n_samples=1024)
                     cache_file = self.cache_dir / f"window_{window_id:06d}_{self.CACHE_VERSION}.pt"

@@ -91,14 +91,15 @@ validation:
       balanced_accuracy: 0.095  # +9.5%
       weighted_f1: 0.069        # +6.9%
 
-# Channel mapping (from paper line 615)
+# Channel mapping - Project uses Oz instead of Fpz for consistency
+# Paper line 615 shows Fpz, but per TUEV_IMPLEMENTATION_SPEC.md we use Oz
 channels:
   target_20: [
-    'FP1', 'FPZ', 'FP2',
-    'F7', 'F3', 'FZ', 'F4', 'F8',
-    'T7', 'C3', 'CZ', 'C4', 'T8',
-    'P7', 'P3', 'PZ', 'P4', 'P8',
-    'O1', 'O2'
+    'FP1', 'FP2',                    # Frontal polar (no FPZ)
+    'F7', 'F3', 'FZ', 'F4', 'F8',    # Frontal line
+    'T7', 'C3', 'CZ', 'C4', 'T8',    # Temporal/Central
+    'P7', 'P3', 'PZ', 'P4', 'P8',    # Parietal
+    'O1', 'OZ', 'O2'                 # Occipital (using OZ not FPZ)
   ]
 
   # TCP montage channels in TUEV

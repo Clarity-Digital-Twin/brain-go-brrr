@@ -1,6 +1,12 @@
-# CRITICAL TECHNICAL DEBT - TUAB Training
+# CRITICAL TECHNICAL DEBT - Channel Enforcement
 
-## 🔴 IMMEDIATE ISSUE: 20-Channel Cache Contamination
+## ⚠️ CRITICAL CHANNEL SPECIFICATIONS
+- **TUAB**: EXACTLY **19 channels** (excludes Fz which is often missing in raw data)
+- **TUEV**: EXACTLY **20 channels** (includes Fz, excludes Fpz per EEGPT paper Table 13)
+
+**DO NOT CONFUSE THESE** - They have different requirements!
+
+## 🔴 CURRENT ISSUE: TUAB 20-Channel Cache Contamination
 
 ### Problem Summary
 - **304 windows (0.081%)** have 20 channels instead of 19
