@@ -15,6 +15,7 @@ import numpy as np
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.domain.preprocessing.features import EEGPTFeatureExtractor
 from brain_go_brrr.domain.sleep import SleepAnalyzer
+from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ class ParallelEEGPipeline:
         Returns:
             Dictionary with both EEGPT and YASA results
         """
-        logger.info(f"Processing file: {edf_path}")
+        logger.info(f"Processing file: {mask_path_for_log(edf_path)}")
 
         # Load EDF
         raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
@@ -138,7 +139,7 @@ def main() -> None:
     edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
 
     if not edf_path.exists():
-        logger.error(f"EDF file not found: {edf_path}")
+        logger.error(f"EDF file not found: {mask_path_for_log(edf_path)}")
         return
 
     # Create pipeline
@@ -186,7 +187,7 @@ def main() -> None:
         }
         json.dump(json_results, f, indent=2)
 
-    logger.info(f"\nResults saved to: {output_path}")
+    logger.info(f"\nResults saved to: {mask_path_for_log(output_path)}")
 
 
 if __name__ == "__main__":

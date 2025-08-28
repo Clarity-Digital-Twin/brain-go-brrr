@@ -18,6 +18,7 @@ from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import (
     validate_eeg_input,
 )
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def predict_abnormality_with_eegpt(
         probe.load_state_dict(checkpoint['model_state_dict'])
         probe = probe.to(device)
         probe.eval()
-        logger.info(f"Loaded probe from {probe_path}")
+        logger.info(f"Loaded probe from {mask_path_for_log(probe_path)}")
 
     # Preprocess data
     data = preprocess_for_eegpt(raw)

@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader, Dataset
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
+from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +160,7 @@ class SleepProbeTrainer:
             "accuracy": accuracy,
         }
         torch.save(checkpoint, path)
-        logger.info(f"Saved checkpoint to {path}")
+        logger.info(f"Saved checkpoint to {mask_path_for_log(path)}")
 
 
 def evaluate_probe(
@@ -228,7 +229,7 @@ def load_sleep_edf_data(
     if max_files:
         edf_files = edf_files[:max_files]
 
-    logger.info(f"Loading {len(edf_files)} EDF files from {data_dir}")
+    logger.info(f"Loading {len(edf_files)} EDF files from {mask_path_for_log(data_dir)}")
 
     for edf_file in edf_files:
         try:

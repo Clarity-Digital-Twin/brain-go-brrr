@@ -18,6 +18,7 @@ from brain_go_brrr.api.schemas import QCResponse
 from brain_go_brrr.api.settings import settings
 from brain_go_brrr.domain.exceptions import EdfLoadError, QualityCheckError
 from brain_go_brrr.infra.data.edf_loader import load_edf_safe
+from brain_go_brrr.utils import mask_path_for_log
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def cleanup_temp_file(file_path: Path) -> None:
     try:
         if file_path.exists():
             file_path.unlink()
-            logger.info(f"Cleaned up temp file: {file_path}")
+            logger.info(f"Cleaned up temp file: {mask_path_for_log(file_path)}")
     except (OSError, PermissionError, FileNotFoundError) as e:
         logger.warning(
             f"Failed to cleanup temp file {file_path}: {e}"
@@ -106,7 +107,7 @@ async def analyze_eeg(
         cached_result = cache_client.get(cache_key)
 
         if cached_result:
-            logger.info(f"Returning cached result for {edf_file.filename}")
+            logger.info(f"Returning cached result for {mask_path_for_log(edf_file.filename or 'unknown')}")
             # Convert cached dict back to QCResponse
             cached_result["cached"] = True
             return QCResponse(**cached_result)
@@ -235,7 +236,9 @@ async def analyze_eeg_detailed(
         cached_result = cache_client.get(cache_key)
 
         if cached_result:
-            logger.info(f"Returning cached detailed result for {edf_file.filename}")
+            logger.info(
+                f"Returning cached detailed result for {mask_path_for_log(edf_file.filename or 'unknown')}"
+            )
             cached_result["basic"]["cached"] = True
             return JSONResponse(content=json.loads(json.dumps(cached_result, cls=NumpyEncoder)))
 
