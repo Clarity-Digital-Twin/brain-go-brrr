@@ -1,4 +1,5 @@
 """TUEV dataset with MNE+Autoreject preprocessing.
+
 Multi-class event detection (6 classes) with 20 channels (Fz included, Fpz excluded).
 """
 
@@ -8,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset  # type: ignore[import-untyped]
 
 from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 
