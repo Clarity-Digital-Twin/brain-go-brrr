@@ -103,7 +103,12 @@ jobs:
       - name: Check unsafe torch.load
         run: |
           echo "Checking for unsafe torch.load usage..."
-          python .pre-commit-hooks/safe_torch_load.py $(find src tests -name "*.py" | grep -v safe_load.py)
+          python .pre-commit-hooks/safe_torch_load.py $(find src tests experiments -name "*.py" | grep -v safe_load.py)
+
+      - name: Check for parallel implementations (CRITICAL)
+        run: |
+          echo "Checking for architecture drift..."
+          .ci/check_no_parallel_impl.sh
 
   # ============================================
   # STAGE 2: TESTING (After Quality Passes)
