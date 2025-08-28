@@ -3,8 +3,8 @@ set -euo pipefail
 
 echo "🔍 Checking experiments datasets are shims..."
 
-# Check for class/def in experiments datasets
-hits=$(grep -n '^(class|def)\s+' experiments/eegpt_linear_probe/datasets/*.py 2>/dev/null | grep -v "__all__\|warnings\|import" || true)
+# Check for class/def in experiments datasets (using extended regex)
+hits=$(grep -E -n '^(class|def)\s+' experiments/eegpt_linear_probe/datasets/*.py 2>/dev/null | grep -v "__all__\|warnings\|import" || true)
 
 if [[ -n "$hits" ]]; then
     echo "❌ Experiments datasets contain implementations:"
