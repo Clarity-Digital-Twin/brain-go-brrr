@@ -1,6 +1,7 @@
 """Application factory for Brain-Go-Brrr API."""
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -11,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
-import logging
 from brain_go_brrr.infra.logger import get_logger
 from brain_go_brrr.utils.logging_utils import add_path_masking
 
