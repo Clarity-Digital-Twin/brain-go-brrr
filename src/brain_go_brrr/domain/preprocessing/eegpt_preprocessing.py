@@ -1,12 +1,11 @@
 """EEGPT-specific preprocessing functions.
 
-Extracted from eegpt_model.py to proper domain layer.
-Note: For basic EEGPT input preparation, use domain.preprocessing.eegpt_prepare.prepare_for_eegpt
-This module provides additional preprocessing with filtering and normalization.
+This is the SINGLE source of truth for EEGPT preprocessing.
+Consolidates functions from eegpt_prepare.py and eegpt_preprocessing.py.
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
