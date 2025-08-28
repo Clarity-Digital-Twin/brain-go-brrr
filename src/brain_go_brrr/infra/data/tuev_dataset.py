@@ -11,7 +11,7 @@ from typing import Optional, Tuple, Dict, Any
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore[import-untyped]
 
 from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20, validate_channels
 
@@ -28,7 +28,7 @@ CLASS_MAPPING = {
 }
 
 
-class TUEVMNEDataset(Dataset):
+class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
     """TUEV dataset with MNE+Autoreject preprocessing.
 
     This dataset handles:
@@ -82,7 +82,7 @@ class TUEVMNEDataset(Dataset):
         index_file = self.cache_dir / f"index_{self.split}_{self.CACHE_VERSION}.json"
         return index_file.exists()
 
-    def _load_cache_index(self):
+    def _load_cache_index(self) -> None:
         """Load the cache index for this split."""
         index_file = self.cache_dir / f"index_{self.split}_{self.CACHE_VERSION}.json"
 
@@ -129,10 +129,10 @@ class TUEVMNEDataset(Dataset):
         if 'class_counts' in self.index:
             logger.info(f"Class distribution: {self.index['class_counts']}")
 
-    def _build_cache(self):
+    def _build_cache(self) -> None:
         """Build preprocessed cache with MNE+Autoreject."""
         # Import here to avoid dependency if just using cache
-        from ..mne_integration.tuev_preprocessor import TUEVPreprocessor
+        from ..mne_integration.tuev_preprocessor import TUEVPreprocessor  # type: ignore[import-not-found]
 
         logger.info(f"Building MNE-preprocessed cache for {self.split}...")
         self.cache_dir.mkdir(parents=True, exist_ok=True)

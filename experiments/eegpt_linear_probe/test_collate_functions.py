@@ -36,7 +36,7 @@ def test_collate_functions():
     batch_wrong = [(torch.randn(18, 1024), 0.0)]
     try:
         collate_tuab_batch(batch_wrong)
-        assert False, "TUAB should have raised on 18 channels"
+        raise AssertionError("TUAB should have raised on 18 channels")
     except RuntimeError as e:
         assert "18" in str(e) and "19" in str(e)
         print("✅ TUAB collate: Correctly raises on wrong channel count (18)")
@@ -58,7 +58,7 @@ def test_collate_functions():
     batch_tuev_wrong = [(torch.randn(19, 1024), 0)]
     try:
         collate_tuev_batch(batch_tuev_wrong)
-        assert False, "TUEV should have raised on 19 channels"
+        raise AssertionError("TUEV should have raised on 19 channels")
     except RuntimeError as e:
         assert "19" in str(e) and "20" in str(e) and "EXACTLY" in str(e)
         print("✅ TUEV collate: STRICTLY enforces 20 channels (no workaround)")
@@ -69,7 +69,7 @@ def test_collate_functions():
     ]
     try:
         collate_tuev_batch(batch_tuev_bad_label)
-        assert False, "TUEV should have raised on invalid label"
+        raise AssertionError("TUEV should have raised on invalid label")
     except ValueError as e:
         assert "0-5" in str(e)
         print("✅ TUEV collate: Validates label range (0-5)")
