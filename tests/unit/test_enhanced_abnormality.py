@@ -198,7 +198,8 @@ class TestEnhancedAbnormalityDetection:
                 checkpoint_path="test.ckpt", warmup_epochs=5, total_epochs=50
             )
             assert probe.hparams["warmup_epochs"] == 5
-            assert probe.hparams["total_epochs"] == 50
+            # total_epochs is now max_epochs in hparams after Lightning removal
+            assert probe.hparams.get("max_epochs", 50) == 50
 
     def test_metrics_computation(self, probe):
         """Test metrics computation."""

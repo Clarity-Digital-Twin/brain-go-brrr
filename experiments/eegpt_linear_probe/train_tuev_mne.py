@@ -23,9 +23,9 @@ from tqdm import tqdm
 # Add parent dir to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
-from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+from experiments.eegpt_linear_probe.utils.collate_tuev import collate_tuev_batch
 
 # Configure logging
 logging.basicConfig(
@@ -268,7 +268,7 @@ def main():
         shuffle=True,
         num_workers=config['data'].get('num_workers', 0),
         pin_memory=config['data'].get('pin_memory', False),
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
     )
 
     eval_loader = DataLoader(
@@ -277,7 +277,7 @@ def main():
         shuffle=False,
         num_workers=config['data'].get('num_workers', 0),
         pin_memory=config['data'].get('pin_memory', False),
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
     )
 
     # Load EEGPT model

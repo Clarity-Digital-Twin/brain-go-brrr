@@ -52,13 +52,16 @@ class EEGPTWrapper(nn.Module):
             self.normalize = True
             self._stats_source = "file"
         else:
-            # Default normalization parameters - TUAB is already normalized!
-            self.register_buffer("input_mean", torch.zeros(1))
-            self.register_buffer("input_std", torch.ones(1))
+            # CRITICAL: MNE outputs Volts (1e-5 scale), NOT normalized!
+            # We MUST normalize or the model sees everything as zero
+            # Use reasonable defaults for EEG in microvolts
+            self.register_buffer("input_mean", torch.tensor(0.0))
+            self.register_buffer("input_std", torch.tensor(50e-6))  # 50 microvolts typical
             self.normalize = True
-            self._stats_source = "default"
+            self._stats_source = "default_microvolt"
             logger.warning(
-                "No normalization file found - using identity normalization (mean=0, std=1)"
+                "No normalization file found - using typical EEG scale (std=50μV). "
+                "For production, compute stats from your training data!"
             )
 
     def set_normalization_params(self, mean: float, std: float) -> None:
@@ -125,8 +128,8 @@ class EEGPTWrapper(nn.Module):
             If return_all_temporal=False: Summary tokens of shape (B, embed_num, embed_dim)
             If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
-        # Normalize input if enabled
         if self.normalize:
+            # Always normalize - datasets now provide raw mV data
             x = (x - self.input_mean) / (self.input_std + 1e-8)
 
         # Check if model accepts return_all_temporal parameter

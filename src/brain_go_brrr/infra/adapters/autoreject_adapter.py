@@ -5,14 +5,11 @@ allowing the domain to use AutoReject without depending on it.
 """
 
 import logging
-import sys
-from pathlib import Path
 from typing import Any
 
 from brain_go_brrr._typing import MNEEpochs
 
-# Add reference repos to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "reference_repos" / "autoreject"))
+# No sys.path hacks - use proper imports
 
 try:
     from autoreject import AutoReject

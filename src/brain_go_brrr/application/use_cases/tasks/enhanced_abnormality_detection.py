@@ -15,7 +15,6 @@ from typing import Any, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
-import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
@@ -48,7 +47,7 @@ class HParams(TypedDict, total=False):
     max_epochs: int
 
 
-class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
+class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.LightningModule
     """Enhanced Lightning module for EEGPT abnormality detection.
 
     Improvements:
@@ -78,7 +77,18 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
     ):
         """Initialize enhanced abnormality detection module."""
         super().__init__()
-        self.save_hyperparameters(ignore=["probe"])
+        # self.save_hyperparameters(ignore=["probe"])  # Lightning-specific, removed
+
+        # Store hyperparameters manually (replacing Lightning's save_hyperparameters)
+        self.hparams = {
+            "checkpoint_path": checkpoint_path,
+            "layer_decay": layer_decay,
+            "learning_rate": learning_rate,
+            "weight_decay": weight_decay,
+            "warmup_epochs": warmup_epochs,
+            "scheduler_type": scheduler_type,
+            "freeze_backbone": freeze_backbone,
+        }
 
         # Store freeze setting first
         self.backbone_frozen = freeze_backbone
@@ -152,7 +162,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return cast("torch.Tensor", logits)
 
-    def training_step(
+    # REMOVED: Lightning-specific training methods
+    # Use plain PyTorch training loop instead
+    def training_step_deprecated(
         self,
         batch: tuple[torch.Tensor, torch.Tensor],
         batch_idx: int,  # noqa: ARG002
@@ -179,8 +191,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Log metrics (only if trainer is attached to avoid warnings in tests)
         if getattr(self, "trainer", None) is not None:
-            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
-            self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+            # self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            # self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+            # Use standard logging instead
+            logger.debug(f"train_loss: {loss:.4f}, train_acc: {acc:.4f}")
 
         # Store outputs for epoch-level metrics
         self.train_outputs.append(
@@ -189,7 +203,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return cast("torch.Tensor", loss)
 
-    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step_deprecated(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
         _ = batch_idx  # Required by PyTorch Lightning interface
         x, y = batch
@@ -235,9 +249,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         # Log metrics (only if trainer is attached to avoid warnings in tests)
         if getattr(self, "trainer", None) is not None:
-            self.log("val_loss", avg_loss, prog_bar=True, logger=True)
-            for name, value in metrics.items():
-                self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"], logger=True)
+            # self.log("val_loss", avg_loss, prog_bar=True, logger=True)
+            # for name, value in metrics.items():
+            #     self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"], logger=True)
+            logger.info(f"val_loss: {avg_loss:.4f}, metrics: {metrics}")
 
         # Clear stored outputs
         self.val_outputs.clear()
@@ -266,7 +281,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return metrics
 
-    def configure_optimizers(self) -> Any:
+    def configure_optimizers_deprecated(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
         from torch.optim.lr_scheduler import CosineAnnealingLR
 
@@ -283,10 +298,10 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
         if scheduler_type == "onecycle":
             sched = OneCycleLR(
                 optimizer,
-                max_lr=self.hparams.get("learning_rate", 1e-3),
-                total_steps=int(self.trainer.estimated_stepping_batches),
-                pct_start=self.hparams.get("warmup_epochs", 5)
-                / max(1, self.hparams.get("total_epochs", 50)),
+                max_lr=float(self.hparams.get("learning_rate", 1e-3)),  # type: ignore[arg-type]
+                total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[union-attr,arg-type]
+                pct_start=float(self.hparams.get("warmup_epochs", 5))  # type: ignore[arg-type]
+                / max(1, int(self.hparams.get("total_epochs", 50))),  # type: ignore[call-overload]
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000
@@ -298,7 +313,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
-                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6
+                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6  # type: ignore[union-attr,arg-type]
             )
             return [optimizer], [sched]
 
@@ -333,11 +348,11 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
                         layer_params.append(param)
 
                 if layer_params:
-                    lr_scale = self.hparams.get("layer_decay", 0.75) ** (11 - layer_id)
+                    lr_scale = float(self.hparams.get("layer_decay", 0.75)) ** (11 - layer_id)  # type: ignore[arg-type]
                     param_groups.append(
                         {
                             "params": layer_params,
-                            "lr": self.hparams.get("learning_rate", 1e-3) * lr_scale,
+                            "lr": float(self.hparams.get("learning_rate", 1e-3)) * lr_scale,  # type: ignore[arg-type]
                             "weight_decay": self.hparams.get("weight_decay", 0.01),
                             "name": f"backbone_layer_{layer_id}",
                         }

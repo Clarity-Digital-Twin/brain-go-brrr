@@ -15,6 +15,8 @@ import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,29 +41,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
     LABEL_MAP = {"normal": 0, "abnormal": 1}
 
-    # Standard EEGPT channels (20 channels) - using modern T7/T8/P7/P8 naming
-    STANDARD_CHANNELS = [
-        "FP1",
-        "FP2",
-        "F7",
-        "F3",
-        "FZ",
-        "F4",
-        "F8",
-        "T7",  # Modern name for T3
-        "C3",
-        "CZ",
-        "C4",
-        "T8",  # Modern name for T4
-        "P7",  # Modern name for T5
-        "P3",
-        "PZ",
-        "P4",
-        "P8",  # Modern name for T6
-        "O1",
-        "O2",
-        "OZ",  # EEGPT uses OZ
-    ]
+    # TUAB uses exactly 19 channels (NO FZ!) per EEGPT paper
 
     # Channel name mapping for different naming conventions
     CHANNEL_MAPPING = {
@@ -70,7 +50,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         "EEG FP2-REF": "FP2",
         "EEG F7-REF": "F7",
         "EEG F3-REF": "F3",
-        "EEG FZ-REF": "FZ",
+        # "EEG FZ-REF": "FZ",  # REMOVED: TUAB doesn't use FZ
         "EEG F4-REF": "F4",
         "EEG F8-REF": "F8",
         "EEG T3-REF": "T3",
@@ -130,10 +110,10 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         root_dir: Path,
         split: str = "train",
         sampling_rate: int = 256,
-        window_duration: float = 30.0,
-        window_stride: float = 30.0,
+        window_duration: float = 4.0,  # EEGPT requires 4-second windows
+        window_stride: float = 4.0,  # Non-overlapping 4s windows
         preload: bool = False,
-        normalize: bool = True,
+        normalize: bool = False,  # NORMALIZATION IN WRAPPER ONLY!
         cache_dir: Path | None = None,
     ) -> None:
         """Initialize TUAB dataset.
@@ -159,6 +139,40 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         self.preload = preload
         self.normalize = normalize
         self.cache_dir = cache_dir
+        
+        # Validate cache META.json if cache_dir exists
+        if self.cache_dir and self.cache_dir.exists():
+            import json
+            meta_file = self.cache_dir / "META.json"
+            if meta_file.exists():
+                with open(meta_file) as f:
+                    meta = json.load(f)
+                
+                # Assert critical cache properties
+                assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
+                assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
+                assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
+                assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
+                
+                # Validate channels - support both old and new key
+                if 'channels' in meta:
+                    assert meta['channels'] == CHANNELS_TUAB_19, (
+                        f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    )
+                elif 'channels19' in meta:  # Backward compat
+                    logger.warning("META.json uses deprecated 'channels19' key, should use 'channels'")
+                    assert meta['channels19'] == CHANNELS_TUAB_19, (
+                        f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    )
+                
+                logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}")
+            else:
+                logger.info(f"No META.json found in cache dir {self.cache_dir} - will create on first write")
+        
+        # CRITICAL ASSERTIONS for EEGPT compatibility
+        assert self.window_samples == 1024, f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
+        assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
+        assert len(CHANNELS_TUAB_19) == 19, f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
 
         # Set MNE log level to reduce spam
         import mne
@@ -268,7 +282,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         for ch_name in raw.ch_names:
             if ch_name in self.CHANNEL_MAPPING:
                 std_name = self.CHANNEL_MAPPING[ch_name]
-                if std_name in self.STANDARD_CHANNELS:
+                if std_name in CHANNELS_TUAB_19:
                     channel_map[ch_name] = std_name
 
         # Rename channels to standard names
@@ -276,15 +290,21 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
             raw.rename_channels(channel_map)
 
         # Select available standard channels
-        available_channels = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
-        missing_channels = set(self.STANDARD_CHANNELS) - set(available_channels)
+        available_channels = [ch for ch in CHANNELS_TUAB_19 if ch in raw.ch_names]
+        missing_channels = set(CHANNELS_TUAB_19) - set(available_channels)
 
         if missing_channels:
             logger.warning(f"Missing channels in {file_path.name}: {missing_channels}")
 
-        # Pick only the channels we have
+        # Pick only the channels we have (preserving CHANNELS_TUAB_19 order)
         if available_channels:
-            raw.pick_channels(available_channels, ordered=False)
+            raw.pick_channels(available_channels, ordered=True)
+            # Validate we have the expected channels in the right order
+            # Note: available_channels is already in CHANNELS_TUAB_19 order from list comprehension
+            if raw.ch_names != available_channels:
+                raise ValueError(
+                    f"Channel order mismatch after picking. Expected {available_channels}, got {raw.ch_names}"
+                )
         else:
             raise ValueError(f"No standard channels found in {file_path.name}")
 
@@ -299,11 +319,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         # Get data
         data = raw.get_data()
 
-        # Create output array with exactly 23 channels
-        output_data = np.zeros((len(self.STANDARD_CHANNELS), data.shape[1]), dtype=np.float64)
+        # Create output array with exactly 19 channels
+        output_data = np.zeros((len(CHANNELS_TUAB_19), data.shape[1]), dtype=np.float64)
 
         # Fill in available channels in the correct order
-        for idx, ch_name in enumerate(self.STANDARD_CHANNELS):
+        for idx, ch_name in enumerate(CHANNELS_TUAB_19):
             if ch_name in raw.ch_names:
                 ch_idx = raw.ch_names.index(ch_name)
                 output_data[idx] = data[ch_idx]
@@ -388,6 +408,13 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Normalize if requested
         if self.normalize:
+            # DEPRECATED: Normalization should happen in wrapper only!
+            import warnings
+            warnings.warn(
+                "Dataset normalization is deprecated. Use wrapper normalization instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             mean = window.mean(axis=1, keepdims=True)
             std = window.std(axis=1, keepdims=True) + 1e-6
             window = (window - mean) / std
@@ -400,6 +427,32 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         if self.cache_dir and cache_file and getattr(self, 'cache_mode', 'write') == 'write':
             try:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Write META.json on first cache write
+                meta_file = self.cache_dir / "META.json"
+                if not meta_file.exists():
+                    import json
+                    import subprocess
+                    try:
+                        commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()[:8]
+                    except Exception:
+                        commit = 'unknown'
+                    
+                    meta_data = {
+                        "sr": 256,
+                        "unit": "mV",
+                        "window": 1024,
+                        "channels": CHANNELS_TUAB_19,
+                        "n_channels": 19,
+                        "norm": "wrapper",
+                        "commit": commit,
+                        "split": self.split,
+                        "dataset": "TUAB"
+                    }
+                    with open(meta_file, 'w') as f:
+                        json.dump(meta_data, f, indent=2)
+                    logger.info(f"META.json written to {meta_file}")
+                
                 with cache_file.open("wb") as f:
                     pickle.dump((window, label), f)
             except Exception:

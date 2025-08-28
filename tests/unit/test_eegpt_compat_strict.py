@@ -146,7 +146,7 @@ class TestPrepareForEEGPT:
         """Test that prepare_for_eegpt ensures T % 64 == 0."""
         import mne
 
-        from brain_go_brrr.domain.preprocessing.eegpt_prepare import prepare_for_eegpt
+        from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import prepare_for_eegpt
 
         # Create raw with non-multiple of 64 samples
         sfreq = 256
@@ -167,7 +167,7 @@ class TestPrepareForEEGPT:
         """Test that prepare_for_eegpt ensures correct sampling rate."""
         import mne
 
-        from brain_go_brrr.domain.preprocessing.eegpt_prepare import prepare_for_eegpt
+        from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import prepare_for_eegpt
 
         # Create raw with different sampling rate
         sfreq = 128  # Not 256
@@ -188,7 +188,7 @@ class TestPrepareForEEGPT:
         """Test that prepare_for_eegpt rejects NaN values."""
         import mne
 
-        from brain_go_brrr.domain.preprocessing.eegpt_prepare import prepare_for_eegpt
+        from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import prepare_for_eegpt
 
         # Create raw with NaN
         sfreq = 256
@@ -201,7 +201,7 @@ class TestPrepareForEEGPT:
         raw = mne.io.RawArray(data, info)
 
         # Should raise ValueError for NaN
-        with pytest.raises(ValueError, match="NaN detected"):
+        with pytest.raises(ValueError, match="NaN or Inf"):
             prepare_for_eegpt(raw)
 
 

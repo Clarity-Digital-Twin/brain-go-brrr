@@ -8,9 +8,11 @@ Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
 import argparse
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -23,9 +25,9 @@ from tqdm import tqdm
 # Add parent dir to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
-from experiments.eegpt_linear_probe.utils.custom_collate_fixed import collate_eeg_batch_fixed
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+from experiments.eegpt_linear_probe.utils.collate_tuab import collate_tuab_batch
 
 # Configure logging
 logging.basicConfig(
@@ -37,7 +39,7 @@ logger = logging.getLogger(__name__)
 class LinearProbe(nn.Module):
     """Linear probe for binary classification (matching EEGPT paper)."""
 
-    def __init__(self, config):
+    def __init__(self, config: dict[str, Any]) -> None:
         super().__init__()
 
         # Two-layer probe using LazyLinear to infer input dimension
@@ -48,7 +50,7 @@ class LinearProbe(nn.Module):
             nn.Linear(config["model"]["probe"]["hidden_dim"], 1),  # Binary output
         )
 
-    def forward(self, features):
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
         """Forward pass through probe.
 
         Args:
@@ -64,7 +66,16 @@ class LinearProbe(nn.Module):
         return self.probe(features)
 
 
-def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, device, epoch):
+def train_epoch(
+    model: nn.Module,
+    probe: nn.Module,
+    train_loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    scheduler: OneCycleLR,
+    criterion: nn.Module,
+    device: torch.device,
+    epoch: int
+) -> tuple[float, float]:
     """Train for one epoch."""
     probe.train()
 
@@ -76,6 +87,10 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
 
     for batch_idx, (x, y) in enumerate(pbar):
         x, y = x.to(device), y.to(device)
+
+        # Log first batch shapes for diagnostics
+        if batch_idx == 0 and epoch == 0:
+            logger.info(f"First batch - x.shape: {x.shape}, y.dtype: {y.dtype}, y.shape: {y.shape}")
 
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
@@ -119,7 +134,13 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
     return avg_loss, epoch_auroc
 
 
-def evaluate(model, probe, eval_loader, criterion, device):
+def evaluate(
+    model: nn.Module,
+    probe: nn.Module,
+    eval_loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device
+) -> tuple[float, float, list[float], list[float]]:
     """Evaluate model."""
     probe.eval()
 
@@ -153,16 +174,14 @@ def evaluate(model, probe, eval_loader, criterion, device):
     return avg_loss, auroc, all_preds, all_labels
 
 
-def resolve_env_vars(obj):
+def resolve_env_vars(obj: Any) -> Any:
     """Recursively resolve environment variables in config.
 
     Handles both ${VAR} and ${VAR}/path patterns.
     """
-    import re
-
     if isinstance(obj, str):
         # Handle ${VAR} or ${VAR}/path patterns
-        def replacer(match):
+        def replacer(match: re.Match) -> str:
             env_var = match.group(1)
             return os.environ.get(env_var, match.group(0))
 
@@ -250,7 +269,7 @@ def main():
         shuffle=True,
         num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
         pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
     eval_loader = DataLoader(
@@ -259,7 +278,7 @@ def main():
         shuffle=False,
         num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
         pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
-        collate_fn=collate_eeg_batch_fixed,
+        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
     # Load EEGPT model
@@ -292,8 +311,23 @@ def main():
         anneal_strategy='cos',
     )
 
-    # Setup loss
-    criterion = nn.BCEWithLogitsLoss()
+    # Setup loss with class weighting if configured
+    if config['training'].get('weighted_loss', False):
+        # Compute class weights from training dataset
+        logger.info("Computing class weights for balanced loss...")
+        class_counts = {0: 0, 1: 0}
+        for sample_info in train_dataset.samples:
+            label = sample_info['label']
+            class_counts[label] = class_counts.get(label, 0) + 1
+
+        # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
+        pos_weight = class_counts[0] / class_counts[1]
+        logger.info(f"Class distribution - Normal: {class_counts[0]}, Abnormal: {class_counts[1]}")
+        logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
+
+        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
+    else:
+        criterion = nn.BCEWithLogitsLoss()
 
     # Resume from checkpoint if specified
     start_epoch = 0
