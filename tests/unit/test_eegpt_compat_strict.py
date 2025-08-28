@@ -201,7 +201,7 @@ class TestPrepareForEEGPT:
         raw = mne.io.RawArray(data, info)
 
         # Should raise ValueError for NaN
-        with pytest.raises(ValueError, match="NaN detected"):
+        with pytest.raises(ValueError, match="NaN or Inf"):
             prepare_for_eegpt(raw)
 
 
