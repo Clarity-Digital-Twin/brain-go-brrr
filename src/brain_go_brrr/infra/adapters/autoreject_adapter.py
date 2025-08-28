@@ -5,7 +5,6 @@ allowing the domain to use AutoReject without depending on it.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any
 
