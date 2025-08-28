@@ -83,13 +83,10 @@ Build MNE-preprocessed cache for TUEV dataset.
 
 import argparse
 import logging
-import sys
 from pathlib import Path
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
+# Import from src (no path manipulation needed)
+from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 
 # Configure logging
 logging.basicConfig(
