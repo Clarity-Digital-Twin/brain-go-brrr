@@ -282,19 +282,17 @@ jobs:
         env:
           CI_BENCHMARKS: "0"
         run: |
-          # Run benchmarks and ensure output file is created
+          # Run benchmarks - FAIL if they regress
           if make -n test-benchmarks >/dev/null 2>&1; then
-            make test-benchmarks || true
+            make test-benchmarks
           else
             env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest -p benchmark tests/benchmarks \
               -m "not gpu" \
               --benchmark-only \
               --benchmark-json=benchmark_results.json \
               -xvs \
-              --tb=short || true
+              --tb=short
           fi
-          # Ensure benchmark file exists for upload
-          touch benchmark_results.json
 
       - name: Upload benchmark results as artifact
         uses: actions/upload-artifact@v4
