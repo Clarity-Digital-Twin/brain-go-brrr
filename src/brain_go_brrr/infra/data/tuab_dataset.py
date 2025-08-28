@@ -15,7 +15,7 @@ import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
-from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, validate_channels
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19
 
 logger = logging.getLogger(__name__)
 
@@ -296,11 +296,15 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         if missing_channels:
             logger.warning(f"Missing channels in {file_path.name}: {missing_channels}")
 
-        # Pick only the channels we have
+        # Pick only the channels we have (preserving CHANNELS_TUAB_19 order)
         if available_channels:
-            raw.pick_channels(available_channels, ordered=False)
-            # Validate channel order matches expected
-            validate_channels(raw.ch_names, available_channels, "TUAB")
+            raw.pick_channels(available_channels, ordered=True)
+            # Validate we have the expected channels in the right order
+            # Note: available_channels is already in CHANNELS_TUAB_19 order from list comprehension
+            if raw.ch_names != available_channels:
+                raise ValueError(
+                    f"Channel order mismatch after picking. Expected {available_channels}, got {raw.ch_names}"
+                )
         else:
             raise ValueError(f"No standard channels found in {file_path.name}")
 
