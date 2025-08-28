@@ -139,7 +139,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         self.preload = preload
         self.normalize = normalize
         self.cache_dir = cache_dir
-        
+
         # Validate cache META.json if cache_dir exists
         if self.cache_dir and self.cache_dir.exists():
             import json
@@ -147,28 +147,28 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
             if meta_file.exists():
                 with open(meta_file) as f:
                     meta = json.load(f)
-                
+
                 # Assert critical cache properties
                 assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
                 assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
                 assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
                 assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
-                
+
                 # Validate channels - support both old and new key
                 if 'channels' in meta:
                     assert meta['channels'] == CHANNELS_TUAB_19, (
-                        f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
                     )
                 elif 'channels19' in meta:  # Backward compat
                     logger.warning("META.json uses deprecated 'channels19' key, should use 'channels'")
                     assert meta['channels19'] == CHANNELS_TUAB_19, (
-                        f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
                     )
-                
+
                 logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}")
             else:
                 logger.info(f"No META.json found in cache dir {self.cache_dir} - will create on first write")
-        
+
         # CRITICAL ASSERTIONS for EEGPT compatibility
         assert self.window_samples == 1024, f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
         assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
@@ -427,7 +427,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         if self.cache_dir and cache_file and getattr(self, 'cache_mode', 'write') == 'write':
             try:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
-                
+
                 # Write META.json on first cache write
                 meta_file = self.cache_dir / "META.json"
                 if not meta_file.exists():
@@ -437,7 +437,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()[:8]
                     except Exception:
                         commit = 'unknown'
-                    
+
                     meta_data = {
                         "sr": 256,
                         "unit": "mV",
@@ -452,7 +452,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                     with open(meta_file, 'w') as f:
                         json.dump(meta_data, f, indent=2)
                     logger.info(f"META.json written to {meta_file}")
-                
+
                 with cache_file.open("wb") as f:
                     pickle.dump((window, label), f)
             except Exception:
