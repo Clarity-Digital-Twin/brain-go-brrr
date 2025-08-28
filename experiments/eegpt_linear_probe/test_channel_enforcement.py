@@ -8,8 +8,8 @@ def test_channel_specs():
     print("Testing Channel Enforcement...")
     print("=" * 60)
 
-    # Test TUAB preprocessor
-    from mne_integration.preprocessor import TUABPreprocessor
+    # Test TUAB preprocessor (now in src)
+    from brain_go_brrr.infra.preprocessing.mne_preprocessor import TUABPreprocessor
 
     tuab_proc = TUABPreprocessor()
     assert (
@@ -34,9 +34,12 @@ def test_channel_specs():
     print("✅ TUEV Preprocessor: 20 channels (with Fz, no Fpz)")
 
     # Check configs
+    from pathlib import Path
+
     import yaml
 
-    with open('configs/tuev.yaml') as f:
+    config_path = Path(__file__).parent / 'configs' / 'tuev.yaml'
+    with open(config_path) as f:
         tuev_config = yaml.safe_load(f)
     target_channels = tuev_config['channels']['target_20']
 

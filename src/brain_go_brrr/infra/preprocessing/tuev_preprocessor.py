@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 import mne
 import numpy as np
 
-from .preprocessor import TUABPreprocessor
+from .mne_preprocessor import TUABPreprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -254,10 +254,8 @@ class TUEVPreprocessor(TUABPreprocessor):
             else:
                 # Standardize casing (but exclude FPZ which we drop)
                 if (
-                    (clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ']
-                    and clean_name != 'FPZ')
-                    or clean_name not in ['FPZ']
-                ):
+                    clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ'] and clean_name != 'FPZ'
+                ) or clean_name not in ['FPZ']:
                     raw_channels_upper.add(clean_name)
 
         # Find missing channels
