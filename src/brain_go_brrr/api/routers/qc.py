@@ -63,7 +63,7 @@ def cleanup_temp_file(file_path: Path) -> None:
             logger.info(f"Cleaned up temp file: {mask_path_for_log(file_path)}")
     except (OSError, PermissionError, FileNotFoundError) as e:
         logger.warning(
-            f"Failed to cleanup temp file {file_path}: {e}"
+            f"Failed to cleanup temp file {mask_path_for_log(file_path)}: {e}"
         )  # Warning, not error - cleanup is non-critical
 
 
