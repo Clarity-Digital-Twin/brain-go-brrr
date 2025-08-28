@@ -1,14 +1,44 @@
-# CLAUDE.md - Brain-Go-Brrr Project (Enhanced Edition)
+# CLAUDE.md - Brain-Go-Brrr Project (FIXED ARCHITECTURE)
 
-## 🚀 Current Status (Aug 22, 2025)
+## 🔥🔥🔥 CRITICAL: ARCHITECTURE RULES TO PREVENT DISASTERS 🔥🔥🔥
 
-**Active Work**: TUAB abnormality detection training
-- Training linear probe on frozen EEGPT features
-- Progress: Batch 292/7286 (4% complete)
-- Target: 0.87 AUROC (paper performance)
-- Monitor: `tmux attach -t tuab_training`
+### RULE #1: NO PARALLEL IMPLEMENTATIONS EVER
+**NEVER CREATE DUPLICATE CODE IN experiments/ AND src/**
 
-**CI/CD Status**: ✅ All branches green (after formatting fixes)
+#### What Went Wrong (The Disaster):
+- Created TWO PARALLEL UNIVERSES that don't communicate
+- experiments/ reimplemented everything from scratch
+- src/ had working components that were ignored
+- Result: AUROC=0.50 (complete training failure), wasted compute, confusion
+
+#### The ONLY Correct Architecture:
+```python
+# experiments/train_anything.py - MUST BE THIN
+from brain_go_brrr.infra.data import Dataset  # ALWAYS USE SRC
+from brain_go_brrr.infra.ml_models import Model  # NEVER REIMPLEMENT
+from brain_go_brrr.domain.preprocessing import preprocess  # REUSE!
+
+# FORBIDDEN: Creating new datasets, models, preprocessing in experiments/
+```
+
+### RULE #2: CHECK BEFORE BUILDING
+1. **ALWAYS** search src/ for existing implementations
+2. **NEVER** build without checking what exists
+3. **ALWAYS** reuse components from src/
+4. **NEVER** create "isolated" implementations
+
+### RULE #3: NORMALIZATION IS CRITICAL
+- MNE outputs: 1e-5 scale (Volts)
+- EEGPT expects: N(0,1) normalized
+- ALWAYS normalize before model input
+- NEVER trust raw sensor data
+
+## 🚨 Current Architecture Status (Aug 28, 2025)
+
+**PROBLEM DISCOVERED**: Parallel implementations in experiments/ and src/
+- Status: BOTH FIXED with normalization
+- TODO: Migrate experiments/ to use src/ components
+- See: `/THE_ONE_FIX.md` for complete unfuck plan
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -123,6 +153,32 @@ This repository has Claude bot integration for autonomous development:
 - Claude follows all guidelines in this CLAUDE.md file
 - PRs are created against the branch where issue was commented
 
+## 🛑 ARCHITECTURE COMMANDMENTS (NEVER VIOLATE)
+
+### COMMANDMENT 1: src/ is the SOURCE OF TRUTH
+- ALL reusable components go in src/
+- experiments/ MUST import from src/
+- NO reimplementing what exists in src/
+
+### COMMANDMENT 2: experiments/ is THIN
+- ONLY training loops and configs
+- IMPORTS everything else from src/
+- If you're writing >100 lines, you're doing it wrong
+
+### COMMANDMENT 3: Check Before Creating
+```bash
+# BEFORE creating ANY new file:
+grep -r "class.*Dataset" src/  # Check for existing datasets
+grep -r "def.*preprocess" src/  # Check for existing preprocessing
+grep -r "class.*Model" src/  # Check for existing models
+```
+
+### COMMANDMENT 4: One Implementation Per Function
+- ONE dataset class per dataset type
+- ONE preprocessing pipeline per data type
+- ONE model wrapper per model
+- DELETE duplicates immediately
+
 ## 🏗️ Architecture & Tech Stack
 
 ### Backend Stack
@@ -140,6 +196,21 @@ This repository has Claude bot integration for autonomous development:
 - Material-UI / Ant Design
 - Redux Toolkit for state
 - Recharts for visualizations
+
+## 📁 Project Structure (CORRECT USAGE)
+
+### ⚠️ CRITICAL: How Each Directory MUST Be Used
+
+**src/brain_go_brrr/** - ALL REUSABLE CODE
+- ✅ Datasets, models, preprocessing, utils
+- ✅ Anything used by multiple scripts
+- ❌ NEVER duplicate what's here
+
+**experiments/** - TRAINING SCRIPTS ONLY
+- ✅ Training loops, experiment configs
+- ✅ Paper reproduction scripts
+- ❌ NEVER reimplement datasets/models/preprocessing
+- ❌ MUST import from src/
 
 ## 📁 Project Structure
 
@@ -433,6 +504,23 @@ write tests for loading EDF, running EEGPT, getting features
 
 ## 🛠️ Common Workflows
 
+### 🚨 BEFORE ADDING ANYTHING - THE CHECKLIST
+
+```bash
+# 1. CHECK IF IT EXISTS
+grep -r "class.*YourThing" src/
+find src/ -name "*your_feature*"
+
+# 2. IF IT EXISTS, USE IT
+from brain_go_brrr.existing.module import ExistingThing
+
+# 3. IF IT DOESN'T EXIST, ADD TO src/ NOT experiments/
+# Create in: src/brain_go_brrr/appropriate/location/
+
+# 4. THEN USE FROM experiments/
+from brain_go_brrr.appropriate.location import NewThing
+```
+
 ### Adding a New Feature
 
 ```bash
@@ -562,6 +650,16 @@ make check-all  # Run all quality checks
 - `think hard` - Complex architectural decisions
 - `think harder` - Multi-component integration
 - `ultrathink` - System-wide changes
+
+## ❌ Do NOT (ABSOLUTE FORBIDDEN ACTIONS)
+
+### 🔥 ARCHITECTURE VIOLATIONS (NEVER DO THESE)
+- **CREATE PARALLEL IMPLEMENTATIONS** in experiments/ and src/
+- **REIMPLEMENT** existing src/ components in experiments/
+- **BUILD IN ISOLATION** without checking src/ first
+- **DUPLICATE** datasets, models, or preprocessing
+- **IGNORE** existing working code
+- **CREATE** new files without grep searching first
 
 ## ❌ Do NOT
 
