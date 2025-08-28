@@ -17,7 +17,7 @@ These documents are **compiled summaries** based on:
 - `MNE_PREPROCESSING_GUIDE.md` - Comprehensive preprocessing techniques
 - `MNE_AUTOREJECT_INTEGRATION.md` - How to use Autoreject with MNE
 
-### Autoreject Documentation  
+### Autoreject Documentation
 - `AUTOREJECT_COMPLETE_GUIDE.md` - Full Autoreject usage guide
 - `AUTOREJECT_TUAB_SPECIFIC.md` - Settings for TUAB dataset
 

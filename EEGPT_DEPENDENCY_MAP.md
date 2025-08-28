@@ -13,7 +13,7 @@ tests/unit/test_models_eegpt_model.py
 ```
 **Status:** CRITICAL - Foundation layer, must keep
 
-### 2. eegpt_wrapper.py  
+### 2. eegpt_wrapper.py
 **Imports it:**
 ```
 src/brain_go_brrr/infra/ml_models/eegpt_probe_unified.py
@@ -78,9 +78,9 @@ extractor.py       (Task Implementation)
 
 ### Path 1: API → Analysis
 ```
-API Request 
-→ eegpt_compat.py 
-→ eegpt_wrapper.py 
+API Request
+→ eegpt_compat.py
+→ eegpt_wrapper.py
 → eegpt_architecture.py
 ```
 

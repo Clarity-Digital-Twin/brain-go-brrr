@@ -7,7 +7,7 @@
 ## Timeline Context
 
 - **MNE-Python Paper**: 2013 (11 years old)
-- **Autoreject Paper**: 2017 (7 years old)  
+- **Autoreject Paper**: 2017 (7 years old)
 - **Current Documentation**: 2024/2025 (based on latest versions)
 
 ## 1. MNE-Python Evolution (2013 → 2025)
@@ -130,7 +130,7 @@ ar = AutoReject()  # Let it learn thresholds
 # Modern best practice for TUAB
 raw.filter(0.5, 50.0)  # Broader range for EEGPT
 # NO manual rejection - let Autoreject handle it
-epochs = mne.Epochs(raw, reject=None)  
+epochs = mne.Epochs(raw, reject=None)
 ar = AutoReject(
     n_interpolate=[1, 2, 3, 4],  # TUAB-specific
     consensus=[0.3, 0.5, 0.7],   # Clinical data tolerances
@@ -142,7 +142,7 @@ ar = AutoReject(
 ### Algorithm Validity ✅
 Despite API changes, the fundamental algorithms are unchanged:
 - SSP math is identical
-- ICA decomposition unchanged  
+- ICA decomposition unchanged
 - Autoreject cross-validation still the same
 - Filtering theory unchanged
 
@@ -192,7 +192,7 @@ Present both:
 
 ## 7. Bottom Line
 
-### The Good News 
+### The Good News
 ✅ **The science is solid** - Core algorithms from 2013/2017 are still the gold standard
 ✅ **Parameters transfer** - Recommended values from papers still work
 ✅ **Integration valid** - MNE + Autoreject combination still optimal
@@ -210,11 +210,11 @@ Present both:
 
 ## Conclusion
 
-The divergence between 2013-2017 literature and 2025 documentation is primarily in **implementation details, not fundamental approaches**. The core algorithms, mathematical foundations, and processing pipelines remain valid and proven. 
+The divergence between 2013-2017 literature and 2025 documentation is primarily in **implementation details, not fundamental approaches**. The core algorithms, mathematical foundations, and processing pipelines remain valid and proven.
 
 **Your implementation plan is sound** - using MNE + Autoreject will improve your accuracy from 56% to the target 87%, just as the papers suggest.
 
 ---
 
-*Comparison completed: January 25, 2025*  
+*Comparison completed: January 25, 2025*
 *Recommendation: PROCEED WITH IMPLEMENTATION*

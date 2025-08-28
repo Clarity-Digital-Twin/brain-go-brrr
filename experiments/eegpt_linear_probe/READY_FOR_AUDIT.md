@@ -11,7 +11,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 ```
 **Why It's Right**: Package is installed via `uv sync` from `src/` directory, making `brain_go_brrr` the top-level module
 
-### 2. ✅ Python Environment Issue  
+### 2. ✅ Python Environment Issue
 **Problem**: `python3` couldn't find installed packages
 **Root Cause**: Not using virtual environment where package is installed
 **Fix**: Changed launch script to use `uv run python` instead of bare `python`
@@ -43,7 +43,7 @@ if config['training'].get('weighted_loss', False):
 ```python
 # Verified via sampling:
 - Train: 373,213 windows, all 19 channels × 1024 samples
-- Eval: 41,267 windows, all 19 channels × 1024 samples  
+- Eval: 41,267 windows, all 19 channels × 1024 samples
 - Labels: float32 (0.0 or 1.0) for BCEWithLogitsLoss
 - Cache version: mne-ar-v2 (consistent, no rebuild needed)
 ```
@@ -115,7 +115,7 @@ export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/
 ## Expected Behavior
 
 1. Training starts with 373,213 samples
-2. Logs class distribution (51.2% vs 48.8%) 
+2. Logs class distribution (51.2% vs 48.8%)
 3. Applies pos_weight=1.048
 4. Processes 5,831 batches/epoch (batch_size=64)
 5. Should reach >0.85 AUROC in 3-5 epochs
@@ -132,7 +132,7 @@ export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/
 
 All fixes follow software engineering best practices:
 - Proper package management via uv
-- Correct Python import conventions  
+- Correct Python import conventions
 - Environment variable configuration
 - No shortcuts or hacks
 - Full documentation trail

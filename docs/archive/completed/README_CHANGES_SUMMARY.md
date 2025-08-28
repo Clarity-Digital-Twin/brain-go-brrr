@@ -4,12 +4,12 @@
 
 ### 1. Added Clear WIP Notice (Top of README)
 ```markdown
-> 🚧 **Work in Progress** - This repository is under active development for research purposes.  
+> 🚧 **Work in Progress** - This repository is under active development for research purposes.
 > Not a medical device. Not for clinical use. External validation pending.
 ```
 
 ### 2. Changed Positioning
-- "Production-Ready" → "Research-Grade" 
+- "Production-Ready" → "Research-Grade"
 - "Clinical-grade" → "Binary classification"
 - "Production-ready" → "Well-tested"
 

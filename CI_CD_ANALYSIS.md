@@ -6,7 +6,7 @@
 ```yaml
 # Pre-commit hooks DISABLED:
 - mypy type checking (line 21-32) - "pydantic issue"
-- import-linter (line 37-43) - "command not found" 
+- import-linter (line 37-43) - "command not found"
 - core-independent check (line 61-67) - "fixing imports"
 - detect-secrets (line 69-74) - "missing baseline"
 ```
@@ -114,7 +114,7 @@ fi
 # Check if experiments has its own datasets (not shims)
 if find experiments/ -path "*/datasets/*.py" -exec wc -l {} \; | awk '$1 > 50 {exit 1}'; then
   echo "❌ Non-shim dataset found in experiments!"
-  exit 1  
+  exit 1
 fi
 
 echo "✅ No parallel implementations"
