@@ -1,4 +1,67 @@
-# Technical Debt & Future Improvements
+# 🚀 TECHNICAL DEBT - MOSTLY RESOLVED (August 28, 2025)
+
+## ✅ CRITICAL ISSUES RESOLVED
+
+### FIXED: Architecture Unification (Aug 28, 2025)
+
+1. **Normalization SSOT** → Wrapper-only normalization ✅
+2. **Datasets cleaned** → tuab_cached, tuab_enhanced now deprecation aliases ✅
+3. **experiments/ fixed** → Now thin shims importing from src/ ✅
+4. **Channel validation** → Enforces correct order ✅
+5. **META schema** → Unified across all datasets ✅
+
+### REMAINING IN SRC/ (Minor)
+
+#### ✅ TUAB Dataset - FIXED
+```
+src/brain_go_brrr/infra/data/
+├── tuab_dataset.py          # Main implementation ✅
+├── tuab_cached_dataset.py   # Deprecation alias ✅
+└── tuab_enhanced_dataset.py # Deprecation alias ✅
+```
+
+#### 🔴 EEGPT Model Clusterfuck (11 FILES!)
+```
+src/brain_go_brrr/infra/ml_models/
+├── eegpt_wrapper.py         # Used by experiments - KEEP
+├── eegpt_compat.py          # Used by src API - MAYBE KEEP
+├── eegpt_model.py           # DELETE - duplicate
+├── eegpt_probe_unified.py   # DELETE - duplicate  
+├── eegpt_architecture.py    # Maybe keep for reference
+├── eegpt_config.py          # Config - KEEP
+├── eegpt_normalize.py       # DELETE - should be in wrapper
+├── eegpt_feature_extractor.py # DELETE - should be in wrapper
+└── [3+ more duplicates]     # DELETE ALL
+```
+
+### REDUNDANCIES IN EXPERIMENTS/ (FIX AFTER SRC!)
+
+#### 🔴 Triple Collate Functions
+```
+utils/custom_collate_fixed.py  # OLD HACK - DELETE
+utils/collate_tuab.py          # Should use src/ version
+utils/collate_tuev.py          # Should use src/ version
+```
+
+#### 🔴 Dataset Reimplementations
+```
+datasets/tuab_mne_dataset.py   # DELETE - use src/tuab_dataset.py
+datasets/tuev_mne_dataset.py   # MOVE TO SRC first, then use from there
+datasets/tuev_dataset_cached.py # WTF is "Padded"? DELETE
+```
+
+#### 🔴 Documentation Overload (10 REDUNDANT FILES!)
+```
+Keep ONLY: CHANNEL_SPECIFICATIONS.md
+DELETE ALL: The other 9 fix/audit/summary files
+```
+
+### THE FIX ORDER
+
+1. **Clean src/ FIRST** - Delete redundant datasets and models
+2. **Move valuable code to src/** - MNE preprocessing, TUEV dataset
+3. **Make experiments/ use src/** - Delete all duplicates
+4. **Delete documentation garbage** - Keep 1 file only
 
 ## Recently Resolved Issues ✅
 

@@ -1,5 +1,5 @@
-"""
-MNE+Autoreject preprocessing for TUAB dataset.
+"""MNE+Autoreject preprocessing for TUAB dataset.
+
 Implements the verified preprocessing pipeline to improve EEGPT from 56% to 87% AUROC.
 """
 
@@ -99,7 +99,6 @@ class TUABPreprocessor:
                 - n_epochs_after: Number of epochs after Autoreject
                 - n_rejected: Number of rejected epochs
         """
-
         logger.info(f"Processing {edf_path}")
 
         # 1. Load with MNE

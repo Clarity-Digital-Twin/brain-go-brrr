@@ -8,8 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
-from pathlib import Path
+from pathlib import Path  # noqa: TCH003
 from typing import TYPE_CHECKING, Any, cast
 
 import mne
@@ -24,10 +23,7 @@ if TYPE_CHECKING:
 
 Float64ND = npt.NDArray[np.float64]
 
-# Add reference repos to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "EEGPT"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "tsfresh"))
-
+# No sys.path hacks - use proper imports
 try:
     from tsfresh import extract_features
     from tsfresh.utilities.dataframe_functions import impute

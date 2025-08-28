@@ -6,7 +6,7 @@ import torch
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from brain_go_brrr.domain.preprocessing.eegpt_prepare import prepare_for_eegpt
+from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import prepare_for_eegpt
 from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
 

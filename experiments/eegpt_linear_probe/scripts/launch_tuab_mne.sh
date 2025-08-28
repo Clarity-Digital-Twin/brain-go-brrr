@@ -21,6 +21,8 @@ echo "=============================================="
 echo "Timestamp: $TIMESTAMP"
 echo "Output dir: $OUTPUT_DIR"
 echo "Log file: $LOG_FILE"
+echo "Cache dir: $DATA_ROOT/cache/tuab_mne_preprocessed"
+echo "Model checkpoint: $DATA_ROOT/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
 echo "Batch size: $BATCH_SIZE"
 echo ""
 echo "Expected improvement: 56% → 75-87% AUROC"
@@ -39,10 +41,11 @@ fi
 # Change to experiment directory
 cd "$EXPERIMENT_DIR"
 
-# Set Python path
+# Set Python path and environment
 export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 export CUDA_VISIBLE_DEVICES=0
+export BGB_DATA_ROOT="$DATA_ROOT"  # Ensure config can resolve ${BGB_DATA_ROOT}
 
 # Check cache exists
 CACHE_DIR="$DATA_ROOT/cache/tuab_mne_preprocessed"
@@ -66,21 +69,16 @@ if command -v tmux &> /dev/null; then
     # Kill existing session if it exists
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
     
-    # Start new session
+    # Start new session - SINGLE LINE COMMAND
     tmux new-session -d -s "$SESSION_NAME" \
-        "cd $EXPERIMENT_DIR && \
-         python train_tuab_mne.py \
-            --config configs/tuab.yaml \
-            --output-dir $OUTPUT_DIR \
-            --cache-dir $CACHE_DIR \
-            2>&1 | tee $LOG_FILE"
+        "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && uv run python train_tuab_mne.py --config configs/tuab.yaml --output-dir \"$OUTPUT_DIR\" --cache-dir \"$CACHE_DIR\" 2>&1 | tee \"$LOG_FILE\"'"
     
     echo "Training launched in tmux session: $SESSION_NAME"
     echo "To attach: tmux attach -t $SESSION_NAME"
     echo "To detach: Ctrl+B, then D"
 else
     # Direct execution
-    python train_tuab_mne.py \
+    uv run python train_tuab_mne.py \
         --config configs/tuab.yaml \
         --output-dir "$OUTPUT_DIR" \
         --cache-dir "$CACHE_DIR" \

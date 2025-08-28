@@ -27,17 +27,17 @@ def test_phase1_bugs_fixed():
 
     assert not hasattr(tuev_dataset, 'TCP_CHANNELS'), "TCP_CHANNELS should be removed"
     assert not hasattr(tuev_dataset, 'TCP_BIPOLAR_PAIRS'), "TCP_BIPOLAR_PAIRS should be removed"
-    assert not hasattr(
-        tuev_dataset, 'compute_bipolar_derivation'
-    ), "compute_bipolar_derivation should be removed"
+    assert not hasattr(tuev_dataset, 'compute_bipolar_derivation'), (
+        "compute_bipolar_derivation should be removed"
+    )
     print("✓ All TCP/bipolar code removed")
 
     # Test 3: Check cache version is mne-ar-v3
     from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
 
-    assert (
-        TUEVMNEDataset.CACHE_VERSION == "mne-ar-v3"
-    ), f"Expected mne-ar-v3, got {TUEVMNEDataset.CACHE_VERSION}"
+    assert TUEVMNEDataset.CACHE_VERSION == "mne-ar-v3", (
+        f"Expected mne-ar-v3, got {TUEVMNEDataset.CACHE_VERSION}"
+    )
     print("✓ Cache version updated to mne-ar-v3")
 
     print("✅ Phase 1 COMPLETE\n")

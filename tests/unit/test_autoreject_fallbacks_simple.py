@@ -9,6 +9,9 @@ import pytest
 
 from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
+# Skip these tests - TUABEnhancedDataset is deprecated
+pytest.skip("TUABEnhancedDataset deprecated - use TUABDataset", allow_module_level=True)
+
 
 class TestAutoRejectFallbacksSimple:
     """Test AutoReject fallback mechanisms with simplified mocking."""

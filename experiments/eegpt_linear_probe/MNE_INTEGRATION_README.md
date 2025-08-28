@@ -1,5 +1,15 @@
 # MNE + Autoreject Integration for EEGPT Training
 
+## ⚠️ CRITICAL TECHNICAL DEBT - 20-CHANNEL ISSUE
+
+**Current Cache Issue (Aug 27, 2025)**: 
+- The existing cache (`mne-ar-v2`) contains 304 windows (0.081%) with 20 channels instead of 19
+- Affected files: `aaaaakfo_s004_t000.edf` and `aaaaakfo_s005_t000.edf`
+- **Active Workaround**: Collate function drops channel 4 (Fz) when encountering 20-channel data
+- **Fixed for Future**: Preprocessor now enforces exactly 19 channels for all new cache builds
+
+See `TECH_DEBT_CRITICAL.md` for full details and remediation plan.
+
 ## 🎯 Goal: Improve TUAB accuracy from 56% to 87% AUROC
 
 This implementation adds MNE-Python and Autoreject preprocessing to the EEGPT training pipeline, addressing the critical gap where we were training on noisy data but inferring on clean data.

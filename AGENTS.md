@@ -1,14 +1,44 @@
-# AGENTS.md - Brain-Go-Brrr Project (Enhanced Edition)
+# AGENTS.md - ARCHITECTURAL RULES FOR AI AGENTS
 
-## 🚀 Current Status (Aug 22, 2025)
+## 🔥 CRITICAL RULES TO PREVENT DISASTERS
 
-**Active Work**: TUAB abnormality detection training
-- Training linear probe on frozen EEGPT features
-- Progress: Batch 292/7286 (4% complete)
-- Target: 0.87 AUROC (paper performance)
-- Monitor: `tmux attach -t tuab_training`
+### RULE 1: NO PARALLEL IMPLEMENTATIONS
+**NEVER create duplicate code in experiments/ and src/**
 
-**CI/CD Status**: ✅ All branches green (after formatting fixes)
+When an AI agent or human asks you to implement something:
+1. FIRST check if it exists in src/
+2. If YES → Use it from src/
+3. If NO → Create in src/, then use from experiments/
+4. NEVER create in experiments/ if it should be reusable
+
+### RULE 2: experiments/ MUST BE THIN
+```python
+# CORRECT experiments/ file (~50 lines):
+from brain_go_brrr.infra.data import Dataset  # Import from src
+from brain_go_brrr.infra.ml_models import Model  # Import from src
+train(model, dataset)  # Only training is unique
+
+# WRONG experiments/ file (reimplements everything):
+class Dataset: ...  # NO! Use src/
+def preprocess(): ...  # NO! Use src/
+class Model: ...  # NO! Use src/
+```
+
+### RULE 3: CHECK BEFORE CREATING
+Before creating ANY new component:
+```bash
+grep -r "class.*Similar" src/  # Search for existing
+find src/ -name "*related*"  # Check filenames
+# If found → USE IT
+# If not found → CREATE IN src/ FIRST
+```
+
+## 🚨 What Went Wrong (Aug 28, 2025)
+
+**THE DISASTER**: Created two parallel universes
+- experiments/ reimplemented everything
+- src/ had working components that were ignored
+- Result: Training failed (AUROC=0.50), wasted compute
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -25,6 +55,35 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 - `fast_dev_run=True` ❌
 
 **SOLUTION**: Use `experiments/eegpt_linear_probe/train_tuab.py` (pure PyTorch)
+
+## 🛑 AGENT BEHAVIORAL RULES
+
+### When Asked to "Create a Dataset"
+```python
+# WRONG RESPONSE:
+"I'll create a new dataset in experiments/..."
+
+# CORRECT RESPONSE:
+"Let me first check src/ for existing datasets..."
+grep -r "class.*Dataset" src/
+# If found: "I'll use the existing TUABDataset from src/"
+# If not: "I'll create it in src/brain_go_brrr/infra/data/"
+```
+
+### When Asked to "Add Preprocessing"
+```python
+# WRONG: Create new preprocessing in experiments/
+# RIGHT: Check src/brain_go_brrr/domain/preprocessing/ first
+```
+
+### When Asked to "Train a Model"
+```python
+# Training script in experiments/ should be <100 lines
+# Everything else imported from src/
+from brain_go_brrr.infra.data import ExistingDataset
+from brain_go_brrr.infra.ml_models import ExistingModel
+# Just add training loop
+```
 
 ## 🧠 Critical Context
 
