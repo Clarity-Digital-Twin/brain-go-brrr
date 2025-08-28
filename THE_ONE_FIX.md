@@ -1,16 +1,15 @@
-# 🔥 THE COMPLETE UNFUCK PLAN
+# ✅ FIXED: Architecture Unified (August 28, 2025)
 
-## THE CORE PROBLEM: I BUILT TWO PARALLEL UNIVERSES
+## ORIGINAL PROBLEM (NOW FIXED)
 
+Previously had two parallel implementations:
 ```
-UNIVERSE 1: experiments/          UNIVERSE 2: src/
+experiments/                      src/
 ├── Own datasets                  ├── Own datasets  
 ├── Own preprocessing             ├── Own preprocessing
 ├── Own normalization             ├── Own normalization
-└── NEVER TALKS TO →              └── src/
+└── NEVER TALKED TO →             └── src/
 ```
-
-**THIS IS FUCKING RETARDED**
 
 ## WHY THIS HAPPENED (MY FUCKUP)
 
@@ -33,14 +32,15 @@ model = EEGPTModel()     # Uses src's working model
 train(model, dataset)    # Only training loop is unique
 ```
 
-## IMMEDIATE FIX (Already Done)
+## CURRENT STATUS (FIXED)
 
-✅ **BOTH SIDES NOW HAVE NORMALIZATION**:
-- experiments/datasets/tuab_mne_dataset.py: Lines 150-153
-- experiments/datasets/tuev_mne_dataset.py: Lines 185-188  
-- src/infra/data/tuab_dataset.py: Lines 390-393 (always had it)
-
-**Both universes work now, but still stupid to have two**
+✅ **ARCHITECTURE NOW UNIFIED**:
+- Wrapper handles ALL normalization (SSOT)
+- Datasets emit raw mV data only
+- experiments/ datasets are thin shims importing from src/
+- No duplicate implementations
+- Channel validation enforces correct order
+- META schema unified across all datasets
 
 ## THE REAL FIX PLAN
 

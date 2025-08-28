@@ -66,11 +66,14 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
-- **Unit Tests**: 454 passing tests
+- **Unit Tests**: 751 passing tests (as of Aug 28, 2025)
+- **Architecture**: Unified - experiments/ uses src/ components
+- **Normalization**: SSOT in wrapper, datasets emit raw mV
+- **Channel Validation**: Enforces correct order per dataset
 
 ## 🟡 In Progress
-- **TUAB Abnormality Detection**: Training linear probe (4% complete)
-- **Documentation**: Consolidated from 130 files to 6 clean docs
+- **TUAB Abnormality Detection**: Training linear probe
+- **experiments/ cleanup**: Removing remaining sys.path.insert hacks
 
 ## ❌ Not Implemented
 - **Event Detection**: Architecture docs only, no code
