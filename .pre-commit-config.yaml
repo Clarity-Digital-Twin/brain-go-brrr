@@ -12,24 +12,25 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        files: ^(src|tests|scripts)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/|literature/)
+        files: ^(src|tests|scripts|experiments)/
+        exclude: ^(archive/|scripts/archive/|reference_repos/|notebooks/|research/|literature/)
       - id: ruff-format
-        files: ^(src|tests|scripts)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|experiments/|notebooks/|research/|literature/)
+        files: ^(src|tests|scripts|experiments)/
+        exclude: ^(archive/|scripts/archive/|reference_repos/|notebooks/|research/|literature/)
 
-  # Type checking with mypy (temporarily disabled - pydantic issue)
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.10.0
-  #   hooks:
-  #     - id: mypy
-  #       additional_dependencies:
-  #         - types-requests
-  #         - types-redis
-  #         - numpy
-  #       args: [--ignore-missing-imports, --no-strict-optional]
-  #       files: ^src/brain_go_brrr/
-  #       exclude: ^(tests|archive|reference_repos)/
+  # Type checking with mypy - RE-ENABLED with proper deps
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-requests
+          - types-redis
+          - numpy
+          - pydantic>=2.0  # Fix the pydantic issue
+        args: [--config-file=mypy.ini]
+        files: ^(src/brain_go_brrr)/
+        exclude: ^(tests|archive|reference_repos|experiments)/
 
   # Architecture enforcement
   - repo: local
@@ -66,6 +67,23 @@ repos:
       #   pass_filenames: false
       #   always_run: true
 
+      # CRITICAL: Prevent parallel implementations (the AUROC=0.50 disaster)
+      - id: no-parallel-impl
+        name: no-parallel-implementations
+        entry: .ci/check_no_parallel_impl.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        files: ^experiments/.*\.py$
+
+      # Prevent sys.path.insert hacks
+      - id: no-sys-path
+        name: no-sys-path-insert
+        entry: bash -c 'if grep -r "sys\.path\.insert" experiments/ --include="*.py" 2>/dev/null | grep -v "^#"; then echo "❌ sys.path.insert found in experiments!"; exit 1; fi || echo "✅ No sys.path hacks"'
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets
   #   rev: v1.4.0
@@ -75,7 +93,7 @@ repos:
 
   # YAML validation
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
       - id: end-of-file-fixer

@@ -26,7 +26,7 @@ src/brain_go_brrr/infra/ml_models/
 ├── eegpt_wrapper.py         # Used by experiments - KEEP
 ├── eegpt_compat.py          # Used by src API - MAYBE KEEP
 ├── eegpt_model.py           # DELETE - duplicate
-├── eegpt_probe_unified.py   # DELETE - duplicate  
+├── eegpt_probe_unified.py   # DELETE - duplicate
 ├── eegpt_architecture.py    # Maybe keep for reference
 ├── eegpt_config.py          # Config - KEEP
 ├── eegpt_normalize.py       # DELETE - should be in wrapper

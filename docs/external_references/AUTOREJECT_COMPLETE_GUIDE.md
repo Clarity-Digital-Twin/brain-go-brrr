@@ -63,7 +63,7 @@ print(f"Rejected {ar.reject_log.bad_epochs.sum()} epochs")
 ```python
 AutoReject(
     n_interpolate=None,      # List of values to try for channel interpolation
-    consensus=None,          # Consensus parameter values to try  
+    consensus=None,          # Consensus parameter values to try
     thresh_method='bayesian_optimization',  # How to find optimal threshold
     cv=10,                  # Cross-validation folds (default=10)
     picks=None,             # Channels to use
@@ -90,7 +90,7 @@ n_interpolate = [0, 1]  # Sometimes no interpolation needed
 n_interpolate = [1, 2, 3, 4]  # For 20-channel data
 ```
 
-#### consensus  
+#### consensus
 ```python
 # Default (per AutoReject 0.4.2)
 import numpy as np
@@ -260,7 +260,7 @@ def preprocess_with_autoreject(raw_file):
     # 1. Load and filter
     raw = mne.io.read_raw_edf(raw_file, preload=True)
     raw.filter(l_freq=0.5, h_freq=50.0)
-    
+
     # 2. Create epochs
     events = mne.make_fixed_length_events(raw, duration=4.0)
     epochs = mne.Epochs(
@@ -269,12 +269,12 @@ def preprocess_with_autoreject(raw_file):
         baseline=(0, 0.5),
         preload=True
     )
-    
+
     # 3. Detect bad channels with RANSAC
     ransac = Ransac(random_state=42, n_jobs=1)
     epochs = ransac.fit_transform(epochs)
     print(f"Bad channels: {ransac.bad_chs_}")
-    
+
     # 4. Apply Autoreject
     ar = AutoReject(
         n_interpolate=[1, 2, 3],
@@ -283,13 +283,13 @@ def preprocess_with_autoreject(raw_file):
         n_jobs=1
     )
     epochs_clean = ar.fit_transform(epochs)
-    
+
     # 5. Report results
     print(f"Kept {epochs_clean.get_data().shape[0]}/{len(epochs)} epochs")
     # n_interpolate_ and consensus_ are dicts by channel type
     print(f"Interpolated up to {ar.n_interpolate_.get('eeg', 'N/A')} channels (EEG)")
     print(f"Used consensus threshold: {ar.consensus_.get('eeg', 'N/A')} (EEG)")
-    
+
     return epochs_clean, ar
 ```
 
@@ -342,17 +342,17 @@ epochs_clean = ar_fine.fit_transform(epochs_rough)
 # Process in batches for large datasets
 def process_in_batches(epochs, batch_size=1000):
     ar = AutoReject(random_state=42)
-    
+
     # Fit on subset
     ar.fit(epochs[:batch_size])
-    
+
     # Apply to all data in chunks
     results = []
     for i in range(0, len(epochs), batch_size):
         batch = epochs[i:i+batch_size]
         clean_batch = ar.transform(batch)
         results.append(clean_batch)
-    
+
     return mne.concatenate_epochs(results)
 ```
 

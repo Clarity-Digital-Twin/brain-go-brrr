@@ -10,7 +10,7 @@ We have completed a comprehensive audit and correction of our MNE and Autoreject
 
 1. **External References** (Ground Truth)
    - `/docs/external_references/AUTOREJECT_COMPLETE_GUIDE.md` - 100% accurate
-   - `/docs/external_references/AUTOREJECT_TUAB_SPECIFIC.md` - 100% accurate  
+   - `/docs/external_references/AUTOREJECT_TUAB_SPECIFIC.md` - 100% accurate
    - `/docs/external_references/MNE_AUTOREJECT_INTEGRATION.md` - 100% accurate
    - `/docs/external_references/MNE_PREPROCESSING_GUIDE.md` - 100% accurate
 
@@ -77,9 +77,9 @@ Inference Pipeline: Raw EEG → MNE → Autoreject → Model → Better Results
 
 ### Phase 2: Preprocessing Pipeline
 ```python
-Raw EDF → MNE Loading → Bandpass Filter (0.5-45 Hz) → 
-Notch Filter (60 Hz) → RANSAC Bad Channels → 
-Interpolation → Average Reference → Epoching (4s) → 
+Raw EDF → MNE Loading → Bandpass Filter (0.5-45 Hz) →
+Notch Filter (60 Hz) → RANSAC Bad Channels →
+Interpolation → Average Reference → Epoching (4s) →
 Autoreject (TUAB params) → Clean Data
 ```
 

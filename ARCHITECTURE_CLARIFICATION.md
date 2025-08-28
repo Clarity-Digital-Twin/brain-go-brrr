@@ -12,7 +12,7 @@
 
 **KEY FACT**: This has WORKING normalization but experiments/ doesn't use it!
 
-### `experiments/eegpt_linear_probe/` - The Training System  
+### `experiments/eegpt_linear_probe/` - The Training System
 **WHAT IT'S FOR**: Training linear probes on frozen EEGPT features
 - **datasets/**: MNE-preprocessed datasets (NOW with normalization)
 - **mne_integration/**: MNE+Autoreject preprocessing

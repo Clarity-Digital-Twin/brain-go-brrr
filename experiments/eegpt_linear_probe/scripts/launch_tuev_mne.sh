@@ -65,10 +65,10 @@ echo ""
 if command -v tmux &> /dev/null; then
     # Launch in tmux session
     SESSION_NAME="tuev_mne_training"
-    
+
     # Kill existing session if it exists
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
-    
+
     # Start new session
     tmux new-session -d -s "$SESSION_NAME" \
         "cd $EXPERIMENT_DIR && \
@@ -77,7 +77,7 @@ if command -v tmux &> /dev/null; then
             --output-dir $OUTPUT_DIR \
             --cache-dir $CACHE_DIR \
             2>&1 | tee $LOG_FILE"
-    
+
     echo "Training launched in tmux session: $SESSION_NAME"
     echo "To attach: tmux attach -t $SESSION_NAME"
     echo "To detach: Ctrl+B, then D"

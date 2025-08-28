@@ -54,60 +54,60 @@ from pathlib import Path
 def preprocess_tuab_file(edf_path, window_duration=4.0, window_stride=2.0):
     """
     Preprocess TUAB EDF file with MNE and Autoreject.
-    
+
     Args:
         edf_path: Path to TUAB EDF file
         window_duration: Window size in seconds (4s for EEGPT)
         window_stride: Stride between windows (2s = 50% overlap)
-    
+
     Returns:
         clean_windows: Array of clean EEG windows
         labels: Binary labels (0=normal, 1=abnormal)
     """
-    
+
     # 1. Load raw data
     raw = mne.io.read_raw_edf(edf_path, preload=True)
-    
+
     # 2. Handle TUAB channel naming (OLD to MODERN)
     channel_mapping = {
         'EEG T3-REF': 'T7',
-        'EEG T4-REF': 'T8', 
+        'EEG T4-REF': 'T8',
         'EEG T5-REF': 'P7',
         'EEG T6-REF': 'P8',
         # Add other mappings as needed
     }
     raw.rename_channels(channel_mapping)
-    
+
     # 3. Set standard montage
     montage = mne.channels.make_standard_montage('standard_1020')
     raw.set_montage(montage, match_case=False)
-    
+
     # 4. Filter (important for clinical data)
     raw.filter(
         l_freq=0.5,   # Remove DC drift
         h_freq=50.0,  # Remove high-freq noise
         fir_design='firwin'
     )
-    
+
     # 5. Remove line noise
     raw.notch_filter(freqs=60)  # 60 Hz for US
-    
+
     # 6. Create fixed-length epochs
     events = mne.make_fixed_length_events(
-        raw, 
+        raw,
         duration=window_duration,
         overlap=window_duration - window_stride
     )
-    
+
     epochs = mne.Epochs(
         raw, events,
-        tmin=0, 
+        tmin=0,
         tmax=window_duration,
         baseline=None,  # No baseline for EEGPT
         preload=True,
         reject_by_annotation=True
     )
-    
+
     # 7. Detect bad channels with RANSAC
     ransac = Ransac(
         n_resample=50,
@@ -118,10 +118,10 @@ def preprocess_tuab_file(edf_path, window_duration=4.0, window_stride=2.0):
         random_state=42
     )
     epochs = ransac.fit_transform(epochs)
-    
+
     if ransac.bad_chs_:
         print(f"Bad channels detected: {ransac.bad_chs_}")
-    
+
     # 8. Apply Autoreject
     ar = AutoReject(
         n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
@@ -132,22 +132,22 @@ def preprocess_tuab_file(edf_path, window_duration=4.0, window_stride=2.0):
         n_jobs=4,
         verbose=False
     )
-    
+
     epochs_clean = ar.fit_transform(epochs)
-    
+
     # 9. Report cleaning statistics
     n_epochs_before = len(epochs)
     n_epochs_after = len(epochs_clean)
     print(f"Epochs: {n_epochs_before} → {n_epochs_after} "
           f"({100*n_epochs_after/n_epochs_before:.1f}% kept)")
-    
+
     # 10. Extract clean windows
     clean_windows = epochs_clean.get_data()  # Shape: (n_epochs, n_channels, n_samples)
-    
+
     # 11. Get label from filename
     label = 1 if 'abnormal' in str(edf_path) else 0
     labels = np.full(len(clean_windows), label)
-    
+
     return clean_windows, labels
 ```
 
@@ -157,7 +157,7 @@ def preprocess_tuab_file(edf_path, window_duration=4.0, window_stride=2.0):
 def process_tuab_dataset(data_dir, cache_dir, split='train'):
     """
     Process entire TUAB dataset with Autoreject.
-    
+
     Args:
         data_dir: Path to TUAB EDF files
         cache_dir: Where to save processed data
@@ -165,33 +165,33 @@ def process_tuab_dataset(data_dir, cache_dir, split='train'):
     """
     import torch
     from tqdm import tqdm
-    
+
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Get file list
     edf_files = list(Path(data_dir).glob('**/*.edf'))
-    
+
     # Split files (80/20 or as needed)
     if split == 'train':
         files = edf_files[:int(0.8 * len(edf_files))]
     else:
         files = edf_files[int(0.8 * len(edf_files)):]
-    
+
     # Fit Autoreject on subset first
     print("Fitting Autoreject on subset...")
     subset_files = files[:50]  # Use 50 files to fit
-    
+
     all_epochs = []
     for f in tqdm(subset_files, desc="Loading subset"):
         raw = mne.io.read_raw_edf(f, preload=True)
         # ... preprocessing steps ...
         epochs = create_epochs(raw)
         all_epochs.append(epochs)
-    
+
     # Concatenate and fit
     combined_epochs = mne.concatenate_epochs(all_epochs)
-    
+
     ar = AutoReject(
         n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
         consensus=[0.3, 0.5, 0.7],
@@ -199,25 +199,25 @@ def process_tuab_dataset(data_dir, cache_dir, split='train'):
         n_jobs=4
     )
     ar.fit(combined_epochs)
-    
+
     # Note: n_interpolate_ and consensus_ are dicts by channel type
     print(f"Autoreject fitted: n_interpolate={ar.n_interpolate_.get('eeg', 'N/A')}, "
           f"consensus={ar.consensus_.get('eeg', 'N/A')}")
-    
+
     # Process all files with fitted AR
     for i, edf_file in enumerate(tqdm(files, desc=f"Processing {split}")):
         # Load and preprocess
         raw = mne.io.read_raw_edf(edf_file, preload=True)
         # ... preprocessing ...
         epochs = create_epochs(raw)
-        
+
         # Apply fitted Autoreject
         epochs_clean = ar.transform(epochs)
-        
+
         # Save to cache
         data = epochs_clean.get_data()
         label = 1 if 'abnormal' in str(edf_file) else 0
-        
+
         cache_file = cache_dir / f"{split}_{i:05d}.pt"
         torch.save({
             'x': torch.FloatTensor(data),
@@ -225,7 +225,7 @@ def process_tuab_dataset(data_dir, cache_dir, split='train'):
             'file': str(edf_file),
             'n_windows': len(data)
         }, cache_file)
-    
+
     # Save fitted AR model (requires h5io package for HDF5 format)
     # Note: Install with `pip install h5io` if using HDF5 format
     ar.save(cache_dir / 'autoreject_model.hdf5')  # Requires h5io
@@ -278,12 +278,12 @@ def compute_quality_metrics(epochs_before, epochs_after, ar):
         'bad_epochs': ar.reject_log.bad_epochs.sum(),
         'interpolated_channels': (ar.reject_log.labels == 2).sum()  # labels==2 means interpolated
     }
-    
+
     # Signal quality improvement
     snr_before = compute_snr(epochs_before)
     snr_after = compute_snr(epochs_after)
     metrics['snr_improvement'] = snr_after - snr_before
-    
+
     return metrics
 
 def compute_snr(epochs):
@@ -305,7 +305,7 @@ def compare_with_without_autoreject(test_files):
     Compare model performance with and without Autoreject.
     """
     results = {'with_ar': [], 'without_ar': []}
-    
+
     for edf_file in test_files:
         # Without Autoreject
         raw = mne.io.read_raw_edf(edf_file, preload=True)
@@ -313,7 +313,7 @@ def compare_with_without_autoreject(test_files):
         epochs_raw = create_epochs(raw)
         score_without = evaluate_model(epochs_raw)
         results['without_ar'].append(score_without)
-        
+
         # With Autoreject
         ar = AutoReject(
             n_interpolate=[1, 2, 3, 4],  # TUAB-specific grid
@@ -322,7 +322,7 @@ def compare_with_without_autoreject(test_files):
         epochs_clean = ar.fit_transform(epochs_raw)
         score_with = evaluate_model(epochs_clean)
         results['with_ar'].append(score_with)
-    
+
     print(f"Without AR: {np.mean(results['without_ar']):.3f}")
     print(f"With AR: {np.mean(results['with_ar']):.3f}")
     print(f"Improvement: {np.mean(results['with_ar']) - np.mean(results['without_ar']):.3f}")

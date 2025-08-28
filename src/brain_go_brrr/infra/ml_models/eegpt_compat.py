@@ -22,7 +22,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 warnings.warn(
     "eegpt_compat is deprecated. Import from eegpt_wrapper directly.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 

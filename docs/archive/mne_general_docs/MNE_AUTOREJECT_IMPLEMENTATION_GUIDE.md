@@ -46,76 +46,76 @@ from autoreject import AutoReject, Ransac
 
 class TUABPreprocessor:
     """MNE+Autoreject preprocessing for TUAB dataset."""
-    
+
     def __init__(self, config):
         self.config = config
-        
+
     def process_raw(self, edf_path):
         """Full preprocessing pipeline."""
-        
+
         # 1. Load with MNE
         raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
-        
+
         # 2. Standardize to 256 Hz (EEGPT requirement)
         if raw.info['sfreq'] != 256:
             raw.resample(256)
-        
+
         # 3. Set channel types and montage
         raw.set_channel_types({ch: 'eeg' for ch in raw.ch_names})
         montage = mne.channels.make_standard_montage('standard_1020')
         raw.set_montage(montage, on_missing='warn')
-        
+
         # 4. MNE Global Preprocessing
         raw = self._apply_mne_preprocessing(raw)
-        
+
         # 5. Create epochs (4-second windows for EEGPT)
         events = mne.make_fixed_length_events(raw, duration=4.0)
         epochs = mne.Epochs(
-            raw, events, 
+            raw, events,
             tmin=0, tmax=4.0,
             baseline=None,  # No baseline for EEGPT
             preload=True,
             reject=None,  # Let Autoreject handle this
             verbose=False
         )
-        
+
         # 6. Apply Autoreject
         epochs_clean = self._apply_autoreject(epochs)
-        
+
         return epochs_clean
-        
+
     def _apply_mne_preprocessing(self, raw):
         """MNE global preprocessing steps."""
-        
+
         # Bandpass filter (0.5-45 Hz for EEGPT)
         raw.filter(0.5, 45, fir_design='firwin')
-        
+
         # Notch filter for line noise
         raw.notch_filter([60, 120], fir_design='firwin')
-        
+
         # Detect and annotate artifacts
         # Muscle artifacts
         muscle_annot = mne.preprocessing.annotate_muscle_zscore(
-            raw, threshold=4.0, ch_type='eeg', 
+            raw, threshold=4.0, ch_type='eeg',
             min_length_good=0.2, filter_freq=(110, 140)
         )
         raw.set_annotations(raw.annotations + muscle_annot)
-        
+
         # Bad channels via RANSAC
         ransac = Ransac(n_jobs=1, random_state=42)
         ransac.fit(raw)
         if ransac.bad_chs_:
             raw.info['bads'].extend(ransac.bad_chs_)
             raw.interpolate_bads(reset_bads=True)
-        
+
         # Re-reference to average
         raw.set_eeg_reference('average', projection=False)
-        
+
         return raw
-    
+
     def _apply_autoreject(self, epochs):
         """Apply Autoreject with TUAB-optimized parameters."""
-        
+
         # TUAB-specific parameters (verified against docs)
         ar = AutoReject(
             n_interpolate=[1, 2, 3, 4],  # TUAB: 20 channels, can interpolate up to 4
@@ -126,20 +126,20 @@ class TUABPreprocessor:
             n_jobs=1,
             verbose=False
         )
-        
+
         epochs_clean = ar.fit_transform(epochs)
-        
+
         # Log statistics
         n_epochs_before = len(epochs)
         n_epochs_after = len(epochs_clean)
         print(f"Autoreject: {n_epochs_before} → {n_epochs_after} epochs")
         print(f"Removed: {n_epochs_before - n_epochs_after} ({100*(1-n_epochs_after/n_epochs_before):.1f}%)")
-        
+
         # Access learned parameters (they're dicts by channel type)
         if hasattr(ar, 'n_interpolate_'):
             print(f"n_interpolate (EEG): {ar.n_interpolate_.get('eeg', 'N/A')}")
             print(f"consensus (EEG): {ar.consensus_.get('eeg', 'N/A')}")
-        
+
         return epochs_clean
 ```
 
@@ -156,45 +156,45 @@ from ..mne_integration.preprocessor import TUABPreprocessor
 
 class TUABMNEDataset(Dataset):
     """TUAB dataset with MNE+Autoreject preprocessing."""
-    
+
     def __init__(self, root_dir, split='train', cache_dir=None):
         self.root_dir = Path(root_dir)
         self.split = split
         self.cache_dir = Path(cache_dir) if cache_dir else None
-        
+
         # Initialize preprocessor
         self.preprocessor = TUABPreprocessor(config={
             'sampling_rate': 256,
             'window_duration': 4.0,
             'bandpass': (0.5, 45)
         })
-        
+
         # Load file list
         self.files = self._load_file_list()
-        
+
         # Build cache if needed
         if self.cache_dir and not self._cache_exists():
             self._build_cache()
-            
+
     def _build_cache(self):
         """Build preprocessed cache with MNE+Autoreject."""
-        
+
         print(f"Building MNE-preprocessed cache for {self.split}...")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         cache_index = {'files': {}, 'total_windows': 0}
         window_idx = 0
-        
+
         for file_path, label in self.files:
             try:
                 # Apply full preprocessing
                 epochs_clean = self.preprocessor.process_raw(file_path)
-                
+
                 # Save each epoch as separate cache file
                 for epoch_data in epochs_clean.get_data():
                     # Convert to float32 for training
                     epoch_data = epoch_data.astype('float32')
-                    
+
                     # Save
                     cache_file = f"window_{window_idx:06d}.pt"
                     torch.save({
@@ -202,24 +202,24 @@ class TUABMNEDataset(Dataset):
                         'y': torch.tensor(label, dtype=torch.float32),
                         'source_file': str(file_path)
                     }, self.cache_dir / cache_file)
-                    
+
                     cache_index['files'][window_idx] = {
                         'cache_file': cache_file,
                         'label': label,
                         'source': str(file_path)
                     }
                     window_idx += 1
-                    
+
             except Exception as e:
                 print(f"Error processing {file_path}: {e}")
                 continue
-                
+
         cache_index['total_windows'] = window_idx
-        
+
         # Save index
         with open(self.cache_dir / 'index.json', 'w') as f:
             json.dump(cache_index, f, indent=2)
-            
+
         print(f"Cache built: {window_idx} windows from {len(self.files)} files")
 ```
 
@@ -242,7 +242,7 @@ def main(config):
         split='train',
         cache_dir=config['data']['mne_cache_dir']  # New cache location
     )
-    
+
     # Rest of training code remains similar
     train_loader = DataLoader(
         train_dataset,
@@ -251,7 +251,7 @@ def main(config):
         num_workers=4,
         pin_memory=True
     )
-    
+
     # Continue with existing training loop...
 ```
 

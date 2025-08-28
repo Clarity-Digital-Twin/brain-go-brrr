@@ -5,7 +5,7 @@
 Previously had two parallel implementations:
 ```
 experiments/                      src/
-├── Own datasets                  ├── Own datasets  
+├── Own datasets                  ├── Own datasets
 ├── Own preprocessing             ├── Own preprocessing
 ├── Own normalization             ├── Own normalization
 └── NEVER TALKED TO →             └── src/
@@ -14,7 +14,7 @@ experiments/                      src/
 ## WHY THIS HAPPENED (MY FUCKUP)
 
 1. Started with src/ for production API
-2. Added experiments/ to reproduce EEGPT paper  
+2. Added experiments/ to reproduce EEGPT paper
 3. **DIDN'T USE SRC COMPONENTS** - rebuilt everything
 4. Now have two systems doing same thing differently
 5. **WASTED YOUR TIME AND COMPUTE**

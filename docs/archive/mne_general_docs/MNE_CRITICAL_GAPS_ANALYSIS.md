@@ -12,7 +12,7 @@ This is the smoking gun for why your accuracy is 56% instead of 87%. You have th
 ```python
 # In src/brain_go_brrr/infra/preprocessing/
 - MNE for data loading and preprocessing ✓
-- Autoreject for artifact rejection ✓  
+- Autoreject for artifact rejection ✓
 - Quality control pipelines ✓
 - Proper filtering and referencing ✓
 ```
@@ -103,7 +103,7 @@ Better predictions
 
 ### ✅ What Our Documentation Covers
 1. **Strategy** (`MNE_INTEGRATION_STRATEGY.md`) - Complete
-2. **Technical Pipeline** (`MNE_PREPROCESSING_PIPELINE.md`) - Complete  
+2. **Technical Pipeline** (`MNE_PREPROCESSING_PIPELINE.md`) - Complete
 3. **Synergy Approach** (`MNE_AUTOREJECT_SYNERGY.md`) - Complete
 4. **Implementation Plan** (`MNE_IMPLEMENTATION_PLAN.md`) - Complete
 
@@ -145,14 +145,14 @@ def preprocess_batch(x):
     # Create MNE object
     info = mne.create_info(20, 256, 'eeg')
     raw = mne.io.RawArray(x, info)
-    
+
     # Create epochs
     epochs = mne.make_fixed_length_epochs(raw, duration=4.0)
-    
+
     # Apply autoreject
     ar = AutoReject(random_state=42, n_jobs=1)
     epochs_clean = ar.fit_transform(epochs)
-    
+
     return epochs_clean.get_data()
 ```
 
@@ -161,12 +161,12 @@ def preprocess_batch(x):
 def preprocess_with_mne(x):
     # Create raw
     raw = create_raw(x)
-    
+
     # Basic preprocessing
     raw.filter(0.5, 50)  # Bandpass filter
     raw.notch_filter(60)  # Remove line noise
     raw.set_eeg_reference('average')  # CAR reference
-    
+
     # Then autoreject
     return apply_autoreject(raw)
 ```
@@ -252,7 +252,7 @@ def preprocess_with_mne(x):
 
 **Our documentation is 90% complete** but missing:
 - Specific Autoreject parameters for TUAB
-- Cache migration strategy  
+- Cache migration strategy
 - Quick-win implementation path
 - Debugging/troubleshooting guide
 
@@ -269,8 +269,8 @@ The path to 87% is clear:
 
 ---
 
-*Critical Gap Analysis Complete*  
-*Recommendation: IMPLEMENT IMMEDIATELY*  
-*Expected Impact: +20-30% AUROC*  
-*Implementation Effort: 1 week*  
+*Critical Gap Analysis Complete*
+*Recommendation: IMPLEMENT IMMEDIATELY*
+*Expected Impact: +20-30% AUROC*
+*Implementation Effort: 1 week*
 *Risk: ZERO (keep current as backup)*

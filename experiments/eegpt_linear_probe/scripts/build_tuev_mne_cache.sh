@@ -173,10 +173,10 @@ echo ""
 # Use tmux for long-running process
 if command -v tmux &> /dev/null; then
     SESSION_NAME="tuev_cache_build"
-    
+
     # Kill existing session if it exists
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
-    
+
     # Start new session
     tmux new-session -d -s "$SESSION_NAME" \
         "cd $EXPERIMENT_DIR && \
@@ -185,7 +185,7 @@ if command -v tmux &> /dev/null; then
             --cache-dir $CACHE_DIR \
             --split both \
             2>&1 | tee $LOG_FILE"
-    
+
     echo "Cache building launched in tmux session: $SESSION_NAME"
     echo "To attach: tmux attach -t $SESSION_NAME"
     echo "To detach: Ctrl+B, then D"

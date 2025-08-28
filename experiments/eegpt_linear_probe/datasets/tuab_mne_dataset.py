@@ -11,7 +11,7 @@ warnings.warn(
     "experiments/eegpt_linear_probe/datasets/tuab_mne_dataset.py is deprecated. "
     "Import directly from brain_go_brrr.infra.data.tuab_dataset",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Alias for compatibility
