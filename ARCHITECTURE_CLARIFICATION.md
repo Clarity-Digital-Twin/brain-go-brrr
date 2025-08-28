@@ -1,24 +1,25 @@
-# 🏗️ ARCHITECTURE CLARIFICATION - What Goes Where?
+# 🏗️ ARCHITECTURE CLARIFICATION - THE COMPLETE TRUTH
 
-## The CORRECT Structure (Industry Standard)
+## WHAT THE FUCK EACH PART ACTUALLY DOES
 
-### `src/` - Production Code
-**PURPOSE**: Stable, tested, reusable components
-- Core models and algorithms
-- Data pipelines that are proven
-- APIs and services
-- Utilities and helpers
+### `src/brain_go_brrr/` - The Production System
+**WHAT IT'S FOR**: The FastAPI server and clinical EEG analysis
+- **infra/ml_models/**: EEGPT model wrappers (11 files!)
+- **infra/data/**: Dataset loaders WITH normalization
+- **domain/**: Business logic and preprocessing
+- **api/**: REST endpoints for serving predictions
+- **services/**: Sleep staging (YASA), QC, etc.
 
-**When to add here**: When code is tested and will be reused
+**KEY FACT**: This has WORKING normalization but experiments/ doesn't use it!
 
-### `experiments/` - Research & Development
-**PURPOSE**: Try new things, test hypotheses, iterate fast
-- New model architectures
-- Different training approaches
-- Paper reproductions (like EEGPT paper)
-- A/B testing different methods
+### `experiments/eegpt_linear_probe/` - The Training System  
+**WHAT IT'S FOR**: Training linear probes on frozen EEGPT features
+- **datasets/**: MNE-preprocessed datasets (NOW with normalization)
+- **mne_integration/**: MNE+Autoreject preprocessing
+- **configs/**: YAML training configurations
+- **utils/**: Collate functions for dataloaders
 
-**When to add here**: When exploring or reproducing research
+**KEY FACT**: Only imports EEGPTWrapper from src/, reimplements everything else!
 
 ## What Went Wrong
 
