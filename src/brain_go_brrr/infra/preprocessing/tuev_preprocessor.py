@@ -58,7 +58,7 @@ class TUEVPreprocessor(TUABPreprocessor):
 
     # Map TUEV channels to standard 20 (dropping A1, A2, FPZ)
     # Also handle old naming (T3→T7, T4→T8, T5→P7, T6→P8)
-    CHANNEL_MAPPING = {
+    CHANNEL_MAPPING: dict[str, str | None] = {
         'T3': 'T7',
         'T4': 'T8',
         'T5': 'P7',
@@ -180,7 +180,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         if missing_channels:
             # Warn-once logic for missing channels
             if not hasattr(self, '_warned_missing_channels'):
-                self._warned_missing_channels = set()
+                self._warned_missing_channels: set[frozenset[str]] = set()
 
             missing_key = frozenset(missing_channels)
             if missing_key not in self._warned_missing_channels:
@@ -357,7 +357,7 @@ class TUEVPreprocessor(TUABPreprocessor):
             # Create a unique warning key for this file
             warning_key = f"high_reject_{edf_path.name}"
             if not hasattr(self, '_warned_files'):
-                self._warned_files = set()
+                self._warned_files: set[str] = set()
 
             if warning_key not in self._warned_files:
                 logger.warning(
@@ -404,18 +404,18 @@ class TUEVPreprocessor(TUABPreprocessor):
         Returns:
             Label string (one of: 'spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg')
         """
-        overlaps = {}
+        overlaps: dict[str, float] = {}
 
         for ann in annotations:
             # Calculate overlap in seconds
             overlap_start = max(win_start, ann['start'])
             overlap_end = min(win_end, ann['end'])
-            overlap_duration = max(0, overlap_end - overlap_start)
+            overlap_duration = max(0.0, float(overlap_end) - float(overlap_start))
 
             if overlap_duration > 0:
                 label = ann['label']
                 if label not in overlaps:
-                    overlaps[label] = 0
+                    overlaps[label] = 0.0
                 overlaps[label] += overlap_duration
 
         # Priority override: if spike has sufficient overlap (≥120ms), prioritize it
@@ -442,7 +442,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Default to background
         return 'bckg'
 
-    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict]:
+    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[str, Any]]:  # type: ignore[override]
         """Apply Autoreject with gentle parameters for TUEV spike preservation.
 
         Args:

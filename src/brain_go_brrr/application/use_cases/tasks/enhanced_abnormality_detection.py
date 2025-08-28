@@ -316,8 +316,8 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
                 optimizer,
-                T_max=int(self.trainer.estimated_stepping_batches),
-                eta_min=1e-6,  # type: ignore[union-attr,arg-type]
+                T_max=int(self.trainer.estimated_stepping_batches),  # type: ignore[attr-defined]
+                eta_min=1e-6,
             )
             return [optimizer], [sched]
 

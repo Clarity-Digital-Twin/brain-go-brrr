@@ -51,7 +51,12 @@ def collate_tuab_batch(
 
     if isinstance(first_label, torch.Tensor):
         # Labels are already tensors - stack and preserve dtype
-        labels = torch.stack([sample[1] for sample in batch])
+        labels = torch.stack(
+            [
+                sample[1] if isinstance(sample[1], torch.Tensor) else torch.tensor(sample[1])
+                for sample in batch
+            ]
+        )
         # Ensure shape is (B,) not (B, 1) for compatibility
         labels = labels.view(-1).float()  # Ensure float for BCE loss
     else:
