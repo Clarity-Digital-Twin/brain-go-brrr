@@ -42,7 +42,6 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
     LABEL_MAP = {"normal": 0, "abnormal": 1}
 
     # TUAB uses exactly 19 channels (NO FZ!) per EEGPT paper
-    STANDARD_CHANNELS = CHANNELS_TUAB_19
 
     # Channel name mapping for different naming conventions
     CHANNEL_MAPPING = {
@@ -144,7 +143,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         # CRITICAL ASSERTIONS for EEGPT compatibility
         assert self.window_samples == 1024, f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
         assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
-        assert len(self.STANDARD_CHANNELS) == 19, f"TUAB requires exactly 19 channels, got {len(self.STANDARD_CHANNELS)}"
+        assert len(CHANNELS_TUAB_19) == 19, f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
 
         # Set MNE log level to reduce spam
         import mne
@@ -254,7 +253,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         for ch_name in raw.ch_names:
             if ch_name in self.CHANNEL_MAPPING:
                 std_name = self.CHANNEL_MAPPING[ch_name]
-                if std_name in self.STANDARD_CHANNELS:
+                if std_name in CHANNELS_TUAB_19:
                     channel_map[ch_name] = std_name
 
         # Rename channels to standard names
@@ -262,8 +261,8 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
             raw.rename_channels(channel_map)
 
         # Select available standard channels
-        available_channels = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
-        missing_channels = set(self.STANDARD_CHANNELS) - set(available_channels)
+        available_channels = [ch for ch in CHANNELS_TUAB_19 if ch in raw.ch_names]
+        missing_channels = set(CHANNELS_TUAB_19) - set(available_channels)
 
         if missing_channels:
             logger.warning(f"Missing channels in {file_path.name}: {missing_channels}")
@@ -285,11 +284,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         # Get data
         data = raw.get_data()
 
-        # Create output array with exactly 23 channels
-        output_data = np.zeros((len(self.STANDARD_CHANNELS), data.shape[1]), dtype=np.float64)
+        # Create output array with exactly 19 channels
+        output_data = np.zeros((len(CHANNELS_TUAB_19), data.shape[1]), dtype=np.float64)
 
         # Fill in available channels in the correct order
-        for idx, ch_name in enumerate(self.STANDARD_CHANNELS):
+        for idx, ch_name in enumerate(CHANNELS_TUAB_19):
             if ch_name in raw.ch_names:
                 ch_idx = raw.ch_names.index(ch_name)
                 output_data[idx] = data[ch_idx]

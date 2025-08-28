@@ -206,7 +206,8 @@ class TUEVMNEDataset(Dataset):
                     label = window_labels[original_idx]  # Use original index for correct label
                     
                     # NO NORMALIZATION HERE! Done in wrapper only
-                    # MNE outputs in Volts - keep as-is for cache
+                    # Scale from Volts to millivolts for cache (SSOT = mV)
+                    epoch_data = epoch_data * 1e3  # V → mV
 
                     # CRITICAL: Enforce exactly 20 channels for TUEV
                     expected_channels = 20  # TUEV uses 20 channels (with Fz, without Fpz)
