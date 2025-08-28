@@ -1,47 +1,62 @@
 # Experiments Directory
 
-This directory contains experimental training scripts and research implementations.
+Training scripts and research experiments. All experiments import from `src/brain_go_brrr/`.
 
-## Structure
+## 🏗️ Architecture Rules
+
+**CRITICAL**: Experiments are THIN LAYERS that import from src/
+- ✅ Import datasets, models, utils from `src/brain_go_brrr/`
+- ✅ Keep only training loops and configs here
+- ❌ NEVER reimplement what exists in src/
+- ❌ NEVER use `sys.path.insert` hacks
+
+## 📁 Structure
 
 ```
 experiments/
 ├── README.md                      # This file
-└── eegpt_linear_probe/           # EEGPT linear probing experiments
-    ├── README.md                 # Experiment documentation
-    ├── CURRENT_STATUS.md         # Current issues and fixes needed
-    ├── train_*.py                # Training scripts (in root)
-    ├── *_dataset.py              # Dataset implementations (in root)
+└── eegpt_linear_probe/           # EEGPT linear probe training
+    ├── train_tuab_mne.py         # TUAB abnormality detection
+    ├── train_tuev_mne.py         # TUEV 6-class event detection
+    ├── test_*.py                 # Essential test scripts
     ├── configs/                  # Training configurations
-    ├── scripts/                  # Launch and build scripts
-    ├── output/                   # Training outputs (gitignored)
-    ├── logs/                     # Training logs
-    └── archive/                  # Old versions (reference only)
+    │   ├── tuab.yaml            # TUAB config (19 channels)
+    │   └── tuev.yaml            # TUEV config (20 channels)
+    ├── datasets/                 # Thin shim datasets (<50 lines)
+    │   ├── tuab_mne_dataset.py  # → imports from src/.../tuab_dataset
+    │   └── tuev_mne_dataset.py  # → imports from src/.../tuev_dataset
+    ├── docs/                     # Essential documentation
+    │   ├── README.md            # Navigation guide
+    │   ├── CHANNEL_SPECIFICATIONS.md  # Critical channel specs
+    │   └── MNE_INTEGRATION_README.md  # MNE preprocessing guide
+    ├── mne_integration/          # Cache building utilities
+    │   └── cache_builder.py     # MNE cache builder
+    ├── scripts/                  # Launch and monitoring scripts
+    └── archive/                  # Historical reference
+        ├── fix_history/         # 11 temporary fix docs
+        └── old_tests/          # 3 one-off test scripts
 ```
 
-**NOTE**: Training scripts and dataset files are in the experiment root directory,
-not in a `src/` subfolder. This is intentional - the scripts have relative imports
-expecting files in the same directory.
+## ✅ Clean Architecture
 
-## Active Experiments
+All components import from src:
+- **Datasets**: `from brain_go_brrr.infra.data import TUABDataset`
+- **Models**: `from brain_go_brrr.infra.ml_models import EEGPTWrapper`
+- **Utils**: `from brain_go_brrr.utils import collate_tuab_batch`
+- **Preprocessing**: `from brain_go_brrr.infra.preprocessing import TUEVPreprocessor`
 
-### 1. EEGPT Linear Probe
-- **Status**: ✅ FIXED & RUNNING with BCEWithLogitsLoss
-- **Purpose**: Fine-tune linear probes on frozen EEGPT for TUAB/TUEV
-- **Progress**: Batch 98/29,143 - Loss healthy (~0.55-0.65), no longer zero!
-- **See**: `eegpt_linear_probe/README.md`
+## 🚀 Active Experiments
 
-## Guidelines
+### EEGPT Linear Probe
+- **Purpose**: Fine-tune linear probes on frozen EEGPT backbone
+- **Datasets**: TUAB (abnormality), TUEV (6-class events)
+- **Docs**: See `eegpt_linear_probe/docs/` for specifications
+- **Scripts**: Use `scripts/launch_*.sh` for training
 
-1. **Version Control**: Archive old versions, don't delete
-2. **Documentation**: Each experiment needs its own README
-3. **Outputs**: Use `outputs/` for results (gitignored)
-4. **Scripts**: Keep launch scripts in `scripts/`
-5. **Configs**: YAML configs in `configs/`
+## 📏 Standards
 
-## Standards
-
-- Use descriptive names (not `train_v2_final_FIXED.py`)
-- Document findings in experiment README
-- Archive failed attempts with explanations
-- Keep active code clean and minimal
+1. **Imports**: Always from `src/brain_go_brrr/`, never relative
+2. **Size**: Experiment files should be <200 lines (thin layers)
+3. **Documentation**: Essential docs in `docs/`, temporary in `archive/`
+4. **Cache**: Use `mne_integration/cache_builder.py` for preprocessing
+5. **Testing**: Keep only essential tests, archive one-offs
