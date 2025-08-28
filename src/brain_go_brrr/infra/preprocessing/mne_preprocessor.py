@@ -1,4 +1,5 @@
 """MNE+Autoreject preprocessing for TUAB dataset.
+
 Implements the verified preprocessing pipeline to improve EEGPT from 56% to 87% AUROC.
 """
 

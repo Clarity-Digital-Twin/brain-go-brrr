@@ -15,7 +15,6 @@ from typing import Any, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
