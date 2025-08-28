@@ -78,7 +78,18 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
     ):
         """Initialize enhanced abnormality detection module."""
         super().__init__()
-        self.save_hyperparameters(ignore=["probe"])
+        # self.save_hyperparameters(ignore=["probe"])  # Lightning-specific, removed
+        
+        # Store hyperparameters manually (replacing Lightning's save_hyperparameters)
+        self.hparams = {
+            "checkpoint_path": checkpoint_path,
+            "layer_decay": layer_decay,
+            "learning_rate": learning_rate,
+            "weight_decay": weight_decay,
+            "warmup_epochs": warmup_epochs,
+            "scheduler_type": scheduler_type,
+            "freeze_backbone": freeze_backbone,
+        }
 
         # Store freeze setting first
         self.backbone_frozen = freeze_backbone
@@ -181,8 +192,10 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         # Log metrics (only if trainer is attached to avoid warnings in tests)
         if getattr(self, "trainer", None) is not None:
-            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
-            self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+            # self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True)
+            # self.log("train_acc", acc, on_step=False, on_epoch=True, prog_bar=True)
+            # Use standard logging instead
+            logger.debug(f"train_loss: {loss:.4f}, train_acc: {acc:.4f}")
 
         # Store outputs for epoch-level metrics
         self.train_outputs.append(
@@ -237,9 +250,10 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         # Log metrics (only if trainer is attached to avoid warnings in tests)
         if getattr(self, "trainer", None) is not None:
-            self.log("val_loss", avg_loss, prog_bar=True, logger=True)
-            for name, value in metrics.items():
-                self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"], logger=True)
+            # self.log("val_loss", avg_loss, prog_bar=True, logger=True)
+            # for name, value in metrics.items():
+            #     self.log(f"val_{name}", value, prog_bar=name in ["auroc", "acc"], logger=True)
+            logger.info(f"val_loss: {avg_loss:.4f}, metrics: {metrics}")
 
         # Clear stored outputs
         self.val_outputs.clear()
