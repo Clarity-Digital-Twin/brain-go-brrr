@@ -109,19 +109,19 @@ jobs:
         run: |
           echo "Checking for architecture drift..."
           .ci/check_no_parallel_impl.sh
-      
+
       - name: Check no sys.path.insert
         run: .ci/check_no_sys_path.sh
-      
+
       - name: Check no Lightning imports
         run: .ci/check_no_lightning.sh
-      
+
       - name: Check experiments are shims
         run: .ci/check_experiments_shims.sh
-      
+
       - name: Check META schema compliance
         run: .ci/check_meta_schema.sh
-      
+
       - name: Check channels SSOT
         run: .ci/check_channels_ssot.sh
 
