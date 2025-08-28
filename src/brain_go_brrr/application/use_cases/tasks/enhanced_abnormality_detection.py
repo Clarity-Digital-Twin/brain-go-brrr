@@ -28,6 +28,7 @@ from sklearn.metrics import (
 
 from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
+from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
             # Use the wrapper to create EEGPT model
             backbone = create_normalized_eegpt(checkpoint_path=checkpoint_path)
 
-            logger.info(f"Loaded EEGPT backbone from {checkpoint_path}")
+            logger.info(f"Loaded EEGPT backbone from {mask_path_for_log(checkpoint_path)}")
             return backbone
 
         except Exception as e:

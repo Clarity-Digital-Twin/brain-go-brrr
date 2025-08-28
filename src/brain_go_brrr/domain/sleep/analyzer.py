@@ -14,6 +14,7 @@ import pandas as pd
 
 from brain_go_brrr._typing import MNERaw, StrArray
 from brain_go_brrr.domain.exceptions import UnsupportedMontageError
+from brain_go_brrr.utils import mask_path_for_log
 
 # Use installed yasa from pyproject.toml dependencies
 
@@ -529,7 +530,7 @@ class SleepAnalyzer:
 
             if save_path:
                 fig.savefig(save_path, dpi=300, bbox_inches="tight")
-                logger.info(f"Hypnogram saved to {save_path}")
+                logger.info(f"Hypnogram saved to {mask_path_for_log(save_path)}")
 
             hypno_info = {
                 "duration_hours": times[-1],

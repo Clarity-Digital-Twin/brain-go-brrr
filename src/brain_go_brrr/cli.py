@@ -8,6 +8,7 @@ from rich.console import Console
 
 from brain_go_brrr.application.config import Config
 from brain_go_brrr.infra.logger import get_logger
+from brain_go_brrr.utils import mask_path_for_log
 
 app = typer.Typer(
     name="brain-go-brrr",
@@ -34,15 +35,15 @@ def train(
     # Load configuration
     config = Config(debug=debug)
     if config_file:
-        logger.info(f"Loading config from: {config_file}")
+        logger.info(f"Loading config from: {mask_path_for_log(config_file)}")
     if data_path:
         config.data_dir = data_path
     if output_dir:
         config.output_dir = output_dir
 
     logger.info("Training configuration loaded: EEGPT")
-    logger.info(f"Data directory: {config.data_dir}")
-    logger.info(f"Output directory: {config.output_dir}")
+    logger.info(f"Data directory: {mask_path_for_log(config.data_dir)}")
+    logger.info(f"Output directory: {mask_path_for_log(config.output_dir)}")
 
     # TODO: Implement training logic
     console.print("[yellow]Training logic not implemented yet[/yellow]")
@@ -60,8 +61,8 @@ def preprocess(
     console.print("[green]Starting EEG preprocessing...[/green]")
 
     if config_file:
-        logger.info(f"Loading config from: {config_file}")
-    logger.info(f"Preprocessing {data_path} -> {output_path}")
+        logger.info(f"Loading config from: {mask_path_for_log(config_file)}")
+    logger.info(f"Preprocessing {mask_path_for_log(data_path)} -> {mask_path_for_log(output_path)}")
 
     # TODO: Implement preprocessing logic
     console.print("[yellow]Preprocessing logic not implemented yet[/yellow]")
@@ -78,10 +79,10 @@ def evaluate(
     """Evaluate a trained model."""
     console.print("[green]Starting model evaluation...[/green]")
 
-    logger.info(f"Evaluating model: {model_path}")
-    logger.info(f"Evaluation data: {data_path}")
+    logger.info(f"Evaluating model: {mask_path_for_log(model_path)}")
+    logger.info(f"Evaluation data: {mask_path_for_log(data_path)}")
     if output_path:
-        logger.info(f"Results will be saved to: {output_path}")
+        logger.info(f"Results will be saved to: {mask_path_for_log(output_path)}")
 
     # TODO: Implement evaluation logic
     console.print("[yellow]Evaluation logic not implemented yet[/yellow]")
@@ -95,7 +96,7 @@ def serve(
 ) -> None:
     """Serve a trained model via REST API."""
     console.print(f"[green]Starting model server on {host}:{port}[/green]")
-    logger.info(f"Loading model from: {model_path}")
+    logger.info(f"Loading model from: {mask_path_for_log(model_path)}")
 
     # TODO: Implement serving logic
     console.print("[yellow]Serving logic not implemented yet[/yellow]")

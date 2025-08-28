@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from brain_go_brrr.utils import utc_now
+from brain_go_brrr.utils import mask_path_for_log, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class MarkdownReportGenerator:
         markdown = self.generate_report(results)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(markdown)
-        logger.info(f"Markdown report saved to {output_path}")
+        logger.info(f"Markdown report saved to {mask_path_for_log(output_path)}")
 
     def _create_header(self, results: dict[str, Any]) -> str:  # noqa: ARG002
         """Create report header."""

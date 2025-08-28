@@ -13,6 +13,7 @@ from typing import Any
 import mne
 
 from brain_go_brrr._typing import MNEEpochs, MNERaw
+from brain_go_brrr.utils import mask_path_for_log
 
 # Only import if available
 try:
@@ -111,7 +112,7 @@ class ChunkedAutoRejectProcessor:
                     logger.info(f"Loaded {i + 1}/{len(sampled_files)} files")
 
             except Exception as e:
-                logger.warning(f"Failed to load {file_path}: {e}")
+                logger.warning(f"Failed to load {mask_path_for_log(file_path)}: {e}")
                 continue
 
         if not all_epochs:

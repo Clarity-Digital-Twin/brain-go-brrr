@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from brain_go_brrr.utils import mask_path_for_log
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -276,7 +278,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         Returns:
             Tuple of (clean_epochs, info_dict, window_labels)
         """
-        logger.info(f"Processing {edf_path} with {len(annotations)} annotations")
+        logger.info(f"Processing {mask_path_for_log(edf_path)} with {len(annotations)} annotations")
 
         # Load and preprocess raw data
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)

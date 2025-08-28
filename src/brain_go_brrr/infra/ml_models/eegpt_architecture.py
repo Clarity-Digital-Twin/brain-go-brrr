@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+from brain_go_brrr.utils import mask_path_for_log
+
 logger = logging.getLogger(__name__)
 
 # Standard 10-20 EEG channel mapping
@@ -565,7 +567,9 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         from pathlib import Path
 
         if not Path(checkpoint_path).exists():
-            logger.info(f"Checkpoint {checkpoint_path} not found, creating model without weights")
+            logger.info(
+                f"Checkpoint {mask_path_for_log(checkpoint_path)} not found, creating model without weights"
+            )
             return model
 
         from brain_go_brrr.infra.safe_load import safe_load
@@ -594,7 +598,7 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
         if unexpected_keys:
             logger.warning(f"Unexpected keys in checkpoint: {unexpected_keys}")
 
-        logger.info(f"Loaded pretrained weights from {checkpoint_path}")
+        logger.info(f"Loaded pretrained weights from {mask_path_for_log(checkpoint_path)}")
 
     return model
 

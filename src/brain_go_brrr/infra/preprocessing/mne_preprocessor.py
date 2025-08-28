@@ -8,6 +8,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from brain_go_brrr.utils import mask_path_for_log
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -99,7 +101,7 @@ class TUABPreprocessor:
                 - n_epochs_after: Number of epochs after Autoreject
                 - n_rejected: Number of rejected epochs
         """
-        logger.info(f"Processing {edf_path}")
+        logger.info(f"Processing {mask_path_for_log(edf_path)}")
 
         # 1. Load with MNE
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
