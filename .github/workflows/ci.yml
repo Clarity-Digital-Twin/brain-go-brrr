@@ -308,7 +308,7 @@ jobs:
   # ============================================
   build:
     name: Build & Package 📦
-    needs: [test, test-matrix]
+    needs: test  # Removed test-matrix dependency
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
