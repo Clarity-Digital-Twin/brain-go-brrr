@@ -94,4 +94,4 @@ def get_cache_mode() -> CacheMode:
 QCController = Annotated[QualityControllerPort | _NoopQC, Depends(get_qc_controller)]
 
 
-__all__ = ["QCController", "get_qc_controller", "CacheMode", "get_cache_mode"]
+__all__ = ["CacheMode", "QCController", "get_cache_mode", "get_qc_controller"]
