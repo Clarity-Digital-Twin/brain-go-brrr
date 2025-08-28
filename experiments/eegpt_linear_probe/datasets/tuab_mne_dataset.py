@@ -144,6 +144,13 @@ class TUABMNEDataset(Dataset):
                 for epoch_idx, epoch_data in enumerate(epochs_clean.get_data()):
                     # Convert to float32 for training
                     epoch_data = epoch_data.astype('float32')
+                    
+                    # CRITICAL FIX: NORMALIZE THE DATA!
+                    # MNE outputs in Volts (1e-5 scale), EEGPT needs ~N(0,1)
+                    epoch_mean = epoch_data.mean()
+                    epoch_std = epoch_data.std()
+                    epoch_data = (epoch_data - epoch_mean) / (epoch_std + 1e-8)
+                    logger.info(f"Normalized: mean={epoch_mean:.2e}→0, std={epoch_std:.2e}→1")
 
                     # CRITICAL: Enforce exactly 19 channels for TUAB
                     # This prevents the 20-channel bug that occurred with aaaaakfo_s00X files

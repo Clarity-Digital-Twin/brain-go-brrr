@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
 from experiments.eegpt_linear_probe.utils.collate_tuev import collate_tuev_batch
-from src.brain_go_brrr.models.eegpt_wrapper import EEGPTWrapper
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 # Configure logging
 logging.basicConfig(

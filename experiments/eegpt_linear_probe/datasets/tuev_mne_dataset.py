@@ -179,6 +179,13 @@ class TUEVMNEDataset(Dataset):
                 for epoch_idx, original_idx in enumerate(kept_indices):
                     epoch_data = epochs_clean.get_data()[epoch_idx]
                     label = window_labels[original_idx]  # Use original index for correct label
+                    
+                    # CRITICAL FIX: NORMALIZE THE DATA!
+                    # MNE outputs in Volts (1e-5 scale), EEGPT needs ~N(0,1)
+                    epoch_mean = epoch_data.mean()
+                    epoch_std = epoch_data.std()
+                    epoch_data = (epoch_data - epoch_mean) / (epoch_std + 1e-8)
+                    logger.info(f"Normalized: mean={epoch_mean:.2e}→0, std={epoch_std:.2e}→1")
 
                     # CRITICAL: Enforce exactly 20 channels for TUEV
                     expected_channels = 20  # TUEV uses 20 channels (with Fz, without Fpz)
