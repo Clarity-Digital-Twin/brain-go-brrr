@@ -17,7 +17,7 @@ This document defines the **exact** implementation requirements for TUEV dataset
 **Decision**: Use **average reference** montage, NOT TCP bipolar derivations.
 
 **Evidence from EEGPT paper**:
-- Page 5: "Each dataset underwent... re-referencing (average)..." 
+- Page 5: "Each dataset underwent... re-referencing (average)..."
 - Page 6: "we strictly follow the same strategy as BIOT" (BIOT uses average reference)
 - No mention of bipolar montage for any dataset
 
@@ -44,13 +44,13 @@ raw, _ = mne.set_eeg_reference(raw, ref_channels='average', projection=False)
 - "Each patch has a time length of d = 64" → 1024/64 = 16 patches (integer required)
 - Same as TUAB implementation (verified working)
 
-**Window Overlap**: 
+**Window Overlap**:
 - **Default: 0% overlap** (4-second step) for faster processing
 - **Optional: 50% overlap** (2-second step) for better event coverage
 - Trade-off: 50% overlap = 2x windows, 2x compute, but catches boundary events
 - Set via config: `window_overlap: 0.0` or `0.5`
 
-**Current Implementation**: 
+**Current Implementation**:
 - Already using 1024 in `train_tuev.py` line 118
 - Cache builder expects 1024 samples
 
@@ -102,50 +102,50 @@ STANDARD_20_CHANNELS = [
 def label_window(window_start, window_end, annotations):
     """
     Label a window based on event annotations with spike priority.
-    
+
     Args:
         window_start: Window start time in seconds
-        window_end: Window end time in seconds  
+        window_end: Window end time in seconds
         annotations: List of {'start', 'end', 'label'} dicts
-    
+
     Returns:
         Label string (one of: 'spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg')
     """
     overlaps = {}
-    
+
     for ann in annotations:
         # Calculate overlap in seconds
         overlap_start = max(window_start, ann['start'])
         overlap_end = min(window_end, ann['end'])
         overlap_duration = max(0, overlap_end - overlap_start)
-        
+
         if overlap_duration > 0:
             label = ann['label']
             if label not in overlaps:
                 overlaps[label] = 0
             overlaps[label] += overlap_duration
-    
+
     # Priority override: if spike has sufficient overlap (≥120ms), prioritize it
     SPIKE_PRIORITY_THRESHOLD = 0.12  # 120ms = 3% of 4s window
     if overlaps.get('spsw', 0) >= SPIKE_PRIORITY_THRESHOLD:
         return 'spsw'
-    
+
     # Otherwise use argmax with minimum duration
     MINIMUM_OVERLAP_THRESHOLD = 0.10  # 100ms = 2.5% of 4s window
     if overlaps:
         # Only consider if overlap ≥ minimum threshold
         valid_overlaps = {k: v for k, v in overlaps.items() if v >= MINIMUM_OVERLAP_THRESHOLD}
-        
+
         if valid_overlaps:
             # Find max overlap
             max_overlap = max(valid_overlaps.values())
-            
+
             # Handle ties with deterministic priority
             PRIORITY_ORDER = ['spsw', 'gped', 'pled', 'artf', 'eyem', 'bckg']
             for label in PRIORITY_ORDER:
                 if label in valid_overlaps and valid_overlaps[label] == max_overlap:
                     return label
-    
+
     # Default to background
     return 'bckg'
 ```
@@ -199,7 +199,7 @@ notch_freqs = [60]  # or 50 based on region
 if 2 * notch_freqs[0] < 0.95 * sfreq:
     notch_freqs.append(2 * notch_freqs[0])  # Add harmonic if safe
 
-# Muscle band for artifact detection  
+# Muscle band for artifact detection
 muscle_low = min(110, 0.45 * sfreq)
 muscle_high = min(140, 0.49 * sfreq)
 ```
@@ -240,22 +240,22 @@ data:
   n_channels: 20          # After preprocessing (was 23)
 
 preprocessing:
-  reference: 'average'    # NOT 'tcp_bipolar' 
+  reference: 'average'    # NOT 'tcp_bipolar'
   resample_rate: 256      # Explicit resample target
   bandpass: [0.5, 45]     # Hz, clamped to Nyquist
   notch: 60               # Hz, with harmonics if safe
-  
+
   autoreject:
     n_interpolate: [1, 2]         # Gentler than TUAB [1,2,3,4]
-    consensus: [0.5, 0.7, 0.9]    # Higher thresholds  
+    consensus: [0.5, 0.7, 0.9]    # Higher thresholds
     cv: 3                         # Faster than 5
     max_reject_rate: 0.15         # Fallback threshold
-  
+
   labeling:
     min_overlap_ms: 100           # 2.5% of 4s window
     spike_priority_ms: 120        # 3% of 4s window
     tie_priority: ['spsw', 'gped', 'pled', 'artf', 'eyem', 'bckg']
-  
+
 training:
   class_weights: 'inverse_frequency'
   # Formula: weights = 1.0 / (counts + 1e-6)
@@ -304,17 +304,17 @@ def test_spike_labeling():
     # Window: 0-4 seconds
     # Spike: 0.5-0.65 seconds (150ms)
     # Should label as 'spsw' not 'bckg'
-    
+
 def test_spike_priority():
     """Test that spikes get priority when sufficient."""
     # Window with 200ms spike, 300ms artifact
     # Should label as 'spsw' (spike priority)
-    
+
 def test_argmax_overlap():
     """Test that longest overlap wins (when no spike priority)."""
     # Window with 50ms spike, 300ms artifact
     # Should label as 'artf' (spike too short for priority)
-    
+
 def test_minimum_duration():
     """Test that <100ms events are ignored."""
     # Window with 50ms spike
@@ -325,10 +325,10 @@ def test_minimum_duration():
 ```python
 def test_cache_shape():
     """Every cached window must be (20, 1024) float32."""
-    
+
 def test_no_nans():
     """No NaN values in cached data."""
-    
+
 def test_labels_valid():
     """Labels must be in {0: spsw, 1: gped, 2: pled, 3: eyem, 4: artf, 5: bckg}."""
 
@@ -359,7 +359,7 @@ Processing: aaaaaaar_00000001.edf
 
 From EEGPT paper Table 3 (page 7):
 - **Balanced Accuracy**: 0.6232 ± 0.0114
-- **Weighted F1**: 0.8187 ± 0.0063  
+- **Weighted F1**: 0.8187 ± 0.0063
 - **Cohen's Kappa**: 0.6351 ± 0.0134
 
 ---
@@ -400,7 +400,7 @@ From EEGPT paper Table 3 (page 7):
    - Need explicit override: `n_interpolate=[1,2], consensus=[0.5,0.7,0.9]`
 
 5. **Cache Version Wrong**:
-   - Current: "mne-ar-v1" 
+   - Current: "mne-ar-v1"
    - Should be: "mne-ar-v3"
 
 ---
@@ -410,24 +410,24 @@ From EEGPT paper Table 3 (page 7):
 ```python
 def create_fixed_grid_windows(raw, window_duration=4.0, overlap=0.5):
     """Create fixed-grid windows with specified overlap.
-    
+
     Args:
         raw: MNE Raw object
         window_duration: Window size in seconds (4.0)
         overlap: Overlap fraction (0.5 = 50%)
-    
+
     Returns:
         List of (start, end) times for windows
     """
     duration = raw.times[-1]
     step = window_duration * (1 - overlap)
-    
+
     windows = []
     start = 0
     while start + window_duration <= duration:
         windows.append((start, start + window_duration))
         start += step
-    
+
     return windows
 ```
 

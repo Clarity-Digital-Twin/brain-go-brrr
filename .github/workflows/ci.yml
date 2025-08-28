@@ -103,7 +103,27 @@ jobs:
       - name: Check unsafe torch.load
         run: |
           echo "Checking for unsafe torch.load usage..."
-          python .pre-commit-hooks/safe_torch_load.py $(find src tests -name "*.py" | grep -v safe_load.py)
+          python .pre-commit-hooks/safe_torch_load.py $(find src tests experiments -name "*.py" | grep -v safe_load.py)
+
+      - name: Check for parallel implementations (CRITICAL)
+        run: |
+          echo "Checking for architecture drift..."
+          .ci/check_no_parallel_impl.sh
+      
+      - name: Check no sys.path.insert
+        run: .ci/check_no_sys_path.sh
+      
+      - name: Check no Lightning imports
+        run: .ci/check_no_lightning.sh
+      
+      - name: Check experiments are shims
+        run: .ci/check_experiments_shims.sh
+      
+      - name: Check META schema compliance
+        run: .ci/check_meta_schema.sh
+      
+      - name: Check channels SSOT
+        run: .ci/check_channels_ssot.sh
 
   # ============================================
   # STAGE 2: TESTING (After Quality Passes)
@@ -133,33 +153,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils fonts-dejavu-core
 
-      # DEVELOPMENT: Quick tests only
-      - name: Run quick tests (development)
-        if: github.ref == 'refs/heads/development'
+      # DEVELOPMENT & PR: Quick tests only
+      - name: Run quick tests
+        if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request'
         run: |
-          echo "Running fast tests using Makefile..."
+          echo "Running fast tests..."
           make test
 
-      # STAGING: Standard tests with coverage
-      - name: Run standard tests with coverage (staging)
-        if: github.ref == 'refs/heads/staging'
-        run: |
-          echo "Running test suite with coverage..."
-          make test-all-cov
-
-      # MAIN: Full test suite with coverage
-      - name: Run full tests with coverage (main)
-        if: github.ref == 'refs/heads/main'
+      # MAIN/STAGING: Full test suite with coverage
+      - name: Run full tests with coverage
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
         run: |
           echo "Running full test suite with coverage..."
           make test-all-cov
-
-      # PR: Standard tests
-      - name: Run PR tests
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "Running PR test suite..."
-          make test
 
       # Coverage upload disabled (using make test without coverage for now)
       # - name: Upload coverage
@@ -171,37 +177,8 @@ jobs:
       #     name: codecov-ubuntu-${{ env.PYTHON_VERSION }}
       #     fail_ci_if_error: false  # Don't fail if upload fails
 
-  # ============================================
-  # STAGE 3: EXTENDED TESTS (Python versions - main only)
-  # ============================================
-  test-matrix:
-    name: Test Python ${{ matrix.python-version }}
-    needs: test
-    if: github.ref == 'refs/heads/main'  # Only on main, not staging
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.12"]  # Skip 3.13 until scipy supports it
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Run tests
-        run: make test
+  # REMOVED: Pointless matrix testing for single Python version
+  # Was testing only Python 3.12, now handled in main test job
 
   # ============================================
   # STAGE 4: SECURITY (Main Only - staging gets basic quality checks)
@@ -320,19 +297,17 @@ jobs:
         env:
           CI_BENCHMARKS: "0"
         run: |
-          # Run benchmarks and ensure output file is created
+          # Run benchmarks - FAIL if they regress
           if make -n test-benchmarks >/dev/null 2>&1; then
-            make test-benchmarks || true
+            make test-benchmarks
           else
             env PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest -p benchmark tests/benchmarks \
               -m "not gpu" \
               --benchmark-only \
               --benchmark-json=benchmark_results.json \
               -xvs \
-              --tb=short || true
+              --tb=short
           fi
-          # Ensure benchmark file exists for upload
-          touch benchmark_results.json
 
       - name: Upload benchmark results as artifact
         uses: actions/upload-artifact@v4
@@ -346,7 +321,7 @@ jobs:
   # ============================================
   build:
     name: Build & Package 📦
-    needs: [test, test-matrix]
+    needs: test  # Removed test-matrix dependency
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 

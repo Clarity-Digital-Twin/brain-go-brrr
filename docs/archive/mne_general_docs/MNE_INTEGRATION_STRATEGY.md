@@ -231,7 +231,7 @@ experiments/eegpt_linear_probe/
 - [ ] Basic artifact detection
 - [ ] Integration with dataset
 
-### Week 2-3: Advanced Features  
+### Week 2-3: Advanced Features
 - [ ] Spectral feature extraction
 - [ ] Advanced filtering
 - [ ] Reference schemes
@@ -275,5 +275,5 @@ The phased approach allows iterative validation and risk mitigation while mainta
 
 ---
 
-*Document prepared for external auditor review*  
+*Document prepared for external auditor review*
 *Last updated: August 25, 2025*

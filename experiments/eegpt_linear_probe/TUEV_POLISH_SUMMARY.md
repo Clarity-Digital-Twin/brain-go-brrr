@@ -10,7 +10,7 @@ Applied all critical fixes and polish recommendations from external audit. The T
 ## Critical Fixes Applied (Red Items) ✅
 
 ### 1. MNE Event Codes > 0
-**Problem**: MNE requires event codes > 0, was using `events = [[start, 0, i]]`  
+**Problem**: MNE requires event codes > 0, was using `events = [[start, 0, i]]`
 **Solution**: Simplified to single event code = 1 for all windows
 ```python
 window_event_code = 1  # Single event code for all windows
@@ -19,7 +19,7 @@ event_id = {"window": window_event_code}  # Simple dict
 ```
 
 ### 2. AutoReject Kwargs Validated
-**Verified**: `thresh_method='bayesian_optimization'` is valid in our AutoReject version  
+**Verified**: `thresh_method='bayesian_optimization'` is valid in our AutoReject version
 **No change needed**: Constructor signature confirmed
 
 ### 3. Selection Alignment Assertions
@@ -67,7 +67,7 @@ if warning_key not in self._warned_files:
 
 ```bash
 ✅ Formatting: ruff format - all clean
-✅ Linting: ruff check - all clean  
+✅ Linting: ruff check - all clean
 ✅ Tests: All 5 phases passing
 ✅ Type Safety: Proper type hints throughout
 ```
@@ -114,7 +114,7 @@ if warning_key not in self._warned_files:
 
 1. `mne_integration/tuev_preprocessor.py`
    - Simplified event codes
-   - Enhanced metadata tracking  
+   - Enhanced metadata tracking
    - Added warn-once logic
    - Return AR learned parameters
 

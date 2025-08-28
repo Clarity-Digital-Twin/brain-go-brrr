@@ -25,7 +25,7 @@ expecting files in the same directory.
 
 ## Active Experiments
 
-### 1. EEGPT Linear Probe  
+### 1. EEGPT Linear Probe
 - **Status**: ✅ FIXED & RUNNING with BCEWithLogitsLoss
 - **Purpose**: Fine-tune linear probes on frozen EEGPT for TUAB/TUEV
 - **Progress**: Batch 98/29,143 - Loss healthy (~0.55-0.65), no longer zero!

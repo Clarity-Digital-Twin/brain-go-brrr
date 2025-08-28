@@ -280,7 +280,9 @@ def test_chunked_autoreject_processes_chunks():
     assert len(epochs) > 0
 
 
-@pytest.mark.skip(reason="Test for deprecated TUABCachedDataset - new TUABDataset requires actual EDF files")
+@pytest.mark.skip(
+    reason="Test for deprecated TUABCachedDataset - new TUABDataset requires actual EDF files"
+)
 def test_cached_dataset_loads_from_cache():
     """Test cached dataset loads preprocessed data."""
     # Skip - this test was for the old cached dataset implementation

@@ -2,7 +2,7 @@
 
 **Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
 
-> 🚧 **Work in Progress** - This repository is under active development for research purposes.  
+> 🚧 **Work in Progress** - This repository is under active development for research purposes.
 > Not a medical device. Not for clinical use. External validation pending.
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
@@ -18,7 +18,7 @@ Transform raw EEG data into clinical insights using the EEGPT foundation model a
 
 **Key Capabilities:**
 - 🌙 **Sleep Staging** - 87% accuracy (using YASA baseline; Vallat & Walker 2021)
-- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection  
+- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection
 - ⚠️ **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC)
 - 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
 - 🏗️ **Clean Architecture** - Research-grade with 790+ tests and CI/CD

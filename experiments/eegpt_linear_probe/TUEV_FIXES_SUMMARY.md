@@ -6,7 +6,7 @@
 ## Critical Fixes Applied
 
 ### 1. ✅ Label-Epoch Alignment After AR (CRITICAL)
-**Problem**: Labels were misaligned after Autoreject drops arbitrary epochs  
+**Problem**: Labels were misaligned after Autoreject drops arbitrary epochs
 **Solution**: Use `epochs.selection` to maintain correct mapping
 ```python
 # OLD: Naive slicing that assumes sequential dropout
@@ -22,14 +22,14 @@ for epoch_idx, original_idx in enumerate(kept_indices):
 ```
 
 ### 2. ✅ Event Array Dtype Fixed
-**Problem**: MNE requires int dtype for event arrays  
+**Problem**: MNE requires int dtype for event arrays
 **Solution**: Explicitly set dtype=int
 ```python
 events_array = np.array(events, dtype=int)  # MNE requires int dtype
 ```
 
 ### 3. ✅ Channel Presence Validation (≥19 Required)
-**Problem**: No enforcement of minimum channel requirement  
+**Problem**: No enforcement of minimum channel requirement
 **Solution**: Added validation and tracking
 ```python
 if len(available_standard) < 19:
@@ -39,7 +39,7 @@ if len(available_standard) < 19:
 ```
 
 ### 4. ✅ Missing Channels Tracking
-**Problem**: No QC visibility into missing channels per file  
+**Problem**: No QC visibility into missing channels per file
 **Solution**: Track and store in cache index
 ```python
 info = {
@@ -52,7 +52,7 @@ info = {
 ```
 
 ### 5. ✅ Duplicate Referencing Removed
-**Problem**: Legacy dataset applied average reference twice  
+**Problem**: Legacy dataset applied average reference twice
 **Solution**: Removed from legacy, kept only in MNE preprocessor
 
 ### 6. ✅ Import Fixes
@@ -73,7 +73,7 @@ assert x.shape == (20, 1024)
 assert x.dtype == torch.float32
 assert not torch.isnan(x).any()
 
-# Label validation  
+# Label validation
 assert 0 <= label < 6
 
 # Epoch selection alignment test
@@ -84,7 +84,7 @@ assert epochs_clean.selection == sorted(epochs_clean.selection)
 
 ```
 ✅ Phase 1: Critical Bugs Fixed
-✅ Phase 2: Fixed-Grid Windowing  
+✅ Phase 2: Fixed-Grid Windowing
 ✅ Phase 3: Preprocessing Updates
 ✅ Cache Validation (Smoke Tests)
 ✅ Epoch Selection Alignment

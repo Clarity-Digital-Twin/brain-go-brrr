@@ -20,7 +20,7 @@ def validate_cache(cache_dir: Path, verbose: bool = False) -> dict:
         'channel_counts': defaultdict(int),
         'bad_files': [],
         'missing_files': [],
-        'errors': []
+        'errors': [],
     }
 
     # Find index files
@@ -68,15 +68,19 @@ def validate_cache(cache_dir: Path, verbose: bool = False) -> dict:
 
                 # Check against expected shape
                 if expected and shape != expected:
-                    results['bad_files'].append({
-                        'file': window_info['cache_file'],
-                        'shape': shape,
-                        'expected': expected,
-                        'source': window_info.get('source', 'unknown'),
-                        'window_id': window_id
-                    })
+                    results['bad_files'].append(
+                        {
+                            'file': window_info['cache_file'],
+                            'shape': shape,
+                            'expected': expected,
+                            'source': window_info.get('source', 'unknown'),
+                            'window_id': window_id,
+                        }
+                    )
                     if verbose:
-                        print(f"    ❌ {window_info['cache_file']}: {shape} (from {window_info.get('source')})")
+                        print(
+                            f"    ❌ {window_info['cache_file']}: {shape} (from {window_info.get('source')})"
+                        )
 
             except Exception as e:
                 results['errors'].append(f"Failed to load {cache_file}: {e}")
@@ -142,12 +146,10 @@ def main():
         '--cache-dir',
         type=Path,
         default=Path('data/cache/tuab_mne_preprocessed'),
-        help='Path to cache directory'
+        help='Path to cache directory',
     )
     parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Show detailed output for each bad file'
+        '--verbose', '-v', action='store_true', help='Show detailed output for each bad file'
     )
 
     args = parser.parse_args()

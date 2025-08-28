@@ -1,19 +1,17 @@
-"""
-TUEV dataset with MNE+Autoreject preprocessing.
+"""TUEV dataset with MNE+Autoreject preprocessing.
+
 Multi-class event detection (6 classes) with 20 channels (Fz included, Fpz excluded).
 """
 
 import json
 import logging
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Any
 
-import numpy as np
 import torch
-from torch.utils.data import Dataset
-from tqdm import tqdm  # type: ignore[import-untyped]
+from torch.utils.data import Dataset  # type: ignore[import-untyped]
 
-from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20, validate_channels
+from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +64,6 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
         )
 
-
         # Load or build cache
         if force_rebuild or not self._cache_exists():
             logger.info(f"Cache not found or rebuild forced. Building cache at {self.cache_dir}")
@@ -87,33 +84,35 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         if not index_file.exists():
             raise FileNotFoundError(f"Cache index not found at {index_file}")
 
-        with open(index_file) as f:
+        with index_file.open() as f:
             self.index = json.load(f)
-        
+
         # Validate META.json cache contract
         meta_file = self.cache_dir / "META.json"
         if meta_file.exists():
-            with open(meta_file) as f:
+            with meta_file.open() as f:
                 meta = json.load(f)
-            
+
             # Assert critical cache properties
             assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
             assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
             assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
             assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
-            
+
             # Validate channels - support both old and new key
             if 'channels' in meta:
-                assert meta['channels'] == CHANNELS_TUEV_20, (
-                    f"Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
-                )
+                assert (
+                    meta['channels'] == CHANNELS_TUEV_20
+                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
             elif 'channels20' in meta:  # Backward compat
                 logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
-                assert meta['channels20'] == CHANNELS_TUEV_20, (
-                    f"Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
-                )
-            
-            logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}")
+                assert (
+                    meta['channels20'] == CHANNELS_TUEV_20
+                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+
+            logger.info(
+                f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}"
+            )
         else:
             logger.warning(f"META.json not found at {meta_file} - cache may be outdated")
 
@@ -134,7 +133,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
     def _build_cache(self) -> None:
         """Build preprocessed cache with MNE+Autoreject.
-        
+
         NOTE: This requires the TUEVPreprocessor module which is not currently
         implemented. Use pre-built cache instead.
         """
@@ -169,7 +168,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Parse annotations from .lab files
         for lab_file in lab_files:
-            with open(lab_file) as f:
+            with lab_file.open() as f:
                 for line in f:
                     if line.strip():
                         parts = line.strip().split()
