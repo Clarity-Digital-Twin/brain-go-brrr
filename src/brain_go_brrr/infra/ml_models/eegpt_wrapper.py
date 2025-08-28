@@ -131,7 +131,7 @@ class EEGPTWrapper(nn.Module):
         # Check if data is already normalized (from dataset)
         data_mean = x.mean().item()
         data_std = x.std().item()
-        
+
         if self.normalize:
             # Only normalize if data is NOT already normalized
             if abs(data_mean) < 0.05 and 0.8 < data_std < 1.2:

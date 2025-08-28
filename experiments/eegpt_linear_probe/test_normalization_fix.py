@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Quick test to verify normalization is working."""
 
-import torch
 import numpy as np
-from pathlib import Path
 
 # Test the normalization logic
 print("Testing normalization fix...")
@@ -14,7 +12,7 @@ print(f"Simulated MNE data: mean={fake_mne_data.mean():.2e}, std={fake_mne_data.
 
 # Apply the fix
 epoch_mean = fake_mne_data.mean()
-epoch_std = fake_mne_data.std() 
+epoch_std = fake_mne_data.std()
 normalized = (fake_mne_data - epoch_mean) / (epoch_std + 1e-8)
 
 print(f"After normalization: mean={normalized.mean():.2e}, std={normalized.std():.2e}")

@@ -39,13 +39,13 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
     LABEL_MAP = {"normal": 0, "abnormal": 1}
 
-    # Standard EEGPT channels (20 channels) - using modern T7/T8/P7/P8 naming
+    # TUAB uses exactly 19 channels (NO FZ!) per EEGPT paper
     STANDARD_CHANNELS = [
         "FP1",
         "FP2",
         "F7",
         "F3",
-        "FZ",
+        # NO FZ for TUAB!
         "F4",
         "F8",
         "T7",  # Modern name for T3
@@ -59,8 +59,8 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         "P4",
         "P8",  # Modern name for T6
         "O1",
+        "OZ",  # Keep OZ - TUAB has 19 channels (all except FZ)
         "O2",
-        "OZ",  # EEGPT uses OZ
     ]
 
     # Channel name mapping for different naming conventions
@@ -70,7 +70,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         "EEG FP2-REF": "FP2",
         "EEG F7-REF": "F7",
         "EEG F3-REF": "F3",
-        "EEG FZ-REF": "FZ",
+        # "EEG FZ-REF": "FZ",  # REMOVED: TUAB doesn't use FZ
         "EEG F4-REF": "F4",
         "EEG F8-REF": "F8",
         "EEG T3-REF": "T3",
@@ -130,10 +130,10 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         root_dir: Path,
         split: str = "train",
         sampling_rate: int = 256,
-        window_duration: float = 30.0,
-        window_stride: float = 30.0,
+        window_duration: float = 4.0,  # EEGPT requires 4-second windows
+        window_stride: float = 4.0,  # Non-overlapping 4s windows
         preload: bool = False,
-        normalize: bool = True,
+        normalize: bool = False,  # NORMALIZATION IN WRAPPER ONLY!
         cache_dir: Path | None = None,
     ) -> None:
         """Initialize TUAB dataset.
@@ -159,6 +159,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         self.preload = preload
         self.normalize = normalize
         self.cache_dir = cache_dir
+        
+        # CRITICAL ASSERTIONS for EEGPT compatibility
+        assert self.window_samples == 1024, f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
+        assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
+        assert len(self.STANDARD_CHANNELS) == 19, f"TUAB requires exactly 19 channels, got {len(self.STANDARD_CHANNELS)}"
 
         # Set MNE log level to reduce spam
         import mne
@@ -388,6 +393,13 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Normalize if requested
         if self.normalize:
+            # DEPRECATED: Normalization should happen in wrapper only!
+            import warnings
+            warnings.warn(
+                "Dataset normalization is deprecated. Use wrapper normalization instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
             mean = window.mean(axis=1, keepdims=True)
             std = window.std(axis=1, keepdims=True) + 1e-6
             window = (window - mean) / std

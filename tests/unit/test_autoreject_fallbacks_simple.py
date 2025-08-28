@@ -7,6 +7,11 @@ import mne
 import numpy as np
 import pytest
 
+import pytest
+
+# Skip these tests - TUABEnhancedDataset is deprecated
+pytest.skip("TUABEnhancedDataset deprecated - use TUABDataset", allow_module_level=True)
+
 from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
 
 

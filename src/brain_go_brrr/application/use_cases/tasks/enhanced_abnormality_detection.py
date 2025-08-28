@@ -15,6 +15,7 @@ from typing import Any, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
+
 # import pytorch_lightning as pl  # REMOVED: Lightning has critical bugs with large datasets
 import torch
 import torch.nn as nn
@@ -79,7 +80,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         """Initialize enhanced abnormality detection module."""
         super().__init__()
         # self.save_hyperparameters(ignore=["probe"])  # Lightning-specific, removed
-        
+
         # Store hyperparameters manually (replacing Lightning's save_hyperparameters)
         self.hparams = {
             "checkpoint_path": checkpoint_path,
