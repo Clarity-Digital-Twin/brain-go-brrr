@@ -7,6 +7,8 @@ from pathlib import Path
 from rich.console import Console
 from rich.logging import RichHandler
 
+from brain_go_brrr.utils.logging_utils import add_path_masking
+
 
 def get_logger(
     name: str, level: str = "INFO", log_file: Path | None = None, rich_console: bool = True
@@ -61,5 +63,8 @@ def get_logger(
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
+
+    # Always attach path masking filter (safety net). Can be disabled via BGBR_DEBUG=1.
+    add_path_masking(logger)
 
     return logger

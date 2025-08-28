@@ -5,11 +5,13 @@ Following Clean Code principles - single source of truth for time operations.
 
 from datetime import datetime
 
-# Python 3.11+ has UTC constant, older versions use timezone.utc
+# Python 3.11+ has UTC constant; older versions use timezone.utc
 try:
     from datetime import UTC
-except ImportError:
-    UTC = UTC
+except Exception:  # Python < 3.11
+    from datetime import timezone
+
+    UTC = timezone.utc
 
 
 def utc_now() -> datetime:
