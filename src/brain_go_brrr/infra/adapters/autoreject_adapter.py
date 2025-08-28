@@ -5,7 +5,6 @@ allowing the domain to use AutoReject without depending on it.
 """
 
 import logging
-from pathlib import Path
 from typing import Any
 
 from brain_go_brrr._typing import MNEEpochs

@@ -4,7 +4,8 @@ DEPRECATED: Use brain_go_brrr.infra.data.tuev_dataset directly.
 """
 
 import warnings
-from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset, CLASS_MAPPING
+
+from brain_go_brrr.infra.data.tuev_dataset import CLASS_MAPPING, TUEVMNEDataset
 
 warnings.warn(
     "experiments/eegpt_linear_probe/datasets/tuev_mne_dataset.py is deprecated. "

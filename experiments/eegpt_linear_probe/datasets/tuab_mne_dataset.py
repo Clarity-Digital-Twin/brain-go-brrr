@@ -4,6 +4,7 @@ DEPRECATED: Use brain_go_brrr.infra.data.tuab_dataset directly.
 """
 
 import warnings
+
 from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
 
 warnings.warn(

@@ -3,8 +3,11 @@
 This module provides a compatibility layer that matches the old EEGPTModel API
 while using the new EEGPTWrapper internally. This allows gradual migration
 without breaking existing code.
+
+DEPRECATED: Use brain_go_brrr.infra.ml_models.eegpt_wrapper directly.
 """
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,6 +18,12 @@ import torch
 
 from brain_go_brrr._typing import MNERaw
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
+
+warnings.warn(
+    "eegpt_compat is deprecated. Import from eegpt_wrapper directly.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 @dataclass
