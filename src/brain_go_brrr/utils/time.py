@@ -3,13 +3,14 @@
 Following Clean Code principles - single source of truth for time operations.
 """
 
-import sys
 from datetime import datetime, timezone
 
-# Python 3.11+ has UTC constant; older versions use timezone.utc
-if sys.version_info >= (3, 11):  # noqa: UP036
+# Python 3.11+ has UTC constant in datetime module
+# We support Python >=3.11 per pyproject.toml
+try:
     from datetime import UTC
-else:
+except ImportError:  # pragma: no cover
+    # Fallback for Python 3.11.0-3.11.8 (UTC added in 3.11.9)
     UTC = timezone.utc
 
 
