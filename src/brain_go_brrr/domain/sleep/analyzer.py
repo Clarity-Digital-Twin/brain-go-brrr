@@ -15,8 +15,7 @@ import pandas as pd
 from brain_go_brrr._typing import MNERaw, StrArray
 from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 
-# Remove sys.path hack - use installed yasa instead
-# sys.path.insert(0, str(Path(__file__).parent.parent / "reference_repos" / "yasa"))
+# Use installed yasa from pyproject.toml dependencies
 
 try:
     import yasa

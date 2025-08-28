@@ -16,7 +16,6 @@ from typing import Any, TypedDict, cast
 import numpy as np
 import numpy.typing as npt
 
-# import pytorch_lightning as pl  # REMOVED: Lightning has critical bugs with large datasets
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
