@@ -66,6 +66,23 @@ repos:
       #   pass_filenames: false
       #   always_run: true
 
+      # CRITICAL: Prevent parallel implementations (the AUROC=0.50 disaster)
+      - id: no-parallel-impl
+        name: no-parallel-implementations
+        entry: .ci/check_no_parallel_impl.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        files: ^experiments/.*\.py$
+
+      # Prevent sys.path.insert hacks
+      - id: no-sys-path
+        name: no-sys-path-insert
+        entry: bash -c 'if grep -r "sys\.path\.insert" experiments/ --include="*.py" 2>/dev/null | grep -v "^#"; then echo "❌ sys.path.insert found in experiments!"; exit 1; fi || echo "✅ No sys.path hacks"'
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets
   #   rev: v1.4.0
