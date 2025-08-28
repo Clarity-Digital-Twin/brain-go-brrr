@@ -298,10 +298,10 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         if scheduler_type == "onecycle":
             sched = OneCycleLR(
                 optimizer,
-                max_lr=self.hparams.get("learning_rate", 1e-3),
-                total_steps=int(self.trainer.estimated_stepping_batches),
-                pct_start=self.hparams.get("warmup_epochs", 5)
-                / max(1, self.hparams.get("total_epochs", 50)),
+                max_lr=float(self.hparams.get("learning_rate", 1e-3)),  # type: ignore[arg-type]
+                total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[union-attr,arg-type]
+                pct_start=float(self.hparams.get("warmup_epochs", 5))  # type: ignore[arg-type]
+                / max(1, int(self.hparams.get("total_epochs", 50))),  # type: ignore[call-overload]
                 anneal_strategy="cos",
                 div_factor=25,  # Initial lr = max_lr / 25
                 final_div_factor=1000,  # Final lr = max_lr / 1000
@@ -313,7 +313,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
-                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6
+                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6  # type: ignore[union-attr,arg-type]
             )
             return [optimizer], [sched]
 
@@ -348,11 +348,11 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
                         layer_params.append(param)
 
                 if layer_params:
-                    lr_scale = self.hparams.get("layer_decay", 0.75) ** (11 - layer_id)
+                    lr_scale = float(self.hparams.get("layer_decay", 0.75)) ** (11 - layer_id)  # type: ignore[arg-type]
                     param_groups.append(
                         {
                             "params": layer_params,
-                            "lr": self.hparams.get("learning_rate", 1e-3) * lr_scale,
+                            "lr": float(self.hparams.get("learning_rate", 1e-3)) * lr_scale,  # type: ignore[arg-type]
                             "weight_decay": self.hparams.get("weight_decay", 0.01),
                             "name": f"backbone_layer_{layer_id}",
                         }

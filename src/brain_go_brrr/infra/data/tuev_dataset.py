@@ -102,8 +102,13 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
             assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
             
-            # Validate channels match TUEV expected channels
-            if 'channels20' in meta:
+            # Validate channels - support both old and new key
+            if 'channels' in meta:
+                assert meta['channels'] == CHANNELS_TUEV_20, (
+                    f"Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                )
+            elif 'channels20' in meta:  # Backward compat
+                logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
                 assert meta['channels20'] == CHANNELS_TUEV_20, (
                     f"Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
                 )
@@ -143,7 +148,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         """Get list of EDF files for this split."""
         return sorted(self.split_dir.glob('**/*.edf'))
 
-    def _load_annotations(self, edf_path: Path) -> list[dict]:
+    def _load_annotations(self, edf_path: Path) -> list[dict[str, Any]]:
         """Load and parse TUEV annotations from .lab files.
 
         Args:
@@ -152,7 +157,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         Returns:
             List of annotation dicts with 'start', 'end', 'label' keys
         """
-        annotations = []
+        annotations: list[dict[str, Any]] = []
 
         # Find corresponding .lab files (one per channel)
         base_name = edf_path.stem

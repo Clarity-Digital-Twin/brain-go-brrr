@@ -154,8 +154,13 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
                 assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
                 
-                # Validate channels match TUAB expected channels
-                if 'channels19' in meta:
+                # Validate channels - support both old and new key
+                if 'channels' in meta:
+                    assert meta['channels'] == CHANNELS_TUAB_19, (
+                        f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    )
+                elif 'channels19' in meta:  # Backward compat
+                    logger.warning("META.json uses deprecated 'channels19' key, should use 'channels'")
                     assert meta['channels19'] == CHANNELS_TUAB_19, (
                         f"Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
                     )
@@ -433,7 +438,8 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                         "sr": 256,
                         "unit": "mV",
                         "window": 1024,
-                        "channels19": CHANNELS_TUAB_19,
+                        "channels": CHANNELS_TUAB_19,
+                        "n_channels": 19,
                         "norm": "wrapper",
                         "commit": commit,
                         "split": self.split,
