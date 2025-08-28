@@ -15,7 +15,7 @@ from typing import Any, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
-import pytorch_lightning as pl
+# import pytorch_lightning as pl  # REMOVED: Lightning has critical bugs with large datasets
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
@@ -48,7 +48,7 @@ class HParams(TypedDict, total=False):
     max_epochs: int
 
 
-class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
+class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.LightningModule
     """Enhanced Lightning module for EEGPT abnormality detection.
 
     Improvements:
@@ -152,7 +152,9 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return cast("torch.Tensor", logits)
 
-    def training_step(
+    # REMOVED: Lightning-specific training methods
+    # Use plain PyTorch training loop instead
+    def training_step_deprecated(
         self,
         batch: tuple[torch.Tensor, torch.Tensor],
         batch_idx: int,  # noqa: ARG002
@@ -189,7 +191,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return cast("torch.Tensor", loss)
 
-    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step_deprecated(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Validation step."""
         _ = batch_idx  # Required by PyTorch Lightning interface
         x, y = batch
@@ -266,7 +268,7 @@ class EnhancedAbnormalityDetectionProbe(pl.LightningModule):
 
         return metrics
 
-    def configure_optimizers(self) -> Any:
+    def configure_optimizers_deprecated(self) -> Any:
         """Configure optimizer with layer decay and scheduler."""
         from torch.optim.lr_scheduler import CosineAnnealingLR
 
