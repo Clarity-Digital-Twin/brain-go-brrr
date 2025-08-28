@@ -63,7 +63,6 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
         )
 
-
         # Load or build cache
         if force_rebuild or not self._cache_exists():
             logger.info(f"Cache not found or rebuild forced. Building cache at {self.cache_dir}")
@@ -101,16 +100,18 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
             # Validate channels - support both old and new key
             if 'channels' in meta:
-                assert meta['channels'] == CHANNELS_TUEV_20, (
-                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
-                )
+                assert (
+                    meta['channels'] == CHANNELS_TUEV_20
+                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
             elif 'channels20' in meta:  # Backward compat
                 logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
-                assert meta['channels20'] == CHANNELS_TUEV_20, (
-                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
-                )
+                assert (
+                    meta['channels20'] == CHANNELS_TUEV_20
+                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
 
-            logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}")
+            logger.info(
+                f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}"
+            )
         else:
             logger.warning(f"META.json not found at {meta_file} - cache may be outdated")
 
@@ -131,7 +132,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
     def _build_cache(self) -> None:
         """Build preprocessed cache with MNE+Autoreject.
-        
+
         NOTE: This requires the TUEVPreprocessor module which is not currently
         implemented. Use pre-built cache instead.
         """

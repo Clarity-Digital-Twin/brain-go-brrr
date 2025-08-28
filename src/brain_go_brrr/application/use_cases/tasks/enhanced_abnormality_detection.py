@@ -203,7 +203,9 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         return cast("torch.Tensor", loss)
 
-    def validation_step_deprecated(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step_deprecated(
+        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Validation step."""
         _ = batch_idx  # Required by PyTorch Lightning interface
         x, y = batch
@@ -313,7 +315,9 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
-                optimizer, T_max=int(self.trainer.estimated_stepping_batches), eta_min=1e-6  # type: ignore[union-attr,arg-type]
+                optimizer,
+                T_max=int(self.trainer.estimated_stepping_batches),
+                eta_min=1e-6,  # type: ignore[union-attr,arg-type]
             )
             return [optimizer], [sched]
 

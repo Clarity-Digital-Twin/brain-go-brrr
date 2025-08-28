@@ -74,7 +74,7 @@ def train_epoch(
     scheduler: OneCycleLR,
     criterion: nn.Module,
     device: torch.device,
-    epoch: int
+    epoch: int,
 ) -> tuple[float, float]:
     """Train for one epoch."""
     probe.train()
@@ -139,7 +139,7 @@ def evaluate(
     probe: nn.Module,
     eval_loader: DataLoader,
     criterion: nn.Module,
-    device: torch.device
+    device: torch.device,
 ) -> tuple[float, float, list[float], list[float]]:
     """Evaluate model."""
     probe.eval()

@@ -143,6 +143,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         # Validate cache META.json if cache_dir exists
         if self.cache_dir and self.cache_dir.exists():
             import json
+
             meta_file = self.cache_dir / "META.json"
             if meta_file.exists():
                 with open(meta_file) as f:
@@ -156,23 +157,33 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
                 # Validate channels - support both old and new key
                 if 'channels' in meta:
-                    assert meta['channels'] == CHANNELS_TUAB_19, (
-                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
-                    )
+                    assert (
+                        meta['channels'] == CHANNELS_TUAB_19
+                    ), "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
                 elif 'channels19' in meta:  # Backward compat
-                    logger.warning("META.json uses deprecated 'channels19' key, should use 'channels'")
-                    assert meta['channels19'] == CHANNELS_TUAB_19, (
-                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    logger.warning(
+                        "META.json uses deprecated 'channels19' key, should use 'channels'"
                     )
+                    assert (
+                        meta['channels19'] == CHANNELS_TUAB_19
+                    ), "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
 
-                logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}")
+                logger.info(
+                    f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}"
+                )
             else:
-                logger.info(f"No META.json found in cache dir {self.cache_dir} - will create on first write")
+                logger.info(
+                    f"No META.json found in cache dir {self.cache_dir} - will create on first write"
+                )
 
         # CRITICAL ASSERTIONS for EEGPT compatibility
-        assert self.window_samples == 1024, f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
+        assert (
+            self.window_samples == 1024
+        ), f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
         assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
-        assert len(CHANNELS_TUAB_19) == 19, f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
+        assert (
+            len(CHANNELS_TUAB_19) == 19
+        ), f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
 
         # Set MNE log level to reduce spam
         import mne
@@ -410,10 +421,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         if self.normalize:
             # DEPRECATED: Normalization should happen in wrapper only!
             import warnings
+
             warnings.warn(
                 "Dataset normalization is deprecated. Use wrapper normalization instead.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             mean = window.mean(axis=1, keepdims=True)
             std = window.std(axis=1, keepdims=True) + 1e-6
@@ -433,8 +445,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 if not meta_file.exists():
                     import json
                     import subprocess
+
                     try:
-                        commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()[:8]
+                        commit = subprocess.check_output(
+                            ['git', 'rev-parse', 'HEAD'], text=True
+                        ).strip()[:8]
                     except Exception:
                         commit = 'unknown'
 
@@ -447,7 +462,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                         "norm": "wrapper",
                         "commit": commit,
                         "split": self.split,
-                        "dataset": "TUAB"
+                        "dataset": "TUAB",
                     }
                     with open(meta_file, 'w') as f:
                         json.dump(meta_data, f, indent=2)

@@ -5,29 +5,77 @@ CRITICAL: These are the ONLY valid channel configurations.
 - TUEV: 20 channels (with Fz, no Fpz)
 """
 
-
 # TUAB standard: 19 channels (NO Fz) per EEGPT paper
 CHANNELS_TUAB_19 = [
-    "FP1", "FP2", "F7", "F3", "F4", "F8",  # Frontal (no Fz!)
-    "T7", "C3", "CZ", "C4", "T8",  # Central/Temporal
-    "P7", "P3", "PZ", "P4", "P8",  # Parietal
-    "O1", "OZ", "O2",  # Occipital
+    "FP1",
+    "FP2",
+    "F7",
+    "F3",
+    "F4",
+    "F8",  # Frontal (no Fz!)
+    "T7",
+    "C3",
+    "CZ",
+    "C4",
+    "T8",  # Central/Temporal
+    "P7",
+    "P3",
+    "PZ",
+    "P4",
+    "P8",  # Parietal
+    "O1",
+    "OZ",
+    "O2",  # Occipital
 ]
 
 # TUEV standard: 20 channels (WITH Fz, NO Fpz) per Table 13
 CHANNELS_TUEV_20 = [
-    "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",  # Frontal (with Fz!)
-    "T7", "C3", "CZ", "C4", "T8",  # Central/Temporal
-    "P7", "P3", "PZ", "P4", "P8",  # Parietal
-    "O1", "O2",  # Occipital (no Oz for TUEV)
+    "FP1",
+    "FP2",
+    "F7",
+    "F3",
+    "FZ",
+    "F4",
+    "F8",  # Frontal (with Fz!)
+    "T7",
+    "C3",
+    "CZ",
+    "C4",
+    "T8",  # Central/Temporal
+    "P7",
+    "P3",
+    "PZ",
+    "P4",
+    "P8",  # Parietal
+    "O1",
+    "O2",  # Occipital (no Oz for TUEV)
 ]
 
 # Full 10-20 system for reference
 CHANNELS_10_20_FULL = [
-    "FP1", "FPZ", "FP2", "F7", "F3", "FZ", "F4", "F8",
-    "T3", "C3", "CZ", "C4", "T4",
-    "T5", "P3", "PZ", "P4", "T6",
-    "O1", "OZ", "O2", "A1", "A2",
+    "FP1",
+    "FPZ",
+    "FP2",
+    "F7",
+    "F3",
+    "FZ",
+    "F4",
+    "F8",
+    "T3",
+    "C3",
+    "CZ",
+    "C4",
+    "T4",
+    "T5",
+    "P3",
+    "PZ",
+    "P4",
+    "T6",
+    "O1",
+    "OZ",
+    "O2",
+    "A1",
+    "A2",
 ]
 
 # Modern naming (T3→T7, T4→T8, T5→P7, T6→P8)
@@ -46,12 +94,12 @@ CHANNEL_ALIASES = {
 
 def validate_channels(channels: list[str], expected: list[str], dataset_name: str) -> None:
     """Validate channels match expected configuration exactly.
-    
+
     Args:
         channels: Actual channel names
-        expected: Expected channel configuration  
+        expected: Expected channel configuration
         dataset_name: Name for error messages
-        
+
     Raises:
         ValueError: If channels don't match exactly
     """
@@ -76,18 +124,17 @@ def validate_channels(channels: list[str], expected: list[str], dataset_name: st
 
 
 def map_channels_to_indices(
-    source_channels: list[str],
-    target_channels: list[str]
+    source_channels: list[str], target_channels: list[str]
 ) -> dict[int, int]:
     """Map source channel indices to target channel indices.
-    
+
     Args:
         source_channels: Channel names in source data
         target_channels: Target channel configuration
-        
+
     Returns:
         Dict mapping source index -> target index
-        
+
     Raises:
         ValueError: If required channels are missing
     """

@@ -214,17 +214,23 @@ class TUEVPreprocessor(TUABPreprocessor):
                 )
             elif len(available_standard) > 20:
                 # Drop any extra channels not in standard list
-                available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in available_standard]
+                available_standard = [
+                    ch for ch in self.STANDARD_CHANNELS if ch in available_standard
+                ]
                 if len(available_standard) != 20:
                     raise ValueError(
                         f"Could not get exactly 20 standard channels. Got {len(available_standard)}"
                     )
 
         # Final sanity check - MUST be exactly 20 channels for TUEV
-        assert len(available_standard) == 20, f"TUEV must have exactly 20 channels, got {len(available_standard)}"
+        assert (
+            len(available_standard) == 20
+        ), f"TUEV must have exactly 20 channels, got {len(available_standard)}"
 
         raw.pick(available_standard)
-        logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 20 for TUEV)")
+        logger.info(
+            f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 20 for TUEV)"
+        )
 
         return raw
 
