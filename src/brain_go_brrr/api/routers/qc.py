@@ -107,7 +107,9 @@ async def analyze_eeg(
         cached_result = cache_client.get(cache_key)
 
         if cached_result:
-            logger.info(f"Returning cached result for {mask_path_for_log(edf_file.filename or 'unknown')}")
+            logger.info(
+                f"Returning cached result for {mask_path_for_log(edf_file.filename or 'unknown')}"
+            )
             # Convert cached dict back to QCResponse
             cached_result["cached"] = True
             return QCResponse(**cached_result)
