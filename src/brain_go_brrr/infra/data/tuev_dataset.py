@@ -91,6 +91,28 @@ class TUEVMNEDataset(Dataset):
 
         with open(index_file) as f:
             self.index = json.load(f)
+        
+        # Validate META.json cache contract
+        meta_file = self.cache_dir / "META.json"
+        if meta_file.exists():
+            with open(meta_file) as f:
+                meta = json.load(f)
+            
+            # Assert critical cache properties
+            assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
+            assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
+            assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
+            assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
+            
+            # Validate channels match TUEV expected channels
+            if 'channels20' in meta:
+                assert meta['channels20'] == CHANNELS_TUEV_20, (
+                    f"Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                )
+            
+            logger.info(f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}")
+        else:
+            logger.warning(f"META.json not found at {meta_file} - cache may be outdated")
 
         # Create flat list of samples
         self.samples = []
@@ -272,10 +294,32 @@ class TUEVMNEDataset(Dataset):
         with open(index_file, 'w') as f:
             json.dump(cache_index, f, indent=2)
 
+        # Save META.json for cache contract validation
+        import subprocess
+        try:
+            commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()[:8]
+        except Exception:
+            commit = 'unknown'
+        
+        meta_file = self.cache_dir / "META.json"
+        meta_data = {
+            "sr": 256,
+            "unit": "mV",
+            "window": 1024,
+            "channels20": CHANNELS_TUEV_20,
+            "norm": "wrapper",
+            "commit": commit,
+            "split": self.split,
+            "version": self.CACHE_VERSION
+        }
+        with open(meta_file, 'w') as f:
+            json.dump(meta_data, f, indent=2)
+
         logger.info(
             f"Cache build complete: {cache_index['total_windows']} windows from {cache_index['n_files']} files"
         )
         logger.info(f"Class distribution: {cache_index['class_counts']}")
+        logger.info(f"META.json written with commit {commit}")
 
     def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""
