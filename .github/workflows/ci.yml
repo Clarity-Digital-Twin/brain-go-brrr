@@ -138,33 +138,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y poppler-utils fonts-dejavu-core
 
-      # DEVELOPMENT: Quick tests only
-      - name: Run quick tests (development)
-        if: github.ref == 'refs/heads/development'
+      # DEVELOPMENT & PR: Quick tests only
+      - name: Run quick tests
+        if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request'
         run: |
-          echo "Running fast tests using Makefile..."
+          echo "Running fast tests..."
           make test
 
-      # STAGING: Standard tests with coverage
-      - name: Run standard tests with coverage (staging)
-        if: github.ref == 'refs/heads/staging'
-        run: |
-          echo "Running test suite with coverage..."
-          make test-all-cov
-
-      # MAIN: Full test suite with coverage
-      - name: Run full tests with coverage (main)
-        if: github.ref == 'refs/heads/main'
+      # MAIN/STAGING: Full test suite with coverage
+      - name: Run full tests with coverage
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
         run: |
           echo "Running full test suite with coverage..."
           make test-all-cov
-
-      # PR: Standard tests
-      - name: Run PR tests
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "Running PR test suite..."
-          make test
 
       # Coverage upload disabled (using make test without coverage for now)
       # - name: Upload coverage
