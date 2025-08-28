@@ -13,6 +13,8 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20, validate_channels
+
 logger = logging.getLogger(__name__)
 
 # The 6 TUEV classes
@@ -183,10 +185,6 @@ class TUEVMNEDataset(Dataset):
                     
                     # NO NORMALIZATION HERE! Done in wrapper only
                     # MNE outputs in Volts - keep as-is for cache
-                    # epoch_mean = epoch_data.mean()
-                    # epoch_std = epoch_data.std()
-                    # epoch_data = (epoch_data - epoch_mean) / (epoch_std + 1e-8)
-                    # logger.info(f"Normalized: mean={epoch_mean:.2e}→0, std={epoch_std:.2e}→1")
 
                     # CRITICAL: Enforce exactly 20 channels for TUEV
                     expected_channels = 20  # TUEV uses 20 channels (with Fz, without Fpz)

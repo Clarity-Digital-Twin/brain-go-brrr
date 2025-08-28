@@ -15,6 +15,8 @@ import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, validate_channels
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,28 +42,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
     LABEL_MAP = {"normal": 0, "abnormal": 1}
 
     # TUAB uses exactly 19 channels (NO FZ!) per EEGPT paper
-    STANDARD_CHANNELS = [
-        "FP1",
-        "FP2",
-        "F7",
-        "F3",
-        # NO FZ for TUAB!
-        "F4",
-        "F8",
-        "T7",  # Modern name for T3
-        "C3",
-        "CZ",
-        "C4",
-        "T8",  # Modern name for T4
-        "P7",  # Modern name for T5
-        "P3",
-        "PZ",
-        "P4",
-        "P8",  # Modern name for T6
-        "O1",
-        "OZ",  # Keep OZ - TUAB has 19 channels (all except FZ)
-        "O2",
-    ]
+    STANDARD_CHANNELS = CHANNELS_TUAB_19
 
     # Channel name mapping for different naming conventions
     CHANNEL_MAPPING = {
