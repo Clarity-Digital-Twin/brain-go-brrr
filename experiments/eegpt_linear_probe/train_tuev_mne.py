@@ -8,7 +8,6 @@ Expected: 62.32% balanced accuracy, 81.87% weighted F1, 0.635 Cohen's kappa.
 import argparse
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -20,12 +19,9 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Add parent dir to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
-from experiments.eegpt_linear_probe.datasets.tuev_mne_dataset import TUEVMNEDataset
-from experiments.eegpt_linear_probe.utils.collate_tuev import collate_tuev_batch
+from brain_go_brrr.utils import collate_tuev_batch
 
 # Configure logging
 logging.basicConfig(

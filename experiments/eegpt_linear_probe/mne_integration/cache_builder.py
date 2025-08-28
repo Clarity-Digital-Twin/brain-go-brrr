@@ -6,13 +6,9 @@ This script preprocesses all TUAB EDF files with MNE+Autoreject and saves them t
 
 import argparse
 import logging
-import sys
 from pathlib import Path
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-
-from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
+from brain_go_brrr.infra.data.tuab_dataset import TUABDataset as TUABMNEDataset
 
 # Configure logging
 logging.basicConfig(

@@ -9,7 +9,6 @@ import argparse
 import logging
 import os
 import re
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -22,12 +21,9 @@ from torch.optim.lr_scheduler import OneCycleLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-# Add parent dir to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from brain_go_brrr.infra.data.tuab_dataset import TUABDataset as TUABMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
-from experiments.eegpt_linear_probe.datasets.tuab_mne_dataset import TUABMNEDataset
-from experiments.eegpt_linear_probe.utils.collate_tuab import collate_tuab_batch
+from brain_go_brrr.utils import collate_tuab_batch
 
 # Configure logging
 logging.basicConfig(

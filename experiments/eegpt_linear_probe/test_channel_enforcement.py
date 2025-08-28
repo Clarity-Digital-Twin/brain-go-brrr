@@ -20,7 +20,7 @@ def test_channel_specs():
     print("✅ TUAB Preprocessor: 19 channels (no Fz)")
 
     # Test TUEV preprocessor
-    from mne_integration.tuev_preprocessor import TUEVPreprocessor
+    from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
 
     tuev_proc = TUEVPreprocessor()
     assert (

@@ -6,9 +6,6 @@ Test TUEV implementation to verify all phases are working correctly.
 import sys
 from pathlib import Path
 
-# Add parent directories to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 
 def test_phase1_bugs_fixed():
     """Test that Phase 1 critical bugs are fixed."""
@@ -48,7 +45,7 @@ def test_phase2_windowing():
     """Test that Phase 2 fixed-grid windowing is implemented."""
     print("=== Testing Phase 2: Fixed-Grid Windowing ===")
 
-    from experiments.eegpt_linear_probe.mne_integration.tuev_preprocessor import TUEVPreprocessor
+    from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
 
     preprocessor = TUEVPreprocessor()
 
@@ -95,7 +92,7 @@ def test_phase3_preprocessing():
     print("✓ Functional mne.set_eeg_reference() form used")
 
     # Check gentle AR parameters
-    from experiments.eegpt_linear_probe.mne_integration.tuev_preprocessor import TUEVPreprocessor
+    from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
 
     preprocessor = TUEVPreprocessor()
 
@@ -112,7 +109,6 @@ def test_cache_validation():
     print("=== Testing Cache Validation (Smoke Tests) ===")
 
     # Import required modules
-    from pathlib import Path
 
     import torch
 
