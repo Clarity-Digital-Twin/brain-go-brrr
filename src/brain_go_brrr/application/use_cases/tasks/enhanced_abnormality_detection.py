@@ -283,46 +283,8 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         return metrics
 
-    def configure_optimizers_deprecated(self) -> Any:
-        """Configure optimizer with layer decay and scheduler."""
-        from torch.optim.lr_scheduler import CosineAnnealingLR
-
-        # Build parameter groups with layer decay
-        param_groups = self._get_param_groups()
-
-        # Create optimizer
-        optimizer = AdamW(param_groups, eps=1e-8, betas=(0.9, 0.999))
-
-        # Create scheduler based on type
-        scheduler_type = self.hparams.get("scheduler_type", "none")
-
-        sched: Any
-        if scheduler_type == "onecycle":
-            sched = OneCycleLR(
-                optimizer,
-                max_lr=float(self.hparams.get("learning_rate", 1e-3)),  # type: ignore[arg-type]
-                total_steps=1000,  # Placeholder - method is deprecated and unused
-                pct_start=float(self.hparams.get("warmup_epochs", 5))  # type: ignore[arg-type]
-                / max(1, int(self.hparams.get("total_epochs", 50))),  # type: ignore[call-overload]
-                anneal_strategy="cos",
-                div_factor=25,  # Initial lr = max_lr / 25
-                final_div_factor=1000,  # Final lr = max_lr / 1000
-            )
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {"scheduler": sched, "interval": "step"},
-            }
-
-        elif scheduler_type == "cosine":
-            sched = CosineAnnealingLR(
-                optimizer,
-                T_max=1000,  # Placeholder - method is deprecated and unused
-                eta_min=1e-6,
-            )
-            return [optimizer], [sched]
-
-        # No scheduler
-        return optimizer
+    # NOTE: Former Lightning-only optimizer config removed.
+    # This module is kept for reference and testing; use pure PyTorch training scripts instead.
 
     def _get_param_groups(self) -> list[dict[str, Any]]:
         """Get parameter groups with layer decay."""

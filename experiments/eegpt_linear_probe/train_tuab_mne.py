@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuab_dataset import TUABDataset as TUABMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
+from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
 from brain_go_brrr.utils import collate_tuab_batch
 
 # Configure logging
@@ -32,34 +33,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class LinearProbe(nn.Module):
-    """Linear probe for binary classification (matching EEGPT paper)."""
-
-    def __init__(self, config: dict[str, Any]) -> None:
-        super().__init__()
-
-        # Two-layer probe using LazyLinear to infer input dimension
-        self.probe = nn.Sequential(
-            nn.LazyLinear(config["model"]["probe"]["hidden_dim"]),
-            nn.ReLU(),
-            nn.Dropout(config["model"]["probe"]["dropout"]),
-            nn.Linear(config["model"]["probe"]["hidden_dim"], 1),  # Binary output
-        )
-
-    def forward(self, features: torch.Tensor) -> torch.Tensor:
-        """Forward pass through probe.
-
-        Args:
-            features: EEGPT features (B, 4, 512) or flattened (B, 2048)
-
-        Returns:
-            Logits for binary classification (B, 1)
-        """
-        # Flatten if needed (B, 4, 512) -> (B, 2048)
-        if features.dim() == 3:
-            features = features.flatten(1)
-
-        return self.probe(features)
+"""
+NOTE: Probe implementation moved to src/brain_go_brrr/infra/ml_models/linear_probe.py
+      This script now uses TwoLayerProbe from src to avoid parallel implementations.
+"""
 
 
 def train_epoch(
@@ -91,6 +68,7 @@ def train_epoch(
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
             features = model.extract_features(x, summary=False)  # (B, 4, 512)
+            features = features.flatten(1)  # match original behavior
 
         # Forward through probe
         logits = probe(features).squeeze(-1)  # (B,)
@@ -150,6 +128,7 @@ def evaluate(
 
             # Extract features
             features = model.extract_features(x, summary=False)
+            features = features.flatten(1)
 
             # Forward through probe
             logits = probe(features).squeeze(-1)
@@ -287,8 +266,13 @@ def main():
     model = model.to(device)
     model.eval()  # Freeze EEGPT backbone
 
-    # Create probe
-    probe = LinearProbe(config).to(device)
+    # Create probe from src to avoid duplication
+    probe = TwoLayerProbe(
+        input_dim=2048,
+        hidden_dim=config["model"]["probe"]["hidden_dim"],
+        output_dim=1,
+        dropout=config["model"]["probe"]["dropout"],
+    ).to(device)
 
     # Setup optimizer
     optimizer = torch.optim.AdamW(

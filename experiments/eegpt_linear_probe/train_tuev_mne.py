@@ -21,6 +21,7 @@ from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
+from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
 from brain_go_brrr.utils import collate_tuev_batch
 
 # Configure logging
@@ -30,44 +31,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class TUEVLinearProbe(nn.Module):
-    """Linear probe for 6-class TUEV event detection (Table 13 architecture)."""
-
-    def __init__(self, config):
-        super().__init__()
-
-        # Channel reduction: 23 → 20 (handled in preprocessing)
-        # Temporal convolution (kernel=55 for TUEV)
-        self.temporal_conv = nn.Conv1d(
-            in_channels=20,  # After channel reduction
-            out_channels=20,
-            kernel_size=config["model"]["temporal_conv"]["kernel_size"],  # 55
-            padding=config["model"]["temporal_conv"]["padding"],  # 27
-            groups=config["model"]["temporal_conv"]["groups"],  # 20 (depthwise)
-        )
-
-        # Classification head
-        self.probe = nn.Sequential(
-            nn.LazyLinear(256),  # Hidden layer
-            nn.ReLU(),
-            nn.Dropout(config["model"]["dropout"]),  # 0.5 for TUEV
-            nn.Linear(256, 6),  # 6 classes
-        )
-
-    def forward(self, features):
-        """Forward pass through probe.
-
-        Args:
-            features: EEGPT features (B, 4, 512) or flattened (B, 2048)
-
-        Returns:
-            Logits for 6-class classification (B, 6)
-        """
-        # Flatten if needed (B, 4, 512) -> (B, 2048)
-        if features.dim() == 3:
-            features = features.flatten(1)
-
-        return self.probe(features)
+"""
+NOTE: Probe implementation moved to src/brain_go_brrr/infra/ml_models/linear_probe.py
+      This script now uses TwoLayerProbe from src to avoid parallel implementations.
+"""
 
 
 def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, device, epoch):
@@ -139,6 +106,7 @@ def evaluate(model, probe, eval_loader, criterion, device):
 
             # Extract features
             features = model.extract_features(x, summary=False)
+            features = features.flatten(1)
 
             # Forward through probe
             logits = probe(features)
@@ -286,8 +254,13 @@ def main():
     model = model.to(device)
     model.eval()  # Freeze EEGPT backbone
 
-    # Create probe
-    probe = TUEVLinearProbe(config).to(device)
+    # Create probe from src to avoid duplication
+    probe = TwoLayerProbe(
+        input_dim=2048,
+        hidden_dim=256,
+        output_dim=6,
+        dropout=config["model"]["dropout"],
+    ).to(device)
 
     # Setup optimizer
     optimizer = torch.optim.AdamW(
