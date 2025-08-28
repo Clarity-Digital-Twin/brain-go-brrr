@@ -1,5 +1,6 @@
 """MNE-Python and Autoreject integration for EEGPT training."""
 
-from .preprocessor import TUABPreprocessor
+# Preprocessors moved to src/brain_go_brrr/infra/preprocessing/
+# This folder now only contains cache building utilities
 
-__all__ = ["TUABPreprocessor"]
+__all__ = []
