@@ -11,7 +11,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
 from brain_go_brrr.api.routers import cache, eegpt, health, jobs, qc, queue, resources, sleep
+import logging
 from brain_go_brrr.infra.logger import get_logger
+from brain_go_brrr.utils.logging_utils import add_path_masking
 
 # Get version from package metadata
 try:
@@ -42,6 +44,15 @@ class NumpyEncoder(json.JSONEncoder):
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: ARG001
     """Manage application lifespan."""
     # Startup
+    # Attach path masking to root and uvicorn loggers as a safety net
+    try:
+        add_path_masking(logging.getLogger())  # root logger
+        add_path_masking(logging.getLogger("uvicorn"))
+        add_path_masking(logging.getLogger("uvicorn.error"))
+        add_path_masking(logging.getLogger("uvicorn.access"))
+    except Exception:
+        pass
+
     logger.info("Starting Brain-Go-Brrr API...")
     # TODO: Initialize services (Redis, model loading, etc.)
 

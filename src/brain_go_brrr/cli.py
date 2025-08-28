@@ -8,6 +8,8 @@ from rich.console import Console
 
 from brain_go_brrr.application.config import Config
 from brain_go_brrr.infra.logger import get_logger
+import logging
+from brain_go_brrr.utils.logging_utils import add_path_masking
 from brain_go_brrr.utils import mask_path_for_log
 
 app = typer.Typer(
@@ -18,6 +20,11 @@ app = typer.Typer(
 
 console = Console()
 logger = get_logger(__name__)
+# Also attach safety-net masking at root in CLI context
+try:
+    add_path_masking(logging.getLogger())
+except Exception:
+    pass
 
 
 @app.command()
