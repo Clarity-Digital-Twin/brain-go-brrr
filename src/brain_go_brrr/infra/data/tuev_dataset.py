@@ -66,8 +66,6 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
         )
 
-        # Check if we need to import preprocessor (only for building)
-        self.preprocessor = None
 
         # Load or build cache
         if force_rebuild or not self._cache_exists():
@@ -130,15 +128,16 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             logger.info(f"Class distribution: {self.index['class_counts']}")
 
     def _build_cache(self) -> None:
-        """Build preprocessed cache with MNE+Autoreject."""
-        # Import here to avoid dependency if just using cache
-        from ..mne_integration.tuev_preprocessor import TUEVPreprocessor  # type: ignore[import-not-found]
-
-        logger.info(f"Building MNE-preprocessed cache for {self.split}...")
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-
-        # Initialize preprocessor
-        self.preprocessor = TUEVPreprocessor()
+        """Build preprocessed cache with MNE+Autoreject.
+        
+        NOTE: This requires the TUEVPreprocessor module which is not currently
+        implemented. Use pre-built cache instead.
+        """
+        raise NotImplementedError(
+            "Building TUEV cache requires TUEVPreprocessor which is not implemented. "
+            "Please use a pre-built cache. The cache_dir parameter should point to "
+            "an existing cache directory with META.json and window files."
+        )
 
         # Get list of EDF files
         edf_files = self._get_edf_files()
