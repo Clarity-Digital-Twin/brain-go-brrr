@@ -58,14 +58,13 @@ class TUEVPreprocessor(TUABPreprocessor):
 
     # Map TUEV channels to standard 20 (dropping A1, A2, FPZ)
     # Also handle old naming (T3→T7, T4→T8, T5→P7, T6→P8)
-    CHANNEL_MAPPING: dict[str, str | None] = {
+    # Override parent class type to allow None values for dropped channels
+    CHANNEL_MAPPING: dict[str, str] = {  # type: ignore[assignment]
         'T3': 'T7',
         'T4': 'T8',
         'T5': 'P7',
         'T6': 'P8',
-        'A1': None,  # Drop reference channels
-        'A2': None,
-        'FPZ': None,  # Drop extra midline channel
+        # Note: A1, A2, FPZ are handled separately in _map_to_standard_channels
     }
 
     # Final 20 channels we want (standard 10-20 WITH Fz, WITHOUT Fpz)
@@ -129,15 +128,12 @@ class TUEVPreprocessor(TUABPreprocessor):
             clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
             clean_name = clean_name.strip().upper()
 
-            # Check if this needs mapping
-            if clean_name in self.CHANNEL_MAPPING:
-                new_name = self.CHANNEL_MAPPING[clean_name]
-                if new_name is None:
-                    # Mark for dropping
-                    channels_to_drop.append(ch_name)
-                else:
-                    # Map to new name
-                    rename_dict[ch_name] = new_name
+            # Check if this needs mapping or dropping
+            if clean_name in ['A1', 'A2']:  # Drop reference channels
+                channels_to_drop.append(ch_name)
+            elif clean_name in self.CHANNEL_MAPPING:
+                # Map to new name (T3->T7, etc.)
+                rename_dict[ch_name] = self.CHANNEL_MAPPING[clean_name]
             else:
                 # Standardize case (FP1 -> Fp1, FZ -> Fz, etc.)
                 if clean_name == 'FP1':
@@ -382,8 +378,8 @@ class TUEVPreprocessor(TUABPreprocessor):
         duration = raw.times[-1]
         step = self.window_duration * (1 - overlap)
 
-        windows = []
-        start = 0
+        windows: list[tuple[float, float]] = []
+        start: float = 0.0
         while start + self.window_duration <= duration:
             windows.append((start, start + self.window_duration))
             start += step
@@ -413,7 +409,7 @@ class TUEVPreprocessor(TUABPreprocessor):
             overlap_duration = max(0.0, float(overlap_end) - float(overlap_start))
 
             if overlap_duration > 0:
-                label = ann['label']
+                label = str(ann['label'])  # Ensure label is always a string
                 if label not in overlaps:
                     overlaps[label] = 0.0
                 overlaps[label] += overlap_duration
