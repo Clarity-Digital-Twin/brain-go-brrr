@@ -1,6 +1,7 @@
 """Command-line interface for Brain Go Brrr."""
 
 import logging
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -21,10 +22,8 @@ app = typer.Typer(
 console = Console()
 logger = get_logger(__name__)
 # Also attach safety-net masking at root in CLI context
-try:
+with suppress(Exception):
     add_path_masking(logging.getLogger())
-except Exception:
-    pass
 
 
 @app.command()
