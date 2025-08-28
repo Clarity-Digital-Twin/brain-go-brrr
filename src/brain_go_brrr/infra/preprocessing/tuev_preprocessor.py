@@ -59,7 +59,7 @@ class TUEVPreprocessor(TUABPreprocessor):
     # Map TUEV channels to standard 20 (dropping A1, A2, FPZ)
     # Also handle old naming (T3→T7, T4→T8, T5→P7, T6→P8)
     # Override parent class type to allow None values for dropped channels
-    CHANNEL_MAPPING: dict[str, str] = {  # type: ignore[assignment]
+    CHANNEL_MAPPING: dict[str, str] = {
         'T3': 'T7',
         'T4': 'T8',
         'T5': 'P7',
@@ -438,7 +438,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Default to background
         return 'bckg'
 
-    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[str, Any]]:  # type: ignore[override]
+    def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[str, Any]]:
         """Apply Autoreject with gentle parameters for TUEV spike preservation.
 
         Args:

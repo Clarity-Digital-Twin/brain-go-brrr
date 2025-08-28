@@ -301,7 +301,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
             sched = OneCycleLR(
                 optimizer,
                 max_lr=float(self.hparams.get("learning_rate", 1e-3)),  # type: ignore[arg-type]
-                total_steps=int(self.trainer.estimated_stepping_batches),  # type: ignore[union-attr,arg-type]
+                total_steps=1000,  # Placeholder - method is deprecated and unused
                 pct_start=float(self.hparams.get("warmup_epochs", 5))  # type: ignore[arg-type]
                 / max(1, int(self.hparams.get("total_epochs", 50))),  # type: ignore[call-overload]
                 anneal_strategy="cos",
@@ -316,7 +316,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         elif scheduler_type == "cosine":
             sched = CosineAnnealingLR(
                 optimizer,
-                T_max=int(self.trainer.estimated_stepping_batches),  # type: ignore[attr-defined]
+                T_max=1000,  # Placeholder - method is deprecated and unused
                 eta_min=1e-6,
             )
             return [optimizer], [sched]
