@@ -146,7 +146,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
             meta_file = self.cache_dir / "META.json"
             if meta_file.exists():
-                with open(meta_file) as f:
+                with meta_file.open() as f:
                     meta = json.load(f)
 
                 # Assert critical cache properties
@@ -464,7 +464,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                         "split": self.split,
                         "dataset": "TUAB",
                     }
-                    with open(meta_file, 'w') as f:
+                    with meta_file.open('w') as f:
                         json.dump(meta_data, f, indent=2)
                     logger.info(f"META.json written to {meta_file}")
 

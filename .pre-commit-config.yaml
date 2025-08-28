@@ -28,9 +28,9 @@ repos:
           - types-redis
           - numpy
           - pydantic>=2.0  # Fix the pydantic issue
-        args: [--ignore-missing-imports, --no-strict-optional, --no-namespace-packages]
-        files: ^(src/brain_go_brrr|experiments)/
-        exclude: ^(tests|archive|reference_repos)/
+        args: [--config-file=mypy.ini]
+        files: ^(src/brain_go_brrr)/
+        exclude: ^(tests|archive|reference_repos|experiments)/
 
   # Architecture enforcement
   - repo: local

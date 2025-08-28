@@ -83,13 +83,13 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         if not index_file.exists():
             raise FileNotFoundError(f"Cache index not found at {index_file}")
 
-        with open(index_file) as f:
+        with index_file.open() as f:
             self.index = json.load(f)
 
         # Validate META.json cache contract
         meta_file = self.cache_dir / "META.json"
         if meta_file.exists():
-            with open(meta_file) as f:
+            with meta_file.open() as f:
                 meta = json.load(f)
 
             # Assert critical cache properties
@@ -167,7 +167,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Parse annotations from .lab files
         for lab_file in lab_files:
-            with open(lab_file) as f:
+            with lab_file.open() as f:
                 for line in f:
                     if line.strip():
                         parts = line.strip().split()
