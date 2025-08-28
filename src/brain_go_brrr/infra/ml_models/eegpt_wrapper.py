@@ -128,19 +128,9 @@ class EEGPTWrapper(nn.Module):
             If return_all_temporal=False: Summary tokens of shape (B, embed_num, embed_dim)
             If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
-        # Check if data is already normalized (from dataset)
-        data_mean = x.mean().item()
-        data_std = x.std().item()
-
         if self.normalize:
-            # Only normalize if data is NOT already normalized
-            if abs(data_mean) < 0.05 and 0.8 < data_std < 1.2:
-                # Data is already N(0,1), skip normalization
-                logger.debug(f"Data already normalized (mean={data_mean:.3f}, std={data_std:.3f}), skipping")
-            else:
-                # Data needs normalization
-                x = (x - self.input_mean) / (self.input_std + 1e-8)
-                logger.debug(f"Normalized data from (mean={data_mean:.6f}, std={data_std:.6f})")
+            # Always normalize - datasets now provide raw mV data
+            x = (x - self.input_mean) / (self.input_std + 1e-8)
 
         # Check if model accepts return_all_temporal parameter
         if self._accepts_param(self.model.forward, 'return_all_temporal'):
