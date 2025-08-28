@@ -7,8 +7,6 @@ import mne
 import numpy as np
 import pytest
 
-import pytest
-
 # Skip these tests - TUABEnhancedDataset is deprecated
 pytest.skip("TUABEnhancedDataset deprecated - use TUABDataset", allow_module_level=True)
 

@@ -68,9 +68,10 @@ def test_snippet_maker_creates_snippets():
 
 def test_tuab_dataset_handles_empty_directory():
     """Test TUAB dataset correctly handles empty directory."""
-    import tempfile
     import shutil
+    import tempfile
     from pathlib import Path
+
     from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
 
     # Create actual temp directory structure
@@ -324,7 +325,7 @@ def test_cached_dataset_loads_from_cache():
         # Write index to temp dir
         index_path = Path(temp_dir) / "tuab_index.json"
         index_path.write_text(json.dumps(index))
-        
+
         # Create required directory structure
         (Path(temp_dir) / "train").mkdir(exist_ok=True)
         (Path(temp_dir) / "train" / "normal").mkdir(exist_ok=True)

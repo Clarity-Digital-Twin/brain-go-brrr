@@ -5,7 +5,6 @@ This service provides sleep stage classification and detailed sleep metrics.
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Any
 
