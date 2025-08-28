@@ -25,8 +25,6 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
 
 from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
