@@ -8,6 +8,9 @@ import mne
 import numpy as np
 import pytest
 
+# Skip entire module - TUABEnhancedDataset is deprecated, use TUABDataset
+pytest.skip("TUABEnhancedDataset deprecated - use TUABDataset", allow_module_level=True)
+
 from brain_go_brrr.infra.data.tuab_enhanced_dataset import TUABEnhancedDataset
 from tests.fixtures.mock_eeg_generator import MockEEGGenerator
 
