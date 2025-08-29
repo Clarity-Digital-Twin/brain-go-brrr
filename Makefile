@@ -174,7 +174,7 @@ validate: ## Full pre-push validation - ensures you stay in banger-town! 🚀
 
 test: ## Run fast tests only (excludes integration, slow, external, gpu)
 	@echo "$(GREEN)Running fast tests...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks --ignore=tests/archive
 
 test-unit: ## Run unit tests only (fast)
 	@echo "$(GREEN)Running unit tests...$(NC)"
@@ -280,11 +280,11 @@ test-perf: ## Run performance benchmarks
 
 test-parallel: ## Run tests in parallel (with xdist)
 	@echo "$(GREEN)Running tests in parallel...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) $(PYTEST_PARALLEL) --ignore=tests/benchmarks
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) $(PYTEST_PARALLEL) --ignore=tests/benchmarks --ignore=tests/archive
 
 test-fast: ## Run tests in parallel without coverage (fastest)
 	@echo "$(GREEN)Running tests in parallel (fast mode)...$(NC)"
-	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks -n 4 --no-cov --benchmark-disable
+	$(PYTEST) $(TEST_DIR) $(PYTEST_BASE_OPTS) -m "not integration and not slow and not external and not gpu" --ignore=tests/benchmarks --ignore=tests/archive -n 4 --no-cov --benchmark-disable
 
 test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
@@ -355,6 +355,7 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 		--cov-fail-under=64 \
 		-m "not integration and not benchmark" \
 		--ignore=tests/benchmarks \
+		--ignore=tests/archive \
 		--maxfail=10 \
 		--timeout=300
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"

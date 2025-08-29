@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -34,18 +34,18 @@ class TestTUEVDataset:
         """Create temporary dataset directory structure."""
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            
+
             # Create TUEV structure
             for split in ['train', 'eval']:
                 for label in ['normal', 'abnormal']:
                     split_dir = root / split / label
                     split_dir.mkdir(parents=True)
-                    
+
                     # Create dummy EDF files
                     for i in range(2):
                         edf_file = split_dir / f"test_{i:03d}.edf"
                         edf_file.touch()
-            
+
             yield root
 
     def test_dataset_initialization(self, temp_dataset_dir):
@@ -59,7 +59,7 @@ class TestTUEVDataset:
             window_stride=4.0,
             normalize=False
         )
-        
+
         assert dataset is not None
         assert dataset.split == 'train'
         assert dataset.sampling_rate == 256
@@ -72,7 +72,7 @@ class TestTUEVDataset:
             split='train',
             cache_dir=temp_dataset_dir / 'cache'
         )
-        
+
         # TUEV should have Fz, not Fpz
         assert 'Fz' in dataset.EXPECTED_CHANNELS
         assert 'Fpz' not in dataset.EXPECTED_CHANNELS
@@ -82,20 +82,20 @@ class TestTUEVDataset:
     def test_load_and_preprocess(self, mock_read_edf, mock_raw, temp_dataset_dir):
         """Test loading and preprocessing single file."""
         mock_read_edf.return_value = mock_raw
-        
+
         dataset = TUEVDataset(
             root_dir=temp_dataset_dir,
             split='train',
             cache_dir=temp_dataset_dir / 'cache'
         )
-        
+
         # Create a dummy file path
         dummy_file = temp_dataset_dir / 'train' / 'normal' / 'test.edf'
         dummy_file.touch()
-        
+
         # Test loading
         x, y = dataset._load_and_preprocess_file(dummy_file, label=0)
-        
+
         # Should return preprocessed data
         assert x is not None
         assert isinstance(x, np.ndarray)
@@ -105,7 +105,7 @@ class TestTUEVDataset:
     def test_window_extraction(self, mock_read_edf, mock_raw, temp_dataset_dir):
         """Test window extraction from continuous data."""
         mock_read_edf.return_value = mock_raw
-        
+
         dataset = TUEVDataset(
             root_dir=temp_dataset_dir,
             split='train',
@@ -113,11 +113,11 @@ class TestTUEVDataset:
             window_duration=4.0,
             window_stride=4.0
         )
-        
+
         # Test window extraction
         data = np.random.randn(19, 256 * 12)  # 12 seconds of data
         windows = dataset._extract_windows(data)
-        
+
         # Should get 3 windows (12s / 4s = 3)
         assert windows.shape[0] == 3
         assert windows.shape[1] == 19  # channels
@@ -130,11 +130,11 @@ class TestTUEVDataset:
             split='train',
             cache_dir=temp_dataset_dir / 'cache'
         )
-        
+
         # Test normal label
         normal_path = temp_dataset_dir / 'train' / 'normal' / 'test.edf'
         assert dataset._get_label_from_path(normal_path) == 0
-        
+
         # Test abnormal label
         abnormal_path = temp_dataset_dir / 'train' / 'abnormal' / 'test.edf'
         assert dataset._get_label_from_path(abnormal_path) == 1
@@ -147,10 +147,10 @@ class TestTUEVDataset:
             split='train',
             cache_dir=cache_dir
         )
-        
+
         # Cache directory should be created
         assert cache_dir.exists()
-        
+
         # Test cache file naming
         test_file = temp_dataset_dir / 'train' / 'normal' / 'test.edf'
         cache_file = dataset._get_cache_path(test_file)
@@ -167,19 +167,19 @@ class TestTUEVDataset:
             split='train',
             cache_dir=cache_dir
         )
-        
+
         # Mock cached data
         mock_load.return_value = {
             'x': np.random.randn(3, 19, 1024),
             'y': 0
         }
-        
+
         # Create cache file
         test_file = temp_dataset_dir / 'train' / 'normal' / 'test.edf'
         cache_file = dataset._get_cache_path(test_file)
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.touch()
-        
+
         # Should load from cache
         data = dataset._load_cached_or_process(test_file, 0)
         assert data is not None
@@ -194,7 +194,7 @@ class TestTUEVDataset:
             cache_dir=temp_dataset_dir / 'cache'
         )
         assert train_dataset.split == 'train'
-        
+
         # Test eval split
         eval_dataset = TUEVDataset(
             root_dir=temp_dataset_dir,
@@ -202,7 +202,7 @@ class TestTUEVDataset:
             cache_dir=temp_dataset_dir / 'cache'
         )
         assert eval_dataset.split == 'eval'
-        
+
         # Test invalid split
         with pytest.raises(ValueError):
             TUEVDataset(
@@ -216,7 +216,7 @@ class TestTUEVDataset:
         # Create empty directory
         empty_dir = temp_dataset_dir / 'empty'
         empty_dir.mkdir()
-        
+
         with pytest.raises(ValueError, match="No EDF files found"):
             TUEVDataset(
                 root_dir=empty_dir,

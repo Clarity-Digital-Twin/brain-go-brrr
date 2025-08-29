@@ -42,7 +42,7 @@ class TestTUABPreprocessor:
         """Test preprocessing raw data."""
         preprocessor = TUABPreprocessor()
         result = preprocessor.preprocess(mock_raw)
-        
+
         # Should apply filters
         mock_raw.filter.assert_called()
         mock_raw.notch_filter.assert_called()
@@ -51,10 +51,10 @@ class TestTUABPreprocessor:
     def test_resampling(self, mock_raw):
         """Test resampling when needed."""
         mock_raw.info['sfreq'] = 512  # Different from target
-        
+
         preprocessor = TUABPreprocessor(sampling_rate=256)
         preprocessor.preprocess(mock_raw)
-        
+
         # Should resample
         mock_raw.resample.assert_called_with(256)
 
@@ -64,7 +64,7 @@ class TestTUABPreprocessor:
             channels=['Fp1', 'C3', 'O1']
         )
         preprocessor.preprocess(mock_raw)
-        
+
         # Should pick specified channels
         mock_raw.pick_channels.assert_called()
 
@@ -73,7 +73,7 @@ class TestTUABPreprocessor:
         with patch('brain_go_brrr.infra.preprocessing.mne_preprocessor.AutoReject') as mock_ar:
             preprocessor = TUABPreprocessor(use_autoreject=True)
             preprocessor.preprocess(mock_raw)
-            
+
             # Should use autoreject if enabled
             mock_ar.assert_called()
 
@@ -81,9 +81,9 @@ class TestTUABPreprocessor:
         """Test data normalization."""
         preprocessor = TUABPreprocessor(normalize=True)
         data = np.random.randn(6, 1000) * 100 + 50
-        
+
         normalized = preprocessor._normalize(data)
-        
+
         # Check normalized
         assert np.abs(normalized.mean()) < 0.1
         assert np.abs(normalized.std() - 1.0) < 0.1
