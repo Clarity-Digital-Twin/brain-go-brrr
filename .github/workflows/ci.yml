@@ -87,7 +87,7 @@ jobs:
         run: |
           uv run pre-commit run --all-files --show-diff-on-failure
         env:
-          SKIP: ruff  # Skip ruff auto-fix hook, we run it separately below
+          SKIP: ruff,mypy  # Skip ruff and mypy, we run them separately with proper deps
 
       - name: Ruff linting & formatting
         run: |
