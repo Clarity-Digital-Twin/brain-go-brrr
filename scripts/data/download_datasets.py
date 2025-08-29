@@ -36,12 +36,15 @@ if not PASSWORD:
     print("Add to .env: TUH_PASSWORD=your_password")
     sys.exit(1)
 
-# CORRECT versions from Temple website
+# CORRECT versions from Temple website - ALL corpora for EEGPT
 DATASETS = {
     'TUAB': {'version': 'v3.0.1', 'path': 'tuh_eeg_abnormal', 'size': '~120GB'},
     'TUEV': {'version': 'v2.0.1', 'path': 'tuh_eeg_events', 'size': '~60GB'},
     'TUSZ': {'version': 'v2.0.3', 'path': 'tuh_eeg_seizure', 'size': '~40GB'},
     'TUEP': {'version': 'v2.0.1', 'path': 'tuh_eeg_epilepsy', 'size': '~30GB'},
+    'TUAR': {'version': 'v3.0.1', 'path': 'tuh_eeg_artifact', 'size': '~25GB'},
+    'TUSL': {'version': 'v2.0.1', 'path': 'tuh_eeg_slowing', 'size': '~20GB'},
+    # 'TUEG': {'version': 'v2.0.1', 'path': 'tuh_eeg', 'size': '~1.5TB'},  # Full corpus - only if needed
 }
 
 SERVER = "www.isip.piconepress.com"
