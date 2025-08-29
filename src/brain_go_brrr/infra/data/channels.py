@@ -156,10 +156,10 @@ def map_channels_to_indices(
 
 # Export key constants
 __all__ = [
+    "CHANNELS_10_20_FULL",
     "CHANNELS_TUAB_19",
     "CHANNELS_TUEV_20",
-    "CHANNELS_10_20_FULL",
     "CHANNEL_ALIASES",
-    "validate_channels",
     "map_channels_to_indices",
+    "validate_channels",
 ]

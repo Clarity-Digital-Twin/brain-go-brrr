@@ -147,6 +147,7 @@ exclude = [
     "node_modules/",
     "archive/",
     "scripts/archive/",
+    "tests/archive/",
     "notebooks/",
     "research/",
 ]
