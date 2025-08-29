@@ -13,10 +13,10 @@ repos:
       - id: ruff
         args: [--fix]
         files: ^(src|tests|scripts|experiments)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|notebooks/|research/|literature/)
+        exclude: ^(archive/|scripts/archive/|tests/archive/|reference_repos/|notebooks/|research/|literature/)
       - id: ruff-format
         files: ^(src|tests|scripts|experiments)/
-        exclude: ^(archive/|scripts/archive/|reference_repos/|notebooks/|research/|literature/)
+        exclude: ^(archive/|scripts/archive/|tests/archive/|reference_repos/|notebooks/|research/|literature/)
 
   # Type checking with mypy - RE-ENABLED with proper deps
   - repo: https://github.com/pre-commit/mirrors-mypy

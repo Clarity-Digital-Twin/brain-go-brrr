@@ -26,7 +26,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 # Seed randomness once for reproducible tests
-SEED = 42
+SEED = 1337
 random.seed(SEED)
 np.random.seed(SEED)
 
@@ -101,9 +101,7 @@ pytest_plugins = [
     "tests.fixtures.deterministic_fixtures",  # Add centralized fixtures with deterministic seed
 ]
 
-# Set deterministic random seeds for reproducible tests
-random.seed(1337)
-np.random.seed(1337)
+# Seeds already set above with SEED=1337
 
 
 def can_connect_to_redis(host="localhost", port=6379, timeout=0.5):
@@ -269,10 +267,11 @@ def fresh_app():
     # First, clear any existing api.main from sys.modules
     import sys
 
-    if "api.main" in sys.modules:
-        del sys.modules["api.main"]
-    if "api" in sys.modules:
-        del sys.modules["api"]
+    # Delete the correct module names
+    if "brain_go_brrr.api.main" in sys.modules:
+        del sys.modules["brain_go_brrr.api.main"]
+    if "brain_go_brrr.api" in sys.modules:
+        del sys.modules["brain_go_brrr.api"]
 
     # Import fresh
 
@@ -280,10 +279,11 @@ def fresh_app():
     yield
 
     # Cleanup after test
-    if "api.main" in sys.modules:
-        del sys.modules["api.main"]
-    if "api" in sys.modules:
-        del sys.modules["api"]
+    # Delete the correct module names
+    if "brain_go_brrr.api.main" in sys.modules:
+        del sys.modules["brain_go_brrr.api.main"]
+    if "brain_go_brrr.api" in sys.modules:
+        del sys.modules["brain_go_brrr.api"]
 
 
 @pytest.fixture
