@@ -18,10 +18,10 @@ class TestJobStoreBasicOperations:
         """Test creating and retrieving a job."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="test-123",
-            analysis_type="sleep",
-            file_path="/data/test.edf",
+            id="test-123",
+            type="sleep",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         # Create job
@@ -30,18 +30,18 @@ class TestJobStoreBasicOperations:
         # Retrieve job
         retrieved = store.get("test-123")
         assert retrieved is not None
-        assert retrieved.job_id == "test-123"
-        assert retrieved.analysis_type == "sleep"
+        assert retrieved.id == "test-123"
+        assert retrieved.type == "sleep"
         assert retrieved.status == JobStatus.PENDING
 
     def test_create_duplicate_raises(self):
         """Test creating duplicate job raises ValueError."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="dup-123",
-            analysis_type="qc",
-            file_path="/data/test.edf",
+            id="dup-123",
+            type="qc",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         # First create succeeds
@@ -61,10 +61,10 @@ class TestJobStoreBasicOperations:
         """Test updating job fields."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="update-123",
-            analysis_type="abnormal",
-            file_path="/data/test.edf",
+            id="update-123",
+            type="abnormal",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         store.create("update-123", job_data)
@@ -96,36 +96,40 @@ class TestJobStoreBasicOperations:
         """Test patching specific job fields."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="patch-123",
-            analysis_type="sleep",
-            file_path="/data/test.edf",
+            id="patch-123",
+            type="sleep",
             status=JobStatus.PENDING,
             priority=JobPriority.NORMAL,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         store.create("patch-123", job_data)
 
-        # Patch priority and progress
-        success = store.patch("patch-123", priority=JobPriority.HIGH, progress=50.0)
+        # Patch priority and metadata
+        success = store.patch(
+            "patch-123", 
+            priority=JobPriority.HIGH, 
+            metadata={"file_path": "/data/test.edf", "progress": 50.0}
+        )
         assert success is True
 
         # Verify patches
         patched = store.get("patch-123")
         assert patched is not None
         assert patched.priority == JobPriority.HIGH
-        assert patched.progress == 50.0
+        assert patched.metadata["progress"] == 50.0
         # Other fields unchanged
         assert patched.status == JobStatus.PENDING
-        assert patched.analysis_type == "sleep"
+        assert patched.type == "sleep"
 
     def test_patch_invalid_field_raises(self):
         """Test patching invalid field raises ValueError."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="invalid-patch",
-            analysis_type="qc",
-            file_path="/data/test.edf",
+            id="invalid-patch",
+            type="qc",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         store.create("invalid-patch", job_data)
@@ -153,10 +157,10 @@ class TestJobStoreThreadSafety:
         def create_job(job_id: str):
             try:
                 job_data = JobData(
-                    job_id=job_id,
-                    analysis_type="test",
-                    file_path=f"/data/{job_id}.edf",
+                    id=job_id,
+                    type="test",
                     status=JobStatus.PENDING,
+                    metadata={"file_path": f"/data/{job_id}.edf"},
                 )
                 store.create(job_id, job_data)
                 results.append(job_id)
@@ -176,7 +180,7 @@ class TestJobStoreThreadSafety:
         for i in range(100):
             job = store.get(f"job-{i}")
             assert job is not None
-            assert job.job_id == f"job-{i}"
+            assert job.id == f"job-{i}"
 
     def test_concurrent_creates_same_job(self):
         """Test concurrent creation of same job - only one should succeed."""
@@ -187,10 +191,10 @@ class TestJobStoreThreadSafety:
         def try_create():
             try:
                 job_data = JobData(
-                    job_id="same-job",
-                    analysis_type="test",
-                    file_path="/data/test.edf",
+                    id="same-job",
+                    type="test",
                     status=JobStatus.PENDING,
+                    metadata={"file_path": "/data/test.edf"},
                 )
                 store.create("same-job", job_data)
                 successes.append(1)
@@ -211,20 +215,20 @@ class TestJobStoreThreadSafety:
         """Test concurrent updates to same job maintain consistency."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="update-race",
-            analysis_type="test",
-            file_path="/data/test.edf",
+            id="update-race",
+            type="test",
             status=JobStatus.PENDING,
-            progress=0.0,
+            metadata={"progress": 0.0},
         )
         store.create("update-race", job_data)
 
         def increment_progress(value: float):
             current = store.get("update-race")
-            if current:
+            if current and current.metadata:
                 # Simulate read-modify-write race condition
                 time.sleep(0.001)  # Small delay to increase chance of race
-                store.update("update-race", {"progress": current.progress + value})
+                new_progress = current.metadata.get("progress", 0) + value
+                store.update("update-race", {"metadata": {"progress": new_progress}})
 
         # 100 threads each incrementing by 1.0
         with ThreadPoolExecutor(max_workers=20) as executor:
@@ -236,16 +240,18 @@ class TestJobStoreThreadSafety:
         # But it should be > 0 and <= 100 (no corruption)
         final = store.get("update-race")
         assert final is not None
-        assert 0 < final.progress <= 100
+        assert final.metadata is not None
+        progress = final.metadata.get("progress", 0)
+        assert 0 < progress <= 100
 
     def test_concurrent_read_while_updating(self):
         """Test reading doesn't block or get corrupted during updates."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="read-update",
-            analysis_type="test",
-            file_path="/data/test.edf",
+            id="read-update",
+            type="test",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
         store.create("read-update", job_data)
 
@@ -285,10 +291,10 @@ class TestJobStoreThreadSafety:
         """Test delete operation."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="delete-me",
-            analysis_type="test",
-            file_path="/data/test.edf",
+            id="delete-me",
+            type="test",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         store.create("delete-me", job_data)
@@ -310,17 +316,17 @@ class TestJobStoreThreadSafety:
         # Create several jobs
         for i in range(5):
             job_data = JobData(
-                job_id=f"list-{i}",
-                analysis_type="test",
-                file_path=f"/data/test-{i}.edf",
+                id=f"list-{i}",
+                type="test",
                 status=JobStatus.PENDING if i % 2 == 0 else JobStatus.COMPLETED,
+                metadata={"file_path": f"/data/test-{i}.edf"},
             )
             store.create(f"list-{i}", job_data)
 
         # List all jobs
         all_jobs = store.list_jobs()
         assert len(all_jobs) == 5
-        assert all(job.job_id.startswith("list-") for job in all_jobs)
+        assert all(job.id.startswith("list-") for job in all_jobs)
 
     def test_list_jobs_by_status(self):
         """Test filtering jobs by status."""
@@ -330,10 +336,10 @@ class TestJobStoreThreadSafety:
         statuses = [JobStatus.PENDING, JobStatus.RUNNING, JobStatus.COMPLETED, JobStatus.FAILED]
         for i, status in enumerate(statuses * 2):  # 8 jobs total
             job_data = JobData(
-                job_id=f"status-{i}",
-                analysis_type="test",
-                file_path=f"/data/test-{i}.edf",
+                id=f"status-{i}",
+                type="test",
                 status=status,
+                metadata={"file_path": f"/data/test-{i}.edf"},
             )
             store.create(f"status-{i}", job_data)
 
@@ -350,10 +356,10 @@ class TestJobStoreThreadSafety:
         """Test updating with datetime fields."""
         store = ThreadSafeJobStore()
         job_data = JobData(
-            job_id="datetime-test",
-            analysis_type="test",
-            file_path="/data/test.edf",
+            id="datetime-test",
+            type="test",
             status=JobStatus.PENDING,
+            metadata={"file_path": "/data/test.edf"},
         )
 
         store.create("datetime-test", job_data)
@@ -364,7 +370,7 @@ class TestJobStoreThreadSafety:
             "datetime-test",
             {
                 "status": JobStatus.RUNNING,
-                "started_at": now.isoformat(),
+                "started_at": now,
             },
         )
 
@@ -372,4 +378,4 @@ class TestJobStoreThreadSafety:
         updated = store.get("datetime-test")
         assert updated is not None
         assert updated.status == JobStatus.RUNNING
-        assert updated.started_at == now.isoformat()
+        assert updated.started_at == now

@@ -293,7 +293,12 @@ class TestMneRawProtocol:
     def test_mock_implements_protocol(self):
         """Test that mock implements the protocol."""
         raw = MockMneRaw()
-        assert isinstance(raw, MneRaw)
+        # MneRaw is not @runtime_checkable, so we check methods instead
+        assert hasattr(raw, 'info')
+        assert hasattr(raw, 'ch_names')
+        assert hasattr(raw, 'n_times')
+        assert hasattr(raw, 'get_data')
+        assert hasattr(raw, 'copy')
 
     def test_raw_properties(self):
         """Test MneRaw protocol properties."""

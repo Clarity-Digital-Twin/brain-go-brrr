@@ -109,19 +109,17 @@ class ThreadSafeJobStore:
 
             # Get valid field names from JobData class
             valid_fields = {
-                "job_id",
-                "analysis_type",
-                "file_path",
+                "id",
+                "type",
                 "status",
                 "priority",
                 "created_at",
                 "updated_at",
-                "options",
-                "progress",
-                "result",
-                "error",
                 "started_at",
                 "completed_at",
+                "error",
+                "result",
+                "metadata",
             }
 
             # Validate fields exist in JobData schema
