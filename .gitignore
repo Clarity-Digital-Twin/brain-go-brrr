@@ -180,7 +180,6 @@ cython_debug/
 # Data files - keep the code package, ignore payload
 # Data directories - NEVER commit these!
 /data/
-data/
 # Only ignore root-level datasets folder (actual data), not code
 /datasets/
 
@@ -189,6 +188,10 @@ data/
 !src/brain_go_brrr/infra/data/**/*.py
 !src/brain_go_brrr/data/**   # allow the Python package
 !src/brain_go_brrr/*/data/** # allow data subdirs in source code
+
+# EXPLICITLY allow scripts/data/ for download scripts
+!scripts/data/
+!scripts/data/**
 
 # Allow data directory structure files
 !data/README.md
@@ -381,13 +384,19 @@ pipeline_test_report.txt
 .mypy_cache_strict/
 .mypy_cache_fast/
 
-# Temple University downloads
-**/download_*.py
-**/download_*.sh
+# Temple University downloads - EXCLUDE ONLY TEMP FILES
+# Allow the secure download script that uses .env
+!scripts/data/download_datasets.py
+# But ignore any temporary download scripts with passwords
+download_tuab_*.py
+download_tuev_*.py
+test_download*.py
 DOWNLOAD_*.md
 *_DOWNLOAD_*.md
-*password*
-*credentials*
+# Don't ignore .env (it has credentials but should be in git as example)
+# But DO ignore any files with "password" in the name (except .env)
+*password*.txt
+*credentials*.txt
 
 # Coverage reports
 coverage_html_report/
