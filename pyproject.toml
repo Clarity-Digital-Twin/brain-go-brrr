@@ -183,6 +183,7 @@ ignore = [
     "RUF012", # Mutable class attributes should be annotated
     "ANN101", # Missing type annotation for self (unnecessary)
     "ANN102", # Missing type annotation for cls (unnecessary)
+    "UP017",  # Use datetime.UTC - not available in Python 3.11.0-3.11.8
     # Type annotation exceptions
     "ANN204", # Missing return type annotation for special method __init__ (46 instances)
     "ANN401", # Dynamically typed expressions (Any) - TODO: fix these gradually
