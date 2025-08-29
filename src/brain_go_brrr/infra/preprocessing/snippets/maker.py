@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import mne
@@ -19,6 +18,8 @@ import pandas as pd
 from brain_go_brrr.utils import utc_now
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from brain_go_brrr._typing import MNERaw
 
 Float64ND = npt.NDArray[np.float64]

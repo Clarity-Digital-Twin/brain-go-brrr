@@ -145,13 +145,10 @@ def validate_cache(cache_dir: Path) -> tuple[bool, list[str], dict]:
                     stats["dtype_errors"] += 1
 
                 # Check label
-                if not isinstance(y, (int, torch.Tensor)):
+                if not isinstance(y, int | torch.Tensor):
                     errors.append(f"{cache_file.name}: y type {type(y)} invalid")
 
-                if isinstance(y, torch.Tensor):
-                    y_val = y.item()
-                else:
-                    y_val = y
+                y_val = y.item() if isinstance(y, torch.Tensor) else y
 
                 if y_val not in [0, 1]:
                     errors.append(f"{cache_file.name}: y value {y_val} not in [0, 1]")

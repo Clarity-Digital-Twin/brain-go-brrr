@@ -72,7 +72,6 @@ def create_manifest(
     corpus: str,
     split: str,
     data_root: Path,
-    cache_dir: Path,
     n_files: int,
     n_windows: int,
     label_distribution: dict[str, int],
@@ -152,15 +151,25 @@ def sanitize_filename(file_path: Path) -> str:
 
 
 def atomic_write(data: Any, target_path: Path) -> None:
-    """Write with temp file + atomic rename for safety."""
-    target_path.parent.mkdir(parents=True, exist_ok=True)
+    """Write binary data with temp file + atomic rename.
 
-    # Write to temp file first
+    NOTE: For JSON, use atomic_write_json.
+    """
+    target_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(delete=False, dir=target_path.parent, suffix='.tmp') as tmp:
         torch.save(data, tmp.name)
         tmp_path = Path(tmp.name)
+    tmp_path.replace(target_path)
 
-    # Atomic rename
+
+def atomic_write_json(data: dict[str, Any], target_path: Path) -> None:
+    """Write JSON atomically (temp file + rename)."""
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        delete=False, dir=target_path.parent, suffix='.tmp', mode='w'
+    ) as tmp:
+        json.dump(data, tmp, indent=2)
+        tmp_path = Path(tmp.name)
     tmp_path.replace(target_path)
 
 
@@ -173,13 +182,12 @@ def build_cache(
     manifest_path = cache_dir / f"manifest_{split}.json"
 
     # Check existing cache
-    if split_cache_dir.exists() and not force_rebuild:
-        if manifest_path.exists():
-            with open(manifest_path) as f:
-                existing = json.load(f)
-            logger.info(f"Cache exists with hash {existing['config_hash']}")
-            logger.info("Use --force-rebuild to regenerate")
-            return
+    if split_cache_dir.exists() and not force_rebuild and manifest_path.exists():
+        with open(manifest_path) as f:
+            existing = json.load(f)
+        logger.info(f"Cache exists with hash {existing['config_hash']}")
+        logger.info("Use --force-rebuild to regenerate")
+        return
 
     # Clean if force rebuild
     if split_cache_dir.exists() and force_rebuild:
@@ -278,15 +286,13 @@ def build_cache(
         corpus=corpus,
         split=split,
         data_root=data_root,
-        cache_dir=cache_dir,
         n_files=n_files,
         n_windows=n_windows,
         label_distribution=label_counts,
     )
 
-    # Save manifest atomically
-    atomic_write(manifest, manifest_path.with_suffix('.tmp'))
-    manifest_path.with_suffix('.tmp').replace(manifest_path)
+    # Save manifest atomically as JSON
+    atomic_write_json(manifest, manifest_path)
 
     logger.info(f"✓ Manifest saved: {manifest_path}")
     logger.info(f"✓ Config hash: {manifest['config_hash']}")

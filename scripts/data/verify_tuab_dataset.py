@@ -170,7 +170,7 @@ def main():
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"tuab_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
-    with open(log_file, "w") as f:
+    with log_file.open("w") as f:
         json.dump(results, f, indent=2)
 
     print(f"\n📝 Full report saved to: {log_file}")

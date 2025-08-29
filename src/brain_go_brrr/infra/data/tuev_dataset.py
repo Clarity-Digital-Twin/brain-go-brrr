@@ -223,3 +223,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only
 
         return data['x'], data['y']
+
+# Backwards-compatible alias expected by training/build scripts
+# Thin alias to avoid import mismatches without duplicating implementation
+TUEVDataset = TUEVMNEDataset
