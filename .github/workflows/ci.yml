@@ -81,21 +81,31 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --frozen --dev  # Install dev dependencies for types-psutil, etc.
+        run: uv sync --frozen --dev  # Install all dev dependencies
 
-      - name: Pre-commit hooks (check only, no auto-fix)
+      - name: Show tool versions (for debugging)
         run: |
-          uv run pre-commit run --all-files --show-diff-on-failure
-        env:
-          SKIP: ruff,mypy  # Skip ruff and mypy, we run them separately with proper deps
+          echo "Python version:"
+          python --version
+          echo "Ruff version:"
+          uv run ruff --version
+          echo "MyPy version:"
+          uv run mypy --version
 
-      - name: Ruff linting & formatting
+      - name: Format check (no auto-fix)
         run: |
-          make format-check
-          make lint-ci
+          echo "Checking code formatting..."
+          uv run ruff format --check --diff src/ tests/ scripts/ experiments/
+
+      - name: Lint check (no auto-fix)
+        run: |
+          echo "Running linter checks..."
+          uv run ruff check src/ tests/ scripts/ experiments/
 
       - name: Type checking (MyPy)
-        run: uv run mypy --config-file mypy.ini src/brain_go_brrr
+        run: |
+          echo "Running type checks..."
+          uv run mypy --config-file mypy.ini src/brain_go_brrr
 
       - name: Import smoke test
         run: |
