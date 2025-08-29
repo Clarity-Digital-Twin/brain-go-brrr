@@ -328,3 +328,6 @@ class TestRedisCaching:
         assert stats["connected"] is True
         assert "total_keys" in stats
         assert "memory_usage" in stats
+
+
+# Trigger CI format fix
