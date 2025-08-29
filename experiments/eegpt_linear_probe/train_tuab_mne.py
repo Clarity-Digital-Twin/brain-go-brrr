@@ -315,7 +315,7 @@ def main():
 
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
-        checkpoint = torch.load(args.resume, map_location=device)
+        checkpoint = torch.load(args.resume, map_location=device, weights_only=False)  # nosec:weights_only - Full checkpoint with optimizer state
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])

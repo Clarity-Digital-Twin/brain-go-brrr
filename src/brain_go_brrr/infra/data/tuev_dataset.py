@@ -220,6 +220,6 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         cache_file = self.cache_dir / sample['cache_file']
 
         # Load cached preprocessed data
-        data = torch.load(cache_file, map_location='cpu')
+        data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only
 
         return data['x'], data['y']

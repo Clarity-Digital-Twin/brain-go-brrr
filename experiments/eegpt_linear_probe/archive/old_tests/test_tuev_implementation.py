@@ -144,7 +144,7 @@ def test_cache_validation():
 
     for _ in range(3):
         cache_file = random.choice(loaded_files)
-        data = torch.load(cache_file, map_location='cpu')
+        data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only
 
         # Validate loaded data
         assert 'x' in data and 'y' in data, "Missing 'x' or 'y' keys in cache"
