@@ -182,6 +182,14 @@ class ThreadSafeJobStore:
         with self._lock:
             return list(self._jobs.values())
 
+    def list_jobs(self) -> list[JobData]:
+        """List all jobs (alias for list_all).
+
+        Returns:
+            List of all job data
+        """
+        return self.list_all()
+
     def list_by_status(self, status: JobStatus) -> list[JobData]:
         """List jobs by status.
 
@@ -193,6 +201,17 @@ class ThreadSafeJobStore:
         """
         with self._lock:
             return [job for job in self._jobs.values() if job.status == status]
+
+    def list_jobs_by_status(self, status: JobStatus) -> list[JobData]:
+        """List jobs by status (alias for list_by_status).
+
+        Args:
+            status: Job status to filter by
+
+        Returns:
+            List of jobs with matching status
+        """
+        return self.list_by_status(status)
 
     def count_by_status(self) -> dict[str, int]:
         """Count jobs by status.
