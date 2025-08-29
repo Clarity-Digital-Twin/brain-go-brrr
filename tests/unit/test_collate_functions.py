@@ -103,7 +103,7 @@ class TestTUEVCollate:
             (torch.randn(19, 1024), 0),  # Wrong channel count (should be 20)
         ]
 
-        with pytest.raises(RuntimeError, match="Unexpected channel count 19"):
+        with pytest.raises(RuntimeError, match="CHANNEL COUNT ERROR.*Got 19 channels"):
             collate_tuev_batch(batch)
 
     def test_collate_preserves_label_range(self):
