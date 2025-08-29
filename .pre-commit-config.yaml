@@ -8,7 +8,7 @@ exclude: '^literature/.*'
 repos:
   # Ruff - Fast Python linter and formatter (aligned with CI/local)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9  # Pinned for consistency across all environments
+    rev: v0.12.3  # MUST match uv.lock version that CI uses!
     hooks:
       - id: ruff
         args: [--fix]

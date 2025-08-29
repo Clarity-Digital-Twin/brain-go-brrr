@@ -107,18 +107,42 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 
 ## 🔧 Development Commands
 
+### 🚨 CRITICAL: Pre-Push Validation (MUST PASS OR CI WILL FAIL)
+
+```bash
+# ALWAYS RUN THESE EXACT COMMANDS BEFORE PUSHING
+# These use the SAME versions as CI/CD to prevent divergence
+
+# 1. Format code with CI's ruff version (0.12.3)
+uv run ruff format src/ tests/ scripts/ experiments/
+
+# 2. Check formatting matches CI exactly
+uv run ruff format --check src/ tests/ scripts/ experiments/
+
+# 3. Check for lint errors CI will catch
+uv run ruff check src/ tests/ scripts/ experiments/
+
+# 4. Run type checking with CI config
+uv run mypy --config-file mypy.ini src/brain_go_brrr
+
+# Or use the all-in-one command:
+make check-all  # Runs all checks CI will run
+```
+
+### Standard Development Commands
+
 ```bash
 # Environment Management
 uv sync                    # Install/update dependencies
 uv run python             # Run Python in project env
 make dev-setup            # Full dev environment setup
 
-# Quality Checks (ALWAYS run after changes)
-make lint                 # Linting with ruff
-make typecheck            # Type checking with mypy
+# Quality Checks (safe wrappers for CI commands)
+make format               # Auto-format with CI's ruff
+make lint                 # Linting with CI's ruff
+make typecheck            # Type checking with CI's mypy
 make test                 # Run all tests
-make format               # Auto-format code
-make check-all            # Run all checks
+make check-all            # Run ALL CI checks locally
 
 # Development Workflow
 make test-watch           # Watch mode for TDD

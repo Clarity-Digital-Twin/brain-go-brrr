@@ -524,13 +524,8 @@ check-all: ## Run all quality checks (for CI/CD)
 	@echo "$(GREEN)All checks passed!$(NC)"
 
 pre-push: ## Run before pushing to ensure CI will pass
-	@echo "$(CYAN)Running pre-push checks...$(NC)"
-	$(MAKE) format
-	@echo "$(YELLOW)Checking for uncommitted formatting changes...$(NC)"
-	@git diff --exit-code || (echo "$(RED)Error: Formatting changes detected. Please commit them.$(NC)" && exit 1)
-	$(MAKE) lint-ci
-	$(MAKE) type-fast
-	@echo "$(GREEN)Ready to push! CI should pass.$(NC)"
+	@echo "$(CYAN)Running pre-push validation...$(NC)"
+	@bash scripts/validate_before_push.sh
 
 ##@ Examples
 
