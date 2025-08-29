@@ -163,7 +163,7 @@ def main():
     parser.add_argument(
         '--cache-dir',
         type=str,
-        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_mne_preprocessed',
+        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_mne_v2',
         help='MNE preprocessed cache directory',
     )
     parser.add_argument(

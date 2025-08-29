@@ -21,7 +21,7 @@ echo "=============================================="
 echo "Timestamp: $TIMESTAMP"
 echo "Output dir: $OUTPUT_DIR"
 echo "Log file: $LOG_FILE"
-echo "Cache dir: $DATA_ROOT/cache/tuab_mne_preprocessed"
+echo "Cache dir: $DATA_ROOT/cache/tuab_mne_v2"
 echo "Model checkpoint: $DATA_ROOT/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
 echo "Batch size: $BATCH_SIZE"
 echo ""
@@ -48,7 +48,7 @@ export CUDA_VISIBLE_DEVICES=0
 export BGB_DATA_ROOT="$DATA_ROOT"  # Ensure config can resolve ${BGB_DATA_ROOT}
 
 # Check cache exists
-CACHE_DIR="$DATA_ROOT/cache/tuab_mne_preprocessed"
+CACHE_DIR="$DATA_ROOT/cache/tuab_mne_v2"
 if [ ! -d "$CACHE_DIR" ]; then
     echo "ERROR: MNE cache not found at $CACHE_DIR"
     echo "Please run: ./scripts/build_mne_cache.sh first"
