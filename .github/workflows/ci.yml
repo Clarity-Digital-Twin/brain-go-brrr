@@ -81,12 +81,13 @@ jobs:
         run: uv python install ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --dev  # Install dev dependencies for types-psutil, etc.
 
-      - name: Pre-commit hooks
+      - name: Pre-commit hooks (check only, no auto-fix)
         run: |
-          pip install pre-commit
-          pre-commit run --all-files --show-diff-on-failure
+          uv run pre-commit run --all-files --show-diff-on-failure
+        env:
+          SKIP: ruff  # Skip ruff auto-fix hook, we run it separately below
 
       - name: Ruff linting & formatting
         run: |
@@ -94,7 +95,7 @@ jobs:
           make lint-ci
 
       - name: Type checking (MyPy)
-        run: make type-check || true  # Allow failures for third-party issues
+        run: uv run mypy --config-file mypy.ini src/brain_go_brrr
 
       - name: Import smoke test
         run: |
@@ -103,7 +104,7 @@ jobs:
       - name: Check unsafe torch.load
         run: |
           echo "Checking for unsafe torch.load usage..."
-          python .pre-commit-hooks/safe_torch_load.py $(find src tests experiments -name "*.py" | grep -v safe_load.py)
+          uv run python .pre-commit-hooks/safe_torch_load.py $(find src tests experiments -name "*.py" | grep -v safe_load.py)
 
       - name: Check for parallel implementations (CRITICAL)
         run: |
