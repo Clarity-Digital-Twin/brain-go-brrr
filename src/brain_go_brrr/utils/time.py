@@ -3,15 +3,18 @@
 Following Clean Code principles - single source of truth for time operations.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
-# Python 3.11+ has UTC constant in datetime module
+# Python 3.11+ has UTC constant in datetime module (added in 3.11.9)
 # We support Python >=3.11 per pyproject.toml
 try:
     from datetime import UTC
 except ImportError:  # pragma: no cover
-    # Fallback for Python 3.11.0-3.11.8 (UTC added in 3.11.9)
-    UTC = timezone.utc
+    # Fallback for Python 3.11.0-3.11.8
+    # Import inside except block to avoid ruff removing it as unused
+    import datetime as dt
+
+    UTC = dt.timezone.utc
 
 
 def utc_now() -> datetime:

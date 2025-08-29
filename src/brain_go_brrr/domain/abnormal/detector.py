@@ -308,7 +308,7 @@ class CleanAbnormalityDetector:
                 probs = torch.tensor([[1 - abnormal_score, abnormal_score]])
 
             # Return abnormality probability (class 1)
-            return probs[0, 1].cpu().item()
+            return float(probs[0, 1].cpu().item())
 
     def _determine_triage_level(self, confidence: float, is_abnormal: bool) -> TriageLevel:
         """Determine clinical triage level based on confidence and abnormality.
@@ -420,7 +420,7 @@ class CleanAbnormalityDetector:
         # Check first layer dimensions against the linear probe
         if "0.weight" in state_dict and self.linear_probe is not None:
             weight_shape = state_dict["0.weight"].shape
-            expected_dim = self.linear_probe[0].in_features  # type: ignore[index]  # Get from actual classifier
+            expected_dim = self.linear_probe[0].in_features  # type: ignore[index]
             actual_dim = weight_shape[1]  # Input dimension is second dim of weight matrix
 
             if actual_dim != expected_dim:

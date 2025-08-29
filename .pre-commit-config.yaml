@@ -26,8 +26,11 @@ repos:
         additional_dependencies:
           - types-requests
           - types-redis
+          - types-psutil
           - numpy
           - pydantic>=2.0  # Fix the pydantic issue
+          - torch  # For nn.Module type resolution
+          - rich  # For rich.console
         args: [--config-file=mypy.ini]
         files: ^(src/brain_go_brrr)/
         exclude: ^(tests|archive|reference_repos|experiments)/
