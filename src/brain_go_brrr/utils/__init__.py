@@ -8,8 +8,8 @@ from .time import format_timestamp, timestamp_for_logging, utc_now
 __all__ = [
     "collate_tuab_batch",
     "collate_tuev_batch",
-    "mask_path_for_log",
     "format_timestamp",
+    "mask_path_for_log",
     "timestamp_for_logging",
     "utc_now",
 ]

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from pathlib import Path  # noqa: TCH003
+from pathlib import Path  # noqa: TC003
 from typing import TYPE_CHECKING, Any, cast
 
 import mne

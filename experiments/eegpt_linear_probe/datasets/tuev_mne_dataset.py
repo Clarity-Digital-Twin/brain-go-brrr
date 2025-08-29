@@ -15,4 +15,4 @@ warnings.warn(
 )
 
 # Export for compatibility
-__all__ = ["TUEVMNEDataset", "CLASS_MAPPING"]
+__all__ = ["CLASS_MAPPING", "TUEVMNEDataset"]

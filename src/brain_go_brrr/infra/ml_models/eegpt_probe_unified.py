@@ -165,7 +165,7 @@ class EEGPTProbe(nn.Module):
             x = self.channel_adapter(x)
 
         # Extract features from backbone
-        with torch.no_grad() if self.training else torch.no_grad():  # Always use no_grad for now
+        with torch.no_grad():  # Always use no_grad for now
             # Check if backbone accepts return_all_temporal parameter
             if self._accepts_param('return_all_temporal'):
                 if hasattr(self.backbone, 'extract_features') and callable(
