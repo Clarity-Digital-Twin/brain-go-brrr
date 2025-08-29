@@ -116,9 +116,9 @@ class TestEEGPTSummaryTokens:
         assert feat_spike.shape == (4, 512), "Wrong shape for spike features"
 
         # At minimum, features shouldn't be exactly identical
-        assert not np.allclose(
-            feat_alpha, feat_spike, rtol=1e-5
-        ), "Features are identical - model may not be initialized properly"
+        assert not np.allclose(feat_alpha, feat_spike, rtol=1e-5), (
+            "Features are identical - model may not be initialized properly"
+        )
 
     def test_encoder_output_contains_summary_tokens(self, eegpt_model, channel_names):
         """Check that encoder actually outputs summary tokens."""
@@ -134,12 +134,12 @@ class TestEEGPTSummaryTokens:
 
         # Check output shape - should be (batch, 4, 512) for summary tokens
         assert encoder_output.dim() == 3, f"Expected 3D output, got {encoder_output.dim()}D"
-        assert (
-            encoder_output.shape[1] == 4
-        ), f"Expected 4 summary tokens, got {encoder_output.shape[1]}"
-        assert (
-            encoder_output.shape[2] == 512
-        ), f"Expected 512 embed dim, got {encoder_output.shape[2]}"
+        assert encoder_output.shape[1] == 4, (
+            f"Expected 4 summary tokens, got {encoder_output.shape[1]}"
+        )
+        assert encoder_output.shape[2] == 512, (
+            f"Expected 512 embed dim, got {encoder_output.shape[2]}"
+        )
 
         # Summary tokens should not all be identical
         tokens = encoder_output[0].cpu().numpy()
@@ -176,9 +176,9 @@ class TestEEGPTSummaryTokens:
 
         # Different frequencies shouldn't produce exactly identical features
         if freq1 != freq2:
-            assert not np.allclose(
-                features1, features2, rtol=1e-5
-            ), "Different frequencies produced identical features"
+            assert not np.allclose(features1, features2, rtol=1e-5), (
+                "Different frequencies produced identical features"
+            )
 
 
 class TestLinearProbeIntegration:

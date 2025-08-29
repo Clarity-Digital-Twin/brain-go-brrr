@@ -67,9 +67,9 @@ def test_find_summary_tokens():
 
     # Check encoder attributes
     if hasattr(model.encoder, "embed_num"):
-        assert (
-            model.encoder.embed_num == 4
-        ), f"Expected 4 summary tokens, got {model.encoder.embed_num}"
+        assert model.encoder.embed_num == 4, (
+            f"Expected 4 summary tokens, got {model.encoder.embed_num}"
+        )
 
 
 if __name__ == "__main__":
