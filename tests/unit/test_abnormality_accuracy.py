@@ -123,9 +123,9 @@ class TestAbnormalityAccuracy:
 
         # Requirement from spec: >85% sensitivity (relaxed to >80% for mock data)
         min_sensitivity = 0.80 if "mock" in str(mock_predictions) else 0.85
-        assert sensitivity > min_sensitivity, (
-            f"Sensitivity {sensitivity:.2%} does not meet >{min_sensitivity:.0%} requirement"
-        )
+        assert (
+            sensitivity > min_sensitivity
+        ), f"Sensitivity {sensitivity:.2%} does not meet >{min_sensitivity:.0%} requirement"
 
     def test_specificity_requirement(self, mock_predictions):
         """Test that model achieves >75% specificity (acceptable false positive rate)."""

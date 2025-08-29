@@ -59,9 +59,9 @@ class TestPerformanceBenchmarks:
 
         # Should process at a rate that would complete 20-min in <2 minutes
         # Expected: 2 min data should process in <12 seconds (proportional)
-        assert benchmark.stats["mean"] < 12, (
-            f"Processing too slow: {benchmark.stats['mean']:.2f}s mean time"
-        )
+        assert (
+            benchmark.stats["mean"] < 12
+        ), f"Processing too slow: {benchmark.stats['mean']:.2f}s mean time"
 
     @pytest.mark.slow
     def test_memory_usage(self, eegpt_model, benchmark):
@@ -112,6 +112,6 @@ class TestPerformanceBenchmarks:
         # Should respond in <100ms (allow some buffer for test environment)
         # Guard for --benchmark-disable mode
         if hasattr(benchmark, "stats") and benchmark.stats:
-            assert benchmark.stats["mean"] < 0.1, (
-                f"API response too slow: {benchmark.stats['mean'] * 1000:.2f}ms mean time"
-            )
+            assert (
+                benchmark.stats["mean"] < 0.1
+            ), f"API response too slow: {benchmark.stats['mean'] * 1000:.2f}ms mean time"

@@ -316,9 +316,9 @@ def prepare_for_eegpt(
     assert actual_sfreq == target_sfreq, f"Sampling rate mismatch: {actual_sfreq} != {target_sfreq}"
 
     n_samples_final = data.shape[1]
-    assert n_samples_final % pad_to_multiple == 0, (
-        f"Temporal dimension not padded correctly: {n_samples_final} % {pad_to_multiple} != 0"
-    )
+    assert (
+        n_samples_final % pad_to_multiple == 0
+    ), f"Temporal dimension not padded correctly: {n_samples_final} % {pad_to_multiple} != 0"
 
     logger.debug(f"Prepared EEGPT input: shape {data.shape}, dtype {data.dtype}")
 

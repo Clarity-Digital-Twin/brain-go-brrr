@@ -10,8 +10,8 @@ Checks:
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import mne
 
@@ -45,7 +45,7 @@ def verify_tuab_structure(root_dir: Path) -> dict:
     total_files = 0
     for split_class, (min_expected, max_expected) in expected_dirs.items():
         dir_path = edf_dir / split_class / "01_tcp_ar"
-        
+
         if not dir_path.exists():
             results["errors"].append(f"Missing directory: {dir_path}")
             continue
@@ -79,12 +79,12 @@ def verify_tuab_structure(root_dir: Path) -> dict:
     # Sample EDF validation
     print("Sampling EDF files for validation...")
     sample_errors = []
-    
+
     for split_class in ["train/normal", "train/abnormal"]:
         dir_path = edf_dir / split_class / "01_tcp_ar"
         if not dir_path.exists():
             continue
-            
+
         # Sample first 3 files
         sample_files = sorted(dir_path.glob("*.edf"))[:3]
         for edf_file in sample_files:
@@ -93,17 +93,13 @@ def verify_tuab_structure(root_dir: Path) -> dict:
                 raw = mne.io.read_raw_edf(edf_file, preload=False, verbose=False)
                 n_channels = len(raw.ch_names)
                 sfreq = raw.info["sfreq"]
-                
+
                 # Basic sanity checks
                 if n_channels < 18 or n_channels > 35:
-                    sample_errors.append(
-                        f"{edf_file.name}: Unusual channel count {n_channels}"
-                    )
+                    sample_errors.append(f"{edf_file.name}: Unusual channel count {n_channels}")
                 if sfreq < 200 or sfreq > 500:
-                    sample_errors.append(
-                        f"{edf_file.name}: Unusual sampling rate {sfreq}"
-                    )
-                    
+                    sample_errors.append(f"{edf_file.name}: Unusual sampling rate {sfreq}")
+
             except Exception as e:
                 sample_errors.append(f"{edf_file.name}: Parse error - {str(e)[:50]}")
 
@@ -173,10 +169,10 @@ def main():
     log_dir = Path("logs/verify")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"tuab_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    
+
     with open(log_file, "w") as f:
         json.dump(results, f, indent=2)
-    
+
     print(f"\n📝 Full report saved to: {log_file}")
 
     # Final status

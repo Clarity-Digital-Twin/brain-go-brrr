@@ -62,9 +62,9 @@ class TestRedisCaching:
             assert "cached" not in result1 or not result1.get("cached")
 
             # Verify cache was set
-            assert any(call[0] == "set" for call in dummy_cache.mock_calls), (
-                "First call must prime the cache"
-            )
+            assert any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), "First call must prime the cache"
 
             # Reset mocks
             dummy_cache.reset_mock()
@@ -80,12 +80,12 @@ class TestRedisCaching:
             app.dependency_overrides.pop(get_cache_mode, None)
 
         # Verify cache was used, not set again
-        assert not any(call[0] == "set" for call in dummy_cache.mock_calls), (
-            "Second call should use cache"
-        )
-        assert any(call[0] == "get" for call in dummy_cache.mock_calls), (
-            "Second call should get from cache"
-        )
+        assert not any(
+            call[0] == "set" for call in dummy_cache.mock_calls
+        ), "Second call should use cache"
+        assert any(
+            call[0] == "get" for call in dummy_cache.mock_calls
+        ), "Second call should get from cache"
 
         # QC pipeline should NOT be called again
         mock_qc_controller.run_full_qc_pipeline.assert_not_called()
@@ -198,9 +198,9 @@ class TestRedisCaching:
             cache_keys = [call[1] for call in set_calls]  # Extract keys
 
             assert len(cache_keys) == 2, f"Expected 2 set calls, got {len(cache_keys)}"
-            assert len(set(cache_keys)) == 2, (
-                f"Different files must generate different cache keys. Keys: {cache_keys}"
-            )
+            assert (
+                len(set(cache_keys)) == 2
+            ), f"Different files must generate different cache keys. Keys: {cache_keys}"
         finally:
             app.dependency_overrides.pop(get_cache_mode, None)
 
@@ -282,9 +282,9 @@ class TestRedisCaching:
             # First request - should cache
             response1 = client_for_cache_tests.post(endpoint, files=files, data=data)
             assert response1.status_code == 200
-            assert any(call[0] == "set" for call in dummy_cache.mock_calls), (
-                f"{endpoint} should cache results"
-            )
+            assert any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), f"{endpoint} should cache results"
 
             # Reset and make second request
             dummy_cache.reset_mock()
@@ -292,9 +292,9 @@ class TestRedisCaching:
             assert response2.status_code == 200
 
             # Both endpoints should use cache on second call
-            assert not any(call[0] == "set" for call in dummy_cache.mock_calls), (
-                "Should not set cache again"
-            )
+            assert not any(
+                call[0] == "set" for call in dummy_cache.mock_calls
+            ), "Should not set cache again"
             assert any(call[0] == "get" for call in dummy_cache.mock_calls), "Should get from cache"
         finally:
             app.dependency_overrides.pop(get_cache_mode, None)
@@ -313,9 +313,9 @@ class TestRedisCaching:
             assert response.status_code == 200
 
             # Verify NO cache operations occurred
-            assert not any(call[0] in {"get", "set"} for call in dummy_cache.mock_calls), (
-                "BYPASS mode should skip all cache operations"
-            )
+            assert not any(
+                call[0] in {"get", "set"} for call in dummy_cache.mock_calls
+            ), "BYPASS mode should skip all cache operations"
         finally:
             app.dependency_overrides.pop(get_cache_mode, None)
 

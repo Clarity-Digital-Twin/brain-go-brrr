@@ -221,9 +221,9 @@ class TUEVPreprocessor(TUABPreprocessor):
                     )
 
         # Final sanity check - MUST be exactly 20 channels for TUEV
-        assert len(available_standard) == 20, (
-            f"TUEV must have exactly 20 channels, got {len(available_standard)}"
-        )
+        assert (
+            len(available_standard) == 20
+        ), f"TUEV must have exactly 20 channels, got {len(available_standard)}"
 
         raw.pick(available_standard)
         logger.info(

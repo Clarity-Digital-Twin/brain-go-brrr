@@ -58,9 +58,9 @@ def test_e2e_on_synthetic_raw():
             assert 0.0 <= metrics["quality_score"] <= 1.0, "Quality score out of range"
         else:
             # Verify we have some quality metrics at least
-            assert "bad_channel_ratio" in metrics or "artifact_ratio" in metrics, (
-                "Quality metrics should have at least one metric"
-            )
+            assert (
+                "bad_channel_ratio" in metrics or "artifact_ratio" in metrics
+            ), "Quality metrics should have at least one metric"
     else:
         raise AssertionError("QC report missing both quality_grade and quality_metrics")
 

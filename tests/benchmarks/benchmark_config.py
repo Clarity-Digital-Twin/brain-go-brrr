@@ -277,9 +277,9 @@ def benchmark_eegpt_inference(benchmark, model, data, expected_shape=None, targe
 
     # Validate output shape
     if expected_shape:
-        assert features.shape == expected_shape, (
-            f"Expected shape {expected_shape}, got {features.shape}"
-        )
+        assert (
+            features.shape == expected_shape
+        ), f"Expected shape {expected_shape}, got {features.shape}"
 
     # Validate performance target
     if target_ms:
@@ -320,9 +320,9 @@ def benchmark_eegpt_batch(
 
     # Validate output shape
     if expected_shape:
-        assert features.shape == expected_shape, (
-            f"Expected shape {expected_shape}, got {features.shape}"
-        )
+        assert (
+            features.shape == expected_shape
+        ), f"Expected shape {expected_shape}, got {features.shape}"
 
     # Validate performance target
     if target_ms_per_item:
