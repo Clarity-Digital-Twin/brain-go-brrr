@@ -50,13 +50,14 @@ python -c "import autoreject; print(f'Autoreject version: {autoreject.__version_
 echo ""
 echo "Starting cache build..."
 python experiments/eegpt_linear_probe/mne_integration/cache_builder.py \
-    --data-root "$DATA_ROOT/datasets/external/tuab" \
-    --cache-dir "$DATA_ROOT/cache/tuab_mne_preprocessed" \
+    --corpus TUAB \
+    --data-root "$DATA_ROOT/datasets/tuab/edf" \
+    --cache-dir "$DATA_ROOT/cache/tuab_mne_v2" \
     --split both \
     "$@"
 
 echo ""
 echo "=============================================="
 echo "Cache build complete!"
-echo "Cache location: $DATA_ROOT/cache/tuab_mne_preprocessed"
+echo "Cache location: $DATA_ROOT/cache/tuab_mne_v2"
 echo "=============================================="
