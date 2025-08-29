@@ -205,8 +205,7 @@ class CleanQualityController:
         if self.logger:
             abnorm_str = f"{abnormality_score:.2f}" if abnormality_score is not None else "N/A"
             self.logger.info(
-                f"QC complete: quality_score={quality_score:.2f}, "
-                f"abnormality_score={abnorm_str}"
+                f"QC complete: quality_score={quality_score:.2f}, abnormality_score={abnorm_str}"
             )
 
         return QualityMetrics(

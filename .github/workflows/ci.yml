@@ -136,6 +136,9 @@ jobs:
       - name: Check channels SSOT
         run: .ci/check_channels_ssot.sh
 
+      - name: Check no legacy compat code
+        run: .ci/check_no_compat.sh
+
   # ============================================
   # STAGE 2: TESTING (After Quality Passes)
   # ============================================

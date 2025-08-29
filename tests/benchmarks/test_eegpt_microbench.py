@@ -90,7 +90,7 @@ class TestEEGPTMicrobenchmark:
         expected_time = (batch_size * time_samples / 1024) * 0.01
         assert (
             elapsed < expected_time * 10
-        ), f"Too slow: {elapsed:.3f}s > {expected_time*10:.3f}s budget"
+        ), f"Too slow: {elapsed:.3f}s > {expected_time * 10:.3f}s budget"
 
     def test_shape_validation_overhead(self):
         """Ensure shape validation doesn't add significant overhead."""
@@ -118,4 +118,4 @@ class TestEEGPTMicrobenchmark:
 
         # Should be very fast with mocked encoder
         per_call = elapsed / n_iters
-        assert per_call < 0.001, f"Validation overhead too high: {per_call*1000:.2f}ms per call"
+        assert per_call < 0.001, f"Validation overhead too high: {per_call * 1000:.2f}ms per call"
