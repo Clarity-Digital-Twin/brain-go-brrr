@@ -9,9 +9,9 @@ EXPERIMENT_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_ROOT="$(dirname "$(dirname "$EXPERIMENT_DIR")")"
 DATA_ROOT="${BGB_DATA_ROOT:-$PROJECT_ROOT/data}"
 
-# Cache parameters
-TUEV_ROOT="$DATA_ROOT/datasets/external/tuh_eeg/TUEV/v2.0.1"
-CACHE_DIR="$DATA_ROOT/cache/tuev_mne_preprocessed"
+# Cache parameters  
+TUEV_ROOT="$DATA_ROOT/datasets/tuev"
+CACHE_DIR="$DATA_ROOT/cache/tuev_mne_v2"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="$EXPERIMENT_DIR/logs/tuev_cache_build_$TIMESTAMP.log"
 
