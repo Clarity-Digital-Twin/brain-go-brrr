@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Pre-commit hook to prevent hardcoded dataset paths.
+
+This prevents regression of the Sleep-EDF path centralization fix.
+"""
+import re
+import sys
+from pathlib import Path
+
+
+def check_file(filepath: Path) -> list[str]:
+    """Check a file for hardcoded paths."""
+    if not filepath.exists():
+        return []
+    
+    violations = []
+    
+    # Skip certain files that are allowed to have these strings
+    allowed_files = {
+        "SLEEP_EDF_FIX_PLAN.md",
+        "PATH_AUDIT.md", 
+        "CLEANUP_STATUS.md",
+        "DIVERGENCE_FIX_ACTION_PLAN.md",
+        "TEST_DATA_DIVERGENCE_PLAN.md",
+        "CACHE_PATH_ANALYSIS.md",
+    }
+    
+    if filepath.name in allowed_files:
+        return []
+    
+    # Patterns to detect
+    patterns = [
+        (r'SC4001E0-PSG\.edf', 'Hardcoded Sleep-EDF filename - use DataConfig.get_sleep_edf_psg_file()'),
+        (r'sleep-edf-database-expanded-[\d.]+', 'Hardcoded Sleep-EDF version - use DataConfig.sleep_edf_version'),
+        (r'/external/sleep-edf', 'Legacy Sleep-EDF path - use DataConfig.sleep_edf_root'),
+        (r'/external/tuab', 'Legacy TUAB path - use DataConfig.tuab_root'),
+        (r'data/datasets/tuab/v[\d.]+/edf', 'Hardcoded TUAB path - use DataConfig.tuab_root'),
+    ]
+    
+    content = filepath.read_text()
+    
+    for line_num, line in enumerate(content.splitlines(), 1):
+        # Skip comments in Python/shell files
+        if filepath.suffix in ['.py', '.sh'] and line.strip().startswith('#'):
+            continue
+            
+        for pattern, message in patterns:
+            if re.search(pattern, line):
+                violations.append(f"{filepath}:{line_num}: {message}")
+                violations.append(f"  Found: {line.strip()}")
+    
+    return violations
+
+
+def main():
+    """Check all staged files for hardcoded paths."""
+    import subprocess
+    
+    # Get staged files
+    result = subprocess.run(
+        ['git', 'diff', '--cached', '--name-only'],
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode != 0:
+        print("Failed to get staged files")
+        return 1
+    
+    violations = []
+    for filename in result.stdout.strip().split('\n'):
+        if not filename:
+            continue
+        
+        filepath = Path(filename)
+        
+        # Only check relevant files
+        if filepath.suffix in ['.py', '.md', '.rst', '.txt', '.sh']:
+            file_violations = check_file(filepath)
+            violations.extend(file_violations)
+    
+    if violations:
+        print("❌ Hardcoded dataset paths detected!")
+        print("\nPlease use DataConfig methods instead:")
+        print("  - DataConfig.get_sleep_edf_psg_file() for Sleep-EDF files")
+        print("  - DataConfig.sleep_edf_root for Sleep-EDF directory")
+        print("  - DataConfig.tuab_root for TUAB directory")
+        print("\nViolations found:")
+        for violation in violations:
+            print(f"  {violation}")
+        return 1
+    
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

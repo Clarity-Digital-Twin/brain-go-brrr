@@ -599,8 +599,10 @@ from pathlib import Path
 import mne
 from services.sleep_metrics import SleepAnalyzer
 
-# Load data
-edf_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf")
+# Load data using config
+from brain_go_brrr.application.config import DataConfig
+config = DataConfig()
+edf_path = config.get_sleep_edf_psg_file()  # Gets first PSG file deterministically
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
 # Run analysis

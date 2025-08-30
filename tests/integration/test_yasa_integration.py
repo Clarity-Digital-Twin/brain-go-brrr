@@ -9,6 +9,7 @@ from brain_go_brrr.services.yasa_adapter import YASASleepStager
 
 
 @pytest.mark.integration
+@pytest.mark.data  # Uses real Sleep-EDF data via sleep_edf_raw_cropped fixture
 class TestYASAIntegration:
     """Test YASA integration with real data."""
 

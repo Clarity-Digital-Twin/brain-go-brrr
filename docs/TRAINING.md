@@ -41,7 +41,7 @@ mkdir -p data/models/pretrained
 
 #### Sleep-EDF Dataset (Sleep Staging - Optional)
 - **Source**: [PhysioNet Sleep-EDF](https://physionet.org/content/sleep-edfx/1.0.0/)
-- **Already downloaded**: Located at `data/datasets/external/sleep-edf/`
+- **Location**: Configured via DataConfig (default: `data/datasets/sleep-edf/`)
 - **Size**: 197 PSG recordings
 
 ### 3. Environment Setup

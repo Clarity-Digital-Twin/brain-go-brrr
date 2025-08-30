@@ -12,6 +12,7 @@ from brain_go_brrr.domain.exceptions import UnsupportedMontageError
 from brain_go_brrr.domain.sleep.analyzer import SleepAnalyzer
 
 
+@pytest.mark.data  # test_integration_with_real_sleep_edf_structure uses real Sleep-EDF data
 class TestSleepEDFMontageDetection:
     """Test that Sleep-EDF montage is properly detected and accepted."""
 

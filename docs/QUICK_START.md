@@ -173,7 +173,8 @@ Download Sleep-EDF dataset:
 
 ```bash
 python scripts/download_sleep_edf.py
-# Files saved to: data/datasets/external/sleep-edf/
+# Files saved to: data/datasets/sleep-edf/
+# The DataConfig class handles path resolution automatically
 ```
 
 ## Environment Variables
