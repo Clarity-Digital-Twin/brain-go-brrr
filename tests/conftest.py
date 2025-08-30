@@ -302,7 +302,7 @@ def sleep_edf_path(project_root) -> Path:
     Uses DataConfig to resolve paths deterministically.
     """
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig(data_path=project_root / "data")
     path = config.get_sleep_edf_psg_file()
     if not path:
@@ -317,7 +317,7 @@ def sleep_edf_dir(project_root) -> Path:
     Uses DataConfig to resolve paths deterministically.
     """
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig(data_path=project_root / "data")
     dir_path = config.sleep_edf_cassette_dir
     if not dir_path.exists():

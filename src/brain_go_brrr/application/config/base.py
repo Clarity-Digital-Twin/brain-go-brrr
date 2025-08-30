@@ -103,12 +103,12 @@ class DataConfig(BaseModel):
         override = os.environ.get("BGB_SLEEP_EDF_DIR")
         if override:
             return Path(override)
-        
+
         # Use data_path (which already exists in this class!)
         base = self.data_path / "datasets" / "sleep-edf" / self.sleep_edf_version
         if base.exists():
             return base
-        
+
         # Legacy fallback (temporary)
         legacy = self.data_path / "datasets" / "external" / "sleep-edf"
         return legacy
@@ -130,11 +130,11 @@ class DataConfig(BaseModel):
         if explicit or os.environ.get("BGB_SLEEP_EDF_FILE"):
             p = Path(explicit or os.environ.get("BGB_SLEEP_EDF_FILE"))
             return p if p.exists() else None
-        
+
         # Get first file sorted (deterministic)
         if not self.sleep_edf_cassette_dir.exists():
             return None
-            
+
         files = sorted(self.sleep_edf_cassette_dir.glob("*-PSG.edf"))
         # Filter out macOS resource forks
         files = [f for f in files if not f.name.startswith("._")]

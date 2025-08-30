@@ -38,10 +38,24 @@ class TestSleepAnalyzer:
             pytest.skip("No Sleep-EDF PSG files found")
         # Use first available EDF file
         raw = mne.io.read_raw_edf(edf_files[0], preload=True, verbose=False)
-        # Set channel types if not set (common issue with EDF files)
-        if all(ch_type == "misc" for ch_type in raw.get_channel_types()):
-            # Assume all channels are EEG for sleep data
-            raw.set_channel_types(dict.fromkeys(raw.ch_names, "eeg"))
+        # Properly select EEG channels (avoid misc/other channel types)
+        eeg_picks = mne.pick_types(raw.info, eeg=True, eog=False, emg=False, exclude=[])
+        if not eeg_picks.size:
+            # If no EEG channels marked, try to identify them by name patterns
+            eeg_patterns = ['EEG', 'Fp', 'F', 'C', 'P', 'O', 'T']
+            potential_eeg = [i for i, ch in enumerate(raw.ch_names) 
+                           if any(pattern in ch for pattern in eeg_patterns)]
+            if potential_eeg:
+                # Mark identified channels as EEG
+                channel_types = {raw.ch_names[i]: 'eeg' for i in potential_eeg}
+                raw.set_channel_types(channel_types)
+                eeg_picks = mne.pick_types(raw.info, eeg=True, exclude=[])
+        
+        if not eeg_picks.size:
+            pytest.skip("No EEG channels found in Sleep-EDF file")
+        
+        # Select only EEG channels
+        raw.pick(eeg_picks)
         # Crop to 5 minutes for fast testing
         if raw.times[-1] > 300:
             raw.crop(tmax=300)
