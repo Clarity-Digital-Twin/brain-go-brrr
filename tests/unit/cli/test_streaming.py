@@ -31,6 +31,7 @@ def short_edf_path(sleep_edf_path) -> Path:
 
 
 @pytest.mark.requires_model  # CLI streaming tests need feature extraction to work
+@pytest.mark.data  # Uses real Sleep-EDF data
 class TestCLIStreamingIntegration:
     """Test CLI streaming functionality end-to-end."""
 
