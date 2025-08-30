@@ -252,7 +252,7 @@ def fresh_app():
     (qc_controller) gets mutated by some tests and affects others.
     By reloading the module, we ensure each test starts with a fresh
     instance of the FastAPI app and all its globals.
-    
+
     NOTE: This is now opt-in - only tests that mutate global app state
     should use this fixture.
     """
