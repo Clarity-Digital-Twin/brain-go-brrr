@@ -297,37 +297,39 @@ def project_root() -> Path:
 
 def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
     """TEST-ONLY: Create minimal 2-channel Sleep-EDF-like data.
-    
+
     Creates a synthetic EDF file mimicking Sleep-EDF structure for testing
     when real data is not available. This allows CI to run without datasets.
-    
+
     Args:
         tmp_path: Temporary directory to create file in
-        
+
     Returns:
         Path to synthetic EDF file
     """
     try:
         import mne
         import numpy as np
-        
+
         # Create 2 channels like Sleep-EDF, 2 minutes at 256Hz
         sfreq = 256
         duration = 120  # 2 minutes
         n_samples = sfreq * duration
-        
+
         # Generate simple EEG-like signals
         t = np.arange(n_samples) / sfreq
-        data = np.array([
-            20e-6 * np.sin(2 * np.pi * 10 * t),  # ~10Hz alpha-like
-            15e-6 * np.sin(2 * np.pi * 3 * t)    # ~3Hz delta-like
-        ])
-        
+        data = np.array(
+            [
+                20e-6 * np.sin(2 * np.pi * 10 * t),  # ~10Hz alpha-like
+                15e-6 * np.sin(2 * np.pi * 3 * t),  # ~3Hz delta-like
+            ]
+        )
+
         # Use Sleep-EDF channel naming convention
         ch_names = ["EEG Fpz-Cz", "EEG Pz-Oz"]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
-        
+
         # Export as EDF
         edf_path = tmp_path / "synthetic_sleep.edf"
         raw.export(str(edf_path), fmt="edf")
@@ -347,14 +349,14 @@ def sleep_edf_path(project_root, tmp_path) -> Path:
 
     config = DataConfig(data_path=project_root / "data")
     path = config.get_sleep_edf_psg_file()
-    
+
     if path:
         return path
-    
+
     # Allow synthetic fallback for CI (TEST-ONLY, never in production)
     if os.environ.get("BGB_ALLOW_SYNTH_SLEEP_EDF") == "1":
         return _create_synthetic_sleep_edf(tmp_path)
-    
+
     pytest.skip(
         "Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data, "
         "or set BGB_ALLOW_SYNTH_SLEEP_EDF=1 for synthetic data."

@@ -19,10 +19,10 @@ from tests._test_utils import record_accuracy_metric
 def tuh_test_subset():
     """Small subset of real TUH data for accuracy testing."""
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig()
     base_path = config.tuab_root / "v3.0.1/edf/train"
-    
+
     if not base_path.exists():
         # Try legacy location
         base_path = Path("data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf/train")

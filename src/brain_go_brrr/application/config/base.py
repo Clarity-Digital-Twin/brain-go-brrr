@@ -148,7 +148,7 @@ class DataConfig(BaseModel):
         override = os.environ.get("BGB_TUAB_DIR")
         if override:
             return Path(override)
-        
+
         # Standard location under data root
         return self.data_path / "datasets" / "tuab"
 
@@ -158,7 +158,7 @@ class DataConfig(BaseModel):
         override = os.environ.get("BGB_TUEV_DIR")
         if override:
             return Path(override)
-        
+
         # Standard location under data root
         return self.data_path / "datasets" / "tuev"
 

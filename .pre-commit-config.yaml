@@ -95,6 +95,14 @@ repos:
         files: ^(src|tests|experiments)/.*\.py$
         exclude: safe_load.py
 
+      # Check for hardcoded dataset paths (prevent Sleep-EDF regression)
+      - id: no-hardcoded-paths
+        name: no-hardcoded-paths
+        entry: python .pre-commit-hooks/check_hardcoded_paths.py
+        language: system
+        files: \.(py|md|rst|txt|sh)$
+        exclude: ^(SLEEP_EDF_FIX_PLAN|PATH_AUDIT|CLEANUP_STATUS|DIVERGENCE_FIX|TEST_DATA_DIVERGENCE|CACHE_PATH_ANALYSIS)\.md$
+
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets
   #   rev: v1.4.0
