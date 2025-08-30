@@ -10,6 +10,11 @@ import pytest
 import brain_go_brrr.infra.data.edf_loader as l
 from brain_go_brrr.domain.exceptions import EdfLoadError
 
+try:  # pragma: no cover - environment guard
+    pass  # type: ignore
+except Exception:  # pragma: no cover - skip if MNE unavailable
+    pytest.skip("mne not available", allow_module_level=True)
+
 
 def test_validate_edf_path_errors(tmp_path):
     missing = tmp_path / "no.edf"

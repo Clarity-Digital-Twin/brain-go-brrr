@@ -44,6 +44,8 @@ def test_conv1d_with_constraint_path():
 
     x = torch.randn(2, 8, 64)
     _ = conv(x)
-    # Check norm along output channels (dim=0 in implementation)
-    norms = conv.weight.data.renorm(p=2, dim=0, maxnorm=1e9).norm(p=2, dim=1).mean()
-    assert norms <= 5.0  # sanity bound after renorm; exact row check is internal
+    # Check per-output-channel norm across (in_channels, kernel)
+    # weight shape: (out_channels, in_channels, kernel_size)
+    eps = 1e-5
+    norms = conv.weight.data.view(conv.weight.size(0), -1).norm(p=2, dim=1)
+    assert torch.all(norms <= 0.2 + eps)
