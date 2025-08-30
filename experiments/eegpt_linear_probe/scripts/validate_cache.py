@@ -110,8 +110,8 @@ def validate_cache(cache_dir: Path) -> tuple[bool, list[str], dict]:
                     warnings.append(f"Temp file found: {cache_file.name}")
                     continue
 
-                # Load and validate
-                data = torch.load(cache_file, map_location='cpu')
+                # Load and validate (weights_only=False needed for numpy arrays in cache)
+                data = torch.load(cache_file, map_location='cpu', weights_only=False)  # nosec:weights_only - cache contains numpy arrays
 
                 # Expected structure: dict with 'x' and 'y'
                 if not isinstance(data, dict):
