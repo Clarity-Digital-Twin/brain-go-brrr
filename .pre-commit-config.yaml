@@ -87,6 +87,14 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Check for unsafe torch.load usage (prevent CI/CD failures)
+      - id: safe-torch-load
+        name: safe-torch-load
+        entry: uv run python .pre-commit-hooks/safe_torch_load.py
+        language: system
+        files: ^(src|tests|experiments)/.*\.py$
+        exclude: safe_load.py
+
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets
   #   rev: v1.4.0

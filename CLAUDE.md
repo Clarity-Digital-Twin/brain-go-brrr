@@ -125,8 +125,29 @@ uv run ruff check src/ tests/ scripts/ experiments/
 # 4. Run type checking with CI config
 uv run mypy --config-file mypy.ini src/brain_go_brrr
 
+# 5. Check for unsafe torch.load usage (CRITICAL - CI WILL FAIL WITHOUT THIS)
+find src tests experiments -name "*.py" | grep -v safe_load.py | xargs uv run python .pre-commit-hooks/safe_torch_load.py
+
 # Or use the all-in-one command:
 make check-all  # Runs all checks CI will run
+```
+
+### 🔒 SECURITY: torch.load Requirements
+
+**CI/CD WILL FAIL if torch.load is used unsafely!** All `torch.load` calls MUST either:
+1. Use `weights_only=True` for pure tensor data
+2. Use `weights_only=False` WITH `# nosec:weights_only` comment explaining why unsafe loading is needed
+3. Use the `safe_load` wrapper from `brain_go_brrr.infra.safe_load`
+
+```python
+# ✅ GOOD - Safe loading for tensors
+checkpoint = torch.load(path, map_location='cpu', weights_only=True)
+
+# ✅ GOOD - Unsafe with explicit justification
+data = torch.load(cache_file, weights_only=False)  # nosec:weights_only - cache contains numpy arrays
+
+# ❌ BAD - Will fail CI/CD
+data = torch.load(path)  # Missing weights_only parameter
 ```
 
 ### Standard Development Commands
