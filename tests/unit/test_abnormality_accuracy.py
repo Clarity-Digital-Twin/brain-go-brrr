@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 from sklearn.metrics import balanced_accuracy_score, confusion_matrix, roc_auc_score
 
-from tests.unit.test_accuracy_metrics import record_accuracy_metric
+from tests._test_utils import record_accuracy_metric
 
 
 @pytest.fixture

@@ -1,5 +1,8 @@
 """Shared test utilities for brain-go-brrr tests."""
 
+import json
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -44,3 +47,37 @@ class FakeAutoReject:
             n_interpolate=params.get("n_interpolate"),
             picks=params.get("picks"),
         )
+
+
+# Metrics recording utilities (moved from test_accuracy_metrics.py)
+def record_accuracy_metric(test_name: str, metric_name: str, value: float) -> None:
+    """Record an accuracy metric for trend monitoring.
+    
+    Args:
+        test_name: Name of the test
+        metric_name: Name of the metric (e.g., "balanced_accuracy")
+        value: Metric value
+    """
+    metrics_file = Path(__file__).parent / "test_accuracy_metrics.json"
+    
+    # Ensure file exists
+    if not metrics_file.exists():
+        metrics_file.write_text(json.dumps({"version": "1.0", "metrics": {}}, indent=2))
+    
+    # Load existing data
+    data = json.loads(metrics_file.read_text())
+    
+    # Initialize structures if needed
+    if test_name not in data["metrics"]:
+        data["metrics"][test_name] = {}
+    if metric_name not in data["metrics"][test_name]:
+        data["metrics"][test_name][metric_name] = []
+    
+    # Record metric
+    data["metrics"][test_name][metric_name].append({
+        "value": value,
+        "timestamp": datetime.now(UTC).isoformat()
+    })
+    
+    # Save updated data
+    metrics_file.write_text(json.dumps(data, indent=2))
