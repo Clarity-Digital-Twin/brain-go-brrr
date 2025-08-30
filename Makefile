@@ -214,7 +214,7 @@ test-green: ## Run full green baseline check sequence
 test-unit-cov: ## Run unit tests with coverage (excludes MNE modules)
 	@echo "$(GREEN)Running unit tests with coverage...$(NC)"
 	$(PYTEST_WITH_COV) tests/unit -m "not integration and not slow" \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
 		--cov-report=html \
@@ -226,7 +226,7 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 	@echo "$(CYAN)Running FAST tests with coverage (no benchmarks, no slow tests)...$(NC)"
 	$(PYTEST_WITH_COV) tests/unit tests/api \
 		-m "not integration and not slow and not benchmark" \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
 		--cov-fail-under=65 \
@@ -262,12 +262,12 @@ test-all: ## Run ALL tests including integration (full suite)
 
 test-coverage: ## Run tests with full coverage report
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	$(PYTEST) tests --cov=brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
+	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
 	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
 
 coverage: ## Run unit tests with coverage enforcement
 	@echo "$(GREEN)Running coverage analysis...$(NC)"
-	$(PYTEST_WITH_COV) tests --cov=brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=65 -m "not integration and not slow" -rs -q
+	$(PYTEST_WITH_COV) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=65 -m "not integration and not slow" -rs -q
 	@echo "$(CYAN)Coverage report generated$(NC)"
 
 test-integration-local: ## Run integration tests with local resources
@@ -296,7 +296,7 @@ test-cov: ## Run tests with coverage (single process, longer timeout)
 	@echo "$(GREEN)Running tests with coverage (single process, ~2-3 minutes)...$(NC)"
 	@echo "$(YELLOW)Note: Using single process for accurate coverage. This takes longer than parallel tests.$(NC)"
 	$(PYTEST_WITH_COV) $(TEST_DIR) \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-report=term-missing:skip-covered \
 		--cov-report= \
 		--no-cov-on-fail \
@@ -310,7 +310,7 @@ test-cov: ## Run tests with coverage (single process, longer timeout)
 test-cov-parallel: ## Run tests with coverage in parallel (requires combine step)
 	@echo "$(GREEN)Running tests with coverage in parallel...$(NC)"
 	$(PYTEST) $(TEST_DIR) -n auto \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-config=.coveragerc \
 		--dist=loadfile \
 		-m "not slow and not integration and not external"
@@ -328,7 +328,7 @@ coverage-report: ## Display coverage report summary
 cov: ## Quick coverage check - shows TOTAL coverage percentage
 	@echo "$(GREEN)Running quick coverage check...$(NC)"
 	@$(PYTEST_WITH_COV) tests \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-report=term \
 		-m "not slow and not external and not gpu and not integration" \
 		--tb=short \
@@ -338,7 +338,7 @@ cov: ## Quick coverage check - shows TOTAL coverage percentage
 test-ci: ## Run tests for CI with coverage and XML report
 	@echo "$(GREEN)Running CI test suite with coverage...$(NC)"
 	$(PYTEST_WITH_COV) $(TEST_DIR) -p xdist -n auto \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-config=.coveragerc \
 		--dist=loadfile \
 		-m "not slow and not integration and not external" \
@@ -354,7 +354,7 @@ test-ci: ## Run tests for CI with coverage and XML report
 test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchmarks)
 	@echo "$(GREEN)Running all tests with full coverage (excluding integration/benchmarks)...$(NC)"
 	$(PYTEST_WITH_COV) tests \
-		--cov=brain_go_brrr \
+		--cov=src/brain_go_brrr \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
