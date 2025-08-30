@@ -47,12 +47,12 @@ tests/
 ├── integration/        # 9 test files
 ├── smoke/              # 6 test files
 ├── behavior/           # 1 test file
-├── benchmarks/         # 6 test files
+├── benchmarks/         # 4 test files (test_*.py)
 ├── archive/            # Deprecated tests
 └── fixtures/           # Test fixtures and data
 ```
 
-Total: 22 directories, 166 test files
+Total: 22 directories, 134 test files
 
 ## Problems Identified
 
@@ -76,6 +76,9 @@ Total: 22 directories, 166 test files
 - `application/` layer: Only 1 test file for entire layer
 - `services/` layer: No dedicated test directory
 - `visualization/` layer: Tests exist but scattered in unit/
+- `cli/` tests: 3 files in unit root, no subdirectory
+- `presentation/` tests: 2 report tests in unit root
+- `utils/logging/` tests: 2 files in unit root
 
 ### 5. **Test Categorization Issues**
 - Unclear boundary between unit and integration tests
@@ -136,12 +139,27 @@ tests/unit/
 ├── test_serialization_*.py (4 files)  → should be in unit/infra/
 ├── test_sleep_*.py (4 files)          → should be in unit/domain/sleep/
 ├── test_yasa_*.py (3 files)           → should be in unit/infra/external/
+├── test_cli*.py (3 files)             → should be in unit/cli/
+├── test_*report.py (2 files)          → should be in unit/presentation/
+├── test_log*.py (2 files)             → should be in unit/utils/logging/
+```
+
+### Heavy Tests to Reclassify
+```
+tests/unit/
+├── test_*_real.py (4 files)           → should be in integration/
+├── test_train_*.py (1 file)           → should be in integration/
 ```
 
 ### Duplicate/Redundant Tests
 - `test_coverage_boost_minimal.py` and `test_coverage_boost_refactored.py`
 - `test_eegpt_compat_coverage.py` and `test_eegpt_compat_strict.py`
 - Multiple serialization test files that could be consolidated
+
+### Test-to-Test Import Issues
+- `test_abnormality_accuracy.py` imports from `test_accuracy_metrics.py`
+- This will break when tests move to different directories
+- Solution: Extract shared helpers to `tests/_test_utils.py`
 
 ### Missing Test Coverage
 - No tests for `application/factories/`

@@ -37,7 +37,11 @@ tests/unit/
 │   └── serialization/
 ├── services/
 ├── utils/
-└── visualization/
+│   └── logging/
+├── visualization/
+├── cli/
+├── presentation/
+└── models/  # Legacy
 ```
 
 ### Phase 2: File Migration Plan
@@ -175,18 +179,34 @@ test_config.py                      → tests/unit/application/config/test_confi
 test_config_defaults.py             → tests/unit/application/config/test_defaults.py
 ```
 
-#### Visualization Tests (2 files)
+
+#### CLI Tests (3 files)
 ```
-test_markdown_report.py             → tests/unit/visualization/test_markdown_report.py
-test_pdf_report.py                  → tests/unit/visualization/test_pdf_report.py
+test_cli.py                         → tests/unit/cli/test_cli.py
+test_cli_commands.py                → tests/unit/cli/test_commands.py
+test_cli_streaming.py               → tests/unit/cli/test_streaming.py
 ```
 
-#### CLI/Utils Tests (4 files)
+#### Utils Tests (3 files)
 ```
-test_cli.py                         → tests/unit/test_cli.py
-test_cli_commands.py                → tests/unit/test_cli_commands.py
-test_cli_streaming.py               → tests/unit/test_cli_streaming.py
 test_time_utils.py                  → tests/unit/utils/test_time.py
+test_logger_singleton.py            → tests/unit/utils/logging/test_logger.py
+test_logging_mask.py                → tests/unit/utils/logging/test_mask.py
+```
+
+#### Presentation Tests (2 files)
+```
+test_markdown_report.py             → tests/unit/presentation/test_markdown_report.py
+test_pdf_report.py                  → tests/unit/presentation/test_pdf_report.py
+```
+
+#### Tests to Move to Integration (5 files)
+```
+test_abnormality_detection_real.py  → tests/integration/test_abnormality_real.py
+test_data_pipeline_real.py          → tests/integration/test_data_pipeline_real.py
+test_eegpt_real_inference.py        → tests/integration/test_eegpt_real_inference.py
+test_preprocessing_real.py          → tests/integration/test_preprocessing_real.py
+test_train_sleep_probe.py           → tests/integration/test_train_sleep_probe.py
 ```
 
 #### Tests to Remove/Consolidate
@@ -198,7 +218,17 @@ test_classifier_compatibility.py    → REVIEW (might be integration test)
 test_code_quality.py                → MOVE to tests/quality/
 ```
 
-### Phase 3: Import Updates
+### Phase 3: Fix Test-to-Test Imports
+
+Extract shared helpers before moving:
+```python
+# Move shared function from test_accuracy_metrics.py to tests/_test_utils.py
+# Then update imports in test_abnormality_accuracy.py:
+# Old: from tests.unit.test_accuracy_metrics import record_accuracy_metric
+# New: from tests._test_utils import record_accuracy_metric
+```
+
+### Phase 4: Import Updates
 
 After moving files, update all imports:
 ```python
@@ -209,7 +239,7 @@ from tests.unit.test_eegpt_wrapper import MockEEGPT
 from tests.unit.infra.ml_models.test_wrapper import MockEEGPT
 ```
 
-### Phase 4: Consolidation
+### Phase 5: Consolidation
 
 Merge duplicate/related test files:
 1. Consolidate 3 linear probe test files into one
@@ -217,7 +247,7 @@ Merge duplicate/related test files:
 3. Combine related API router tests
 4. Merge serialization edge cases into main test
 
-### Phase 5: Documentation
+### Phase 6: Documentation
 
 Update:
 1. `tests/README.md` with new structure
