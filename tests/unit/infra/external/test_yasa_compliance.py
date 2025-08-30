@@ -115,6 +115,7 @@ class TestYASACompliance:
             assert "metadata" not in str(e).lower()
 
 
+@pytest.mark.data  # Requires real Sleep-EDF data
 class TestRealSleepEDFData:
     """Tests using real Sleep-EDF data."""
 

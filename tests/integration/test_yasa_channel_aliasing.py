@@ -6,6 +6,8 @@ import pytest
 
 from brain_go_brrr.services.yasa_adapter import YASAConfig, YASASleepStager
 
+pytestmark = pytest.mark.data  # Requires real Sleep-EDF data
+
 
 @pytest.fixture
 def sleep_edf_data(sleep_edf_path):

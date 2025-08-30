@@ -86,18 +86,25 @@ def tuev_root(self) -> Path:
     return self.data_path / "datasets" / "tuev"
 ```
 
-### 3. Test Marking Audit
+### 3. Test Marking Audit (UPDATED FROM EXTERNAL AUDIT)
 Current state:
-- `@pytest.mark.data`: 6 occurrences (TOO FEW!)
-- Need to audit ALL tests using real files
+- `@pytest.mark.data`: 6 occurrences (NEED ~20+)
+- Many real-data tests unmarked
 
-Files needing `@pytest.mark.data`:
-- tests/unit/domain/sleep/test_analysis.py ✅ DONE
-- tests/unit/infra/external/test_yasa_compliance.py ❌ MISSING
-- tests/integration/test_yasa_channel_aliasing.py ❌ MISSING
-- tests/integration/api/test_api_sleep_edf.py ✅ HAS IT
-- tests/integration/test_sleep_enhanced.py ❌ MISSING
-- tests/integration/test_eegpt_integration.py ✅ HAS IT
+Files CONFIRMED needing `@pytest.mark.data`:
+- tests/integration/test_yasa_channel_aliasing.py ❌
+- tests/integration/test_train_sleep_probe.py ❌
+- tests/integration/test_sleep_enhanced.py ❌
+- tests/integration/test_end_to_end.py ❌
+- tests/smoke/test_end_to_end_wiring.py ❌
+- tests/unit/cli/test_streaming.py ❌
+- tests/unit/data/test_edf_loader_unit.py ❌
+- tests/unit/infra/data/test_edf_loader.py ❌
+- tests/unit/infra/external/test_yasa_compliance.py ❌
+- tests/unit/domain/sleep/test_montage_detection.py ❌
+- tests/unit/domain/preprocessing/test_pipeline.py ❌
+- tests/unit/domain/preprocessing/test_flexible.py ❌
+- tests/unit/infra/adapters/test_autoreject.py ❌
 
 ### 4. Environment Variables (DOCUMENT)
 ```bash
@@ -111,15 +118,34 @@ BGB_TUEV_DIR=/path/to/tuev          # Override TUEV location
 BGB_ALLOW_SYNTH_SLEEP_EDF=1         # Allow synthetic Sleep-EDF in tests
 ```
 
+## ADDITIONAL ISSUES FOUND (External Audit)
+
+### Documentation Drift
+Files with outdated paths that need updating:
+- `docs/TRAINING.md` - references `external/sleep-edf`
+- `docs/QUICK_START.md` - references `external/sleep-edf`  
+- `AGENTS.md` - references `external/sleep-edf`
+- `CLAUDE.md` - references old paths
+- Various experiment docs - historical, lower priority
+
+### Remaining Hardcoded Paths
+- **TUAB**: `tests/unit/domain/abnormal/test_accuracy.py` has hardcoded path (in skipped test)
+- **SC4001E0**: Only 1 in mock context (acceptable)
+
+### Missing Infrastructure
+- No pre-commit hook to prevent regression
+- `tests/unit/safe_tests.txt` exists but unused (cleanup?)
+
 ## Acceptance Criteria
 
 ### Must Have (Before Merge)
 - [ ] Zero hardcoded dataset paths (except mocks/config)
-- [ ] All real-data tests marked with `@pytest.mark.data`
+- [ ] All real-data tests marked with `@pytest.mark.data` (~13 missing)
 - [ ] DataConfig owns ALL dataset resolution
 - [ ] Tests pass in BOTH modes:
   - With real data: `pytest --run-data`
   - Without data: `pytest` (skips or synthetic)
+- [ ] Documentation updated (no old paths)
 
 ### Should Have (This Sprint)
 - [ ] Sleep-EDF synthetic fallback for CI

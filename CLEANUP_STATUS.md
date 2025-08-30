@@ -18,9 +18,9 @@
 - **Channel hack**: Fixed with TEST-ONLY comment ✅
 - **Environment variables**: Documented in README ✅
 
-## ⚠️ REMAINING ISSUES
+## ⚠️ REMAINING ISSUES (UPDATED FROM EXTERNAL AUDIT)
 
-### 1. The Mock Reference (LOW PRIORITY)
+### 1. The Mock Reference (ACCEPTABLE)
 ```python
 # tests/integration/test_train_sleep_probe.py:135
 edf_file = data_dir / "SC4001E0-PSG.edf"  
@@ -28,10 +28,20 @@ edf_file.write_bytes(b"mock edf data")  # This IS a mock, acceptable
 ```
 **Verdict**: This is creating a mock file. ACCEPTABLE, no fix needed.
 
-### 2. Test Marking Gap (MEDIUM PRIORITY)
-- **Problem**: 26 tests use sleep_edf fixtures, only 6 marked with @pytest.mark.data
+### 2. Test Marking Gap (HIGH PRIORITY)
+- **Problem**: ~13 tests use real data but lack @pytest.mark.data
 - **Impact**: Tests may run without data and fail unexpectedly
-- **Solution**: Add @pytest.mark.data to all real-data tests
+- **Solution**: Add @pytest.mark.data to all identified tests
+
+### 3. Documentation Drift (MEDIUM PRIORITY)
+- **Problem**: Old paths still in docs/TRAINING.md, docs/QUICK_START.md, CLAUDE.md, AGENTS.md
+- **Impact**: Confusing for developers following docs
+- **Solution**: Update all docs to reference DataConfig/env vars
+
+### 4. TUAB Hardcoded Path (LOW PRIORITY)
+- **Location**: tests/unit/domain/abnormal/test_accuracy.py (skipped test)
+- **Impact**: Minimal (test is skipped)
+- **Solution**: Use DataConfig when implementing TUAB support
 
 ### 3. Architectural Divergence (HIGH PRIORITY)
 | Dataset | Test Strategy | Problem |
