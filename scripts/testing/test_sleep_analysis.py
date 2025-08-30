@@ -58,7 +58,10 @@ def test_sleep_analysis():
     print("=" * 60)
 
     # Find Sleep-EDF files
-    sleep_edf_dir = Path("data/datasets/external/sleep-edf/sleep-cassette")
+    # Prefer new expanded location; fallback to legacy
+    sleep_edf_dir = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette")
+    if not sleep_edf_dir.exists():
+        sleep_edf_dir = Path("data/datasets/external/sleep-edf/sleep-cassette")
     edf_files = list(sleep_edf_dir.glob("*-PSG.edf"))[:2]  # Test first 2 files
 
     if not edf_files:

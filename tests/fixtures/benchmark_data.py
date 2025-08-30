@@ -23,7 +23,9 @@ def benchmark_edf_path() -> Path | None:
     """Get path to a benchmark EDF file from Sleep-EDF dataset."""
     # Use a smaller PSG file for benchmarks
     base_path = Path(__file__).parent.parent.parent
-    edf_path = base_path / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+    edf_path = base_path / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
+    if not edf_path.exists():
+        edf_path = base_path / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
 
     if not edf_path.exists():
         # Return None if data not available - tests will use synthetic data

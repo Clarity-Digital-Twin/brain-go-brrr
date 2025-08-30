@@ -9,8 +9,6 @@ Follows ML testing best practices:
 - Tests business logic around sleep analysis
 """
 
-from pathlib import Path
-
 import mne
 import numpy as np
 import pytest
@@ -32,27 +30,22 @@ class TestSleepAnalyzer:
         return SleepAnalyzer()
 
     @pytest.fixture
-    def sample_sleep_eeg(self):
+    def sample_sleep_eeg(self, sleep_edf_dir):
         """Load sample sleep EEG data if available."""
-        # Check for Sleep-EDF data first
-        sleep_edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette")
-        if sleep_edf_path.exists():
-            # Only get PSG (polysomnography) files, not hypnogram annotation files
-            edf_files = list(sleep_edf_path.glob("*-PSG.edf"))
-            if edf_files:
-                # Use first available EDF file
-                raw = mne.io.read_raw_edf(edf_files[0], preload=True, verbose=False)
-                # Set channel types if not set (common issue with EDF files)
-                if all(ch_type == "misc" for ch_type in raw.get_channel_types()):
-                    # Assume all channels are EEG for sleep data
-                    raw.set_channel_types(dict.fromkeys(raw.ch_names, "eeg"))
-                # Crop to 5 minutes for fast testing
-                if raw.times[-1] > 300:
-                    raw.crop(tmax=300)
-                return raw
-
-        # Fallback to synthetic sleep-like EEG
-        pytest.skip("No Sleep-EDF data available - download dataset for integration tests")
+        # Only get PSG (polysomnography) files, not hypnogram annotation files
+        edf_files = list(sleep_edf_dir.glob("*-PSG.edf"))
+        if not edf_files:
+            pytest.skip("No Sleep-EDF PSG files found")
+        # Use first available EDF file
+        raw = mne.io.read_raw_edf(edf_files[0], preload=True, verbose=False)
+        # Set channel types if not set (common issue with EDF files)
+        if all(ch_type == "misc" for ch_type in raw.get_channel_types()):
+            # Assume all channels are EEG for sleep data
+            raw.set_channel_types(dict.fromkeys(raw.ch_names, "eeg"))
+        # Crop to 5 minutes for fast testing
+        if raw.times[-1] > 300:
+            raw.crop(tmax=300)
+        return raw
 
     @pytest.mark.integration
     def test_controller_initialization(self, sleep_controller):
@@ -217,14 +210,9 @@ class TestSleepAnalyzer:
 # Additional integration test using real Sleep-EDF if available
 @pytest.mark.integration
 @pytest.mark.external
-def test_full_sleep_analysis_pipeline():
+def test_full_sleep_analysis_pipeline(sleep_edf_dir):
     """Test complete sleep analysis pipeline with real Sleep-EDF data."""
-    sleep_edf_base = Path("data/datasets/external/sleep-edf/sleep-cassette")
-
-    if not sleep_edf_base.exists():
-        pytest.skip("Sleep-EDF dataset not available - download for full integration tests")
-
-    edf_files = list(sleep_edf_base.glob("SC*-PSG.edf"))
+    edf_files = list(sleep_edf_dir.glob("SC*-PSG.edf"))
     if not edf_files:
         pytest.skip("No Sleep-EDF PSG files found")
 

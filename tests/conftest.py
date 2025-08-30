@@ -297,11 +297,65 @@ def project_root() -> Path:
 
 @pytest.fixture
 def sleep_edf_path(project_root) -> Path:
-    """Get path to a Sleep-EDF file."""
-    edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-    if not edf_path.exists():
-        pytest.skip("Sleep-EDF data not available. Run data download scripts first.")
-    return edf_path
+    """Get path to a canonical Sleep-EDF PSG file (SC4001E0-PSG.edf).
+
+    Resolution order (first existing wins):
+    - $BGB_SLEEP_EDF_DIR (optional override) / sleep-cassette / SC4001E0-PSG.edf
+    - $BGB_DATA_ROOT/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf
+    - project_root/data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf
+    - project_root/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf (legacy)
+    """
+    candidates: list[Path] = []
+    override = os.environ.get("BGB_SLEEP_EDF_DIR")
+    if override:
+        candidates.append(Path(override) / "sleep-cassette" / "SC4001E0-PSG.edf")
+
+    data_root = Path(os.environ.get("BGB_DATA_ROOT", project_root / "data"))
+    candidates.append(
+        data_root / "datasets" / "sleep-edf" / "sleep-edf-database-expanded-1.0.0" / "sleep-cassette" / "SC4001E0-PSG.edf"
+    )
+    candidates.append(
+        project_root
+        / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
+    )
+    candidates.append(
+        project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+    )
+
+    for p in candidates:
+        if p.exists():
+            return p
+
+    pytest.skip("Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+
+
+@pytest.fixture
+def sleep_edf_dir(project_root) -> Path:
+    """Get base directory for Sleep-EDF sleep-cassette files.
+
+    Resolution order mirrors sleep_edf_path, returning the directory instead
+    of a specific file.
+    """
+    override = os.environ.get("BGB_SLEEP_EDF_DIR")
+    if override:
+        p = Path(override) / "sleep-cassette"
+        if p.exists():
+            return p
+
+    data_root = Path(os.environ.get("BGB_DATA_ROOT", project_root / "data"))
+    p = data_root / "datasets" / "sleep-edf" / "sleep-edf-database-expanded-1.0.0" / "sleep-cassette"
+    if p.exists():
+        return p
+
+    p = project_root / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette"
+    if p.exists():
+        return p
+
+    p = project_root / "data/datasets/external/sleep-edf/sleep-cassette"
+    if p.exists():
+        return p
+
+    pytest.skip("Sleep-EDF directory not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
 
 
 @pytest.fixture

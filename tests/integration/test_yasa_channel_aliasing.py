@@ -1,6 +1,5 @@
 """Test YASA channel aliasing for Sleep-EDF compatibility."""
 
-from pathlib import Path
 
 import mne
 import numpy as np
@@ -12,7 +11,7 @@ from brain_go_brrr.services.yasa_adapter import YASAConfig, YASASleepStager
 @pytest.fixture
 def sleep_edf_data():
     """Load sample Sleep-EDF data."""
-    edf_file = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+    edf_file = sleep_edf_path
     if not edf_file.exists():
         pytest.skip("Sleep-EDF data not available")
 
@@ -105,7 +104,7 @@ def test_custom_channel_map():
 
 def test_process_sleep_edf_method():
     """Test the specialized process_sleep_edf method."""
-    edf_file = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+    edf_file = sleep_edf_path
     if not edf_file.exists():
         pytest.skip("Sleep-EDF data not available")
 

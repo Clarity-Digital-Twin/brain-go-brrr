@@ -4,7 +4,6 @@ Tests the complete pipeline with actual EEG files from Sleep-EDF dataset.
 """
 
 import time
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -25,15 +24,9 @@ class TestSleepEDFIntegration:
         return TestClient(app)
 
     @pytest.fixture
-    def sleep_edf_file(self):
-        """Get path to Sleep-EDF test file."""
-        project_root = Path(__file__).parent.parent.parent
-        edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-
-        if not edf_path.exists():
-            pytest.skip("Sleep-EDF data not available. Run data download scripts first.")
-
-        return edf_path
+    def sleep_edf_file(self, sleep_edf_path):
+        """Get path to Sleep-EDF test file (resolved via fixture)."""
+        return sleep_edf_path
 
     @pytest.fixture
     def cropped_edf_bytes(self, sleep_edf_file):
@@ -145,13 +138,9 @@ class TestSleepEDFIntegration:
     @pytest.mark.integration
     @pytest.mark.slow
     @pytest.mark.slow
-    def test_multiple_sleep_edf_files(self, client):
+    def test_multiple_sleep_edf_files(self, client, sleep_edf_dir):
         """Test processing multiple Sleep-EDF files to check consistency."""
-        project_root = Path(__file__).parent.parent.parent
-        sleep_dir = project_root / "data/datasets/external/sleep-edf/sleep-cassette"
-
-        if not sleep_dir.exists():
-            pytest.skip("Sleep-EDF directory not found")
+        sleep_dir = sleep_edf_dir
 
         # Get first 3 PSG EDF files (not hypnogram files or hidden files)
         edf_files = [f for f in sleep_dir.glob("*PSG.edf") if not f.name.startswith("._")][:3]
@@ -272,7 +261,14 @@ class TestAPIRobustness:
     def test_concurrent_sleep_edf_processing(self, client):
         """Test concurrent processing of Sleep-EDF files."""
         project_root = Path(__file__).parent.parent.parent
-        edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        # Prefer new expanded path under data root if available
+        if "BGB_DATA_ROOT" in os.environ:
+            candidate = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
+            edf_path = candidate if candidate.exists() else project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        else:
+            edf_path = project_root / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
+            if not edf_path.exists():
+                edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
 
         if not edf_path.exists():
             pytest.skip("Sleep-EDF data not available")

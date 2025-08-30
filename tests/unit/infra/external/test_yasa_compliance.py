@@ -127,9 +127,9 @@ class TestRealSleepEDFData:
         import os
 
         if os.environ.get("BGB_DATA_ROOT"):
-            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
+            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0"
         else:
-            base_path = Path("data/datasets/external/sleep-edf")
+            base_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0")
         # Use first cassette file
         edf_path = base_path / "sleep-cassette" / "SC4001E0-PSG.edf"
 
@@ -145,9 +145,9 @@ class TestRealSleepEDFData:
         import os
 
         if os.environ.get("BGB_DATA_ROOT"):
-            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/external/sleep-edf"
+            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0"
         else:
-            base_path = Path("data/datasets/external/sleep-edf")
+            base_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0")
         hypno_path = base_path / "sleep-cassette" / "SC4001EC-Hypnogram.edf"
 
         if not hypno_path.exists():

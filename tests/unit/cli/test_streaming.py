@@ -18,12 +18,9 @@ import pytest
 
 
 @pytest.fixture
-def sample_edf_path(project_root) -> Path:
-    """Get path to a sample EDF file for testing."""
-    edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-    if not edf_path.exists():
-        pytest.skip("Sleep-EDF data not available for integration tests")
-    return edf_path
+def sample_edf_path(sleep_edf_path) -> Path:
+    """Get path to a sample EDF file for testing (resolved via fixture)."""
+    return sleep_edf_path
 
 
 @pytest.fixture

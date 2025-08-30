@@ -135,11 +135,19 @@ def main() -> None:
     """Example usage of parallel pipeline."""
     import json
 
-    # Example with Sleep-EDF data
-    edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+    # Example with Sleep-EDF data (try new and legacy locations)
+    import os
+    data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
+    edf_candidates = [
+        data_root
+        / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf",
+        Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"),
+        Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"),
+    ]
+    edf_path = next((p for p in edf_candidates if p.exists()), None)
 
-    if not edf_path.exists():
-        logger.error(f"EDF file not found: {mask_path_for_log(edf_path)}")
+    if edf_path is None:
+        logger.error("EDF file not found in expected locations. Set BGB_DATA_ROOT or download data.")
         return
 
     # Create pipeline

@@ -140,16 +140,9 @@ class TestSleepEDFMontageDetection:
         assert hypnogram is not None
         assert len(hypnogram) > 0
 
-    def test_integration_with_real_sleep_edf_structure(self, sleep_analyzer):
+    def test_integration_with_real_sleep_edf_structure(self, sleep_analyzer, sleep_edf_path):
         """Test with channel structure matching real Sleep-EDF files."""
         # Skip if Sleep-EDF not available
-        from pathlib import Path
-
-        sleep_edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
-
-        if not sleep_edf_path.exists():
-            pytest.skip("Sleep-EDF dataset not available")
-
         # Load real Sleep-EDF file
         raw = mne.io.read_raw_edf(sleep_edf_path, preload=False)
 

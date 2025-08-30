@@ -1,6 +1,5 @@
 """Test parallel pipeline - EEGPT and YASA running independently."""
 
-from pathlib import Path
 
 import mne
 import numpy as np
@@ -118,12 +117,9 @@ class TestParallelPipeline:
 
     @pytest.mark.integration
     @pytest.mark.data
-    def test_with_real_sleep_edf(self):
+    def test_with_real_sleep_edf(self, sleep_edf_path):
         """Test with real Sleep-EDF data - demonstrates pathway separation."""
-        sleep_edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
-
-        if not sleep_edf_path.exists():
-            pytest.skip("Sleep-EDF data not found")
+        # Path provided by fixture; skip handled upstream if missing
 
         from brain_go_brrr.application.pipeline.parallel import ParallelEEGPipeline
 

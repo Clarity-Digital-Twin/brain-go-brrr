@@ -21,7 +21,9 @@ def main():
     print("Target: Process 30-minute EEG record in < 2 seconds\n")
 
     # Use Sleep-EDF data
-    data_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+    data_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf")
+    if not data_path.exists():
+        data_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
 
     if not data_path.exists():
         print("❌ Sleep-EDF data not found. Creating synthetic 30-minute data...")

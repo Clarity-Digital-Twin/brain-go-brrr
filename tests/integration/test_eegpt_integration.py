@@ -235,7 +235,10 @@ class TestEEGPTModel:
         import os
 
         data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
-        edf_path = data_root / "datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        # Prefer new expanded path, fallback to legacy
+        edf_path = data_root / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
+        if not edf_path.exists():
+            edf_path = data_root / "datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
 
         if not edf_path.exists():
             # This should be handled by @pytest.mark.data, but keep as safety

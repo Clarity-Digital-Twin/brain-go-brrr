@@ -290,8 +290,9 @@ brain-go-brrr/
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
 │   └── datasets/          # EEG datasets
-│       └── external/
-│           └── sleep-edf/ # 197 PSG recordings (✅ downloaded)
+│       ├── tuab/          # TUH Abnormal dataset v3.0.1
+│       ├── tuev/          # TUH Events dataset v2.0.1
+│       └── sleep-edf/     # Sleep-EDF dataset (197 recordings)
 └── literature/            # Research papers & markdown
 ```
 
@@ -599,7 +600,7 @@ import mne
 from services.sleep_metrics import SleepAnalyzer
 
 # Load data
-edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+edf_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf")
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
 # Run analysis
@@ -650,7 +651,7 @@ print(f'Model size: {model_path.stat().st_size / 1e6:.1f} MB')
 uv run python -m memory_profiler scripts/testing/test_sleep_analysis.py
 
 # Check Sleep-EDF data
-find data/datasets/external/sleep-edf -name "*.edf" | wc -l
+find data/datasets/sleep-edf -name "*.edf" | wc -l
 # Should show 397 files
 ```
 
