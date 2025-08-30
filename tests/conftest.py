@@ -37,7 +37,8 @@ try:
     torch.manual_seed(SEED)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(SEED)
-except ImportError:
+except Exception:
+    # Broader catch to handle any torch import issues
     torch = None
 
 
@@ -243,7 +244,7 @@ def redis_disabled_session():
     # No restoration - keep fake module for entire test session
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def fresh_app():
     """Reload api.main module for each test to ensure clean state.
 
@@ -251,6 +252,9 @@ def fresh_app():
     (qc_controller) gets mutated by some tests and affects others.
     By reloading the module, we ensure each test starts with a fresh
     instance of the FastAPI app and all its globals.
+    
+    NOTE: This is now opt-in - only tests that mutate global app state
+    should use this fixture.
     """
     # First, clear any existing api.main from sys.modules
     import sys
