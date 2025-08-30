@@ -52,7 +52,7 @@ class FakeAutoReject:
 # Metrics recording utilities (moved from test_accuracy_metrics.py)
 def record_accuracy_metric(test_name: str, metric_name: str, value: float) -> None:
     """Record an accuracy metric for trend monitoring.
-    
+
     Args:
         test_name: Name of the test
         metric_name: Name of the metric (e.g., "balanced_accuracy")
@@ -74,10 +74,9 @@ def record_accuracy_metric(test_name: str, metric_name: str, value: float) -> No
         data["metrics"][test_name][metric_name] = []
 
     # Record metric
-    data["metrics"][test_name][metric_name].append({
-        "value": value,
-        "timestamp": datetime.now(UTC).isoformat()
-    })
+    data["metrics"][test_name][metric_name].append(
+        {"value": value, "timestamp": datetime.now(UTC).isoformat()}
+    )
 
     # Save updated data
     metrics_file.write_text(json.dumps(data, indent=2))
