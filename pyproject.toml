@@ -305,7 +305,7 @@ omit = [
 precision = 2
 show_missing = true
 skip_covered = false
-fail_under = 64.0  # CI threshold (will increase to 70 after adding tests)
+fail_under = 65.0  # CI threshold (current coverage: 66%)
 
 [tool.setuptools.package-dir]
 "" = "src"
