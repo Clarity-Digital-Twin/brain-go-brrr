@@ -21,6 +21,7 @@ yasa = pytest.importorskip(
 )
 
 
+@pytest.mark.data  # Tests require real Sleep-EDF data
 class TestSleepAnalyzer:
     """Test sleep analysis with real data and graceful dependency handling."""
 
