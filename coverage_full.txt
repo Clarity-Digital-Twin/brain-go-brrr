@@ -9,4 +9,113 @@
 ........................................................................ [ 77%]
 ........................................................................ [ 85%]
 .........................s.............................................. [ 94%]
-..............................................
+..............................................                           [100%]
+=============================== warnings summary ===============================
+src/brain_go_brrr/infra/ml_models/__init__.py:6
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/src/brain_go_brrr/infra/ml_models/__init__.py:6: DeprecationWarning: eegpt_compat is deprecated. Import from eegpt_wrapper directly.
+    from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
+
+tests/unit/test_async_base.py::TestAsyncCapable::test_launch_from_async_context_raises
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/test_async_base.py:84: RuntimeWarning: coroutine 'ConcreteAsyncCapable._execute_async' was never awaited
+    with pytest.raises(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.11-final-0 _______________
+
+Name                                                                              Stmts   Miss Branch BrPart   Cover   Missing
+------------------------------------------------------------------------------------------------------------------------------
+src/brain_go_brrr/application/pipeline/hierarchical_pipeline.py                     220    220     74      0   0.00%   9-415
+src/brain_go_brrr/infra/cache_factory.py                                             46     46     20      0   0.00%   11-108
+src/brain_go_brrr/infra/data/tuab_cached_dataset.py                                   4      4      0      0   0.00%   6-17
+src/brain_go_brrr/infra/data/tuev_dataset.py                                         94     94     32      0   0.00%   6-230
+src/brain_go_brrr/infra/preprocessing/mne_preprocessor.py                           147    147     46      0   0.00%   6-401
+src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py                          178    178     90      0   0.00%   6-475
+src/brain_go_brrr/services/hierarchical_pipeline.py                                   7      7      2      0   0.00%   3-33
+src/brain_go_brrr/application/pipeline/eegpt_orchestration.py                        58     46     18      0  15.79%   51-117, 129-136
+src/brain_go_brrr/domain/preprocessing/nan_policy.py                                 67     52     46      3  17.70%   33-36, 41-43, 59-118
+src/brain_go_brrr/infra/data/channels.py                                             27     20     12      0  17.95%   108-125, 144-154
+src/brain_go_brrr/domain/preprocessing/features/extractor.py                        152    118     36      0  18.09%   34-37, 44-45, 48, 85-94, 109-143, 173-206, 215-230, 237-255, 265-273, 281-286, 294-300, 308-315, 323-336, 345-366, 370-384, 399, 403-408
+src/brain_go_brrr/infra/preprocessing/snippets/maker.py                             182    129     56      2  23.95%   30-32, 75->exit, 110, 174-227, 250-299, 313-367, 381-399, 414-446, 464-529, 544-572, 577-578
+src/brain_go_brrr/infra/data/tuab_dataset.py                                        193    137     66      5  24.32%   145-175, 195, 212-213, 224-225, 234-266, 270-277, 289-343, 351, 364-477, 481-489
+src/brain_go_brrr/application/factories.py                                           69     48     14      0  25.30%   27, 32, 37, 42, 47, 52, 78-107, 127-160, 182-202, 224-234
+src/brain_go_brrr/api/routers/jobs.py                                                75     47     20      0  29.47%   30-50, 68-72, 90-97, 111-126, 134-148, 175-179, 191-196, 202-207, 216-224
+src/brain_go_brrr/domain/preprocessing/eegpt_preprocessing.py                       125     81     58      3  30.05%   70-111, 131-143, 159-185, 205-235, 283-284, 289, 297->308, 338-349
+src/brain_go_brrr/infra/cache.py                                                    159     99     34      4  33.16%   43, 47, 51, 55, 59, 63, 67, 75-77, 81-86, 91, 95-107, 111-124, 128-134, 138-174, 178, 182, 202-207, 211-214, 218-221, 225-232, 236, 244, 260->263, 264, 268, 274->276, 282-285
+src/brain_go_brrr/infra/adapters/model_adapter.py                                    51     30     12      0  33.33%   28-29, 46-50, 56, 65, 81-102, 113, 125, 129, 133, 137, 141
+src/brain_go_brrr/domain/sleep/analyzer.py                                          311    194    150     17  34.71%   25-27, 64-65, 93->101, 102, 106, 110, 143, 193, 199, 209, 215->254, 240-241, 265, 276, 280-295, 298-299, 314-315, 321-324, 327, 332-337, 351-365, 380-423, 445-503, 521-548, 563-595, 599-668, 672-681, 693-745, 750-751
+src/brain_go_brrr/application/use_cases/tasks/enhanced_abnormality_detection.py     127     71     36      2  36.81%   99, 103->111, 138-140, 152-162, 172-203, 209-217, 223-231, 235-259, 268-283, 290-326
+src/brain_go_brrr/api/auth.py                                                        65     35     18      1  37.35%   36, 41-46, 51-56, 61, 66-67, 72-85, 94-107, 112-115
+src/brain_go_brrr/cli.py                                                             97     50     22      5  43.70%   44, 46, 48, 70, 91, 104-108, 122-208
+src/brain_go_brrr/api/routers/queue.py                                               49     24      8      0  43.86%   22-42, 55-56, 70, 82, 88, 94, 100-102, 127-134
+src/brain_go_brrr/application/pipeline/parallel.py                                   69     32      6      0  49.33%   90-97, 125-131, 136-190
+src/brain_go_brrr/domain/sleep/analyzer_enhanced.py                                 380    179    160     35  50.00%   31, 35-36, 38, 121->exit, 189-194, 209-214, 218, 228-229, 236-237, 242->241, 246, 254->258, 258->263, 274, 276, 281, 284, 301-357, 364-390, 403-454, 461, 491, 498, 502, 506->505, 542, 544, 546, 570-631, 638-671, 679->692, 683-688, 693-702, 706-715, 719-728, 732-740, 745, 752, 765->769, 770, 774, 778, 783, 788, 795-811
+src/brain_go_brrr/mne_compat.py                                                      83     34     28      5  50.45%   28, 88, 107-108, 125-130, 141, 169, 172, 200->203, 215, 225-226, 241-242, 265-270, 288-293, 305-312
+src/brain_go_brrr/infra/preprocessing/chunked_autoreject.py                         111     48     24      3  51.85%   23-25, 71, 85-141, 153-171, 178-190, 203->211, 208->211
+src/brain_go_brrr/infra/preprocessing/eeg_preprocessor.py                           158     61     62     12  53.18%   23-24, 184->188, 211, 216-219, 230-233, 238-241, 263->267, 268, 271->270, 283-330, 369->371, 397-407, 414-433
+src/brain_go_brrr/application/use_cases/tasks/abnormality_detection.py               24     11      0      0  54.17%   60-67, 78-79, 93-103, 112
+src/brain_go_brrr/infra/ml_models/linear_probe.py                                    83     29     26      1  55.96%   145-149, 175-187, 191-194, 206-218, 242-243
+src/brain_go_brrr/application/jobs/store.py                                         116     41     44      3  57.50%   77, 84, 142-145, 220-228, 240-270, 274-277, 293-299
+src/brain_go_brrr/domain/ports/cache.py                                              19      8      0      0  57.89%   14, 18, 22, 26, 34, 38, 42, 46
+src/brain_go_brrr/infra/data/edf_streaming.py                                       158     55     52     10  58.57%   16-17, 57->exit, 64, 68->exit, 88, 120, 123, 154-181, 192-203, 211->214, 262, 288, 302, 329-331, 367-410
+src/brain_go_brrr/api/routers/qc.py                                                 166     54     46     11  61.79%   38, 46-52, 61->exit, 64-65, 97, 145-146, 148-149, 184-204, 236->248, 263, 283-284, 286-287, 294->302, 327->331, 333-356
+src/brain_go_brrr/domain/constraints.py                                              21      6      4      1  64.00%   45->47, 57-59, 63-65
+src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py                                   76     23     24      7  64.00%   46-53, 84, 111-112, 131->136, 140-143, 175-185, 212, 219
+src/brain_go_brrr/domain/quality/controller.py                                      242     75     78     18  64.06%   37, 49, 92->95, 114-115, 123-125, 146->exit, 166, 180-183, 200-203, 206-207, 233-234, 244, 289-290, 295, 301-313, 317-321, 350-357, 365-377, 431, 435, 439, 451->457, 474, 480-481, 493-509, 522-527, 533, 542-543, 558
+src/brain_go_brrr/infra/data/edf_loader.py                                           38     13      8      1  65.22%   37, 48-51, 79-89
+src/brain_go_brrr/api/job_store.py                                                   56     16      8      3  67.19%   37, 65, 90, 98-99, 110-111, 122-127, 131-133, 149->151
+src/brain_go_brrr/domain/abnormal/ports.py                                           37     12      0      0  67.57%   31, 47, 63, 72, 76, 80, 84, 94, 99, 104, 108, 112
+src/brain_go_brrr/domain/abnormal/detector.py                                       183     46     56     18  68.20%   107->109, 109->112, 127, 130, 133, 136, 139, 147, 159, 171, 189, 192, 215, 247, 279, 291-296, 306-308, 329-336, 350-366, 378->exit, 388->exit, 393, 418, 421->exit, 426->exit, 441-448, 460-466
+src/brain_go_brrr/application/factories_types.py                                     29      9      0      0  68.97%   45, 65, 76, 90, 109, 123, 144, 164, 175
+src/brain_go_brrr/domain/ports/base.py                                               42     12      0      0  71.43%   21, 25, 29, 33, 98, 103, 108, 113, 118, 127, 132, 137
+src/brain_go_brrr/api/deps.py                                                        30      5     10      4  72.50%   23->exit, 24->exit, 25->exit, 47-53, 90
+src/brain_go_brrr/infra/ml_models/eegpt_probe_unified.py                            106     24     46     13  73.03%   68-71, 74->80, 82, 112, 137-139, 165, 178, 186, 193-194, 204, 208-209, 216-217, 224, 307-313
+src/brain_go_brrr/utils/logging_utils.py                                             56     12     26      6  73.17%   37, 79, 87-89, 99->102, 103-114, 123->122, 129->128, 133-135
+src/brain_go_brrr/_typing.py                                                         50      0     52     26  74.51%   24->exit, 25->exit, 27->exit, 29->exit, 38->exit, 39->exit, 51->exit, 69->exit, 80->exit, 86->exit, 89->exit, 95->exit, 98->exit, 99->exit, 100->exit, 108->exit, 127->exit, 129->exit, 140->exit, 141->exit, 150->exit, 156->exit, 157->exit, 159->exit, 161->exit, 163->exit
+src/brain_go_brrr/infra/external/yasa_adapter.py                                    219     51     64     16  74.91%   38, 40-44, 46, 60-62, 66-70, 135-137, 156, 177, 181-190, 269-280, 289, 298-299, 385, 417->423, 428, 430, 434, 483->487, 502-532, 569
+src/brain_go_brrr/infra/ml_models/eegpt_architecture.py                             201     30     38      8  79.08%   105, 211->exit, 225->231, 340, 436-437, 463, 476, 481, 495-514, 580-601
+src/brain_go_brrr/presentation/visualization/pdf_report.py                          197     29     50      6  82.59%   41-42, 84-88, 110-111, 217, 286-301, 384-398, 416, 467
+src/brain_go_brrr/infra/preprocessing/flexible_preprocessor.py                      164     18     68     11  84.05%   176-179, 198, 207->215, 210->215, 227, 229, 233-235, 274-278, 285->296, 296->302, 345-347, 364->375
+src/brain_go_brrr/application/training/sleep_probe_trainer.py                       158     21     22      2  85.00%   224-253, 379->365, 382-383, 423
+src/brain_go_brrr/utils/collate_tuev.py                                              18      2     10      2  85.71%   39, 68
+src/brain_go_brrr/utils/deprecated_redirect.py                                       12      1      2      1  85.71%   44
+src/brain_go_brrr/api/models.py                                                      37      3     12      3  87.76%   37, 39, 41
+src/brain_go_brrr/api/cache.py                                                       64      4     12      3  88.16%   45->47, 66, 82->84, 120-122
+src/brain_go_brrr/api/routers/eegpt.py                                              170     17     34      7  88.24%   153-157, 175, 199-201, 205->204, 241, 287-289, 292->291, 306, 356-358, 361->360
+src/brain_go_brrr/domain/preprocessing/core_logic.py                                147     11     62      9  89.47%   136, 145, 155, 164, 170, 262, 265, 284-287, 292->290
+src/brain_go_brrr/api/app.py                                                         67      7     10      1  89.61%   23-24, 53-54, 112, 119, 140
+src/brain_go_brrr/api/schemas.py                                                    124      6     16      7  90.71%   50, 52, 54, 57, 86->89, 95, 99
+src/brain_go_brrr/infra/redis/pool.py                                               131     10     22      4  90.85%   76, 136->144, 168, 172-178, 234
+src/brain_go_brrr/infra/ml_models/eegpt_compat.py                                   145      6     56      8  92.04%   147->149, 191, 207-210, 213->217, 223, 275, 280->283, 333->exit
+src/brain_go_brrr/domain/preprocessing/sleep_preprocessor.py                         33      0     10      3  93.02%   116->119, 119->122, 122->126
+src/brain_go_brrr/presentation/visualization/markdown_report.py                     132      5     24      4  94.23%   59->63, 108-109, 111-112, 254
+src/brain_go_brrr/application/async_base.py                                          22      1      0      0  95.45%   65
+src/brain_go_brrr/domain/channels.py                                                 64      2     24      2  95.45%   48, 59
+src/brain_go_brrr/infra/serialization.py                                             56      3     20      0  96.05%   20, 25, 127
+src/brain_go_brrr/api/routers/resources.py                                           26      1      2      0  96.43%   12
+src/brain_go_brrr/infra/preprocessing/autoreject_adapter.py                          71      0     16      2  97.70%   114->113, 118->113
+src/brain_go_brrr/application/config/abnormality_config.py                           56      1      0      0  98.21%   108
+------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                              7629   2911   2282    318  56.89%
+
+17 files skipped due to complete coverage.
+============================= slowest 10 durations =============================
+15.85s call     tests/unit/test_train_sleep_probe.py::TestSleepProbeTraining::test_training_step
+6.11s call     tests/unit/test_abnormality_preprocessor.py::TestEEGPreprocessor::test_full_preprocessing_pipeline
+5.79s call     tests/unit/test_abnormality_preprocessor.py::TestEEGPreprocessor::test_preprocessing_performance
+4.67s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+4.46s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+4.04s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_preprocessing_pipeline_order
+3.33s call     tests/unit/test_abnormality_preprocessor.py::TestEEGPreprocessor::test_preprocessing_handles_different_montages
+3.00s call     tests/unit/test_redis_pool.py::TestRedisConnectionPool::test_execute_with_retry
+2.53s call     tests/unit/test_eegpt_contract_fuzzer.py::TestEEGPTContractFuzzing::test_extract_features_shape_contract
+1.79s call     tests/unit/test_eegpt_real_inference.py::TestRealEEGPTInference::test_eegpt_processes_single_sample
+=========================== short test summary info ============================
+SKIPPED [1] tests/unit/test_coverage_boost_refactored.py:283: Test for deprecated TUABCachedDataset - new TUABDataset requires actual EDF files
+SKIPPED [1] tests/unit/test_models_linear_probe.py:125: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/test_models_linear_probe.py:137: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/test_sleep_montage_detection.py:151: Sleep-EDF dataset not available
+834 passed, 4 skipped, 81 deselected, 2 warnings in 110.31s (0:01:50)
+COVERAGE COMPLETE

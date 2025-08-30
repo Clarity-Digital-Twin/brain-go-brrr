@@ -90,7 +90,7 @@ class TestTimeUtils:
     def test_utc_constant_compatibility(self):
         """Test UTC constant is compatible with timezone.utc."""
         # UTC should be the same as timezone.utc
-        assert UTC == timezone.utc
+        assert timezone.utc == UTC
 
         # Should work in datetime operations
         dt1 = datetime.now(UTC)
