@@ -232,12 +232,13 @@ class TestEEGPTModel:
     def test_end_to_end_pipeline(self, model_path):
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
-        edf_path = Path(
-            "/Users/ray/Desktop/CLARITY-DIGITAL-TWIN/brain-go-brrr/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-        )
+        import os
+        data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
+        edf_path = data_root / "datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
 
         if not edf_path.exists():
-            pytest.skip("Sleep-EDF data not available")
+            # This should be handled by @pytest.mark.data, but keep as safety
+            pytest.skip(f"Sleep-EDF data not available at {edf_path}")
 
         # Load only 1 minute of EEG data for testing
         # (Full file is 22 hours - way too much for a unit test!)

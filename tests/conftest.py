@@ -155,22 +155,10 @@ def pytest_configure(config):
 
 
 def pytest_sessionstart(session):
-    """Set seeds for reproducibility at session start."""
-    import random
-
-    import numpy as np
-
-    random.seed(1337)
-    np.random.seed(1337)
-
-    try:
-        import torch
-
-        torch.manual_seed(1337)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(1337)
-    except ImportError:
-        pass  # torch not required for all tests
+    """Session start hook - seeds already set at module level above."""
+    # Seeds are already set at module level (lines 28-41)
+    # No need to duplicate here
+    pass
 
 
 def pytest_addoption(parser):

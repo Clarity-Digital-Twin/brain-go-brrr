@@ -4,8 +4,8 @@ experiment:
   seed: 42
 
 data:
-  root_dir: ${BGB_DATA_ROOT}/datasets/external/tuab
-  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_4s_final
+  root_dir: ${BGB_DATA_ROOT}/datasets/tuab/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_mne_v2
   batch_size: 64  # Reduced from 256 to prevent OOM on WSL2
   num_workers: 0   # Ignored - hardcoded to 0 in train_tuab.py
   pin_memory: false  # Ignored - hardcoded to false in train_tuab.py
