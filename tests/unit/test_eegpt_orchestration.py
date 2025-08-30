@@ -7,7 +7,7 @@ importing heavy MNE modules by patching preprocessing helpers.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 import pytest
@@ -38,10 +38,10 @@ class FakeModel:
     def __init__(self, feature_value: float) -> None:
         self._value = feature_value
 
-    def to(self, device: str) -> "FakeModel":  # noqa: D401 - trivial
+    def to(self, device: str) -> FakeModel:
         return self
 
-    def eval(self) -> "FakeModel":  # noqa: D401 - trivial
+    def eval(self) -> FakeModel:
         return self
 
     def extract_features(self, x: torch.Tensor, summary: bool = False) -> torch.Tensor:
@@ -58,7 +58,6 @@ def _patch_preprocessing(monkeypatch: pytest.MonkeyPatch, n_windows: int = 5) ->
     - extract_windows: returns list of (20, 1024) windows
     - prepare_batch_for_eegpt: stacks windows to torch tensor (B, 20, 1024)
     """
-
     import brain_go_brrr.application.pipeline.eegpt_orchestration as orch
 
     def fake_preprocess_for_eegpt(raw: Any, *args: Any, **kwargs: Any) -> np.ndarray:
@@ -72,14 +71,14 @@ def _patch_preprocessing(monkeypatch: pytest.MonkeyPatch, n_windows: int = 5) ->
 
     def fake_extract_windows(
         data: np.ndarray, window_duration: float, sampling_rate: int, overlap: float
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         # Return exactly n_windows of 4s x 256Hz
-        windows: List[np.ndarray] = []
+        windows: list[np.ndarray] = []
         for _ in range(n_windows):
             windows.append(np.zeros((20, 1024), dtype=np.float64))
         return windows
 
-    def fake_prepare_batch(windows: List[np.ndarray], n_channels: int = 20, device: str = "cpu") -> torch.Tensor:
+    def fake_prepare_batch(windows: list[np.ndarray], n_channels: int = 20, device: str = "cpu") -> torch.Tensor:
         batch = np.stack(windows, axis=0)
         t = torch.from_numpy(batch).float()
         return t.to(device)
@@ -107,7 +106,6 @@ class TestPredictAbnormality:
         Use FakeModel with positive features → sigmoid(mean) ~ 0.73 (>0.5),
         so windows predict abnormal; overall triage should be expedite (0.7<conf≤0.9).
         """
-
         _patch_preprocessing(monkeypatch, n_windows=40)  # exercise mini-batch stepping
 
         raw = FakeRaw(sfreq=256.0)
@@ -140,7 +138,6 @@ class TestPredictAbnormality:
 
         Use FakeModel with negative features → sigmoid(mean) ~ 0.27, normal prediction.
         """
-
         _patch_preprocessing(monkeypatch, n_windows=5)
 
         raw = FakeRaw(sfreq=256.0)
@@ -163,7 +160,6 @@ class TestPredictAbnormality:
 
         We patch the factory to return our FakeModel.
         """
-
         _patch_preprocessing(monkeypatch, n_windows=3)
 
         # Patch the factory symbol in orchestration module
@@ -195,7 +191,6 @@ class TestPredictAbnormality:
 
         Function should still run without attempting to load probe.
         """
-
         _patch_preprocessing(monkeypatch, n_windows=2)
 
         raw = FakeRaw(sfreq=256.0)
