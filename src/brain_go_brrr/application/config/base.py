@@ -128,8 +128,10 @@ class DataConfig(BaseModel):
             Path to PSG file or None if not found
         """
         if explicit or os.environ.get("BGB_SLEEP_EDF_FILE"):
-            p = Path(explicit or os.environ.get("BGB_SLEEP_EDF_FILE"))
-            return p if p.exists() else None
+            path_str = explicit or os.environ.get("BGB_SLEEP_EDF_FILE", "")
+            if path_str:
+                p = Path(path_str)
+                return p if p.exists() else None
 
         # Get first file sorted (deterministic)
         if not self.sleep_edf_cassette_dir.exists():

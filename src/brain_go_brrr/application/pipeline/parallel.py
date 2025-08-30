@@ -134,6 +134,7 @@ class ParallelEEGPipeline:
 def main() -> None:
     """Example usage of parallel pipeline."""
     import json
+
     from ..config import DataConfig
 
     # Use config to get Sleep-EDF path

@@ -8,7 +8,7 @@ from brain_go_brrr.services.yasa_adapter import YASAConfig, YASASleepStager
 
 
 @pytest.fixture
-def sleep_edf_data():
+def sleep_edf_data(sleep_edf_path):
     """Load sample Sleep-EDF data."""
     edf_file = sleep_edf_path
     if not edf_file.exists():
@@ -101,7 +101,7 @@ def test_custom_channel_map():
     assert metrics["channel_aliasing"]["channel_used"] in ["C3", "C4"]
 
 
-def test_process_sleep_edf_method():
+def test_process_sleep_edf_method(sleep_edf_path):
     """Test the specialized process_sleep_edf method."""
     edf_file = sleep_edf_path
     if not edf_file.exists():

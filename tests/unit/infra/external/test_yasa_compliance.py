@@ -1,7 +1,5 @@
 """Tests to ensure YASA compliance with best practices."""
 
-from pathlib import Path
-
 import mne
 import numpy as np
 import pytest
