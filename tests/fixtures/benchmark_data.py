@@ -21,13 +21,14 @@ if TYPE_CHECKING:
 @pytest.fixture(scope="session")
 def benchmark_edf_path() -> Path | None:
     """Get path to a benchmark EDF file from Sleep-EDF dataset."""
-    # Use a smaller PSG file for benchmarks
-    base_path = Path(__file__).parent.parent.parent
-    edf_path = base_path / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
-    if not edf_path.exists():
-        edf_path = base_path / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+    from brain_go_brrr.application.config import DataConfig
 
-    if not edf_path.exists():
+    # Use config to get the path
+    base_path = Path(__file__).parent.parent.parent
+    config = DataConfig(data_path=base_path / "data")
+    edf_path = config.get_sleep_edf_psg_file()
+
+    if not edf_path or not edf_path.exists():
         # Return None if data not available - tests will use synthetic data
         return None
     return edf_path

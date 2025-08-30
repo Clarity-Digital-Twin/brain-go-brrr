@@ -4,6 +4,7 @@ Tests the complete pipeline with actual EEG files from Sleep-EDF dataset.
 """
 
 import time
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -143,7 +144,9 @@ class TestSleepEDFIntegration:
         sleep_dir = sleep_edf_dir
 
         # Get first 3 PSG EDF files (not hypnogram files or hidden files)
-        edf_files = [f for f in sleep_dir.glob("*PSG.edf") if not f.name.startswith("._")][:3]
+        edf_files = [f for f in sorted(sleep_dir.glob("*PSG.edf")) if not f.name.startswith("._")][
+            :3
+        ]
 
         if not edf_files:
             pytest.skip("No EDF files found in Sleep-EDF directory")
@@ -260,17 +263,13 @@ class TestAPIRobustness:
     )
     def test_concurrent_sleep_edf_processing(self, client):
         """Test concurrent processing of Sleep-EDF files."""
-        project_root = Path(__file__).parent.parent.parent
-        # Prefer new expanded path under data root if available
-        if "BGB_DATA_ROOT" in os.environ:
-            candidate = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
-            edf_path = candidate if candidate.exists() else project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-        else:
-            edf_path = project_root / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
-            if not edf_path.exists():
-                edf_path = project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        from brain_go_brrr.application.config import DataConfig
 
-        if not edf_path.exists():
+        project_root = Path(__file__).parent.parent.parent
+        config = DataConfig(data_path=project_root / "data")
+        edf_path = config.get_sleep_edf_psg_file()
+
+        if not edf_path:
             pytest.skip("Sleep-EDF data not available")
 
         # Note: Concurrent requests with TestClient and dependency overrides can be problematic

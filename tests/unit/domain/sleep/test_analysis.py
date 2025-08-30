@@ -33,7 +33,7 @@ class TestSleepAnalyzer:
     def sample_sleep_eeg(self, sleep_edf_dir):
         """Load sample sleep EEG data if available."""
         # Only get PSG (polysomnography) files, not hypnogram annotation files
-        edf_files = list(sleep_edf_dir.glob("*-PSG.edf"))
+        edf_files = sorted(sleep_edf_dir.glob("*-PSG.edf"))
         if not edf_files:
             pytest.skip("No Sleep-EDF PSG files found")
         # Use first available EDF file
@@ -229,7 +229,7 @@ class TestSleepAnalyzer:
 @pytest.mark.external
 def test_full_sleep_analysis_pipeline(sleep_edf_dir):
     """Test complete sleep analysis pipeline with real Sleep-EDF data."""
-    edf_files = list(sleep_edf_dir.glob("SC*-PSG.edf"))
+    edf_files = sorted(sleep_edf_dir.glob("SC*-PSG.edf"))
     if not edf_files:
         pytest.skip("No Sleep-EDF PSG files found")
 

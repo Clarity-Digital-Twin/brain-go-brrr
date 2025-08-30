@@ -134,20 +134,16 @@ class ParallelEEGPipeline:
 def main() -> None:
     """Example usage of parallel pipeline."""
     import json
+    from ..config import DataConfig
 
-    # Example with Sleep-EDF data (try new and legacy locations)
-    import os
-    data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
-    edf_candidates = [
-        data_root
-        / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf",
-        Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"),
-        Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"),
-    ]
-    edf_path = next((p for p in edf_candidates if p.exists()), None)
+    # Use config to get Sleep-EDF path
+    config = DataConfig()
+    edf_path = config.get_sleep_edf_psg_file()
 
     if edf_path is None:
-        logger.error("EDF file not found in expected locations. Set BGB_DATA_ROOT or download data.")
+        logger.error(
+            "EDF file not found in expected locations. Set BGB_DATA_ROOT or download data."
+        )
         return
 
     # Create pipeline
