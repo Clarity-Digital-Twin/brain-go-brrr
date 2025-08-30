@@ -142,6 +142,26 @@ class DataConfig(BaseModel):
         files = [f for f in files if not f.name.startswith("._")]
         return files[0] if files else None
 
+    @property
+    def tuab_root(self) -> Path:
+        """Get TUAB dataset root directory with env override."""
+        override = os.environ.get("BGB_TUAB_DIR")
+        if override:
+            return Path(override)
+        
+        # Standard location under data root
+        return self.data_path / "datasets" / "tuab"
+
+    @property
+    def tuev_root(self) -> Path:
+        """Get TUEV dataset root directory with env override."""
+        override = os.environ.get("BGB_TUEV_DIR")
+        if override:
+            return Path(override)
+        
+        # Standard location under data root
+        return self.data_path / "datasets" / "tuev"
+
 
 class ExperimentConfig(BaseModel):
     """Configuration for experiment tracking."""
