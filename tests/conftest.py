@@ -297,36 +297,17 @@ def project_root() -> Path:
 
 @pytest.fixture
 def sleep_edf_path(project_root) -> Path:
-    """Get path to a canonical Sleep-EDF PSG file (SC4001E0-PSG.edf).
-
-    Resolution order (first existing wins):
-    - $BGB_SLEEP_EDF_DIR (optional override) / sleep-cassette / SC4001E0-PSG.edf
-    - $BGB_DATA_ROOT/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf
-    - project_root/data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf
-    - project_root/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf (legacy)
+    """Get path to a Sleep-EDF PSG file from config.
+    
+    Uses DataConfig to resolve paths deterministically.
     """
-    candidates: list[Path] = []
-    override = os.environ.get("BGB_SLEEP_EDF_DIR")
-    if override:
-        candidates.append(Path(override) / "sleep-cassette" / "SC4001E0-PSG.edf")
-
-    data_root = Path(os.environ.get("BGB_DATA_ROOT", project_root / "data"))
-    candidates.append(
-        data_root / "datasets" / "sleep-edf" / "sleep-edf-database-expanded-1.0.0" / "sleep-cassette" / "SC4001E0-PSG.edf"
-    )
-    candidates.append(
-        project_root
-        / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
-    )
-    candidates.append(
-        project_root / "data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
-    )
-
-    for p in candidates:
-        if p.exists():
-            return p
-
-    pytest.skip("Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+    from brain_go_brrr.application.config import DataConfig
+    
+    config = DataConfig(data_path=project_root / "data")
+    path = config.get_sleep_edf_psg_file()
+    if not path:
+        pytest.skip("Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+    return path
 
 
 @pytest.fixture
