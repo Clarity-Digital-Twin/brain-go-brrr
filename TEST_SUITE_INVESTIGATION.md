@@ -35,7 +35,7 @@ src/brain_go_brrr/
 
 Total: 35 directories, 137 source files
 
-### Current Test Structure (`tests/`)
+### Original Test Structure (`tests/`) - BEFORE
 ```
 tests/
 ├── unit/                # 99 test files (93 in root, 6 in subdirs)
@@ -43,16 +43,39 @@ tests/
 │   ├── data/           # 2 test files
 │   ├── domain/         # 2 test files
 │   └── ml/             # 1 test file
-├── api/                # 8 test files
+├── api/                # 8 test files (integration-style)
 ├── integration/        # 9 test files
 ├── smoke/              # 6 test files
 ├── behavior/           # 1 test file
-├── benchmarks/         # 4 test files (test_*.py)
+├── benchmarks/         # 4 test files
 ├── archive/            # Deprecated tests
 └── fixtures/           # Test fixtures and data
 ```
 
-Total: 22 directories, 134 test files
+Total BEFORE: 134 test files
+
+### Current Test Structure (AFTER Reorganization)
+```
+tests/
+├── unit/                # 89 test files (0 in root! All organized)
+│   ├── api/            # 10 files + routers/
+│   ├── application/    # 5 files (config, jobs, pipeline)
+│   ├── cli/            # 3 files
+│   ├── domain/         # 25 files (organized in subdirs)
+│   ├── infra/          # 40 files (ml_models, data, redis, etc.)
+│   ├── models/         # 2 files (legacy)
+│   ├── presentation/   # 2 files
+│   └── utils/          # 3 files
+├── api/                # 8 test files (unchanged, integration-style)
+├── integration/        # 15 test files (6 moved from unit)
+├── quality/            # 1 test file (code_quality)
+├── smoke/              # 6 test files (unchanged)
+├── behavior/           # 1 test file (unchanged)
+├── benchmarks/         # 4 test files (unchanged)
+└── fixtures/           # Test fixtures and data
+```
+
+Total AFTER: 124 test files (10 deleted: 3 coverage hacks, 7 from archive)
 
 ## Problems Identified
 

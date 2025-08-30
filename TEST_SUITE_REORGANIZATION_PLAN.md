@@ -126,7 +126,6 @@ test_eegpt_orchestration.py         → tests/unit/application/pipeline/test_orc
 test_eegpt_pipeline.py              → tests/unit/infra/ml_models/test_pipeline.py
 test_eegpt_preprocessing_small.py   → tests/unit/infra/ml_models/test_preprocessing.py
 test_eegpt_probe_unified.py         → tests/unit/infra/ml_models/test_probe_unified.py
-test_eegpt_real_inference.py        → tests/unit/infra/ml_models/test_real_inference.py
 test_eegpt_summary_tokens.py        → tests/unit/infra/ml_models/test_summary_tokens.py
 test_encoder_raw_output.py          → tests/unit/infra/ml_models/test_encoder_output.py
 test_linear_probe.py                → tests/unit/infra/ml_models/test_probe.py
@@ -288,11 +287,57 @@ git checkout fix/test-suite-organization
 git reset --hard HEAD~n  # where n = number of commits to undo
 ```
 
+## Path Stability for Test Data
+
+Centralize fixture paths to avoid breakage after moves:
+
+```python
+# In tests/conftest.py
+import pytest
+from pathlib import Path
+
+@pytest.fixture
+def fixtures_dir():
+    """Root fixtures directory."""
+    return Path(__file__).parent / "fixtures"
+
+@pytest.fixture  
+def eeg_fixtures_dir(fixtures_dir):
+    """EEG test data directory."""
+    return fixtures_dir / "eeg"
+
+@pytest.fixture
+def metrics_file():
+    """Metrics JSON file path."""
+    return Path(__file__).parent / "test_accuracy_metrics.json"
+```
+
+## Post-Migration Verification
+
+After completing migration:
+
+```bash
+# 1. Run all quality checks
+make check-all
+
+# 2. Quick test to verify discovery
+pytest --co -q tests/unit/
+
+# 3. Run subset to verify functionality  
+pytest -k 'eegpt or redis or edf' -q
+
+# 4. Check for broken imports
+rg -n 'from tests\.unit\.test_' tests/
+
+# 5. Full test suite with coverage
+make test-all-cov
+```
+
 ## Next Steps
 
-1. Review and approve plan
-2. Create automated migration script
-3. Execute migration in phases
-4. Run full test suite
-5. Update documentation
+1. ✅ Review and approve plan
+2. ✅ Create directory structure
+3. ✅ Execute migration in phases
+4. ✅ Run full test suite
+5. ✅ Update documentation
 6. Submit PR for review
