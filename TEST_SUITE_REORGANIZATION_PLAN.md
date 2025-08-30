@@ -44,6 +44,11 @@ tests/unit/
 └── models/  # Legacy
 ```
 
+Notes:
+- `application/pipeline/` currently has tests (e.g., orchestration) — keep this bucket.
+- `models/` (Legacy) currently contains 2 tests; retain until legacy code is removed.
+- Top-level `tests/api/` remains for integration-style endpoint tests.
+
 ### Phase 2: File Migration Plan
 
 #### API Tests (10 files)
@@ -85,12 +90,11 @@ test_window_extractor.py            → tests/unit/domain/preprocessing/test_win
 test_window_extractor_edge_cases.py → tests/unit/domain/preprocessing/test_window_extractor_edges.py
 test_window_tail.py                 → tests/unit/domain/preprocessing/test_window_tail.py
 
-# Sleep (5 files)
+# Sleep (4 files)
 test_sleep_analysis.py              → tests/unit/domain/sleep/test_analysis.py
 test_sleep_montage_detection.py     → tests/unit/domain/sleep/test_montage_detection.py
 test_sleep_preprocessor.py          → tests/unit/domain/sleep/test_preprocessor.py
 test_enhanced_sleep_analyzer.py     → tests/unit/domain/sleep/test_enhanced_analyzer.py
-test_train_sleep_probe.py           → tests/unit/application/training/test_sleep_probe.py
 
 # Quality (1 file)
 test_quality_controller.py          → tests/unit/domain/quality/test_controller.py
@@ -140,7 +144,6 @@ test_rotary_embedding_fix.py        → tests/unit/infra/ml_models/test_rotary_e
 test_edf_loader.py                  → tests/unit/infra/data/test_edf_loader.py
 test_edf_streaming.py               → tests/unit/infra/data/test_edf_streaming.py
 test_edf_validator.py               → tests/unit/infra/data/test_edf_validator.py
-test_data_pipeline_real.py          → tests/unit/infra/data/test_pipeline_real.py
 test_collate_functions.py           → tests/unit/utils/test_collate.py
 
 # External/YASA (4 files)
@@ -164,10 +167,8 @@ test_serialization_edge_cases.py    → tests/unit/infra/serialization/test_edge
 test_serialization_registry.py      → tests/unit/infra/serialization/test_registry.py
 test_jobdata_serialization.py       → tests/unit/application/jobs/test_serialization.py
 
-# Other Infrastructure (2 files)
+# Other Infrastructure (1 file)
 test_safe_load.py                   → tests/unit/infra/test_safe_load.py
-test_logger_singleton.py            → tests/unit/infra/test_logger.py
-test_logging_mask.py                → tests/unit/infra/test_logging_mask.py
 ```
 
 #### Application Tests (3 files)
@@ -265,7 +266,7 @@ Update:
 
 ## Success Metrics
 
-- ✅ All 790+ tests still pass
+- ✅ All tests pass post-migration
 - ✅ Test discovery time reduced
 - ✅ Clear 1:1 mapping between source and tests
 - ✅ No orphaned tests in unit/ root
@@ -301,7 +302,7 @@ def fixtures_dir():
     """Root fixtures directory."""
     return Path(__file__).parent / "fixtures"
 
-@pytest.fixture  
+@pytest.fixture
 def eeg_fixtures_dir(fixtures_dir):
     """EEG test data directory."""
     return fixtures_dir / "eeg"
@@ -323,7 +324,7 @@ make check-all
 # 2. Quick test to verify discovery
 pytest --co -q tests/unit/
 
-# 3. Run subset to verify functionality  
+# 3. Run subset to verify functionality
 pytest -k 'eegpt or redis or edf' -q
 
 # 4. Check for broken imports

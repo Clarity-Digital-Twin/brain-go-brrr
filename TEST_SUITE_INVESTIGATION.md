@@ -59,13 +59,13 @@ Total BEFORE: 134 test files
 tests/
 ├── unit/                # 89 test files (0 in root! All organized)
 │   ├── api/            # 10 files + routers/
-│   ├── application/    # 5 files (config, jobs, pipeline)
+│   ├── application/    # 7 files (config, jobs, pipeline)
 │   ├── cli/            # 3 files
-│   ├── domain/         # 25 files (organized in subdirs)
-│   ├── infra/          # 40 files (ml_models, data, redis, etc.)
+│   ├── domain/         # 24 files (organized in subdirs)
+│   ├── infra/          # 34 files (ml_models, data, redis, etc.)
 │   ├── models/         # 2 files (legacy)
 │   ├── presentation/   # 2 files
-│   └── utils/          # 3 files
+│   └── utils/          # 4 files (incl. logging/)
 ├── api/                # 8 test files (unchanged, integration-style)
 ├── integration/        # 15 test files (6 moved from unit)
 ├── quality/            # 1 test file (code_quality)
