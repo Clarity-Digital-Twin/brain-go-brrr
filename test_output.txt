@@ -1,0 +1,47 @@
+........................................................................ [  7%]
+........................................................................ [ 15%]
+.................s...................................................... [ 23%]
+........................................................................ [ 31%]
+................................s....................................... [ 38%]
+........................................................................ [ 46%]
+........................................................................ [ 54%]
+........................................................................ [ 62%]
+............................ss.......................................... [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+..................s..................................................... [ 93%]
+..............................................................           [100%]
+=============================== warnings summary ===============================
+src/brain_go_brrr/infra/ml_models/__init__.py:6
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/src/brain_go_brrr/infra/ml_models/__init__.py:6: DeprecationWarning: eegpt_compat is deprecated. Import from eegpt_wrapper directly.
+    from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
+
+tests/unit/test_cache_factory.py:7
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/test_cache_factory.py:7: DeprecationWarning: cache_factory is deprecated and will be removed in v2.0.0. Use brain_go_brrr.infra.cache directly.
+    from brain_go_brrr.infra.cache_factory import MemoryCache, get_cache
+
+tests/unit/test_async_base.py::TestAsyncCapable::test_launch_from_async_context_raises
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/test_async_base.py:84: RuntimeWarning: coroutine 'ConcreteAsyncCapable._execute_async' was never awaited
+    with pytest.raises(
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+25.88s call     tests/unit/test_train_sleep_probe.py::TestSleepProbeTraining::test_training_step
+18.33s call     tests/smoke/test_e2e_pipeline_synthetic.py::test_e2e_on_synthetic_raw
+13.99s call     tests/smoke/test_factories_contract.py::test_factories_present_and_callable
+10.46s call     tests/smoke/test_cli_and_version.py::test_cli_version_matches_package
+6.38s call     tests/smoke/test_end_to_end_wiring.py::test_api_to_domain_integration
+5.27s call     tests/unit/test_abnormality_preprocessor.py::TestEEGPreprocessor::test_preprocessing_performance
+5.18s call     tests/unit/test_eegpt_contract_fuzzer.py::TestEEGPTContractFuzzing::test_extract_features_shape_contract
+4.36s call     tests/unit/test_abnormality_preprocessor.py::TestEEGPreprocessor::test_full_preprocessing_pipeline
+3.92s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+3.69s call     tests/unit/test_flexible_preprocessing.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+=========================== short test summary info ============================
+SKIPPED [1] tests/unit/test_cache_factory.py:199: Redis not available for testing
+SKIPPED [1] tests/unit/test_coverage_boost_refactored.py:283: Test for deprecated TUABCachedDataset - new TUABDataset requires actual EDF files
+SKIPPED [1] tests/unit/test_models_linear_probe.py:125: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/test_models_linear_probe.py:137: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/test_sleep_montage_detection.py:151: Sleep-EDF dataset not available
+921 passed, 5 skipped, 82 deselected, 3 warnings in 148.06s (0:02:28)
