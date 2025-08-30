@@ -256,12 +256,12 @@ test-all: ## Run ALL tests including integration (full suite)
 
 test-coverage: ## Run tests with full coverage report
 	@echo "$(GREEN)Running tests with coverage...$(NC)"
-	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
+	$(PYTEST) tests --cov=brain_go_brrr --cov-report=term-missing --cov-report=html -m "not slow" -q
 	@echo "$(CYAN)Coverage report: htmlcov/index.html$(NC)"
 
 coverage: ## Run unit tests with coverage enforcement
 	@echo "$(GREEN)Running coverage analysis...$(NC)"
-	$(PYTEST) tests --cov=src/brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=64 -m "not integration and not slow" -rs -q
+	$(PYTEST) tests --cov=brain_go_brrr --cov-report=term-missing:skip-covered --cov-fail-under=64 -m "not integration and not slow" -rs -q
 	@echo "$(CYAN)Coverage report generated$(NC)"
 
 test-integration-local: ## Run integration tests with local resources
