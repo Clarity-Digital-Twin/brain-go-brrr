@@ -312,31 +312,17 @@ def sleep_edf_path(project_root) -> Path:
 
 @pytest.fixture
 def sleep_edf_dir(project_root) -> Path:
-    """Get base directory for Sleep-EDF sleep-cassette files.
-
-    Resolution order mirrors sleep_edf_path, returning the directory instead
-    of a specific file.
+    """Get Sleep-EDF directory from config.
+    
+    Uses DataConfig to resolve paths deterministically.
     """
-    override = os.environ.get("BGB_SLEEP_EDF_DIR")
-    if override:
-        p = Path(override) / "sleep-cassette"
-        if p.exists():
-            return p
-
-    data_root = Path(os.environ.get("BGB_DATA_ROOT", project_root / "data"))
-    p = data_root / "datasets" / "sleep-edf" / "sleep-edf-database-expanded-1.0.0" / "sleep-cassette"
-    if p.exists():
-        return p
-
-    p = project_root / "data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette"
-    if p.exists():
-        return p
-
-    p = project_root / "data/datasets/external/sleep-edf/sleep-cassette"
-    if p.exists():
-        return p
-
-    pytest.skip("Sleep-EDF directory not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+    from brain_go_brrr.application.config import DataConfig
+    
+    config = DataConfig(data_path=project_root / "data")
+    dir_path = config.sleep_edf_cassette_dir
+    if not dir_path.exists():
+        pytest.skip("Sleep-EDF directory not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+    return dir_path
 
 
 @pytest.fixture
