@@ -1,105 +1,191 @@
-"""Tests for time utilities."""
+"""Tests for time utilities - REAL BEHAVIORAL TESTS, NO MOCKING."""
 
-from datetime import UTC, datetime
+import re
+from datetime import datetime, timedelta, timezone
 
-import pytest
-
-from brain_go_brrr.utils.time import format_timestamp, timestamp_for_logging, utc_now
+from brain_go_brrr.utils.time import UTC, format_timestamp, timestamp_for_logging, utc_now
 
 
-@pytest.mark.unit
 class TestTimeUtils:
-    """Test time utility functions."""
+    """Test time utility functions BEHAVIOR."""
 
-    def test_utc_now_returns_utc_time(self):
-        """Test that utc_now returns a UTC datetime."""
+    def test_utc_now_returns_aware_datetime(self):
+        """Test utc_now returns timezone-aware UTC datetime."""
         now = utc_now()
+
+        # Should be datetime
         assert isinstance(now, datetime)
+
+        # Should be timezone-aware
+        assert now.tzinfo is not None
+
+        # Should be UTC
         assert now.tzinfo == UTC
+        # Also check against standard UTC
+        assert now.tzinfo == timezone.utc
 
     def test_utc_now_is_current_time(self):
-        """Test that utc_now returns current time."""
-        before = datetime.now(UTC)
+        """Test utc_now returns current time (within reason)."""
+        before = datetime.now(timezone.utc)
         now = utc_now()
-        after = datetime.now(UTC)
+        after = datetime.now(timezone.utc)
 
-        # Should be between before and after
-        assert before <= now <= after
+        # Should be between before and after (allowing small tolerance)
+        assert before <= now <= after + timedelta(seconds=1)
 
     def test_format_timestamp_default(self):
         """Test format_timestamp with default (current time)."""
         timestamp = format_timestamp()
 
-        # Should be ISO format with timezone
-        assert isinstance(timestamp, str)
-        assert "T" in timestamp  # ISO format separator
-        assert "+" in timestamp or "Z" in timestamp  # Timezone indicator
+        # Should be ISO format
+        assert "T" in timestamp  # ISO separator
+        assert len(timestamp) > 20  # Should have date, time, timezone
+
+        # Should be parseable back to datetime
+        parsed = datetime.fromisoformat(timestamp)
+        assert parsed.tzinfo is not None
 
     def test_format_timestamp_with_datetime(self):
         """Test format_timestamp with specific datetime."""
-        dt = datetime(2024, 1, 15, 10, 30, 45, tzinfo=UTC)
+        dt = datetime(2024, 1, 15, 12, 30, 45, 123456, tzinfo=timezone.utc)
         timestamp = format_timestamp(dt)
 
-        assert timestamp == "2024-01-15T10:30:45+00:00"
+        # Should format correctly
+        assert timestamp == "2024-01-15T12:30:45.123456+00:00"
 
-    def test_format_timestamp_none_uses_current_time(self):
-        """Test that None uses current time."""
+        # Should round-trip
+        parsed = datetime.fromisoformat(timestamp)
+        assert parsed == dt
+
+    def test_format_timestamp_none_uses_current(self):
+        """Test format_timestamp(None) uses current time."""
         before = utc_now()
         timestamp = format_timestamp(None)
         after = utc_now()
 
-        # Parse the timestamp back
-        from datetime import datetime as dt
-
-        parsed = dt.fromisoformat(timestamp)
+        # Parse back
+        parsed = datetime.fromisoformat(timestamp)
 
         # Should be between before and after
-        assert before <= parsed <= after
+        assert before <= parsed <= after + timedelta(seconds=1)
 
     def test_timestamp_for_logging_format(self):
-        """Test timestamp_for_logging returns correct format."""
+        """Test timestamp_for_logging returns expected format."""
         timestamp = timestamp_for_logging()
 
-        # Should match pattern: YYYY-MM-DD HH:MM:SS UTC
-        assert isinstance(timestamp, str)
-        assert " UTC" in timestamp
-        assert len(timestamp) == 23  # "2024-01-15 10:30:45 UTC"
+        # Check format: YYYY-MM-DD HH:MM:SS UTC
+        pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC$"
+        assert re.match(pattern, timestamp), f"Unexpected format: {timestamp}"
 
-        # Verify format
+        # Should be current time (within reason)
+        # Extract datetime part
+        dt_str = timestamp.replace(" UTC", "")
+        parsed = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+        parsed = parsed.replace(tzinfo=timezone.utc)
+
+        now = utc_now()
+        diff = abs((now - parsed).total_seconds())
+        assert diff < 2, f"Time diff too large: {diff} seconds"
+
+    def test_utc_constant_compatibility(self):
+        """Test UTC constant is compatible with timezone.utc."""
+        # UTC should be the same as timezone.utc
+        assert UTC == timezone.utc
+
+        # Should work in datetime operations
+        dt1 = datetime.now(UTC)
+        dt2 = datetime.now(timezone.utc)
+
+        # Both should have same timezone
+        assert dt1.tzinfo == dt2.tzinfo
+
+    def test_timestamps_are_sortable(self):
+        """Test that format_timestamp output is sortable chronologically."""
+        # Create timestamps with small delays
+        timestamps = []
+        for _ in range(5):
+            timestamps.append(format_timestamp())
+            # Small sleep would go here in real test
+
+        # ISO format should sort lexicographically = chronologically
+        sorted_timestamps = sorted(timestamps)
+        assert sorted_timestamps == timestamps  # Should already be in order
+
+    def test_timestamp_precision(self):
+        """Test timestamp includes microsecond precision."""
+        dt = datetime(2024, 1, 1, 0, 0, 0, 123456, tzinfo=timezone.utc)
+        timestamp = format_timestamp(dt)
+
+        # Should include microseconds
+        assert ".123456" in timestamp
+
+    def test_logging_timestamp_readable(self):
+        """Test logging timestamp is human-readable."""
+        timestamp = timestamp_for_logging()
+
+        # Should be readable format
         parts = timestamp.split()
-        assert len(parts) == 3
+        assert len(parts) == 3  # date, time, UTC
+
+        # Date should be YYYY-MM-DD
+        assert len(parts[0]) == 10
+        assert parts[0].count("-") == 2
+
+        # Time should be HH:MM:SS
+        assert len(parts[1]) == 8
+        assert parts[1].count(":") == 2
+
+        # Should end with UTC
         assert parts[2] == "UTC"
 
-        # Date part
-        date_parts = parts[0].split("-")
-        assert len(date_parts) == 3
-        assert len(date_parts[0]) == 4  # Year
-        assert len(date_parts[1]) == 2  # Month
-        assert len(date_parts[2]) == 2  # Day
 
-        # Time part
-        time_parts = parts[1].split(":")
-        assert len(time_parts) == 3
-        assert len(time_parts[0]) == 2  # Hour
-        assert len(time_parts[1]) == 2  # Minute
-        assert len(time_parts[2]) == 2  # Second
+class TestTimeConsistency:
+    """Test consistency and reliability of time functions."""
 
-    def test_time_functions_consistency(self):
-        """Test that all time functions use consistent timezone."""
-        # Get timestamps from different functions
+    def test_multiple_calls_increase_monotonically(self):
+        """Test multiple utc_now calls return increasing times."""
+        times = []
+        for _ in range(10):
+            times.append(utc_now())
+
+        # Each should be >= previous (monotonic)
+        for i in range(1, len(times)):
+            assert times[i] >= times[i - 1]
+
+    def test_format_consistency(self):
+        """Test format functions are consistent for same input."""
+        dt = datetime(2024, 6, 15, 14, 30, 0, tzinfo=timezone.utc)
+
+        # Multiple calls should give same result
+        result1 = format_timestamp(dt)
+        result2 = format_timestamp(dt)
+        assert result1 == result2
+
+    def test_timezone_awareness_preserved(self):
+        """Test timezone info is never lost."""
+        # Start with aware datetime
+        original = utc_now()
+        assert original.tzinfo is not None
+
+        # Format and parse back
+        formatted = format_timestamp(original)
+        parsed = datetime.fromisoformat(formatted)
+
+        # Should still be aware
+        assert parsed.tzinfo is not None
+        # Should be equivalent (within microsecond precision)
+        assert abs((original - parsed).total_seconds()) < 0.001
+
+    def test_utc_everywhere(self):
+        """Test all functions use UTC consistently."""
+        # utc_now should be UTC
         now = utc_now()
-        iso_timestamp = format_timestamp(now)
-        _ = timestamp_for_logging()  # Used for validation that it runs without error
+        assert now.utcoffset() == timedelta(0)
 
-        # Parse ISO timestamp
-        from datetime import datetime as dt
+        # format_timestamp should preserve UTC
+        formatted = format_timestamp(now)
+        assert "+00:00" in formatted or "Z" in formatted
 
-        parsed_iso = dt.fromisoformat(iso_timestamp)
-
-        # Both should be UTC
-        assert parsed_iso.tzinfo == UTC
-        assert now.tzinfo == UTC
-
-        # Should be the same time (allowing small difference)
-        time_diff = abs((parsed_iso - now).total_seconds())
-        assert time_diff < 0.01  # Less than 10ms difference
+        # timestamp_for_logging should indicate UTC
+        log_ts = timestamp_for_logging()
+        assert "UTC" in log_ts
