@@ -21,11 +21,12 @@ def main():
     print("Target: Process 30-minute EEG record in < 2 seconds\n")
 
     # Use Sleep-EDF data
-    data_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf")
-    if not data_path.exists():
-        data_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+    from brain_go_brrr.application.config import DataConfig
+    
+    config = DataConfig()
+    data_path = config.get_sleep_edf_psg_file()
 
-    if not data_path.exists():
+    if not data_path:
         print("❌ Sleep-EDF data not found. Creating synthetic 30-minute data...")
         # Create synthetic 30-minute recording
         sfreq = 256

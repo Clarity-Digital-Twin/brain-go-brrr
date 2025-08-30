@@ -232,15 +232,12 @@ class TestEEGPTModel:
     def test_end_to_end_pipeline(self, model_path):
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
-        import os
+        from brain_go_brrr.application.config import DataConfig
 
-        data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
-        # Prefer new expanded path, fallback to legacy
-        edf_path = data_root / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette/SC4001E0-PSG.edf"
-        if not edf_path.exists():
-            edf_path = data_root / "datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
+        config = DataConfig()
+        edf_path = config.get_sleep_edf_psg_file()
 
-        if not edf_path.exists():
+        if not edf_path:
             # This should be handled by @pytest.mark.data, but keep as safety
             pytest.skip(f"Sleep-EDF data not available at {edf_path}")
 

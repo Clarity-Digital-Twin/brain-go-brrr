@@ -58,10 +58,11 @@ def test_sleep_analysis():
     print("=" * 60)
 
     # Find Sleep-EDF files
-    # Prefer new expanded location; fallback to legacy
-    sleep_edf_dir = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0/sleep-cassette")
-    if not sleep_edf_dir.exists():
-        sleep_edf_dir = Path("data/datasets/external/sleep-edf/sleep-cassette")
+    # Use config to get Sleep-EDF directory
+    from brain_go_brrr.application.config import DataConfig
+    
+    config = DataConfig()
+    sleep_edf_dir = config.sleep_edf_cassette_dir
     edf_files = sorted(sleep_edf_dir.glob("*-PSG.edf"))[:2]  # Test first 2 files
 
     if not edf_files:

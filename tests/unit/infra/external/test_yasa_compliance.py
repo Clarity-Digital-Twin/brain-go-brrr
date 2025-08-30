@@ -123,35 +123,30 @@ class TestRealSleepEDFData:
     @pytest.fixture
     def sleep_edf_path(self):
         """Get path to a real Sleep-EDF file."""
-        # Use relative path from project root or environment variable
-        import os
+        from brain_go_brrr.application.config import DataConfig
+        
+        config = DataConfig()
+        edf_path = config.get_sleep_edf_psg_file()
 
-        if os.environ.get("BGB_DATA_ROOT"):
-            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0"
-        else:
-            base_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0")
-        # Use first cassette file
-        edf_path = base_path / "sleep-cassette" / "SC4001E0-PSG.edf"
-
-        if not edf_path.exists():
-            pytest.skip(f"Sleep-EDF data not found at {edf_path}")
+        if not edf_path:
+            pytest.skip("Sleep-EDF data not found")
 
         return edf_path
 
     @pytest.fixture
     def hypnogram_path(self):
         """Get path to corresponding hypnogram."""
-        # Use relative path from project root or environment variable
-        import os
+        from brain_go_brrr.application.config import DataConfig
+        
+        config = DataConfig()
+        cassette_dir = config.sleep_edf_cassette_dir
+        
+        # Get first hypnogram file
+        hypno_files = sorted(cassette_dir.glob("*-Hypnogram.edf"))
+        hypno_path = hypno_files[0] if hypno_files else None
 
-        if os.environ.get("BGB_DATA_ROOT"):
-            base_path = Path(os.environ["BGB_DATA_ROOT"]) / "datasets/sleep-edf/sleep-edf-database-expanded-1.0.0"
-        else:
-            base_path = Path("data/datasets/sleep-edf/sleep-edf-database-expanded-1.0.0")
-        hypno_path = base_path / "sleep-cassette" / "SC4001EC-Hypnogram.edf"
-
-        if not hypno_path.exists():
-            pytest.skip(f"Hypnogram not found at {hypno_path}")
+        if not hypno_path:
+            pytest.skip("Hypnogram not found")
 
         return hypno_path
 

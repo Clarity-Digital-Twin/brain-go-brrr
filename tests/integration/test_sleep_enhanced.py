@@ -502,7 +502,12 @@ class TestIntegrationWithSleepEDF:
     @pytest.fixture
     def sleep_edf_file(self):
         """Mock Sleep-EDF file path."""
-        return Path("/data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+        from brain_go_brrr.application.config import DataConfig
+        
+        config = DataConfig()
+        path = config.get_sleep_edf_psg_file()
+        # Return mock path if no real data
+        return path or Path("/mock/sleep-edf/mock-PSG.edf")
 
     @patch("mne.io.read_raw_edf")
     def test_full_pipeline_sleep_edf(self, mock_read_edf, analyzer, sleep_edf_style_raw):
