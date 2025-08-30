@@ -107,8 +107,8 @@ class TestJobStoreBasicOperations:
 
         # Patch priority and metadata
         success = store.patch(
-            "patch-123", 
-            priority=JobPriority.HIGH, 
+            "patch-123",
+            priority=JobPriority.HIGH,
             metadata={"file_path": "/data/test.edf", "progress": 50.0}
         )
         assert success is True

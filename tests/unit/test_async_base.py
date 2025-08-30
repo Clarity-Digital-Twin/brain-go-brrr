@@ -64,7 +64,7 @@ class TestAsyncCapable:
         async def run_test():
             result = await obj.launch_async("async_arg", async_key="async_value")
             return result, obj
-        
+
         result, obj = asyncio.run(run_test())
         assert obj.executed is True
         assert obj.args_received == ("async_arg",)
@@ -74,13 +74,13 @@ class TestAsyncCapable:
     def test_launch_from_async_context_raises(self):
         """Test launch() raises error when called from async context."""
         import asyncio
-        
+
         async def run_test():
             obj = ConcreteAsyncCapable()
             # The actual error we get is different - asyncio.run() can't be called
             with pytest.raises(RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"):
                 obj.launch("should_fail")
-        
+
         asyncio.run(run_test())
 
     def test_multiple_sync_launches(self):
@@ -124,13 +124,13 @@ class TestAsyncAnalyzer:
     def test_analyze_async_method(self):
         """Test analyze_async() in async context."""
         import asyncio
-        
+
         async def run_test():
             analyzer = ConcreteAnalyzer()
             data = {"eeg": "async_data"}
             result = await analyzer.analyze_async(data)
             return analyzer, result, data
-        
+
         analyzer, result, data = asyncio.run(run_test())
         assert analyzer.data_analyzed == data
         assert result == {"analyzed": data, "status": "complete"}
@@ -164,7 +164,7 @@ class TestAsyncCapableEdgeCases:
     def test_concurrent_async_executions(self):
         """Test multiple concurrent async executions."""
         import asyncio
-        
+
         async def run_test():
             obj1 = ConcreteAsyncCapable()
             obj2 = ConcreteAsyncCapable()
@@ -175,7 +175,7 @@ class TestAsyncCapableEdgeCases:
                 obj2.launch_async("obj2"),
             )
             return results, obj1, obj2
-        
+
         results, obj1, obj2 = asyncio.run(run_test())
         assert results[0] == "result: ('obj1',), {}"
         assert results[1] == "result: ('obj2',), {}"
@@ -205,5 +205,5 @@ class TestAsyncCapableEdgeCases:
             obj = FailingCapable()
             with pytest.raises(ValueError, match="Async failure"):
                 await obj.launch_async()
-        
+
         asyncio.run(run_test())
