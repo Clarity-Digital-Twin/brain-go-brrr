@@ -275,7 +275,7 @@ class EEGPTProbe(nn.Module):
         """
         path = Path(path)
         # Use weights_only=False to handle uninitialized LazyLinear parameters
-        checkpoint = torch.load(path, map_location='cpu', weights_only=False)
+        checkpoint = torch.load(path, map_location='cpu', weights_only=False)  # nosec:weights_only - checkpoint contains model weights and optimizer state
         self.probe.load_state_dict(checkpoint['probe_state_dict'])
 
     @property
