@@ -29,9 +29,10 @@ class ConcreteAbnormalityHead:
     """Concrete abnormality head that implements the protocol."""
 
     def __init__(self, threshold: float = 0.5):
+        """Initialize with abnormality threshold."""
         self.threshold = threshold
 
-    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:
+    def predict_proba(self, X: npt.NDArray[np.float32]) -> float:  # noqa: N803
         """Predict abnormality probability based on simple heuristic."""
         # Simple heuristic: high variance = abnormal
         variance = np.var(X)
@@ -44,9 +45,10 @@ class ConcreteFeatureExtractor:
     """Concrete feature extractor that implements the protocol."""
 
     def __init__(self, n_features: int = 10):
+        """Initialize with number of features to extract."""
         self.n_features = n_features
 
-    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    def extract(self, X: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:  # noqa: N803
         """Extract statistical features from EEG."""
         features = []
 
@@ -62,13 +64,14 @@ class ConcreteFeatureExtractor:
         while len(features) < self.n_features:
             features.append(0.0)
 
-        return np.array(features[:self.n_features], dtype=np.float32)
+        return np.array(features[: self.n_features], dtype=np.float32)
 
 
 class ConcreteLogger:
     """Concrete logger that implements the protocol."""
 
     def __init__(self):
+        """Initialize the logger with empty message list."""
         self.messages = []
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
@@ -92,6 +95,7 @@ class MockMneRaw:
     """Mock MNE Raw object that implements the protocol."""
 
     def __init__(self, n_channels: int = 19, n_samples: int = 1024):
+        """Initialize mock MNE Raw with random EEG data."""
         self._data = np.random.randn(n_channels, n_samples) * 50e-6  # Realistic EEG scale
         self._ch_names = [f"EEG{i:03d}" for i in range(n_channels)]
         self._sfreq = 256.0

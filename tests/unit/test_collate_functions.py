@@ -109,9 +109,7 @@ class TestTUEVCollate:
     def test_collate_preserves_label_range(self):
         """Test that all 6 TUEV classes are preserved."""
         # Test all 6 classes (0-5)
-        batch = [
-            (torch.randn(20, 1024), i) for i in range(6)
-        ]
+        batch = [(torch.randn(20, 1024), i) for i in range(6)]
 
         data, labels = collate_tuev_batch(batch)
 

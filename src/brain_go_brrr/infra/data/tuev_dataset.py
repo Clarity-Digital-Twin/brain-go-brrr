@@ -224,6 +224,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
         return data['x'], data['y']
 
+
 # Backwards-compatible alias expected by training/build scripts
 # Thin alias to avoid import mismatches without duplicating implementation
 TUEVDataset = TUEVMNEDataset

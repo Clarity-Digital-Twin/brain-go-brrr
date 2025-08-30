@@ -12,6 +12,7 @@ class ConcreteAsyncCapable(AsyncCapable):
     """Concrete implementation for testing."""
 
     def __init__(self):
+        """Initialize the concrete implementation."""
         self.executed = False
         self.args_received = None
         self.kwargs_received = None
@@ -29,6 +30,7 @@ class ConcreteAnalyzer(AsyncAnalyzer):
     """Concrete analyzer for testing."""
 
     def __init__(self, supported: bool = True):
+        """Initialize the analyzer with support flag."""
         self._supported = supported
         self.data_analyzed = None
 
@@ -61,6 +63,7 @@ class TestAsyncCapable:
         obj = ConcreteAsyncCapable()
         # Run in new event loop
         import asyncio
+
         async def run_test():
             result = await obj.launch_async("async_arg", async_key="async_value")
             return result, obj
@@ -78,7 +81,9 @@ class TestAsyncCapable:
         async def run_test():
             obj = ConcreteAsyncCapable()
             # The actual error we get is different - asyncio.run() can't be called
-            with pytest.raises(RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"):
+            with pytest.raises(
+                RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"
+            ):
                 obj.launch("should_fail")
 
         asyncio.run(run_test())
