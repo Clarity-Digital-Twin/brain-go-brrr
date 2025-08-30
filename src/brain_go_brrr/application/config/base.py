@@ -1,5 +1,6 @@
 """Configuration management using Pydantic and Hydra."""
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -89,6 +90,55 @@ class DataConfig(BaseModel):
     use_augmentation: bool = True
     noise_level: float = 0.01
     time_shift_max: int = 50
+
+    @property
+    def sleep_edf_version(self) -> str:
+        """Get Sleep-EDF version from env or default."""
+        return os.environ.get("BGB_SLEEP_EDF_VERSION", "sleep-edf-database-expanded-1.0.0")
+
+    @property
+    def sleep_edf_root(self) -> Path:
+        """Get Sleep-EDF root directory with env override."""
+        # Check explicit override first
+        override = os.environ.get("BGB_SLEEP_EDF_DIR")
+        if override:
+            return Path(override)
+        
+        # Use data_path (which already exists in this class!)
+        base = self.data_path / "datasets" / "sleep-edf" / self.sleep_edf_version
+        if base.exists():
+            return base
+        
+        # Legacy fallback (temporary)
+        legacy = self.data_path / "datasets" / "external" / "sleep-edf"
+        return legacy
+
+    @property
+    def sleep_edf_cassette_dir(self) -> Path:
+        """Get Sleep-EDF cassette directory."""
+        return self.sleep_edf_root / "sleep-cassette"
+
+    def get_sleep_edf_psg_file(self, explicit: str | None = None) -> Path | None:
+        """Get a PSG file deterministically.
+        
+        Args:
+            explicit: Optional explicit file path to use
+            
+        Returns:
+            Path to PSG file or None if not found
+        """
+        if explicit or os.environ.get("BGB_SLEEP_EDF_FILE"):
+            p = Path(explicit or os.environ.get("BGB_SLEEP_EDF_FILE"))
+            return p if p.exists() else None
+        
+        # Get first file sorted (deterministic)
+        if not self.sleep_edf_cassette_dir.exists():
+            return None
+            
+        files = sorted(self.sleep_edf_cassette_dir.glob("*-PSG.edf"))
+        # Filter out macOS resource forks
+        files = [f for f in files if not f.name.startswith("._")]
+        return files[0] if files else None
 
 
 class ExperimentConfig(BaseModel):
