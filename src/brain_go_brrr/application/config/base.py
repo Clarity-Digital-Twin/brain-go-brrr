@@ -120,10 +120,10 @@ class DataConfig(BaseModel):
 
     def get_sleep_edf_psg_file(self, explicit: str | None = None) -> Path | None:
         """Get a PSG file deterministically.
-        
+
         Args:
             explicit: Optional explicit file path to use
-            
+
         Returns:
             Path to PSG file or None if not found
         """

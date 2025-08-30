@@ -298,7 +298,7 @@ def project_root() -> Path:
 @pytest.fixture
 def sleep_edf_path(project_root) -> Path:
     """Get path to a Sleep-EDF PSG file from config.
-    
+
     Uses DataConfig to resolve paths deterministically.
     """
     from brain_go_brrr.application.config import DataConfig
@@ -306,14 +306,16 @@ def sleep_edf_path(project_root) -> Path:
     config = DataConfig(data_path=project_root / "data")
     path = config.get_sleep_edf_psg_file()
     if not path:
-        pytest.skip("Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+        pytest.skip(
+            "Sleep-EDF data not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data."
+        )
     return path
 
 
 @pytest.fixture
 def sleep_edf_dir(project_root) -> Path:
     """Get Sleep-EDF directory from config.
-    
+
     Uses DataConfig to resolve paths deterministically.
     """
     from brain_go_brrr.application.config import DataConfig
@@ -321,7 +323,9 @@ def sleep_edf_dir(project_root) -> Path:
     config = DataConfig(data_path=project_root / "data")
     dir_path = config.sleep_edf_cassette_dir
     if not dir_path.exists():
-        pytest.skip("Sleep-EDF directory not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data.")
+        pytest.skip(
+            "Sleep-EDF directory not available. Set BGB_SLEEP_EDF_DIR or BGB_DATA_ROOT and pass --run-data."
+        )
     return dir_path
 
 

@@ -43,17 +43,20 @@ class TestSleepAnalyzer:
         if not eeg_picks.size:
             # If no EEG channels marked, try to identify them by name patterns
             eeg_patterns = ['EEG', 'Fp', 'F', 'C', 'P', 'O', 'T']
-            potential_eeg = [i for i, ch in enumerate(raw.ch_names) 
-                           if any(pattern in ch for pattern in eeg_patterns)]
+            potential_eeg = [
+                i
+                for i, ch in enumerate(raw.ch_names)
+                if any(pattern in ch for pattern in eeg_patterns)
+            ]
             if potential_eeg:
                 # Mark identified channels as EEG
                 channel_types = {raw.ch_names[i]: 'eeg' for i in potential_eeg}
                 raw.set_channel_types(channel_types)
                 eeg_picks = mne.pick_types(raw.info, eeg=True, exclude=[])
-        
+
         if not eeg_picks.size:
             pytest.skip("No EEG channels found in Sleep-EDF file")
-        
+
         # Select only EEG channels
         raw.pick(eeg_picks)
         # Crop to 5 minutes for fast testing
