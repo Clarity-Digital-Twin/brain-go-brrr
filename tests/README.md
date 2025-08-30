@@ -16,11 +16,13 @@ tests/
 │   └── ...
 │
 ├── integration/             # Integration tests (require data/models)
+│   ├── api/                # API integration tests (TestClient)
+│   │   └── test_*.py
 │   ├── test_sleep_enhanced.py
 │   ├── test_yasa_channel_aliasing.py
 │   └── ...
 │
-├── api/                     # API endpoint tests
+├── smoke/                   # Smoke tests (basic sanity checks)
 │   ├── test_*.py
 │   └── ...
 │
@@ -37,6 +39,47 @@ tests/
         └── accuracy_metrics.json  # Stored test metrics
 ```
 
+## Running Tests
+
+### Quick Commands (Most Common)
+
+```bash
+# Fast development loop (unit tests only, ~10s)
+make test
+
+# Run specific test file
+uv run pytest tests/unit/domain/test_channels.py -xvs
+
+# Run integration tests (slower, ~30s)
+make test-integration
+
+# Full test suite with coverage
+make test-all-cov
+```
+
+### Why Integration Tests Are Skipped by Default
+
+**This is intentional!** Integration tests are deselected by default to keep the development loop fast:
+- Default `pytest` runs in ~10s (unit tests only)
+- Integration tests require `--run-integration` flag
+- This prevents slow tests from blocking rapid development
+
+### Test Selection Patterns
+
+```bash
+# Unit tests only (fast, for development)
+uv run pytest tests/unit -q
+
+# Integration tests (requires flag)
+uv run pytest tests/integration -m integration --run-integration -q
+
+# Smoke tests (quick sanity check)
+uv run pytest tests/smoke -q
+
+# Everything (CI mode)
+make test-all-cov
+```
+
 ## Test Categories
 
 ### Unit Tests (`tests/unit/`)
@@ -44,14 +87,15 @@ tests/
 - No external dependencies
 - No file I/O or network access
 - Use fakes and mocks
+- **Run by default**
 
 ### Integration Tests (`tests/integration/`)
 - May require real data files
 - Test component interactions
-- Marked with `@pytest.mark.integration`
-- Run with `--run-integration` flag
+- **Require `--run-integration` flag**
+- Marked with `pytestmark = pytest.mark.integration`
 
-### API Tests (`tests/api/`)
+### Smoke Tests (`tests/smoke/`)
 - Test FastAPI endpoints
 - Use TestClient
 - Mock external services
