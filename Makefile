@@ -30,19 +30,25 @@ RUN := $(if $(UV),uv run,python -m)
 PYTHON := $(RUN) python
 PIP := $(if $(UV),uv pip,python -m pip)
 
+# Prefer project venv binaries to avoid uv permission/cache issues
+PYTEST_BIN := $(if $(wildcard .venv/bin/pytest),.venv/bin/pytest,pytest)
+COVERAGE_BIN := $(if $(wildcard .venv/bin/coverage),.venv/bin/coverage,coverage)
+
 # Lock pytest flags for deterministic test runs
 TEST_ENV = PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 BGBR_DISABLE_YASA=1
 # Explicitly load plugins when autoload is disabled (first principles: be explicit)
-PYTEST := env $(TEST_ENV) $(RUN) pytest -p pytest_timeout
-RUFF := uvx ruff==0.6.9
+PYTEST := env $(TEST_ENV) $(PYTEST_BIN) -p pytest_timeout
+# Use pinned ruff via uvx when available; otherwise fall back to project venv ruff
+# Prefer project venv ruff for consistent config; fall back to uvx or system ruff
+RUFF := $(if $(wildcard .venv/bin/ruff),.venv/bin/ruff,$(if $(shell command -v uvx 2>/dev/null),uvx ruff==0.6.9,ruff))
 # Use pytest with coverage - explicitly load both required plugins
-PYTEST_WITH_COV := env $(TEST_ENV) $(RUN) pytest -p pytest_timeout -p pytest_cov
+PYTEST_WITH_COV := env $(TEST_ENV) $(PYTEST_BIN) -p pytest_timeout -p pytest_cov
 
 # Pytest options - can be overridden via environment
 PYTEST_BASE_OPTS ?= -v
 PYTEST_NO_PLUGINS ?= -p no:pytest_benchmark -p no:xdist
 PYTEST_PARALLEL ?= -p xdist -n auto
-MYPY := $(RUN) mypy
+MYPY := $(if $(wildcard .venv/bin/mypy),.venv/bin/mypy,$(RUN) mypy)
 JUPYTER := $(RUN) jupyter
 PRE_COMMIT := $(UV) run pre-commit
 
@@ -315,7 +321,7 @@ test-cov-parallel: ## Run tests with coverage in parallel (requires combine step
 
 coverage-report: ## Display coverage report summary
 	@echo "$(GREEN)Coverage Summary:$(NC)"
-	@$(UV) run coverage report --skip-covered | head -20
+	@$(COVERAGE_BIN) report --skip-covered | head -20
 	@echo ""
 	@echo "$(CYAN)Full HTML coverage report available at: htmlcov/index.html$(NC)"
 
@@ -337,9 +343,9 @@ test-ci: ## Run tests for CI with coverage and XML report
 		--dist=loadfile \
 		-m "not slow and not integration and not external" \
 		--junitxml=test-results.xml
-	@$(UV) run coverage combine
-	@$(UV) run coverage xml
-	@$(UV) run coverage report
+	@$(COVERAGE_BIN) combine || true
+	@$(COVERAGE_BIN) xml
+	@$(COVERAGE_BIN) report
 	@echo "$(GREEN)CI test results: test-results.xml, coverage.xml$(NC)"
 
 # Duplicate removed - see line 157 for test-integration target
@@ -359,7 +365,7 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 		--maxfail=10 \
 		--timeout=300
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
-	@$(UV) run coverage html
+	@$(COVERAGE_BIN) html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
 
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)

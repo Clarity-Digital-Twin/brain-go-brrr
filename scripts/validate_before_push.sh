@@ -15,11 +15,18 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 echo -e "\n${YELLOW}1. Formatting code with CI's ruff (0.12.3)...${NC}"
-uv run ruff format src/ tests/ scripts/ experiments/
+# Prefer project venv ruff to avoid version drift; fall back to uv
+if [ -x ".venv/bin/ruff" ]; then
+  RUFF_BIN=".venv/bin/ruff"
+else
+  RUFF_BIN="ruff"
+fi
+
+"${RUFF_BIN}" format src/ tests/ scripts/ experiments/
 echo -e "${GREEN}✅ Formatted${NC}"
 
 echo -e "\n${YELLOW}2. Checking format matches CI...${NC}"
-if uv run ruff format --check src/ tests/ scripts/ experiments/; then
+if "${RUFF_BIN}" format --check src/ tests/ scripts/ experiments/; then
     echo -e "${GREEN}✅ Format check passed${NC}"
 else
     echo -e "${RED}❌ FORMAT CHECK FAILED - CI WILL FAIL${NC}"
@@ -28,7 +35,7 @@ else
 fi
 
 echo -e "\n${YELLOW}3. Checking for lint errors...${NC}"
-if uv run ruff check src/ tests/ scripts/ experiments/; then
+if "${RUFF_BIN}" check src/ tests/ scripts/ experiments/; then
     echo -e "${GREEN}✅ Lint check passed${NC}"
 else
     echo -e "${RED}❌ LINT CHECK FAILED - CI WILL FAIL${NC}"
@@ -38,7 +45,12 @@ else
 fi
 
 echo -e "\n${YELLOW}4. Running mypy type checking...${NC}"
-if uv run mypy --config-file mypy.ini src/brain_go_brrr; then
+if [ -x ".venv/bin/mypy" ]; then
+  MYPY_BIN=".venv/bin/mypy"
+else
+  MYPY_BIN="mypy"
+fi
+if "${MYPY_BIN}" --config-file mypy.ini src/brain_go_brrr; then
     echo -e "${GREEN}✅ Type check passed${NC}"
 else
     echo -e "${RED}❌ TYPE CHECK FAILED - CI WILL FAIL${NC}"
