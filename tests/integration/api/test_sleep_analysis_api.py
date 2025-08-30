@@ -17,8 +17,10 @@ from fastapi.testclient import TestClient
 
 from tests.fixtures.cache_fixtures import DummyCache
 
-
 # Test data setup
+pytestmark = pytest.mark.integration
+
+
 @pytest.fixture
 def test_edf_file():
     """Create a temporary EDF file for testing."""

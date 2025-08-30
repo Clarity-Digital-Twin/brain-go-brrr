@@ -17,6 +17,8 @@ from fastapi.testclient import TestClient
 
 from tests.fixtures.cache_fixtures import DummyCache
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def mock_redis_cache():

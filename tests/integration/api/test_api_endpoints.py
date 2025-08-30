@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+pytestmark = pytest.mark.integration
+
 
 class TestAPIEndpoints:
     """Test suite for API endpoints."""

@@ -17,6 +17,8 @@ from brain_go_brrr.api.auth import (
     verify_hmac_signature,
 )
 
+pytestmark = pytest.mark.integration
+
 
 class TestAuthUtilities:
     """Test authentication utilities."""

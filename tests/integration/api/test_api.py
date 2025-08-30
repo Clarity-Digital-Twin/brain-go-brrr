@@ -13,6 +13,9 @@ from fastapi.testclient import TestClient
 # from brain_go_brrr.api.main import app
 
 
+pytestmark = pytest.mark.integration
+
+
 class TestAPIEndpoints:
     """Test FastAPI endpoints according to specifications."""
 

@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 from brain_go_brrr.api.main import app
 
+pytestmark = pytest.mark.integration
+
 
 class TestAPIRoot:
     """Test the root endpoint and basic API functionality."""

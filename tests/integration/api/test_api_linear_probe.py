@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 from brain_go_brrr.api.main import app
 from brain_go_brrr.infra.ml_models.linear_probe import AbnormalityProbe, SleepStageProbe
 
+pytestmark = pytest.mark.integration
+
 
 class TestAPILinearProbeIntegration:
     """Test linear probe integration in API endpoints."""

@@ -10,6 +10,8 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.data  # These tests require real Sleep-EDF dataset files
 class TestSleepEDFIntegration:

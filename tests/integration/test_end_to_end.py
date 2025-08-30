@@ -15,6 +15,8 @@ import numpy as np
 import pytest
 
 # Filter sklearn version warning for YASA
+pytestmark = pytest.mark.integration
+
 warnings.filterwarnings("ignore", message=".*scikit-learn.*version.*", category=UserWarning)
 
 
