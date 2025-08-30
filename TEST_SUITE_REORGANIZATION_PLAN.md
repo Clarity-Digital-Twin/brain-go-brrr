@@ -49,7 +49,7 @@ tests/unit/
 Notes:
 - `application/pipeline/` currently has tests (e.g., orchestration) — keep this bucket.
 - `models/` (Legacy) currently contains 2 tests; retain until legacy code is removed.
-- Top-level `tests/api/` remains for integration-style endpoint tests.
+- API endpoint tests live under `tests/integration/api/` (top-level `tests/api/` removed).
 
 ### Phase 2: File Migration Plan
 
@@ -335,6 +335,8 @@ rg -n 'from tests\.unit\.test_' tests/
 # 5. Full test suite with coverage
 make test-all-cov
 ```
+
+Note: The entire integration subtree is marked via `tests/integration/conftest.py`.
 
 ## Phase 7: Final Corrections (COMPLETED)
 
