@@ -60,7 +60,7 @@ def test_sleep_analysis():
     # Find Sleep-EDF files
     # Use config to get Sleep-EDF directory
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig()
     sleep_edf_dir = config.sleep_edf_cassette_dir
     edf_files = sorted(sleep_edf_dir.glob("*-PSG.edf"))[:2]  # Test first 2 files

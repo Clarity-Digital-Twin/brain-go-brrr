@@ -1,6 +1,5 @@
 """Test parallel pipeline - EEGPT and YASA running independently."""
 
-
 import mne
 import numpy as np
 import pytest

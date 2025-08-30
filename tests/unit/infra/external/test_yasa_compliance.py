@@ -124,7 +124,7 @@ class TestRealSleepEDFData:
     def sleep_edf_path(self):
         """Get path to a real Sleep-EDF file."""
         from brain_go_brrr.application.config import DataConfig
-        
+
         config = DataConfig()
         edf_path = config.get_sleep_edf_psg_file()
 
@@ -137,10 +137,10 @@ class TestRealSleepEDFData:
     def hypnogram_path(self):
         """Get path to corresponding hypnogram."""
         from brain_go_brrr.application.config import DataConfig
-        
+
         config = DataConfig()
         cassette_dir = config.sleep_edf_cassette_dir
-        
+
         # Get first hypnogram file
         hypno_files = sorted(cassette_dir.glob("*-Hypnogram.edf"))
         hypno_path = hypno_files[0] if hypno_files else None

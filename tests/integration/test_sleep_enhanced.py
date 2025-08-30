@@ -503,7 +503,7 @@ class TestIntegrationWithSleepEDF:
     def sleep_edf_file(self):
         """Mock Sleep-EDF file path."""
         from brain_go_brrr.application.config import DataConfig
-        
+
         config = DataConfig()
         path = config.get_sleep_edf_psg_file()
         # Return mock path if no real data

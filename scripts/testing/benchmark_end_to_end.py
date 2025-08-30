@@ -22,7 +22,7 @@ def main():
 
     # Use Sleep-EDF data
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig()
     data_path = config.get_sleep_edf_psg_file()
 

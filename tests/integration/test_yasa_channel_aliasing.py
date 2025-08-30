@@ -1,6 +1,5 @@
 """Test YASA channel aliasing for Sleep-EDF compatibility."""
 
-
 import mne
 import numpy as np
 import pytest

@@ -41,7 +41,9 @@ class TestSleepAnalyzer:
         # Properly select EEG channels (avoid misc/other channel types)
         eeg_picks = mne.pick_types(raw.info, eeg=True, eog=False, emg=False, exclude=[])
         if not eeg_picks.size:
-            # If no EEG channels marked, try to identify them by name patterns
+            # TEST-ONLY HEURISTIC: Try to identify EEG by name patterns
+            # This is a fallback for Sleep-EDF files with unmarked channels
+            # NEVER use this pattern in production code - prefer skip if no EEG channels found
             eeg_patterns = ['EEG', 'Fp', 'F', 'C', 'P', 'O', 'T']
             potential_eeg = [
                 i
@@ -49,7 +51,7 @@ class TestSleepAnalyzer:
                 if any(pattern in ch for pattern in eeg_patterns)
             ]
             if potential_eeg:
-                # Mark identified channels as EEG
+                # Mark identified channels as EEG for testing purposes only
                 channel_types = {raw.ch_names[i]: 'eeg' for i in potential_eeg}
                 raw.set_channel_types(channel_types)
                 eeg_picks = mne.pick_types(raw.info, eeg=True, exclude=[])
