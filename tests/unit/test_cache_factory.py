@@ -1,6 +1,5 @@
 """Tests for cache factory - REAL BEHAVIORAL TESTS, NO MOCKING."""
 
-import os
 import time
 
 import pytest

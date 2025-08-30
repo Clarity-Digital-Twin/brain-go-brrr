@@ -163,12 +163,12 @@ class TestSanitizeData:
         data = np.array(
             [[1.0, 2.0, 3.0], [np.nan, np.nan, np.nan], [4.0, 5.0, 6.0]], dtype=np.float32
         )
-        
+
         # With zero method, all NaNs should become 0
         result_zero = sanitize_data(data.copy(), method="zero", name="test")
         assert not np.isnan(result_zero).any()
         assert np.allclose(result_zero[1], [0.0, 0.0, 0.0])
-        
+
         # With median/mean method, if all values in a channel are NaN,
         # the result will still be NaN (can't compute median/mean of nothing)
         # This is expected behavior - document it

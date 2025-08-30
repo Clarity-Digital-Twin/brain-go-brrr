@@ -4,7 +4,6 @@ import pytest
 
 from brain_go_brrr.infra.data.channels import (
     CHANNEL_ALIASES,
-    CHANNELS_10_20_FULL,
     CHANNELS_TUAB_19,
     CHANNELS_TUEV_20,
     map_channels_to_indices,
@@ -109,7 +108,7 @@ class TestValidateChannels:
         channels = ["FZ"] + CHANNELS_TUAB_19[:-1]  # Replace O2 with FZ
         with pytest.raises(ValueError) as exc_info:
             validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
-        
+
         error_msg = str(exc_info.value)
         assert "Missing: ['O2']" in error_msg
         assert "Extra: ['FZ']" in error_msg
@@ -126,7 +125,7 @@ class TestValidateChannels:
         # Replace some with EEG prefix versions
         idx_t7 = channels.index("T7")
         channels[idx_t7] = "EEG T3-REF"  # Should map to T7
-        
+
         # Should pass with aliasing
         validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
 
@@ -170,7 +169,7 @@ class TestMapChannelsToIndices:
         """Test mapping raises when required channel is missing."""
         source = ["FP1", "C3", "O1"]  # Missing F3
         target = ["FP1", "F3", "C3", "O1"]  # Requires F3
-        
+
         with pytest.raises(ValueError, match="Required channel F3 not found"):
             map_channels_to_indices(source, target)
 
@@ -208,7 +207,7 @@ class TestMapChannelsToIndices:
         # TUAB doesn't have FZ, so this should fail
         source = CHANNELS_TUAB_19
         target = CHANNELS_TUEV_20
-        
+
         with pytest.raises(ValueError, match="Required channel FZ not found"):
             map_channels_to_indices(source, target)
 
@@ -233,7 +232,7 @@ class TestChannelCompatibility:
         """Test all channel names are uppercase (standard convention)."""
         for ch in CHANNELS_TUAB_19:
             assert ch == ch.upper()
-        
+
         for ch in CHANNELS_TUEV_20:
             assert ch == ch.upper()
 
@@ -247,9 +246,9 @@ class TestChannelCompatibility:
             "EEG P3-REF", "EEG PZ-REF", "EEG P4-REF", "EEG T6-REF",
             "EEG O1-REF", "EEG OZ-REF", "EEG O2-REF"
         ]
-        
+
         # Clean up EEG prefix
         cleaned = [ch.replace("EEG ", "").replace("-REF", "") for ch in raw_channels]
-        
+
         # Should validate with aliasing
         validate_channels(cleaned, CHANNELS_TUAB_19, "TUAB")
