@@ -283,6 +283,26 @@ Not included due to size/licensing. Obtain separately:
 ```
 </details>
 
+## 🔧 Environment Variables
+
+The following environment variables can be used to configure data paths:
+
+- `BGB_DATA_ROOT` - Root data directory (default: "data")
+- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
+- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
+- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
+
+Example usage:
+```bash
+# Use custom data location
+export BGB_DATA_ROOT=/mnt/data/eeg
+uv run python scripts/testing/test_sleep_analysis.py
+
+# Use specific Sleep-EDF file
+export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
+uv run pytest tests/unit/domain/sleep -v
+```
+
 ## 🤝 Support & Community
 
 - **Issues:** [GitHub Issues](https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues)
