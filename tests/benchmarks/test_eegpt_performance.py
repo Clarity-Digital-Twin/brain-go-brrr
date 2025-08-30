@@ -453,9 +453,9 @@ class TestMemoryBenchmarks:
         memory_used_mb = memory_after_mb - memory_before_mb
 
         # Single window should use minimal memory
-        assert (
-            memory_used_mb < 100
-        ), f"Single window processing used {memory_used_mb:.1f}MB, should be <100MB"
+        assert memory_used_mb < 100, (
+            f"Single window processing used {memory_used_mb:.1f}MB, should be <100MB"
+        )
 
         # Verify features were extracted
         assert features is not None
@@ -520,9 +520,9 @@ class TestMemoryBenchmarks:
         gpu_memory_used = gpu_memory_after - gpu_memory_before
 
         # GPU memory should be reasonable for batch processing
-        assert (
-            gpu_memory_used < 1024
-        ), f"GPU batch processing used {gpu_memory_used:.1f}MB, should be <1024MB"  # 1GB
+        assert gpu_memory_used < 1024, (
+            f"GPU batch processing used {gpu_memory_used:.1f}MB, should be <1024MB"
+        )  # 1GB
 
         # Verify features were extracted
         assert features is not None
@@ -574,9 +574,9 @@ class TestPerformanceComparison:
 
         # For proper models with loaded weights, results should match
         # For mock models, at least verify shapes match
-        assert (
-            cpu_result_np.shape == gpu_result_np.shape
-        ), f"CPU and GPU outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
+        assert cpu_result_np.shape == gpu_result_np.shape, (
+            f"CPU and GPU outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
+        )
 
         # If models have proper weights (not random init), they should produce similar results
         # Check if results are deterministic (not random)
@@ -620,9 +620,9 @@ class TestPerformanceComparison:
         # Check if we're in a CI environment with known GPU performance
         if os.environ.get("CI_GPU_AVAILABLE") == "true":
             # In CI with proper GPU, enforce minimum speedup
-            assert (
-                speedup > 2.0
-            ), f"GPU speedup was only {speedup:.1f}x (expected >2x in CI environment)"
+            assert speedup > 2.0, (
+                f"GPU speedup was only {speedup:.1f}x (expected >2x in CI environment)"
+            )
         elif speedup < 2.0:
             # In other environments (WSL2, CPU-only CI), skip if speedup is low
             pytest.skip(
@@ -647,9 +647,9 @@ class TestPerformanceComparison:
             gpu_result_np = np.array(gpu_result)
 
         # For mock models without proper weights, we just check shapes match
-        assert (
-            cpu_result_np.shape == gpu_result_np.shape
-        ), f"CPU and GPU batch outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
+        assert cpu_result_np.shape == gpu_result_np.shape, (
+            f"CPU and GPU batch outputs have different shapes: {cpu_result_np.shape} vs {gpu_result_np.shape}"
+        )
 
 
 # Utility functions for benchmark reporting

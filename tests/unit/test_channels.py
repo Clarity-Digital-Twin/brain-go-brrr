@@ -70,14 +70,25 @@ class TestValidateChannels:
         """Test validation handles old channel names via aliasing."""
         # Use old naming
         channels = [
-            "FP1", "FP2", "F7", "F3", "F4", "F8",
+            "FP1",
+            "FP2",
+            "F7",
+            "F3",
+            "F4",
+            "F8",
             "T3",  # Old name for T7
-            "C3", "CZ", "C4",
+            "C3",
+            "CZ",
+            "C4",
             "T4",  # Old name for T8
             "T5",  # Old name for P7
-            "P3", "PZ", "P4",
+            "P3",
+            "PZ",
+            "P4",
             "T6",  # Old name for P8
-            "O1", "OZ", "O2"
+            "O1",
+            "OZ",
+            "O2",
         ]
         # Should pass with aliasing
         validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
@@ -105,7 +116,7 @@ class TestValidateChannels:
     def test_validate_both_missing_and_extra(self):
         """Test error message includes both missing and extra channels."""
         # Make sure we have the right count but wrong channels
-        channels = ["FZ"] + CHANNELS_TUAB_19[:-1]  # Replace O2 with FZ
+        channels = ["FZ", *CHANNELS_TUAB_19[:-1]]  # Replace O2 with FZ
         with pytest.raises(ValueError) as exc_info:
             validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
 
@@ -240,11 +251,25 @@ class TestChannelCompatibility:
         """Test realistic TUAB data validation scenario."""
         # Simulate data from TUAB with old naming
         raw_channels = [
-            "EEG FP1-REF", "EEG FP2-REF", "EEG F7-REF", "EEG F3-REF",
-            "EEG F4-REF", "EEG F8-REF", "EEG T3-REF", "EEG C3-REF",
-            "EEG CZ-REF", "EEG C4-REF", "EEG T4-REF", "EEG T5-REF",
-            "EEG P3-REF", "EEG PZ-REF", "EEG P4-REF", "EEG T6-REF",
-            "EEG O1-REF", "EEG OZ-REF", "EEG O2-REF"
+            "EEG FP1-REF",
+            "EEG FP2-REF",
+            "EEG F7-REF",
+            "EEG F3-REF",
+            "EEG F4-REF",
+            "EEG F8-REF",
+            "EEG T3-REF",
+            "EEG C3-REF",
+            "EEG CZ-REF",
+            "EEG C4-REF",
+            "EEG T4-REF",
+            "EEG T5-REF",
+            "EEG P3-REF",
+            "EEG PZ-REF",
+            "EEG P4-REF",
+            "EEG T6-REF",
+            "EEG O1-REF",
+            "EEG OZ-REF",
+            "EEG O2-REF",
         ]
 
         # Clean up EEG prefix

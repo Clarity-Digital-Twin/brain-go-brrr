@@ -233,6 +233,7 @@ class TestEEGPTModel:
         """Test complete pipeline from raw EEG to abnormality score."""
         # Load Sleep-EDF test file
         import os
+
         data_root = Path(os.environ.get("BGB_DATA_ROOT", "data"))
         edf_path = data_root / "datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf"
 
@@ -258,6 +259,6 @@ class TestEEGPTModel:
         assert features["abnormal_probability"] is not None
 
         # Performance check: should process 1 minute in < 5 seconds
-        assert (
-            features["processing_time"] < 5.0
-        ), f"Processing too slow: {features['processing_time']:.2f}s"
+        assert features["processing_time"] < 5.0, (
+            f"Processing too slow: {features['processing_time']:.2f}s"
+        )

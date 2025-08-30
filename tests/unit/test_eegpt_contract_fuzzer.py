@@ -80,15 +80,15 @@ class TestEEGPTContractFuzzing:
         prepared = prepare_for_eegpt(raw, pad_to_multiple=target_multiple)
 
         # Assert padding contract
-        assert (
-            prepared.shape[1] % target_multiple == 0
-        ), f"prepare_for_eegpt must pad to multiple of {target_multiple}, got {prepared.shape[1]}"
+        assert prepared.shape[1] % target_multiple == 0, (
+            f"prepare_for_eegpt must pad to multiple of {target_multiple}, got {prepared.shape[1]}"
+        )
 
         # Also verify it's the minimum valid padding
         assert prepared.shape[1] >= n_samples, "Padded size must be >= original size"
-        assert (
-            prepared.shape[1] < n_samples + target_multiple
-        ), "Padded size must be minimal (< original + target_multiple)"
+        assert prepared.shape[1] < n_samples + target_multiple, (
+            "Padded size must be minimal (< original + target_multiple)"
+        )
 
     @given(wrong_dim=st.sampled_from([768, 1024, 2048, 256]), summary_mode=st.booleans())
     def test_wrong_shapes_always_raise(self, wrong_dim, summary_mode):

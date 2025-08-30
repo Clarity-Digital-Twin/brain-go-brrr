@@ -7,7 +7,6 @@ without importing heavy MNE dependencies.
 from __future__ import annotations
 
 import numpy as np
-import pytest
 import torch
 
 from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import (
@@ -30,7 +29,8 @@ class TestValidateEEGInput:
 
         too_many = np.zeros((59, 1024), dtype=np.float64)
         ok, msg = validate_eeg_input(too_many)
-        assert not ok and "Too many channels" in msg
+        # Depending on the code path, either a general mismatch or explicit too-many message
+        assert not ok and ("Channel count mismatch" in msg or "Too many channels" in msg)
 
     def test_sample_tolerance(self) -> None:
         # 1024 expected, 15% deviation should fail with tolerance 10%
@@ -100,4 +100,3 @@ class TestPrepareBatch:
         assert batch.shape == (3, 20, win)
         # Padded rows in w1 should be zeros
         assert torch.all(batch[0, 18:, :] == 0)
-

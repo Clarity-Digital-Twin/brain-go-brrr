@@ -71,9 +71,9 @@ class TestClassifierCompatibility:
 
             # Classifier should use custom dimension
             first_layer = detector.classifier[0]
-            assert (
-                first_layer.in_features == 512
-            ), f"Classifier should use custom feature_dim=512, got {first_layer.in_features}"
+            assert first_layer.in_features == 512, (
+                f"Classifier should use custom feature_dim=512, got {first_layer.in_features}"
+            )
 
     def test_validate_model_compatibility_method(self) -> None:
         """Test the validate_model_compatibility method."""

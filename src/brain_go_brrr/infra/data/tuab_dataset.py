@@ -157,16 +157,16 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
                 # Validate channels - support both old and new key
                 if 'channels' in meta:
-                    assert (
-                        meta['channels'] == CHANNELS_TUAB_19
-                    ), "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    assert meta['channels'] == CHANNELS_TUAB_19, (
+                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    )
                 elif 'channels19' in meta:  # Backward compat
                     logger.warning(
                         "META.json uses deprecated 'channels19' key, should use 'channels'"
                     )
-                    assert (
-                        meta['channels19'] == CHANNELS_TUAB_19
-                    ), "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    assert meta['channels19'] == CHANNELS_TUAB_19, (
+                        "Cache channels mismatch! Expected TUAB 19 channels (no FZ)"
+                    )
 
                 logger.info(
                     f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}"
@@ -177,13 +177,13 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 )
 
         # CRITICAL ASSERTIONS for EEGPT compatibility
-        assert (
-            self.window_samples == 1024
-        ), f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
+        assert self.window_samples == 1024, (
+            f"TUAB requires 1024 samples (4s@256Hz), got {self.window_samples}"
+        )
         assert sampling_rate == 256, f"TUAB requires 256Hz sampling, got {sampling_rate}"
-        assert (
-            len(CHANNELS_TUAB_19) == 19
-        ), f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
+        assert len(CHANNELS_TUAB_19) == 19, (
+            f"TUAB requires exactly 19 channels, got {len(CHANNELS_TUAB_19)}"
+        )
 
         # Set MNE log level to reduce spam
         import mne
@@ -383,8 +383,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
             elif getattr(self, 'cache_mode', 'write') == 'readonly':
                 # In readonly mode, raise error if cache miss
                 raise RuntimeError(
-                    f"Cache miss in readonly mode for {cache_key}. "
-                    f"Run cache building script first!"
+                    f"Cache miss in readonly mode for {cache_key}. Run cache building script first!"
                 )
 
         # Load data (from memory or file)

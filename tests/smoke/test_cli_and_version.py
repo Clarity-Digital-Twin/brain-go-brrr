@@ -25,6 +25,6 @@ def test_cli_version_matches_package():
     cli_version = match.group(1)
 
     # Versions should match
-    assert (
-        cli_version == package_version
-    ), f"Version mismatch: CLI={cli_version}, Package={package_version}"
+    assert cli_version == package_version, (
+        f"Version mismatch: CLI={cli_version}, Package={package_version}"
+    )

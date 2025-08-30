@@ -240,9 +240,9 @@ class TUABPreprocessor:
                 )
 
         # Final sanity check - MUST be exactly 19 channels
-        assert (
-            len(available_standard) == 19
-        ), f"Must have exactly 19 channels, got {len(available_standard)}"
+        assert len(available_standard) == 19, (
+            f"Must have exactly 19 channels, got {len(available_standard)}"
+        )
 
         # Use raw.pick() for better compatibility across MNE versions
         # The order is preserved based on the input list

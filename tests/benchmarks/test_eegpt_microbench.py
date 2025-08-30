@@ -88,9 +88,9 @@ class TestEEGPTMicrobenchmark:
         # Performance budget: roughly 10ms per 1024 samples per batch
         # This is very conservative to avoid flaky tests
         expected_time = (batch_size * time_samples / 1024) * 0.01
-        assert (
-            elapsed < expected_time * 10
-        ), f"Too slow: {elapsed:.3f}s > {expected_time * 10:.3f}s budget"
+        assert elapsed < expected_time * 10, (
+            f"Too slow: {elapsed:.3f}s > {expected_time * 10:.3f}s budget"
+        )
 
     def test_shape_validation_overhead(self):
         """Ensure shape validation doesn't add significant overhead."""

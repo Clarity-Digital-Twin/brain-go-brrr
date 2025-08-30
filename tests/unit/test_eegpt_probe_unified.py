@@ -10,9 +10,6 @@ We inject a small fake backbone to avoid model loading and exercise:
 
 from __future__ import annotations
 
-import inspect
-import types
-
 import pytest
 import torch
 
@@ -22,13 +19,13 @@ from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
 class FakeBackboneAccepts:
     """Backbone whose extract_features accepts `return_all_temporal` and returns shapes accordingly."""
 
-    def eval(self) -> "FakeBackboneAccepts":  # noqa: D401 - trivial
+    def eval(self) -> FakeBackboneAccepts:
         return self
 
-    def parameters(self):  # noqa: D401 - trivial
+    def parameters(self):
         return []
 
-    def extract_features(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:  # noqa: D401 - keep signature
+    def extract_features(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:
         b = x.shape[0]
         if return_all_temporal:
             # Simulate (B, N_temporal, 4, 512)
@@ -40,13 +37,13 @@ class FakeBackboneAccepts:
 class FakeBackboneSimple:
     """Backbone that does not accept `return_all_temporal` parameter."""
 
-    def eval(self) -> "FakeBackboneSimple":  # noqa: D401 - trivial
+    def eval(self) -> FakeBackboneSimple:
         return self
 
-    def parameters(self):  # noqa: D401 - trivial
+    def parameters(self):
         return []
 
-    def extract_features(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401 - simple
+    def extract_features(self, x: torch.Tensor) -> torch.Tensor:
         b = x.shape[0]
         return torch.zeros((b, 4, 512), dtype=torch.float32, device=x.device)
 
@@ -87,7 +84,10 @@ class TestProbeBranches:
     def test_channel_adapter_path(self) -> None:
         # Provide 19 input channels and enable adapter to 20
         probe = EEGPTProbe(
-            backbone=FakeBackboneSimple(), channel_adapter=True, n_input_channels=19, freeze_backbone=True
+            backbone=FakeBackboneSimple(),
+            channel_adapter=True,
+            n_input_channels=19,
+            freeze_backbone=True,
         )
         x = torch.randn(4, 19, 1024)
         out = probe(x)
@@ -104,4 +104,3 @@ class TestProbeBranches:
         x = torch.randn(1, 20, 1024)
         with pytest.raises(ValueError, match="Unexpected feature shape"):
             _ = probe(x)
-

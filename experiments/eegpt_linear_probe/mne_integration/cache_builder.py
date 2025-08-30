@@ -328,9 +328,9 @@ def main():
     splits = ['train', 'eval'] if args.split == 'both' else [args.split]
 
     for split in splits:
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info(f"Processing {args.corpus} {split} split")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         try:
             build_cache(
@@ -344,9 +344,9 @@ def main():
             logger.error(f"Failed: {e}", exc_info=True)
             raise
 
-    logger.info(f"\n{'='*60}")
+    logger.info(f"\n{'=' * 60}")
     logger.info("✓ All splits complete!")
-    logger.info(f"{'='*60}")
+    logger.info(f"{'=' * 60}")
 
 
 if __name__ == '__main__':

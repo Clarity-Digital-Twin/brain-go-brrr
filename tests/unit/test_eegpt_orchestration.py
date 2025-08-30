@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pytest
 import torch
 
 from brain_go_brrr.application.pipeline.eegpt_orchestration import (
@@ -26,6 +25,7 @@ class FakeRaw:
     """
 
     def __init__(self, sfreq: float = 256.0) -> None:
+        """Initialize with a minimal MNE-like info dict."""
         self.info = {"sfreq": sfreq}
 
 
@@ -36,6 +36,7 @@ class FakeModel:
     """
 
     def __init__(self, feature_value: float) -> None:
+        """Set a constant feature value returned by extract_features."""
         self._value = feature_value
 
     def to(self, device: str) -> FakeModel:
@@ -50,7 +51,7 @@ class FakeModel:
         return torch.full((b, 4, 512), fill_value=self._value, dtype=torch.float32, device=x.device)
 
 
-def _patch_preprocessing(monkeypatch: pytest.MonkeyPatch, n_windows: int = 5) -> None:
+def _patch_preprocessing(monkeypatch, n_windows: int = 5) -> None:
     """Patch preprocessing helpers to avoid heavy MNE usage.
 
     - preprocess_for_eegpt: returns normalized array, shape (20, 1024 * n_windows)
@@ -78,7 +79,9 @@ def _patch_preprocessing(monkeypatch: pytest.MonkeyPatch, n_windows: int = 5) ->
             windows.append(np.zeros((20, 1024), dtype=np.float64))
         return windows
 
-    def fake_prepare_batch(windows: list[np.ndarray], n_channels: int = 20, device: str = "cpu") -> torch.Tensor:
+    def fake_prepare_batch(
+        windows: list[np.ndarray], n_channels: int = 20, device: str = "cpu"
+    ) -> torch.Tensor:
         batch = np.stack(windows, axis=0)
         t = torch.from_numpy(batch).float()
         return t.to(device)
@@ -100,8 +103,8 @@ class TestTriageMapping:
 
 
 class TestPredictAbnormality:
-    def test_predict_without_probe_abnormal(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Happy path without probe – abnormal case.
+    def test_predict_without_probe_abnormal(self, monkeypatch) -> None:
+        """Happy path without probe - abnormal case.
 
         Use FakeModel with positive features → sigmoid(mean) ~ 0.73 (>0.5),
         so windows predict abnormal; overall triage should be expedite (0.7<conf≤0.9).
@@ -133,8 +136,8 @@ class TestPredictAbnormality:
         assert 0.7 <= result["confidence"] <= 0.9
         assert result["triage"] in {"expedite", "urgent"}
 
-    def test_predict_without_probe_normal(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Happy path without probe – normal case.
+    def test_predict_without_probe_normal(self, monkeypatch) -> None:
+        """Happy path without probe - normal case.
 
         Use FakeModel with negative features → sigmoid(mean) ~ 0.27, normal prediction.
         """
@@ -155,7 +158,7 @@ class TestPredictAbnormality:
         assert 0.0 <= result["confidence"] < 0.5
         assert result["triage"] == "routine"
 
-    def test_predict_with_model_path_calls_factory(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_predict_with_model_path_calls_factory(self, monkeypatch) -> None:
         """Passing a string/Path should use create_normalized_eegpt factory.
 
         We patch the factory to return our FakeModel.
@@ -186,7 +189,7 @@ class TestPredictAbnormality:
         assert result["n_windows"] == 3
         assert result["prediction"] == "normal"
 
-    def test_missing_probe_path_is_ignored(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_missing_probe_path_is_ignored(self, monkeypatch, tmp_path: Path) -> None:
         """Providing a non-existent probe_path should be safely ignored.
 
         Function should still run without attempting to load probe.

@@ -163,13 +163,13 @@ def validate_cache(cache_dir: Path) -> tuple[bool, list[str], dict]:
         print(f"  Dtype warnings: {stats['dtype_errors']}")
 
     # Summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     if errors:
         print(f"❌ VALIDATION FAILED: {len(errors)} errors")
         for e in errors[:10]:  # Show first 10
             print(f"  - {e}")
         if len(errors) > 10:
-            print(f"  ... and {len(errors)-10} more")
+            print(f"  ... and {len(errors) - 10} more")
     else:
         print("✅ VALIDATION PASSED")
 
@@ -178,9 +178,9 @@ def validate_cache(cache_dir: Path) -> tuple[bool, list[str], dict]:
         for w in warnings[:5]:
             print(f"  - {w}")
         if len(warnings) > 5:
-            print(f"  ... and {len(warnings)-5} more")
+            print(f"  ... and {len(warnings) - 5} more")
 
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Save validation report
     report = {
@@ -213,7 +213,7 @@ def main():
         sys.exit(1)
 
     print(f"🔍 Validating cache: {cache_dir}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     passed, errors, stats = validate_cache(cache_dir)
 

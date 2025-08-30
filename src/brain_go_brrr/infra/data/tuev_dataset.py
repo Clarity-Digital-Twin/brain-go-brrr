@@ -101,14 +101,14 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
             # Validate channels - support both old and new key
             if 'channels' in meta:
-                assert (
-                    meta['channels'] == CHANNELS_TUEV_20
-                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                assert meta['channels'] == CHANNELS_TUEV_20, (
+                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                )
             elif 'channels20' in meta:  # Backward compat
                 logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
-                assert (
-                    meta['channels20'] == CHANNELS_TUEV_20
-                ), "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                assert meta['channels20'] == CHANNELS_TUEV_20, (
+                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                )
 
             logger.info(
                 f"Cache validated: sr={meta['sr']}, unit={meta['unit']}, norm={meta['norm']}, commit={meta.get('commit', 'unknown')}"

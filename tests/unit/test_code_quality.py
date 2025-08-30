@@ -73,14 +73,14 @@ class TestCodeQuality:
             content = preprocessor_file.read_text()
 
             # Check for hardcoded disabling
-            assert "use_autoreject=False" not in content.replace(
-                " ", ""
-            ), "Autoreject should not be hardcoded to False in production"
+            assert "use_autoreject=False" not in content.replace(" ", ""), (
+                "Autoreject should not be hardcoded to False in production"
+            )
 
             # Check for environment-based disabling
-            assert (
-                "DISABLE_AUTOREJECT" not in content
-            ), "Autoreject should not be disabled via environment variables"
+            assert "DISABLE_AUTOREJECT" not in content, (
+                "Autoreject should not be disabled via environment variables"
+            )
 
     def test_no_print_statements_in_src(self):
         """Ensure no print() statements in production code (use logging instead)."""
