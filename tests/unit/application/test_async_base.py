@@ -77,18 +77,18 @@ class TestAsyncCapable:
     def test_launch_from_async_context_raises(self):
         """Test launch() raises error when called from async context."""
         import asyncio
+        import warnings
 
         async def run_test():
             obj = ConcreteAsyncCapable()
             # The actual error we get is different - asyncio.run() can't be called
-            with pytest.raises(
-                RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"
-            ):
-                # This will raise because we're already in an event loop
-                obj.launch("should_fail")
-                # Suppress the warning by awaiting the created coroutine
-                # (though we won't reach this due to the exception)
-                await obj._execute_async("should_fail")
+            # Suppress the "coroutine was never awaited" warning since we're testing error case
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                with pytest.raises(
+                    RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"
+                ):
+                    obj.launch("should_fail")
 
         asyncio.run(run_test())
 
