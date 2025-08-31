@@ -114,7 +114,7 @@ class TestApplicationConfig:
         config = DataConfig()
         
         # Test that properties exist and return something
-        assert hasattr(config, "data_root")
+        assert hasattr(config, "data_path")  # Not data_root
         assert hasattr(config, "sleep_edf_version")
         assert hasattr(config, "tuab_version")
         assert hasattr(config, "tuev_version")
