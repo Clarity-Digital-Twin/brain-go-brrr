@@ -225,7 +225,7 @@ def load_sleep_edf_data(
     labels = []
 
     # Find all EDF files
-    edf_files = list(data_dir.glob("**/*.edf"))
+    edf_files = sorted(data_dir.glob("**/*.edf"))
     if max_files:
         edf_files = edf_files[:max_files]
 

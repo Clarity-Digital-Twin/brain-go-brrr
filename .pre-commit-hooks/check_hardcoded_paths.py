@@ -23,6 +23,16 @@ def check_file(filepath: Path) -> list[str]:
         "DIVERGENCE_FIX_ACTION_PLAN.md",
         "TEST_DATA_DIVERGENCE_PLAN.md",
         "CACHE_PATH_ANALYSIS.md",
+        "TUAB_TUEV_ALIGNMENT_PLAN.md",
+        "FINAL_ALIGNMENT_ACTION_PLAN.md",
+        "CURRENT_ALIGNMENT_STATUS.md",
+        "FINAL_POLISH_CHECKLIST.md",
+        "ALIGNMENT_STATUS.md",
+        # Scripts that legitimately check dataset versions
+        "verify_tuab_dataset.py",
+        "download_datasets.py",
+        # Config file where defaults are defined
+        "base.py",
     }
     
     if filepath.name in allowed_files:
@@ -30,11 +40,27 @@ def check_file(filepath: Path) -> list[str]:
     
     # Patterns to detect
     patterns = [
+        # Sleep-EDF patterns
         (r'SC4001E0-PSG\.edf', 'Hardcoded Sleep-EDF filename - use DataConfig.get_sleep_edf_psg_file()'),
         (r'sleep-edf-database-expanded-[\d.]+', 'Hardcoded Sleep-EDF version - use DataConfig.sleep_edf_version'),
         (r'/external/sleep-edf', 'Legacy Sleep-EDF path - use DataConfig.sleep_edf_root'),
+        
+        # TUAB patterns
         (r'/external/tuab', 'Legacy TUAB path - use DataConfig.tuab_root'),
         (r'data/datasets/tuab/v[\d.]+/edf', 'Hardcoded TUAB path - use DataConfig.tuab_root'),
+        (r'v3\.0\.1', 'Hardcoded TUAB version - use DataConfig.tuab_version'),
+        (r'01_tcp_ar', 'Hardcoded TUAB protocol - use DataConfig.get_tuab_sample_file()'),
+        (r'tuh_eeg_abnormal', 'Legacy TUAB name - use DataConfig.tuab_root'),
+        (r'/abnormal/01_tcp_ar', 'Hardcoded TUAB structure - use DataConfig.get_tuab_sample_file()'),
+        (r'/normal/01_tcp_ar', 'Hardcoded TUAB structure - use DataConfig.get_tuab_sample_file()'),
+        
+        # TUEV patterns
+        (r'/external/tuev', 'Legacy TUEV path - use DataConfig.tuev_root'),
+        (r'v2\.0\.\d+', 'Hardcoded TUEV version - use DataConfig.tuev_version'),
+        (r'tuh_eeg_events', 'Legacy TUEV name - use DataConfig.tuev_root'),
+        (r'/bckg/', 'Hardcoded TUEV event type - use DataConfig.get_tuev_sample_file()'),
+        (r'/gped/', 'Hardcoded TUEV event type - use DataConfig.get_tuev_sample_file()'),
+        (r'/pled/', 'Hardcoded TUEV event type - use DataConfig.get_tuev_sample_file()'),
     ]
     
     content = filepath.read_text()

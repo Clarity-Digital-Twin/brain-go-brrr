@@ -1,9 +1,15 @@
 # Final Polish Checklist - Brain-Go-Brrr Dataset Alignment
 
 **STATUS**: Sleep-EDF COMPLETE, TUAB/TUEV PENDING
-**LAST UPDATED**: 2025-08-30
+**LAST UPDATED**: 2025-08-31
+**VERIFICATION**: SC4001E0-PSG references confirmed as MOCKS ONLY ✅
 
 ## Critical Issues from External Audit
+
+### VERIFIED STATUS (2025-08-31)
+- ✅ **Sleep-EDF SC4001E0-PSG**: Only in mocks (test_train_sleep_probe.py lines 135, 241)
+- ❌ **TUAB Hardcoded Paths**: Still present in test_accuracy.py (v3.0.1, 01_tcp_ar)
+- ❌ **Legacy Paths**: test_accuracy.py line 28 has fallback to external/tuh_eeg_abnormal
 
 ### 1. ✅ Sleep-EDF Path Centralization (COMPLETED)
 - [x] DataConfig owns all Sleep-EDF paths
@@ -46,6 +52,8 @@ mne.export.export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None)
 Files still needing markers:
 - `tests/unit/domain/sleep/test_montage_detection.py` ✅ (done)
 - `tests/integration/test_yasa_integration.py` ✅ (done)
+- `tests/integration/test_yasa_channel_aliasing.py` ❌ (reads real EDF, needs marker)
+- `tests/unit/domain/abnormal/test_accuracy.py` ❌ (uses real TUAB data, needs marker)
 - Any future TUAB/TUEV integration tests
 
 #### D. Pre-commit Hook Expansion Needed

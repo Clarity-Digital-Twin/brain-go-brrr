@@ -6,7 +6,6 @@ Target is 0.80 (80%) after retraining with Autoreject preprocessing.
 """
 
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -21,15 +20,35 @@ def tuh_test_subset():
     from brain_go_brrr.application.config import DataConfig
 
     config = DataConfig()
-    base_path = config.tuab_root / "v3.0.1/edf/train"
 
-    if not base_path.exists():
-        # Try legacy location
-        base_path = Path("data/datasets/external/tuh_eeg_abnormal/v3.0.1/edf/train")
+    # Use DataConfig methods to get files deterministically
+    abnormal_files = []
+    normal_files = []
 
-    # Get 5 abnormal and 5 normal files
-    abnormal_files = list((base_path / "abnormal" / "01_tcp_ar").glob("*.edf"))[:5]
-    normal_files = list((base_path / "normal" / "01_tcp_ar").glob("*.edf"))[:5]
+    # Try to get 5 abnormal files
+    for i in range(5):
+        # We can't iterate easily, so we'll get the first file and check the directory
+        if i == 0:
+            abnormal_file = config.get_tuab_sample_file(split="train", label="abnormal")
+            if abnormal_file and abnormal_file.exists():
+                # Get the directory and find more files
+                abnormal_dir = abnormal_file.parent
+                all_abnormal = sorted([f for f in abnormal_dir.glob("*.edf")
+                                      if not f.name.startswith("._")])[:5]
+                abnormal_files = all_abnormal
+                break
+
+    # Try to get 5 normal files
+    for i in range(5):
+        if i == 0:
+            normal_file = config.get_tuab_sample_file(split="train", label="normal")
+            if normal_file and normal_file.exists():
+                # Get the directory and find more files
+                normal_dir = normal_file.parent
+                all_normal = sorted([f for f in normal_dir.glob("*.edf")
+                                    if not f.name.startswith("._")])[:5]
+                normal_files = all_normal
+                break
 
     if len(abnormal_files) < 5 or len(normal_files) < 5:
         pytest.skip("TUH abnormal dataset not available")

@@ -3,6 +3,12 @@
 ## Executive Summary
 The Sleep-EDF centralization is COMPLETE. TUAB/TUEV need parity. Documentation needs cleanup. A few technical debt items remain.
 
+**VERIFICATION STATUS (2025-08-31)**:
+- Sleep-EDF hardcoded paths: ✅ Only in mocks (verified acceptable)
+- TUAB hardcoded paths: ❌ Still present in test_accuracy.py
+- Pre-commit hook: ✅ Exists but needs expansion
+- Documentation drift: 🟡 Partially fixed
+
 ## Critical Path Items (MUST DO)
 
 ### 1. Fix Synthetic EDF Export (conftest.py:335)
@@ -27,9 +33,10 @@ ch_names = ["Fpz-Cz", "Pz-Oz"]
 ```
 
 ### 3. Add Missing @pytest.mark.data
-**File**: `tests/integration/test_yasa_channel_aliasing.py`
-- This file reads real EDF but lacks the marker
-- Add `@pytest.mark.data` to the test class/functions
+**Files to mark**:
+- `tests/integration/test_yasa_channel_aliasing.py` - reads real EDF
+- `tests/unit/domain/abnormal/test_accuracy.py` - has hardcoded TUAB paths
+- Any other test that calls `sleep_edf_path` or `sleep_edf_dir` fixtures
 
 ### 4. Expand Pre-commit Patterns
 **File**: `.pre-commit-hooks/check_hardcoded_paths.py`
@@ -37,10 +44,12 @@ Add patterns:
 ```python
 patterns = [
     # ... existing ...
-    (r'v3\.0\.1/edf', 'Hardcoded TUAB version'),
-    (r'01_tcp_ar', 'Hardcoded TUAB protocol'),
-    (r'tuh_eeg_abnormal', 'Legacy TUAB name'),
-    (r'v2\.0\.0', 'Hardcoded TUEV version'),
+    (r'v3\.0\.1', 'Hardcoded TUAB version - use DataConfig.tuab_version'),
+    (r'01_tcp_ar', 'Hardcoded TUAB protocol - use DataConfig methods'),
+    (r'tuh_eeg_abnormal', 'Legacy TUAB name - use DataConfig.tuab_root'),
+    (r'v2\.0\.\d+', 'Hardcoded TUEV version - use DataConfig.tuev_version'),
+    (r'/abnormal/01_tcp_ar', 'Hardcoded TUAB structure - use DataConfig.get_tuab_sample_file()'),
+    (r'/normal/01_tcp_ar', 'Hardcoded TUAB structure - use DataConfig.get_tuab_sample_file()'),
 ]
 ```
 

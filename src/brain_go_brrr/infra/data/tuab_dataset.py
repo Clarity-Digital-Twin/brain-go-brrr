@@ -227,7 +227,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
             label = self.LABEL_MAP[class_name]
 
             # Find all EDF files (including subdirectories)
-            edf_files = list(class_dir.glob("**/*.edf"))
+            edf_files = sorted(class_dir.glob("**/*.edf"))
             logger.info(f"Found {len(edf_files)} {class_name} files")
 
             for edf_file in edf_files:

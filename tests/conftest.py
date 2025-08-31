@@ -325,14 +325,91 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
             ]
         )
 
-        # Use Sleep-EDF channel naming convention
-        ch_names = ["EEG Fpz-Cz", "EEG Pz-Oz"]
+        # Use Sleep-EDF channel naming convention (without EEG prefix)
+        ch_names = ["Fpz-Cz", "Pz-Oz"]
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info)
+
+        # Export as EDF using stable API
+        edf_path = tmp_path / "synthetic_sleep.edf"
+        from mne.export import export_raw
+        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
+        return edf_path
+    except ImportError:
+        pytest.skip("MNE not available for synthetic data generation")
+
+
+def _create_synthetic_tuab(tmp_path: Path) -> Path:
+    """TEST-ONLY: Create minimal TUAB-like data.
+    
+    Creates 19-channel EDF mimicking TUAB structure for testing
+    when real data is not available.
+    """
+    try:
+        import mne
+        import numpy as np
+
+        # TUAB uses 19 channels (no Fz)
+        ch_names = [
+            "FP1", "FP2", "F7", "F3", "F4", "F8",
+            "T3", "C3", "CZ", "C4", "T4",
+            "T5", "P3", "PZ", "P4", "T6",
+            "O1", "O2", "A1"
+        ]
+
+        # Create 2 minutes of data at 256Hz
+        sfreq = 256
+        duration = 120
+        n_samples = int(sfreq * duration)
+        data = np.random.randn(len(ch_names), n_samples) * 1e-5
+
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
 
         # Export as EDF
-        edf_path = tmp_path / "synthetic_sleep.edf"
-        raw.export(str(edf_path), fmt="edf")
+        edf_path = tmp_path / "synthetic_tuab.edf"
+        from mne.export import export_raw
+        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
+        return edf_path
+    except ImportError:
+        pytest.skip("MNE not available for synthetic data generation")
+
+
+def _create_synthetic_tuev(tmp_path: Path) -> Path:
+    """TEST-ONLY: Create minimal TUEV-like data.
+    
+    Creates 22-channel EDF mimicking TUEV structure for testing
+    when real data is not available.
+    """
+    try:
+        import mne
+        import numpy as np
+
+        # TUEV uses standard 10-20 with EOG channels
+        ch_names = [
+            "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
+            "T3", "C3", "CZ", "C4", "T4",
+            "T5", "P3", "PZ", "P4", "T6",
+            "O1", "O2", "A1", "A2", "EOG"
+        ]
+
+        # Create 5 minutes of data at 256Hz
+        sfreq = 256
+        duration = 300
+        n_samples = int(sfreq * duration)
+        data = np.random.randn(len(ch_names), n_samples) * 1e-5
+
+        # Add a simulated event spike
+        event_time = int(60 * sfreq)  # at 60 seconds
+        data[:, event_time:event_time+int(0.5*sfreq)] *= 3  # 0.5 second spike
+
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info)
+
+        # Export as EDF
+        edf_path = tmp_path / "synthetic_tuev.edf"
+        from mne.export import export_raw
+        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
         return edf_path
     except ImportError:
         pytest.skip("MNE not available for synthetic data generation")
@@ -402,6 +479,56 @@ def sleep_edf_raw_full(sleep_edf_path, mne_mod):
     # Cleanup: explicitly delete to free memory
     del raw._data
     del raw
+
+
+@pytest.fixture
+def tuab_sample_path(project_root, tmp_path) -> Path:
+    """Get path to a TUAB EDF file from config.
+    
+    Uses DataConfig to resolve paths deterministically.
+    Falls back to synthetic data if BGB_ALLOW_SYNTH_TUAB=1.
+    """
+    from brain_go_brrr.application.config import DataConfig
+
+    config = DataConfig(data_path=project_root / "data")
+    path = config.get_tuab_sample_file()
+
+    if path:
+        return path
+
+    # Allow synthetic fallback for CI (TEST-ONLY, never in production)
+    if os.environ.get("BGB_ALLOW_SYNTH_TUAB") == "1":
+        return _create_synthetic_tuab(tmp_path)
+
+    pytest.skip(
+        "TUAB data not available. Set BGB_TUAB_DIR or BGB_DATA_ROOT and pass --run-data, "
+        "or set BGB_ALLOW_SYNTH_TUAB=1 for synthetic data."
+    )
+
+
+@pytest.fixture
+def tuev_sample_path(project_root, tmp_path) -> Path:
+    """Get path to a TUEV EDF file from config.
+    
+    Uses DataConfig to resolve paths deterministically.
+    Falls back to synthetic data if BGB_ALLOW_SYNTH_TUEV=1.
+    """
+    from brain_go_brrr.application.config import DataConfig
+
+    config = DataConfig(data_path=project_root / "data")
+    path = config.get_tuev_sample_file()
+
+    if path:
+        return path
+
+    # Allow synthetic fallback for CI (TEST-ONLY, never in production)
+    if os.environ.get("BGB_ALLOW_SYNTH_TUEV") == "1":
+        return _create_synthetic_tuev(tmp_path)
+
+    pytest.skip(
+        "TUEV data not available. Set BGB_TUEV_DIR or BGB_DATA_ROOT and pass --run-data, "
+        "or set BGB_ALLOW_SYNTH_TUEV=1 for synthetic data."
+    )
 
 
 @pytest.fixture

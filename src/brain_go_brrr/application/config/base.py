@@ -162,6 +162,72 @@ class DataConfig(BaseModel):
         # Standard location under data root
         return self.data_path / "datasets" / "tuev"
 
+    @property
+    def tuab_version(self) -> str:
+        """Get TUAB version from env or default."""
+        return os.environ.get("BGB_TUAB_VERSION", "v3.0.1")
+
+    @property
+    def tuev_version(self) -> str:
+        """Get TUEV version from env or default."""
+        return os.environ.get("BGB_TUEV_VERSION", "v2.0.0")
+
+    def get_tuab_sample_file(
+        self, split: str = "train", label: str = "abnormal", protocol: str = "01_tcp_ar"
+    ) -> Path | None:
+        """Get a TUAB EDF file deterministically.
+        
+        Args:
+            split: Dataset split (train/eval/test)
+            label: Label type (normal/abnormal)
+            protocol: Protocol name (default: 01_tcp_ar)
+            
+        Returns:
+            Path to EDF file or None if not found
+        """
+        # Check for explicit override
+        explicit = os.environ.get("BGB_TUAB_FILE")
+        if explicit:
+            p = Path(explicit)
+            return p if p.exists() else None
+
+        # Construct path to TUAB data
+        base = self.tuab_root / self.tuab_version / "edf" / split / label / protocol
+        if not base.exists():
+            return None
+
+        # Get first file sorted (deterministic)
+        files = sorted(base.glob("*.edf"))
+        # Filter out macOS resource forks
+        files = [f for f in files if not f.name.startswith("._")]
+        return files[0] if files else None
+
+    def get_tuev_sample_file(self, event_type: str = "bckg") -> Path | None:
+        """Get a TUEV EDF file deterministically.
+        
+        Args:
+            event_type: Event type directory (e.g., 'bckg', 'gped', 'pled')
+            
+        Returns:
+            Path to EDF file or None if not found
+        """
+        # Check for explicit override
+        explicit = os.environ.get("BGB_TUEV_FILE")
+        if explicit:
+            p = Path(explicit)
+            return p if p.exists() else None
+
+        # Construct path to TUEV data
+        base = self.tuev_root / self.tuev_version / "edf" / event_type
+        if not base.exists():
+            return None
+
+        # Get first file sorted (deterministic)
+        files = sorted(base.glob("*.edf"))
+        # Filter out macOS resource forks
+        files = [f for f in files if not f.name.startswith("._")]
+        return files[0] if files else None
+
 
 class ExperimentConfig(BaseModel):
     """Configuration for experiment tracking."""

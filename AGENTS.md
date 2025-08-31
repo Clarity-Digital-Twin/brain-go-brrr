@@ -575,10 +575,14 @@ make docs
 ```python
 from pathlib import Path
 import mne
+from brain_go_brrr.application.config import DataConfig
 from services.sleep_metrics import SleepAnalyzer
 
-# Load data
-edf_path = Path("data/datasets/external/sleep-edf/sleep-cassette/SC4001E0-PSG.edf")
+# Load data using DataConfig
+config = DataConfig()
+edf_path = config.get_sleep_edf_psg_file()  # Gets first PSG file deterministically
+if not edf_path:
+    raise FileNotFoundError("Sleep-EDF data not available")
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
 # Run analysis
@@ -628,9 +632,15 @@ print(f'Model size: {model_path.stat().st_size / 1e6:.1f} MB')
 # Profile memory usage
 uv run python -m memory_profiler scripts/testing/test_sleep_analysis.py
 
-# Check Sleep-EDF data
-find data/datasets/external/sleep-edf -name "*.edf" | wc -l
-# Should show 397 files
+# Check Sleep-EDF data using DataConfig paths
+uv run python -c "
+from brain_go_brrr.application.config import DataConfig
+config = DataConfig()
+import pathlib
+files = list(config.sleep_edf_cassette_dir.glob('*.edf'))
+print(f'Found {len(files)} EDF files')
+"
+# Should show 197 PSG files (not 397 which includes hypnogram files)
 ```
 
 ## 📊 Performance Benchmarks
