@@ -155,10 +155,15 @@ class TestSerializationUtils:
     def test_safe_load(self):
         """Test safe torch loading wrapper."""
         from brain_go_brrr.infra.safe_load import safe_load
+        import tempfile
+        import torch
         
         # Test that it's callable
         assert callable(safe_load)
         
-        # Test with non-existent file (should handle gracefully)
-        result = safe_load("/nonexistent/file.pt", device="cpu")
-        assert result is None
+        # Test with actual file
+        with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as f:
+            torch.save({'test': 'data'}, f.name)
+            result = safe_load(f.name, device="cpu")
+            assert result is not None
+            assert 'test' in result
