@@ -86,7 +86,8 @@ class TestAsyncCapable:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 with pytest.raises(
-                    RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"
+                    RuntimeError,
+                    match="asyncio.run\\(\\) cannot be called from a running event loop",
                 ):
                     obj.launch("should_fail")
 

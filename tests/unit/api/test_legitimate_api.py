@@ -21,10 +21,7 @@ class TestAPISchemas:
         assert req.analysis_type == "comprehensive"  # default
 
         # With different analysis type
-        req = AnalysisRequest(
-            file_path="/test.edf",
-            analysis_type="qc"
-        )
+        req = AnalysisRequest(file_path="/test.edf", analysis_type="qc")
         assert req.analysis_type == "qc"
         assert req.file_path == "/test.edf"
 
@@ -40,7 +37,7 @@ class TestAPISchemas:
             recommendation="Proceed with analysis",
             processing_time=2.5,
             quality_grade="A",
-            timestamp="2024-01-01T00:00:00"
+            timestamp="2024-01-01T00:00:00",
         )
 
         assert len(response.bad_channels) == 2
@@ -60,11 +57,11 @@ class TestAPISchemas:
             sleep_metrics={
                 "total_sleep_time": 420,
                 "sleep_efficiency": 0.85,
-                "rem_percentage": 0.20
+                "rem_percentage": 0.20,
             },
             metadata={"recording_duration": 480},
             processing_time=2.5,
-            timestamp="2024-01-01T00:00:00"
+            timestamp="2024-01-01T00:00:00",
         )
 
         assert len(response.sleep_stages) == 5
@@ -108,7 +105,7 @@ class TestAPIModels:
             status=JobStatus.PENDING,
             priority=JobPriority.NORMAL,
             created_at=now,
-            updated_at=now
+            updated_at=now,
         )
 
         assert job.job_id == "test-123"

@@ -42,8 +42,6 @@ class TestLoggingUtils:
         assert ".edf" in masked
 
 
-
-
 class TestDomainExceptions:
     """Test domain exception hierarchy."""
 
