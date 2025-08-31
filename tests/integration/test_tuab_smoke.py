@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.data  # Requires TUAB dataset or synthetic fallback
 @pytest.mark.integration
+@pytest.mark.synth  # Can run with synthetic data
 class TestTUABSmoke:
     """Basic smoke tests for TUAB dataset integration."""
 

@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 
 
-@pytest.mark.data  # Requires TUEV dataset or synthetic fallback
 @pytest.mark.integration
+@pytest.mark.synth  # Can run with synthetic data
 class TestTUEVSmoke:
     """Basic smoke tests for TUEV dataset integration."""
 

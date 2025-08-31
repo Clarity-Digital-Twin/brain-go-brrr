@@ -84,7 +84,11 @@ class TestAsyncCapable:
             with pytest.raises(
                 RuntimeError, match="asyncio.run\\(\\) cannot be called from a running event loop"
             ):
+                # This will raise because we're already in an event loop
                 obj.launch("should_fail")
+                # Suppress the warning by awaiting the created coroutine
+                # (though we won't reach this due to the exception)
+                await obj._execute_async("should_fail")
 
         asyncio.run(run_test())
 
