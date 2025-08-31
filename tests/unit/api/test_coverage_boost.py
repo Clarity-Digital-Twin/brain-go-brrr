@@ -27,7 +27,7 @@ class TestAPIEndpointSmokes:
         """Test health endpoint returns OK."""
         response = client.get("/health")
         assert response.status_code == status.HTTP_200_OK
-        assert response.json()["status"] == "healthy"
+        assert response.json()["status"] == "ok"
 
     def test_root_redirect(self, client):
         """Test root redirects to docs."""
