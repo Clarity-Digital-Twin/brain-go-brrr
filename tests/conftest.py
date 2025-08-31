@@ -71,17 +71,22 @@ def pytest_collection_modifyitems(config, items):
             config.hook.pytest_deselected(items=drop)
             items[:] = [it for it in items if it not in drop]
 
-    # Handle data-backed tests
+    # Handle data-backed tests - @data means REAL DATA ONLY (testing honesty principle)
     run_data = config.getoption("--run-data", default=False)
     data_root = os.environ.get("BGB_DATA_ROOT", "")
     has_data = bool(data_root and Path(data_root).exists())
 
+    # @data tests require real data - NO SYNTHETIC ALLOWED
     if not (run_data and has_data):
         reason = "skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)"
         skip_data = pytest.mark.skip(reason=reason)
         for item in items:
             if "data" in item.keywords:
                 item.add_marker(skip_data)
+    
+    # Synthetic tests should be regular unit tests or use @synthetic marker
+    # The fixtures themselves handle synthetic fallbacks via env vars
+    # but the tests don't get marked as @data
 
     # Handle GPU tests
     if not torch.cuda.is_available():
@@ -311,29 +316,33 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
         import mne
         import numpy as np
 
-        # Create 2 channels like Sleep-EDF, 2 minutes at 256Hz
+        # DETERMINISTIC: Fixed seed for reproducible tests
+        rng = np.random.default_rng(seed=42)
+        
+        # Create 2 channels like Sleep-EDF, 30 seconds at 256Hz (fast CI)
         sfreq = 256
-        duration = 120  # 2 minutes
+        duration = 30  # 30 seconds for fast tests
         n_samples = sfreq * duration
 
-        # Generate simple EEG-like signals
+        # Generate realistic EEG-like signals with deterministic noise
         t = np.arange(n_samples) / sfreq
         data = np.array(
             [
-                20e-6 * np.sin(2 * np.pi * 10 * t),  # ~10Hz alpha-like
-                15e-6 * np.sin(2 * np.pi * 3 * t),  # ~3Hz delta-like
+                20e-6 * np.sin(2 * np.pi * 10 * t) + 2e-6 * rng.standard_normal(n_samples),  # Alpha + noise
+                15e-6 * np.sin(2 * np.pi * 3 * t) + 2e-6 * rng.standard_normal(n_samples),   # Delta + noise
             ]
         )
 
-        # Use Sleep-EDF channel naming convention (without EEG prefix)
+        # Use Sleep-EDF channel naming convention (standard format)
         ch_names = ["Fpz-Cz", "Pz-Oz"]
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        raw.set_montage("standard_1020", on_missing="ignore")  # Add montage for downstream code
 
         # Export as EDF using stable API
         edf_path = tmp_path / "synthetic_sleep.edf"
         from mne.export import export_raw
-        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
+        export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
         pytest.skip("MNE not available for synthetic data generation")
@@ -349,27 +358,31 @@ def _create_synthetic_tuab(tmp_path: Path) -> Path:
         import mne
         import numpy as np
 
-        # TUAB uses 19 channels (no Fz)
+        # DETERMINISTIC: Fixed seed for reproducible tests
+        rng = np.random.default_rng(seed=43)
+        
+        # TUAB uses 19 channels with MODERN naming (T3→T7, T4→T8, T5→P7, T6→P8)
         ch_names = [
-            "FP1", "FP2", "F7", "F3", "F4", "F8",
-            "T3", "C3", "CZ", "C4", "T4",
-            "T5", "P3", "PZ", "P4", "T6",
+            "Fp1", "Fp2", "F7", "F3", "F4", "F8",
+            "T7", "C3", "Cz", "C4", "T8",  # Modern: T3→T7, T4→T8
+            "P7", "P3", "Pz", "P4", "P8",  # Modern: T5→P7, T6→P8
             "O1", "O2", "A1"
         ]
 
-        # Create 2 minutes of data at 256Hz
+        # Create 30 seconds of data at 256Hz (fast CI)
         sfreq = 256
-        duration = 120
+        duration = 30
         n_samples = int(sfreq * duration)
-        data = np.random.randn(len(ch_names), n_samples) * 1e-5
+        data = rng.standard_normal((len(ch_names), n_samples)) * 50e-6  # Realistic μV range
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
         raw = mne.io.RawArray(data, info)
+        raw.set_montage("standard_1020", on_missing="ignore")  # Add montage
 
         # Export as EDF
         edf_path = tmp_path / "synthetic_tuab.edf"
         from mne.export import export_raw
-        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
+        export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
         pytest.skip("MNE not available for synthetic data generation")
@@ -385,31 +398,38 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
         import mne
         import numpy as np
 
-        # TUEV uses standard 10-20 with EOG channels
+        # DETERMINISTIC: Fixed seed for reproducible tests
+        rng = np.random.default_rng(seed=44)
+        
+        # TUEV uses standard 10-20 with EOG channels (MODERN naming)
         ch_names = [
-            "FP1", "FP2", "F7", "F3", "FZ", "F4", "F8",
-            "T3", "C3", "CZ", "C4", "T4",
-            "T5", "P3", "PZ", "P4", "T6",
+            "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
+            "T7", "C3", "Cz", "C4", "T8",  # Modern: T3→T7, T4→T8
+            "P7", "P3", "Pz", "P4", "P8",  # Modern: T5→P7, T6→P8
             "O1", "O2", "A1", "A2", "EOG"
         ]
+        
+        # PROPER CHANNEL TYPES: EOG is not EEG!
+        ch_types = ["eeg"] * 21 + ["eog"]  # Last channel is EOG
 
-        # Create 5 minutes of data at 256Hz
+        # Create 60 seconds of data at 256Hz (fast CI)
         sfreq = 256
-        duration = 300
+        duration = 60
         n_samples = int(sfreq * duration)
-        data = np.random.randn(len(ch_names), n_samples) * 1e-5
+        data = rng.standard_normal((len(ch_names), n_samples)) * 50e-6  # Realistic μV
 
-        # Add a simulated event spike
-        event_time = int(60 * sfreq)  # at 60 seconds
-        data[:, event_time:event_time+int(0.5*sfreq)] *= 3  # 0.5 second spike
+        # Add a simulated event spike at 30 seconds (only in EEG channels)
+        event_time = int(30 * sfreq)
+        data[:21, event_time:event_time+int(0.5*sfreq)] *= 3  # 0.5 second spike
 
-        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
+        raw.set_montage("standard_1020", on_missing="ignore")  # Add montage
 
         # Export as EDF
         edf_path = tmp_path / "synthetic_tuev.edf"
         from mne.export import export_raw
-        export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
+        export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
         pytest.skip("MNE not available for synthetic data generation")

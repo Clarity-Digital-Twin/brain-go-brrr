@@ -16,7 +16,17 @@ def check_file(filepath: Path) -> list[str]:
     violations = []
     
     # Skip certain files that are allowed to have these strings
-    allowed_files = {
+    # Use exact paths where possible to avoid accidental bypass
+    allowed_exact_paths = {
+        # Config file where dataset version defaults are defined
+        "src/brain_go_brrr/application/config/base.py",
+        # Scripts that legitimately need to verify dataset versions
+        "scripts/data/verify_tuab_dataset.py",
+        "scripts/data/download_datasets.py",
+    }
+    
+    # Planning/documentation files can use basenames (less risky)
+    allowed_doc_files = {
         "SLEEP_EDF_FIX_PLAN.md",
         "PATH_AUDIT.md", 
         "CLEANUP_STATUS.md",
@@ -28,14 +38,16 @@ def check_file(filepath: Path) -> list[str]:
         "CURRENT_ALIGNMENT_STATUS.md",
         "FINAL_POLISH_CHECKLIST.md",
         "ALIGNMENT_STATUS.md",
-        # Scripts that legitimately check dataset versions
-        "verify_tuab_dataset.py",
-        "download_datasets.py",
-        # Config file where defaults are defined
-        "base.py",
+        "FULL_ALIGNMENT_COMPLETE.md",
+        "IMPLEMENTATION_COMPLETE.md",
     }
     
-    if filepath.name in allowed_files:
+    # Check exact paths first
+    if str(filepath).replace('\\', '/') in allowed_exact_paths:
+        return []
+    
+    # Check documentation files by basename
+    if filepath.suffix == '.md' and filepath.name in allowed_doc_files:
         return []
     
     # Patterns to detect
