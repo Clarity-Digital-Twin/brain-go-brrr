@@ -1,0 +1,42 @@
+# Coverage configuration for data/integration tests
+# This focuses on the IO-heavy modules that require real or synthetic data
+
+[run]
+source = src
+omit = 
+    # API/CLI (separate coverage concern)
+    src/brain_go_brrr/api/*
+    src/brain_go_brrr/cli.py
+    src/brain_go_brrr/__main__.py
+    
+    # Test files
+    */tests/*
+    */test_*.py
+    *_test.py
+
+[report]
+precision = 2
+skip_covered = False
+show_missing = True
+exclude_lines =
+    # Standard exclusions
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    
+    # Defensive programming
+    except ImportError
+    except KeyboardInterrupt
+    except Exception as e:
+    
+    # Logging
+    logging.debug
+    logging.info
+    logging.warning
+    logging.error
+    logging.critical

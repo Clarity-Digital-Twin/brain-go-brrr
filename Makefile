@@ -355,10 +355,11 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 	@echo "$(GREEN)Running all tests with full coverage (excluding integration/benchmarks)...$(NC)"
 	$(PYTEST_WITH_COV) tests \
 		--cov=src/brain_go_brrr \
+		--cov-config=.coveragerc.unit \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		--cov-fail-under=65 \
+		--cov-fail-under=75 \
 		-m "not integration and not benchmark" \
 		--ignore=tests/benchmarks \
 		--ignore=tests/archive \
@@ -367,6 +368,23 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
 	@$(COVERAGE_BIN) html
 	@echo "$(GREEN)Coverage report generated at: htmlcov/index.html$(NC)"
+
+test-data-cov: ## Run data/integration tests with coverage (requires datasets or synthetic)
+	@echo "$(GREEN)Running data/integration tests with coverage...$(NC)"
+	$(PYTEST_WITH_COV) tests \
+		--cov=src/brain_go_brrr \
+		--cov-config=.coveragerc.data \
+		--cov-report=term-missing \
+		--cov-report= \
+		--no-cov-on-fail \
+		--cov-fail-under=50 \
+		-m "integration and data" \
+		--run-data \
+		--maxfail=10 \
+		--timeout=600
+	@echo "$(CYAN)Generating HTML coverage report...$(NC)"
+	@$(COVERAGE_BIN) html -d htmlcov-data
+	@echo "$(GREEN)Data coverage report generated at: htmlcov-data/index.html$(NC)"
 
 test-benchmarks: ## Run benchmark tests WITHOUT coverage (fast)
 	@echo "$(YELLOW)Running benchmark tests without coverage...$(NC)"
