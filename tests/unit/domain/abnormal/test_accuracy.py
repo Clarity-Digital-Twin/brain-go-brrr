@@ -33,8 +33,9 @@ def tuh_test_subset():
             if abnormal_file and abnormal_file.exists():
                 # Get the directory and find more files
                 abnormal_dir = abnormal_file.parent
-                all_abnormal = sorted([f for f in abnormal_dir.glob("*.edf")
-                                      if not f.name.startswith("._")])[:5]
+                all_abnormal = sorted(
+                    [f for f in abnormal_dir.glob("*.edf") if not f.name.startswith("._")]
+                )[:5]
                 abnormal_files = all_abnormal
                 break
 
@@ -45,8 +46,9 @@ def tuh_test_subset():
             if normal_file and normal_file.exists():
                 # Get the directory and find more files
                 normal_dir = normal_file.parent
-                all_normal = sorted([f for f in normal_dir.glob("*.edf")
-                                    if not f.name.startswith("._")])[:5]
+                all_normal = sorted(
+                    [f for f in normal_dir.glob("*.edf") if not f.name.startswith("._")]
+                )[:5]
                 normal_files = all_normal
                 break
 
