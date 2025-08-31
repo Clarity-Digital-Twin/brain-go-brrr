@@ -83,7 +83,7 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "data" in item.keywords:
                 item.add_marker(skip_data)
-    
+
     # Synthetic tests should be regular unit tests or use @synthetic marker
     # The fixtures themselves handle synthetic fallbacks via env vars
     # but the tests don't get marked as @data
@@ -318,7 +318,7 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
 
         # DETERMINISTIC: Fixed seed for reproducible tests
         rng = np.random.default_rng(seed=42)
-        
+
         # Create 2 channels like Sleep-EDF, 30 seconds at 256Hz (fast CI)
         sfreq = 256
         duration = 30  # 30 seconds for fast tests
@@ -328,8 +328,10 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
         t = np.arange(n_samples) / sfreq
         data = np.array(
             [
-                20e-6 * np.sin(2 * np.pi * 10 * t) + 2e-6 * rng.standard_normal(n_samples),  # Alpha + noise
-                15e-6 * np.sin(2 * np.pi * 3 * t) + 2e-6 * rng.standard_normal(n_samples),   # Delta + noise
+                20e-6 * np.sin(2 * np.pi * 10 * t)
+                + 2e-6 * rng.standard_normal(n_samples),  # Alpha + noise
+                15e-6 * np.sin(2 * np.pi * 3 * t)
+                + 2e-6 * rng.standard_normal(n_samples),  # Delta + noise
             ]
         )
 
@@ -342,6 +344,7 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
         # Export as EDF using stable API
         edf_path = tmp_path / "synthetic_sleep.edf"
         from mne.export import export_raw
+
         export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
@@ -350,7 +353,7 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
 
 def _create_synthetic_tuab(tmp_path: Path) -> Path:
     """TEST-ONLY: Create minimal TUAB-like data.
-    
+
     Creates 19-channel EDF mimicking TUAB structure for testing
     when real data is not available.
     """
@@ -360,13 +363,28 @@ def _create_synthetic_tuab(tmp_path: Path) -> Path:
 
         # DETERMINISTIC: Fixed seed for reproducible tests
         rng = np.random.default_rng(seed=43)
-        
+
         # TUAB uses 19 channels with MODERN naming (T3→T7, T4→T8, T5→P7, T6→P8)
         ch_names = [
-            "Fp1", "Fp2", "F7", "F3", "F4", "F8",
-            "T7", "C3", "Cz", "C4", "T8",  # Modern: T3→T7, T4→T8
-            "P7", "P3", "Pz", "P4", "P8",  # Modern: T5→P7, T6→P8
-            "O1", "O2", "A1"
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "F4",
+            "F8",
+            "T7",
+            "C3",
+            "Cz",
+            "C4",
+            "T8",  # Modern: T3→T7, T4→T8
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",  # Modern: T5→P7, T6→P8
+            "O1",
+            "O2",
+            "A1",
         ]
 
         # Create 30 seconds of data at 256Hz (fast CI)
@@ -382,6 +400,7 @@ def _create_synthetic_tuab(tmp_path: Path) -> Path:
         # Export as EDF
         edf_path = tmp_path / "synthetic_tuab.edf"
         from mne.export import export_raw
+
         export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
@@ -390,7 +409,7 @@ def _create_synthetic_tuab(tmp_path: Path) -> Path:
 
 def _create_synthetic_tuev(tmp_path: Path) -> Path:
     """TEST-ONLY: Create minimal TUEV-like data.
-    
+
     Creates 22-channel EDF mimicking TUEV structure for testing
     when real data is not available.
     """
@@ -400,15 +419,33 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
 
         # DETERMINISTIC: Fixed seed for reproducible tests
         rng = np.random.default_rng(seed=44)
-        
+
         # TUEV uses standard 10-20 with EOG channels (MODERN naming)
         ch_names = [
-            "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8",
-            "T7", "C3", "Cz", "C4", "T8",  # Modern: T3→T7, T4→T8
-            "P7", "P3", "Pz", "P4", "P8",  # Modern: T5→P7, T6→P8
-            "O1", "O2", "A1", "A2", "EOG"
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T7",
+            "C3",
+            "Cz",
+            "C4",
+            "T8",  # Modern: T3→T7, T4→T8
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",  # Modern: T5→P7, T6→P8
+            "O1",
+            "O2",
+            "A1",
+            "A2",
+            "EOG",
         ]
-        
+
         # PROPER CHANNEL TYPES: EOG is not EEG!
         ch_types = ["eeg"] * 21 + ["eog"]  # Last channel is EOG
 
@@ -420,7 +457,7 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
 
         # Add a simulated event spike at 30 seconds (only in EEG channels)
         event_time = int(30 * sfreq)
-        data[:21, event_time:event_time+int(0.5*sfreq)] *= 3  # 0.5 second spike
+        data[:21, event_time : event_time + int(0.5 * sfreq)] *= 3  # 0.5 second spike
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
@@ -429,6 +466,7 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
         # Export as EDF
         edf_path = tmp_path / "synthetic_tuev.edf"
         from mne.export import export_raw
+
         export_raw(str(edf_path), raw, fmt="edf")
         return edf_path
     except ImportError:
@@ -504,7 +542,7 @@ def sleep_edf_raw_full(sleep_edf_path, mne_mod):
 @pytest.fixture
 def tuab_sample_path(project_root, tmp_path) -> Path:
     """Get path to a TUAB EDF file from config.
-    
+
     Uses DataConfig to resolve paths deterministically.
     Falls back to synthetic data if BGB_ALLOW_SYNTH_TUAB=1.
     """
@@ -529,7 +567,7 @@ def tuab_sample_path(project_root, tmp_path) -> Path:
 @pytest.fixture
 def tuev_sample_path(project_root, tmp_path) -> Path:
     """Get path to a TUEV EDF file from config.
-    
+
     Uses DataConfig to resolve paths deterministically.
     Falls back to synthetic data if BGB_ALLOW_SYNTH_TUEV=1.
     """

@@ -176,12 +176,12 @@ class DataConfig(BaseModel):
         self, split: str = "train", label: str = "abnormal", protocol: str = "01_tcp_ar"
     ) -> Path | None:
         """Get a TUAB EDF file deterministically.
-        
+
         Args:
             split: Dataset split (train/eval/test)
             label: Label type (normal/abnormal)
             protocol: Protocol name (default: 01_tcp_ar)
-            
+
         Returns:
             Path to EDF file or None if not found
         """
@@ -204,10 +204,10 @@ class DataConfig(BaseModel):
 
     def get_tuev_sample_file(self, event_type: str = "bckg") -> Path | None:
         """Get a TUEV EDF file deterministically.
-        
+
         Args:
             event_type: Event type directory (e.g., 'bckg', 'gped', 'pled')
-            
+
         Returns:
             Path to EDF file or None if not found
         """

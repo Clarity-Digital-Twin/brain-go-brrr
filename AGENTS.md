@@ -268,9 +268,10 @@ brain-go-brrr/
 ├── data/                   # All data (gitignored)
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
-│   └── datasets/          # EEG datasets
-│       └── external/
-│           └── sleep-edf/ # 197 PSG recordings (✅ downloaded)
+│   └── datasets/          # EEG datasets (managed via DataConfig)
+│       ├── tuab/          # TUH Abnormal (use DataConfig.tuab_root)
+│       ├── tuev/          # TUH Events (use DataConfig.tuev_root)
+│       └── sleep-edf/     # Sleep-EDF (use DataConfig.sleep_edf_root)
 └── literature/            # Research papers & markdown
 ```
 
