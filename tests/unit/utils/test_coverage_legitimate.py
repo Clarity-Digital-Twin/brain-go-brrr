@@ -119,8 +119,9 @@ class TestApplicationConfig:
         assert hasattr(config, "tuab_version")
         assert hasattr(config, "tuev_version")
         
-        # Test version formats
-        assert config.sleep_edf_version.startswith("v")
+        # Test version formats (Sleep-EDF doesn't start with 'v')
+        assert isinstance(config.sleep_edf_version, str)
+        assert "sleep-edf" in config.sleep_edf_version
         assert config.tuab_version.startswith("v")
         assert config.tuev_version.startswith("v")
     
@@ -146,17 +147,18 @@ class TestSerializationUtils:
     
     def test_serialization_imports(self):
         """Test that serialization modules import."""
-        from brain_go_brrr.infra.serialization import serialize_numpy, deserialize_numpy
+        from brain_go_brrr.infra.serialization import serialize_value, deserialize_value
         
         # Test that they're callable
-        assert callable(serialize_numpy)
-        assert callable(deserialize_numpy)
+        assert callable(serialize_value)
+        assert callable(deserialize_value)
     
     def test_safe_load(self):
         """Test safe torch loading wrapper."""
         from brain_go_brrr.infra.safe_load import safe_load
         import tempfile
         import torch
+        import os
         
         # Test that it's callable
         assert callable(safe_load)
@@ -164,6 +166,8 @@ class TestSerializationUtils:
         # Test with actual file
         with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as f:
             torch.save({'test': 'data'}, f.name)
-            result = safe_load(f.name, device="cpu")
+            # safe_load uses map_location, not device
+            result = safe_load(f.name, map_location="cpu")
             assert result is not None
             assert 'test' in result
+            os.unlink(f.name)  # Clean up
