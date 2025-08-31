@@ -146,10 +146,11 @@ class TestSerializationUtils:
     
     def test_serialization_imports(self):
         """Test that serialization modules import."""
-        from brain_go_brrr.infra.serialization import EEGSerializer, deserialize_eeg_data
+        from brain_go_brrr.infra.serialization import serialize_numpy, deserialize_numpy
         
-        assert callable(EEGSerializer)
-        assert callable(deserialize_eeg_data)
+        # Test that they're callable
+        assert callable(serialize_numpy)
+        assert callable(deserialize_numpy)
     
     def test_safe_load(self):
         """Test safe torch loading wrapper."""
