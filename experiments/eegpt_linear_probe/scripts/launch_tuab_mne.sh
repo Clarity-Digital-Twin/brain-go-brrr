@@ -81,7 +81,7 @@ run_with_recovery() {
             RESUME_ARG="--resume $LATEST_CHECKPOINT"
         fi
         
-        # Run training
+        # Run training (using FIXED version with deterministic sampling)
         uv run python train_tuab_mne.py \
             --config configs/tuab.yaml \
             --output-dir "$OUTPUT_DIR" \
@@ -120,7 +120,7 @@ if command -v tmux &> /dev/null; then
         tmux new-session -d -s "$SESSION_NAME" \
             "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && export OUTPUT_DIR=\"$OUTPUT_DIR\" && export CACHE_DIR=\"$CACHE_DIR\" && export MAX_RETRIES=\"$MAX_RETRIES\" && export RETRY_DELAY=\"$RETRY_DELAY\" && $(declare -f run_with_recovery); run_with_recovery'"
     else
-        # Original single-run command
+        # Original single-run command (using FIXED version)
         tmux new-session -d -s "$SESSION_NAME" \
             "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && uv run python train_tuab_mne.py --config configs/tuab.yaml --output-dir \"$OUTPUT_DIR\" --cache-dir \"$CACHE_DIR\" 2>&1 | tee \"$LOG_FILE\"'"
     fi

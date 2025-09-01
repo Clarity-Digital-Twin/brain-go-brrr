@@ -9,18 +9,20 @@ import argparse
 import json
 import logging
 import os
+import random
 import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 import yaml
 from sklearn.metrics import roc_auc_score
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, SubsetRandomSampler
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuab_dataset import TUABDataset as TUABMNEDataset
@@ -41,6 +43,49 @@ NOTE: Probe implementation moved to src/brain_go_brrr/infra/ml_models/linear_pro
 """
 
 
+def create_deterministic_dataloader(
+    dataset,
+    batch_size: int,
+    epoch: int,
+    seed: int,
+    start_idx: int = 0,
+    num_workers: int = 4,
+    pin_memory: bool = True,
+    persistent_workers: bool = True,
+    prefetch_factor: int = 2,
+    collate_fn=None,
+    epoch_indices: Optional[torch.Tensor] = None,
+) -> Tuple[DataLoader, torch.Tensor]:
+    """Create a DataLoader with deterministic sampling order for reproducible resume."""
+    # Use provided indices or generate new ones
+    if epoch_indices is None:
+        # Create deterministic generator for this epoch
+        generator = torch.Generator()
+        generator.manual_seed(seed + epoch)
+        # Generate deterministic permutation for this epoch
+        epoch_indices = torch.randperm(len(dataset), generator=generator)
+    
+    # If resuming mid-epoch, use subset of indices
+    subset_indices = epoch_indices[start_idx:].tolist() if start_idx > 0 else epoch_indices.tolist()
+    
+    # Create sampler with the subset
+    sampler = SubsetRandomSampler(subset_indices)
+    
+    # Create DataLoader with deterministic sampler
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        sampler=sampler,  # Use sampler instead of shuffle
+        num_workers=num_workers if num_workers > 0 else 0,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers if num_workers > 0 else False,
+        prefetch_factor=prefetch_factor if num_workers > 0 else None,
+        collate_fn=collate_fn,
+    )
+    
+    return loader, epoch_indices
+
+
 def train_epoch(
     model: nn.Module,
     probe: nn.Module,
@@ -55,20 +100,20 @@ def train_epoch(
     best_auroc: float = 0.0,
     start_batch: int = 0,
     global_step: int = 0,
+    epoch_indices: Optional[torch.Tensor] = None,
 ) -> tuple[float, float, int]:
-    """Train for one epoch."""
+    """Train for one epoch with deterministic resume support."""
     probe.train()
 
     total_loss = 0
     all_preds = []
     all_labels = []
+    batches_processed = 0
 
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
     for batch_idx, (x, y) in enumerate(pbar):
-        # Skip batches if resuming mid-epoch
-        if batch_idx < start_batch:
-            continue
+        # Note: with SubsetRandomSampler, we don't skip - sampler handles it
             
         x, y = x.to(device), y.to(device)
         global_step += 1
@@ -96,6 +141,7 @@ def train_epoch(
 
         # Track metrics
         total_loss += loss.item()
+        batches_processed += 1
         preds = torch.sigmoid(logits).detach().cpu().numpy()
         all_preds.extend(preds)
         all_labels.extend(y.cpu().numpy())
@@ -119,8 +165,8 @@ def train_epoch(
             heartbeat = {
                 'timestamp': datetime.now().isoformat(),
                 'epoch': epoch,
-                'batch_idx': batch_idx,
-                'total_batches': len(train_loader),
+                'batch_idx': batch_idx + start_batch,  # Report absolute batch index
+                'total_batches': len(train_loader) + start_batch,
                 'loss': float(loss.item()),
                 'auroc': float(current_auroc) if 'current_auroc' in locals() else 0.5,
                 'lr': float(scheduler.get_last_lr()[0]),
@@ -137,22 +183,22 @@ def train_epoch(
         if output_dir and checkpoint_every and batch_idx > 0 and batch_idx % checkpoint_every == 0:
             checkpoint = {
                 'epoch': epoch,
-                'batch_idx': batch_idx,
+                'batch_idx': batch_idx + start_batch,  # Save absolute batch index
                 'probe_state_dict': probe.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
-                'train_loss': total_loss / (batch_idx + 1),
+                'train_loss': total_loss / batches_processed if batches_processed > 0 else 0,
                 'global_step': global_step,
+                'epoch_indices': epoch_indices,  # Save deterministic order
             }
-            checkpoint_path = output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx}.pt'
+            checkpoint_path = output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
             torch.save(checkpoint, checkpoint_path)
-            logger.info(f"Saved intra-epoch checkpoint at epoch {epoch}, batch {batch_idx}")
+            logger.info(f"Saved intra-epoch checkpoint at epoch {epoch}, batch {batch_idx + start_batch}")
 
-    # Calculate epoch metrics (accounting for skipped batches)
-    batches_processed = len(train_loader) - start_batch
+    # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
-    epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
+    epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 and len(all_labels) > 0 else 0.5
 
     return avg_loss, epoch_auroc, global_step
 
@@ -426,6 +472,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'epoch_indices': current_epoch_indices,  # Save for deterministic resume
             }
             checkpoint_path = output_dir / 'best_model.pt'
             torch.save(checkpoint, checkpoint_path)
@@ -441,6 +488,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'epoch_indices': current_epoch_indices,  # Save for deterministic resume
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
