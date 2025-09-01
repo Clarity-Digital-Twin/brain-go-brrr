@@ -1,0 +1,38 @@
+data:
+  batch_size: 64
+  cache_dir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_v2
+  num_workers: 2
+  persistent_workers: false
+  pin_memory: true
+  prefetch_factor: 2
+  root_dir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/tuab/edf
+experiment:
+  name: smoke_test
+  seed: 42
+logging:
+  log_every_n_steps: 5
+model:
+  backbone:
+    checkpoint_path: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+    name: eegpt
+  probe:
+    dropout: 0.1
+    hidden_dim: 128
+    n_classes: 2
+    type: linear
+training:
+  checkpoint_every: 10
+  gradient_clip_val: 1.0
+  max_epochs: 1
+  optimizer:
+    lr: 0.001
+    name: AdamW
+    weight_decay: 0.0001
+  scheduler:
+    anneal_strategy: cos
+    epochs: 1
+    max_lr: 0.003
+    name: OneCycleLR
+    pct_start: 0.2
+  weighted_loss: true

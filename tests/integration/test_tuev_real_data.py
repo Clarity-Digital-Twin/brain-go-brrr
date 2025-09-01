@@ -4,7 +4,6 @@ These tests ONLY run with real TUEV data and are marked @data.
 They require --run-data flag and actual dataset availability.
 """
 
-
 import mne
 import pytest
 

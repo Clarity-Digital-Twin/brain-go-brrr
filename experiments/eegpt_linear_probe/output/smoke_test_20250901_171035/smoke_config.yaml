@@ -1,0 +1,42 @@
+experiment:
+  name: smoke_test
+  seed: 42
+
+data:
+  root_dir: ${BGB_DATA_ROOT}/datasets/tuab/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuab_mne_v2
+  batch_size: 64
+  num_workers: 2  # Reduced for smoke test
+  pin_memory: true
+  persistent_workers: false  # Disabled for short run
+  prefetch_factor: 2
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+  probe:
+    type: linear
+    hidden_dim: 128
+    n_classes: 2
+    dropout: 0.1
+
+training:
+  max_epochs: 1
+  optimizer:
+    name: AdamW
+    lr: 1.0e-3
+    weight_decay: 1.0e-4
+  scheduler:
+    name: OneCycleLR
+    max_lr: 3.0e-3
+    epochs: 1
+    pct_start: 0.2
+    anneal_strategy: cos
+  gradient_clip_val: 1.0
+  weighted_loss: true
+  checkpoint_every: 10
+
+logging:
+  log_every_n_steps: 5

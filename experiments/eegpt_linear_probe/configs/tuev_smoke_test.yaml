@@ -1,0 +1,64 @@
+experiment:
+  name: tuev_smoke_test
+  description: "Quick smoke test for TUEV with frequent checkpoints"
+  seed: 42
+
+data:
+  root_dir: ${BGB_DATA_ROOT}/datasets/tuev/edf
+  cache_dir: ${BGB_DATA_ROOT}/cache/tuev_mne_v2
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 2
+  window_duration: 4.0
+  window_stride: 2.0
+  sampling_rate: 256
+  n_channels: 20
+
+model:
+  backbone:
+    name: eegpt
+    checkpoint_path: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+    freeze: true
+  probe:
+    type: linear
+    hidden_dim: 128
+    n_classes: 6  # 6 event types in TUEV
+    dropout: 0.1
+    use_channel_adapter: false
+
+training:
+  max_epochs: 1  # Just 1 epoch for smoke test
+  early_stopping:
+    patience: 3
+    min_delta: 0.001
+    mode: max
+    monitor: val_auroc
+
+  optimizer:
+    name: AdamW
+    lr: 1.0e-3
+    weight_decay: 1.0e-4
+
+  scheduler:
+    name: OneCycleLR
+    max_lr: 3.0e-3
+    epochs: 1
+    pct_start: 0.2
+    anneal_strategy: cos
+    div_factor: 25.0
+    final_div_factor: 1000.0
+
+  gradient_clip_val: 1.0
+  val_check_interval: 1
+  weighted_loss: true
+  checkpoint_every: 10  # Save every 10 batches for smoke test
+
+logging:
+  log_every_n_steps: 5
+  save_top_k: 3
+
+target_metrics:
+  auroc: 0.75  # Target for TUEV
+  tolerance: 0.01

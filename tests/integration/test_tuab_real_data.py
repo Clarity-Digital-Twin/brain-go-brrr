@@ -4,7 +4,6 @@ These tests ONLY run with real TUAB data and are marked @data.
 They require --run-data flag and actual dataset availability.
 """
 
-
 import mne
 import pytest
 
@@ -30,19 +29,23 @@ class TestTUABRealData:
 
         # Real TUAB data uses EEG <channel>-REF naming convention
         ch_names_upper = [ch.upper() for ch in raw.ch_names]
-        
+
         # Check for standard EEG channel naming pattern
         eeg_pattern_found = any("EEG " in name for name in ch_names_upper)
         assert eeg_pattern_found, "Real TUAB should have EEG channel prefix"
-        
+
         # Check for REF suffix pattern
         ref_pattern_found = any("-REF" in name for name in ch_names_upper)
         assert ref_pattern_found, "Real TUAB should have -REF suffix"
-        
+
         # Check that we have standard 10-20 system channels (with EEG prefix)
         standard_channels = ["FP1", "FP2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
-        channels_found = sum(1 for ch in standard_channels if any(ch in name for name in ch_names_upper))
-        assert channels_found >= 8, f"Should have at least 8 standard 10-20 channels, found {channels_found}"
+        channels_found = sum(
+            1 for ch in standard_channels if any(ch in name for name in ch_names_upper)
+        )
+        assert channels_found >= 8, (
+            f"Should have at least 8 standard 10-20 channels, found {channels_found}"
+        )
 
     def test_real_tuab_sampling_rate(self, tuab_sample_path):
         """Test real TUAB sampling rate variations."""

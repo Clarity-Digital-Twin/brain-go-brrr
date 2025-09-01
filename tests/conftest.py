@@ -548,7 +548,12 @@ def tuab_sample_path(project_root, tmp_path) -> Path:
     """
     from brain_go_brrr.application.config import DataConfig
 
-    config = DataConfig(data_path=project_root / "data")
+    # Use BGB_DATA_ROOT if set, otherwise use project_root
+    data_root = os.environ.get("BGB_DATA_ROOT")
+    if data_root:
+        config = DataConfig(data_path=Path(data_root))
+    else:
+        config = DataConfig(data_path=project_root / "data")
     path = config.get_tuab_sample_file()
 
     if path:
@@ -573,7 +578,12 @@ def tuev_sample_path(project_root, tmp_path) -> Path:
     """
     from brain_go_brrr.application.config import DataConfig
 
-    config = DataConfig(data_path=project_root / "data")
+    # Use BGB_DATA_ROOT if set, otherwise use project_root
+    data_root = os.environ.get("BGB_DATA_ROOT")
+    if data_root:
+        config = DataConfig(data_path=Path(data_root))
+    else:
+        config = DataConfig(data_path=project_root / "data")
     path = config.get_tuev_sample_file()
 
     if path:

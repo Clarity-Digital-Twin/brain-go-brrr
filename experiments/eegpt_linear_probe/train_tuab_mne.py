@@ -103,6 +103,7 @@ def train_epoch(
     start_batch: int = 0,
     global_step: int = 0,
     epoch_indices: torch.Tensor | None = None,
+    batches_per_epoch: int | None = None,
 ) -> tuple[float, float, int]:
     """Train for one epoch with deterministic resume support."""
     probe.train()
@@ -168,7 +169,8 @@ def train_epoch(
                 'timestamp': datetime.now().isoformat(),
                 'epoch': epoch,
                 'batch_idx': batch_idx + start_batch,  # Report absolute batch index
-                'total_batches': len(train_loader) + start_batch,
+                'total_batches': batches_per_epoch
+                or (len(train_loader) + start_batch),  # Exact if provided
                 'loss': float(loss.item()),
                 'auroc': float(current_auroc) if 'current_auroc' in locals() else 0.5,
                 'lr': float(scheduler.get_last_lr()[0]),
@@ -184,7 +186,14 @@ def train_epoch(
                 json.dump(heartbeat, f, indent=2)
 
         # CRITICAL: Save checkpoint every N batches to avoid losing progress
-        if output_dir and checkpoint_every and batch_idx > 0 and batch_idx % checkpoint_every == 0:
+        # Use absolute batch index for uniform intervals across restarts
+        abs_batch_idx = batch_idx + start_batch
+        if (
+            output_dir
+            and checkpoint_every
+            and abs_batch_idx > 0
+            and abs_batch_idx % checkpoint_every == 0
+        ):
             checkpoint = {
                 'epoch': epoch,
                 'batch_idx': batch_idx + start_batch,  # Save absolute batch index
@@ -560,6 +569,7 @@ def main():
             start_batch=resume_batch,
             global_step=global_step,
             epoch_indices=current_epoch_indices,
+            batches_per_epoch=batches_per_epoch,
         )
 
         # Reset start_batch after first epoch
