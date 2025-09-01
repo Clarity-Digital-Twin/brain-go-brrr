@@ -195,6 +195,8 @@ def train_epoch(
                 'train_loss': total_loss / batches_processed if batches_processed > 0 else 0,
                 'global_step': global_step,
                 'epoch_indices': epoch_indices,  # Save deterministic order
+                'sample_offset': (batch_idx + start_batch + 1)
+                * batch_size,  # Exact samples processed in epoch
             }
             checkpoint_path = (
                 output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
@@ -455,11 +457,18 @@ def main():
         best_auroc = checkpoint.get('best_auroc', 0)
         global_step = checkpoint.get('global_step', 0)
         epoch_indices = checkpoint.get('epoch_indices', None)  # Restore epoch order if available
+        sample_offset = checkpoint.get('sample_offset', None)  # Exact sample count if available
 
         # Check for edge case: resuming from last batch of epoch
         # The checkpoint saves the batch we just completed, so to resume:
         # - If saved batch + 1 >= batches_per_epoch, we've finished the epoch
-        if start_batch + 1 >= batches_per_epoch:
+        # - OR if we have epoch_indices and processed all samples
+        epoch_complete = start_batch + 1 >= batches_per_epoch
+        if epoch_indices is not None and sample_offset is not None:
+            # More precise check using actual data
+            epoch_complete = epoch_complete or sample_offset >= len(epoch_indices)
+
+        if epoch_complete:
             logger.info(
                 f"Checkpoint was at last batch of epoch {start_epoch}, moving to next epoch"
             )
@@ -487,11 +496,17 @@ def main():
         # Determine if we're resuming mid-epoch (only for first epoch after resume)
         if epoch == start_epoch and start_batch > 0:
             # Resume mid-epoch with saved indices
-            # CRITICAL FIX: Skip the already-processed batch by adding 1
-            start_idx = (start_batch + 1) * config['data']['batch_size']
+            # Use exact sample offset if available, otherwise derive from batch
+            if sample_offset is not None:
+                start_idx = sample_offset  # Most accurate - exact samples processed
+            else:
+                # Fallback: derive from batch (assumes full batches)
+                start_idx = (start_batch + 1) * config['data']['batch_size']
 
             # Check if we've processed all data in this epoch
-            if start_idx >= len(train_dataset):
+            # Use epoch_indices length if available for more accurate check
+            dataset_size = len(epoch_indices) if epoch_indices is not None else len(train_dataset)
+            if start_idx >= dataset_size:
                 logger.info(f"All data processed in epoch {start_epoch}, moving to next epoch")
                 start_epoch = start_epoch + 1
                 start_batch = 0
@@ -568,6 +583,7 @@ def main():
                 'best_auroc': best_auroc,
                 'config': config,
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
+                'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
             checkpoint_path = output_dir / 'best_model.pt'
             torch.save(checkpoint, checkpoint_path)
@@ -584,6 +600,7 @@ def main():
                 'best_auroc': best_auroc,
                 'config': config,
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
+                'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
