@@ -55,11 +55,57 @@ if [ ! -d "$CACHE_DIR" ]; then
     exit 1
 fi
 
+# Auto-recovery settings
+MAX_RETRIES=${MAX_RETRIES:-10}
+RETRY_DELAY=${RETRY_DELAY:-30}
+ENABLE_RECOVERY=${ENABLE_RECOVERY:-true}
+
 # Launch training
 echo ""
 echo "Starting training..."
+echo "Auto-recovery: $ENABLE_RECOVERY (max retries: $MAX_RETRIES)"
 echo "To monitor: tail -f $LOG_FILE"
 echo ""
+
+# Function to run training with recovery
+run_with_recovery() {
+    local retry_count=0
+    while [ $retry_count -lt $MAX_RETRIES ]; do
+        echo "[$(date)] Training attempt $((retry_count + 1))/$MAX_RETRIES"
+        
+        # Find latest checkpoint for resume
+        RESUME_ARG=""
+        LATEST_CHECKPOINT=$(find "$OUTPUT_DIR" -name "checkpoint_*.pt" -type f 2>/dev/null | sort -V | tail -1)
+        if [ -n "$LATEST_CHECKPOINT" ]; then
+            echo "Found checkpoint: $LATEST_CHECKPOINT"
+            RESUME_ARG="--resume $LATEST_CHECKPOINT"
+        fi
+        
+        # Run training
+        uv run python train_tuab_mne.py \
+            --config configs/tuab.yaml \
+            --output-dir "$OUTPUT_DIR" \
+            --cache-dir "$CACHE_DIR" \
+            $RESUME_ARG \
+            2>&1 | tee -a "$LOG_FILE"
+        
+        EXIT_CODE=${PIPESTATUS[0]}
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "[$(date)] Training completed successfully!"
+            return 0
+        else
+            echo "[$(date)] Training failed with exit code $EXIT_CODE"
+            retry_count=$((retry_count + 1))
+            if [ $retry_count -lt $MAX_RETRIES ]; then
+                echo "Waiting $RETRY_DELAY seconds before retry..."
+                sleep $RETRY_DELAY
+            fi
+        fi
+    done
+    echo "Training failed after $MAX_RETRIES attempts"
+    return 1
+}
 
 # Use tmux or direct execution based on preference
 if command -v tmux &> /dev/null; then
@@ -69,18 +115,28 @@ if command -v tmux &> /dev/null; then
     # Kill existing session if it exists
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
 
-    # Start new session - SINGLE LINE COMMAND
-    tmux new-session -d -s "$SESSION_NAME" \
-        "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && uv run python train_tuab_mne.py --config configs/tuab.yaml --output-dir \"$OUTPUT_DIR\" --cache-dir \"$CACHE_DIR\" 2>&1 | tee \"$LOG_FILE\"'"
+    if [ "$ENABLE_RECOVERY" = "true" ]; then
+        # Start new session with recovery wrapper
+        tmux new-session -d -s "$SESSION_NAME" \
+            "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && export OUTPUT_DIR=\"$OUTPUT_DIR\" && export CACHE_DIR=\"$CACHE_DIR\" && export MAX_RETRIES=\"$MAX_RETRIES\" && export RETRY_DELAY=\"$RETRY_DELAY\" && $(declare -f run_with_recovery); run_with_recovery'"
+    else
+        # Original single-run command
+        tmux new-session -d -s "$SESSION_NAME" \
+            "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && uv run python train_tuab_mne.py --config configs/tuab.yaml --output-dir \"$OUTPUT_DIR\" --cache-dir \"$CACHE_DIR\" 2>&1 | tee \"$LOG_FILE\"'"
+    fi
 
     echo "Training launched in tmux session: $SESSION_NAME"
     echo "To attach: tmux attach -t $SESSION_NAME"
     echo "To detach: Ctrl+B, then D"
 else
     # Direct execution
-    uv run python train_tuab_mne.py \
-        --config configs/tuab.yaml \
-        --output-dir "$OUTPUT_DIR" \
-        --cache-dir "$CACHE_DIR" \
-        2>&1 | tee "$LOG_FILE"
+    if [ "$ENABLE_RECOVERY" = "true" ]; then
+        run_with_recovery
+    else
+        uv run python train_tuab_mne.py \
+            --config configs/tuab.yaml \
+            --output-dir "$OUTPUT_DIR" \
+            --cache-dir "$CACHE_DIR" \
+            2>&1 | tee "$LOG_FILE"
+    fi
 fi

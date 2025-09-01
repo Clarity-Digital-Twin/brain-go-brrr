@@ -7,10 +7,10 @@ data:
   root_dir: ${BGB_DATA_ROOT}/datasets/tuab/edf
   cache_dir: ${BGB_DATA_ROOT}/cache/tuab_mne_v2
   batch_size: 64  # Reduced from 256 to prevent OOM on WSL2
-  num_workers: 0   # Ignored - hardcoded to 0 in train_tuab.py
-  pin_memory: false  # Ignored - hardcoded to false in train_tuab.py
-  persistent_workers: false
-  prefetch_factor: null
+  num_workers: 4   # Number of parallel data loading workers (WSL2 supports this!)
+  pin_memory: true  # Enable fast GPU memory transfer (WSL2 supports this!)
+  persistent_workers: true  # Keep workers alive between epochs for efficiency
+  prefetch_factor: 2  # Pre-load 2 batches ahead for smooth data flow
   # Paper-aligned parameters
   window_duration: 4.0  # 4 seconds as per paper
   window_stride: 2.0    # 50% overlap for training
@@ -55,6 +55,7 @@ training:
   gradient_clip_val: 1.0
   val_check_interval: 1
   weighted_loss: true  # Handle class imbalance
+  checkpoint_every: 500  # Save checkpoint every N batches (avoids losing 7 days of work)
 
 logging:
   log_every_n_steps: 50

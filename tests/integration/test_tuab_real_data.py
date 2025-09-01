@@ -25,15 +25,24 @@ class TestTUABRealData:
         assert file_size_mb > 1.0, "Real TUAB files should be >1MB"
 
     def test_real_tuab_channel_names(self, tuab_sample_path):
-        """Test that real TUAB data has old channel naming (T3/T4/T5/T6)."""
+        """Test that real TUAB data uses standard EEG naming convention."""
         raw = mne.io.read_raw_edf(tuab_sample_path, preload=False, verbose=False)
 
-        # Real TUAB uses old naming convention
+        # Real TUAB data uses EEG <channel>-REF naming convention
         ch_names_upper = [ch.upper() for ch in raw.ch_names]
-
-        # Check for at least some old names (real data characteristic)
-        old_names_found = any(name in ch_names_upper for name in ["T3", "T4", "T5", "T6"])
-        assert old_names_found, "Real TUAB should have old channel names"
+        
+        # Check for standard EEG channel naming pattern
+        eeg_pattern_found = any("EEG " in name for name in ch_names_upper)
+        assert eeg_pattern_found, "Real TUAB should have EEG channel prefix"
+        
+        # Check for REF suffix pattern
+        ref_pattern_found = any("-REF" in name for name in ch_names_upper)
+        assert ref_pattern_found, "Real TUAB should have -REF suffix"
+        
+        # Check that we have standard 10-20 system channels (with EEG prefix)
+        standard_channels = ["FP1", "FP2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2"]
+        channels_found = sum(1 for ch in standard_channels if any(ch in name for name in ch_names_upper))
+        assert channels_found >= 8, f"Should have at least 8 standard 10-20 channels, found {channels_found}"
 
     def test_real_tuab_sampling_rate(self, tuab_sample_path):
         """Test real TUAB sampling rate variations."""
@@ -55,6 +64,6 @@ class TestTUABRealData:
         """Test real TUAB channel count matches clinical standard."""
         raw = mne.io.read_raw_edf(tuab_sample_path, preload=False, verbose=False)
 
-        # Real TUAB typically has 19-21 EEG channels
+        # Real TUAB can have 19-36 channels (including non-EEG channels like ECG, EMG)
         n_channels = len(raw.ch_names)
-        assert 19 <= n_channels <= 25, f"Unexpected channel count: {n_channels}"
+        assert 19 <= n_channels <= 36, f"Unexpected channel count: {n_channels}"

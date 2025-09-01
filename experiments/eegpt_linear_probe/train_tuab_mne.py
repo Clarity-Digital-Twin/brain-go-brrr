@@ -6,10 +6,12 @@ Expected to achieve 75-87% AUROC (vs 56% without preprocessing).
 """
 
 import argparse
+import json
 import logging
 import os
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -48,7 +50,12 @@ def train_epoch(
     criterion: nn.Module,
     device: torch.device,
     epoch: int,
-) -> tuple[float, float]:
+    output_dir: Path = None,
+    checkpoint_every: int = 500,
+    best_auroc: float = 0.0,
+    start_batch: int = 0,
+    global_step: int = 0,
+) -> tuple[float, float, int]:
     """Train for one epoch."""
     probe.train()
 
@@ -59,7 +66,12 @@ def train_epoch(
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
     for batch_idx, (x, y) in enumerate(pbar):
+        # Skip batches if resuming mid-epoch
+        if batch_idx < start_batch:
+            continue
+            
         x, y = x.to(device), y.to(device)
+        global_step += 1
 
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
@@ -100,12 +112,49 @@ def train_epoch(
                     'lr': f'{scheduler.get_last_lr()[0]:.6f}',
                 }
             )
+        
+        # Write heartbeat for monitoring
+        if output_dir and batch_idx % 50 == 0:
+            batch_size = x.shape[0]  # Actual batch size from data
+            heartbeat = {
+                'timestamp': datetime.now().isoformat(),
+                'epoch': epoch,
+                'batch_idx': batch_idx,
+                'total_batches': len(train_loader),
+                'loss': float(loss.item()),
+                'auroc': float(current_auroc) if 'current_auroc' in locals() else 0.5,
+                'lr': float(scheduler.get_last_lr()[0]),
+                'global_step': global_step,
+                'samples_seen': global_step * batch_size,
+                'gpu_memory_gb': torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0,
+                'alive': True
+            }
+            heartbeat_file = output_dir / 'heartbeat.json'
+            with open(heartbeat_file, 'w') as f:
+                json.dump(heartbeat, f, indent=2)
+        
+        # CRITICAL: Save checkpoint every N batches to avoid losing progress
+        if output_dir and checkpoint_every and batch_idx > 0 and batch_idx % checkpoint_every == 0:
+            checkpoint = {
+                'epoch': epoch,
+                'batch_idx': batch_idx,
+                'probe_state_dict': probe.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_auroc': best_auroc,
+                'train_loss': total_loss / (batch_idx + 1),
+                'global_step': global_step,
+            }
+            checkpoint_path = output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx}.pt'
+            torch.save(checkpoint, checkpoint_path)
+            logger.info(f"Saved intra-epoch checkpoint at epoch {epoch}, batch {batch_idx}")
 
-    # Calculate epoch metrics
-    avg_loss = total_loss / len(train_loader)
+    # Calculate epoch metrics (accounting for skipped batches)
+    batches_processed = len(train_loader) - start_batch
+    avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
     epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
 
-    return avg_loss, epoch_auroc
+    return avg_loss, epoch_auroc, global_step
 
 
 def evaluate(
@@ -237,13 +286,15 @@ def main():
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Eval dataset: {len(eval_dataset)} windows")
 
-    # Create data loaders
+    # Create data loaders with PROPER settings (WSL2 supports multiprocessing!)
     train_loader = DataLoader(
         train_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=True,
-        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
-        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
+        num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
+        pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
+        persistent_workers=config['data'].get('persistent_workers', True) if config['data'].get('num_workers', 4) > 0 else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 4) > 0 else None,
         collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
@@ -251,8 +302,10 @@ def main():
         eval_dataset,
         batch_size=config['data']['batch_size'],
         shuffle=False,
-        num_workers=config['data'].get('num_workers', 0),  # Default 0 for WSL
-        pin_memory=config['data'].get('pin_memory', False),  # Respect config (False for WSL)
+        num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
+        pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
+        persistent_workers=config['data'].get('persistent_workers', True) if config['data'].get('num_workers', 4) > 0 else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 4) > 0 else None,
         collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
@@ -309,9 +362,11 @@ def main():
     else:
         criterion = nn.BCEWithLogitsLoss()
 
-    # Resume from checkpoint if specified
+    # Resume from checkpoint if specified (handles mid-epoch checkpoints correctly)
     start_epoch = 0
+    start_batch = 0
     best_auroc = 0
+    global_step = 0
 
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
@@ -319,17 +374,40 @@ def main():
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        start_epoch = checkpoint['epoch'] + 1
+        
+        # Proper mid-epoch resume logic
+        start_epoch = checkpoint['epoch']
+        start_batch = checkpoint.get('batch_idx', 0)
         best_auroc = checkpoint.get('best_auroc', 0)
-        logger.info(f"Resumed from epoch {start_epoch}, best AUROC: {best_auroc:.4f}")
+        global_step = checkpoint.get('global_step', 0)
+        
+        # If we have a batch_idx, we're resuming mid-epoch
+        if start_batch > 0:
+            logger.info(f"Resuming from epoch {start_epoch}, batch {start_batch}/{len(train_loader)}, best AUROC: {best_auroc:.4f}")
+            logger.info(f"Global step: {global_step}, will skip {start_batch} batches")
+        else:
+            # Completed epoch, move to next
+            start_epoch = checkpoint['epoch'] + 1
+            logger.info(f"Resuming from epoch {start_epoch}, best AUROC: {best_auroc:.4f}")
 
     # Training loop
     logger.info("Starting training...")
     for epoch in range(start_epoch, config['training']['max_epochs']):
-        # Train
-        train_loss, train_auroc = train_epoch(
-            model, probe, train_loader, optimizer, scheduler, criterion, device, epoch
+        # Determine if we're resuming mid-epoch (only for first epoch after resume)
+        resume_batch = start_batch if epoch == start_epoch else 0
+        
+        # Train with intra-epoch checkpointing
+        train_loss, train_auroc, global_step = train_epoch(
+            model, probe, train_loader, optimizer, scheduler, criterion, device, epoch,
+            output_dir=output_dir, 
+            checkpoint_every=config.get('training', {}).get('checkpoint_every', 500),
+            best_auroc=best_auroc,
+            start_batch=resume_batch,
+            global_step=global_step
         )
+        
+        # Reset start_batch after first epoch
+        start_batch = 0
 
         # Evaluate
         eval_loss, eval_auroc, _, _ = evaluate(model, probe, eval_loader, criterion, device)

@@ -67,9 +67,9 @@ class TestTUEVRealData:
         """Test real TUEV channel count matches expected range."""
         raw = mne.io.read_raw_edf(tuev_sample_path, preload=False, verbose=False)
 
-        # Real TUEV typically has 20-23 channels (including EOG)
+        # Real TUEV can have 18-36 channels (including EOG, ECG, EMG)
         n_channels = len(raw.ch_names)
-        assert 18 <= n_channels <= 30, f"Unexpected channel count: {n_channels}"
+        assert 18 <= n_channels <= 36, f"Unexpected channel count: {n_channels}"
 
     def test_real_tuev_event_types(self, tuev_sample_path):
         """Test that real TUEV path corresponds to known event types."""
