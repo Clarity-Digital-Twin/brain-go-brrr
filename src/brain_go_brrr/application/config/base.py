@@ -165,12 +165,12 @@ class DataConfig(BaseModel):
     @property
     def tuab_version(self) -> str:
         """Get TUAB version from env or default."""
-        return os.environ.get("BGB_TUAB_VERSION", "v3.0.1")
+        return os.environ.get("BGB_TUAB_VERSION", "")
 
     @property
     def tuev_version(self) -> str:
         """Get TUEV version from env or default."""
-        return os.environ.get("BGB_TUEV_VERSION", "v2.0.0")
+        return os.environ.get("BGB_TUEV_VERSION", "")
 
     def get_tuab_sample_file(
         self, split: str = "train", label: str = "abnormal", protocol: str = "01_tcp_ar"
@@ -192,7 +192,11 @@ class DataConfig(BaseModel):
             return p if p.exists() else None
 
         # Construct path to TUAB data
-        base = self.tuab_root / self.tuab_version / "edf" / split / label / protocol
+        # Note: TUAB doesn't have version subdirectory in actual structure
+        if self.tuab_version:
+            base = self.tuab_root / self.tuab_version / "edf" / split / label / protocol
+        else:
+            base = self.tuab_root / "edf" / split / label / protocol
         if not base.exists():
             return None
 
@@ -218,7 +222,21 @@ class DataConfig(BaseModel):
             return p if p.exists() else None
 
         # Construct path to TUEV data
-        base = self.tuev_root / self.tuev_version / "edf" / event_type
+        # Note: TUEV doesn't have version subdirectory in actual structure
+        if self.tuev_version:
+            base = self.tuev_root / self.tuev_version / "edf" / event_type
+        else:
+            # Try looking in eval subdirectory first (common TUEV structure)
+            base = self.tuev_root / "edf" / "eval"
+            if base.exists():
+                # Find first directory with matching event type
+                for subdir in sorted(base.iterdir()):
+                    if subdir.is_dir():
+                        event_files = sorted(subdir.glob(f"{event_type}*.edf"))
+                        if event_files:
+                            return event_files[0]
+            # Fallback to direct path
+            base = self.tuev_root / "edf" / event_type
         if not base.exists():
             return None
 
