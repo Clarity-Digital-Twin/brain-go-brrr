@@ -14,7 +14,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import torch
@@ -22,7 +22,7 @@ import torch.nn as nn
 import yaml
 from sklearn.metrics import roc_auc_score
 from torch.optim.lr_scheduler import OneCycleLR
-from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuab_dataset import TUABDataset as TUABMNEDataset
@@ -54,8 +54,8 @@ def create_deterministic_dataloader(
     persistent_workers: bool = True,
     prefetch_factor: int = 2,
     collate_fn=None,
-    epoch_indices: Optional[torch.Tensor] = None,
-) -> Tuple[DataLoader, torch.Tensor]:
+    epoch_indices: torch.Tensor | None = None,
+) -> tuple[DataLoader, torch.Tensor]:
     """Create a DataLoader with deterministic sampling order for reproducible resume."""
     # Use provided indices or generate new ones
     if epoch_indices is None:
@@ -64,25 +64,27 @@ def create_deterministic_dataloader(
         generator.manual_seed(seed + epoch)
         # Generate deterministic permutation for this epoch
         epoch_indices = torch.randperm(len(dataset), generator=generator)
-    
+
     # If resuming mid-epoch, use subset of indices
+    # Create a subset that starts from the correct position (or full if start_idx=0)
     subset_indices = epoch_indices[start_idx:].tolist() if start_idx > 0 else epoch_indices.tolist()
-    
-    # Create sampler with the subset
-    sampler = SubsetRandomSampler(subset_indices)
-    
-    # Create DataLoader with deterministic sampler
+
+    # Create a Subset dataset with the exact indices we want
+    # This preserves order - no random shuffling!
+    subset_dataset = Subset(dataset, subset_indices)
+
+    # Create DataLoader without any sampler - just iterate in order
     loader = DataLoader(
-        dataset,
+        subset_dataset,
         batch_size=batch_size,
-        sampler=sampler,  # Use sampler instead of shuffle
+        shuffle=False,  # CRITICAL: Don't shuffle - preserve our deterministic order
         num_workers=num_workers if num_workers > 0 else 0,
         pin_memory=pin_memory,
         persistent_workers=persistent_workers if num_workers > 0 else False,
         prefetch_factor=prefetch_factor if num_workers > 0 else None,
         collate_fn=collate_fn,
     )
-    
+
     return loader, epoch_indices
 
 
@@ -95,12 +97,12 @@ def train_epoch(
     criterion: nn.Module,
     device: torch.device,
     epoch: int,
-    output_dir: Path = None,
+    output_dir: Path | None = None,
     checkpoint_every: int = 500,
     best_auroc: float = 0.0,
     start_batch: int = 0,
     global_step: int = 0,
-    epoch_indices: Optional[torch.Tensor] = None,
+    epoch_indices: torch.Tensor | None = None,
 ) -> tuple[float, float, int]:
     """Train for one epoch with deterministic resume support."""
     probe.train()
@@ -114,7 +116,7 @@ def train_epoch(
 
     for batch_idx, (x, y) in enumerate(pbar):
         # Note: with SubsetRandomSampler, we don't skip - sampler handles it
-            
+
         x, y = x.to(device), y.to(device)
         global_step += 1
 
@@ -158,7 +160,7 @@ def train_epoch(
                     'lr': f'{scheduler.get_last_lr()[0]:.6f}',
                 }
             )
-        
+
         # Write heartbeat for monitoring
         if output_dir and batch_idx % 50 == 0:
             batch_size = x.shape[0]  # Actual batch size from data
@@ -172,13 +174,15 @@ def train_epoch(
                 'lr': float(scheduler.get_last_lr()[0]),
                 'global_step': global_step,
                 'samples_seen': global_step * batch_size,
-                'gpu_memory_gb': torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0,
-                'alive': True
+                'gpu_memory_gb': torch.cuda.memory_allocated() / 1e9
+                if torch.cuda.is_available()
+                else 0,
+                'alive': True,
             }
             heartbeat_file = output_dir / 'heartbeat.json'
             with open(heartbeat_file, 'w') as f:
                 json.dump(heartbeat, f, indent=2)
-        
+
         # CRITICAL: Save checkpoint every N batches to avoid losing progress
         if output_dir and checkpoint_every and batch_idx > 0 and batch_idx % checkpoint_every == 0:
             checkpoint = {
@@ -192,13 +196,21 @@ def train_epoch(
                 'global_step': global_step,
                 'epoch_indices': epoch_indices,  # Save deterministic order
             }
-            checkpoint_path = output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
+            checkpoint_path = (
+                output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
+            )
             torch.save(checkpoint, checkpoint_path)
-            logger.info(f"Saved intra-epoch checkpoint at epoch {epoch}, batch {batch_idx + start_batch}")
+            logger.info(
+                f"Saved intra-epoch checkpoint at epoch {epoch}, batch {batch_idx + start_batch}"
+            )
 
     # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
-    epoch_auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 and len(all_labels) > 0 else 0.5
+    epoch_auroc = (
+        roc_auc_score(all_labels, all_preds)
+        if len(set(all_labels)) > 1 and len(all_labels) > 0
+        else 0.5
+    )
 
     return avg_loss, epoch_auroc, global_step
 
@@ -288,6 +300,21 @@ def main():
         config = yaml.safe_load(f)
     config = resolve_env_vars(config)
 
+    # Set seeds for reproducibility
+    seed = config.get('experiment', {}).get('seed', 42)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    # Enable fully deterministic algorithms for reproducibility
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    if torch.cuda.is_available():
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
     # Setup output directory
     if args.output_dir is None:
         timestamp = time.strftime('%Y%m%d_%H%M%S')
@@ -314,6 +341,7 @@ def main():
     logger.info(f"Config: {args.config}")
     logger.info(f"Cache directory: {args.cache_dir}")
     logger.info(f"Output directory: {args.output_dir}")
+    logger.info(f"Random seed: {seed}")
 
     # Setup device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -332,17 +360,12 @@ def main():
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Eval dataset: {len(eval_dataset)} windows")
 
-    # Create data loaders with PROPER settings (WSL2 supports multiprocessing!)
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=config['data']['batch_size'],
-        shuffle=True,
-        num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
-        pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
-        persistent_workers=config['data'].get('persistent_workers', True) if config['data'].get('num_workers', 4) > 0 else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 4) > 0 else None,
-        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
-    )
+    # NOTE: train_loader will be created per-epoch for deterministic sampling
+    # This is necessary for proper mid-epoch resume functionality
+    batches_per_epoch = (len(train_dataset) + config['data']['batch_size'] - 1) // config['data'][
+        'batch_size'
+    ]
+    logger.info(f"Batches per epoch: {batches_per_epoch}")
 
     eval_loader = DataLoader(
         eval_dataset,
@@ -350,8 +373,12 @@ def main():
         shuffle=False,
         num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
         pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
-        persistent_workers=config['data'].get('persistent_workers', True) if config['data'].get('num_workers', 4) > 0 else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 4) > 0 else None,
+        persistent_workers=config['data'].get('persistent_workers', True)
+        if config['data'].get('num_workers', 4) > 0
+        else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2)
+        if config['data'].get('num_workers', 4) > 0
+        else None,
         collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
     )
 
@@ -381,7 +408,7 @@ def main():
     )
 
     # Setup scheduler
-    total_steps = len(train_loader) * config['training']['max_epochs']
+    total_steps = batches_per_epoch * config['training']['max_epochs']
     scheduler = OneCycleLR(
         optimizer,
         max_lr=config['training']['scheduler']['max_lr'],
@@ -413,6 +440,7 @@ def main():
     start_batch = 0
     best_auroc = 0
     global_step = 0
+    epoch_indices = None  # Will store deterministic order if resuming
 
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
@@ -420,17 +448,34 @@ def main():
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        
+
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
         start_batch = checkpoint.get('batch_idx', 0)
         best_auroc = checkpoint.get('best_auroc', 0)
         global_step = checkpoint.get('global_step', 0)
-        
-        # If we have a batch_idx, we're resuming mid-epoch
-        if start_batch > 0:
-            logger.info(f"Resuming from epoch {start_epoch}, batch {start_batch}/{len(train_loader)}, best AUROC: {best_auroc:.4f}")
-            logger.info(f"Global step: {global_step}, will skip {start_batch} batches")
+        epoch_indices = checkpoint.get('epoch_indices', None)  # Restore epoch order if available
+
+        # Check for edge case: resuming from last batch of epoch
+        # The checkpoint saves the batch we just completed, so to resume:
+        # - If saved batch + 1 >= batches_per_epoch, we've finished the epoch
+        if start_batch + 1 >= batches_per_epoch:
+            logger.info(
+                f"Checkpoint was at last batch of epoch {start_epoch}, moving to next epoch"
+            )
+            start_epoch = start_epoch + 1
+            start_batch = 0
+            epoch_indices = None  # Generate new indices for new epoch
+        elif start_batch > 0:
+            # Mid-epoch resume
+            logger.info(
+                f"Resuming from epoch {start_epoch}, batch {start_batch}/{batches_per_epoch}, best AUROC: {best_auroc:.4f}"
+            )
+            logger.info(f"Global step: {global_step}")
+            if epoch_indices is None:
+                logger.warning(
+                    "No epoch_indices in checkpoint - will use new random order (may cause data duplication)"
+                )
         else:
             # Completed epoch, move to next
             start_epoch = checkpoint['epoch'] + 1
@@ -440,18 +485,68 @@ def main():
     logger.info("Starting training...")
     for epoch in range(start_epoch, config['training']['max_epochs']):
         # Determine if we're resuming mid-epoch (only for first epoch after resume)
-        resume_batch = start_batch if epoch == start_epoch else 0
-        
+        if epoch == start_epoch and start_batch > 0:
+            # Resume mid-epoch with saved indices
+            # CRITICAL FIX: Skip the already-processed batch by adding 1
+            start_idx = (start_batch + 1) * config['data']['batch_size']
+
+            # Check if we've processed all data in this epoch
+            if start_idx >= len(train_dataset):
+                logger.info(f"All data processed in epoch {start_epoch}, moving to next epoch")
+                start_epoch = start_epoch + 1
+                start_batch = 0
+                epoch_indices = None
+                continue  # Skip to next epoch in the loop
+
+            train_loader, current_epoch_indices = create_deterministic_dataloader(
+                train_dataset,
+                batch_size=config['data']['batch_size'],
+                epoch=epoch,
+                seed=seed,
+                start_idx=start_idx,
+                num_workers=config['data'].get('num_workers', 4),
+                pin_memory=config['data'].get('pin_memory', True),
+                persistent_workers=config['data'].get('persistent_workers', True),
+                prefetch_factor=config['data'].get('prefetch_factor', 2),
+                collate_fn=collate_tuab_batch,
+                epoch_indices=epoch_indices,  # Use saved indices if available
+            )
+            resume_batch = start_batch
+        else:
+            # Create new deterministic loader for this epoch
+            train_loader, current_epoch_indices = create_deterministic_dataloader(
+                train_dataset,
+                batch_size=config['data']['batch_size'],
+                epoch=epoch,
+                seed=seed,
+                start_idx=0,  # Starting fresh epoch
+                num_workers=config['data'].get('num_workers', 4),
+                pin_memory=config['data'].get('pin_memory', True),
+                persistent_workers=config['data'].get('persistent_workers', True),
+                prefetch_factor=config['data'].get('prefetch_factor', 2),
+                collate_fn=collate_tuab_batch,
+            )
+            resume_batch = 0  # No resume for new epochs
+            start_batch = 0  # Reset for next iteration
+
         # Train with intra-epoch checkpointing
         train_loss, train_auroc, global_step = train_epoch(
-            model, probe, train_loader, optimizer, scheduler, criterion, device, epoch,
-            output_dir=output_dir, 
+            model,
+            probe,
+            train_loader,
+            optimizer,
+            scheduler,
+            criterion,
+            device,
+            epoch,
+            output_dir=output_dir,
             checkpoint_every=config.get('training', {}).get('checkpoint_every', 500),
             best_auroc=best_auroc,
             start_batch=resume_batch,
-            global_step=global_step
+            global_step=global_step,
+            epoch_indices=current_epoch_indices,
         )
-        
+
         # Reset start_batch after first epoch
         start_batch = 0
 
