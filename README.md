@@ -6,8 +6,8 @@
 > Not a medical device. Not for clinical use. External validation pending.
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-1074%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
-[![Coverage](https://img.shields.io/badge/coverage-66%25-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
+[![Tests](https://img.shields.io/badge/tests-899%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
+[![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -21,7 +21,7 @@ Transform raw EEG data into clinical insights using the EEGPT foundation model a
 - 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection
 - ⚠️ **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC)
 - 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
-- 🏗️ **Clean Architecture** - Research-grade with 1074+ tests and CI/CD
+- 🏗️ **Clean Architecture** - Research-grade with 899+ tests and 86% coverage
 
 ## 🚀 Quick Start
 
