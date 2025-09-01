@@ -119,8 +119,9 @@ class TestApplicationConfig:
         # Test version formats (Sleep-EDF doesn't start with 'v')
         assert isinstance(config.sleep_edf_version, str)
         assert "sleep-edf" in config.sleep_edf_version
-        assert config.tuab_version.startswith("v")
-        assert config.tuev_version.startswith("v")
+        # TUAB/TUEV versions can be empty (no version subdirectory) or start with 'v'
+        assert config.tuab_version == "" or config.tuab_version.startswith("v")
+        assert config.tuev_version == "" or config.tuev_version.startswith("v")
 
     def test_config_path_methods(self):
         """Test config path resolution methods."""
