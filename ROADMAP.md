@@ -24,7 +24,7 @@
 ## Phase 1: Foundation (Week 1-2) ✅ DONE
 - [x] EEGPT integrated and working
 - [x] TUAB dataset loading
-- [x] Basic AUROC: 86.9% (EEGPT paper baseline)
+- [x] Basic AUROC: 87.2% (EEGPT paper actual)
 - [x] Sleep staging with YASA: 87% accuracy
 - [x] 899+ tests passing
 
@@ -41,7 +41,7 @@
   - Epochs: 200 for pretraining (but we only need ~10 for linear probe)
   - Data split: Patient-level, no leakage
 - **Paper results on TUAB**: 
-  - 86.9% ± 0.6% AUROC
+  - 87.18% ± 0.5% AUROC (their Table 11)
   - 76.9% ± 0.4% Balanced Accuracy
   - Linear probe OUTPERFORMED full fine-tuning!
 
@@ -60,6 +60,11 @@ dataset = TUABDataset(root="/data/datasets/tuab")
 # Extract features (WORKS ✅)
 features = model.extract_features(eeg_window, summary=True)  # → (B, 512)
 ```
+
+**⚠️ CRITICAL CONSTRAINT**: EEGPT paper used LINEAR PROBING ONLY (not full fine-tuning)!
+- They found linear probe OUTPERFORMED full fine-tuning
+- This means: Freeze EEGPT encoder, train ONLY the classification head
+- Much faster training, less overfitting, better generalization
 
 ### The Gap to Bridge
 1. **EEGPT gives**: Raw predictions (0-1 probabilities) at ONE operating point
@@ -408,8 +413,9 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 | Method | AUROC | Balanced Acc | Spec@Sens=0.95 | Status |
 |--------|-------|--------------|---------------|--------|
 | Classical | ~75% | ~70% | ~60% | Baseline |
-| EEGPT (paper) | 86.9% | 76.9% | ??? | Literature |
-| **EEGPT (ours)** | **Target: 86%+** | **Target: 75%+** | **Target: 70%+** | **TODO** |
+| EEGPT (paper) | 87.2% | 79.8% | ??? | Their Table 11 |
+| LaBraM (paper) | 90.2% | 81.4% | ??? | Best competitor |
+| **EEGPT (ours)** | **Target: 87%+** | **Target: 80%+** | **Target: 70%+** | **TODO** |
 
 #### TUSZ (Seizure Detection - Temporal) [Future Work]
 | Method | Sensitivity | FA/24h | TAES | Status |
@@ -449,7 +455,8 @@ See `docs/internal/email-templates.md` for templates.
   - **KEY QUOTE**: "A low false alarm rate... is the single most important criterion for user acceptance"
   - Commercial systems fail due to high FA rates despite good accuracy
   - TAES (Time-Aligned Event Scoring) uses Jaccard index for overlap
-- EEGPT paper baseline: 86.9% AUROC, 76.9% BAC on TUAB
+- EEGPT paper: 87.18% AUROC, 79.83% BAC on TUAB (their Table 11)
+- LaBraM paper: 90.22% AUROC, 81.40% BAC (current SOTA on TUAB)
 - Key metric distinctions:
   - **TUAB (abnormal)**: AUROC, BAC, Specificity@Sensitivity
   - **TUSZ (seizures)**: FA/24h, TAES, ATWV, time-aligned scoring
