@@ -132,6 +132,10 @@ tar -czf bgb-offline.tar.gz wheelhouse/ models/
 
 ### Operating Point Selection (THE CRITICAL BRIDGE 🌉)
 
+#### DECISION POLICY (EXPLICIT)
+**TUAB Classification**: Pick the SMALLEST threshold τ achieving target sensitivity on VALIDATION set, FREEZE it, evaluate ONCE on test
+**TUSZ Seizures**: MINIMIZE FA/24h subject to sensitivity ≥ target on VALIDATION set, FREEZE all params, evaluate ONCE on test
+
 #### For TUAB (Binary Classification)
 ```python
 # 1. Compute ROC on VALIDATION set
@@ -156,6 +160,10 @@ y_test_pred = (scores_test >= threshold).astype(int)
 ```python
 # 1. Convert frame scores to events with post-processing
 def scores_to_events(scores, threshold, gap_s=3, min_s=2):
+    """Post-processing parameters:
+    - gap_s: 3-5 seconds (tune on VAL, freeze for TEST)
+    - min_s: 2-5 seconds (tune on VAL, freeze for TEST)
+    """
     mask = scores >= threshold
     # Morphological operations to merge nearby detections
     mask = binary_closing(mask, structure=np.ones(gap_s * sample_rate))
@@ -163,7 +171,7 @@ def scores_to_events(scores, threshold, gap_s=3, min_s=2):
     events = extract_events(mask)
     return [e for e in events if e.duration >= min_s]
 
-# 2. Time-aligned matching (TAES approach from Picone's paper)
+# 2. Time-aligned matching using TAES (Picone 2021 methodology)
 def match_events(pred_events, ref_events, overlap_threshold=0.5):
     tp, fp, fn = 0, 0, 0
     for pred in pred_events:
@@ -333,11 +341,16 @@ See `docs/internal/email-templates.md` for templates.
 
 ## Resources
 - Picone's metrics paper: `/literature/markdown/evaluation-metrics/picone-2021-objective-evaluation-metrics.md`
+  - **KEY QUOTE**: "A low false alarm rate... is the single most important criterion for user acceptance"
+  - Commercial systems fail due to high FA rates despite good accuracy
+  - TAES (Time-Aligned Event Scoring) uses Jaccard index for overlap
 - EEGPT paper baseline: 86.9% AUROC, 76.9% BAC on TUAB
 - Key metric distinctions:
   - **TUAB (abnormal)**: AUROC, BAC, Specificity@Sensitivity
   - **TUSZ (seizures)**: FA/24h, TAES, ATWV, time-aligned scoring
-- Clinical acceptance for seizures: <10 FA/24h at >95% sensitivity
+- Clinical acceptance thresholds:
+  - **Seizure detection**: <10 FA/24h at >95% sensitivity (inferred from literature)
+  - **Why systems fail**: Even 90%+ accuracy is rejected if FA/24h too high
 
 ## Implementation Quality Bar
 - **Single-responsibility modules** - Pure functions for metrics
