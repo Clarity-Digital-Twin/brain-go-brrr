@@ -16,11 +16,13 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 
 ## 🔴 P0: TUAB Collate Workaround Investigation
 
-### Current State
-- Collate function contains 20→19 channel truncation code
+### Current State - VERIFIED WITH EVIDENCE
+- Collate function contains 20→19 channel truncation code (lines 31-36 of collate_tuab.py)
 - Originally for 304 contaminated windows from old cache
-- Current logs show NO 20-channel errors
-- Workaround may be obsolete
+- **INVESTIGATION COMPLETE**: Scanned 1,020 cache files including ALL aaaaakfo_s004/s005 files
+- **RESULT**: 100% of files have exactly 19 channels - NO 20-channel contamination exists
+- **TESTED**: Strict collate without workaround works perfectly
+- Workaround is OBSOLETE and can be removed
 
 ### TDD Test Specification
 
@@ -43,44 +45,65 @@ def test_cache_channel_consistency():
     """Verify no 20-channel windows exist in current cache."""
     cache_dir = Path("data/cache/tuab/mne-ar-v3")
     index_file = cache_dir / "index.json"
-    
+
     with open(index_file) as f:
         index = json.load(f)
-    
+
     twenty_channel_count = 0
     for window_info in index["windows"]:
         window_file = cache_dir / window_info["file"]
         data = torch.load(window_file, weights_only=False)  # nosec:weights_only
         if data["x"].shape[0] == 20:
             twenty_channel_count += 1
-    
+
     assert twenty_channel_count == 0, f"Found {twenty_channel_count} windows with 20 channels"
 ```
 
-### Implementation Steps
+### Evidence Collected
 
-1. **Investigation Phase** (30 min)
-   ```bash
-   # Script to scan cache for 20-channel windows
-   uv run python scripts/scan_cache_channels.py
+```bash
+# Investigation performed on Sep 2, 2025
+$ uv run python scripts/deep_cache_investigation.py
+
+📊 Channel Distribution:
+  ✅ 19 channels: 1020 files (100.0%)
+
+📁 aaaaakfo_s004_t000: 211 windows
+  aaaaakfo_s004_t000_100.pkl: 19 channels ✓
+  aaaaakfo_s004_t000_101.pkl: 19 channels ✓
+  aaaaakfo_s004_t000_102.pkl: 19 channels ✓
+
+📁 aaaaakfo_s005_t000: 190 windows
+  aaaaakfo_s005_t000_0.pkl: 19 channels ✓
+  aaaaakfo_s005_t000_1.pkl: 19 channels ✓
+  aaaaakfo_s005_t000_100.pkl: 19 channels ✓
+
+✅ NO 20-CHANNEL CONTAMINATION DETECTED
+```
+
+### Implementation Steps - NOW CONCRETE
+
+1. **Investigation Phase** ✅ COMPLETE
+   - Scanned 1,020 files from cache
+   - Specifically checked aaaaakfo_s004/s005 files mentioned in tech debt
+   - Result: ALL have exactly 19 channels
+
+2. **Action Required**:
+   ```python
+   # Remove lines 31-36 from collate_tuab.py (the workaround)
+   # Change lines 37-44 to strict assertion:
+   if x.shape[0] != 19:
+       raise RuntimeError(
+           f"TUAB requires exactly 19 channels, got {x.shape[0]}"
+       )
    ```
 
-2. **If No 20-Channel Windows Found**:
-   - Remove workaround code from `collate_tuab.py`
-   - Add strict assertion for 19 channels
-   - Update tests to verify strict enforcement
-
-3. **If 20-Channel Windows Still Exist**:
-   - Document which files contain them
-   - Create cache repair script
-   - Schedule cache rebuild
-
 ### Acceptance Criteria
-- [ ] Cache scan completed and documented
-- [ ] Tests written and failing (TDD)
-- [ ] Workaround removed OR justified with documentation
-- [ ] All tests passing
-- [ ] No training crashes
+- [x] Cache scan completed and documented ✅
+- [x] Tested strict collate works ✅
+- [ ] Workaround removed from collate_tuab.py
+- [ ] Tests updated to verify strict enforcement
+- [ ] No training crashes with strict version
 
 ## 🟡 P1: Intelligent Channel Routing
 
@@ -98,9 +121,9 @@ def test_cache_channel_consistency():
 async def test_route_to_yasa_with_few_channels():
     """Should route to YASA when <19 channels."""
     mock_raw = create_mock_raw(n_channels=2)
-    
+
     result = await analyze_eeg(mock_raw)
-    
+
     assert result["pathway"] == "yasa"
     assert "sleep_stages" in result
     assert result["error"] is None
@@ -109,9 +132,9 @@ async def test_route_to_yasa_with_few_channels():
 async def test_route_to_both_with_full_channels():
     """Should offer both pathways with 19+ channels."""
     mock_raw = create_mock_raw(n_channels=19)
-    
+
     result = await analyze_eeg(mock_raw)
-    
+
     assert "eegpt" in result["available_pathways"]
     assert "yasa" in result["available_pathways"]
 
@@ -119,10 +142,10 @@ async def test_route_to_both_with_full_channels():
 async def test_graceful_degradation():
     """Should fall back to YASA if EEGPT fails."""
     mock_raw = create_mock_raw(n_channels=19)
-    
+
     with mock.patch("eegpt_analyze", side_effect=Exception):
         result = await analyze_eeg(mock_raw, prefer="eegpt")
-    
+
     assert result["pathway"] == "yasa"
     assert result["fallback_reason"] == "EEGPT analysis failed"
 ```
@@ -174,24 +197,24 @@ def test_unified_probe_matches_two_layer():
     input_dim = 2048
     hidden_dim = 256
     output_dim = 2
-    
+
     probe1 = TwoLayerProbe(input_dim, hidden_dim, output_dim)
     probe2 = UnifiedProbe(input_dim, hidden_dim, output_dim, mode="two_layer")
-    
+
     # Copy weights
     probe2.load_state_dict(probe1.state_dict())
-    
+
     x = torch.randn(32, input_dim)
     out1 = probe1(x)
     out2 = probe2(x)
-    
+
     torch.testing.assert_close(out1, out2)
 
 def test_unified_probe_supports_all_modes():
     """Unified probe should support linear and two-layer modes."""
     probe_linear = UnifiedProbe(2048, 256, 2, mode="linear")
     probe_two_layer = UnifiedProbe(2048, 256, 2, mode="two_layer")
-    
+
     assert len(list(probe_linear.parameters())) == 2  # Just W and b
     assert len(list(probe_two_layer.parameters())) == 4  # W1, b1, W2, b2
 ```
@@ -295,7 +318,7 @@ async def test_file_upload_with_httpx():
 - **Day 1-2**: P0 - TUAB Collate Investigation
   - Morning: Write tests, scan cache
   - Afternoon: Implement fix or document justification
-  
+
 - **Day 3-4**: P1 - Channel Routing
   - Day 3: Write tests, implement router service
   - Day 4: Update API, add fallback logic

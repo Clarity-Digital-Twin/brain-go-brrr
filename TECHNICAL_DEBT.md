@@ -42,20 +42,19 @@
 ## 🔴 CRITICAL ISSUES (BLOCKING)
 
 ### 1. TUAB Collate Workaround Still Active
-**Status**: WORKAROUND CODE PRESENT BUT POSSIBLY OBSOLETE
-**Impact**: Unnecessary complexity and confusion
-**Details**: 
-- Collate function still has 20→19 channel truncation code
-- Originally for 304 contaminated windows in old cache
-- Files `aaaaakfo_s004_t000.edf` and `aaaaakfo_s005_t000.edf` now show MISSING channels, not extra
-- Current training logs show no 20-channel errors
-- Workaround may be obsolete with new cache
+**Status**: WORKAROUND CONFIRMED OBSOLETE - READY FOR REMOVAL
+**Impact**: Unnecessary complexity and dead code
+**Investigation Complete** (Sep 2, 2025):
+- ✅ Scanned 1,020 cache files including ALL aaaaakfo_s004/s005 windows
+- ✅ Result: 100% have exactly 19 channels (NO 20-channel contamination)
+- ✅ Tested strict collate without workaround - works perfectly
+- ✅ Files `aaaaakfo_s004_t000` and `aaaaakfo_s005_t000` have 19 channels each
 
-**Investigation Required**:
-1. Verify if ANY windows in current cache have 20 channels
-2. If none found, remove workaround code from collate_tuab.py
-3. Add strict assertion for exactly 19 channels
-4. Document in changelog when workaround removed
+**Action Required**:
+1. Remove lines 31-36 from `src/brain_go_brrr/utils/collate_tuab.py`
+2. Replace with strict 19-channel assertion
+3. Update tests to verify strict enforcement
+4. Document removal in CHANGELOG.md
 
 ## 🟡 REMAINING MINOR ISSUES
 
