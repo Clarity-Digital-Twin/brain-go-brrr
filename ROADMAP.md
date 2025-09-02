@@ -32,9 +32,18 @@
 
 ### What We Have (From EEGPT Paper)
 - **Model checkpoint**: `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+- **Architecture**: 10M params, 8 transformer layers, 512 embedding dim
 - **Feature extraction**: 512-dim per 4s window (or 2048 flattened from 4×512)
-- **Linear probe approach**: Simple classifier on frozen features
-- **Paper results**: 86.9% AUROC, 76.9% BAC on TUAB
+- **Linear probe approach**: Freeze encoder, train only 1x1 conv + linear layer
+- **Training details from paper**:
+  - Optimizer: AdamW with OneCycle LR (2.5e-4 → 5e-4 → 3.13e-5)
+  - Batch size: 64
+  - Epochs: 200 for pretraining (but we only need ~10 for linear probe)
+  - Data split: Patient-level, no leakage
+- **Paper results on TUAB**: 
+  - 86.9% ± 0.6% AUROC
+  - 76.9% ± 0.4% Balanced Accuracy
+  - Linear probe OUTPERFORMED full fine-tuning!
 
 ### What's Actually Working Now
 ```python
@@ -53,29 +62,70 @@ features = model.extract_features(eeg_window, summary=True)  # → (B, 512)
 ```
 
 ### The Gap to Bridge
-1. **EEGPT gives**: Raw predictions (0-1 probabilities)
-2. **Clinicians need**: Specific operating points with metrics
-3. **Missing piece**: Threshold selection and clinical metric calculation
+1. **EEGPT gives**: Raw predictions (0-1 probabilities) at ONE operating point
+2. **Clinicians need**: Multiple operating points with trade-offs documented
+3. **Missing piece**: Threshold sweep + clinical metric calculation
+4. **KEY INSIGHT**: EEGPT never reported FA/24h or Spec@Sens - we're the FIRST to bridge this gap!
 
 ### Concrete Implementation Path
+
+#### Step 1: Linear Probe Training (FROM PAPER)
 ```python
-# Step 1: Get predictions from existing model (WE HAVE THIS)
-predictions = model.predict_proba(test_data)  # 0-1 scores
+# EEGPT paper approach: Freeze encoder, train linear head only
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
-# Step 2: Add clinical metrics (NEED TO ADD)
+# 1. Extract features with frozen EEGPT (they used this)
+model = create_normalized_eegpt()
+model.eval()  # Freeze the encoder
+
+# 2. Add linear probe (1x1 conv + linear layer)
+probe = nn.Sequential(
+    nn.Conv2d(1, 1, kernel_size=1),  # Adaptive spatial filter
+    nn.Flatten(),
+    nn.Linear(512, 2)  # Binary classification
+)
+
+# 3. Train ONLY the probe (not the encoder!)
+optimizer = AdamW(probe.parameters(), lr=5e-4)
+criterion = nn.BCEWithLogitsLoss()
+```
+
+#### Step 2: Get Predictions (WE HAVE THIS)
+```python
+# After training probe, get predictions
+with torch.no_grad():
+    features = model.extract_features(test_data, summary=True)
+    logits = probe(features)
+    predictions = torch.sigmoid(logits).numpy()  # 0-1 scores
+```
+
+#### Step 3: Add Clinical Metrics (NEED TO ADD)
+```python
 from brain_go_brrr.domain.metrics import clinical_metrics
-results = clinical_metrics.evaluate_at_thresholds(
-    predictions, labels,
-    thresholds=[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-)
 
-# Step 3: Find operating point (NEED TO ADD)
-best_threshold = clinical_metrics.find_threshold_for_sensitivity(
-    predictions, labels, target_sensitivity=0.95
-)
+# For TUAB (classification)
+results = {
+    'auroc': roc_auc_score(labels, predictions),
+    'balanced_acc': balanced_accuracy_score(labels, predictions > 0.5),
+    'spec_at_95_sens': calculate_specificity_at_sensitivity(labels, predictions, 0.95)
+}
 
-# Step 4: Package for deployment (NEED TO ADD)
-docker build -t brain-go-brrr .
+# For TUSZ (temporal - future)
+results = {
+    'fa_per_24h': calculate_fa_per_24h(predictions, labels, threshold, total_hours),
+    'taes': calculate_taes(predictions, labels, timestamps)
+}
+```
+
+#### Step 4: Package for Deployment (NEED TO ADD)
+```bash
+# Create reproducible container
+docker build -t brain-go-brrr:latest .
+docker save brain-go-brrr:latest | gzip > bgb-container.tar.gz
+
+# Or offline wheelhouse
+pip wheel . --wheel-dir=wheelhouse
+tar -czf bgb-offline.tar.gz wheelhouse/ models/
 ```
 
 ## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT
