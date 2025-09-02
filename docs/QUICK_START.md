@@ -125,20 +125,20 @@ if results["yasa"]["status"] == "success":
 ### CLI Usage
 
 ```bash
-# Start the API server
-uv run python -m brain_go_brrr serve
+# Start the API server (requires model path)
+uv run python -m brain_go_brrr serve data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
 
 # Stream EEG data (real-time processing)
-uv run python -m brain_go_brrr stream --source data/sample.edf
+uv run python -m brain_go_brrr stream data/sample.edf
 
 # Preprocess EEG data
-uv run python -m brain_go_brrr preprocess --input data/sample.edf --output data/processed/
+uv run python -m brain_go_brrr preprocess data/sample.edf data/processed/
 
 # Train a model
 uv run python -m brain_go_brrr train --config configs/tuab.yaml
 
 # Evaluate model performance
-uv run python -m brain_go_brrr evaluate --model output/best_model.pt --data data/test/
+uv run python -m brain_go_brrr evaluate output/best_model.pt data/test/ --output results/
 
 # Check version
 uv run python -m brain_go_brrr version

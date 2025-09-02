@@ -258,7 +258,8 @@ with open("data/sample.edf", "rb") as f:
         data={"analysis_type": "abnormality_probe"}
     )
     eegpt_results = response.json()
-    print(f"Prediction: {eegpt_results['prediction']}")
+    print(f"Abnormal probability: {eegpt_results['result']['abnormal_probability']}")
+    print(f"Confidence: {eegpt_results['confidence']}")
 
 # Sleep Analysis (asynchronous)
 with open("data/sample.edf", "rb") as f:
