@@ -144,7 +144,15 @@ fpr, tpr, thresholds = roc_curve(y_val, scores_val)
 
 # 2. Find threshold for target sensitivity
 target_sens = 0.95
-idx = np.argmax(tpr >= target_sens)  # First threshold achieving target
+if tpr.max() < target_sens:
+    # Fallback: Can't achieve target, use closest available
+    print(f"WARNING: Max achievable sensitivity is {tpr.max():.3f}, not {target_sens}")
+    idx = np.argmax(tpr)  # Use highest achievable
+    achieved_sens = tpr[idx]
+else:
+    idx = np.argmax(tpr >= target_sens)  # First threshold achieving target
+    achieved_sens = tpr[idx]
+
 threshold = thresholds[idx]
 
 # 3. Calculate specificity at this threshold
@@ -173,13 +181,34 @@ def scores_to_events(scores, threshold, gap_s=3, min_s=2):
 
 # 2. Time-aligned matching using TAES (Picone 2021 methodology)
 def match_events(pred_events, ref_events, overlap_threshold=0.5):
+    """TAES uses Jaccard index (IoU) for overlap calculation.
+    Overlap threshold: 0.5 (50%) is standard per Picone paper.
+    CRITICAL: Coalesce overlapping reference events first!
+    """
+    # First coalesce overlapping reference events
+    ref_events = coalesce_overlapping_events(ref_events)
+    
     tp, fp, fn = 0, 0, 0
+    matched_refs = set()
+    
     for pred in pred_events:
-        if any(overlap(pred, ref) >= overlap_threshold for ref in ref_events):
+        # Calculate Jaccard index (intersection over union)
+        best_match = None
+        best_jaccard = 0
+        for i, ref in enumerate(ref_events):
+            if i not in matched_refs:
+                jaccard = calculate_jaccard(pred, ref)
+                if jaccard >= overlap_threshold and jaccard > best_jaccard:
+                    best_match = i
+                    best_jaccard = jaccard
+        
+        if best_match is not None:
             tp += 1
+            matched_refs.add(best_match)
         else:
             fp += 1
-    fn = len(ref_events) - tp
+    
+    fn = len(ref_events) - len(matched_refs)
     return tp, fp, fn
 
 # 3. Sweep thresholds on VALIDATION to minimize FA/24h
@@ -310,8 +339,24 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 - [ ] Create results bundle with:
   - **TUAB**: `metrics.json` (AUROC, BAC, Spec@Sens), `roc_curve.csv`
   - **TUSZ**: `metrics.json` (FA/24h, TAES scores), `events.csv`, `det_curve.csv`
-  - **Both**: `provenance.json` (git SHA, image tag, seeds, CLI args, threshold values)
   - **Both**: `confusion_matrix.csv` (at each operating point)
+  - **Both**: `provenance.json` containing:
+    ```json
+    {
+      "git_sha": "abc123...",
+      "docker_image": "ghcr.io/clarity-digital-twin/brain-go-brrr:v1.0.0",
+      "random_seeds": {"python": 42, "numpy": 42, "torch": 42},
+      "threshold": 0.65,
+      "post_processing": {
+        "gap_s": 3,
+        "min_s": 2,
+        "overlap_threshold": 0.5
+      },
+      "cli_args": "--metrics auroc,bac,spec_at_sens=0.95",
+      "total_hours_annotated": 245.3,
+      "timestamp": "2025-11-01T12:00:00Z"
+    }
+    ```
 
 ### Success Metrics Tables:
 
@@ -382,6 +427,29 @@ See `docs/internal/email-templates.md` for templates.
 - **Overlapping seizures**: Coalesce reference events before matching
 - **Parameter leakage**: Fit thresholds on VAL, freeze for TEST (no peeking!)
 - **Empty predictions**: Handle recordings with no detected events gracefully
+- **Small validation sets**: Report both target (0.90) and max achievable sensitivity
+
+### Determinism Requirements
+```python
+# Set ALL random seeds for reproducibility
+import random
+import numpy as np
+import torch
+
+def set_global_seeds(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    
+    # Force deterministic algorithms
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
+    # Set environment variable for additional determinism
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+```
 
 ### Unit Test Requirements
 ```python
