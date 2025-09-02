@@ -34,10 +34,10 @@ Brain-Go-Brrr is a production-ready EEG analysis system using Clean Architecture
 │  Status: ✅ WORKING  │    │   Status: ✅ WORKING │
 └──────┬───────────────┘    └──────────────────────┘
        │                                │
-       ├──────────────┐                 │
-       │              │                 ▼
-       ▼              ▼           Sleep Metrics
-┌──────────────┐                 & Hypnogram
+       |                                │
+       │                                ▼
+       ▼                         Sleep Metrics
+┌──────────────┐                  & Hypnogram
 │ Abnormality  │
 │ Detection    │
 │ Status: 🟡   │
