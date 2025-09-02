@@ -39,6 +39,24 @@
 - ✅ tuab_enhanced_dataset.py → Deprecation alias to TUABDataset
 - ✅ Proper deprecation warnings in place
 
+## 🔴 CRITICAL ISSUES (BLOCKING)
+
+### 1. TUAB Collate Workaround Still Active
+**Status**: WORKAROUND CODE PRESENT BUT POSSIBLY OBSOLETE
+**Impact**: Unnecessary complexity and confusion
+**Details**: 
+- Collate function still has 20→19 channel truncation code
+- Originally for 304 contaminated windows in old cache
+- Files `aaaaakfo_s004_t000.edf` and `aaaaakfo_s005_t000.edf` now show MISSING channels, not extra
+- Current training logs show no 20-channel errors
+- Workaround may be obsolete with new cache
+
+**Investigation Required**:
+1. Verify if ANY windows in current cache have 20 channels
+2. If none found, remove workaround code from collate_tuab.py
+3. Add strict assertion for exactly 19 channels
+4. Document in changelog when workaround removed
+
 ## 🟡 REMAINING MINOR ISSUES
 
 ### 1. EEGPT Model Files (NOT 11 - Only 6!)
