@@ -75,6 +75,38 @@ curl http://localhost:8000/api/v1/health
 - 🏗️ [Architecture Overview](docs/ARCHITECTURE.md) - Understand the system design
 - 🔌 [API Documentation](docs/API.md) - REST endpoints and examples
 
+## 🔧 Configuration & Data Paths
+
+### Environment Variables
+
+Configure data paths for your datasets:
+
+- `BGB_DATA_ROOT` - Root data directory (default: "data")
+- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
+- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
+- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
+- `BGB_TUAB_VERSION` - TUAB dataset version (use "" for versionless layout)
+- `BGB_TUEV_VERSION` - TUEV dataset version (use "" for versionless layout)
+
+### Running with Real Data
+
+```bash
+# Set data root directory
+export BGB_DATA_ROOT=/path/to/your/data
+
+# For versionless directory layouts (e.g., tuab/edf instead of tuab/v3.0.1/edf)
+export BGB_TUAB_VERSION=""
+export BGB_TUEV_VERSION=""
+
+# Run integration tests with real data
+uv run pytest -m "integration and data" --run-integration --run-data \
+    tests/integration/test_tuab_real_data.py
+
+# Use specific Sleep-EDF file for testing
+export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
+uv run pytest tests/unit/domain/sleep -v
+```
+
 ## 🧬 How It Works
 
 We use **parallel processing pipelines** optimized for different analysis tasks:
@@ -183,33 +215,14 @@ tmux attach -t tuab_training
 
 See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
 
-### Running with Real Data
-
-For tests with real TUAB/TUEV datasets, you'll need to set environment variables:
-
-```bash
-# Set data root directory
-export BGB_DATA_ROOT=/path/to/your/data
-
-# For versionless directory layouts (e.g., tuab/edf instead of tuab/v3.0.1/edf)
-export BGB_TUAB_VERSION=""
-export BGB_TUEV_VERSION=""
-
-# Run integration tests with real data
-uv run pytest -m "integration and data" --run-integration --run-data \
-    tests/integration/test_tuab_real_data.py
-```
-
-### Pretrained Models
+### Datasets & Pretrained Models
 
 **EEGPT Foundation Model:**
 - Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
 - Place in `data/models/pretrained/`
 - 10M parameters, trained on 58 channels
 
-### Datasets
-
-Not included due to size/licensing. Obtain separately:
+**Datasets** (not included due to size/licensing, obtain separately):
 
 - **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
 - **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
@@ -333,25 +346,6 @@ Not included due to size/licensing. Obtain separately:
 ```
 </details>
 
-## 🔧 Environment Variables
-
-The following environment variables can be used to configure data paths:
-
-- `BGB_DATA_ROOT` - Root data directory (default: "data")
-- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
-- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
-- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
-
-Example usage:
-```bash
-# Use custom data location
-export BGB_DATA_ROOT=/mnt/data/eeg
-uv run python scripts/testing/test_sleep_analysis.py
-
-# Use specific Sleep-EDF file
-export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
-uv run pytest tests/unit/domain/sleep -v
-```
 
 ## 🤝 Support & Community
 
