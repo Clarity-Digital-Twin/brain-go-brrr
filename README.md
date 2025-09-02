@@ -18,7 +18,7 @@
 
 **🌊 The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
 - **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
-- **Expert-Intensive**: Neurologists spend hours manually reviewing each recording  
+- **Expert-Intensive**: Researchers spend days manually cleaning data for studies  
 - **Variable**: Every brain is unique - what works for one person often fails for another
 - **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
 
