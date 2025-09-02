@@ -35,7 +35,7 @@
 - Not a replacement for neurologists - designed to assist, not diagnose
 - Not validated on all populations - trained on specific research datasets
 
-## 🎯 What We Build
+## 🛠️ What We Build
 
 A production-ready Python system that transforms raw brain recordings into structured insights:
 
@@ -116,6 +116,41 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 - **Research accuracy** - 87% sleep staging (YASA), targeting 87% abnormality AUROC
 - **Well-tested** - Clean architecture, dependency injection, comprehensive testing
 
+## 🔬 For Researchers
+
+### Training Custom Models
+
+We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
+
+```bash
+# Train abnormality detection
+cd experiments/eegpt_linear_probe
+
+# Build preprocessed cache first
+./scripts/build_mne_cache.sh
+
+# Train with MNE preprocessing
+./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
+./scripts/launch_tuev_mne.sh  # For TUEV event detection
+
+# Monitor training
+tmux attach -t tuab_training
+```
+
+See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
+
+### Datasets & Pretrained Models
+
+**EEGPT Foundation Model:**
+- Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
+- Place in `data/models/pretrained/`
+- 10M parameters, trained on 58 channels
+
+**Datasets** (not included due to size/licensing, obtain separately):
+
+- **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
+- **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
+
 ## 💻 For Developers
 
 ### Project Structure
@@ -192,41 +227,6 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 - Add more preprocessing options
 - Enhance documentation
 - Create example notebooks
-
-## 🔬 For Researchers
-
-### Training Custom Models
-
-We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
-
-```bash
-# Train abnormality detection
-cd experiments/eegpt_linear_probe
-
-# Build preprocessed cache first
-./scripts/build_mne_cache.sh
-
-# Train with MNE preprocessing
-./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
-./scripts/launch_tuev_mne.sh  # For TUEV event detection
-
-# Monitor training
-tmux attach -t tuab_training
-```
-
-See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
-
-### Datasets & Pretrained Models
-
-**EEGPT Foundation Model:**
-- Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
-- Place in `data/models/pretrained/`
-- 10M parameters, trained on 58 channels
-
-**Datasets** (not included due to size/licensing, obtain separately):
-
-- **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
-- **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
 
 ## 🚦 Current Status & Roadmap
 
