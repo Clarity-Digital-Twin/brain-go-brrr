@@ -185,6 +185,12 @@ def match_events(pred_events, ref_events, overlap_threshold=0.5):
 # 3. Sweep thresholds on VALIDATION to minimize FA/24h
 best_threshold = None
 min_fa_per_24h = float('inf')
+
+# CRITICAL: Calculate total_hours correctly
+total_hours_val = sum(recording.duration_seconds for recording in val_set) / 3600
+if total_hours_val < 0.1:  # Guard against divide-by-zero
+    raise ValueError(f"Insufficient validation data: {total_hours_val:.2f} hours")
+
 for threshold in np.arange(0.3, 0.9, 0.05):
     events = scores_to_events(scores_val, threshold)
     tp, fp, fn = match_events(events, ref_events_val)
