@@ -16,19 +16,19 @@
 
 **What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
 
-**The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
+**🌊 The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
 - **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
 - **Expert-Intensive**: Neurologists spend hours manually reviewing each recording  
 - **Variable**: Every brain is unique - what works for one person often fails for another
 - **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
 
-**Why Now?** The same transformer technology that powers large language models is starting to work for brain analysis:
+**🚀 Why Now?** The same transformer technology that powers large language models is starting to work for brain analysis:
 - **Large datasets** of labeled EEG recordings are now available for training
 - **Foundation models** like EEGPT can learn patterns from thousands of patients
 - **Faster processing** compared to traditional manual review methods
 - **Research-grade accuracy** approaching expert performance on specific validated tasks
 
-**Our Mission:** Make research-grade EEG analysis accessible by combining the EEGPT foundation model with production-ready infrastructure and clinical validation pipelines.
+**🎯 Our Mission:** Make research-grade EEG analysis accessible by combining the EEGPT foundation model with production-ready infrastructure and clinical validation pipelines.
 
 **What This Is Not:**
 - Not a medical device - not FDA approved for clinical decision-making
@@ -39,15 +39,16 @@
 
 A production-ready Python system that transforms raw brain recordings into structured insights:
 
-**Current Users:**
+**👥 Current Users:**
 - **Research Labs**: Clean and analyze EEG data with reproducible pipelines
 - **Academic Teams**: Standardized analysis pipeline for EEG studies
 
-**Potential Applications:**
+**🔮 Potential Applications:**
 - **Sleep Research**: Automated sleep staging using YASA integration
 - **BCI Development**: Feature extraction pipeline for brain-computer interfaces
+- **Mental Health Research**: Objective biomarkers for psychiatric conditions (active research area)
 
-**Key Capabilities:**
+**⚡ Key Capabilities:**
 - **Sleep Staging** - 87% accuracy reported in literature (YASA; Vallat & Walker 2021)
 - **Quality Control** - Artifact rejection and bad channel detection via Autoreject
 - **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC from EEGPT paper)
