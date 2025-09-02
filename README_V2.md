@@ -57,6 +57,8 @@ A production-ready Python system that transforms raw brain recordings into struc
 
 ## 🚀 Quick Start
 
+Want to see it in action? Get running in under a minute:
+
 ```bash
 # Install (takes 30 seconds)
 git clone https://github.com/Clarity-Digital-Twin/brain-go-brrr.git
