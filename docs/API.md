@@ -77,15 +77,21 @@ POST /api/v1/eeg/eegpt/analyze
 **Response** (EEGPTAnalysisResponse):
 ```json
 {
-  "prediction": "normal",
-  "confidence": 0.92,
-  "probabilities": {
-    "normal": 0.92,
-    "abnormal": 0.08
+  "analysis_type": "abnormality_probe",
+  "result": {
+    "abnormal_probability": 0.08,
+    "window_scores": [0.12, 0.08, 0.05, 0.09],
+    "n_windows": 125
   },
-  "probe_type": "abnormality_probe",
-  "features_shape": [1, 512],
-  "processing_time": 3.1
+  "confidence": 0.92,
+  "method": "linear_probe",
+  "metadata": {
+    "n_channels": 19,
+    "sampling_rate": 256,
+    "duration_seconds": 500.0,
+    "model": "eegpt_10m",
+    "probe_type": "abnormality"
+  }
 }
 ```
 
@@ -98,20 +104,41 @@ POST /api/v1/eeg/eegpt/analyze/batch
 **Request**: Multipart form data
 - `edf_file`: EDF/BDF file upload
 - `batch_size`: Number of windows to process (default: 32)
-- `analysis_type`: Analysis type (default: "abnormality")
+- `analysis_type`: Analysis type - use base names: "abnormality", "sleep", "motor_imagery" (default: "abnormality")
 
 **Response**:
 ```json
 {
-  "windows_processed": 32,
-  "predictions": [
-    {"window": 0, "prediction": "normal", "confidence": 0.92},
-    {"window": 1, "prediction": "normal", "confidence": 0.88}
+  "analysis_type": "abnormality",
+  "results": [
+    [0.92, 0.08],
+    [0.88, 0.12]
   ],
-  "average_confidence": 0.89,
-  "processing_time": 12.5
+  "total_windows": 125,
+  "batch_size": 32
 }
 ```
+
+### EEGPT Sleep Stage Analysis
+
+```http
+POST /api/v1/eeg/eegpt/sleep/stages
+```
+
+**Request**: Multipart form data
+- `edf_file`: EDF/BDF file upload
+
+**Response**:
+```json
+{
+  "stages": [0, 0, 1, 2, 2, 3, 3, 2, 4],
+  "confidence_scores": [0.95, 0.92, 0.88, 0.91, 0.93, 0.87, 0.89, 0.90, 0.94],
+  "total_windows": 9,
+  "sampling_rate": 256
+}
+```
+
+Note: This endpoint performs window-by-window sleep stage predictions using EEGPT features with a linear probe.
 
 ### Sleep Analysis (Asynchronous)
 
@@ -126,16 +153,23 @@ POST /api/v1/eeg/sleep/analyze
 ```json
 {
   "job_id": "uuid-string",
-  "status": "queued",
+  "analysis_type": "sleep",
+  "status": "pending",
+  "priority": "normal",
   "created_at": "2025-09-02T00:00:00Z",
-  "message": "Sleep analysis job queued"
+  "updated_at": "2025-09-02T00:00:00Z"
 }
 ```
 
 ### Get Job Results
 
 ```http
-GET /api/v1/jobs/{job_id}
+GET /api/v1/jobs/{job_id}/results
+```
+
+Or for sleep-specific results:
+```http
+GET /api/v1/eeg/sleep/jobs/{job_id}/results
 ```
 
 **Response** (Success):
@@ -168,30 +202,12 @@ GET /api/v1/queue/status
 **Response**:
 ```json
 {
-  "total_jobs": 5,
-  "queued": 2,
-  "processing": 1,
-  "completed": 2,
-  "failed": 0
-}
-```
-
-### Upload EEG File (Deprecated - use specific endpoints above)
-
-```http
-POST /api/v1/eeg/upload
-```
-
-**Request**: Multipart form data with EDF/BDF file
-
-**Response**:
-```json
-{
-  "file_id": "uuid-string",
-  "filename": "recording.edf",
-  "size_mb": 125.3,
-  "duration_hours": 8.5,
-  "channels": 19
+  "pending_jobs": 2,
+  "processing_jobs": 1,
+  "completed_jobs": 2,
+  "failed_jobs": 0,
+  "workers_active": 1,
+  "queue_health": "healthy"
 }
 ```
 
@@ -266,8 +282,8 @@ with open("data/sample.edf", "rb") as f:
 ## OpenAPI Documentation
 
 Interactive API documentation available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+- Swagger UI: `http://localhost:8000/api/docs`
+- ReDoc: `http://localhost:8000/api/redoc`
 
 ## Error Handling
 

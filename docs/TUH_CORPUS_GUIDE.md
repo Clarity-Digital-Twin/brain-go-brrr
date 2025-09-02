@@ -95,7 +95,7 @@ data/datasets/
 ./experiments/eegpt_linear_probe/scripts/build_mne_cache.sh
 
 # Build TUEV cache
-./experiments/eegpt_linear_probe/scripts/build_tuev_mne_cache.sh
+./experiments/eegpt_linear_probe/scripts/launch_tuev_cache.sh
 ```
 
 ### 2. Verify Dataset Integrity

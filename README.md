@@ -53,7 +53,7 @@ A production-ready Python system that transforms raw brain recordings into struc
 - **Quality Control** - Artifact rejection and bad channel detection via Autoreject
 - **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC from EEGPT paper)
 - **Fast Processing** - Target: <2 minutes for 20-minute recordings (hardware dependent)
-- **Clean Architecture** - 899+ tests with 86% code coverage
+- **Clean Architecture** - Comprehensive test suite with high coverage
 
 ## 🚀 Quick Start
 
@@ -171,7 +171,7 @@ brain-go-brrr/
 │   ├── infra/            # External adapters (EEGPT, YASA, etc.)
 │   └── api/              # REST API endpoints
 ├── experiments/          # Training scripts and research
-├── tests/               # 899+ unit, integration, and smoke tests
+├── tests/               # Comprehensive unit, integration, and smoke tests
 └── docs/               # Comprehensive documentation
 ```
 
@@ -238,7 +238,7 @@ uv run pytest tests/unit/domain/sleep -v
 - Sleep staging integration (YASA baseline, 87% accuracy)
 - Quality control pipeline (Autoreject + MNE)
 - REST API with Redis caching
-- 899+ tests with CI/CD
+- Comprehensive test suite with CI/CD
 
 ### 🚧 In Progress
 - TUAB abnormality detection training (targeting 87% AUROC)
@@ -258,7 +258,7 @@ uv run pytest tests/unit/domain/sleep -v
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | Target: 87% AUROC | 🚧 Training in progress |
 | Event Detection (TUEV) | Target: 62% BAC | 🚧 Implementation phase |
-| Test Coverage | 86% | ✅ 899+ passing tests |
+| Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 

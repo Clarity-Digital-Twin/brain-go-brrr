@@ -64,7 +64,7 @@ uv run uvicorn brain_go_brrr.api.main:app --reload
 curl http://localhost:8000/health
 
 # API docs
-open http://localhost:8000/docs
+open http://localhost:8000/api/docs
 ```
 
 ## Running Analysis
@@ -125,11 +125,23 @@ if results["yasa"]["status"] == "success":
 ### CLI Usage
 
 ```bash
-# Run quality control
-uv run python -m brain_go_brrr qc analyze data/sample.edf
+# Start the API server
+uv run python -m brain_go_brrr serve
 
-# Run sleep staging
-uv run python -m brain_go_brrr sleep analyze data/sample.edf
+# Stream EEG data (real-time processing)
+uv run python -m brain_go_brrr stream --source data/sample.edf
+
+# Preprocess EEG data
+uv run python -m brain_go_brrr preprocess --input data/sample.edf --output data/processed/
+
+# Train a model
+uv run python -m brain_go_brrr train --config configs/tuab.yaml
+
+# Evaluate model performance
+uv run python -m brain_go_brrr evaluate --model output/best_model.pt --data data/test/
+
+# Check version
+uv run python -m brain_go_brrr version
 ```
 
 ## Running Tests
@@ -177,8 +189,9 @@ docker run -p 8000:8000 brain-go-brrr
 Download Sleep-EDF dataset:
 
 ```bash
-python scripts/download_sleep_edf.py
-# Files saved to: data/datasets/sleep-edf/
+# Sleep-EDF dataset is already downloaded at data/datasets/sleep-edf/
+# If you need to download it manually, use:
+# wget -r -N -c -np https://physionet.org/files/sleep-edfx/1.0.0/
 # The DataConfig class handles path resolution automatically
 ```
 
