@@ -167,14 +167,17 @@ y_test_pred = (scores_test >= threshold).astype(int)
 #### For TUSZ (Temporal Events with FA/24h)
 ```python
 # 1. Convert frame scores to events with post-processing
-def scores_to_events(scores, threshold, gap_s=3, min_s=2):
+def scores_to_events(scores, threshold, sample_rate=256, gap_s=3, min_s=2):
     """Post-processing parameters:
     - gap_s: 3-5 seconds (tune on VAL, freeze for TEST)
     - min_s: 2-5 seconds (tune on VAL, freeze for TEST)
+    Returns: List of (start_sec, end_sec) tuples
     """
     mask = scores >= threshold
+    # Convert seconds to samples explicitly
+    gap_samples = int(gap_s * sample_rate)
     # Morphological operations to merge nearby detections
-    mask = binary_closing(mask, structure=np.ones(gap_s * sample_rate))
+    mask = binary_closing(mask, structure=np.ones(gap_samples))
     # Remove short events
     events = extract_events(mask)
     return [e for e in events if e.duration >= min_s]
@@ -239,17 +242,20 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 1. **TUAB (abnormal triage)** - Binary classification
    - **Who cares:** Researchers, teaching labs, triage tools
    - **Metrics:** AUROC, Balanced Accuracy, **Specificity @ Sensitivity = {0.90, 0.95}**
+   - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits (train/val/test)
    - **DoD:** `bgb eval tuab` writes `metrics.json` + `roc.csv` + `provenance.json`
 
 2. **TUEV (event classes)** - 6-class event detection  
    - **Who cares:** Researchers benchmarking feature detectors (SPSW/GPED/PLED/etc.)
    - **Metrics:** Per-class F1/sensitivity, macro-F1; optional FP/hour if temporal
+   - **Splits:** Use canonical TUH TUEV v2.0.1 patient-level splits
    - **DoD:** `bgb eval tuev` writes class metrics + optional event CSV
 
 ### Add NEXT (Clinical credibility)
 3. **TUSZ (seizure detection)** - The one that unlocks "real"
    - **Who cares:** Clinicians, EMU/ICU, Picone-type evaluators
-   - **Metrics:** **FA/24h @ Sensitivity = {0.90, 0.95}**, TAES, DET curve
+   - **Metrics:** **FA/24h @ Sensitivity = {0.90, 0.95}** (example targets - adjust per clinical setting), TAES, DET curve
+   - **Splits:** Use canonical TUH TUSZ v2.0.3 patient-level splits
    - **DoD:** `bgb eval tusz --metrics taes,fa_per_24h,det` with frozen threshold from VAL
 
 ### "Stop Here" Rule
@@ -274,6 +280,7 @@ You've satisfied **researchers** (reproducible baselines) AND **clinicians** (ac
 #### For TUSZ (Seizure Detection - Temporal Events)
 - [ ] Implement post-processing pipeline (gap_s=3-5, min_s=2-5, tune on VAL)
 - [ ] Add TAES (Time-Aligned Event Scoring) using Jaccard index
+- [ ] Ensure events.csv uses seconds (not samples) for start/end times
 - [ ] Optional: Implement ATWV (NIST F4DE) for comparison
 - [ ] Calculate FA/24h using ACTUAL recording duration (not 24h × file_count)
 - [ ] Find threshold MINIMIZING FA/24h subject to sensitivity ≥ target
@@ -358,7 +365,7 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 # THIS IS WRONG (data leakage):
 # threshold = find_threshold(test_data)  # ❌ NEVER DO THIS
 ```
-- [ ] Test on full TUAB canonical split (patient-level, no leakage)
+- [ ] Test on full TUAB canonical split (use official TUH patient-level splits, no leakage)
 - [ ] Document specificity at multiple sensitivity levels
 - [ ] Create comparison table vs classical methods
 - [ ] Generate reproducible results bundle with provenance.json
@@ -378,7 +385,13 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
       "post_processing": {
         "gap_s": 3,
         "min_s": 2,
-        "overlap_threshold": 0.5
+        "overlap_threshold": 0.5,
+        "hysteresis": {"tau_high": null, "tau_low": null}
+      },
+      "splits": {
+        "train_patients_hash": "sha256:abc123...",
+        "val_patients_hash": "sha256:def456...",
+        "test_patients_hash": "sha256:ghi789..."
       },
       "cli_args": "--metrics auroc,bac,spec_at_sens=0.95",
       "total_hours_annotated": 245.3,
@@ -389,7 +402,7 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 ### Success Metrics Tables:
 
 #### TUAB (Abnormal Detection - Classification)
-| Method | AUROC | Balanced Acc | Spec@95% Sens | Status |
+| Method | AUROC | Balanced Acc | Spec@Sens=0.95 | Status |
 |--------|-------|--------------|---------------|--------|
 | Classical | ~75% | ~70% | ~60% | Baseline |
 | EEGPT (paper) | 86.9% | 76.9% | ??? | Literature |
@@ -438,7 +451,7 @@ See `docs/internal/email-templates.md` for templates.
   - **TUAB (abnormal)**: AUROC, BAC, Specificity@Sensitivity
   - **TUSZ (seizures)**: FA/24h, TAES, ATWV, time-aligned scoring
 - Clinical acceptance thresholds:
-  - **Seizure detection**: <10 FA/24h at >95% sensitivity (inferred from literature)
+  - **Seizure detection**: e.g., <10 FA/24h at >95% sensitivity (example target - clinician-defined)
   - **Why systems fail**: Even 90%+ accuracy is rejected if FA/24h too high
 
 ## Implementation Quality Bar
