@@ -272,9 +272,10 @@ with open("data/sample.edf", "rb") as f:
     # Poll for results
     import time
     while True:
-        result = requests.get(f"http://localhost:8000/api/v1/jobs/{job_id}")
-        if result.json()["status"] == "completed":
-            print(result.json()["result"])
+        status = requests.get(f"http://localhost:8000/api/v1/jobs/{job_id}/status")
+        if status.json()["status"] == "completed":
+            result = requests.get(f"http://localhost:8000/api/v1/jobs/{job_id}/results")
+            print(result.json())
             break
         time.sleep(5)
 ```

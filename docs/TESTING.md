@@ -45,7 +45,7 @@ uv run pytest tests/api/
 
 ## Test Categories
 
-### Unit Tests (899+ passing)
+### Unit Tests
 
 Fast, isolated tests for individual components:
 
@@ -139,7 +139,7 @@ def test_sleep_staging_with_mock(mock_yasa):
 
 ## Coverage Requirements
 
-- Current coverage: 86%
+- High test coverage maintained
 - Minimum coverage: 65%
 - Target coverage: 90%
 - Critical paths: 95%
