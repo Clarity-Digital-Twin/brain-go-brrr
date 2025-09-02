@@ -1,6 +1,15 @@
 # 🔥 ARCHITECTURE AUDIT - CRITICAL FAILURES FOUND
-**Date**: September 1, 2025  
-**Auditor**: System Deep Dive Analysis  
+
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+**Date**: September 1, 2025
+**Auditor**: System Deep Dive Analysis
 **Status**: **MULTIPLE CRITICAL FAILURES REQUIRING IMMEDIATE FIX**
 
 ## 🚨 EXECUTIVE SUMMARY: THE DISASTERS

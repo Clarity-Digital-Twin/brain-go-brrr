@@ -1,5 +1,14 @@
 # CLEAN FIX PROPOSAL - Cache Path Standardization
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## CURRENT CLUSTERFUCK STATUS
 
 1. **Cache is building RIGHT NOW to wrong path**: `tuab_mne_v2` (24+ minutes in)
@@ -119,7 +128,7 @@ EOF
 ## END STATE
 
 - ONE cache builder (cache_builder.py)
-- CONSISTENT v2 naming everywhere  
+- CONSISTENT v2 naming everywhere
 - NO symlinks
 - NO inline Python generation
 - NO deprecated shims

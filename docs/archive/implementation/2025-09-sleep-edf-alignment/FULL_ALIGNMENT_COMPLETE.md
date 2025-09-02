@@ -1,12 +1,21 @@
 # Full Dataset Alignment Complete ✅
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: 2025-08-31
 **Status**: FULLY ALIGNED - ALL THREE DATASETS
 
 ## What We Achieved
 
 ### Sleep-EDF ✅ COMPLETE
-- **DataConfig methods**: `get_sleep_edf_psg_file()` 
+- **DataConfig methods**: `get_sleep_edf_psg_file()`
 - **Synthetic fallback**: `_create_synthetic_sleep_edf()`
 - **Real-data fixture**: `sleep_edf_path`, `sleep_edf_dir`
 - **Integration tests**: Multiple exist and work

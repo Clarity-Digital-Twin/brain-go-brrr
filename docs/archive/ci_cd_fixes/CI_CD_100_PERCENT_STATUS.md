@@ -1,5 +1,14 @@
 # CI/CD 100% Status Report - Ready for Production
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: August 28, 2025
 **Branch**: development
 **Status**: ✅ src/ is 100% professional. CI/CD is 100% wired and operational.

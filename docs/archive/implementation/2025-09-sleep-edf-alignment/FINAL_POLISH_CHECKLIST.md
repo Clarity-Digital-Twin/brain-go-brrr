@@ -1,5 +1,14 @@
 # Final Polish Checklist - Brain-Go-Brrr Dataset Alignment
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **STATUS**: Sleep-EDF COMPLETE, TUAB/TUEV PENDING
 **LAST UPDATED**: 2025-08-31
 **VERIFICATION**: SC4001E0-PSG references confirmed as MOCKS ONLY ✅

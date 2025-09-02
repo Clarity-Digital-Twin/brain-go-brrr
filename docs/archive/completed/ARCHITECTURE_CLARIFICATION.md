@@ -1,5 +1,14 @@
 # 🏗️ ARCHITECTURE CLARIFICATION - THE COMPLETE TRUTH
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## WHAT THE FUCK EACH PART ACTUALLY DOES
 
 ### `src/brain_go_brrr/` - The Production System

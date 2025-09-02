@@ -1,5 +1,14 @@
 # MNE-Python Integration Strategy for Brain-Go-Brrr
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 
 This document outlines a comprehensive strategy to integrate MNE-Python's advanced preprocessing and analysis capabilities into the Brain-Go-Brrr training pipeline, with the goal of improving TUAB abnormality detection accuracy from ~56% to the target 87% AUROC.

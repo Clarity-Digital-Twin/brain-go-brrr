@@ -1,5 +1,14 @@
 # TUEV Implementation Specification - Single Source of Truth
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Status: DESIGN PHASE - NO CODE CHANGES YET
 
 This document defines the **exact** implementation requirements for TUEV dataset preprocessing and training, based on:

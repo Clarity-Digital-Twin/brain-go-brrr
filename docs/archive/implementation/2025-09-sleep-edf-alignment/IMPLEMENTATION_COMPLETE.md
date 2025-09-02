@@ -1,5 +1,14 @@
 # Dataset Path Alignment Implementation Complete
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: 2025-08-31
 **Status**: ✅ FULLY IMPLEMENTED
 

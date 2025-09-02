@@ -1,5 +1,14 @@
 # TEST DATA DIVERGENCE PLAN
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Current State (DIVERGENT - NEEDS ALIGNMENT)
 
 ### Sleep-EDF Tests
@@ -8,7 +17,7 @@
 - **Problem**: CI fails without mounted data
 - **Path Resolution**: ✅ Uses DataConfig (just fixed)
 
-### TUAB/TUEV Tests  
+### TUAB/TUEV Tests
 - **Strategy**: SYNTHETIC DATA ONLY
 - **Behavior**: Tests ALWAYS pass
 - **Problem**: May hide real data edge cases
@@ -27,7 +36,7 @@ This inconsistency creates:
 ### Principle: Explicit Test Tiers
 ```
 Unit Tests (default) → Synthetic only, no I/O, fast
-Integration Tests → Real data when available, synthetic fallback  
+Integration Tests → Real data when available, synthetic fallback
 E2E Tests → Real data ONLY, no fallbacks
 ```
 
@@ -77,7 +86,7 @@ def tuab_root(self) -> Path:
         return Path(override)
     return self.data_path / "datasets" / "tuab"
 
-@property  
+@property
 def tuev_root(self) -> Path:
     """Get TUEV dataset root with env override."""
     override = os.environ.get("BGB_TUEV_DIR")
@@ -111,7 +120,7 @@ Files CONFIRMED needing `@pytest.mark.data`:
 # Dataset roots
 BGB_DATA_ROOT=/path/to/data         # Root for all datasets
 BGB_SLEEP_EDF_DIR=/path/to/sleep    # Override Sleep-EDF location
-BGB_TUAB_DIR=/path/to/tuab          # Override TUAB location  
+BGB_TUAB_DIR=/path/to/tuab          # Override TUAB location
 BGB_TUEV_DIR=/path/to/tuev          # Override TUEV location
 
 # Test control
@@ -123,7 +132,7 @@ BGB_ALLOW_SYNTH_SLEEP_EDF=1         # Allow synthetic Sleep-EDF in tests
 ### Documentation Drift
 Files with outdated paths that need updating:
 - `docs/TRAINING.md` - references `external/sleep-edf`
-- `docs/QUICK_START.md` - references `external/sleep-edf`  
+- `docs/QUICK_START.md` - references `external/sleep-edf`
 - `AGENTS.md` - references `external/sleep-edf`
 - `CLAUDE.md` - references old paths
 - Various experiment docs - historical, lower priority
@@ -164,7 +173,7 @@ Files with outdated paths that need updating:
 grep -r "SC4001E0-PSG.edf" tests/ scripts/ src/ | grep -v mock | wc -l
 grep -r "sleep-edf-database-expanded" tests/ scripts/ src/ | grep -v config | wc -l
 
-# Check for unsorted globs (should return 0)  
+# Check for unsorted globs (should return 0)
 grep -r '\.glob(' tests/ scripts/ | grep 'PSG.edf' | grep -v sorted | wc -l
 
 # Count data marks (should be >20 when complete)

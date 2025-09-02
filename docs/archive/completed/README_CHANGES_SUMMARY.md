@@ -1,5 +1,14 @@
 # README Changes Summary
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Key Modifications Made
 
 ### 1. Added Clear WIP Notice (Top of README)

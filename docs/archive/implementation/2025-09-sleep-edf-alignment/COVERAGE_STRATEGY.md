@@ -1,5 +1,14 @@
 # Coverage Strategy
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Philosophy
 
 We use a **dual-coverage** approach that measures unit and integration coverage separately. This is standard practice at companies like Google, Meta, and Netflix.
@@ -17,7 +26,7 @@ Mixing them in one coverage metric creates false signals. A module that can only
 ### 1. Unit Coverage (`make test-all-cov`)
 - **Config**: `.coveragerc.unit`
 - **Threshold**: 70% (will raise to 75% as we add more unit tests)
-- **Excludes**: 
+- **Excludes**:
   - Data loaders (`infra/data/*`)
   - API routes needing services (`api/routers/{sleep,jobs,queue}.py`)
   - Complex pipelines (`application/pipeline/*`)

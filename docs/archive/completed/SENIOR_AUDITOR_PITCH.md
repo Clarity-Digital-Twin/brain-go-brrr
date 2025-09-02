@@ -1,5 +1,14 @@
 # Senior Auditor Review: MNE + Autoreject Implementation Plan
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary for External Auditor
 
 We have completed a comprehensive audit and correction of our MNE and Autoreject documentation. All parameters have been verified against source code in `/reference_repos/` and cross-referenced with official documentation. This pitch summarizes our findings and implementation strategy for improving EEGPT training from 56% to 87% AUROC.

@@ -1,5 +1,14 @@
 # Sleep-EDF/TUAB/TUEV Dataset Alignment Implementation
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: September 1, 2025
 **Branch**: fix/sleep-edf-integration → development
 **Status**: COMPLETED AND MERGED ✅
@@ -29,7 +38,7 @@ This implementation aligned all three datasets (Sleep-EDF, TUAB, TUEV) to use co
 ## Test Results
 
 - TUAB real data: 5/5 tests PASSED
-- TUEV real data: 7/7 tests PASSED  
+- TUEV real data: 7/7 tests PASSED
 - Unit coverage: 86.85% (target: 75%)
 - All synthetic tests passing
 

@@ -1,5 +1,14 @@
 # Final Alignment Action Plan
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 The Sleep-EDF centralization is COMPLETE. TUAB/TUEV need parity. Documentation needs cleanup. A few technical debt items remain.
 
@@ -67,11 +76,11 @@ def get_tuab_sample_file(self, split="train", label="abnormal") -> Path | None:
     explicit = os.environ.get("BGB_TUAB_FILE")
     if explicit and Path(explicit).exists():
         return Path(explicit)
-    
+
     base = self.tuab_root / self.tuab_version / "edf" / split / label / "01_tcp_ar"
     if not base.exists():
         return None
-    
+
     files = sorted(base.glob("*.edf"))
     files = [f for f in files if not f.name.startswith("._")]
     return files[0] if files else None
@@ -83,9 +92,9 @@ def get_tuab_sample_file(self, split="train", label="abnormal") -> Path | None:
 def _create_synthetic_tuab(tmp_path: Path) -> Path:
     """TEST-ONLY: Create TUAB-like data."""
     # 19 channels (no Fz), 256Hz, 2 minutes
-    ch_names = ["FP1", "FP2", "F7", "F3", "F4", "F8", 
+    ch_names = ["FP1", "FP2", "F7", "F3", "F4", "F8",
                 "T3", "C3", "CZ", "C4", "T4",
-                "T5", "P3", "PZ", "P4", "T6", 
+                "T5", "P3", "PZ", "P4", "T6",
                 "O1", "O2", "A1"]
     # ... create synthetic data ...
 ```
@@ -120,7 +129,7 @@ def tuab_sample_path(project_root, tmp_path) -> Path:
 - Env vars: BGB_DATA_ROOT, BGB_*_DIR, BGB_*_VERSION
 - Resolution order: explicit > env > default
 
-# TEST_DATA_POLICY.md  
+# TEST_DATA_POLICY.md
 - Unit tests: synthetic only
 - Integration: real data with @pytest.mark.data
 - CI: skip cleanly or use synthetic fallback

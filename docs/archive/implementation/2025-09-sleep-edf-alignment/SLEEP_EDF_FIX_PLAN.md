@@ -1,5 +1,14 @@
 # SLEEP-EDF PATH FIX PLAN - NO BULLSHIT, NO PARALLEL UNIVERSES
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## THE PROBLEM
 - Other AI spread "sleep-edf-database-expanded-1.0.0" and "SC4001E0-PSG.edf" EVERYWHERE
 - 25 hardcoded filename references (SC4001E0-PSG.edf)
@@ -36,12 +45,12 @@ def sleep_edf_root(self) -> Path:
     override = os.environ.get("BGB_SLEEP_EDF_DIR")
     if override:
         return Path(override)
-    
+
     # Use data_path (which already exists in this class!)
     base = self.data_path / "datasets" / "sleep-edf" / self.sleep_edf_version
     if base.exists():
         return base
-    
+
     # Legacy fallback (temporary)
     legacy = self.data_path / "datasets" / "external" / "sleep-edf"
     return legacy
@@ -56,7 +65,7 @@ def get_sleep_edf_psg_file(self, explicit: str = None) -> Path | None:
     if explicit or os.environ.get("BGB_SLEEP_EDF_FILE"):
         p = Path(explicit or os.environ.get("BGB_SLEEP_EDF_FILE"))
         return p if p.exists() else None
-    
+
     # Get first file sorted (deterministic)
     files = sorted(self.sleep_edf_cassette_dir.glob("*-PSG.edf"))
     # Filter out macOS resource forks
@@ -90,7 +99,7 @@ def sleep_edf_path(project_root) -> Path:
         pytest.skip("Sleep-EDF data not available. Use --run-data.")
     return path
 
-@pytest.fixture  
+@pytest.fixture
 def sleep_edf_dir(project_root) -> Path:
     """Get Sleep-EDF directory from config."""
     config = DataConfig(data_path=project_root / "data")
@@ -120,7 +129,7 @@ raw.pick(eeg_picks)
 ```
 
 ## WHAT WE'RE NOT DOING
-- ❌ NOT creating new `registry.py` 
+- ❌ NOT creating new `registry.py`
 - ❌ NOT creating new `paths.py`
 - ❌ NOT creating new config systems
 - ❌ NOT adding pydantic Settings

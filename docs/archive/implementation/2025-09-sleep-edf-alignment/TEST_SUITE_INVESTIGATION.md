@@ -1,5 +1,14 @@
 # Test Suite Investigation & Analysis
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Current State Analysis
 
 ### Source Code Structure (`src/brain_go_brrr/`)

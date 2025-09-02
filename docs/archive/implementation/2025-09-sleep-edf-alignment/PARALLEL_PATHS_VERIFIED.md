@@ -1,5 +1,14 @@
 # PARALLEL PATHS - VERIFIED FROM FIRST PRINCIPLES ✅
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: 2025-08-31
 **Status**: CONFIRMED - TRUE PARALLEL PATHS EXIST
 
@@ -18,7 +27,7 @@ export BGB_ALLOW_SYNTH_TUAB=1
 pytest test_tuab_smoke.py --run-integration
 Result: PASSED ✅
 
-# TUEV Synthetic Test  
+# TUEV Synthetic Test
 export BGB_ALLOW_SYNTH_TUEV=1
 pytest test_tuev_smoke.py --run-integration
 Result: PASSED ✅

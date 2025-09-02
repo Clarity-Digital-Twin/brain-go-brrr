@@ -1,12 +1,21 @@
 # Parallel Paths Architecture - COMPLETE ✅
 
-**Date**: 2025-08-31  
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
+**Date**: 2025-08-31
 **Status**: FULLY IMPLEMENTED - TRUE PARALLEL PATHS
 
 ## The Two Perfect Parallel Paths
 
 ### Path 1: Synthetic Data (CI/Development)
-- **Marker**: `@pytest.mark.synth` 
+- **Marker**: `@pytest.mark.synth`
 - **Environment**: `BGB_ALLOW_SYNTH_*=1`
 - **Purpose**: CI/CD, local development without 100GB datasets
 - **Coverage**: All core functionality
@@ -62,8 +71,8 @@
 class TestTUABSmoke:
     # Runs with synthetic OR real (if available)
 
-# Real data tests  
-@pytest.mark.integration  
+# Real data tests
+@pytest.mark.integration
 @pytest.mark.data
 class TestTUABRealData:
     # ONLY runs with real data

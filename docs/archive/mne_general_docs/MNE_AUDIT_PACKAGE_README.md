@@ -1,5 +1,14 @@
 # MNE Integration Audit Package - External Review
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Document Package for External Auditor
 
 This package contains five comprehensive documents outlining the integration of MNE-Python and Autoreject into the Brain-Go-Brrr EEGPT training pipeline to improve accuracy from 56% to the target 87% AUROC.

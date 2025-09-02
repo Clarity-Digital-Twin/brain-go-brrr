@@ -9,6 +9,8 @@
 | [API.md](API.md) | REST API endpoints | ✅ Current |
 | [TRAINING.md](TRAINING.md) | Model training guide | ✅ Current |
 | [TESTING.md](TESTING.md) | Testing guidelines | ✅ Current |
+| [CI_CD_SETUP.md](CI_CD_SETUP.md) | CI/CD and pre-commit setup | ✅ Current |
+| [TUH_CORPUS_GUIDE.md](TUH_CORPUS_GUIDE.md) | TUH dataset download guide | ✅ Current |
 
 ## Project Status
 
@@ -126,5 +128,5 @@ Apache 2.0 - See [LICENSE](../LICENSE)
 
 ---
 
-_Last Updated: August 22, 2025_
-_Documentation Version: 2.0 (Post-Consolidation)_
+_Last Updated: September 2, 2025_
+_Documentation Version: 2.1 (Post-Audit)_

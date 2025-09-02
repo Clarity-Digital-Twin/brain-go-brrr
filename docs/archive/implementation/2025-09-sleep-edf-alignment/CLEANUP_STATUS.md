@@ -1,5 +1,14 @@
 # CLEANUP STATUS REPORT
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## ✅ COMPLETED (100% DONE)
 
 ### Path Centralization
@@ -13,7 +22,7 @@
 
 ### Code Quality
 - **Linting**: PASSES ✅
-- **Type checking**: PASSES ✅  
+- **Type checking**: PASSES ✅
 - **Unit tests**: 809 PASSING ✅
 - **Channel hack**: Fixed with TEST-ONLY comment ✅
 - **Environment variables**: Documented in README ✅
@@ -23,7 +32,7 @@
 ### 1. The Mock Reference (ACCEPTABLE)
 ```python
 # tests/integration/test_train_sleep_probe.py:135
-edf_file = data_dir / "SC4001E0-PSG.edf"  
+edf_file = data_dir / "SC4001E0-PSG.edf"
 edf_file.write_bytes(b"mock edf data")  # This IS a mock, acceptable
 ```
 **Verdict**: This is creating a mock file. ACCEPTABLE, no fix needed.

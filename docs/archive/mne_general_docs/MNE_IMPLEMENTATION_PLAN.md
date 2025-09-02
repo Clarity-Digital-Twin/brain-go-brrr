@@ -1,5 +1,14 @@
 # MNE Integration Implementation Plan - Senior Engineer Approach
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 
 After auditing the current `experiments/eegpt_linear_probe/` implementation, I've identified critical gaps that explain the 56% accuracy plateau. The current pipeline loads raw cached data without any preprocessing, artifact rejection, or quality filtering. This document outlines a pragmatic, incremental approach to integrate MNE preprocessing while minimizing disruption to the existing training infrastructure.

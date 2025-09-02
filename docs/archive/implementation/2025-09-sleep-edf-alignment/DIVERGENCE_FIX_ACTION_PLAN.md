@@ -1,5 +1,14 @@
 # DIVERGENCE FIX ACTION PLAN
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Current State Summary
 ✅ **DONE**: Sleep-EDF paths centralized in DataConfig
 ⚠️ **ISSUE**: Test strategy inconsistent between datasets
@@ -12,7 +21,7 @@ Add marker to these 13 files that touch real data:
 ```bash
 # Integration tests (should ALL have @pytest.mark.data)
 tests/integration/test_yasa_channel_aliasing.py
-tests/integration/test_train_sleep_probe.py  
+tests/integration/test_train_sleep_probe.py
 tests/integration/test_sleep_enhanced.py
 tests/integration/test_end_to_end.py
 
@@ -45,23 +54,23 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
     """TEST-ONLY: Create minimal 2-channel Sleep-EDF-like data."""
     import mne
     import numpy as np
-    
+
     # 2 channels like Sleep-EDF, 2 minutes, 256Hz
     sfreq = 256
     duration = 120
     n_samples = sfreq * duration
-    
+
     # Generate simple EEG-like signals
     t = np.arange(n_samples) / sfreq
     data = np.array([
         20e-6 * np.sin(2 * np.pi * 10 * t),  # ~10Hz alpha
         15e-6 * np.sin(2 * np.pi * 3 * t)    # ~3Hz delta
     ])
-    
+
     ch_names = ["EEG Fpz-Cz", "EEG Pz-Oz"]  # Sleep-EDF channel names
     info = mne.create_info(ch_names, sfreq, ch_types="eeg")
     raw = mne.io.RawArray(data, info)
-    
+
     # Export as EDF
     edf_path = tmp_path / "synthetic_sleep.edf"
     raw.export(str(edf_path), fmt="edf")
@@ -72,17 +81,17 @@ def _create_synthetic_sleep_edf(tmp_path: Path) -> Path:
 def sleep_edf_path(project_root, tmp_path) -> Path:
     """Get Sleep-EDF path - real or synthetic based on env."""
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig(data_path=project_root / "data")
     path = config.get_sleep_edf_psg_file()
-    
+
     if path:
         return path
-    
+
     # Allow synthetic fallback for CI
     if os.environ.get("BGB_ALLOW_SYNTH_SLEEP_EDF") == "1":
         return _create_synthetic_sleep_edf(tmp_path)
-    
+
     pytest.skip("Sleep-EDF not available. Set BGB_ALLOW_SYNTH_SLEEP_EDF=1 for synthetic")
 ```
 

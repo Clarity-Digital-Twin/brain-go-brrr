@@ -1,6 +1,15 @@
 # 🔍 TUAB Training Crash Investigation Report
-**Date**: September 1, 2025  
-**Time of Crash**: Between 08:33 - 09:39 AM  
+
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+**Date**: September 1, 2025
+**Time of Crash**: Between 08:33 - 09:39 AM
 **Training Script**: `experiments/eegpt_linear_probe/train_tuab_mne.py`
 
 ## 📊 Executive Summary (Evidence-Backed)
@@ -98,13 +107,13 @@ Main disk: 220GB used of 1TB (23% usage)
 ## 🚨 Critical Issues Discovered
 
 ### Issue #1: No Progress Preservation
-**Impact**: Lost 58+ hours of training  
-**Cause**: Checkpoints only save at epoch boundaries (every 7 days!)  
+**Impact**: Lost 58+ hours of training
+**Cause**: Checkpoints only save at epoch boundaries (every 7 days!)
 **Reality**: The code DOES have checkpoint logic, but it ONLY triggers after completing an entire epoch
 **Fix Required**: Implement intra-epoch checkpointing every 500 batches
 
 ### Issue #2: Performance Configuration Causing 7‑day Epochs
-**Impact**: ~41 seconds per batch → ~7 days per epoch → impractical training  
+**Impact**: ~41 seconds per batch → ~7 days per epoch → impractical training
 **Active Configuration** (not hardcoded):
 ```python
 # train_tuab_mne.py honors config values
@@ -122,7 +131,7 @@ pin_memory = config['data'].get('pin_memory', False)
 **Fix Required**: Pre-build cache before training or use a bulk format (e.g., HDF5/Zarr) instead of 300K+ small files.
 
 ### Issue #4: No Crash Recovery Despite Having Resume Code
-**Impact**: Cannot resume from failures  
+**Impact**: Cannot resume from failures
 **Irony**: The script HAS --resume argument and checkpoint loading code
 **Problem**: No checkpoints exist to resume from (never completed epoch)
 **Fix Required**: Save checkpoints DURING epoch, not just at end

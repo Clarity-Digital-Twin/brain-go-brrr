@@ -1,5 +1,14 @@
 # CACHE PATH ANALYSIS - CRITICAL ISSUE
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## THE PROBLEM
 
 We have a PATH MISMATCH CLUSTERFUCK caused by data deletion and re-download:
@@ -19,7 +28,7 @@ We have a PATH MISMATCH CLUSTERFUCK caused by data deletion and re-download:
 ### Training Scripts (GOOD - Import from src/)
 ```
 train_tuab_mne.py - EXPECTS cache at: tuab_mne_preprocessed
-train_tuev_mne.py - EXPECTS cache at: tuev_mne_preprocessed  
+train_tuev_mne.py - EXPECTS cache at: tuev_mne_preprocessed
 ```
 
 ### Cache Builders (MIXED STATE)
@@ -45,7 +54,7 @@ datasets/tuev_mne_dataset.py - Just imports from src/
 ## DEPENDENCIES MAP
 
 ```
-launch_tuab_mne.sh 
+launch_tuab_mne.sh
   ├── Checks for: cache/tuab_mne_preprocessed/
   ├── References: build_mne_cache.sh (in error message)
   └── Runs: train_tuab_mne.py

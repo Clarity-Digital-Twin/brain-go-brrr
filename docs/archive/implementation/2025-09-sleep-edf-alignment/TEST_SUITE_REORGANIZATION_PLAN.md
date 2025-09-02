@@ -1,5 +1,14 @@
 # Test Suite Reorganization Plan
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 ✅ COMPLETED: Reorganized 93 unit tests from flat structure to mirror source code architecture
 ✅ FIXED: Moved misplaced API integration tests and behavior tests to correct locations

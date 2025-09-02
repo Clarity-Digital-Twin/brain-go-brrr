@@ -1,11 +1,20 @@
 # 🔧 TUAB Training Crash Recovery & Fix Plan
-**Date**: September 1, 2025  
+
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+**Date**: September 1, 2025
 **Priority**: CRITICAL - Training is unusable without these fixes
 
 ## 🚨 IMMEDIATE FIXES (Do First)
 
 ### Fix #1: Add Intra-Epoch Checkpointing
-**Problem**: Lost 58 hours of training because checkpoints only save at epoch end  
+**Problem**: Lost 58 hours of training because checkpoints only save at epoch end
 **Solution**: Save checkpoint every 500 batches (~5.7 hours)
 
 ```python
@@ -25,7 +34,7 @@ if batch_idx % 500 == 0 and batch_idx > 0:
 ```
 
 ### Fix #2: Diagnose & Fix Performance Issue
-**Problem**: 41 seconds per batch is 40x slower than expected  
+**Problem**: 41 seconds per batch is 40x slower than expected
 **Solution**: Profile and optimize data loading
 
 ```bash
@@ -41,7 +50,7 @@ python -m pstats profile.stats
 4. Move cache to faster SSD if on HDD
 
 ### Fix #3: Add Auto-Recovery Script
-**Problem**: No automatic restart on crash  
+**Problem**: No automatic restart on crash
 **Solution**: Watchdog script with tmux
 
 ```bash
@@ -50,10 +59,10 @@ python -m pstats profile.stats
 
 while true; do
     echo "Starting training at $(date)"
-    
+
     # Find latest checkpoint
     LATEST_CHECKPOINT=$(ls -t experiments/eegpt_linear_probe/output/*/checkpoint_*.pt 2>/dev/null | head -1)
-    
+
     if [ -n "$LATEST_CHECKPOINT" ]; then
         echo "Resuming from $LATEST_CHECKPOINT"
         python experiments/eegpt_linear_probe/train_tuab_mne.py --resume "$LATEST_CHECKPOINT"
@@ -61,7 +70,7 @@ while true; do
         echo "Starting fresh training"
         python experiments/eegpt_linear_probe/train_tuab_mne.py
     fi
-    
+
     EXIT_CODE=$?
     if [ $EXIT_CODE -eq 0 ]; then
         echo "Training completed successfully"
@@ -114,7 +123,7 @@ for batch_idx, (x, y) in enumerate(train_loader):
     loss = compute_loss(x, y)
     loss = loss / accumulation_steps
     loss.backward()
-    
+
     if (batch_idx + 1) % accumulation_steps == 0:
         optimizer.step()
         optimizer.zero_grad()
@@ -130,7 +139,7 @@ class TrainingMonitor:
     def __init__(self, output_dir):
         self.output_dir = output_dir
         self.heartbeat_file = output_dir / 'heartbeat.json'
-    
+
     def update(self, epoch, batch_idx, loss, auroc):
         status = {
             'timestamp': datetime.now().isoformat(),

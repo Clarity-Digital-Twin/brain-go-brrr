@@ -1,5 +1,14 @@
 # Literature vs Current Documentation Comparison
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 
 **Key Finding**: The core algorithms and principles from 2013-2017 papers remain valid, but implementations have evolved significantly. Our current documentation accurately reflects modern best practices while staying true to the original research.

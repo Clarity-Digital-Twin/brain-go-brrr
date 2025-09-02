@@ -1,15 +1,24 @@
 # TUAB/TUEV Dataset Path Alignment Plan
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **STATUS**: Plan created, NOT YET IMPLEMENTED
 **LAST UPDATED**: 2025-08-30
 
 ## Current State Analysis (VERIFIED 2025-08-30)
 
 ### ✅ What's Already Working
-1. **DataConfig Integration**: 
+1. **DataConfig Integration**:
    - `DataConfig.tuab_root` and `DataConfig.tuev_root` properties already exist
    - Environment overrides via `BGB_TUAB_DIR` and `BGB_TUEV_DIR` supported
-   
+
 2. **Dataset Classes Exist**:
    - `TUABDataset` in `src/brain_go_brrr/infra/data/tuab_dataset.py`
    - `TUEVDataset` in `src/brain_go_brrr/infra/data/tuev_dataset.py`
@@ -36,19 +45,19 @@
 
 class DataConfig(BaseModel):
     # ... existing ...
-    
+
     @property
     def tuab_version(self) -> str:
         """Get TUAB version from env or default."""
         return os.environ.get("BGB_TUAB_VERSION", "v3.0.1")
-    
+
     def get_tuab_sample_file(self, split: str = "train", label: str = "abnormal") -> Path | None:
         """Get a TUAB EDF file deterministically.
-        
+
         Args:
             split: Dataset split (train/eval/test)
             label: Label type (normal/abnormal)
-            
+
         Returns:
             Path to EDF file or None if not found
         """
@@ -56,15 +65,15 @@ class DataConfig(BaseModel):
         if explicit:
             p = Path(explicit)
             return p if p.exists() else None
-            
+
         base = self.tuab_root / self.tuab_version / "edf" / split / label / "01_tcp_ar"
         if not base.exists():
             return None
-            
+
         files = sorted(base.glob("*.edf"))
         files = [f for f in files if not f.name.startswith("._")]
         return files[0] if files else None
-    
+
     def get_tuev_sample_file(self) -> Path | None:
         """Get a TUEV EDF file deterministically."""
         # Similar implementation
@@ -75,26 +84,26 @@ class DataConfig(BaseModel):
 ```python
 def _create_synthetic_tuab(tmp_path: Path) -> Path:
     """TEST-ONLY: Create minimal TUAB-like data.
-    
+
     Creates 19-channel EDF mimicking TUAB structure for testing
     when real data is not available.
     """
     sfreq = 256
     duration = 120  # 2 minutes
     n_samples = sfreq * duration
-    
+
     # TUAB standard 19 channels (no Fz!)
-    ch_names = ["FP1", "FP2", "F7", "F3", "F4", "F8", 
+    ch_names = ["FP1", "FP2", "F7", "F3", "F4", "F8",
                 "T3", "C3", "CZ", "C4", "T4",
-                "T5", "P3", "PZ", "P4", "T6", 
+                "T5", "P3", "PZ", "P4", "T6",
                 "O1", "O2", "A1"]
-    
+
     # Generate simple EEG-like signals
     data = np.random.randn(19, n_samples) * 50e-6
-    
+
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types="eeg")
     raw = mne.io.RawArray(data, info)
-    
+
     edf_path = tmp_path / "synthetic_tuab.edf"
     mne.export.export_raw(raw, str(edf_path), fmt="edf", physical_range=(None, None))
     return edf_path
@@ -102,22 +111,22 @@ def _create_synthetic_tuab(tmp_path: Path) -> Path:
 @pytest.fixture
 def tuab_sample_path(project_root, tmp_path) -> Path:
     """Get path to TUAB sample file.
-    
+
     Uses DataConfig to resolve paths deterministically.
     Falls back to synthetic data if BGB_ALLOW_SYNTH_TUAB=1.
     """
     from brain_go_brrr.application.config import DataConfig
-    
+
     config = DataConfig(data_path=project_root / "data")
     path = config.get_tuab_sample_file()
-    
+
     if path:
         return path
-    
+
     # Allow synthetic fallback for CI (TEST-ONLY)
     if os.environ.get("BGB_ALLOW_SYNTH_TUAB") == "1":
         return _create_synthetic_tuab(tmp_path)
-    
+
     pytest.skip("TUAB data not available. Set BGB_TUAB_DIR or use synthetic.")
 ```
 
@@ -164,12 +173,12 @@ class TestTUABAbnormalityDetection:
 @pytest.mark.data
 class TestTUABIntegration:
     """Integration tests for TUAB dataset processing."""
-    
+
     def test_tuab_dataloader(self, tuab_sample_path):
         """Test TUAB can be loaded and processed."""
         from brain_go_brrr.application.config import DataConfig
         from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
-        
+
         config = DataConfig()
         dataset = TUABDataset(
             root_dir=config.tuab_root / config.tuab_version,
@@ -177,7 +186,7 @@ class TestTUABIntegration:
             window_duration=4.0,
             max_files=5  # Small subset for testing
         )
-        
+
         assert len(dataset) > 0
         window, label = dataset[0]
         assert window.shape == (19, 1024)  # 19 channels, 4s @ 256Hz
@@ -200,7 +209,7 @@ class TestTUABIntegration:
 # Check for hardcoded TUAB paths
 rg 'v3\.0\.1|01_tcp_ar|tuh_eeg_abnormal' --type py | grep -v config
 
-# Check for hardcoded TUEV paths  
+# Check for hardcoded TUEV paths
 rg 'v2\.0\.0|tuev_v2' --type py | grep -v config
 
 # Verify all real-data tests are marked

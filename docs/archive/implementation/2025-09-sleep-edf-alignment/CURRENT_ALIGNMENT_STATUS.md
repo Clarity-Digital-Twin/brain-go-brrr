@@ -1,5 +1,14 @@
 # Current Alignment Status - Full Repository Analysis
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: 2025-08-31
 **Status**: Sleep-EDF Complete, TUAB/TUEV Pending
 
@@ -68,10 +77,10 @@ tests/unit/domain/abnormal/test_accuracy.py:31-32: / "01_tcp_ar").glob("*.edf")
 ### Phase 1: Technical Debt (Quick Fixes)
 1. **Fix MNE Export API** (conftest.py:335)
    - Change: `raw.export()` → `mne.export.export_raw()`
-   
+
 2. **Fix Channel Names** (conftest.py:329)
    - Change: `["EEG Fpz-Cz", "EEG Pz-Oz"]` → `["Fpz-Cz", "Pz-Oz"]`
-   
+
 3. **Add Missing Markers**
    - `test_yasa_channel_aliasing.py`: Add `@pytest.mark.data`
    - `test_accuracy.py`: Add `@pytest.mark.data`
@@ -79,7 +88,7 @@ tests/unit/domain/abnormal/test_accuracy.py:31-32: / "01_tcp_ar").glob("*.edf")
 ### Phase 2: TUAB/TUEV DataConfig Methods
 Need to add to `src/brain_go_brrr/application/config/base.py`:
 - `tuab_version` property
-- `tuev_version` property  
+- `tuev_version` property
 - `get_tuab_sample_file()` method
 - `get_tuev_sample_file()` method
 

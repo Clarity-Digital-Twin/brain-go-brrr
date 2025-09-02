@@ -1,5 +1,14 @@
 # CRASH FORENSICS - FACTS ONLY (NO SPECULATION)
-**Date**: September 1, 2025  
+
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+**Date**: September 1, 2025
 **Analysis Type**: Forensic Evidence Only
 
 ## WHAT WE KNOW FOR CERTAIN
@@ -89,7 +98,7 @@ pin_memory: false  # Ignored - hardcoded to false in train_tuab.py
 ## WHAT HAPPENED (FACTS ONLY)
 
 1. Training ran for 58+ hours
-2. Processed 4613 batches successfully 
+2. Processed 4613 batches successfully
 3. System rebooted at 09:39
 4. tmux session was lost
 5. No checkpoints to resume from

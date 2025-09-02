@@ -1,5 +1,14 @@
 # Senior Audit: Complete Codebase Cleanup & CI/CD Hardening
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **To**: Senior Engineering Auditors
 **From**: Development Team
 **Date**: August 28, 2025

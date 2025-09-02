@@ -1,0 +1,31 @@
+# Ripgrep ignore file - prevents searching in archived/deprecated content
+# This makes grep/rg searches only hit current, canonical documentation
+
+# Ignore all archived documentation
+docs/archive/
+
+# Ignore deprecated or old directories
+reference_repos/
+data/
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+.git/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+
+# Ignore large binary files
+*.ckpt
+*.pt
+*.pth
+*.h5
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.edf
+*.bdf

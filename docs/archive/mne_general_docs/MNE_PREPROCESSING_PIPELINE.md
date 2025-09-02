@@ -1,5 +1,14 @@
 # MNE Preprocessing Pipeline for EEGPT Training
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Overview
 
 This document details the specific MNE preprocessing pipeline to be implemented for improving TUAB/TUEV training data quality. Each step includes rationale, implementation details, and expected impact on model performance.

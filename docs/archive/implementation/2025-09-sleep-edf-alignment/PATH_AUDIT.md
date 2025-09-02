@@ -1,12 +1,21 @@
 # Dataset Path Audit - August 30, 2025
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Current ACTUAL Dataset Structure
 ```
 /data/datasets/
 ├── tuab/                                     # TUH Abnormal dataset
 │   ├── edf/                                  # EDF files organized by split
 │   └── AAREADME.txt
-├── tuev/                                     # TUH Events dataset  
+├── tuev/                                     # TUH Events dataset
 │   ├── edf/                                  # EDF files organized by split
 │   └── AAREADME.txt
 └── sleep-edf/                                # Sleep-EDF dataset

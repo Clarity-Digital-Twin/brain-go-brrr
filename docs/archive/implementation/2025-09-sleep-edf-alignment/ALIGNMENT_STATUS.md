@@ -1,5 +1,14 @@
 # Dataset Path Alignment Status
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **LAST UPDATED**: 2025-09-01
 **OVERALL STATUS**: 100% Complete ✅
 
@@ -25,7 +34,7 @@ All three datasets (Sleep-EDF, TUAB, TUEV) are fully aligned with centralized pa
 - **Synthetic fallback**: ❌ No `_create_synthetic_tuab()` yet
 - **Integration tests**: ❌ Not marked with `@pytest.mark.data`
 
-### TUEV 🟡 PARTIAL  
+### TUEV 🟡 PARTIAL
 - **DataConfig root**: ✅ `tuev_root` exists
 - **Dataset class**: ✅ `TUEVDataset` exists, takes `root_dir`
 - **Deterministic picker**: ❌ No `get_tuev_sample_file()` yet
@@ -37,13 +46,13 @@ All three datasets (Sleep-EDF, TUAB, TUEV) are fully aligned with centralized pa
 
 1. **MNE Export API** (conftest.py:335)
    - Using deprecated `raw.export()` instead of `mne.export.export_raw()`
-   
+
 2. **Channel Names** (conftest.py:329)
    - Using `"EEG Fpz-Cz"` instead of `"Fpz-Cz"`
-   
+
 3. **Missing Test Marker**
    - `tests/integration/test_yasa_channel_aliasing.py` needs `@pytest.mark.data`
-   
+
 4. **Pre-commit Patterns**
    - Missing TUAB/TUEV patterns (v3.0.1, 01_tcp_ar, etc.)
 

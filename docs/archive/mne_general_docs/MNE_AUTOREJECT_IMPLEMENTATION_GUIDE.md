@@ -1,5 +1,14 @@
 # MNE + Autoreject Implementation Guide for EEGPT Training
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 
 This guide consolidates all verified MNE and Autoreject documentation for implementing preprocessing in the `experiments/eegpt_linear_probe/` folder. All parameters have been verified against source code and official documentation.

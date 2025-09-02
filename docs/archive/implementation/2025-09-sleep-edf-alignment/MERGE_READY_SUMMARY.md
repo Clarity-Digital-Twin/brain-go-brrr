@@ -1,5 +1,14 @@
 # fix/sleep-edf-integration Branch - MERGE READY ✅
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 **Date**: 2025-09-01
 **Status**: READY TO MERGE
 
@@ -30,7 +39,7 @@ export BGB_TUAB_VERSION=""  # Uses tuab/edf/ structure
 pytest tests/integration/test_tuab_real_data.py --run-integration --run-data
 # Result: ALL PASSED ✅
 
-# TUEV: 7/7 tests PASSED  
+# TUEV: 7/7 tests PASSED
 export BGB_DATA_ROOT=/path/to/data
 export BGB_TUEV_VERSION=""  # Uses tuev/edf/ structure
 pytest tests/integration/test_tuev_real_data.py --run-integration --run-data
@@ -151,7 +160,7 @@ pytest -m "integration and data" --run-integration --run-data
 
 ## Conclusion
 
-**This branch is READY TO MERGE.** 
+**This branch is READY TO MERGE.**
 
 The alignment goals are fully achieved, tests pass, and the code is clean. The minor CI gaps can be addressed in a follow-up PR and don't block the merge.
 

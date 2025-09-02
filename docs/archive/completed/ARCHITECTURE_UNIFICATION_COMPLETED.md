@@ -1,5 +1,14 @@
 # ✅ FIXED: Architecture Unified (August 28, 2025)
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## ORIGINAL PROBLEM (NOW FIXED)
 
 Previously had two parallel implementations:

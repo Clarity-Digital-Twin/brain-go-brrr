@@ -1,4 +1,13 @@
 # CI/CD Final Audit Report - 100% Professional & Green
+
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
 **Date**: August 28, 2025
 **Status**: ✅ READY FOR PRODUCTION
 

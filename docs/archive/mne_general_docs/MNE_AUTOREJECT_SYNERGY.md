@@ -1,5 +1,14 @@
 # MNE-Autoreject Synergy for Optimal EEG Preprocessing
 
+> ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**
+> This document is preserved for historical reference only.
+> For current documentation, see [docs/README.md](../../README.md)
+> Archive date: September 2, 2025
+
+---
+
+
+
 ## Executive Summary
 
 This document details how to optimally combine MNE-Python's preprocessing capabilities with Autoreject's adaptive artifact rejection to create a superior preprocessing pipeline for EEGPT training. The synergy between these tools addresses different types of artifacts and quality issues, leading to cleaner training data and improved model performance.
