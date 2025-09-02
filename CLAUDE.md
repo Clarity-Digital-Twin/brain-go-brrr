@@ -65,9 +65,9 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
-- **Unit Tests**: 899 passing tests (as of Sep 2, 2025)
+- **Unit Tests**: All tests pass locally (run `make test`)
 - **Architecture**: Unified - experiments/ uses src/ components
-- **Normalization**: SSOT in wrapper, datasets emit raw mV
+- **Normalization**: SSOT in wrapper, datasets emit Volts (SI units)
 - **Channel Validation**: Enforces correct order per dataset
 
 ## 🟡 In Progress
@@ -109,26 +109,14 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 ### 🚨 CRITICAL: Pre-Push Validation (MUST PASS OR CI WILL FAIL)
 
 ```bash
-# ALWAYS RUN THESE EXACT COMMANDS BEFORE PUSHING
-# These use the SAME versions as CI/CD to prevent divergence
+# ALWAYS RUN THESE BEFORE PUSHING (uses project Makefile targets)
+make format      # Auto-format code
+make lint        # Check for lint errors
+make typecheck   # Run type checking
+make validate    # Full pre-push validation suite
 
-# 1. Format code with CI's ruff version (0.12.3)
-uv run ruff format src/ tests/ scripts/ experiments/
-
-# 2. Check formatting matches CI exactly
-uv run ruff format --check src/ tests/ scripts/ experiments/
-
-# 3. Check for lint errors CI will catch
-uv run ruff check src/ tests/ scripts/ experiments/
-
-# 4. Run type checking with CI config
-uv run mypy --config-file mypy.ini src/brain_go_brrr
-
-# 5. Check for unsafe torch.load usage (CRITICAL - CI WILL FAIL WITHOUT THIS)
-find src tests experiments -name "*.py" | grep -v safe_load.py | xargs uv run python .pre-commit-hooks/safe_torch_load.py
-
-# Or use the all-in-one command:
-make check-all  # Runs all checks CI will run
+# Or run all checks at once:
+make check-all   # Runs all CI checks locally
 ```
 
 ### 🔒 SECURITY: torch.load Requirements
@@ -303,7 +291,8 @@ brain-go-brrr/
 - Calculate impedance metrics
 - Identify artifacts (eye blinks, muscle, heartbeat)
 - Generate reports in <30 seconds
-- Implementation: `/services/qc_flagger.py`
+- Domain: `src/brain_go_brrr/domain/quality/controller.py`
+- Infrastructure: `src/brain_go_brrr/infra/preprocessing/autoreject_adapter.py`
 
 ### 2. Abnormality Detection 🟢 TRAINING
 
@@ -584,7 +573,7 @@ think hard about implementing [FEATURE]
 
 # 3. Implement following patterns
 "Implement [FEATURE] using service pattern.
-Reference /services/qc_flagger.py for structure"
+Reference domain/quality/controller.py for structure"
 
 # 4. Verify and document
 make test

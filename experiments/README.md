@@ -22,9 +22,6 @@ experiments/
     ├── configs/                  # Training configurations
     │   ├── tuab.yaml            # TUAB config (19 channels)
     │   └── tuev.yaml            # TUEV config (20 channels)
-    ├── datasets/                 # Thin shim datasets (<50 lines)
-    │   ├── tuab_mne_dataset.py  # → imports from src/.../tuab_dataset
-    │   └── tuev_mne_dataset.py  # → imports from src/.../tuev_dataset
     ├── docs/                     # Essential documentation
     │   ├── README.md            # Navigation guide
     │   ├── CHANNEL_SPECIFICATIONS.md  # Critical channel specs
