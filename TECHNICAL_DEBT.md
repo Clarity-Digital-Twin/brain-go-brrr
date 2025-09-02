@@ -5,7 +5,7 @@
 ### ✅ COMPLETE: Sleep-EDF/TUAB/TUEV Dataset Alignment
 **Status**: FULLY RESOLVED
 - ✅ All datasets unified through DataConfig
-- ✅ ZERO hardcoded paths (verified with pre-commit hooks)
+- ✅ No hardcoded dataset paths in application/tests (verified by pre-commit; tooling scripts may contain constants by design)
 - ✅ Parallel test paths working (synthetic + real data)
 - ✅ 12 real data tests passing (5 TUAB, 7 TUEV)
 - ✅ Coverage improved 66% → 86%
@@ -16,7 +16,7 @@
 - ✅ Sample-level checkpoint precision implemented
 - ✅ Intra-epoch checkpointing (every 500 batches)
 - ✅ DataLoader optimized (4 workers, pin_memory, persistent)
-- ✅ Training running stably at 76% AUROC (climbing to 87% target)
+- ✅ Training stable; AUROC improving toward target (see run logs for current value)
 
 ### ✅ COMPLETE: Architecture Unification
 **Status**: FULLY RESOLVED
@@ -91,18 +91,23 @@ experiments/eegpt_linear_probe/docs/
 - CI doesn't require Redis service
 - Could add Docker-compose for integration tests
 
+### CI Hardcoded Paths Check (Optional)
+- Pre-commit hook exists locally
+- CI runs other guards but not this specific hook
+- Could add explicit step to CI pipeline
+
 ## 📊 ACHIEVEMENTS SUMMARY
 
 | Category | Before (Aug 28) | After (Sep 2) | Status |
 |----------|----------------|---------------|--------|
-| Test Coverage | 66% | 86% | ✅ +20% |
+| Test Coverage | 66% | ~86% | ✅ +20% |
 | Test Count | 751 | 899 | ✅ +148 |
 | Hardcoded Paths | 50+ | 0 | ✅ ELIMINATED |
 | Training Stability | Crashes | Stable w/ auto-recovery | ✅ FIXED |
 | Dataset Alignment | Divergent | Fully unified | ✅ COMPLETE |
 | Experiments Cleanup | Duplicates | Clean, uses src/ | ✅ COMPLETE |
 | EEGPT Files | Claimed 11 | Actually 6 (clean) | ✅ CLEAN |
-| CI/CD | Failing | All green | ✅ FIXED |
+| CI/CD | Failing | Configured; local checks pass | ✅ FIXED |
 
 ## 🎯 ACTUAL REMAINING WORK
 
