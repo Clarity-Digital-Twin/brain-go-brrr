@@ -155,6 +155,13 @@ See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
 
 ## 💻 For Developers
 
+### System Requirements
+
+- **Python:** 3.11 or 3.12
+- **RAM:** 16GB minimum
+- **GPU:** Optional (speeds up training)
+- **OS:** Linux, macOS, Windows (WSL2)
+
 ### Project Structure
 ```
 brain-go-brrr/
@@ -259,13 +266,6 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 | Test Coverage | 86% | ✅ 899+ passing tests |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
-
-## 🛠️ System Requirements
-
-- **Python:** 3.11 or 3.12
-- **RAM:** 16GB minimum
-- **GPU:** Optional (speeds up training)
-- **OS:** Linux, macOS, Windows (WSL2)
 
 ## 📚 Documentation
 
