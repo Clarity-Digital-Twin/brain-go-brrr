@@ -1,4 +1,4 @@
-# Brain-Go-Brrr 🧠⚡
+# Brain-Go-Brrr ⚡
 
 **Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
 
