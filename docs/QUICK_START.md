@@ -151,7 +151,12 @@ make coverage
 
 ```bash
 cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh
+
+# Build preprocessed cache first
+./scripts/build_mne_cache.sh
+
+# Launch training with MNE preprocessing
+./scripts/launch_tuab_mne.sh
 
 # Monitor progress
 tmux attach -t tuab_training
