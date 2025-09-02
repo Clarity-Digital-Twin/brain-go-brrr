@@ -129,7 +129,8 @@ class TestTUABSmoke:
         # Test version property
         version = config.tuab_version
         assert version is not None
-        assert version.startswith("v")
+        # Version can be empty for versionless layouts or start with "v" for versioned
+        assert version == "" or version.startswith("v")
 
         # Test sample file getter
         # This might return None if no data mounted
