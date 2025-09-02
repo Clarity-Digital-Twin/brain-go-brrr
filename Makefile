@@ -174,7 +174,7 @@ check: test-fast quality ## Run all tests and quality checks
 
 validate: ## Full pre-push validation - ensures you stay in banger-town! 🚀
 	@echo "$(CYAN)Running full validation suite...$(NC)"
-	@./scripts/tools/validate_before_push.sh
+	@./scripts/validate_before_push.sh
 
 ##@ Testing
 

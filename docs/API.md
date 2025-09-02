@@ -12,11 +12,11 @@ http://localhost:8000
 
 ## Pathway Selection
 
-The API automatically routes to the appropriate processing pathway based on your data:
+The API provides multiple processing pathways based on your needs:
 
-- **Any EEG data** → YASA pathway (`/api/v1/sleep/analyze`) - works with 1-100+ channels
-- **Full EEG (19+ channels, 256Hz)** → EEGPT pathway (`/api/v1/eeg/eegpt/analyze`)
-- **Parallel processing** → Both pathways (`/api/v1/eeg/analyze`)
+- **Quality Control**: `/api/v1/eeg/analyze` - Synchronous bad channel detection
+- **EEGPT Analysis**: `/api/v1/eeg/eegpt/analyze` - Requires 19+ channels @ 256Hz  
+- **Sleep Staging**: `/api/v1/eeg/sleep/analyze` - Works with ANY channel count (1-100+)
 
 **Note**: YASA is NOT limited to 2-channel data. It works with any channel count and automatically selects the best central channel (C3/C4 preferred) for optimal accuracy.
 
@@ -33,41 +33,109 @@ GET /health
 {
   "status": "healthy",
   "version": "1.0.0",
-  "timestamp": "2025-08-22T00:00:00Z"
+  "timestamp": "2025-09-02T00:00:00Z"
 }
 ```
 
-### EEG Analysis
+### Quality Control Analysis (Synchronous)
 
 ```http
 POST /api/v1/eeg/analyze
 ```
 
-**Request Body**:
+**Request**: Multipart form data
+- `edf_file`: EDF/BDF file upload
+
+**Response** (QCResponse):
 ```json
 {
-  "file_path": "path/to/eeg.edf",
-  "analysis_types": ["sleep", "quality", "abnormality"],
-  "options": {
-    "window_size": 4.0,
-    "overlap": 0.5
-  }
+  "bad_channels": ["F7", "T4"],
+  "quality_metrics": {
+    "snr": 12.5,
+    "artifacts": {
+      "eye_blinks": 23,
+      "muscle": 45,
+      "heartbeat": 12
+    },
+    "usable_percentage": 87.5
+  },
+  "processing_time": 2.3,
+  "timestamp": "2025-09-02T00:00:00Z"
 }
 ```
+
+### EEGPT Probe Analysis
+
+```http
+POST /api/v1/eeg/eegpt/analyze
+```
+
+**Request**: Multipart form data
+- `edf_file`: EDF/BDF file upload
+- `analysis_type`: "abnormality_probe" | "sleep_probe" | "motor_imagery_probe"
+
+**Response** (EEGPTAnalysisResponse):
+```json
+{
+  "prediction": "normal",
+  "confidence": 0.92,
+  "probabilities": {
+    "normal": 0.92,
+    "abnormal": 0.08
+  },
+  "probe_type": "abnormality_probe",
+  "features_shape": [1, 512],
+  "processing_time": 3.1
+}
+```
+
+### EEGPT Batch Analysis
+
+```http
+POST /api/v1/eeg/eegpt/analyze/batch
+```
+
+**Request**: Multipart form data
+- `edf_file`: EDF/BDF file upload
+- `batch_size`: Number of windows to process (default: 32)
+- `analysis_type`: Analysis type (default: "abnormality")
 
 **Response**:
 ```json
 {
-  "job_id": "uuid-string",
-  "status": "processing",
-  "created_at": "2025-08-22T00:00:00Z"
+  "windows_processed": 32,
+  "predictions": [
+    {"window": 0, "prediction": "normal", "confidence": 0.92},
+    {"window": 1, "prediction": "normal", "confidence": 0.88}
+  ],
+  "average_confidence": 0.89,
+  "processing_time": 12.5
 }
 ```
 
-### Get Results
+### Sleep Analysis (Asynchronous)
 
 ```http
-GET /api/v1/eeg/results/{job_id}
+POST /api/v1/eeg/sleep/analyze
+```
+
+**Request**: Multipart form data
+- `edf_file`: EDF/BDF file upload
+
+**Response** (JobResponse - 202 Accepted):
+```json
+{
+  "job_id": "uuid-string",
+  "status": "queued",
+  "created_at": "2025-09-02T00:00:00Z",
+  "message": "Sleep analysis job queued"
+}
+```
+
+### Get Job Results
+
+```http
+GET /api/v1/jobs/{job_id}
 ```
 
 **Response** (Success):
@@ -75,37 +143,40 @@ GET /api/v1/eeg/results/{job_id}
 {
   "job_id": "uuid-string",
   "status": "completed",
-  "results": {
-    "quality": {
-      "bad_channels": ["F7", "T4"],
-      "artifacts": {
-        "eye_blinks": 23,
-        "muscle": 45,
-        "heartbeat": 12
-      },
-      "usable_percentage": 87.5
+  "result": {
+    "hypnogram": [0, 0, 1, 2, 2, 3, 3, 2, 4],
+    "sleep_stages": {
+      "W": 15.2,
+      "N1": 7.8,
+      "N2": 45.3,
+      "N3": 20.1,
+      "REM": 11.6
     },
-    "sleep": {
-      "stages": {
-        "W": 15.2,
-        "N1": 7.8,
-        "N2": 45.3,
-        "N3": 20.1,
-        "REM": 11.6
-      },
-      "efficiency": 84.8,
-      "total_sleep_time": 423.5
-    },
-    "abnormality": {
-      "classification": "normal",
-      "confidence": 0.92,
-      "flag": "ROUTINE"
-    }
-  }
+    "sleep_efficiency": 84.8,
+    "total_sleep_time_minutes": 423.5
+  },
+  "completed_at": "2025-09-02T00:01:30Z"
 }
 ```
 
-### Upload EEG File
+### Queue Status
+
+```http
+GET /api/v1/queue/status
+```
+
+**Response**:
+```json
+{
+  "total_jobs": 5,
+  "queued": 2,
+  "processing": 1,
+  "completed": 2,
+  "failed": 0
+}
+```
+
+### Upload EEG File (Deprecated - use specific endpoints above)
 
 ```http
 POST /api/v1/eeg/upload
@@ -129,7 +200,7 @@ POST /api/v1/eeg/upload
 | Code | Description |
 |------|-------------|
 | 200 | Success |
-| 201 | Created |
+| 202 | Accepted (async job queued) |
 | 400 | Bad Request (invalid parameters) |
 | 404 | Not Found |
 | 422 | Validation Error |
@@ -141,34 +212,55 @@ Currently no rate limiting implemented.
 
 ## Caching
 
-Redis caching enabled with 2-hour TTL for analysis results.
+Redis caching enabled with configurable TTL (default: 2 hours) for analysis results.
 
 ## WebSocket Support
 
 Not implemented.
 
-## SDK Support
+## SDK Example
 
 Python SDK example:
 
 ```python
 import requests
 
-# Analyze EEG
-response = requests.post(
-    "http://localhost:8000/api/v1/eeg/analyze",
-    json={
-        "file_path": "data/sample.edf",
-        "analysis_types": ["sleep", "quality"]
-    }
-)
-job_id = response.json()["job_id"]
+# Quality Control (synchronous)
+with open("data/sample.edf", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/api/v1/eeg/analyze",
+        files={"edf_file": f}
+    )
+    qc_results = response.json()
+    print(f"Bad channels: {qc_results['bad_channels']}")
 
-# Get results
-results = requests.get(
-    f"http://localhost:8000/api/v1/eeg/results/{job_id}"
-)
-print(results.json())
+# EEGPT Analysis (synchronous)
+with open("data/sample.edf", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/api/v1/eeg/eegpt/analyze",
+        files={"edf_file": f},
+        data={"analysis_type": "abnormality_probe"}
+    )
+    eegpt_results = response.json()
+    print(f"Prediction: {eegpt_results['prediction']}")
+
+# Sleep Analysis (asynchronous)
+with open("data/sample.edf", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/api/v1/eeg/sleep/analyze",
+        files={"edf_file": f}
+    )
+    job = response.json()
+    job_id = job["job_id"]
+    
+    # Poll for results
+    import time
+    while True:
+        result = requests.get(f"http://localhost:8000/api/v1/jobs/{job_id}")
+        if result.json()["status"] == "completed":
+            print(result.json()["result"])
+            break
+        time.sleep(5)
 ```
 
 ## OpenAPI Documentation
@@ -183,17 +275,27 @@ All errors return JSON with structure:
 
 ```json
 {
-  "error": {
-    "code": "INVALID_FILE_FORMAT",
-    "message": "File must be EDF or BDF format",
-    "details": {...}
-  }
+  "detail": "Error message here"
+}
+```
+
+Or for validation errors:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "edf_file"],
+      "msg": "File must be EDF or BDF format",
+      "type": "value_error"
+    }
+  ]
 }
 ```
 
 ## Performance
 
-- Average response time: <100ms (cached), <30s (processing)
+- Average response time: <100ms (cached), <5s (QC), <30s (EEGPT)
 - Max file size: 2GB
 - Concurrent requests: 50
 - Memory limit per request: 4GB
