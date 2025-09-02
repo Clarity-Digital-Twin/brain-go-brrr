@@ -1,4 +1,4 @@
-# Brain-Go-Brrr 🧠⚡
+# Brain-Go-Brrr ⚡
 
 **Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
 
@@ -12,18 +12,52 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## 🎯 What We Do
+## 🧠 The Problem: Making Sense of Brain Waves
 
-Transform raw EEG data into clinical insights using the EEGPT foundation model and specialized analysis pipelines. Perfect for researchers, clinicians, and developers working with brain signals.
+**What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
 
-**Key Capabilities:**
-- 🌙 **Sleep Staging** - 87% accuracy (using YASA baseline; Vallat & Walker 2021)
-- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection
-- ⚠️ **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC)
-- 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
-- 🏗️ **Clean Architecture** - Research-grade with 899+ tests and 86% coverage
+**🌊 The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
+- **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
+- **Expert-Intensive**: Neurologists spend hours manually reviewing each recording  
+- **Variable**: Every brain is unique - what works for one person often fails for another
+- **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
+
+**🚀 Why Now?** The same transformer technology that powers large language models is starting to work for brain analysis:
+- **Large datasets** of labeled EEG recordings are now available for training
+- **Foundation models** like EEGPT can learn patterns from thousands of patients
+- **Faster processing** compared to traditional manual review methods
+- **Research-grade accuracy** approaching expert performance on specific validated tasks
+
+**🎯 Our Mission:** Make research-grade EEG analysis accessible by combining the EEGPT foundation model with production-ready infrastructure and clinical validation pipelines.
+
+**What This Is Not:**
+- Not a medical device - not FDA approved for clinical decision-making
+- Not a replacement for neurologists - designed to assist, not diagnose
+- Not validated on all populations - trained on specific research datasets
+
+## 🛠️ What We Build
+
+A production-ready Python system that transforms raw brain recordings into structured insights:
+
+**👥 Current Users:**
+- **Research Labs**: Clean and analyze EEG data with reproducible pipelines
+- **Academic Teams**: Standardized analysis pipeline for EEG studies
+
+**🔮 Potential Applications:**
+- **Sleep Research**: Automated sleep staging using YASA integration
+- **BCI Development**: Feature extraction pipeline for brain-computer interfaces
+- **Mental Health Research**: Objective biomarkers for psychiatric conditions (active research area)
+
+**⚡ Key Capabilities:**
+- **Sleep Staging** - 87% accuracy reported in literature (YASA; Vallat & Walker 2021)
+- **Quality Control** - Artifact rejection and bad channel detection via Autoreject
+- **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC from EEGPT paper)
+- **Fast Processing** - Target: <2 minutes for 20-minute recordings (hardware dependent)
+- **Clean Architecture** - 899+ tests with 86% code coverage
 
 ## 🚀 Quick Start
+
+Want to see it in action? Get running in under a minute:
 
 ```bash
 # Install (takes 30 seconds)
@@ -84,7 +118,49 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 - **Research accuracy** - 87% sleep staging (YASA), targeting 87% abnormality AUROC
 - **Well-tested** - Clean architecture, dependency injection, comprehensive testing
 
+## 🔬 For Researchers
+
+### Training Custom Models
+
+We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
+
+```bash
+# Train abnormality detection
+cd experiments/eegpt_linear_probe
+
+# Build preprocessed cache first
+./scripts/build_mne_cache.sh
+
+# Train with MNE preprocessing
+./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
+./scripts/launch_tuev_mne.sh  # For TUEV event detection
+
+# Monitor training
+tmux attach -t tuab_training
+```
+
+See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
+
+### Datasets & Pretrained Models
+
+**EEGPT Foundation Model:**
+- Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
+- Place in `data/models/pretrained/`
+- 10M parameters, trained on 58 channels
+
+**Datasets** (not included due to size/licensing, obtain separately):
+
+- **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
+- **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
+
 ## 💻 For Developers
+
+### System Requirements
+
+- **Python:** 3.11 or 3.12
+- **RAM:** 16GB minimum
+- **GPU:** Optional (speeds up training)
+- **OS:** Linux, macOS, Windows (WSL2)
 
 ### Project Structure
 ```
@@ -95,7 +171,7 @@ brain-go-brrr/
 │   ├── infra/            # External adapters (EEGPT, YASA, etc.)
 │   └── api/              # REST API endpoints
 ├── experiments/          # Training scripts and research
-├── tests/               # 790+ unit, integration, and smoke tests
+├── tests/               # 899+ unit, integration, and smoke tests
 └── docs/               # Comprehensive documentation
 ```
 
@@ -114,6 +190,38 @@ make test-watch
 make check-all
 ```
 
+### Configuration & Data Paths
+
+**Environment Variables:**
+
+Configure data paths for your datasets:
+
+- `BGB_DATA_ROOT` - Root data directory (default: "data")
+- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
+- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
+- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
+- `BGB_TUAB_VERSION` - TUAB dataset version (use "" for versionless layout)
+- `BGB_TUEV_VERSION` - TUEV dataset version (use "" for versionless layout)
+
+**Running with Real Data:**
+
+```bash
+# Set data root directory
+export BGB_DATA_ROOT=/path/to/your/data
+
+# For versionless directory layouts (e.g., tuab/edf instead of tuab/v3.0.1/edf)
+export BGB_TUAB_VERSION=""
+export BGB_TUEV_VERSION=""
+
+# Run integration tests with real data
+uv run pytest -m "integration and data" --run-integration --run-data \
+    tests/integration/test_tuab_real_data.py
+
+# Use specific Sleep-EDF file for testing
+export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
+uv run pytest tests/unit/domain/sleep -v
+```
+
 ### Contributing
 
 We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
@@ -124,45 +232,10 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 4. **Create** a pull request with clear description
 
 **Good First Issues:**
-- Improve test coverage (currently 66%, target 70%)
+- Improve test coverage (currently 86%, target 90%)
 - Add more preprocessing options
 - Enhance documentation
 - Create example notebooks
-
-## 🔬 For Researchers
-
-### Training Custom Models
-
-We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
-
-```bash
-# Train abnormality detection
-cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh  # Standard training
-
-# Or with MNE preprocessing for improved accuracy
-./scripts/build_mne_cache.sh  # Build preprocessed cache
-./scripts/launch_tuab_mne.sh  # Train with clean data
-
-# Monitor training
-tmux attach -t tuab_training
-```
-
-See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
-
-### Pretrained Models
-
-**EEGPT Foundation Model:**
-- Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
-- Place in `data/models/pretrained/`
-- 10M parameters, trained on 58 channels
-
-### Datasets
-
-Not included due to size/licensing. Obtain separately:
-
-- **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
-- **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
 
 ## 🚦 Current Status & Roadmap
 
@@ -170,7 +243,7 @@ Not included due to size/licensing. Obtain separately:
 - Sleep staging integration (YASA baseline, 87% accuracy)
 - Quality control pipeline (Autoreject + MNE)
 - REST API with Redis caching
-- 790+ tests with CI/CD
+- 899+ tests with CI/CD
 
 ### 🚧 In Progress
 - TUAB abnormality detection training (targeting 87% AUROC)
@@ -190,16 +263,9 @@ Not included due to size/licensing. Obtain separately:
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | Target: 87% AUROC | 🚧 Training in progress |
 | Event Detection (TUEV) | Target: 62% BAC | 🚧 Implementation phase |
-| Test Coverage | 66% | ✅ 790+ passing tests |
+| Test Coverage | 86% | ✅ 899+ passing tests |
 | API Response Time | <100ms | ✅ With Redis caching |
-| Processing Speed | <2 min/20min EEG | ✅ Benchmarked |
-
-## 🛠️ System Requirements
-
-- **Python:** 3.11 or 3.12
-- **RAM:** 16GB minimum
-- **GPU:** Optional (speeds up training)
-- **OS:** Linux, macOS, Windows (WSL2)
+| Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 
 ## 📚 Documentation
 
@@ -283,25 +349,6 @@ Not included due to size/licensing. Obtain separately:
 ```
 </details>
 
-## 🔧 Environment Variables
-
-The following environment variables can be used to configure data paths:
-
-- `BGB_DATA_ROOT` - Root data directory (default: "data")
-- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
-- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
-- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
-
-Example usage:
-```bash
-# Use custom data location
-export BGB_DATA_ROOT=/mnt/data/eeg
-uv run python scripts/testing/test_sleep_analysis.py
-
-# Use specific Sleep-EDF file
-export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
-uv run pytest tests/unit/domain/sleep -v
-```
 
 ## 🤝 Support & Community
 
