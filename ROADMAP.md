@@ -242,12 +242,14 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 1. **TUAB (abnormal triage)** - Binary classification
    - **Who cares:** Researchers, teaching labs, triage tools
    - **Metrics:** AUROC, Balanced Accuracy, **Specificity @ Sensitivity = {0.90, 0.95}**
+   - **Channels:** 20 standard 10-20 channels (FP1, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2, OZ)
    - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits (train/val/test)
    - **DoD:** `bgb eval tuab` writes `metrics.json` + `roc.csv` + `provenance.json`
 
 2. **TUEV (event classes)** - 6-class event detection  
    - **Who cares:** Researchers benchmarking feature detectors (SPSW/GPED/PLED/etc.)
    - **Metrics:** Per-class F1/sensitivity, macro-F1; optional FP/hour if temporal
+   - **Channels:** 23 channels in raw files (includes A1, A2, FPZ), mapped to 20 standard for processing
    - **Splits:** Use canonical TUH TUEV v2.0.1 patient-level splits
    - **DoD:** `bgb eval tuev` writes class metrics + optional event CSV
 
@@ -255,6 +257,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 3. **TUSZ (seizure detection)** - The one that unlocks "real"
    - **Who cares:** Clinicians, EMU/ICU, Picone-type evaluators
    - **Metrics:** **FA/24h @ Sensitivity = {0.90, 0.95}** (example targets - adjust per clinical setting), TAES, DET curve
+   - **Channels:** 19+ EEG channels for annotation, flexible recording (handles varying channel counts in raw files)
    - **Splits:** Use canonical TUH TUSZ v2.0.3 patient-level splits
    - **DoD:** `bgb eval tusz --metrics taes,fa_per_24h,det` with frozen threshold from VAL
 
