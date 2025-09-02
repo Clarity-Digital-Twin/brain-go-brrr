@@ -233,6 +233,34 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 # 4. FREEZE all params, evaluate ONCE on test
 ```
 
+## Dataset Execution Order & Scope
+
+### Do NOW (Research credibility)
+1. **TUAB (abnormal triage)** - Binary classification
+   - **Who cares:** Researchers, teaching labs, triage tools
+   - **Metrics:** AUROC, Balanced Accuracy, **Specificity @ Sensitivity = {0.90, 0.95}**
+   - **DoD:** `bgb eval tuab` writes `metrics.json` + `roc.csv` + `provenance.json`
+
+2. **TUEV (event classes)** - 6-class event detection  
+   - **Who cares:** Researchers benchmarking feature detectors (SPSW/GPED/PLED/etc.)
+   - **Metrics:** Per-class F1/sensitivity, macro-F1; optional FP/hour if temporal
+   - **DoD:** `bgb eval tuev` writes class metrics + optional event CSV
+
+### Add NEXT (Clinical credibility)
+3. **TUSZ (seizure detection)** - The one that unlocks "real"
+   - **Who cares:** Clinicians, EMU/ICU, Picone-type evaluators
+   - **Metrics:** **FA/24h @ Sensitivity = {0.90, 0.95}**, TAES, DET curve
+   - **DoD:** `bgb eval tusz --metrics taes,fa_per_24h,det` with frozen threshold from VAL
+
+### "Stop Here" Rule
+If you have:
+- TUAB `metrics.json` (AUROC/BAC/Spec@Sens)
+- TUEV macro-F1 (and optional event CSV)  
+- TUSZ FA/24h + Sens@{1,5,10} with documented threshold policy
+- **Local-first deploy** (CLI/Docker: "data never leaves this machine")
+
+You've satisfied **researchers** (reproducible baselines) AND **clinicians** (acceptance metric). Ship this.
+
 ### Implementation Checklist
 
 #### For TUAB (Abnormal Detection - Classification)
