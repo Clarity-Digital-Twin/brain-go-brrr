@@ -130,19 +130,83 @@ tar -czf bgb-offline.tar.gz wheelhouse/ models/
 
 ## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT
 
-### For TUAB (Abnormal Detection - Classification)
-- [ ] Implement sensitivity/specificity curves
-- [ ] Calculate balanced accuracy  
-- [ ] Find specificity at fixed sensitivity (90%, 95%)
-- [ ] Generate ROC curves
-- [ ] Implement proper confusion matrix calculation at threshold
-- [ ] Add threshold sweep to find optimal operating points
+### Operating Point Selection (THE CRITICAL BRIDGE 🌉)
 
-### For TUSZ (Seizure Detection - Temporal Events) 
-- [ ] Implement FA/24h calculation from predictions
-- [ ] Add TAES/ATWV for time-aligned scoring
-- [ ] Generate DET curves for operating point selection
-- [ ] Calculate sensitivity at fixed FA/24h thresholds
+#### For TUAB (Binary Classification)
+```python
+# 1. Compute ROC on VALIDATION set
+from sklearn.metrics import roc_curve
+fpr, tpr, thresholds = roc_curve(y_val, scores_val)
+
+# 2. Find threshold for target sensitivity
+target_sens = 0.95
+idx = np.argmax(tpr >= target_sens)  # First threshold achieving target
+threshold = thresholds[idx]
+
+# 3. Calculate specificity at this threshold
+tn = ((scores_val < threshold) & (y_val == 0)).sum()
+fp = ((scores_val >= threshold) & (y_val == 0)).sum()
+specificity = tn / (tn + fp)
+
+# 4. FREEZE threshold, evaluate ONCE on test
+y_test_pred = (scores_test >= threshold).astype(int)
+```
+
+#### For TUSZ (Temporal Events with FA/24h)
+```python
+# 1. Convert frame scores to events with post-processing
+def scores_to_events(scores, threshold, gap_s=3, min_s=2):
+    mask = scores >= threshold
+    # Morphological operations to merge nearby detections
+    mask = binary_closing(mask, structure=np.ones(gap_s * sample_rate))
+    # Remove short events
+    events = extract_events(mask)
+    return [e for e in events if e.duration >= min_s]
+
+# 2. Time-aligned matching (TAES approach from Picone's paper)
+def match_events(pred_events, ref_events, overlap_threshold=0.5):
+    tp, fp, fn = 0, 0, 0
+    for pred in pred_events:
+        if any(overlap(pred, ref) >= overlap_threshold for ref in ref_events):
+            tp += 1
+        else:
+            fp += 1
+    fn = len(ref_events) - tp
+    return tp, fp, fn
+
+# 3. Sweep thresholds on VALIDATION to minimize FA/24h
+best_threshold = None
+min_fa_per_24h = float('inf')
+for threshold in np.arange(0.3, 0.9, 0.05):
+    events = scores_to_events(scores_val, threshold)
+    tp, fp, fn = match_events(events, ref_events_val)
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    fa_per_24h = (fp / total_hours_val) * 24
+    
+    if sensitivity >= 0.95 and fa_per_24h < min_fa_per_24h:
+        min_fa_per_24h = fa_per_24h
+        best_threshold = threshold
+
+# 4. FREEZE all params, evaluate ONCE on test
+```
+
+### Implementation Checklist
+
+#### For TUAB (Abnormal Detection - Classification)
+- [ ] Implement ROC curve generation on validation set
+- [ ] Find threshold for 90% and 95% sensitivity
+- [ ] Calculate specificity at chosen thresholds
+- [ ] Generate confusion matrix at each operating point
+- [ ] Report: AUROC, BAC, Spec@90%Sens, Spec@95%Sens
+- [ ] Create `spec_at_sens(y_true, y_score, sens=0.95)` function
+
+#### For TUSZ (Seizure Detection - Temporal Events)
+- [ ] Implement post-processing pipeline (merge gaps, min duration)
+- [ ] Add time-aligned event matching (TAES/ATWV)
+- [ ] Calculate FA/24h at multiple sensitivities
+- [ ] Find threshold minimizing FA/24h at target sensitivity
+- [ ] Generate DET curves showing trade-offs
+- [ ] Report: Sens@{1,5,10}FA/24h, FA/24h@95%Sens
 
 ### Key Code to Add:
 ```python
@@ -191,6 +255,28 @@ docker run -v /data/TUSZ:/data:ro brain-go-brrr eval tusz \
 ```
 
 ## Phase 4: Clinical Validation (Week 7-8)
+
+### ⚠️ CRITICAL: Validation Methodology (NO DATA LEAKAGE!)
+```python
+# The ONLY correct way to evaluate
+from sklearn.model_selection import train_test_split
+
+# 1. Split data at PATIENT level (not sample level!)
+train_patients, test_patients = split_patients(patient_ids, test_size=0.2)
+train_patients, val_patients = split_patients(train_patients, test_size=0.25)
+
+# 2. Train linear probe on TRAIN only
+probe = train_linear_probe(train_data)
+
+# 3. Find threshold on VAL (never touch TEST!)
+best_threshold = find_threshold_on_validation(val_data, probe)
+
+# 4. Evaluate ONCE on TEST with frozen threshold
+test_results = evaluate(test_data, probe, threshold=best_threshold)
+
+# THIS IS WRONG (data leakage):
+# threshold = find_threshold(test_data)  # ❌ NEVER DO THIS
+```
 - [ ] Test on full TUAB canonical split (patient-level, no leakage)
 - [ ] Document specificity at multiple sensitivity levels
 - [ ] Create comparison table vs classical methods
@@ -260,6 +346,35 @@ See `docs/internal/email-templates.md` for templates.
 - **Patient-level splits** - No data leakage between train/test
 - **Test coverage** - Unit tests for each metric function
 - **No hidden I/O** - All file operations explicit
+
+### Critical Edge Cases to Handle
+- **Short recordings**: Guard divide-by-zero in FA/24h calculation
+- **Threshold ties**: Many identical scores → use first index achieving target
+- **Overlapping seizures**: Coalesce reference events before matching
+- **Parameter leakage**: Fit thresholds on VAL, freeze for TEST (no peeking!)
+- **Empty predictions**: Handle recordings with no detected events gracefully
+
+### Unit Test Requirements
+```python
+# Test TUAB threshold selection
+def test_spec_at_sensitivity():
+    # Synthetic scores where we KNOW the answer
+    y_true = [0, 0, 0, 1, 1, 1]
+    y_score = [0.1, 0.3, 0.4, 0.6, 0.8, 0.9]
+    spec, threshold = spec_at_sens(y_true, y_score, sens=0.67)
+    assert threshold == 0.6  # Should pick this threshold
+    assert spec == 0.67  # 2/3 true negatives correctly identified
+
+# Test seizure FA/24h calculation
+def test_fa_per_24h():
+    # 1-hour recording with known events
+    pred_events = [(10, 20), (100, 110), (500, 510)]  # 3 predictions
+    ref_events = [(12, 18), (600, 610)]  # 2 actual seizures
+    tp, fp, fn = match_events(pred_events, ref_events)
+    assert tp == 1  # First pred matches first ref
+    assert fp == 2  # Two false alarms
+    assert calculate_fa_per_24h(fp, total_hours=1) == 48  # 2 FA/hr * 24
+```
 
 ## Next 3 Concrete Commits (When Ready to Code)
 1. `feat(metrics): classification Spec@Sens + tests`
