@@ -208,19 +208,20 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 
 #### For TUAB (Abnormal Detection - Classification)
 - [ ] Implement ROC curve generation on validation set
-- [ ] Find threshold for 90% and 95% sensitivity
+- [ ] Find threshold for 90% and 95% sensitivity (pick SMALLEST τ achieving target)
 - [ ] Calculate specificity at chosen thresholds
 - [ ] Generate confusion matrix at each operating point
-- [ ] Report: AUROC, BAC, Spec@90%Sens, Spec@95%Sens
+- [ ] Report metrics: `{auroc, balanced_accuracy, spec_at_sens=[0.90,0.95]}`
 - [ ] Create `spec_at_sens(y_true, y_score, sens=0.95)` function
 
 #### For TUSZ (Seizure Detection - Temporal Events)
-- [ ] Implement post-processing pipeline (merge gaps, min duration)
-- [ ] Add time-aligned event matching (TAES/ATWV)
-- [ ] Calculate FA/24h at multiple sensitivities
-- [ ] Find threshold minimizing FA/24h at target sensitivity
-- [ ] Generate DET curves showing trade-offs
-- [ ] Report: Sens@{1,5,10}FA/24h, FA/24h@95%Sens
+- [ ] Implement post-processing pipeline (gap_s=3-5, min_s=2-5, tune on VAL)
+- [ ] Add TAES (Time-Aligned Event Scoring) using Jaccard index
+- [ ] Optional: Implement ATWV (NIST F4DE) for comparison
+- [ ] Calculate FA/24h using ACTUAL recording duration (not 24h × file_count)
+- [ ] Find threshold MINIMIZING FA/24h subject to sensitivity ≥ target
+- [ ] Generate DET curves showing operating point trade-offs
+- [ ] Report metrics: `{sens_at_fa_per_24h=[1,5,10], fa_per_24h_at_sens=[0.90,0.95], det_curve, taes}`
 
 ### Key Code to Add:
 ```python
@@ -250,22 +251,31 @@ def calculate_fa_per_24h(predictions, labels, threshold, total_hours):
 ```
 
 ## Phase 3: Local Deployment (Week 5-6)
+
+### 🔒 Core Principle: "Data Never Leaves This Machine"
+- Bring compute TO the data (not data to compute)
+- Support air-gapped environments (no internet required)
+- All processing happens locally on hospital/lab infrastructure
+
 - [ ] Create CLI command: `bgb eval tuab --metrics clinical`
 - [ ] Build Docker container with all dependencies
-- [ ] Create offline wheelhouse bundle
-- [ ] Write DEPLOY_LOCAL.md guide
+- [ ] Create offline wheelhouse bundle for air-gapped install
+- [ ] Write DEPLOY_LOCAL.md guide with bold **"data never leaves"** guarantee
 - [ ] Test on fresh machine with no internet
 
 ### Deployment Targets:
 ```bash
-# For TUAB (abnormal detection)
+# For TUAB (abnormal detection) - Binary Classification
 docker pull ghcr.io/clarity-digital-twin/brain-go-brrr:latest
 docker run -v /data/TUAB:/data:ro brain-go-brrr eval tuab \
-  --data-root /data --out results/ --metrics auroc,bac,specificity_at_sens=0.95
+  --data-root /data --out results/ \
+  --metrics auroc,balanced_accuracy,spec_at_sens=0.90,spec_at_sens=0.95
 
-# For TUSZ (seizure detection) - future
+# For TUSZ (seizure detection) - Temporal Events with TAES
 docker run -v /data/TUSZ:/data:ro brain-go-brrr eval tusz \
-  --data-root /data --out results/ --metrics taes,atwv,fa_per_24h
+  --data-root /data --out results/ \
+  --metrics sens_at_fa_per_24h=1,sens_at_fa_per_24h=5,sens_at_fa_per_24h=10,\
+            fa_per_24h_at_sens=0.90,fa_per_24h_at_sens=0.95,det_curve,taes
 ```
 
 ## Phase 4: Clinical Validation (Week 7-8)
@@ -298,10 +308,10 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 - [ ] Package as one-line install script
 - [ ] Ensure deterministic results (seed all RNG)
 - [ ] Create results bundle with:
-  - `metrics.json` (AUROC, BAC, Spec@Sens)
-  - `roc_curve.csv` (FPR, TPR, thresholds)
-  - `provenance.json` (git SHA, versions, seeds, CLI args)
-  - `confusion_matrix.csv` (at each operating point)
+  - **TUAB**: `metrics.json` (AUROC, BAC, Spec@Sens), `roc_curve.csv`
+  - **TUSZ**: `metrics.json` (FA/24h, TAES scores), `events.csv`, `det_curve.csv`
+  - **Both**: `provenance.json` (git SHA, image tag, seeds, CLI args, threshold values)
+  - **Both**: `confusion_matrix.csv` (at each operating point)
 
 ### Success Metrics Tables:
 
