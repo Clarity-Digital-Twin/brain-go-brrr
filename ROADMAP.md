@@ -172,7 +172,7 @@ Container runs locally: docker pull ghcr.io/...
 
 ---
 
-**Remember**: We're not building "AI for EEG" - we're building "FA/24h reducer for neurologists"
+**Remember**: We're not building "AI for EEG" - we're building "clinically-useful tools that solve real problems"
 
 *Last Updated: September 2, 2025*
 *Target Completion: November 1, 2025*
