@@ -17,35 +17,42 @@
 **What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
 
 **The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
-- 🎭 **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
-- 🔬 **Expert-Intensive**: Neurologists spend hours manually reviewing each recording
-- 📊 **Variable**: Every brain is unique - what works for one person often fails for another
-- 💰 **Expensive**: Clinical EEG analysis costs hundreds to thousands per session
+- **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
+- **Expert-Intensive**: Neurologists spend hours manually reviewing each recording  
+- **Variable**: Every brain is unique - what works for one person often fails for another
+- **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
 
 **Why Now?** The same transformer technology that powers large language models is starting to work for brain analysis:
-- 📈 **Large datasets** of labeled EEG recordings are now available for training
-- 🤖 **Foundation models** like EEGPT can learn patterns from thousands of patients
-- ⚡ **Minutes not hours** for processing what previously required extensive manual review
-- 🎯 **Research-grade accuracy** approaching expert neurologist performance on specific tasks
+- **Large datasets** of labeled EEG recordings are now available for training
+- **Foundation models** like EEGPT can learn patterns from thousands of patients
+- **Faster processing** compared to traditional manual review methods
+- **Research-grade accuracy** approaching expert performance on specific validated tasks
 
 **Our Mission:** Make research-grade EEG analysis accessible by combining the EEGPT foundation model with production-ready infrastructure and clinical validation pipelines.
+
+**What This Is Not:**
+- Not a medical device - not FDA approved for clinical decision-making
+- Not a replacement for neurologists - designed to assist, not diagnose
+- Not validated on all populations - trained on specific research datasets
 
 ## 🎯 What We Build
 
 A production-ready Python system that transforms raw brain recordings into structured insights:
 
-**Target Users:**
-- 🧪 **Research Labs**: Clean and analyze EEG data without months of preprocessing
-- 🏥 **Sleep Clinics**: Automated sleep staging to assist technicians
-- 💻 **BCI Developers**: Ready-to-use pipeline for brain-computer interface prototypes
-- 🎓 **Academic Teams**: Reproducible analysis pipeline for EEG studies
+**Current Users:**
+- **Research Labs**: Clean and analyze EEG data with reproducible pipelines
+- **Academic Teams**: Standardized analysis pipeline for EEG studies
+
+**Potential Applications:**
+- **Sleep Research**: Automated sleep staging using YASA integration
+- **BCI Development**: Feature extraction pipeline for brain-computer interfaces
 
 **Key Capabilities:**
-- 🌙 **Sleep Staging** - 87% accuracy (using YASA baseline; Vallat & Walker 2021)
-- 🔍 **Quality Control** - Intelligent artifact rejection and bad channel detection
-- ⚠️ **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC)
-- 🚀 **Fast Processing** - Analyze 20-minute recordings in under 2 minutes
-- 🏗️ **Clean Architecture** - Research-grade with 899+ tests and 86% coverage
+- **Sleep Staging** - 87% accuracy reported in literature (YASA; Vallat & Walker 2021)
+- **Quality Control** - Artifact rejection and bad channel detection via Autoreject
+- **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC from EEGPT paper)
+- **Fast Processing** - Target: <2 minutes for 20-minute recordings (hardware dependent)
+- **Clean Architecture** - 899+ tests with 86% code coverage
 
 ## 🚀 Quick Start
 
@@ -119,7 +126,7 @@ brain-go-brrr/
 │   ├── infra/            # External adapters (EEGPT, YASA, etc.)
 │   └── api/              # REST API endpoints
 ├── experiments/          # Training scripts and research
-├── tests/               # 790+ unit, integration, and smoke tests
+├── tests/               # 899+ unit, integration, and smoke tests
 └── docs/               # Comprehensive documentation
 ```
 
@@ -148,7 +155,7 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 4. **Create** a pull request with clear description
 
 **Good First Issues:**
-- Improve test coverage (currently 66%, target 70%)
+- Improve test coverage (currently 86%, target 90%)
 - Add more preprocessing options
 - Enhance documentation
 - Create example notebooks
@@ -162,17 +169,36 @@ We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
 ```bash
 # Train abnormality detection
 cd experiments/eegpt_linear_probe
-./scripts/launch_tuab.sh  # Standard training
 
-# Or with MNE preprocessing for improved accuracy
-./scripts/build_mne_cache.sh  # Build preprocessed cache
-./scripts/launch_tuab_mne.sh  # Train with clean data
+# Build preprocessed cache first
+./scripts/build_mne_cache.sh
+
+# Train with MNE preprocessing
+./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
+./scripts/launch_tuev_mne.sh  # For TUEV event detection
 
 # Monitor training
 tmux attach -t tuab_training
 ```
 
 See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
+
+### Running with Real Data
+
+For tests with real TUAB/TUEV datasets, you'll need to set environment variables:
+
+```bash
+# Set data root directory
+export BGB_DATA_ROOT=/path/to/your/data
+
+# For versionless directory layouts (e.g., tuab/edf instead of tuab/v3.0.1/edf)
+export BGB_TUAB_VERSION=""
+export BGB_TUEV_VERSION=""
+
+# Run integration tests with real data
+uv run pytest -m "integration and data" --run-integration --run-data \
+    tests/integration/test_tuab_real_data.py
+```
 
 ### Pretrained Models
 
@@ -194,7 +220,7 @@ Not included due to size/licensing. Obtain separately:
 - Sleep staging integration (YASA baseline, 87% accuracy)
 - Quality control pipeline (Autoreject + MNE)
 - REST API with Redis caching
-- 790+ tests with CI/CD
+- 899+ tests with CI/CD
 
 ### 🚧 In Progress
 - TUAB abnormality detection training (targeting 87% AUROC)
@@ -214,9 +240,9 @@ Not included due to size/licensing. Obtain separately:
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | Target: 87% AUROC | 🚧 Training in progress |
 | Event Detection (TUEV) | Target: 62% BAC | 🚧 Implementation phase |
-| Test Coverage | 66% | ✅ 790+ passing tests |
+| Test Coverage | 86% | ✅ 899+ passing tests |
 | API Response Time | <100ms | ✅ With Redis caching |
-| Processing Speed | <2 min/20min EEG | ✅ Benchmarked |
+| Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 
 ## 🛠️ System Requirements
 
