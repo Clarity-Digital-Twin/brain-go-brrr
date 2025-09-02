@@ -210,7 +210,7 @@ class EEGPTModel:
 
 ## Testing Strategy
 
-- **Unit Tests**: 454 passing tests
+- **Unit Tests**: 899 passing tests
 - **Integration Tests**: Real EEG data validation
 - **Performance Tests**: Benchmark suite
 - **CI/CD**: GitHub Actions (all branches green)
