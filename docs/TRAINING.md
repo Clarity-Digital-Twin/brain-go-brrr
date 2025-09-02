@@ -166,7 +166,7 @@ model:
 ### Main Training Script
 
 ```python
-# experiments/eegpt_linear_probe/train_tuab.py
+# experiments/eegpt_linear_probe/train_tuab_mne.py
 
 # Key components:
 1. Memory-mapped dataset for efficiency
@@ -257,13 +257,13 @@ print(f"Best AUROC: {checkpoint['val_auroc']:.4f}")
 ### Resume Training
 
 ```bash
-python train_tuab.py --resume output/tuab_*/last.pt
+python train_tuab_mne.py --resume output/tuab_*/checkpoint_*.pt
 ```
 
 ### Custom Configuration
 
 ```bash
-python train_tuab.py --config configs/custom.yaml
+python train_tuab_mne.py --config configs/tuab.yaml
 ```
 
 ### Multi-GPU Training
