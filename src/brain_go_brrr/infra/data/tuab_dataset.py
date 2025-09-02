@@ -151,7 +151,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
                 # Assert critical cache properties
                 assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
-                assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
+                assert meta['unit'] == 'V', f"Cache unit mismatch: {meta['unit']} != V"
                 assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
                 assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
 
@@ -454,7 +454,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
                     meta_data = {
                         "sr": 256,
-                        "unit": "mV",
+                        "unit": "V",
                         "window": 1024,
                         "channels": CHANNELS_TUAB_19,
                         "n_channels": 19,

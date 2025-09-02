@@ -169,25 +169,25 @@ model:
 # experiments/eegpt_linear_probe/train_tuab_mne.py
 
 # Key components:
-1. Memory-mapped dataset for efficiency
-2. Frozen EEGPT backbone
-3. OneCycleLR scheduler
-4. Early stopping with patience
-5. AUROC tracking
+1. Uses TUABDataset from src/brain_go_brrr/infra/data/
+2. EEGPTWrapper from src/brain_go_brrr/infra/ml_models/
+3. Frozen EEGPT backbone (no gradient updates)
+4. OneCycleLR scheduler for optimal convergence
+5. AUROC tracking for binary classification
 ```
 
-### Custom Dataset
+### Dataset Usage
 
 ```python
-# experiments/eegpt_linear_probe/tuab_dataset.py
+# Training scripts use datasets from src/brain_go_brrr/infra/data/
+from brain_go_brrr.infra.data.tuab_dataset import TUABDataset
+from brain_go_brrr.infra.data.tuev_dataset import TUEVDataset
 
-class TUABMemoryMappedDataset(Dataset):
-    """Ultra-fast dataset using memory-mapped arrays.
-
-    - No RAM usage - streams from disk
-    - >1 GB/s read speed
-    - Automatic windowing
-    """
+# Features:
+# - MNE-based processing
+# - Automatic channel validation
+# - Built-in caching
+# - Correct channel ordering enforcement
 ```
 
 ## Monitoring Training

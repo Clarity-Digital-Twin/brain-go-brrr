@@ -38,7 +38,6 @@ from brain_go_brrr.domain.preprocessing import preprocess  # REUSE!
 **PROBLEM DISCOVERED**: Parallel implementations in experiments/ and src/
 - Status: BOTH FIXED with normalization
 - TODO: Migrate experiments/ to use src/ components
-- See: `/THE_ONE_FIX.md` for complete unfuck plan
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -516,7 +515,7 @@ async def analyze_eeg(
 
 ## 📋 First Vertical Slice (MVP)
 
-Based on ROUGH_DRAFT.md, implement in this order:
+Implement in this order:
 
 ### 1. Basic EEG Pipeline
 
@@ -736,10 +735,3 @@ make check-all  # Run all quality checks
 
 Remember: This handles brain data. Accuracy matters. Test everything.
 
-## 🔗 Quick Links
-
-- [Literature Master Reference](docs/literature-master-reference.md)
-- [Product Requirements](docs/PRD-product-requirements.md)
-- [Technical Requirements](docs/TRD-technical-requirements.md)
-- [Agentic Workflow Guide](docs/agentic-workflow.md)
-- [Project Status](PROJECT_STATUS.md)
