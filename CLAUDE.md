@@ -66,7 +66,7 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
-- **Unit Tests**: 751 passing tests (as of Aug 28, 2025)
+- **Unit Tests**: 899 passing tests (as of Sep 2, 2025)
 - **Architecture**: Unified - experiments/ uses src/ components
 - **Normalization**: SSOT in wrapper, datasets emit raw mV
 - **Channel Validation**: Enforces correct order per dataset

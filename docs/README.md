@@ -20,8 +20,8 @@
 - **CI/CD Pipeline** - GitHub Actions on all branches
 
 ### 🟡 In Progress
-- **TUAB Abnormality Detection** - Linear probe training (4% complete)
-- **Documentation Cleanup** - Consolidating 130+ docs to <10
+- **TUAB Abnormality Detection** - Linear probe training (AUROC improving toward 87% target)
+- **Documentation Cleanup** - Actively auditing and updating all docs
 
 ### ❌ Not Implemented
 - **Event Detection** - Seizure/IED detection

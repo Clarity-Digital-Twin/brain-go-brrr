@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FastAPI REST API
 - CLI interface
 - PDF/Markdown report generation
-- 790+ passing tests
+- 899+ passing tests
 
 ### Fixed
 - API smoke tests using TestClient
