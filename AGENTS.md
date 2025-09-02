@@ -1,4 +1,4 @@
-# AGENTS.md - Brain-Go-Brrr Project (FIXED ARCHITECTURE)
+# CLAUDE.md - Brain-Go-Brrr Project (FIXED ARCHITECTURE)
 
 ## 🔥🔥🔥 CRITICAL: ARCHITECTURE RULES TO PREVENT DISASTERS 🔥🔥🔥
 
@@ -66,7 +66,7 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
-- **Unit Tests**: 751 passing tests (as of Aug 28, 2025)
+- **Unit Tests**: 899 passing tests (as of Sep 2, 2025)
 - **Architecture**: Unified - experiments/ uses src/ components
 - **Normalization**: SSOT in wrapper, datasets emit raw mV
 - **Channel Validation**: Enforces correct order per dataset
@@ -125,8 +125,29 @@ uv run ruff check src/ tests/ scripts/ experiments/
 # 4. Run type checking with CI config
 uv run mypy --config-file mypy.ini src/brain_go_brrr
 
+# 5. Check for unsafe torch.load usage (CRITICAL - CI WILL FAIL WITHOUT THIS)
+find src tests experiments -name "*.py" | grep -v safe_load.py | xargs uv run python .pre-commit-hooks/safe_torch_load.py
+
 # Or use the all-in-one command:
 make check-all  # Runs all checks CI will run
+```
+
+### 🔒 SECURITY: torch.load Requirements
+
+**CI/CD WILL FAIL if torch.load is used unsafely!** All `torch.load` calls MUST either:
+1. Use `weights_only=True` for pure tensor data
+2. Use `weights_only=False` WITH `# nosec:weights_only` comment explaining why unsafe loading is needed
+3. Use the `safe_load` wrapper from `brain_go_brrr.infra.safe_load`
+
+```python
+# ✅ GOOD - Safe loading for tensors
+checkpoint = torch.load(path, map_location='cpu', weights_only=True)
+
+# ✅ GOOD - Unsafe with explicit justification
+data = torch.load(cache_file, weights_only=False)  # nosec:weights_only - cache contains numpy arrays
+
+# ❌ BAD - Will fail CI/CD
+data = torch.load(path)  # Missing weights_only parameter
 ```
 
 ### Standard Development Commands
@@ -268,10 +289,10 @@ brain-go-brrr/
 ├── data/                   # All data (gitignored)
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
-│   └── datasets/          # EEG datasets (managed via DataConfig)
-│       ├── tuab/          # TUH Abnormal (use DataConfig.tuab_root)
-│       ├── tuev/          # TUH Events (use DataConfig.tuev_root)
-│       └── sleep-edf/     # Sleep-EDF (use DataConfig.sleep_edf_root)
+│   └── datasets/          # EEG datasets
+│       ├── tuab/          # TUH Abnormal dataset v3.0.1
+│       ├── tuev/          # TUH Events dataset v2.0.1
+│       └── sleep-edf/     # Sleep-EDF dataset (197 recordings)
 └── literature/            # Research papers & markdown
 ```
 
@@ -576,14 +597,12 @@ make docs
 ```python
 from pathlib import Path
 import mne
-from brain_go_brrr.application.config import DataConfig
 from services.sleep_metrics import SleepAnalyzer
 
-# Load data using DataConfig
+# Load data using config
+from brain_go_brrr.application.config import DataConfig
 config = DataConfig()
 edf_path = config.get_sleep_edf_psg_file()  # Gets first PSG file deterministically
-if not edf_path:
-    raise FileNotFoundError("Sleep-EDF data not available")
 raw = mne.io.read_raw_edf(edf_path, preload=True)
 
 # Run analysis
@@ -633,15 +652,9 @@ print(f'Model size: {model_path.stat().st_size / 1e6:.1f} MB')
 # Profile memory usage
 uv run python -m memory_profiler scripts/testing/test_sleep_analysis.py
 
-# Check Sleep-EDF data using DataConfig paths
-uv run python -c "
-from brain_go_brrr.application.config import DataConfig
-config = DataConfig()
-import pathlib
-files = list(config.sleep_edf_cassette_dir.glob('*.edf'))
-print(f'Found {len(files)} EDF files')
-"
-# Should show 197 PSG files (not 397 which includes hypnogram files)
+# Check Sleep-EDF data
+find data/datasets/sleep-edf -name "*.edf" | wc -l
+# Should show 397 files
 ```
 
 ## 📊 Performance Benchmarks
