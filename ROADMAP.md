@@ -158,9 +158,9 @@ Container runs locally: docker pull ghcr.io/...
 ---
 
 ## Daily Check-in Questions
-1. Does this help clinicians reduce false alarms?
+1. Are we using the RIGHT metric for the RIGHT task?
 2. Can this run on a hospital workstation?
-3. Would Picone be impressed by the rigor?
+3. Would an expert reviewer be impressed by the rigor?
 
 ## Resources
 - Picone's metrics paper: `/literature/markdown/evaluation-metrics/picone-2021-objective-evaluation-metrics.md`
