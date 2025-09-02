@@ -189,11 +189,14 @@ def scores_to_events(scores, threshold, sample_rate=256, gap_s=3, min_s=2):
 
 # 2. Time-aligned matching using TAES (Picone 2021 methodology)
 def match_events(pred_events, ref_events, overlap_threshold=0.5):
-    """TAES uses Jaccard index (IoU) for overlap calculation.
-    Overlap threshold: 0.5 (50%) is standard per Picone paper.
-    CRITICAL: Coalesce overlapping reference events first!
+    """TAES uses Jaccard index (IoU ≥ 0.5) for overlap calculation.
+    
+    Key requirements:
+    - IoU (Intersection over Union) ≥ 0.5 for a match
+    - Coalesce overlapping reference events FIRST
+    - Standard per Picone 2021 paper
     """
-    # First coalesce overlapping reference events
+    # CRITICAL: First coalesce overlapping reference events to avoid double-counting
     ref_events = coalesce_overlapping_events(ref_events)
     
     tp, fp, fn = 0, 0, 0
@@ -223,10 +226,11 @@ def match_events(pred_events, ref_events, overlap_threshold=0.5):
 best_threshold = None
 min_fa_per_24h = float('inf')
 
-# CRITICAL: Calculate total_hours correctly
-total_hours_val = sum(recording.duration_seconds for recording in val_set) / 3600
-if total_hours_val < 0.1:  # Guard against divide-by-zero
-    raise ValueError(f"Insufficient validation data: {total_hours_val:.2f} hours")
+# CRITICAL: Calculate ANNOTATED hours correctly (not total recording time)
+# Use only the hours that have been manually annotated for seizures
+total_annotated_hours_val = sum(recording.annotated_duration_seconds for recording in val_set) / 3600
+if total_annotated_hours_val < 0.1:  # Guard against divide-by-zero
+    raise ValueError(f"Insufficient annotated validation data: {total_annotated_hours_val:.2f} hours")
 
 for threshold in np.arange(0.3, 0.9, 0.05):
     events = scores_to_events(scores_val, threshold)
@@ -435,6 +439,8 @@ See `docs/internal/email-templates.md` for templates.
 - [ ] Implement TUEV event classification
 - [ ] Create watch-folder daemon mode
 - [ ] Build Apptainer/Singularity image for HPC
+- [ ] **Channel emphasis**: Weight T5-O1 (temporal-occipital) higher in ensemble (from TUAB thesis)
+- [ ] ~~Ablation: 7s windows~~ (NO - that was optimal for old CNNs, not transformers)
 
 ## Anti-Goals (What NOT to Do)
 - ❌ NO cloud/SaaS features yet
