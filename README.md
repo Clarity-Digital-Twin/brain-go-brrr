@@ -18,7 +18,7 @@
 
 **🌊 The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
 - **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
-- **Expert-Intensive**: Researchers spend days manually cleaning data for studies  
+- **Expert-Intensive**: Researchers spend days manually cleaning data for studies
 - **Variable**: Every brain is unique - what works for one person often fails for another
 - **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
 
@@ -222,20 +222,15 @@ export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
 uv run pytest tests/unit/domain/sleep -v
 ```
 
-### Contributing
+## 📚 Documentation
 
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
-
-1. **Fork & Clone** the repository
-2. **Read** [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the design
-3. **Follow** [TESTING.md](docs/TESTING.md) for test guidelines
-4. **Create** a pull request with clear description
-
-**Good First Issues:**
-- Improve test coverage (currently 86%, target 90%)
-- Add more preprocessing options
-- Enhance documentation
-- Create example notebooks
+| Guide | Description |
+|-------|------------|
+| [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
+| [API.md](docs/API.md) | REST endpoint reference |
+| [TRAINING.md](docs/TRAINING.md) | Model training guide |
+| [TESTING.md](docs/TESTING.md) | Test philosophy and guidelines |
 
 ## 🚦 Current Status & Roadmap
 
@@ -267,15 +262,20 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 
-## 📚 Documentation
+## 🤝 Contributing
 
-| Guide | Description |
-|-------|------------|
-| [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
-| [API.md](docs/API.md) | REST endpoint reference |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide |
-| [TESTING.md](docs/TESTING.md) | Test philosophy and guidelines |
+We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
+
+1. **Fork & Clone** the repository
+2. **Read** [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the design
+3. **Follow** [TESTING.md](docs/TESTING.md) for test guidelines
+4. **Create** a pull request with clear description
+
+**Good First Issues:**
+- Improve test coverage (currently 86%, target 90%)
+- Add more preprocessing options
+- Enhance documentation
+- Create example notebooks
 
 ## ⚠️ Limitations & Disclaimers
 
