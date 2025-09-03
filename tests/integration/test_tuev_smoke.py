@@ -44,9 +44,9 @@ class TestTUEVSmoke:
             assert ch not in epochs.ch_names, f"Old naming found: {ch}"
         
         # 4. TUEV specifics: HAS Fz, NO Fpz, HAS Oz
-        assert "FZ" in epochs.ch_names, "TUEV must have Fz"
-        assert "FPZ" not in epochs.ch_names, "TUEV must NOT have Fpz"
-        assert "OZ" in epochs.ch_names, "TUEV must have Oz"
+        assert "Fz" in epochs.ch_names, "TUEV must have Fz"
+        assert "Fpz" not in epochs.ch_names, "TUEV must NOT have Fpz"
+        assert "Oz" in epochs.ch_names, "TUEV must have Oz"
         
         # 5. Sampling rate EXACTLY 256Hz
         assert epochs.info["sfreq"] == 256, f"Expected 256Hz, got {epochs.info['sfreq']}"
