@@ -3,7 +3,7 @@
 Part of P2 technical debt cleanup - consolidates TwoLayerProbe and EEGPTProbe.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 import torch.nn as nn
 
@@ -29,7 +29,7 @@ class ProbeFactory:
         architecture: Literal["linear", "two_layer"] = "two_layer",
         dropout: float = 0.0,
         pool: Literal["mean", "max", "cls"] = "mean",
-        **kwargs,
+        **kwargs: Any,  # noqa: ARG004 - for future extensions
     ) -> nn.Module:
         """Create a probe with the specified architecture.
 
@@ -78,7 +78,7 @@ class ProbeFactory:
         cls,
         task: str,
         input_dim: int = 2048,
-        **kwargs,
+        **kwargs: Any,
     ) -> nn.Module:
         """Create a probe for a specific task with sensible defaults.
 
@@ -138,7 +138,7 @@ class ProbeFactory:
 UnifiedProbe = ProbeFactory
 
 
-def migrate_eegpt_probe_to_factory(eegpt_probe_state_dict):
+def migrate_eegpt_probe_to_factory(eegpt_probe_state_dict: dict[str, Any]) -> dict[str, Any]:
     """Migrate EEGPTProbe state_dict to ProbeFactory format.
 
     Args:
