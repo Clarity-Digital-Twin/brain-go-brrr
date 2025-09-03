@@ -100,10 +100,7 @@ def canonicalize_channel_labels(raw: mne.io.Raw) -> mne.io.Raw:
 
         # Apply legacy to modern mapping
         legacy_map = {'T3': 'T7', 'T4': 'T8', 'T5': 'P7', 'T6': 'P8'}
-        if upper in legacy_map:
-            modern = legacy_map[upper]
-        else:
-            modern = upper
+        modern = legacy_map.get(upper, upper)
 
         # Apply mixed-case standard (Fp not FP, lowercase 'z' in Cz/Pz/Fz/Oz)
         case_map = {
