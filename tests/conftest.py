@@ -421,6 +421,7 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
         rng = np.random.default_rng(seed=44)
 
         # TUEV uses standard 10-20 with EOG channels (MODERN naming)
+        # CRITICAL: Must match CHANNELS_TUEV_20 (20 EEG channels including Oz, NO Fpz)
         ch_names = [
             "Fp1",
             "Fp2",
@@ -441,13 +442,14 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
             "P8",  # Modern: T5→P7, T6→P8
             "O1",
             "O2",
+            "Oz",  # CRITICAL: TUEV needs Oz!
             "A1",
             "A2",
             "EOG",
         ]
 
         # PROPER CHANNEL TYPES: EOG is not EEG!
-        ch_types = ["eeg"] * 21 + ["eog"]  # Last channel is EOG
+        ch_types = ["eeg"] * 22 + ["eog"]  # Last channel is EOG, 22 EEG channels
 
         # Create 60 seconds of data at 256Hz (fast CI)
         sfreq = 256
