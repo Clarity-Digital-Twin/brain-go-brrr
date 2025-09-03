@@ -1,10 +1,9 @@
 """Smoke test for TUEV dataset integration.
 
-This test verifies that TUEV (TUH EEG Events) data can be loaded
-and processed through our pipeline for event detection.
+This test verifies that TUEV data can be loaded and processed
+through our pipeline with proper channel mapping and normalization.
 """
 
-import mne
 import numpy as np
 import pytest
 
@@ -12,186 +11,131 @@ import pytest
 @pytest.mark.integration
 @pytest.mark.synth  # Can run with synthetic data
 class TestTUEVSmoke:
-    """Basic smoke tests for TUEV dataset integration."""
+    """Basic smoke tests for TUEV dataset integration using SSOT preprocessor."""
 
     def test_tuev_fixture_loads(self, tuev_sample_path):
         """Test that TUEV fixture provides a valid EDF file."""
         assert tuev_sample_path.exists()
         assert tuev_sample_path.suffix == ".edf"
 
-    def test_tuev_file_readable(self, tuev_sample_path):
-        """Test that TUEV EDF file can be read with MNE."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=False, verbose=False)
-        assert raw is not None
-        assert raw.info["sfreq"] > 0
-        assert len(raw.ch_names) > 0
-
-    def test_tuev_channel_mapping(self, tuev_sample_path):
-        """Test TUEV channel mapping and standard 10-20 channels."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=False, verbose=False)
-
-        # TUEV uses standard 10-20 system plus EOG
-        expected_channels = [
-            "FP1",
-            "FP2",
-            "F7",
-            "F3",
-            "FZ",
-            "F4",
-            "F8",
-            "T3",
-            "T7",  # Either old or new naming
-            "C3",
-            "CZ",
-            "C4",
-            "T4",
-            "T8",  # Either old or new naming
-            "T5",
-            "P7",  # Either old or new naming
-            "P3",
-            "PZ",
-            "P4",
-            "T6",
-            "P8",  # Either old or new naming
-            "O1",
-            "O2",
-        ]
-
-        ch_names_upper = [ch.upper() for ch in raw.ch_names]
-
-        # Check that we have most standard channels
-        # Real TUEV data might have different naming (EEG FP1-REF instead of FP1)
-        found_count = 0
-        for ch in expected_channels:
-            # Check for variations: FP1, EEG FP1-REF, etc
-            if any(ch in name or f"{ch}-" in name for name in ch_names_upper):
-                found_count += 1
-
-        # Should have at least 10 of the standard channels (relaxed for real data)
-        assert found_count >= 10, f"Only found {found_count} standard channels"
-
-    def test_tuev_sampling_rate(self, tuev_sample_path):
-        """Test TUEV data can be resampled to 256Hz if needed."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-        original_sfreq = raw.info["sfreq"]
-
-        if original_sfreq != 256:
-            raw.resample(256, verbose=False)
-
-        assert raw.info["sfreq"] == 256
-
-    def test_tuev_channel_count(self, tuev_sample_path):
-        """Test TUEV has expected channel count."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=False, verbose=False)
-
-        # TUEV typically has 20-25 channels (including EOG/ECG)
-        # Synthetic has 22, real might have more (up to 35 with extra channels)
-        assert 18 <= len(raw.ch_names) <= 35, f"Unexpected channel count: {len(raw.ch_names)}"
-
-    def test_tuev_data_shape(self, tuev_sample_path):
-        """Test TUEV data has correct shape for event detection."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-
-        # Get data
-        data = raw.get_data()
-
-        # Check shape
-        n_channels, n_samples = data.shape
-        assert n_channels > 0
-        assert n_samples > 0
-
-        # Check duration is reasonable (at least 30 seconds for events)
-        duration = n_samples / raw.info["sfreq"]
-        assert duration >= 30, f"Recording too short for events: {duration}s"
-
-    def test_tuev_data_range(self, tuev_sample_path):
-        """Test TUEV data is in expected voltage range."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-
-        # Get data
-        data = raw.get_data()
-
-        # EEG should be in microvolts range (1e-6 to 1e-3 V)
+    def test_tuev_preprocessor_contract(self, tuev_sample_path):
+        """Test TUEV data through SSOT preprocessor meets strict contract."""
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        
+        # Use SSOT preprocessor
+        preprocessor = TUEVPreprocessor()
+        epochs, info = preprocessor.process_raw(tuev_sample_path)
+        
+        # STRICT assertions on NORMALIZED output
+        
+        # 1. Channel count: EXACTLY 20 for TUEV
+        assert len(epochs.ch_names) == 20, (
+            f"Expected exactly 20 channels, got {len(epochs.ch_names)}"
+        )
+        
+        # 2. Modern naming ONLY (T7 not T3)
+        required_modern = ["T7", "T8", "P7", "P8"]
+        for ch in required_modern:
+            assert ch in epochs.ch_names, f"Missing required modern channel: {ch}"
+        
+        # 3. NO old naming
+        forbidden_old = ["T3", "T4", "T5", "T6"]
+        for ch in forbidden_old:
+            assert ch not in epochs.ch_names, f"Old naming found: {ch}"
+        
+        # 4. TUEV specifics: HAS Fz, NO Fpz, HAS Oz
+        assert "FZ" in epochs.ch_names, "TUEV must have Fz"
+        assert "FPZ" not in epochs.ch_names, "TUEV must NOT have Fpz"
+        assert "OZ" in epochs.ch_names, "TUEV must have Oz"
+        
+        # 5. Sampling rate EXACTLY 256Hz
+        assert epochs.info["sfreq"] == 256, f"Expected 256Hz, got {epochs.info['sfreq']}"
+        
+        # 6. Voltage in REASONABLE range (microvolts in SI units - Volts)
+        data = epochs.get_data()
         data_abs = np.abs(data)
-        max_val = np.max(data_abs)
-        mean_val = np.mean(data_abs)
+        
+        # Use robust quantiles instead of max (handles outliers better)
+        q999 = np.quantile(data_abs, 0.999)
+        q50 = np.median(data_abs)
+        
+        # After normalization, should be in microvolts range (1e-7 to 5e-3 V)
+        assert q999 < 5e-3, f"Data too large (99.9th percentile): {q999}V"
+        assert q999 > 1e-7, f"Data too small (99.9th percentile): {q999}V"
+        assert q50 < 1e-3, f"Median too large: {q50}V"
+        
+        # 7. Epoch shape consistency
+        n_epochs, n_channels, n_times = data.shape
+        assert n_channels == 20, f"Inconsistent channel count in epochs"
+        
+        # 1 second at 256Hz = 256 samples (TUEV uses 1s windows for events)
+        expected_samples = int(1.0 * 256)
+        assert n_times == expected_samples, (
+            f"Expected {expected_samples} samples per epoch, got {n_times}"
+        )
 
-        # Check reasonable ranges
-        # Note: Some TUEV files have incorrect scaling, appearing as very large values
-        assert max_val < 1000.0, f"Data implausibly large: max={max_val}V"
-        assert max_val > 1e-8, f"Data too small: max={max_val}V"
-        # Mean should still be reasonable even with scaling issues
-        assert mean_val < 100.0, f"Mean implausibly large: {mean_val}V"
+    def test_tuev_channel_selection(self, tuev_sample_path):
+        """Test that preprocessor correctly selects and orders channels."""
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
+        
+        preprocessor = TUEVPreprocessor()
+        epochs, info = preprocessor.process_raw(tuev_sample_path)
+        
+        # Check channels match EXACTLY (TUEV is stricter than TUAB)
+        expected_set = set(CHANNELS_TUEV_20)
+        actual_set = set(epochs.ch_names)
+        
+        # Must match exactly
+        assert actual_set == expected_set, (
+            f"Channel mismatch. Missing: {expected_set - actual_set}, "
+            f"Extra: {actual_set - expected_set}"
+        )
+        
+        # Check order preservation (important for models)
+        for i, expected_ch in enumerate(CHANNELS_TUEV_20):
+            if i < len(epochs.ch_names):
+                assert epochs.ch_names[i] == expected_ch, (
+                    f"Channel order mismatch at position {i}: "
+                    f"expected {expected_ch}, got {epochs.ch_names[i]}"
+                )
 
-    def test_tuev_event_detection_shape(self, tuev_sample_path):
-        """Test TUEV data shape for event detection windows."""
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-
-        # Resample to 256Hz if needed
-        if raw.info["sfreq"] != 256:
-            raw.resample(256, verbose=False)
-
-        # Event detection typically uses 1-2 second windows
-        window_size = 256 * 2  # 512 samples for 2 seconds
-        data = raw.get_data()
-
-        if data.shape[1] >= window_size:
-            # Extract windows
-            n_windows = data.shape[1] // window_size
-            assert n_windows > 0
-
-            # Get first window
-            window = data[:, :window_size]
-            assert window.shape[1] == 512
-
-    def test_tuev_with_synthetic_event(self, tuev_sample_path):
-        """Test synthetic TUEV data contains simulated event."""
-        import os
-
-        # Only run this for synthetic data
-        if os.environ.get("BGB_ALLOW_SYNTH_TUEV") != "1":
-            pytest.skip("Only testing synthetic event detection")
-
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-        data = raw.get_data()
-
-        # Synthetic data has a spike at 60 seconds
-        if raw.info["sfreq"] == 256:
-            event_time = 60 * 256
-            if data.shape[1] > event_time + 128:
-                # Check for amplitude increase around event
-                baseline = np.mean(np.abs(data[:, :event_time]))
-                event_region = np.mean(np.abs(data[:, event_time : event_time + 128]))
-
-                # Event should have higher amplitude
-                assert event_region > baseline * 1.5
+    def test_tuev_provenance_tracking(self, tuev_sample_path):
+        """Test that preprocessing tracks provenance correctly."""
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        
+        preprocessor = TUEVPreprocessor()
+        epochs, info = preprocessor.process_raw(tuev_sample_path)
+        
+        # Check provenance info
+        assert "preprocessing" in info
+        assert "channel_count" in info["preprocessing"]
+        assert info["preprocessing"]["channel_count"] == 20
+        assert info["preprocessing"]["sampling_rate"] == 256
+        assert info["preprocessing"]["dataset"] == "TUEV"
+        assert info["preprocessing"]["window_size"] == 1.0  # TUEV uses 1s windows
 
     @pytest.mark.slow
-    def test_tuev_with_eegpt_windows(self, tuev_sample_path):
-        """Test TUEV data can be windowed for EEGPT processing."""
+    def test_tuev_event_detection_shape(self, tuev_sample_path):
+        """Test TUEV preprocessed data shape for event detection."""
         pytest.importorskip("torch")
-
-        raw = mne.io.read_raw_edf(tuev_sample_path, preload=True, verbose=False)
-
-        # Resample to 256Hz if needed
-        if raw.info["sfreq"] != 256:
-            raw.resample(256, verbose=False)
-
-        # EEGPT uses 4-second windows
-        window_size = 256 * 4  # 1024 samples
-        data = raw.get_data()
-
-        # Calculate number of windows
-        n_windows = (data.shape[1] - window_size) // (window_size // 2) + 1
-
-        if n_windows > 0:
-            # Extract first window
-            window = data[:, :window_size]
-            assert window.shape[1] == 1024
-
-            # Would pass to EEGPT for feature extraction
-            # EEGPT expects (batch, channels, samples)
-            # and outputs (batch, 2048) features
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        
+        preprocessor = TUEVPreprocessor()
+        epochs, info = preprocessor.process_raw(tuev_sample_path)
+        
+        # Get epoch data
+        data = epochs.get_data()
+        
+        # Event detection expects (batch, channels, samples)
+        batch_size, n_channels, n_samples = data.shape
+        
+        # Verify shape for event detection
+        assert n_channels == 20, "Exactly 20 channels for TUEV"
+        assert n_samples == 256, "1 second at 256Hz for event detection"
+        
+        # Data should be normalized and ready for event detection model
+        # (Would pass to model here in real usage)
 
     def test_tuev_dataconfig_integration(self):
         """Test that DataConfig properly resolves TUEV paths."""
