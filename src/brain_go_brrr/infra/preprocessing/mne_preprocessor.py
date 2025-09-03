@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 import mne
 from autoreject import AutoReject, Ransac
 
-from .channel_utils import canonicalize_channel_types
+from .channel_utils import canonicalize_channel_labels, canonicalize_channel_types
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +111,9 @@ class TUABPreprocessor:
         
         # 1b. Canonicalize channel types (EDF loses types, everything becomes 'eeg')
         raw = canonicalize_channel_types(raw)
+        
+        # 1c. Canonicalize channel labels (strip prefixes, map legacy names, fix case)
+        raw = canonicalize_channel_labels(raw)
 
         # 2. Apply channel mapping (T3→T7, etc.)
         raw = self._apply_channel_mapping(raw)
@@ -174,43 +177,19 @@ class TUABPreprocessor:
         return epochs_clean, info
 
     def _apply_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Apply TUAB channel mapping from old to modern naming.
+        """Apply TUAB channel selection after canonicalization.
 
-        Handles various TUAB channel name formats:
-        - 'T3', 'EEG T3-REF', 'T3-REF' -> 'T7'
-        - Case insensitive matching
+        After canonicalization, channel names are already cleaned and mapped.
+        This function now just selects the appropriate channels.
 
         Args:
-            raw: Raw MNE object
+            raw: Raw MNE object with canonicalized channels
 
         Returns:
-            Raw object with renamed channels and only standard 20 channels
+            Raw object with only standard TUAB channels (18-19)
         """
-        import re
-
-        # First pass: clean all channel names and apply mapping
-        rename_dict = {}
-        for ch_name in raw.ch_names:
-            # Strip common prefixes and suffixes (case insensitive)
-            clean_name = re.sub(r'^EEG\s+', '', ch_name, flags=re.IGNORECASE)
-            clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
-            clean_name = clean_name.strip().upper()
-
-            # Check if this matches an old channel name that needs mapping
-            for old_name, new_name in self.CHANNEL_MAPPING.items():
-                if clean_name == old_name.upper():
-                    rename_dict[ch_name] = new_name
-                    break
-            else:
-                # Check if this is a standard channel with prefix/suffix
-                for std_name in self.STANDARD_CHANNELS:
-                    if clean_name == std_name.upper():
-                        rename_dict[ch_name] = std_name
-                        break
-
-        if rename_dict:
-            logger.info(f"Cleaned and mapped {len(rename_dict)} channels")
-            raw.rename_channels(rename_dict)
+        # Channel names are already canonicalized (cleaned, mapped, proper case)
+        # We just need to select the right ones
 
         # Select and reorder to standard 20 channels
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]

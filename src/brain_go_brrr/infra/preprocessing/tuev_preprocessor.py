@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 import mne
 import numpy as np
 
-from .channel_utils import canonicalize_channel_types
+from .channel_utils import canonicalize_channel_labels, canonicalize_channel_types
 from .mne_preprocessor import TUABPreprocessor
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         Handles:
         - Old to modern naming (T3→T7, etc.)
         - Dropping reference channels (A1, A2)
-        - Dropping extra midline channel (FPZ)
+        - Dropping extra midline channel (Fpz)
         - Case normalization
 
         Args:
@@ -119,53 +119,15 @@ class TUEVPreprocessor(TUABPreprocessor):
         Returns:
             Raw object with 20 standard channels
         """
-        import re
-
-        # First normalize channel names (TUEV uses uppercase)
-        rename_dict = {}
+        # After canonicalization, channel names are already standardized
+        # We just need to drop unwanted channels (A1, A2, Fpz)
         channels_to_drop = []
-
+        
         for ch_name in raw.ch_names:
-            # Clean channel name
-            clean_name = re.sub(r'^EEG\s+', '', ch_name, flags=re.IGNORECASE)
-            clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
-            clean_name = clean_name.strip().upper()
-
-            # Check if this needs mapping or dropping
-            if clean_name in ['A1', 'A2']:  # Drop reference channels
+            # Check if this should be dropped
+            if ch_name in ['A1', 'A2', 'Fpz']:  # Drop reference channels and Fpz
                 channels_to_drop.append(ch_name)
-            elif clean_name in self.CHANNEL_MAPPING:
-                # Map to new name (T3->T7, etc.)
-                rename_dict[ch_name] = self.CHANNEL_MAPPING[clean_name]
-            else:
-                # Standardize case (FP1 -> Fp1, FZ -> Fz, etc.)
-                if clean_name == 'FP1':
-                    rename_dict[ch_name] = 'Fp1'
-                elif clean_name == 'FP2':
-                    rename_dict[ch_name] = 'Fp2'
-                elif clean_name == 'FZ':
-                    rename_dict[ch_name] = 'Fz'
-                elif clean_name == 'CZ':
-                    rename_dict[ch_name] = 'Cz'
-                elif clean_name == 'PZ':
-                    rename_dict[ch_name] = 'Pz'
-                elif clean_name == 'OZ':
-                    rename_dict[ch_name] = 'Oz'
-                elif clean_name == 'FPZ':
-                    # Drop FPZ
-                    channels_to_drop.append(ch_name)
-                else:
-                    # Keep channel with proper case
-                    for std_name in self.STANDARD_CHANNELS:
-                        if clean_name == std_name.upper():
-                            rename_dict[ch_name] = std_name
-                            break
-
-        # Apply renaming
-        if rename_dict:
-            logger.info(f"Renaming {len(rename_dict)} channels")
-            raw.rename_channels(rename_dict)
-
+        
         # Drop unwanted channels
         if channels_to_drop:
             logger.info(f"Dropping {len(channels_to_drop)} channels: {channels_to_drop}")
@@ -287,6 +249,9 @@ class TUEVPreprocessor(TUABPreprocessor):
         
         # Canonicalize channel types (EDF loses types, everything becomes 'eeg')
         raw = canonicalize_channel_types(raw)
+        
+        # Canonicalize channel labels (strip prefixes, map legacy names, fix case)
+        raw = canonicalize_channel_labels(raw)
 
         # Apply TUEV-specific channel mapping (23→20) and track missing channels
         raw, missing_channels = self._apply_channel_mapping_with_tracking(raw)
