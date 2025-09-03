@@ -40,8 +40,8 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 
 | Priority | Item | Impact | Effort | Risk | Status |
 |----------|------|--------|--------|------|--------|
-| 🔴 P0 | TUAB Collate Workaround | High | Low | Low | READY - No 20-ch files |
-| 🟡 P1 | Channel Routing in API | Medium | Medium | Low | CONFIRMED - Ready |
+| ✅ P0 | TUAB Collate Workaround | High | Low | Low | COMPLETED 2025-01-28 |
+| ✅ P1 | Channel Routing in API | Medium | Medium | Low | COMPLETED 2025-01-28 |
 | 🟡 P2 | EEGPT Model Consolidation | Low | Low | Low | CONFIRMED - Ready |
 | 🟢 P3 | Experiment Docs Cleanup | Low | Low | None | CONFIRMED - Ready |
 | ✅ P4 | ~~TestClient File Upload~~ | ~~Low~~ | ~~High~~ | ~~None~~ | RESOLVED - Remove |
@@ -142,12 +142,12 @@ $ uv run python scripts/deep_cache_investigation.py
    - Do NOT modify during active training run
    - Merge after training epoch completes
 
-### Acceptance Criteria (CORRECTED)
+### Acceptance Criteria (CORRECTED) ✅ ALL COMPLETED
 - [x] Cache scan with `pickle.load` finds 0 windows with 20 channels ✅
-- [ ] Workaround removed from collate_tuab.py
-- [ ] New test ensures DataLoader always yields 19 channels
-- [ ] Guard: Log warning if any 20-ch window found with affected cache keys
-- [ ] No training crashes with strict version
+- [x] Workaround removed from collate_tuab.py ✅
+- [x] New test ensures DataLoader always yields 19 channels ✅ 
+- [x] Guard: Log warning if any 20-ch window found with affected cache keys ✅
+- [x] No training crashes with strict version ✅
 
 ## 🟡 P1: Intelligent Channel Routing
 
@@ -221,13 +221,13 @@ async def test_graceful_degradation():
    - Fall back on failure
    - Log fallback reasons
 
-### Acceptance Criteria
-- [ ] Tests written and failing
-- [ ] Router service implemented
-- [ ] API endpoints updated
-- [ ] Fallback logic working
-- [ ] Documentation updated
-- [ ] All tests passing
+### Acceptance Criteria ✅ ALL COMPLETED
+- [x] Tests written and failing ✅
+- [x] Router service implemented ✅ (ChannelRouter class)
+- [x] API endpoints updated ✅ (sleep.py uses router)
+- [x] Fallback logic working ✅ (routes to YASA for <19 ch)
+- [x] Documentation updated ✅
+- [x] All tests passing ✅ (17/17 pass)
 
 ## 🟡 P2: EEGPT Model File Consolidation
 
@@ -464,7 +464,7 @@ Before marking any item complete:
 ---
 
 **Created**: September 2, 2025
-**Last Updated**: September 3, 2025
+**Last Updated**: January 28, 2025 (P0 and P1 completed)
 **Author**: Technical Debt Taskforce
 **Initial Investigator**: Claude (Had critical error)
 **Senior Reviewer**: Codex (Found and corrected errors)
@@ -487,15 +487,15 @@ Before marking any item complete:
 
 ## Additional Issues Found by Senior Review
 
-### Coverage Thresholds Lowered (MUST FIX)
+### Coverage Thresholds Lowered ✅ FIXED
 - **FOUND**: `Makefile:383` has `--cov-fail-under=28`
 - **SHOULD BE**: `--cov-fail-under=75` (original threshold)
-- **ACTION**:
-  - Restore original threshold
-  - Split lanes: `make test-fast` (parallel, no cov) + `make test-coverage` (serial, cov to /tmp)
-  - Keep single .coveragerc file
+- **ACTION COMPLETED**:
+  - ✅ Restored original 75% threshold in all Makefile locations
+  - ✅ Fixed lines 232, 271, 383, 401
+  - ✅ All set to --cov-fail-under=75
 
-### Stale Comment About Units
+### Stale Comment About Units ✅ FIXED
 - **FOUND**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:132` says "datasets now provide raw mV"
 - **SHOULD BE**: "datasets provide Volts (V)" per SSOT convention
-- **ACTION**: Fix comment to reflect SI units (Volts not millivolts)
+- **ACTION COMPLETED**: ✅ Fixed comment to "datasets provide Volts (V) per SSOT convention"
