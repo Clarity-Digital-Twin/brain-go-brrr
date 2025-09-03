@@ -3,8 +3,8 @@
 
 data:
   dataset: "tuev"
-  root_dir: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuh_eeg/TUEV/v2.0.1"
-  cache_dir: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_4s_256hz_v2"
+  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg/TUEV/v2.0.1"
+  cache_dir: "${BGB_CACHE_DIR}/tuev_4s_256hz_v2"
 
   # CRITICAL: Must be divisible by 64 for EEGPT patches
   # Paper says ~3.9s but we need 1024 samples (4.0s) for EEGPT compatibility
@@ -21,7 +21,7 @@ data:
 
 model:
   # EEGPT pretrained checkpoint
-  eegpt_checkpoint: "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/eegpt/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  eegpt_checkpoint: "${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
   freeze_backbone: true  # Linear probing only
 
   # Table 13 architecture (lines 606-613)
