@@ -2,7 +2,11 @@
 
 ## ⚠️ INVESTIGATION CORRECTED AFTER SENIOR REVIEW - Sep 3, 2025
 
-**Critical Error Fixed**: Initial investigation used `torch.load` on pickle files causing false "corruption" diagnosis. Correct method uses `pickle.load`.
+**Senior Review Corrections Applied**:
+1. ✅ P0 cache verification: Used `pickle.load` not `torch.load` - found NO 20-channel files
+2. ✅ Coverage thresholds: Identified lowered thresholds (28% instead of 75%) 
+3. ✅ Comment accuracy: Found stale "mV" comment (should be "V")
+4. ✅ P4 status: Confirmed already resolved
 
 ### 🔍 CORRECTED FINDINGS AFTER SENIOR AUDIT
 
@@ -466,7 +470,7 @@ Before marking any item complete:
 - **SHOULD BE**: `--cov-fail-under=75` (original threshold)
 - **ACTION**: Restore original threshold and fix flaky coverage with proper /tmp usage
 
-### Channel Mapping Still Using Uppercase
-- **FOUND**: `TUABDataset.CHANNEL_MAPPING` may still map to uppercase
-- **SHOULD BE**: Mixed-case targets ("Cz", "Pz", "Oz") to match `CHANNELS_TUAB_19`
-- **ACTION**: Verify and fix to reduce "missing channels" warnings
+### Stale Comment About Units
+- **FOUND**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:132` says "datasets now provide raw mV"
+- **SHOULD BE**: "datasets provide Volts (V)" per SSOT convention
+- **ACTION**: Fix comment to reflect SI units (Volts not millivolts)
