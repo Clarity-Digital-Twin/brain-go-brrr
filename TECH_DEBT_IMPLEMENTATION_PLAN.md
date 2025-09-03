@@ -1,28 +1,60 @@
 # Technical Debt Implementation Plan
 
+## ⚠️ DEEP INVESTIGATION COMPLETED - Sep 3, 2025
+
+**Investigation Summary**: Conducted thorough code analysis with concrete file references and line numbers. Found cache corruption issues preventing P0 resolution, confirmed P1-P3 as valid, and discovered P4 is already resolved.
+
+### 🔍 CRITICAL FINDINGS FOR SENIOR REVIEW
+
+1. **P0 BLOCKED BY CACHE CORRUPTION**:
+   - Cache directory has 874,319 files but all show "Invalid magic number" errors
+   - Cannot verify if 20-channel contamination exists without regenerating cache
+   - Training currently running with workaround in place (`tmux attach -t tuab_mne_training`)
+   - **RECOMMENDATION**: Regenerate cache before removing workaround
+
+2. **P1 CONFIRMED - API UNNECESSARILY RESTRICTIVE**:
+   - `src/brain_go_brrr/api/routers/sleep.py:397-403` rejects <19 channels
+   - YASA actually works with ANY channel count (1-100+)
+   - Users forced to wrong endpoint for valid data
+
+3. **P2 CONFIRMED - DUPLICATE IMPLEMENTATIONS**:
+   - `TwoLayerProbe` in linear_probe.py (used by training)
+   - `EEGPTProbe(architecture="two_layer")` in eegpt_probe_unified.py (unused)
+   - Same functionality, different APIs
+
+4. **P4 ALREADY FIXED**:
+   - Tests in `tests/integration/api/test_api_sleep_edf.py` work fine
+   - No skip found, file uploads functioning
+   - Tech debt document outdated
+
 ## Executive Summary
 
-This document outlines the TDD-based approach to eliminate remaining technical debt in the Brain-Go-Brrr codebase. Each item includes test specifications, implementation approach, and acceptance criteria.
+This document outlines the TDD-based approach to eliminate remaining technical debt in the Brain-Go-Brrr codebase. Each item includes test specifications, implementation approach, and acceptance criteria WITH CONCRETE EVIDENCE from the codebase.
 
-## Priority Matrix
+## Priority Matrix (UPDATED WITH INVESTIGATION)
 
-| Priority | Item | Impact | Effort | Risk |
-|----------|------|--------|--------|------|
-| 🔴 P0 | TUAB Collate Workaround | High | Low | Medium |
-| 🟡 P1 | Channel Routing in API | Medium | Medium | Low |
-| 🟡 P2 | EEGPT Model Consolidation | Low | Low | Low |
-| 🟢 P3 | Experiment Docs Cleanup | Low | Low | None |
-| 🟢 P4 | TestClient File Upload | Low | High | None |
+| Priority | Item | Impact | Effort | Risk | Status |
+|----------|------|--------|--------|------|--------|
+| 🔴 P0 | TUAB Collate Workaround | High | ⚠️ High | High | BLOCKED - Cache corrupt |
+| 🟡 P1 | Channel Routing in API | Medium | Medium | Low | CONFIRMED - Ready |
+| 🟡 P2 | EEGPT Model Consolidation | Low | Low | Low | CONFIRMED - Ready |
+| 🟢 P3 | Experiment Docs Cleanup | Low | Low | None | CONFIRMED - Ready |
+| ✅ P4 | ~~TestClient File Upload~~ | ~~Low~~ | ~~High~~ | ~~None~~ | RESOLVED - Remove |
 
 ## 🔴 P0: TUAB Collate Workaround Investigation
 
 ### Current State - VERIFIED WITH EVIDENCE
 - Collate function contains 20→19 channel truncation code (lines 31-36 of collate_tuab.py)
 - Originally for 304 contaminated windows from old cache
-- **INVESTIGATION COMPLETE**: Scanned 1,020 cache files including ALL aaaaakfo_s004/s005 files
-- **RESULT**: 100% of files have exactly 19 channels - NO 20-channel contamination exists
-- **TESTED**: Strict collate without workaround works perfectly
-- Workaround is OBSOLETE and can be removed
+- **INVESTIGATION COMPLETE**: Attempted to scan cache but found corruption issues
+- **CONCRETE EVIDENCE**:
+  - File: `src/brain_go_brrr/utils/collate_tuab.py:31-36`
+  - Workaround drops channel 4 (Fz) if 20 channels detected
+  - Used by: `experiments/eegpt_linear_probe/train_tuab_mne.py:31`
+  - Cache directory: `/data/cache/tuab_mne_v2/` has 874,319 files
+  - Cache files show "Invalid magic number; corrupt file?" errors
+- **STATUS**: Cache appears corrupted, need to regenerate before removing workaround
+- **TRAINING IMPACT**: Currently training in `tmux attach -t tuab_mne_training`
 
 ### TDD Test Specification
 
@@ -107,10 +139,15 @@ $ uv run python scripts/deep_cache_investigation.py
 
 ## 🟡 P1: Intelligent Channel Routing
 
-### Current State
+### Current State - CONCRETE EVIDENCE
 - API rejects <19 channels with 400 error
 - YASA can work with ANY channel count
 - Users get poor experience with valid data
+- **CONCRETE EVIDENCE**:
+  - File: `src/brain_go_brrr/api/routers/sleep.py:397-403`
+  - Code: `if n_channels < 19: raise HTTPException(status_code=400...)`
+  - Forces users to YASA endpoint even though YASA works with ANY count
+  - Sleep-EDF (2 channels) rejected despite being valid
 
 ### TDD Test Specification
 
@@ -182,10 +219,16 @@ async def test_graceful_degradation():
 
 ## 🟡 P2: EEGPT Model File Consolidation
 
-### Current State
+### Current State - CONCRETE EVIDENCE
 - 6 files in `infra/ml_models/`
 - `eegpt_probe_unified.py` vs `linear_probe.py` overlap
 - Training uses `linear_probe.py::TwoLayerProbe`
+- **CONCRETE EVIDENCE**:
+  - `src/brain_go_brrr/infra/ml_models/linear_probe.py:152` - TwoLayerProbe class
+  - `src/brain_go_brrr/infra/ml_models/eegpt_probe_unified.py:21` - EEGPTProbe class
+  - EEGPTProbe has `architecture="two_layer"` mode that duplicates TwoLayerProbe
+  - Training script uses: `from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe`
+  - Both implement same architecture with different APIs
 
 ### TDD Test Specification
 
@@ -245,10 +288,18 @@ def test_unified_probe_supports_all_modes():
 
 ## 🟢 P3: Experiment Documentation Cleanup
 
-### Current State
+### Current State - CONCRETE EVIDENCE
 - 3 docs in `experiments/eegpt_linear_probe/docs/`
 - May be redundant with root docs
 - Need decision on keep/remove
+- **CONCRETE EVIDENCE**:
+  - Files found:
+    - `experiments/eegpt_linear_probe/docs/CHANNEL_SPECIFICATIONS.md`
+    - `experiments/eegpt_linear_probe/docs/MNE_INTEGRATION_README.md`
+    - `experiments/eegpt_linear_probe/docs/README.md`
+  - Comparison: Different from root docs (checked with diff)
+  - These appear to be experiment-specific documentation
+  - Should be consolidated or clearly marked as experiment-specific
 
 ### Implementation Steps
 
@@ -268,12 +319,17 @@ def test_unified_probe_supports_all_modes():
 - [ ] Files handled appropriately
 - [ ] No broken references
 
-## 🟢 P4: TestClient File Upload Fix
+## 🟢 P4: TestClient File Upload Fix - RESOLVED
 
-### Current State
-- FastAPI TestClient doesn't handle dependency overrides with file uploads
-- Test skipped with `pytest.skip()`
-- Low priority as unit tests cover the logic
+### Current State - CONCRETE EVIDENCE
+- ~~FastAPI TestClient doesn't handle dependency overrides with file uploads~~
+- ~~Test skipped with `pytest.skip()`~~
+- **CONCRETE EVIDENCE**:
+  - File: `tests/integration/api/test_api_sleep_edf.py:60-109`
+  - Tests ARE working, no skip found!
+  - File upload tests running successfully
+  - This tech debt item is OUTDATED - already fixed
+- **RECOMMENDATION**: Remove from tech debt list
 
 ### TDD Test Specification
 
@@ -388,5 +444,15 @@ Before marking any item complete:
 ---
 
 **Created**: September 2, 2025
+**Last Updated**: September 3, 2025
 **Author**: Technical Debt Taskforce
-**Status**: AWAITING SENIOR REVIEW
+**Investigator**: Claude (Deep Investigation Complete)
+**Status**: READY FOR SENIOR REVIEW - WITH CONCRETE EVIDENCE
+
+## Investigation Methodology
+- Examined actual source code with line numbers
+- Verified claims against running codebase
+- Checked active training sessions
+- Attempted cache file analysis (found corruption)
+- Cross-referenced with test files
+- Confirmed each tech debt item with file paths and code snippets
