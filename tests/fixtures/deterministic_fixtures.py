@@ -5,7 +5,7 @@ behavior across test runs, especially for tests involving randomness or ML model
 """
 
 import random
-from collections.abc import Generator
+from collections.abc import Generator as ABCGenerator
 
 import numpy as np
 import pytest
@@ -13,7 +13,7 @@ import torch
 
 
 @pytest.fixture(scope="session", autouse=True)
-def deterministic_seed() -> Generator[int, None, None]:
+def deterministic_seed() -> ABCGenerator[int, None, None]:
     """Set global seeds for deterministic test runs.
 
     This fixture runs once per test session and sets seeds for:
