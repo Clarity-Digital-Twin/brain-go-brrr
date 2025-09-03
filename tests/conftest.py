@@ -448,8 +448,8 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
             "EOG",
         ]
 
-        # PROPER CHANNEL TYPES: EOG is not EEG!
-        ch_types = ["eeg"] * 22 + ["eog"]  # Last channel is EOG, 22 EEG channels
+        # PROPER CHANNEL TYPES: EOG is not EEG, A1/A2 are references!
+        ch_types = ["eeg"] * 20 + ["misc", "misc", "eog"]  # 20 EEG, 2 ref (A1/A2), 1 EOG
 
         # Create 60 seconds of data at 256Hz (fast CI)
         sfreq = 256
