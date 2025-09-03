@@ -82,8 +82,9 @@ CHANNELS_10_20_FULL = [
     "A2",
 ]
 
-# Modern naming (T3→T7, T4→T8, T5→P7, T6→P8)
+# Modern naming (T3→T7, T4→T8, T5→P7, T6→P8) and case conversions
 CHANNEL_ALIASES = {
+    # Legacy to modern
     "T3": "T7",
     "T4": "T8",
     "T5": "P7",
@@ -93,6 +94,14 @@ CHANNEL_ALIASES = {
     "EEG T4-REF": "T8",
     "EEG T5-REF": "P7",
     "EEG T6-REF": "P8",
+    # Case conversions (uppercase to mixed-case)
+    "FP1": "Fp1",
+    "FP2": "Fp2",
+    "FZ": "Fz",
+    "CZ": "Cz",
+    "PZ": "Pz",
+    "OZ": "Oz",
+    "FPZ": "Fpz",
 }
 
 

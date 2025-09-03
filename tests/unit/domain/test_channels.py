@@ -18,9 +18,9 @@ class TestChannelConstants:
         """Test TUAB has exactly 19 channels."""
         assert len(CHANNELS_TUAB_19) == 19
         # Should NOT have Fz
-        assert "FZ" not in CHANNELS_TUAB_19
+        assert "Fz" not in CHANNELS_TUAB_19
         # Should have other key channels
-        assert "FP1" in CHANNELS_TUAB_19
+        assert "Fp1" in CHANNELS_TUAB_19
         assert "C3" in CHANNELS_TUAB_19
         assert "O1" in CHANNELS_TUAB_19
 
@@ -28,21 +28,21 @@ class TestChannelConstants:
         """Test TUEV has exactly 20 channels."""
         assert len(CHANNELS_TUEV_20) == 20
         # Should have Fz
-        assert "FZ" in CHANNELS_TUEV_20
+        assert "Fz" in CHANNELS_TUEV_20
         # Should NOT have Fpz
-        assert "FPZ" not in CHANNELS_TUEV_20
+        assert "Fpz" not in CHANNELS_TUEV_20
         # Should have Oz
-        assert "OZ" in CHANNELS_TUEV_20
+        assert "Oz" in CHANNELS_TUEV_20
 
     def test_channel_order_preserved(self):
         """Test channel order follows standard montage (frontal to occipital)."""
         # TUAB should start with frontal, end with occipital
-        assert CHANNELS_TUAB_19[0] == "FP1"
+        assert CHANNELS_TUAB_19[0] == "Fp1"
         assert CHANNELS_TUAB_19[-1] == "O2"
 
         # TUEV should also follow this pattern
-        assert CHANNELS_TUEV_20[0] == "FP1"
-        assert CHANNELS_TUEV_20[-1] == "OZ"
+        assert CHANNELS_TUEV_20[0] == "Fp1"
+        assert CHANNELS_TUEV_20[-1] == "Oz"
 
     def test_no_duplicate_channels(self):
         """Test no duplicate channels in definitions."""
@@ -70,24 +70,24 @@ class TestValidateChannels:
         """Test validation handles old channel names via aliasing."""
         # Use old naming
         channels = [
-            "FP1",
-            "FP2",
+            "Fp1",
+            "Fp2",
             "F7",
             "F3",
             "F4",
             "F8",
             "T3",  # Old name for T7
             "C3",
-            "CZ",
+            "Cz",
             "C4",
             "T4",  # Old name for T8
             "T5",  # Old name for P7
             "P3",
-            "PZ",
+            "Pz",
             "P4",
             "T6",  # Old name for P8
             "O1",
-            "OZ",
+            "Oz",
             "O2",
         ]
         # Should pass with aliasing
@@ -109,20 +109,20 @@ class TestValidateChannels:
     def test_validate_extra_channel_raises(self):
         """Test validation fails for extra unexpected channel."""
         channels = CHANNELS_TUAB_19.copy()
-        channels[0] = "FZ"  # TUAB shouldn't have FZ
-        with pytest.raises(ValueError, match="Extra: \\['FZ'\\]"):
+        channels[0] = "Fz"  # TUAB shouldn't have Fz
+        with pytest.raises(ValueError, match="Extra: \\['Fz'\\]"):
             validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
 
     def test_validate_both_missing_and_extra(self):
         """Test error message includes both missing and extra channels."""
         # Make sure we have the right count but wrong channels
-        channels = ["FZ", *CHANNELS_TUAB_19[:-1]]  # Replace O2 with FZ
+        channels = ["Fz", *CHANNELS_TUAB_19[:-1]]  # Replace O2 with Fz
         with pytest.raises(ValueError) as exc_info:
             validate_channels(channels, CHANNELS_TUAB_19, "TUAB")
 
         error_msg = str(exc_info.value)
         assert "Missing: ['O2']" in error_msg
-        assert "Extra: ['FZ']" in error_msg
+        assert "Extra: ['Fz']" in error_msg
 
     def test_validate_case_sensitive(self):
         """Test validation is case-sensitive."""
@@ -156,12 +156,12 @@ class TestMapChannelsToIndices:
 
     def test_map_reordered_channels(self):
         """Test mapping when channels are reordered."""
-        source = ["C3", "FP1", "O1", "F3"]  # Different order
-        target = ["FP1", "F3", "C3", "O1"]  # Target order
+        source = ["C3", "Fp1", "O1", "F3"]  # Different order
+        target = ["Fp1", "F3", "C3", "O1"]  # Target order
         mapping = map_channels_to_indices(source, target)
 
         assert mapping[0] == 2  # C3 at source[0] -> target[2]
-        assert mapping[1] == 0  # FP1 at source[1] -> target[0]
+        assert mapping[1] == 0  # Fp1 at source[1] -> target[0]
         assert mapping[2] == 3  # O1 at source[2] -> target[3]
         assert mapping[3] == 1  # F3 at source[3] -> target[1]
 
@@ -178,8 +178,8 @@ class TestMapChannelsToIndices:
 
     def test_map_missing_channel_raises(self):
         """Test mapping raises when required channel is missing."""
-        source = ["FP1", "C3", "O1"]  # Missing F3
-        target = ["FP1", "F3", "C3", "O1"]  # Requires F3
+        source = ["Fp1", "C3", "O1"]  # Missing F3
+        target = ["Fp1", "F3", "C3", "O1"]  # Requires F3
 
         with pytest.raises(ValueError, match="Required channel F3 not found"):
             map_channels_to_indices(source, target)
@@ -187,7 +187,7 @@ class TestMapChannelsToIndices:
     def test_map_subset_of_source(self):
         """Test mapping when target is subset of source."""
         source = CHANNELS_TUAB_19  # 19 channels
-        target = ["FP1", "C3", "O1"]  # Just 3 channels
+        target = ["Fp1", "C3", "O1"]  # Just 3 channels
         mapping = map_channels_to_indices(source, target)
 
         # Should map only the requested channels
@@ -198,14 +198,14 @@ class TestMapChannelsToIndices:
 
     def test_map_preserves_duplicates_in_source(self):
         """Test mapping handles duplicate channels in source."""
-        source = ["FP1", "C3", "FP1", "O1"]  # FP1 appears twice
-        target = ["FP1", "C3", "O1"]
+        source = ["Fp1", "C3", "Fp1", "O1"]  # Fp1 appears twice
+        target = ["Fp1", "C3", "O1"]
         mapping = map_channels_to_indices(source, target)
 
         # Should map first occurrence
-        assert mapping[0] == 0  # First FP1 -> target[0]
+        assert mapping[0] == 0  # First Fp1 -> target[0]
         assert mapping[1] == 1  # C3 -> target[1]
-        # Note: second FP1 at index 2 won't be in mapping
+        # Note: second Fp1 at index 2 won't be in mapping
         assert mapping[3] == 2  # O1 -> target[2]
 
     def test_map_empty_channels(self):
@@ -219,7 +219,7 @@ class TestMapChannelsToIndices:
         source = CHANNELS_TUAB_19
         target = CHANNELS_TUEV_20
 
-        with pytest.raises(ValueError, match="Required channel FZ not found"):
+        with pytest.raises(ValueError, match="Required channel Fz not found"):
             map_channels_to_indices(source, target)
 
 
@@ -231,21 +231,28 @@ class TestChannelCompatibility:
         tuab_set = set(CHANNELS_TUAB_19)
         tuev_set = set(CHANNELS_TUEV_20)
 
-        # TUEV has FZ that TUAB doesn't
-        assert "FZ" in tuev_set
-        assert "FZ" not in tuab_set
+        # TUEV has Fz that TUAB doesn't
+        assert "Fz" in tuev_set
+        assert "Fz" not in tuab_set
 
         # Both have 19 common channels
         common = tuab_set & tuev_set
         assert len(common) == 19
 
-    def test_all_channels_uppercase(self):
-        """Test all channel names are uppercase (standard convention)."""
+    def test_all_channels_mixed_case(self):
+        """Test channel names follow mixed-case convention (Fp not FP, Cz not CZ)."""
+        # Check proper mixed-case for specific channels
         for ch in CHANNELS_TUAB_19:
-            assert ch == ch.upper()
+            if ch.startswith('Fp'):
+                assert ch[0:2] == 'Fp'  # Not FP
+            elif ch in ['Cz', 'Pz', 'Oz', 'Fz']:
+                assert ch[0].isupper() and ch[1].islower()  # Xz pattern
 
         for ch in CHANNELS_TUEV_20:
-            assert ch == ch.upper()
+            if ch.startswith('Fp'):
+                assert ch[0:2] == 'Fp'  # Not FP
+            elif ch in ['Cz', 'Pz', 'Oz', 'Fz']:
+                assert ch[0].isupper() and ch[1].islower()  # Xz pattern
 
     def test_realistic_tuab_validation(self):
         """Test realistic TUAB data validation scenario."""

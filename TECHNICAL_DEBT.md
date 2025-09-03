@@ -1,4 +1,4 @@
-# 🚀 TECHNICAL DEBT STATUS (September 2, 2025)
+# 🚀 TECHNICAL DEBT STATUS (September 3, 2025)
 
 ## ✅ MASSIVE DEBT PAID DOWN (Aug 28 - Sep 2, 2025)
 
@@ -55,6 +55,45 @@
 2. Replace with strict 19-channel assertion
 3. Update tests to verify strict enforcement
 4. Document removal in CHANGELOG.md
+
+## 🔴 NEW ISSUES (September 3, 2025)
+
+### Unit Test Failures in test_channels.py
+**Status**: ACTIVE BUG
+- 9 tests failing in `tests/unit/domain/test_channels.py`
+- Mixed-case channel naming causing mismatches
+- Affects channel validation and mapping logic
+
+### Coverage Data Combination Error
+**Status**: BLOCKING TEST RUNS
+- Error: "Can't combine statement coverage data with branch data"
+- Occurs when running `make test-all-cov`
+- Need to clear old coverage data or align coverage settings
+
+### CI/CD Environment Parity
+**Status**: TECHNICAL DEBT
+- GitHub Actions integration tests need synthetic environment variables:
+  - `BGB_ALLOW_SYNTH_TUAB=1`
+  - `BGB_ALLOW_SYNTH_TUEV=1`
+  - `BGB_DATA_ROOT=/tmp/empty_dir`
+- Already fixed in Makefile, needs mirroring in `.github/workflows/`
+
+### Unit Validation Guards
+**Status**: NICE TO HAVE
+- Add runtime q99 validation on first batch
+- Warn if data outside expected range (1e-6 to 5e-2 V)
+- Currently no validation, just trusting cache metadata
+
+### TUABDataset Channel Canonicalization
+**Status**: MINOR - Causes Warning Spam
+- Dataset logs "Missing channels {T7,T8,P7,P8,Oz}" warnings
+- Need to apply canonicalization before channel selection
+- Would require cache rebuild to fully fix
+
+### Stale Comments in Code
+**Status**: CLEANUP
+- EEGPTWrapper comment says "datasets now provide raw mV" but they provide V
+- Various docstrings reference old mV convention
 
 ## 🟡 REMAINING MINOR ISSUES
 
