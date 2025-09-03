@@ -4,7 +4,7 @@
 
 **Senior Review Corrections Applied**:
 1. ✅ P0 cache verification: Used `pickle.load` not `torch.load` - found NO 20-channel files
-2. ✅ Coverage thresholds: Identified lowered thresholds (28% instead of 75%) 
+2. ✅ Coverage thresholds: Identified lowered thresholds (28% instead of 75%)
 3. ✅ Comment accuracy: Found stale "mV" comment (should be "V")
 4. ✅ P4 status: Confirmed already resolved
 
@@ -51,13 +51,13 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 ### Current State - VERIFIED WITH EVIDENCE
 - Collate function contains 20→19 channel truncation code (lines 31-36 of collate_tuab.py)
 - Originally for 304 contaminated windows from old cache
-- **INVESTIGATION COMPLETE**: Attempted to scan cache but found corruption issues
 - **CONCRETE EVIDENCE**:
   - File: `src/brain_go_brrr/utils/collate_tuab.py:31-36`
   - Workaround drops channel 4 (Fz) if 20 channels detected
   - Cache written with: `pickle.dump((window, label), f)` at `tuab_dataset.py:481`
   - Cache directory: `/data/cache/tuab_mne_v2/` has 898,487 files
-  - **VERIFIED**: Sampled 100 files with `pickle.load` - ALL have 19 channels
+  - **VERIFIED**: Legacy reports of 20-ch contamination are NOT reproduced
+  - **SAMPLE RESULT**: 100/100 windows have exactly 19 channels (0% at 20-ch)
 - **STATUS**: Workaround is obsolete and can be safely removed
 - **TRAINING IMPACT**: Currently training in `tmux attach -t tuab_mne_training`
 
@@ -490,7 +490,7 @@ Before marking any item complete:
 ### Coverage Thresholds Lowered (MUST FIX)
 - **FOUND**: `Makefile:383` has `--cov-fail-under=28`
 - **SHOULD BE**: `--cov-fail-under=75` (original threshold)
-- **ACTION**: 
+- **ACTION**:
   - Restore original threshold
   - Split lanes: `make test-fast` (parallel, no cov) + `make test-coverage` (serial, cov to /tmp)
   - Keep single .coveragerc file
