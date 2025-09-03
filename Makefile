@@ -229,7 +229,7 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 		--cov=src/brain_go_brrr \
 		--cov-config=.coveragerc \
 		--cov-report=term-missing:skip-covered \
-		--cov-fail-under=65 \
+		--cov-fail-under=75 \
 		--tb=short \
 		--maxfail=10 \
 		-q
@@ -380,7 +380,7 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		--cov-fail-under=28 \
+		--cov-fail-under=75 \
 		-m "not slow and not integration and not external and not benchmark" \
 		--ignore=tests/benchmarks \
 		--ignore=tests/archive \
@@ -398,7 +398,7 @@ test-data-cov: ## Run data/integration tests with coverage (requires datasets or
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
-		--cov-fail-under=50 \
+		--cov-fail-under=75 \
 		-m "integration and data" \
 		--run-data \
 		--maxfail=10 \

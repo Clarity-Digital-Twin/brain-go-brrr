@@ -26,21 +26,16 @@ class TestTUABCollate:
         assert labels.dtype == torch.float32
         assert torch.all(labels == torch.tensor([0.0, 1.0, 0.0]))
 
-    def test_collate_20_channels_workaround(self):
-        """Test workaround for contaminated 20-channel windows."""
-        # Mix 19 and 20 channel samples
+    def test_collate_20_channels_rejected(self):
+        """Test that 20-channel windows are strictly rejected (workaround removed)."""
+        # 20 channel sample (would have been accepted with old workaround)
         batch = [
-            (torch.randn(20, 1024), 1),  # Contaminated with Fz
-            (torch.randn(19, 1024), 0),  # Correct
-            (torch.randn(20, 1024), 1),  # Contaminated with Fz
+            (torch.randn(20, 1024), 1),  # Should be rejected
         ]
 
-        data, labels = collate_tuab_batch(batch)
-
-        # Should drop Fz and return 19 channels
-        assert data.shape == (3, 19, 1024)
-        assert labels.shape == (3,)
-        assert torch.all(labels == torch.tensor([1.0, 0.0, 1.0]))
+        # After workaround removal, 20 channels should raise error
+        with pytest.raises(RuntimeError, match="Expected exactly 19 channels, got 20"):
+            collate_tuab_batch(batch)
 
     def test_collate_tensor_labels(self):
         """Test collating when labels are already tensors."""
@@ -63,6 +58,43 @@ class TestTUABCollate:
 
         with pytest.raises(RuntimeError, match="Unexpected channel count 18"):
             collate_tuab_batch(batch)
+
+    def test_19_channel_invariant_strict(self):
+        """Test TUAB must ONLY yield 19 channels - no 20-channel contamination.
+        
+        This test enforces the invariant discovered during cache audit:
+        - 100/100 sampled cache files have exactly 19 channels
+        - 0% have 20 channels (Fz contamination)
+        - The workaround dropping Fz is obsolete
+        
+        This test will PASS with current workaround but documents expected behavior.
+        After removing workaround, it ensures we reject 20-channel inputs.
+        """
+        # Test 1: Pure 19-channel batch (expected case)
+        batch_19 = [
+            (torch.randn(19, 1024), 0),
+            (torch.randn(19, 1024), 1),
+            (torch.randn(19, 1024), 0),
+        ]
+        
+        data, labels = collate_tuab_batch(batch_19)
+        assert data.shape == (3, 19, 1024), "Must yield exactly 19 channels"
+        assert labels.shape == (3,)
+        
+        # Test 2: Strict rejection of 20 channels (workaround removed)
+        batch_20 = [
+            (torch.randn(20, 1024), 1),  # Must be rejected
+        ]
+        
+        # After workaround removal: 20 channels must raise error
+        with pytest.raises(RuntimeError, match="Expected exactly 19 channels, got 20"):
+            collate_tuab_batch(batch_20)
+        
+        # Test 3: Must reject other channel counts
+        for wrong_channels in [17, 18, 21, 25]:
+            batch_wrong = [(torch.randn(wrong_channels, 1024), 0)]
+            with pytest.raises(RuntimeError, match=f"channel count {wrong_channels}"):
+                collate_tuab_batch(batch_wrong)
 
 
 class TestTUEVCollate:

@@ -129,7 +129,7 @@ class EEGPTWrapper(nn.Module):
             If return_all_temporal=True: All temporal features (B, N_temporal, embed_num, embed_dim)
         """
         if self.normalize:
-            # Always normalize - datasets now provide raw mV data
+            # Always normalize - datasets provide Volts (V) per SSOT convention
             x = (x - self.input_mean) / (self.input_std + 1e-8)
 
         # Check if model accepts return_all_temporal parameter
