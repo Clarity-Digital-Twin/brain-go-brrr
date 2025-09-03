@@ -75,7 +75,7 @@ class TestProbeCompatibility:
         original = TwoLayerProbe(input_dim, hidden_dim, output_dim)
         
         # Create unified probe
-        unified = UnifiedProbe.create(input_dim, hidden_dim, output_dim, mode="two_layer")
+        unified = UnifiedProbe.create(input_dim, hidden_dim, output_dim, architecture="two_layer")
         
         # State dicts should be compatible
         original_state = original.state_dict()
@@ -97,7 +97,7 @@ class TestProbeCompatibility:
         from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe as DirectImport
         
         # Factory should return same type
-        factory_probe = UnifiedProbe.create(2048, 256, 2, mode="two_layer")
+        factory_probe = UnifiedProbe.create(2048, 256, 2, architecture="two_layer")
         
         assert type(factory_probe) == DirectImport
     
