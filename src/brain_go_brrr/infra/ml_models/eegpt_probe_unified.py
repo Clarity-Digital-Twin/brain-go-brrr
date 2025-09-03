@@ -24,13 +24,13 @@ class EEGPTProbe(nn.Module):
 
     .. deprecated:: 1.1.0
         Use :class:`ProbeFactory` instead. This class will be removed in v2.0.0.
-        
+
         Migration example::
-        
+
             # Old way
             probe = EEGPTProbe(checkpoint_path, architecture="two_layer")
-            
-            # New way  
+
+            # New way
             from brain_go_brrr.infra.ml_models import ProbeFactory
             probe = ProbeFactory.create(2048, 256, 2, architecture="two_layer")
 
@@ -74,7 +74,7 @@ class EEGPTProbe(nn.Module):
             backbone: Pre-initialized backbone (for testing)
         """
         super().__init__()
-        
+
         # Issue deprecation warning
         warnings.warn(
             "EEGPTProbe is deprecated and will be removed in v2.0.0. "

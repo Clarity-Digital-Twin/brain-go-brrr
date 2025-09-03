@@ -3,7 +3,6 @@
 Part of P2 technical debt cleanup - consolidates TwoLayerProbe and EEGPTProbe.
 """
 
-import warnings
 from typing import Literal
 
 import torch.nn as nn
@@ -13,15 +12,15 @@ from brain_go_brrr.infra.ml_models.linear_probe import LinearProbeHead, TwoLayer
 
 class ProbeFactory:
     """Factory for creating probe models.
-    
+
     This consolidates the duplicate probe implementations:
     - TwoLayerProbe from linear_probe.py
     - EEGPTProbe's two_layer mode from eegpt_probe_unified.py
-    
+
     The factory approach ensures backward compatibility while providing
     a single interface for probe creation.
     """
-    
+
     @staticmethod
     def create(
         input_dim: int,
@@ -33,7 +32,7 @@ class ProbeFactory:
         **kwargs,
     ) -> nn.Module:
         """Create a probe with the specified architecture.
-        
+
         Args:
             input_dim: Input feature dimension
             hidden_dim: Hidden layer dimension
@@ -42,15 +41,15 @@ class ProbeFactory:
             dropout: Dropout probability
             pool: Pooling strategy for 3D inputs
             **kwargs: Additional arguments for future extensions
-            
+
         Returns:
             Probe module
-            
+
         Examples:
             >>> # Create two-layer probe (default)
             >>> probe = ProbeFactory.create(2048, 256, 2)
-            >>> 
-            >>> # Create linear probe  
+            >>>
+            >>> # Create linear probe
             >>> probe = ProbeFactory.create(2048, 256, 5, architecture="linear")
         """
         if architecture == "two_layer":
@@ -66,15 +65,14 @@ class ProbeFactory:
             # Use LinearProbeHead for single-layer probe
             return LinearProbeHead(
                 input_dim=input_dim,
-                output_dim=output_dim,
+                num_classes=output_dim,  # LinearProbeHead uses num_classes
                 dropout=dropout,
             )
         else:
             raise ValueError(
-                f"Unknown architecture: {architecture}. "
-                f"Supported: 'linear', 'two_layer'"
+                f"Unknown architecture: {architecture}. Supported: 'linear', 'two_layer'"
             )
-    
+
     @classmethod
     def create_for_task(
         cls,
@@ -83,19 +81,19 @@ class ProbeFactory:
         **kwargs,
     ) -> nn.Module:
         """Create a probe for a specific task with sensible defaults.
-        
+
         Args:
             task: Task name ("abnormality", "sleep", "motor_imagery")
             input_dim: Input feature dimension
             **kwargs: Override default parameters
-            
+
         Returns:
             Probe configured for the task
-            
+
         Examples:
             >>> # Create abnormality detection probe
             >>> probe = ProbeFactory.create_for_task("abnormality")
-            >>> 
+            >>>
             >>> # Create sleep staging probe with custom dropout
             >>> probe = ProbeFactory.create_for_task("sleep", dropout=0.3)
         """
@@ -125,17 +123,14 @@ class ProbeFactory:
                 "dropout": 0.5,  # Higher dropout for TUEV
             },
         }
-        
+
         if task not in task_configs:
-            raise ValueError(
-                f"Unknown task: {task}. "
-                f"Supported: {list(task_configs.keys())}"
-            )
-        
+            raise ValueError(f"Unknown task: {task}. Supported: {list(task_configs.keys())}")
+
         config = task_configs[task].copy()
         config["input_dim"] = input_dim
         config.update(kwargs)  # Allow overrides
-        
+
         return cls.create(**config)
 
 
@@ -145,13 +140,13 @@ UnifiedProbe = ProbeFactory
 
 def migrate_eegpt_probe_to_factory(eegpt_probe_state_dict):
     """Migrate EEGPTProbe state_dict to ProbeFactory format.
-    
+
     Args:
         eegpt_probe_state_dict: State dict from EEGPTProbe
-        
+
     Returns:
         State dict compatible with ProbeFactory.create()
-        
+
     Note:
         This is for migration purposes. EEGPTProbe's probe layers
         map directly to TwoLayerProbe's net layers.
@@ -167,5 +162,5 @@ def migrate_eegpt_probe_to_factory(eegpt_probe_state_dict):
         elif not key.startswith("backbone."):
             # Copy non-backbone keys as-is
             migrated[key] = value
-    
+
     return migrated

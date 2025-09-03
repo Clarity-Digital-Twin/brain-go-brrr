@@ -11,10 +11,10 @@ __all__ = [
     "EEGPTConfig",
     "EEGPTModel",
     "LinearProbeHead",
-    "TwoLayerProbe",
     "ProbeFactory",
+    "TwoLayerProbe",
     "UnifiedProbe",
-    "migrate_eegpt_probe_to_factory",
     "extract_features_from_raw",
+    "migrate_eegpt_probe_to_factory",
     "preprocess_for_eegpt",
 ]
