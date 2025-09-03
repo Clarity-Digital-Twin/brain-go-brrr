@@ -122,12 +122,12 @@ class TUEVPreprocessor(TUABPreprocessor):
         # After canonicalization, channel names are already standardized
         # We just need to drop unwanted channels (A1, A2, Fpz)
         channels_to_drop = []
-        
+
         for ch_name in raw.ch_names:
             # Check if this should be dropped
             if ch_name in ['A1', 'A2', 'Fpz']:  # Drop reference channels and Fpz
                 channels_to_drop.append(ch_name)
-        
+
         # Drop unwanted channels
         if channels_to_drop:
             logger.info(f"Dropping {len(channels_to_drop)} channels: {channels_to_drop}")
@@ -246,10 +246,10 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Load and preprocess raw data
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
         logger.info(f"Loaded {len(raw.ch_names)} channels, {raw.info['sfreq']} Hz")
-        
+
         # Canonicalize channel types (EDF loses types, everything becomes 'eeg')
         raw = canonicalize_channel_types(raw)
-        
+
         # Canonicalize channel labels (strip prefixes, map legacy names, fix case)
         raw = canonicalize_channel_labels(raw)
 

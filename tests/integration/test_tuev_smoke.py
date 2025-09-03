@@ -21,53 +21,53 @@ class TestTUEVSmoke:
     def test_tuev_preprocessor_contract(self, tuev_sample_path):
         """Test TUEV data through SSOT preprocessor meets strict contract."""
         from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
-        
+
         # Use SSOT preprocessor
         preprocessor = TUEVPreprocessor()
         epochs, info = preprocessor.process_raw(tuev_sample_path)
-        
+
         # STRICT assertions on NORMALIZED output
-        
+
         # 1. Channel count: EXACTLY 20 for TUEV
         assert len(epochs.ch_names) == 20, (
             f"Expected exactly 20 channels, got {len(epochs.ch_names)}"
         )
-        
+
         # 2. Modern naming ONLY (T7 not T3)
         required_modern = ["T7", "T8", "P7", "P8"]
         for ch in required_modern:
             assert ch in epochs.ch_names, f"Missing required modern channel: {ch}"
-        
+
         # 3. NO old naming
         forbidden_old = ["T3", "T4", "T5", "T6"]
         for ch in forbidden_old:
             assert ch not in epochs.ch_names, f"Old naming found: {ch}"
-        
+
         # 4. TUEV specifics: HAS Fz, NO Fpz, HAS Oz
         assert "Fz" in epochs.ch_names, "TUEV must have Fz"
         assert "Fpz" not in epochs.ch_names, "TUEV must NOT have Fpz"
         assert "Oz" in epochs.ch_names, "TUEV must have Oz"
-        
+
         # 5. Sampling rate EXACTLY 256Hz
         assert epochs.info["sfreq"] == 256, f"Expected 256Hz, got {epochs.info['sfreq']}"
-        
+
         # 6. Voltage in REASONABLE range (microvolts in SI units - Volts)
         data = epochs.get_data()
         data_abs = np.abs(data)
-        
+
         # Use robust quantiles instead of max (handles outliers better)
         q999 = np.quantile(data_abs, 0.999)
         q50 = np.median(data_abs)
-        
+
         # After normalization, should be in microvolts range (1e-7 to 5e-3 V)
         assert q999 < 5e-3, f"Data too large (99.9th percentile): {q999}V"
         assert q999 > 1e-7, f"Data too small (99.9th percentile): {q999}V"
         assert q50 < 1e-3, f"Median too large: {q50}V"
-        
+
         # 7. Epoch shape consistency
         n_epochs, n_channels, n_times = data.shape
-        assert n_channels == 20, f"Inconsistent channel count in epochs"
-        
+        assert n_channels == 20, "Inconsistent channel count in epochs"
+
         # TUEV inherits from TUAB which uses 4s windows by default
         # 4 seconds at 256Hz = 1024 samples
         expected_samples = int(4.0 * 256)
@@ -77,22 +77,22 @@ class TestTUEVSmoke:
 
     def test_tuev_channel_selection(self, tuev_sample_path):
         """Test that preprocessor correctly selects and orders channels."""
-        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
         from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
-        
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+
         preprocessor = TUEVPreprocessor()
         epochs, info = preprocessor.process_raw(tuev_sample_path)
-        
+
         # Check channels match EXACTLY (TUEV is stricter than TUAB)
         expected_set = set(CHANNELS_TUEV_20)
         actual_set = set(epochs.ch_names)
-        
+
         # Must match exactly
         assert actual_set == expected_set, (
             f"Channel mismatch. Missing: {expected_set - actual_set}, "
             f"Extra: {actual_set - expected_set}"
         )
-        
+
         # Check order preservation (important for models)
         for i, expected_ch in enumerate(CHANNELS_TUEV_20):
             if i < len(epochs.ch_names):
@@ -104,10 +104,10 @@ class TestTUEVSmoke:
     def test_tuev_provenance_tracking(self, tuev_sample_path):
         """Test that preprocessing tracks provenance correctly."""
         from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
-        
+
         preprocessor = TUEVPreprocessor()
         epochs, info = preprocessor.process_raw(tuev_sample_path)
-        
+
         # Check provenance info (flat dict structure from preprocessor)
         assert "n_epochs_before" in info or "n_epochs_after" in info
         # Can't assert preprocessing dict that doesn't exist yet
@@ -118,20 +118,20 @@ class TestTUEVSmoke:
         """Test TUEV preprocessed data shape for event detection."""
         pytest.importorskip("torch")
         from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
-        
+
         preprocessor = TUEVPreprocessor()
         epochs, info = preprocessor.process_raw(tuev_sample_path)
-        
+
         # Get epoch data
         data = epochs.get_data()
-        
+
         # Event detection expects (batch, channels, samples)
         batch_size, n_channels, n_samples = data.shape
-        
+
         # Verify shape for event detection
         assert n_channels == 20, "Exactly 20 channels for TUEV"
         assert n_samples == 1024, "4 seconds at 256Hz (default window)"
-        
+
         # Data should be normalized and ready for event detection model
         # (Would pass to model here in real usage)
 

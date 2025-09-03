@@ -108,10 +108,10 @@ class TUABPreprocessor:
         # 1. Load with MNE
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
         logger.info(f"Loaded {len(raw.ch_names)} channels, {raw.info['sfreq']} Hz")
-        
+
         # 1b. Canonicalize channel types (EDF loses types, everything becomes 'eeg')
         raw = canonicalize_channel_types(raw)
-        
+
         # 1c. Canonicalize channel labels (strip prefixes, map legacy names, fix case)
         raw = canonicalize_channel_labels(raw)
 
