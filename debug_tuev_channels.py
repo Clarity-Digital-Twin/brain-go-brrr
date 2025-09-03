@@ -26,6 +26,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
     print(f"\nTotal channels: {len(raw.ch_names)}")
     print(f"Channel names: {raw.ch_names}")
     
+    # Check channel types
+    ch_types = raw.get_channel_types()
+    print(f"Channel types: {ch_types}")
+    
     # Check for Oz specifically
     ch_upper = [ch.upper() for ch in raw.ch_names]
     has_oz = "OZ" in ch_upper
@@ -35,6 +39,11 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # Count EEG channels
     eeg_channels = [ch for ch, typ in zip(raw.ch_names, raw.get_channel_types()) if typ == 'eeg']
     print(f"EEG channels ({len(eeg_channels)}): {eeg_channels}")
+    
+    # Count each type
+    from collections import Counter
+    type_counts = Counter(ch_types)
+    print(f"\nChannel type counts: {dict(type_counts)}")
     
     # Check for required TUEV channels
     from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
