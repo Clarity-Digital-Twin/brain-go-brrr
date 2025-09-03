@@ -42,8 +42,8 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 |----------|------|--------|--------|------|--------|
 | ✅ P0 | TUAB Collate Workaround | High | Low | Low | COMPLETED 2025-01-28 |
 | ✅ P1 | Channel Routing in API | Medium | Medium | Low | COMPLETED 2025-01-28 |
-| 🟡 P2 | EEGPT Model Consolidation | Low | Low | Low | CONFIRMED - Ready |
-| 🟢 P3 | Experiment Docs Cleanup | Low | Low | None | CONFIRMED - Ready |
+| ✅ P2 | EEGPT Model Consolidation | Low | Low | Low | COMPLETED 2025-01-28 |
+| ✅ P3 | Experiment Docs Cleanup | Low | Low | None | COMPLETED 2025-01-28 |
 | ✅ P4 | ~~TestClient File Upload~~ | ~~Low~~ | ~~High~~ | ~~None~~ | RESOLVED - Remove |
 
 ## 🔴 P0: TUAB Collate Workaround Investigation
@@ -142,14 +142,15 @@ $ uv run python scripts/deep_cache_investigation.py
    - Do NOT modify during active training run
    - Merge after training epoch completes
 
-### Acceptance Criteria (CORRECTED) ✅ ALL COMPLETED
+### Acceptance Criteria ✅ ALL COMPLETED (Sep 3, 2025)
 - [x] Cache scan with `pickle.load` finds 0 windows with 20 channels ✅
 - [x] Workaround removed from collate_tuab.py ✅
 - [x] New test ensures DataLoader always yields 19 channels ✅ 
 - [x] Guard: Log warning if any 20-ch window found with affected cache keys ✅
 - [x] No training crashes with strict version ✅
+- [x] **IMPLEMENTED**: Strict 19-channel enforcement with RuntimeError for violations
 
-## 🟡 P1: Intelligent Channel Routing
+## ✅ P1: Intelligent Channel Routing - COMPLETED (Sep 3, 2025)
 
 ### Current State - CONCRETE EVIDENCE
 - API rejects <19 channels with 400 error
@@ -229,7 +230,7 @@ async def test_graceful_degradation():
 - [x] Documentation updated ✅
 - [x] All tests passing ✅ (17/17 pass)
 
-## 🟡 P2: EEGPT Model File Consolidation
+## ✅ P2: EEGPT Model File Consolidation - COMPLETED (Sep 3, 2025)
 
 ### Current State - CONCRETE EVIDENCE
 - 6 files in `infra/ml_models/`
@@ -291,14 +292,16 @@ def test_unified_probe_supports_all_modes():
    - Rename for clarity
    - Add module docstrings
 
-### Acceptance Criteria
-- [ ] Analysis documented
-- [ ] Tests written
-- [ ] Decision made and implemented
-- [ ] No breaking changes
-- [ ] Documentation updated
+### Acceptance Criteria ✅ ALL COMPLETED (Sep 3, 2025)
+- [x] Analysis documented ✅
+- [x] Tests written ✅ (test_probe_compatibility.py with 5 tests)
+- [x] Decision made and implemented ✅ (ProbeFactory created)
+- [x] No breaking changes ✅ (backward compatible)
+- [x] Documentation updated ✅
+- [x] **IMPLEMENTED**: ProbeFactory in src/brain_go_brrr/infra/ml_models/probe_factory.py
+- [x] **DEPRECATED**: EEGPTProbe with warning message
 
-## 🟢 P3: Experiment Documentation Cleanup
+## ✅ P3: Experiment Documentation Cleanup - COMPLETED (Sep 3, 2025)
 
 ### Current State - CONCRETE EVIDENCE
 - 3 docs in `experiments/eegpt_linear_probe/docs/`
@@ -325,11 +328,12 @@ def test_unified_probe_supports_all_modes():
    - If unique but outdated → Archive
    - If actively useful → Keep and update header
 
-### Acceptance Criteria
-- [ ] Audit completed
-- [ ] Decision documented
-- [ ] Files handled appropriately
-- [ ] No broken references
+### Acceptance Criteria ✅ ALL COMPLETED (Sep 3, 2025)
+- [x] Audit completed ✅ (reviewed all 3 docs)
+- [x] Decision documented ✅ (consolidated into single README.md)
+- [x] Files handled appropriately ✅ (deleted redundant docs/ subdirectory)
+- [x] No broken references ✅ (updated all references)
+- [x] **IMPLEMENTED**: Consolidated all experiment docs into experiments/eegpt_linear_probe/README.md
 
 ## 🟢 P4: TestClient File Upload Fix - RESOLVED
 
@@ -464,11 +468,11 @@ Before marking any item complete:
 ---
 
 **Created**: September 2, 2025
-**Last Updated**: January 28, 2025 (P0 and P1 completed)
+**Last Updated**: September 3, 2025 (ALL P0-P3 completed)
 **Author**: Technical Debt Taskforce
 **Initial Investigator**: Claude (Had critical error)
 **Senior Reviewer**: Codex (Found and corrected errors)
-**Final Status**: CORRECTED & READY FOR RE-AUDIT
+**Final Status**: ✅ ALL TECHNICAL DEBT PAID DOWN (P0-P3 COMPLETE)
 
 ## Audit Trail
 1. Initial investigation used wrong method (`torch.load` vs `pickle.load`)
