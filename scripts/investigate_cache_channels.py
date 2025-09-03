@@ -48,13 +48,13 @@ def investigate_cache():
 
         try:
             # Load pickle file
-            with open(pt_file, 'rb') as f:
+            with pt_file.open('rb') as f:
                 data = pickle.load(f)
 
             # Handle both dict format and direct tensor
             if isinstance(data, dict) and 'x' in data:
                 n_channels = data['x'].shape[0]
-            elif isinstance(data, (np.ndarray, torch.Tensor)):
+            elif isinstance(data, np.ndarray | torch.Tensor):
                 n_channels = data.shape[0] if len(data.shape) >= 2 else None
             else:
                 continue
@@ -94,11 +94,11 @@ def investigate_cache():
             print(f"  Found {len(matching)} files matching {pattern}")
             for f in matching[:5]:
                 try:
-                    with open(f, 'rb') as file:
+                    with f.open('rb') as file:
                         data = pickle.load(file)
                     if isinstance(data, dict) and 'x' in data:
                         print(f"    {f.name}: {data['x'].shape[0]} channels")
-                    elif isinstance(data, (np.ndarray, torch.Tensor)):
+                    elif isinstance(data, np.ndarray | torch.Tensor):
                         print(f"    {f.name}: {data.shape[0]} channels")
                 except Exception as e:
                     print(f"    Error loading {f.name}: {e}")

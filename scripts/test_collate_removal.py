@@ -17,7 +17,7 @@ def test_strict_collate():
     def collate_tuab_batch_strict(batch):
         """STRICT version - no workaround."""
         processed_samples = []
-        for idx, (x, label) in enumerate(batch):
+        for idx, (x, _label) in enumerate(batch):
             if x.shape[0] != 19:
                 raise RuntimeError(
                     f"TUAB batch item {idx}: Expected exactly 19 channels, got {x.shape[0]}. "
@@ -41,7 +41,7 @@ def test_strict_collate():
 
     batch = []
     for pkl_file in test_files:
-        with open(pkl_file, 'rb') as f:
+        with pkl_file.open('rb') as f:
             data, label = pickle.load(f)
         batch.append((torch.from_numpy(data), label))
 
@@ -72,7 +72,7 @@ def test_with_current_collate():
 
     batch = []
     for pkl_file in test_files:
-        with open(pkl_file, 'rb') as f:
+        with pkl_file.open('rb') as f:
             data, label = pickle.load(f)
         batch.append((torch.from_numpy(data), label))
 
