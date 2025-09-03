@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 import mne
 import numpy as np
 
+from .channel_utils import canonicalize_channel_types
 from .mne_preprocessor import TUABPreprocessor
 
 logger = logging.getLogger(__name__)

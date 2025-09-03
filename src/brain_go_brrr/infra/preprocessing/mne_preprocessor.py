@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 import mne
 from autoreject import AutoReject, Ransac
 
+from .channel_utils import canonicalize_channel_types
+
 logger = logging.getLogger(__name__)
 
 
@@ -106,6 +108,9 @@ class TUABPreprocessor:
         # 1. Load with MNE
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
         logger.info(f"Loaded {len(raw.ch_names)} channels, {raw.info['sfreq']} Hz")
+        
+        # 1b. Canonicalize channel types (EDF loses types, everything becomes 'eeg')
+        raw = canonicalize_channel_types(raw)
 
         # 2. Apply channel mapping (T3→T7, etc.)
         raw = self._apply_channel_mapping(raw)
