@@ -118,22 +118,29 @@ $ uv run python scripts/deep_cache_investigation.py
 ✅ NO 20-CHANNEL CONTAMINATION DETECTED
 ```
 
-### Implementation Steps - NOW CONCRETE
+### Implementation Steps
 
-1. **Investigation Phase** ✅ COMPLETE
-   - Scanned 1,020 files from cache
-   - Specifically checked aaaaakfo_s004/s005 files mentioned in tech debt
-   - Result: ALL have exactly 19 channels
+1. **TDD Gate First**:
+   - Add unit test asserting DataLoader always yields 19 channels
+   - Add warning if 20-ch ever appears (list affected cache keys)
+   - Test must pass before removing workaround
 
-2. **Action Required**:
+2. **Then Remove Workaround**:
    ```python
    # Remove lines 31-36 from collate_tuab.py (the workaround)
    # Change lines 37-44 to strict assertion:
    if x.shape[0] != 19:
+       # Log warning with cache keys for debugging
+       logger.warning(f"Unexpected {x.shape[0]} channels in batch item {idx}")
        raise RuntimeError(
            f"TUAB requires exactly 19 channels, got {x.shape[0]}"
        )
    ```
+
+3. **Isolation from Training**:
+   - Implement on separate branch
+   - Do NOT modify during active training run
+   - Merge after training epoch completes
 
 ### Acceptance Criteria (CORRECTED)
 - [x] Cache scan with `pickle.load` finds 0 windows with 20 channels ✅
@@ -472,10 +479,13 @@ Before marking any item complete:
 
 ## Additional Issues Found by Senior Review
 
-### Coverage Thresholds Lowered (Gaming the System)
+### Coverage Thresholds Lowered (MUST FIX)
 - **FOUND**: `Makefile:383` has `--cov-fail-under=28`
 - **SHOULD BE**: `--cov-fail-under=75` (original threshold)
-- **ACTION**: Restore original threshold and fix flaky coverage with proper /tmp usage
+- **ACTION**: 
+  - Restore original threshold
+  - Split lanes: `make test-fast` (parallel, no cov) + `make test-coverage` (serial, cov to /tmp)
+  - Keep single .coveragerc file
 
 ### Stale Comment About Units
 - **FOUND**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:132` says "datasets now provide raw mV"
