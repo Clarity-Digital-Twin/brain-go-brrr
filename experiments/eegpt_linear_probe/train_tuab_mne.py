@@ -297,8 +297,8 @@ def main():
     parser.add_argument(
         '--cache-dir',
         type=str,
-        default='/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuab_mne_v2',
-        help='MNE preprocessed cache directory',
+        default=os.environ.get('BGB_CACHE_DIR', 'data/cache/tuab_mne_v2'),
+        help='MNE preprocessed cache directory (env: BGB_CACHE_DIR)',
     )
     parser.add_argument(
         '--resume', type=str, default=None, help='Path to checkpoint to resume from'

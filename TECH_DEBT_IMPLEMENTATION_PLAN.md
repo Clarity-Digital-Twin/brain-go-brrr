@@ -494,8 +494,17 @@ Before marking any item complete:
   - ✅ Restored original 75% threshold in all Makefile locations
   - ✅ Fixed lines 232, 271, 383, 401
   - ✅ All set to --cov-fail-under=75
+  - ✅ Added "and not benchmark" exclusion to line 271
 
 ### Stale Comment About Units ✅ FIXED
 - **FOUND**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:132` says "datasets now provide raw mV"
 - **SHOULD BE**: "datasets provide Volts (V)" per SSOT convention
 - **ACTION COMPLETED**: ✅ Fixed comment to "datasets provide Volts (V) per SSOT convention"
+
+### Hardcoded Paths in Experiments ✅ FIXED (2025-01-28)
+- **FOUND**: Absolute paths in training scripts
+  - `train_tuab_mne.py:300`: `/mnt/c/Users/JJ/Desktop/.../tuab_mne_v2`
+  - `train_tuev_mne.py:166`: `/mnt/c/Users/JJ/Desktop/.../tuev_mne_v2`
+- **ACTION COMPLETED**: 
+  - ✅ Changed to use `os.environ.get('BGB_CACHE_DIR', 'data/cache/...')`
+  - ✅ Now portable across environments
