@@ -6,6 +6,7 @@ Supports both linear and two-layer architectures, with optional robust mode.
 
 import inspect
 import logging
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,18 @@ logger = logging.getLogger(__name__)
 
 class EEGPTProbe(nn.Module):
     """Unified EEGPT probe with configurable architecture.
+
+    .. deprecated:: 1.1.0
+        Use :class:`ProbeFactory` instead. This class will be removed in v2.0.0.
+        
+        Migration example::
+        
+            # Old way
+            probe = EEGPTProbe(checkpoint_path, architecture="two_layer")
+            
+            # New way  
+            from brain_go_brrr.infra.ml_models import ProbeFactory
+            probe = ProbeFactory.create(2048, 256, 2, architecture="two_layer")
 
     This replaces:
     - EEGPTLinearProbe
@@ -61,6 +74,14 @@ class EEGPTProbe(nn.Module):
             backbone: Pre-initialized backbone (for testing)
         """
         super().__init__()
+        
+        # Issue deprecation warning
+        warnings.warn(
+            "EEGPTProbe is deprecated and will be removed in v2.0.0. "
+            "Use ProbeFactory.create() instead for new code.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         # Load or use provided backbone
         if backbone is not None:
