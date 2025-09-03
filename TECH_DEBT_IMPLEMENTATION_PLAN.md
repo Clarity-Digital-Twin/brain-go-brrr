@@ -380,25 +380,33 @@ async def test_file_upload_with_httpx():
 - [ ] Tests passing or properly skipped
 - [ ] Documentation updated
 
-## Implementation Schedule
+## Implementation Order (REVISED)
 
-### Week 1 (High Priority)
-- **Day 1-2**: P0 - TUAB Collate Investigation
-  - Morning: Write tests, scan cache
-  - Afternoon: Implement fix or document justification
+### Prerequisites (Do First)
+- Fix coverage thresholds in Makefile (restore to 75%)
+- Split test lanes for reliability
 
-- **Day 3-4**: P1 - Channel Routing
-  - Day 3: Write tests, implement router service
-  - Day 4: Update API, add fallback logic
+### Implementation Sequence
+1. **P0 - TUAB Collate** (on separate branch):
+   - Add TDD gate test first
+   - Remove workaround after test passes
+   - Do NOT touch running training
 
-- **Day 5**: P2 - Model Consolidation
-  - Morning: Analysis and decision
-  - Afternoon: Implementation
+2. **P1 - Channel Routing**:
+   - Add router logic + tests
+   - Update API endpoints
+   - Test with 2-ch and 19-ch inputs
 
-### Week 2 (Low Priority)
-- **Day 1**: P3 - Documentation cleanup
-- **Day 2-3**: P4 - TestClient fix (if needed)
-- **Day 4-5**: Integration testing and documentation
+3. **P2 - Model Consolidation**:
+   - Add factory in unified probe
+   - Deprecate duplicate code
+   - Add equivalence tests
+
+4. **P3 - Docs Cleanup**:
+   - Audit and consolidate
+   - Validate `make docs`
+
+5. **P4 - Remove from list** (already resolved)
 
 ## Success Metrics
 
