@@ -4,7 +4,6 @@ Tests the CONTRACT, not raw EDF headers.
 Uses the SSOT preprocessor, not raw MNE reads.
 """
 
-
 import numpy as np
 import pytest
 

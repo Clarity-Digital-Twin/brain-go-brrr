@@ -236,7 +236,8 @@ test-fast-cov: ## Run ONLY fast tests with coverage for quick feedback
 
 test-integration: ## Run integration tests (CI-friendly: skip GPU, data, and model-requiring tests)
 	@echo "$(GREEN)Running CI-friendly integration tests...$(NC)"
-	$(PYTEST) tests --run-integration -m "integration and not gpu and not data and not requires_model" -v --tb=short
+	@mkdir -p /tmp/empty_dir
+	BGB_ALLOW_SYNTH_TUAB=1 BGB_ALLOW_SYNTH_TUEV=1 BGB_DATA_ROOT=/tmp/empty_dir $(PYTEST) tests --run-integration -m "integration and not gpu and not data and not requires_model" -v --tb=short -o addopts=""
 	@echo "$(GREEN)Integration tests complete!$(NC)"
 
 test-integration-data: ## Run data-backed integration tests (requires BGB_DATA_ROOT)
