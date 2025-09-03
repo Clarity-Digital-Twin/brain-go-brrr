@@ -4,7 +4,6 @@ This test verifies that TUAB data can be loaded and processed
 through our pipeline with proper channel mapping and normalization.
 """
 
-import mne
 import numpy as np
 import pytest
 
@@ -12,119 +11,124 @@ import pytest
 @pytest.mark.integration
 @pytest.mark.synth  # Can run with synthetic data
 class TestTUABSmoke:
-    """Basic smoke tests for TUAB dataset integration."""
+    """Basic smoke tests for TUAB dataset integration using SSOT preprocessor."""
 
     def test_tuab_fixture_loads(self, tuab_sample_path):
         """Test that TUAB fixture provides a valid EDF file."""
         assert tuab_sample_path.exists()
         assert tuab_sample_path.suffix == ".edf"
 
-    def test_tuab_file_readable(self, tuab_sample_path):
-        """Test that TUAB EDF file can be read with MNE."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=False, verbose=False)
-        assert raw is not None
-        assert raw.info["sfreq"] > 0
-        assert len(raw.ch_names) > 0
-
-    def test_tuab_channel_mapping(self, tuab_sample_path):
-        """Test TUAB channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=False, verbose=False)
-
-        # Check if old naming is present and needs mapping
-        old_names = ["T3", "T4", "T5", "T6"]
-        new_names = ["T7", "T8", "P7", "P8"]
-
-        ch_names_upper = [ch.upper() for ch in raw.ch_names]
-
-        # If using real TUAB data, it might have old names with -REF suffix
-        # If using synthetic, it should already have correct names
-        for old, new in zip(old_names, new_names, strict=False):
-            # Check for variations: T3, EEG T3-REF, etc
-            found = any(
-                old in ch or new in ch or f"{old}-" in ch or f"{new}-" in ch
-                for ch in ch_names_upper
-            )
-            assert found, f"Neither {old} nor {new} found in channels: {ch_names_upper[:5]}..."
-
-    def test_tuab_sampling_rate(self, tuab_sample_path):
-        """Test TUAB data can be resampled to 256Hz if needed."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=True, verbose=False)
-        original_sfreq = raw.info["sfreq"]
-
-        if original_sfreq != 256:
-            raw.resample(256, verbose=False)
-
-        assert raw.info["sfreq"] == 256
-
-    def test_tuab_channel_count(self, tuab_sample_path):
-        """Test TUAB has expected channel count."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=False, verbose=False)
-
-        # TUAB typically has 19-22 EEG channels
-        # But real TUAB data includes extra channels (ECG, EMG, etc)
-        # Synthetic has 19, real might have 30+ total channels
-        assert 18 <= len(raw.ch_names) <= 35, f"Unexpected channel count: {len(raw.ch_names)}"
-
-    def test_tuab_data_shape(self, tuab_sample_path):
-        """Test TUAB data has correct shape for processing."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=True, verbose=False)
-
-        # Get data
-        data = raw.get_data()
-
-        # Check shape
-        n_channels, n_samples = data.shape
-        assert n_channels > 0
-        assert n_samples > 0
-
-        # Check duration is reasonable (at least 10 seconds)
-        duration = n_samples / raw.info["sfreq"]
-        assert duration >= 10, f"Recording too short: {duration}s"
-
-    def test_tuab_data_range(self, tuab_sample_path):
-        """Test TUAB data is in expected voltage range."""
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=True, verbose=False)
-
-        # Get data
-        data = raw.get_data()
-
-        # EEG should be in microvolts range (1e-6 to 1e-3 V)
+    def test_tuab_preprocessor_contract(self, tuab_sample_path):
+        """Test TUAB data through SSOT preprocessor meets strict contract."""
+        from brain_go_brrr.infra.preprocessing.mne_preprocessor import TUABPreprocessor
+        
+        # Use SSOT preprocessor
+        preprocessor = TUABPreprocessor()
+        epochs, info = preprocessor.process_raw(tuab_sample_path)
+        
+        # STRICT assertions on NORMALIZED output
+        
+        # 1. Channel count: 18-19 (Oz optional per TUAB reality)
+        assert len(epochs.ch_names) in [18, 19], (
+            f"Expected 18-19 channels, got {len(epochs.ch_names)}"
+        )
+        
+        # 2. Modern naming ONLY (T7 not T3)
+        required_modern = ["T7", "T8", "P7", "P8"]
+        for ch in required_modern:
+            assert ch in epochs.ch_names, f"Missing required modern channel: {ch}"
+        
+        # 3. NO old naming
+        forbidden_old = ["T3", "T4", "T5", "T6"]
+        for ch in forbidden_old:
+            assert ch not in epochs.ch_names, f"Old naming found: {ch}"
+        
+        # 4. Sampling rate EXACTLY 256Hz
+        assert epochs.info["sfreq"] == 256, f"Expected 256Hz, got {epochs.info['sfreq']}"
+        
+        # 5. Voltage in REASONABLE range (microvolts in SI units - Volts)
+        data = epochs.get_data()
         data_abs = np.abs(data)
-        max_val = np.max(data_abs)
-        mean_val = np.mean(data_abs)
+        
+        # Use robust quantiles instead of max (handles outliers better)
+        q999 = np.quantile(data_abs, 0.999)
+        q50 = np.median(data_abs)
+        
+        # After normalization, should be in microvolts range (1e-7 to 5e-3 V)
+        assert q999 < 5e-3, f"Data too large (99.9th percentile): {q999}V"
+        assert q999 > 1e-7, f"Data too small (99.9th percentile): {q999}V"
+        assert q50 < 1e-3, f"Median too large: {q50}V"
+        
+        # 6. Epoch shape consistency
+        n_epochs, n_channels, n_times = data.shape
+        assert n_channels in [18, 19], f"Inconsistent channel count in epochs"
+        
+        # 4 seconds at 256Hz = 1024 samples
+        expected_samples = int(4.0 * 256)
+        assert n_times == expected_samples, (
+            f"Expected {expected_samples} samples per epoch, got {n_times}"
+        )
 
-        # Check reasonable ranges
-        # Note: Some TUAB files have incorrect scaling, appearing as very large values
-        # Accept up to 1000V as this is clearly a scaling issue, not actual voltage
-        assert max_val < 1000.0, f"Data implausibly large: max={max_val}V"
-        assert max_val > 1e-8, f"Data too small: max={max_val}V"
-        # Mean should still be reasonable even with scaling issues
-        assert mean_val < 100.0, f"Mean implausibly large: {mean_val}V"
+    def test_tuab_channel_selection(self, tuab_sample_path):
+        """Test that preprocessor correctly selects and orders channels."""
+        from brain_go_brrr.infra.preprocessing.mne_preprocessor import TUABPreprocessor
+        from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19
+        
+        preprocessor = TUABPreprocessor()
+        epochs, info = preprocessor.process_raw(tuab_sample_path)
+        
+        # Check channels are in expected order (subset of CHANNELS_TUAB_19)
+        # Since Oz might be missing, we check that all present channels
+        # are in the expected set and order
+        expected_set = set(CHANNELS_TUAB_19)
+        actual_set = set(epochs.ch_names)
+        
+        # All actual channels must be in expected set
+        assert actual_set.issubset(expected_set), (
+            f"Unexpected channels: {actual_set - expected_set}"
+        )
+        
+        # If Oz is missing, that's the only allowed missing channel
+        missing = expected_set - actual_set
+        if missing:
+            assert missing == {"OZ"}, f"Unexpected missing channels: {missing}"
+
+    def test_tuab_provenance_tracking(self, tuab_sample_path):
+        """Test that preprocessing tracks provenance correctly."""
+        from brain_go_brrr.infra.preprocessing.mne_preprocessor import TUABPreprocessor
+        
+        preprocessor = TUABPreprocessor()
+        epochs, info = preprocessor.process_raw(tuab_sample_path)
+        
+        # Check provenance info
+        assert "preprocessing" in info
+        assert "channel_count" in info["preprocessing"]
+        assert info["preprocessing"]["channel_count"] in [18, 19]
+        assert info["preprocessing"]["sampling_rate"] == 256
+        assert info["preprocessing"]["dataset"] == "TUAB"
 
     @pytest.mark.slow
-    def test_tuab_with_eegpt_shape(self, tuab_sample_path):
-        """Test TUAB data produces correct EEGPT embedding shape."""
+    def test_tuab_with_eegpt_compatibility(self, tuab_sample_path):
+        """Test TUAB preprocessed data is compatible with EEGPT."""
         pytest.importorskip("torch")
-
-        raw = mne.io.read_raw_edf(tuab_sample_path, preload=True, verbose=False)
-
-        # Resample to 256Hz if needed
-        if raw.info["sfreq"] != 256:
-            raw.resample(256, verbose=False)
-
-        # Get 4-second window (EEGPT requirement)
-        window_size = 256 * 4  # 1024 samples
-        data = raw.get_data()
-
-        if data.shape[1] >= window_size:
-            window = data[:, :window_size]
-
-            # Check window shape
-            assert window.shape[1] == 1024
-
-            # Would pass to EEGPT here, but we're just checking shape
-            # EEGPT expects (batch, channels, samples)
-            # and outputs (batch, 2048) features
+        from brain_go_brrr.infra.preprocessing.mne_preprocessor import TUABPreprocessor
+        
+        preprocessor = TUABPreprocessor()
+        epochs, info = preprocessor.process_raw(tuab_sample_path)
+        
+        # Get epoch data
+        data = epochs.get_data()
+        
+        # EEGPT expects (batch, channels, samples)
+        # Our epochs are already in this format
+        batch_size, n_channels, n_samples = data.shape
+        
+        # Verify shape for EEGPT
+        assert n_channels in [18, 19], "Channel count for EEGPT"
+        assert n_samples == 1024, "4 seconds at 256Hz for EEGPT"
+        
+        # Data should be normalized and ready for EEGPT
+        # (Would pass to model here in real usage)
 
     def test_tuab_dataconfig_integration(self):
         """Test that DataConfig properly resolves TUAB paths."""
