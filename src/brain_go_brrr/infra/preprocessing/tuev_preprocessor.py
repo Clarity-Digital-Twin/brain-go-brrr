@@ -284,6 +284,9 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Load and preprocess raw data
         raw = mne.io.read_raw_edf(str(edf_path), preload=True, verbose=False)
         logger.info(f"Loaded {len(raw.ch_names)} channels, {raw.info['sfreq']} Hz")
+        
+        # Canonicalize channel types (EDF loses types, everything becomes 'eeg')
+        raw = canonicalize_channel_types(raw)
 
         # Apply TUEV-specific channel mapping (23→20) and track missing channels
         raw, missing_channels = self._apply_channel_mapping_with_tracking(raw)
