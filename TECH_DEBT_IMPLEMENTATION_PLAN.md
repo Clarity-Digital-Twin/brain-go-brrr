@@ -1,16 +1,17 @@
 # Technical Debt Implementation Plan
 
-## ⚠️ DEEP INVESTIGATION COMPLETED - Sep 3, 2025
+## ⚠️ INVESTIGATION CORRECTED AFTER SENIOR REVIEW - Sep 3, 2025
 
-**Investigation Summary**: Conducted thorough code analysis with concrete file references and line numbers. Found cache corruption issues preventing P0 resolution, confirmed P1-P3 as valid, and discovered P4 is already resolved.
+**Critical Error Fixed**: Initial investigation used `torch.load` on pickle files causing false "corruption" diagnosis. Correct method uses `pickle.load`.
 
-### 🔍 CRITICAL FINDINGS FOR SENIOR REVIEW
+### 🔍 CORRECTED FINDINGS AFTER SENIOR AUDIT
 
-1. **P0 BLOCKED BY CACHE CORRUPTION**:
-   - Cache directory has 874,319 files but all show "Invalid magic number" errors
-   - Cannot verify if 20-channel contamination exists without regenerating cache
-   - Training currently running with workaround in place (`tmux attach -t tuab_mne_training`)
-   - **RECOMMENDATION**: Regenerate cache before removing workaround
+1. **P0 NOT BLOCKED - READY TO REMOVE**:
+   - **ERROR IN INITIAL INVESTIGATION**: Used `torch.load` instead of `pickle.load`
+   - **EVIDENCE**: `src/brain_go_brrr/infra/data/tuab_dataset.py:481` uses `pickle.dump`
+   - **CORRECT VERIFICATION**: Sampled 100 cache files with `pickle.load`
+   - **RESULT**: 100% have exactly 19 channels, 0% have 20 channels
+   - **ACTION**: Workaround can be safely removed
 
 2. **P1 CONFIRMED - API UNNECESSARILY RESTRICTIVE**:
    - `src/brain_go_brrr/api/routers/sleep.py:397-403` rejects <19 channels
@@ -35,7 +36,7 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 
 | Priority | Item | Impact | Effort | Risk | Status |
 |----------|------|--------|--------|------|--------|
-| 🔴 P0 | TUAB Collate Workaround | High | ⚠️ High | High | BLOCKED - Cache corrupt |
+| 🔴 P0 | TUAB Collate Workaround | High | Low | Low | READY - No 20-ch files |
 | 🟡 P1 | Channel Routing in API | Medium | Medium | Low | CONFIRMED - Ready |
 | 🟡 P2 | EEGPT Model Consolidation | Low | Low | Low | CONFIRMED - Ready |
 | 🟢 P3 | Experiment Docs Cleanup | Low | Low | None | CONFIRMED - Ready |
@@ -50,10 +51,10 @@ This document outlines the TDD-based approach to eliminate remaining technical d
 - **CONCRETE EVIDENCE**:
   - File: `src/brain_go_brrr/utils/collate_tuab.py:31-36`
   - Workaround drops channel 4 (Fz) if 20 channels detected
-  - Used by: `experiments/eegpt_linear_probe/train_tuab_mne.py:31`
-  - Cache directory: `/data/cache/tuab_mne_v2/` has 874,319 files
-  - Cache files show "Invalid magic number; corrupt file?" errors
-- **STATUS**: Cache appears corrupted, need to regenerate before removing workaround
+  - Cache written with: `pickle.dump((window, label), f)` at `tuab_dataset.py:481`
+  - Cache directory: `/data/cache/tuab_mne_v2/` has 898,487 files
+  - **VERIFIED**: Sampled 100 files with `pickle.load` - ALL have 19 channels
+- **STATUS**: Workaround is obsolete and can be safely removed
 - **TRAINING IMPACT**: Currently training in `tmux attach -t tuab_mne_training`
 
 ### TDD Test Specification
@@ -449,10 +450,23 @@ Before marking any item complete:
 **Investigator**: Claude (Deep Investigation Complete)
 **Status**: READY FOR SENIOR REVIEW - WITH CONCRETE EVIDENCE
 
-## Investigation Methodology
+## Investigation Methodology (CORRECTED)
 - Examined actual source code with line numbers
 - Verified claims against running codebase
 - Checked active training sessions
-- Attempted cache file analysis (found corruption)
+- ~~Attempted cache file analysis (found corruption)~~ **CORRECTED**: Used wrong method
+- **CORRECT METHOD**: Used `pickle.load` matching `pickle.dump` in dataset code
 - Cross-referenced with test files
 - Confirmed each tech debt item with file paths and code snippets
+
+## Additional Issues Found by Senior Review
+
+### Coverage Thresholds Lowered (Gaming the System)
+- **FOUND**: `Makefile:383` has `--cov-fail-under=28`
+- **SHOULD BE**: `--cov-fail-under=75` (original threshold)
+- **ACTION**: Restore original threshold and fix flaky coverage with proper /tmp usage
+
+### Channel Mapping Still Using Uppercase
+- **FOUND**: `TUABDataset.CHANNEL_MAPPING` may still map to uppercase
+- **SHOULD BE**: Mixed-case targets ("Cz", "Pz", "Oz") to match `CHANNELS_TUAB_19`
+- **ACTION**: Verify and fix to reduce "missing channels" warnings
