@@ -139,6 +139,7 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
         self.preload = preload
         self.normalize = normalize
         self.cache_dir = cache_dir
+        self.cache_unit = None  # Will be set from cache metadata
 
         # Validate cache META.json if cache_dir exists
         if self.cache_dir and self.cache_dir.exists():
@@ -151,7 +152,9 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
 
                 # Assert critical cache properties
                 assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
-                assert meta['unit'] == 'V', f"Cache unit mismatch: {meta['unit']} != V"
+                # Accept both V and mV units (handle conversion if needed)
+                assert meta['unit'] in ['V', 'mV'], f"Cache unit mismatch: {meta['unit']} not in ['V', 'mV']"
+                self.cache_unit = meta['unit']  # Store for conversion during loading
                 assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
                 assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
 
@@ -376,6 +379,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 try:
                     with cache_file.open("rb") as f:
                         window, label = pickle.load(f)
+                    
+                    # Convert units if needed (mV to V)
+                    if self.cache_unit == 'mV':
+                        window = window / 1000.0  # Convert mV to V
+                    
                     return torch.from_numpy(window).float(), label
                 except Exception:
                     # If cache load fails, regenerate

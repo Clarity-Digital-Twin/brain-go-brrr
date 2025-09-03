@@ -118,7 +118,7 @@ if command -v tmux &> /dev/null; then
     if [ "$ENABLE_RECOVERY" = "true" ]; then
         # Start new session with recovery wrapper
         tmux new-session -d -s "$SESSION_NAME" \
-            "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && export OUTPUT_DIR=\"$OUTPUT_DIR\" && export CACHE_DIR=\"$CACHE_DIR\" && export MAX_RETRIES=\"$MAX_RETRIES\" && export RETRY_DELAY=\"$RETRY_DELAY\" && $(declare -f run_with_recovery); run_with_recovery'"
+            "bash -lc 'cd \"$EXPERIMENT_DIR\" && export BGB_DATA_ROOT=\"$DATA_ROOT\" && export PYTHONPATH=\"$PROJECT_ROOT:\$PYTHONPATH\" && export OUTPUT_DIR=\"$OUTPUT_DIR\" && export CACHE_DIR=\"$CACHE_DIR\" && export MAX_RETRIES=\"$MAX_RETRIES\" && export RETRY_DELAY=\"$RETRY_DELAY\" && export LOG_FILE=\"$LOG_FILE\" && $(declare -f run_with_recovery); run_with_recovery'"
     else
         # Original single-run command (using FIXED version)
         tmux new-session -d -s "$SESSION_NAME" \
