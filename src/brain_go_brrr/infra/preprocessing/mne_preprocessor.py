@@ -213,18 +213,20 @@ class TUABPreprocessor:
 
         if missing_channels:
             logger.warning(f"Missing standard channels: {missing_channels}")
-            if len(available_standard) < 19:  # Must have all 19 TUAB channels
+            # TUAB files commonly miss Oz - accept 18 (no Oz) or 19 (with Oz)
+            if len(available_standard) < 18:  # Minimum viable for TUAB
                 raise ValueError(
-                    f"Too few standard channels ({len(available_standard)}/19). Need exactly 19."
+                    f"Too few standard channels ({len(available_standard)}). Need at least 18. "
+                    f"Missing: {missing_channels}"
                 )
 
-        # Pick and reorder channels - enforce exactly 19
-        if len(available_standard) != 19:
-            logger.warning(f"Expected 19 channels, found {len(available_standard)}")
-            # CRITICAL: For TUAB cache builds, we MUST have exactly 19 channels
+        # Pick and reorder channels - accept 18 (no Oz) or 19 (with Oz)
+        if len(available_standard) not in [18, 19]:
+            logger.warning(f"Expected 18-19 channels, found {len(available_standard)}")
+            # CRITICAL: For TUAB cache builds, we need 18 or 19 channels
             # If we have 20 (Fz included), remove it. This prevents the 20-channel bug.
             if len(available_standard) == 20 and 'Fz' in available_standard:
-                logger.warning("Found 20 channels including Fz - removing Fz to ensure 19 channels")
+                logger.warning("Found 20 channels including Fz - removing Fz to get 19 channels")
                 available_standard = [ch for ch in available_standard if ch != 'Fz']
             elif len(available_standard) > 19:
                 # If we have more than 19 but not exactly 20, something's wrong
@@ -239,9 +241,9 @@ class TUABPreprocessor:
                     f"Missing: {[ch for ch in self.STANDARD_CHANNELS if ch not in available_standard]}"
                 )
 
-        # Final sanity check - MUST be exactly 19 channels
-        assert len(available_standard) == 19, (
-            f"Must have exactly 19 channels, got {len(available_standard)}"
+        # Final sanity check - MUST be 18 or 19 channels
+        assert len(available_standard) in [18, 19], (
+            f"Must have 18-19 channels, got {len(available_standard)}"
         )
 
         # Use raw.pick() for better compatibility across MNE versions
