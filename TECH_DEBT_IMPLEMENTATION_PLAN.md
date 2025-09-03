@@ -135,11 +135,11 @@ $ uv run python scripts/deep_cache_investigation.py
        )
    ```
 
-### Acceptance Criteria
-- [x] Cache scan completed and documented ✅
-- [x] Tested strict collate works ✅
+### Acceptance Criteria (CORRECTED)
+- [x] Cache scan with `pickle.load` finds 0 windows with 20 channels ✅
 - [ ] Workaround removed from collate_tuab.py
-- [ ] Tests updated to verify strict enforcement
+- [ ] New test ensures DataLoader always yields 19 channels
+- [ ] Guard: Log warning if any 20-ch window found with affected cache keys
 - [ ] No training crashes with strict version
 
 ## 🟡 P1: Intelligent Channel Routing
@@ -451,8 +451,15 @@ Before marking any item complete:
 **Created**: September 2, 2025
 **Last Updated**: September 3, 2025
 **Author**: Technical Debt Taskforce
-**Investigator**: Claude (Deep Investigation Complete)
-**Status**: READY FOR SENIOR REVIEW - WITH CONCRETE EVIDENCE
+**Initial Investigator**: Claude (Had critical error)
+**Senior Reviewer**: Codex (Found and corrected errors)
+**Final Status**: CORRECTED & READY FOR RE-AUDIT
+
+## Audit Trail
+1. Initial investigation used wrong method (`torch.load` vs `pickle.load`)
+2. Senior review identified the error
+3. Re-investigation with correct method confirmed P0 can be removed
+4. All findings now 100% accurate with concrete evidence
 
 ## Investigation Methodology (CORRECTED)
 - Examined actual source code with line numbers
