@@ -37,7 +37,7 @@ def investigate_deeply():
             print(f"  Progress: {i}/{len(sample_files)}")
 
         try:
-            with open(pkl_file, 'rb') as f:
+            with pkl_file.open('rb') as f:
                 data = pickle.load(f)
 
             # Handle different formats
@@ -95,7 +95,7 @@ def investigate_deeply():
             # Check first few
             for f in matches[:3]:
                 try:
-                    with open(f, 'rb') as file:
+                    with f.open('rb') as file:
                         data = pickle.load(file)
                     if isinstance(data, tuple):
                         print(f"  {f.name}: {data[0].shape[0]} channels ✓")
