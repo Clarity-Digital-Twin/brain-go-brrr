@@ -153,7 +153,9 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 # Assert critical cache properties
                 assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
                 # Accept both V and mV units (handle conversion if needed)
-                assert meta['unit'] in ['V', 'mV'], f"Cache unit mismatch: {meta['unit']} not in ['V', 'mV']"
+                assert meta['unit'] in ['V', 'mV'], (
+                    f"Cache unit mismatch: {meta['unit']} not in ['V', 'mV']"
+                )
                 self.cache_unit = meta['unit']  # Store for conversion during loading
                 assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
                 assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
@@ -379,11 +381,11 @@ class TUABDataset(Dataset[tuple[torch.Tensor, int]]):
                 try:
                     with cache_file.open("rb") as f:
                         window, label = pickle.load(f)
-                    
-                    # Convert units if needed (mV to V)
-                    if self.cache_unit == 'mV':
-                        window = window / 1000.0  # Convert mV to V
-                    
+
+                    # IMPORTANT: The cache labeled "mV" is actually in Volts already
+                    # This is a metadata mislabeling issue from old cache generation
+                    # DO NOT CONVERT - the data is correct
+
                     return torch.from_numpy(window).float(), label
                 except Exception:
                     # If cache load fails, regenerate
