@@ -1,6 +1,7 @@
 """TUAB-specific collate function - strictly enforces 19 channels."""
 
 import logging
+
 import torch
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ def collate_tuab_batch(
     TUAB specifications:
     - Expects exactly 19 channels (no Fz)
     - BCEWithLogitsLoss expects float labels (0.0, 1.0)
-    
+
     Cache audit results (Jan 2025):
     - 100/100 sampled cache files have exactly 19 channels
     - 0% have 20 channels (no Fz contamination found)
@@ -27,7 +28,7 @@ def collate_tuab_batch(
         Tuple of (batch_data, batch_labels)
         - batch_data: (B, 19, 1024) tensor
         - batch_labels: (B,) tensor with float32 dtype
-    
+
     Raises:
         RuntimeError: If any sample doesn't have exactly 19 channels
     """

@@ -12,6 +12,7 @@ import torch
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from brain_go_brrr.api.routers.channel_router import ChannelRouter
 from brain_go_brrr.api.routers.jobs import job_store  # TODO: Move to core
 from brain_go_brrr.api.schemas import (
     JobData,
@@ -20,7 +21,6 @@ from brain_go_brrr.api.schemas import (
     JobStatus,
     SleepAnalysisResponse,
 )
-from brain_go_brrr.api.routers.channel_router import ChannelRouter
 from brain_go_brrr.domain.exceptions import (
     EdfLoadError,
     SleepAnalysisError,
@@ -401,7 +401,7 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
             )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
-        
+
         # If routed to YASA, redirect to YASA endpoint
         if method == "yasa":
             logger.info(
@@ -410,13 +410,13 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
             # Use YASA for sleep analysis
             sleep_analyzer = SleepAnalyzer()
             results = sleep_analyzer.run_full_sleep_analysis(raw)
-            
+
             # Convert YASA results to match expected response format
             hypnogram = results.get("hypnogram", [])
-            
+
             # Create mock confidence scores for YASA (it doesn't provide them)
             confidence_scores = [0.85] * len(hypnogram)  # YASA typically ~85% accurate
-            
+
             # Calculate summary
             stage_counts = dict.fromkeys(["W", "N1", "N2", "N3", "REM"], 0)
             for stage in hypnogram:
@@ -424,10 +424,10 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
                 mapped_stage = stage_map.get(stage, stage)
                 if mapped_stage in stage_counts:
                     stage_counts[mapped_stage] += 1
-            
+
             total_epochs = len(hypnogram)
             total_sleep_epochs = total_epochs - stage_counts.get("W", 0)
-            
+
             summary = {
                 "total_epochs": total_epochs,
                 "total_sleep_time": total_sleep_epochs * 0.5,  # minutes
@@ -440,16 +440,16 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
                 },
                 "mean_confidence": 0.85,  # YASA typical accuracy
                 "method": "yasa",
-                "routing_reason": routing_metadata.get("routing_reason", "auto")
+                "routing_reason": routing_metadata.get("routing_reason", "auto"),
             }
-            
+
             return SleepStageResponse(
                 stages=hypnogram[:100],  # Limit response size
                 confidence_scores=confidence_scores[:100],
                 hypnogram=hypnogram[:100],
-                summary=summary
+                summary=summary,
             )
-        
+
         # Continue with EEGPT processing if we have enough channels
 
         # Check sampling rate and resample if needed
