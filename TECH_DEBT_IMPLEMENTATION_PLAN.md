@@ -331,9 +331,9 @@ def test_unified_probe_supports_all_modes():
 ### Acceptance Criteria ✅ ALL COMPLETED (Sep 3, 2025)
 - [x] Audit completed ✅ (reviewed all 3 docs)
 - [x] Decision documented ✅ (consolidated into single README.md)
-- [x] Files handled appropriately ✅ (deleted redundant docs/ subdirectory)
+- [x] Files handled appropriately ✅ (archived in docs_archive/ with ARCHIVE_NOTE.md)
 - [x] No broken references ✅ (updated all references)
-- [x] **IMPLEMENTED**: Consolidated all experiment docs into experiments/eegpt_linear_probe/README.md
+- [x] **IMPLEMENTED**: Consolidated docs into README.md, originals archived in docs_archive/
 
 ## 🟢 P4: TestClient File Upload Fix - RESOLVED
 
