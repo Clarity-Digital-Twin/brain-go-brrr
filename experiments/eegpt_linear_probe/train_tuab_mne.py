@@ -458,7 +458,10 @@ def main():
         checkpoint = torch.load(args.resume, map_location=device, weights_only=False)  # nosec:weights_only - Full checkpoint with optimizer state
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        
+        # Set scheduler to correct position
+        global_step_resume = checkpoint.get('global_step', 0)
+        scheduler.last_epoch = global_step_resume - 1  # Set correct position for OneCycleLR
 
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
