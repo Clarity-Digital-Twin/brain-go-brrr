@@ -134,7 +134,7 @@ def train_epoch(
         # Skip already-processed batches when resuming mid-epoch
         if batch_idx < start_batch:
             continue
-            
+
         x, y = x.to(device), y.to(device)
         global_step += 1
 
@@ -176,11 +176,11 @@ def train_epoch(
                     'lr': f'{scheduler.get_last_lr()[0]:.6f}',
                 }
             )
-            
+
         # Heartbeat for crash detection
         if batch_idx % 100 == 0 and output_dir:
             update_heartbeat(output_dir, epoch, batch_idx, global_step)
-            
+
         # Intra-epoch checkpointing
         if output_dir and batch_idx > 0 and batch_idx % 500 == 0:
             checkpoint = {
@@ -201,7 +201,9 @@ def train_epoch(
     # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
     balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
-    weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0
+    weighted_f1 = (
+        f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0
+    )
     kappa = cohen_kappa_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0
 
     return avg_loss, balanced_acc, weighted_f1, kappa, global_step
@@ -291,7 +293,7 @@ def main():
     with open(args.config) as f:
         config = yaml.safe_load(f)
     config = resolve_env_vars(config)
-    
+
     # Setup determinism for reproducibility
     seed = config.get('experiment', {}).get('seed', 42)
     random.seed(seed)
@@ -353,7 +355,7 @@ def main():
 
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Eval dataset: {len(eval_dataset)} windows")
-    
+
     # Calculate batches per epoch for scheduler
     batches_per_epoch = len(train_dataset) // config['data']['batch_size']
     logger.info(f"Batches per epoch: {batches_per_epoch}")
@@ -367,8 +369,12 @@ def main():
         shuffle=False,
         num_workers=config['data'].get('num_workers', 4),
         pin_memory=config['data'].get('pin_memory', True),
-        persistent_workers=config['data'].get('persistent_workers', True) if config['data'].get('num_workers', 4) > 0 else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2) if config['data'].get('num_workers', 4) > 0 else None,
+        persistent_workers=config['data'].get('persistent_workers', True)
+        if config['data'].get('num_workers', 4) > 0
+        else False,
+        prefetch_factor=config['data'].get('prefetch_factor', 2)
+        if config['data'].get('num_workers', 4) > 0
+        else None,
         collate_fn=collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
     )
 
@@ -437,11 +443,11 @@ def main():
         checkpoint = torch.load(args.resume, map_location=device, weights_only=False)  # nosec:weights_only - Full checkpoint with optimizer state
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        
+
         # Set scheduler to correct position
         global_step_resume = checkpoint.get('global_step', 0)
         scheduler.last_epoch = global_step_resume - 1  # Set correct position for OneCycleLR
-        
+
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
         start_batch = checkpoint.get('batch_idx', 0)
@@ -450,7 +456,7 @@ def main():
         global_step = checkpoint.get('global_step', 0)
         epoch_indices = checkpoint.get('epoch_indices', None)
         sample_offset = checkpoint.get('sample_offset', None)
-        
+
         # Check if we need to advance to the next epoch
         if start_batch > 0:
             # We were mid-epoch, check if we should resume or advance
@@ -458,9 +464,11 @@ def main():
                 samples_processed = sample_offset
             else:
                 samples_processed = (start_batch + 1) * config['data']['batch_size']
-                
+
             if samples_processed >= len(train_dataset):
-                logger.info(f"Epoch {start_epoch} already completed, advancing to epoch {start_epoch + 1}")
+                logger.info(
+                    f"Epoch {start_epoch} already completed, advancing to epoch {start_epoch + 1}"
+                )
                 start_epoch = start_epoch + 1
                 start_batch = 0
                 epoch_indices = None
@@ -470,7 +478,7 @@ def main():
         else:
             # Completed epoch, start fresh
             start_epoch = checkpoint['epoch'] + 1
-            
+
         logger.info(f"Resuming: epoch {start_epoch}, best balanced acc: {best_balanced_acc:.4f}")
 
     # Training loop
@@ -484,7 +492,7 @@ def main():
                 start_idx = sample_offset
             else:
                 start_idx = (start_batch + 1) * config['data']['batch_size']
-                
+
             train_loader, current_epoch_indices = create_deterministic_dataloader(
                 train_dataset,
                 batch_size=config['data']['batch_size'],
@@ -515,17 +523,24 @@ def main():
                 epoch_indices=None,
             )
             resume_batch = 0
-            
+
         # Train
         train_loss, train_acc, train_f1, train_kappa, global_step = train_epoch(
-            model, probe, train_loader, optimizer, scheduler, criterion, device, epoch,
+            model,
+            probe,
+            train_loader,
+            optimizer,
+            scheduler,
+            criterion,
+            device,
+            epoch,
             output_dir=output_dir,
             global_step=global_step,
             config=config,
             epoch_indices=current_epoch_indices,
             start_batch=resume_batch,
         )
-        
+
         # Reset for next epoch
         start_batch = 0
         sample_offset = None
