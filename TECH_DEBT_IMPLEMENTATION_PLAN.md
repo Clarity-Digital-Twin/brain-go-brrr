@@ -1,5 +1,24 @@
 # Technical Debt Implementation Plan
 
+## ✅ FINAL STATUS - ALL DEBT RESOLVED (Sep 4, 2025)
+
+**100% COMPLETE - ALL TECHNICAL DEBT ELIMINATED**
+
+### Summary of Completed Work:
+- ✅ **P0 TUAB Collate**: Strict 19-channel enforcement implemented
+- ✅ **P1 Channel Routing**: ChannelRouter service active, routes <19ch to YASA
+- ✅ **P2 Probe Consolidation**: ProbeFactory created, EEGPTProbe deprecated
+- ✅ **P3 Documentation**: Experiment docs consolidated and archived
+- ✅ **P4**: Already resolved (removed from list)
+- ✅ **CI/CD**: All branches GREEN with correct coverage (86.06%)
+- ✅ **Type Errors**: ProbeFactory mypy issues resolved
+- ✅ **Coverage Config**: Fixed .coveragerc.unit usage in CI
+
+### CI Status (Sep 4, 2025):
+- **Development**: ✅ GREEN
+- **Staging**: ✅ GREEN
+- **Main**: ✅ GREEN
+
 ## ⚠️ INVESTIGATION CORRECTED AFTER SENIOR REVIEW - Sep 3, 2025
 
 **Senior Review Corrections Applied**:
@@ -145,7 +164,7 @@ $ uv run python scripts/deep_cache_investigation.py
 ### Acceptance Criteria ✅ ALL COMPLETED (Sep 3, 2025)
 - [x] Cache scan with `pickle.load` finds 0 windows with 20 channels ✅
 - [x] Workaround removed from collate_tuab.py ✅
-- [x] New test ensures DataLoader always yields 19 channels ✅ 
+- [x] New test ensures DataLoader always yields 19 channels ✅
 - [x] Guard: Log warning if any 20-ch window found with affected cache keys ✅
 - [x] No training crashes with strict version ✅
 - [x] **IMPLEMENTED**: Strict 19-channel enforcement with RuntimeError for violations
@@ -468,11 +487,11 @@ Before marking any item complete:
 ---
 
 **Created**: September 2, 2025
-**Last Updated**: September 3, 2025 (ALL P0-P3 completed)
+**Last Updated**: September 4, 2025 (ALL DEBT RESOLVED + CI FIXED)
 **Author**: Technical Debt Taskforce
 **Initial Investigator**: Claude (Had critical error)
 **Senior Reviewer**: Codex (Found and corrected errors)
-**Final Status**: ✅ ALL TECHNICAL DEBT PAID DOWN (P0-P3 COMPLETE)
+**Final Status**: ✅ ALL TECHNICAL DEBT PAID DOWN (P0-P3 COMPLETE + CI GREEN)
 
 ## Audit Trail
 1. Initial investigation used wrong method (`torch.load` vs `pickle.load`)
@@ -500,6 +519,15 @@ Before marking any item complete:
   - ✅ All set to --cov-fail-under=75
   - ✅ Added "and not benchmark" exclusion to line 271
 
+### CI Coverage Config Mismatch ✅ FIXED (Sep 4, 2025)
+- **FOUND**: CI was using broad `.coveragerc` instead of `.coveragerc.unit`
+- **IMPACT**: Coverage dropped from ~86% to 58% on main/staging
+- **ACTION COMPLETED**:
+  - ✅ Updated Makefile test-all-cov to use `.coveragerc.unit`
+  - ✅ Fixed COVERAGE_RCFILE and --cov-config parameters
+  - ✅ All branches (development, staging, main) now GREEN in CI
+  - ✅ Coverage back to 86.06% with correct unit config
+
 ### Stale Comment About Units ✅ FIXED
 - **FOUND**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:132` says "datasets now provide raw mV"
 - **SHOULD BE**: "datasets provide Volts (V)" per SSOT convention
@@ -509,6 +537,6 @@ Before marking any item complete:
 - **FOUND**: Absolute paths in training scripts
   - `train_tuab_mne.py:300`: `/mnt/c/Users/JJ/Desktop/.../tuab_mne_v2`
   - `train_tuev_mne.py:166`: `/mnt/c/Users/JJ/Desktop/.../tuev_mne_v2`
-- **ACTION COMPLETED**: 
+- **ACTION COMPLETED**:
   - ✅ Changed to use `os.environ.get('BGB_CACHE_DIR', 'data/cache/...')`
   - ✅ Now portable across environments
