@@ -4,7 +4,7 @@
 **Owner**: ___________________
 **Time Required**: 45-90 minutes
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY
-**Revision**: Added missing batch endpoint per senior audit
+**Revision**: v4 - Pristine version with all ambiguities resolved
 
 ---
 
@@ -14,18 +14,22 @@
 > - **IF feeding a probe**: Use `extract_features(..., summary=False)` → (B,4,512) → `.flatten(1)` → (B,2048)
 > - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
 > - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
+> - **WHERE TO FLATTEN**: ONLY at probe call-sites. Never inside helper methods.
 
 ---
 
 ## 📋 EXECUTIVE SUMMARY
 
-**We have 2 P0 bugs causing runtime crashes:**
-1. **API endpoints** pass 512 dims to probes expecting 2048 → **RuntimeError** (4 locations)
-2. **SleepProbeTrainer** passes 512 dims to probe expecting 2048 → **RuntimeError** (2 locations)
+**We have 6 crash sites causing runtime failures:**
+1. **API endpoints** pass 512 dims to probes expecting 2048 → **RuntimeError** (4 call-sites)
+2. **SleepProbeTrainer** passes 512 dims to probe expecting 2048 → **RuntimeError** (2 call-sites)
+
+**Plus 1 supporting change:**
+- **eegpt_compat.py** - Update method signatures to accept `summary` parameter
 
 **Root Cause**: Missing `summary=False` parameter in `extract_features()` calls
 **Business Impact**: 100% API failure rate for EEGPT endpoints, blocks demos
-**Fix Complexity**: Simple parameter addition + flatten (6 fixes total)
+**Fix Complexity**: Simple parameter addition + flatten at call-sites
 
 ---
 
@@ -40,61 +44,99 @@ RuntimeError: mat1 and mat2 shapes cannot be multiplied (256x512 and 2048x6)
 ### FILES TO FIX
 
 #### File: `src/brain_go_brrr/api/routers/eegpt.py`
-**3 Endpoints to fix:**
+**3 Call-sites to fix:**
 1. `/eegpt/analyze` - Uses `extract_features(window_data, channel_names)`
 2. `/eegpt/sleep/stages` - Uses `extract_features(window_data, channel_names)`
 3. `/analyze/batch` - Uses `extract_features_batch(batch_array, channel_names)`
 
-**Fix for regular extract_features calls**: Add `summary=False` and `.flatten(1)`
+**Fix for regular extract_features calls**:
 ```python
 # BEFORE (crashes):
 features = eegpt_model.extract_features(window_data, channel_names)
 
 # AFTER (works):
+# P0: Probes require 2048-dim (4×512) features
 features = eegpt_model.extract_features(window_data, channel_names, summary=False)
 features = features.flatten(1)  # (B,4,512) → (B,2048)
 ```
 
-**Fix for extract_features_batch call**: Add `summary=False` and `.flatten(1)`
+**Fix for extract_features_batch call**:
 ```python
 # BEFORE (crashes):
 batch_features = eegpt_model.extract_features_batch(batch_array, channel_names)
 
 # AFTER (works):
+# P0: Probes require 2048-dim (4×512) features
 batch_features = eegpt_model.extract_features_batch(batch_array, channel_names, summary=False)
-batch_features = batch_features.reshape(batch_features.shape[0], -1)  # (B,4,512) → (B,2048)
+batch_features = batch_features.flatten(1)  # (B,4,512) → (B,2048)
 ```
 
 #### File: `src/brain_go_brrr/api/routers/sleep.py`
-**Pattern to find**: `eegpt_model.extract_features(window_data, channel_names)`
-**Fix**: Add `summary=False` and `.flatten(1)`
+**1 Call-site to fix:**
+- EEGPT branch in sleep analysis endpoint
 
-#### File: `src/brain_go_brrr/infra/ml_models/eegpt_compat.py`
-**Method to fix**: `extract_features_batch` (line ~273)
 ```python
 # BEFORE (crashes):
-features = self.encoder.extract_features(batch_tensor)
+features = eegpt_model.extract_features(window_data, channel_names)
 
 # AFTER (works):
-features = self.encoder.extract_features(batch_tensor, summary=False)
-# Then before returning, ensure reshape:
-if features.ndim == 3:  # (B, 4, 512)
-    features = features.reshape(features.shape[0], -1)  # (B, 2048)
+# P0: Probes require 2048-dim (4×512) features
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)
+features = features.flatten(1)  # (B,4,512) → (B,2048)
+```
+
+### SUPPORTING CHANGE (Not a crash site, but required)
+
+#### File: `src/brain_go_brrr/infra/ml_models/eegpt_compat.py`
+
+**Update method signatures to accept and forward `summary` parameter:**
+
+1. **extract_features method** (~line 156):
+```python
+def extract_features(
+    self,
+    data: npt.NDArray[np.float64],
+    channel_names: list[str] | None = None,
+    summary: bool = True  # ADD THIS PARAMETER
+) -> npt.NDArray[np.float64]:
+    # ... existing code ...
+    # Forward summary to encoder:
+    features = self.encoder.extract_features(data_tensor, summary=summary)
+    # Return as-is - NO FLATTENING HERE (flatten at call-site only)
+    return features.cpu().numpy()
+```
+
+2. **extract_features_batch method** (~line 258):
+```python
+def extract_features_batch(
+    self,
+    windows: npt.NDArray[np.float64] | torch.Tensor,
+    channel_names: list[str] | None = None,
+    summary: bool = True  # ADD THIS PARAMETER
+) -> npt.NDArray[np.float64]:
+    # ... existing code ...
+    # Forward summary to encoder:
+    features = self.encoder.extract_features(batch_tensor, summary=summary)
+    # Return (B,4,512) if summary=False, (B,512) if summary=True
+    # NO FLATTENING HERE - flatten at call-site only!
+    return features.cpu().numpy()
 ```
 
 ### VERIFICATION
 ```bash
-# Find all broken calls (should return 4 results BEFORE fix):
-rg "extract_features(_batch)?\(" src/brain_go_brrr/api/routers | grep -v "summary="
+# Find all broken API calls (should return 4 BEFORE fix):
+rg -n "extract_features(_batch)?\([^)]*$" src/brain_go_brrr/api/routers | grep -v "summary="
 
-# After fix (should return 0 results):
-rg "extract_features(_batch)?\(" src/brain_go_brrr/api/routers | grep -v "summary="
+# After fix (should return 0):
+rg -n "extract_features(_batch)?\([^)]*$" src/brain_go_brrr/api/routers | grep -v "summary="
 
-# Confirm fix applied (should show 4+ results):
-rg "extract_features(_batch)?.*summary=False" src/brain_go_brrr/api/routers
+# Verify compat methods have summary parameter:
+rg -n "def extract_features(_batch)?\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
+# Should show 2 results
 
-# Check eegpt_compat.py fix:
-rg "extract_features.*summary=False" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
+# Confirm all API calls flatten after getting features:
+rg -A1 "extract_features(_batch)?.*summary=False" src/brain_go_brrr/api/routers | grep "flatten(1)"
+# Should show 4 results
 ```
 
 ---
@@ -109,15 +151,16 @@ RuntimeError: size mismatch, m1: [256 x 512], m2: [2048 x 5] at linear layer
 ### FILES TO FIX
 
 #### File: `src/brain_go_brrr/application/training/sleep_probe_trainer.py`
-**Pattern to find**: All `self.eegpt_model.extract_features` or `self.feature_extractor.extract_features`
-**Occurrences**: 2 (in train_step and validation_step methods)
-**Fix**: Add `summary=False` and `.flatten(1)` after EACH
+**2 Call-sites to fix:**
+- train_step method (~line 110)
+- validation_step method (~line 193)
 
 ```python
 # BEFORE (crashes):
 features = self.feature_extractor.extract_features(eeg_data)
 
 # AFTER (works):
+# P0: Probes require 2048-dim (4×512) features
 features = self.feature_extractor.extract_features(eeg_data, summary=False)
 features = features.flatten(1)  # (B,4,512) → (B,2048)
 ```
@@ -125,13 +168,13 @@ features = features.flatten(1)  # (B,4,512) → (B,2048)
 ### VERIFICATION
 ```bash
 # Find broken calls (should show 2 BEFORE fix):
-rg "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
+rg -n "extract_features\([^)]*$" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
 
 # After fix (should show 0):
-rg "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
+rg -n "extract_features\([^)]*$" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
 
-# Confirm both fixes applied:
-rg "extract_features.*summary=False" src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# Confirm both fixes applied with flatten:
+rg -A1 "extract_features.*summary=False" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep "flatten(1)"
 # Should show 2 results
 ```
 
@@ -146,11 +189,12 @@ features = model.extract_features(data, channels)  # 512 dims
 output = probe(features)  # Expects 2048 → CRASH!
 ```
 
-**Forbidden Locations** (all 6 must be fixed):
-- `api/routers/eegpt.py` - 3 endpoints: `/eegpt/analyze`, `/eegpt/sleep/stages`, `/analyze/batch`
-- `api/routers/sleep.py` - EEGPT branch (feeds to sleep probe)
-- `application/training/sleep_probe_trainer.py` - 2 methods: train_step, validation_step
-- `infra/ml_models/eegpt_compat.py` - extract_features_batch method
+**Forbidden Locations** (all 6 crash sites):
+- `api/routers/eegpt.py` - 3 call-sites: `/eegpt/analyze`, `/eegpt/sleep/stages`, `/analyze/batch`
+- `api/routers/sleep.py` - 1 call-site: EEGPT branch
+- `application/training/sleep_probe_trainer.py` - 2 call-sites: train_step, validation_step
+
+**Critical Rule**: Routers MUST NEVER use `summary=True` on any path that feeds a probe.
 
 ### ✅ ALLOWED (Won't Crash) - Don't Change
 ```python
@@ -162,7 +206,7 @@ mean_activation = features.mean()  # Simple stats, no probe
 **Allowed Locations**:
 - `domain/quality/controller.py` - QC heuristics, no probe
 - `domain/preprocessing/features/extractor.py` - Feature aggregation, no probe
-- `cli.py` - Streaming display, no probe (but should fix for consistency)
+- `cli.py` - Streaming display, no probe
 - `application/pipeline/eegpt_orchestration.py` - Already uses `summary=False` correctly
 
 ---
@@ -170,20 +214,22 @@ mean_activation = features.mean()  # Simple stats, no probe
 ## 📊 DEFINITION OF DONE
 
 ### Acceptance Criteria
-- [ ] **API Fix Applied**: All 4 extract_features calls in api/routers have `summary=False` + flatten
-- [ ] **Compat Fix Applied**: extract_features_batch in eegpt_compat.py passes `summary=False`
-- [ ] **Trainer Fix Applied**: Both extract_features calls in sleep_probe_trainer have fixes
+- [ ] **API Fixes Applied**: All 4 API call-sites (`extract_features`/`extract_features_batch`) in api/routers pass `summary=False` and flatten before probes
+- [ ] **Compat Signatures Updated**: Both methods in eegpt_compat.py accept `summary: bool = True` parameter
+- [ ] **Compat Returns Correct Shape**: extract_features_batch returns (B,4,512) when summary=False, NO internal flattening
+- [ ] **Trainer Fixes Applied**: Both extract_features calls in sleep_probe_trainer have `summary=False` + `.flatten(1)`
 - [ ] **Verification Passes**: Pattern searches return 0 unfixed calls in critical paths
 - [ ] **Smoke Test Passes**: Can call all 3 EEGPT API endpoints without RuntimeError
 - [ ] **Batch Endpoint Works**: `/analyze/batch` processes multiple windows without crash
 - [ ] **Trainer Runs**: SleepProbeTrainer completes 1 epoch with real EEGPTModel (no mocks)
-- [ ] **Tests Added**: Unit test verifying probe paths use 2048 dims
+- [ ] **Contract Tests Added**: Test verifying extract_features_batch returns (B,4,512) when summary=False
 - [ ] **CI Green**: `make test`, `make typecheck`, `make lint` all pass
 - [ ] **No Regressions**: Existing tests still pass
 
-### Test to Add
+### Tests to Add
 ```python
 # tests/unit/api/test_eegpt_p0_fix.py
+
 def test_api_uses_2048_dims_for_probes():
     """P0 Fix Verification: API must flatten features for probes."""
     mock_model = Mock()
@@ -199,55 +245,68 @@ def test_api_uses_2048_dims_for_probes():
 def test_batch_endpoint_uses_2048_dims():
     """P0 Fix Verification: Batch endpoint must flatten features."""
     mock_model = Mock()
+    # extract_features_batch should return (B,4,512) when summary=False
     mock_model.extract_features_batch.return_value = np.random.randn(16, 4, 512)
 
-    # Simulate fixed batch behavior
+    # Simulate fixed batch behavior (flatten at call-site)
     features = mock_model.extract_features_batch("batch", "channels", summary=False)
-    features = features.reshape(features.shape[0], -1)
+    features = torch.from_numpy(features).flatten(1)
 
     assert features.shape == (16, 2048), f"P0 VIOLATION: Expected (16,2048), got {features.shape}"
+    mock_model.extract_features_batch.assert_called_with("batch", "channels", summary=False)
+
+def test_extract_features_batch_contract():
+    """Contract test: extract_features_batch returns correct shape."""
+    mock_compat = Mock()
+    mock_compat.extract_features_batch.return_value = np.random.randn(8, 4, 512)
+
+    # When summary=False, should return (B,4,512) NOT flattened
+    features = mock_compat.extract_features_batch(np.zeros((8, 19, 1024)), ["ch1"], summary=False)
+    assert features.shape == (8, 4, 512), "extract_features_batch must NOT flatten internally"
 ```
 
 ---
 
 ## 🔧 IMPLEMENTATION PLAN
 
-### Step 1: Fix API Routers (25 min)
+### Step 1: Update eegpt_compat.py signatures (15 min)
 ```bash
-# Fix eegpt.py - 3 endpoints
-vim src/brain_go_brrr/api/routers/eegpt.py
-# Search: /extract_features
-# Fix regular calls: Add summary=False and .flatten(1)
-# Fix batch call: Add summary=False and .reshape(shape[0], -1)
+vim src/brain_go_brrr/infra/ml_models/eegpt_compat.py
+# Add summary: bool = True to both extract_features and extract_features_batch
+# Forward summary to encoder.extract_features calls
+# REMOVE any internal flattening - return (B,4,512) when summary=False
+```
 
-# Fix sleep.py - 1 endpoint
+### Step 2: Fix API Routers (20 min)
+```bash
+# Fix eegpt.py - 3 call-sites
+vim src/brain_go_brrr/api/routers/eegpt.py
+# Add comment: # P0: Probes require 2048-dim (4×512) features
+# Add: summary=False and .flatten(1) after each extract_features call
+
+# Fix sleep.py - 1 call-site
 vim src/brain_go_brrr/api/routers/sleep.py
 # Same process
 ```
 
-### Step 2: Fix eegpt_compat.py (10 min)
-```bash
-vim src/brain_go_brrr/infra/ml_models/eegpt_compat.py
-# Find extract_features_batch method (~line 273)
-# Add summary=False to encoder.extract_features call
-# Add reshape logic before return
-```
-
-### Step 3: Fix SleepProbeTrainer (15 min)
+### Step 3: Fix SleepProbeTrainer (10 min)
 ```bash
 vim src/brain_go_brrr/application/training/sleep_probe_trainer.py
 # Fix both occurrences in train_step and validation_step
+# Add comment and summary=False + .flatten(1)
 ```
 
 ### Step 4: Verify (10 min)
 ```bash
 # Run all verification commands from above
 # Ensure 0 unfixed calls remain in critical paths
+# Verify compat methods have summary parameter
+# Verify all call-sites flatten after getting features
 ```
 
 ### Step 5: Test (20 min)
 ```bash
-# Add unit tests
+# Add contract tests
 vim tests/unit/api/test_eegpt_p0_fix.py
 
 # Run tests
@@ -264,9 +323,11 @@ curl -X POST localhost:8000/api/v1/analyze/batch -F "file=@test.edf"
 git add -p  # Review each change
 git commit -m "fix(p0): add summary=False to prevent 512/2048 dimension crashes
 
-- API routers: Fixed 4 endpoints (analyze, sleep/stages, batch)
-- eegpt_compat: Fixed extract_features_batch to pass summary=False
-- SleepProbeTrainer: Fixed both train and validation steps
+- Updated eegpt_compat signatures to accept summary parameter
+- Fixed 4 API call-sites to pass summary=False and flatten at call-site
+- Fixed 2 trainer call-sites with same pattern
+- No internal flattening in compat layer (SSOT: flatten at probe only)
+- Added contract tests for shape verification
 - Fixes RuntimeError: mat1 and mat2 shapes cannot be multiplied
 - Closes P0 critical issue from technical debt"
 ```
@@ -280,7 +341,8 @@ git commit -m "fix(p0): add summary=False to prevent 512/2048 dimension crashes
 | Breaking working code | Full test suite before merge | Low |
 | Missing an occurrence | Pattern-based verification | Low |
 | Performance regression | Same computation, just no averaging | None |
-| Merge conflicts | Single atomic PR, small blast radius | Low |
+| Double-flatten bug | SSOT: flatten only at call-sites | None |
+| Signature mismatch | Update compat methods first | None |
 
 ---
 
@@ -290,7 +352,10 @@ From EEGPT paper (`literature/markdown/EEGPT/EEGPT.md`):
 > "We use 4 × 512 dimensional features for downstream tasks"
 > "The final representation is obtained by flattening the 4 summary tokens"
 
-This is why probes expect 2048 (4×512) input dimensions.
+Our implementation (`eegpt_architecture.py`):
+- `embed_dim: int = 512`
+- `embed_num: int = 4  # Number of summary tokens`
+- Probes expect `input_dim=2048` (4 × 512)
 
 ---
 
@@ -298,13 +363,17 @@ This is why probes expect 2048 (4×512) input dimensions.
 
 **The Fix Pattern (copy-paste ready):**
 ```python
-# For regular extract_features:
+# For regular extract_features (torch tensors):
+# P0: Probes require 2048-dim (4×512) features
 features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)
+features = features.flatten(1)  # (B,4,512) → (B,2048)
 
-# For extract_features_batch:
+# For extract_features_batch (may return numpy):
+# P0: Probes require 2048-dim (4×512) features
 batch_features = eegpt_model.extract_features_batch(batch_array, channel_names, summary=False)
-batch_features = batch_features.reshape(batch_features.shape[0], -1)
+if isinstance(batch_features, np.ndarray):
+    batch_features = torch.from_numpy(batch_features)
+batch_features = batch_features.flatten(1)  # (B,4,512) → (B,2048)
 ```
 
 **Why it crashes**: Probes trained on 2048-dim input, API provides 512
@@ -318,15 +387,17 @@ batch_features = batch_features.reshape(batch_features.shape[0], -1)
 **Pre-Implementation Review**
 - [ ] Reviewed affected files exist
 - [ ] Verified crashes with current code
-- [ ] Understood fix requirements
+- [ ] Understood SSOT: flatten only at call-sites
 
 **Implementation**
-- [ ] Applied fixes to all 6 locations
+- [ ] Updated 2 compat method signatures
+- [ ] Applied fixes to 6 crash sites
 - [ ] Ran verification commands
-- [ ] Added unit tests
+- [ ] Added contract tests
 
 **Post-Implementation**
 - [ ] Smoke tests pass on all 3 endpoints
+- [ ] SleepProbeTrainer runs 1 epoch
 - [ ] CI/CD green
 - [ ] No regressions
 
@@ -342,7 +413,8 @@ batch_features = batch_features.reshape(batch_features.shape[0], -1)
 
 - **v1.0** (Sept 4): Initial P0 document with 2 API endpoints
 - **v2.0** (Sept 4): Added Definition of Done, removed line numbers
-- **v3.0** (Sept 4): Added missing `/analyze/batch` endpoint and `eegpt_compat.py` fix per audit
+- **v3.0** (Sept 4): Added missing `/analyze/batch` endpoint per audit
+- **v4.0** (Sept 4): Pristine version - fixed signature issues, clarified SSOT, standardized on .flatten(1)
 
 ---
 
