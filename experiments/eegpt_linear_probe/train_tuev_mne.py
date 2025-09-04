@@ -53,6 +53,7 @@ def train_epoch(model, probe, train_loader, optimizer, scheduler, criterion, dev
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
             features = model.extract_features(x, summary=False)  # (B, 4, 512)
+            features = features.flatten(1)  # (B, 2048) - CRITICAL FIX!
 
         # Forward through probe
         logits = probe(features)  # (B, 6)
@@ -332,6 +333,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_balanced_acc': best_balanced_acc,
                 'best_kappa': best_kappa,
+                'global_step': global_step,
                 'config': config,
             }
             checkpoint_path = output_dir / 'best_model.pt'
@@ -350,6 +352,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_balanced_acc': best_balanced_acc,
                 'best_kappa': best_kappa,
+                'global_step': global_step,
                 'config': config,
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
