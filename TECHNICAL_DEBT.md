@@ -1,111 +1,97 @@
-# 🚨 TECHNICAL DEBT - Priority Issues Requiring Resolution
+# 🚨 TECHNICAL DEBT — Priority Issues Requiring Resolution
 
 **Created**: September 4, 2025  
-**Updated**: September 4, 2025 (Critical Audit from First Principles)
-**Status**: Active - Requires Immediate Attention  
-**Focus**: Critical runtime issues from duplicate classes and API dimensionality mismatches
+**Updated**: September 5, 2025 (Validated Against Codebase and EEGPT Paper)
+**Status**: Active — Requires Immediate Attention  
+**Focus**: EEGPT feature dimensionality (paper compliance) and dangerous duplicate types
 
 ## ⚠️ CRITICAL AUDIT FINDINGS
 
-After thorough first-principles analysis and **reviewing EEGPT literature**, I've identified critical issues:
+After first-principles code audit and EEGPT literature review:
 
-1. **🔥 EEGPT API violates paper specification: passing 512-dim instead of 2048-dim (4×512)** - GUARANTEED CRASH
-2. **✅ CONFIRMED: 6 duplicate class definitions with 2 having incompatible signatures** 
-3. **📚 Documentation teaches unsafe torch.load that fails CI/CD**
-4. **⚡ PyTorch Lightning remains in dependencies despite critical bug**
-5. **🔄 Probe migration incomplete - deprecated code still in production**
+1. **🔥 API violates EEGPT paper**: Passing 512-dim features to probes requiring 2048 (4×512) - **WILL CRASH**
+2. **⚠️ Duplicate types**: 6 types with duplicates - 4 are dangerous if used interchangeably
+3. **📚 Documentation**: Shows unsafe torch.load that violates CI/CD policy
+4. **⚡ PyTorch Lightning**: Remains in dependencies despite "DO NOT USE" directive
+5. **🔄 Probe migration**: Incomplete - EEGPTProbe still used in application code
 
-**Paper Evidence**: EEGPT paper (Tables 12-13, Line 615) explicitly states the model outputs **"4 × 512 dimensional features"** that should be **flattened to 2048** for linear probing. Our API is only using 1 summary token (512 dims) instead of all 4 (2048 dims).
+---
 
-**Bottom Line**: The API dimensionality mismatch is a **VIOLATION OF THE EEGPT ARCHITECTURE** per the original paper, not just a bug.
+## 📦 SSOT: EEGPT Feature Dimensions
+
+> **🎯 The Golden Rule**
+> - **If feeding a linear probe**: Use `extract_features(..., summary=False)` → (4,512) → `.flatten(1)` → 2048 dims
+> - **If NOT feeding a probe**: Can use `extract_features(..., summary=True)` → 512 dims (averaged)
+> - **Why**: EEGPT paper specifies "4 × 512 dimensional features" for downstream tasks. Averaging loses 75% of information.
 
 ## 🚨 PRIORITY RANKING (P0 = CRASH TODAY)
 
-| Priority | Issue | Impact | Time to Fix |
-|----------|-------|--------|-------------|
-| **P0** | EEGPT API Endpoints (512→probe expecting 2048) | Runtime crash when API uses probes | 30 min |
-| **P0** | Sleep Probe Trainer (512→probe expecting 2048) | Runtime crash if trainer is run | 15 min |
-| **P0** | LoggerPort incompatible signatures | TypeError if called with *args/**kwargs | 30 min |
-| **P1** | CLI streaming wrong dims | SSOT violation (no crash - doesn't use probe) | 15 min |
-| **P1** | Domain services wrong dims | SSOT violation (no crash unless wired to probe) | 30 min |
-| **P1** | RedisCache name collision | Import confusion risk | 30 min |
-| **P1** | YASAConfig duplicate definitions | Wrong config = wrong results | 30 min |
-| **P2** | JobData duplicates (intentional) | DTO vs domain model - keep but document | 0 min |
-| **P2** | Documentation unsafe torch.load | CI/CD failures for new devs | 15 min |
-| **P2** | Lightning in dependencies | Accidental usage risk | 15 min |
-| **P2** | Probe migration incomplete | Tech debt accumulation | 2 hours |
+| Priority | Issue | Impact | Time |
+|----------|-------|--------|------|
+| **P0** | EEGPT API Dimensionality (512 vs 2048) | Runtime crash with probes | 30m |
+| **P0** | SleepProbeTrainer (if used with real model) | Runtime crash (tests mask it) | 30m |
+| **P1** | LoggerPort duplicate signatures | TypeErrors if mixed | 30m |
+| **P1** | RedisCache duplicate class names | Import confusion, wrong backend | 30m |
+| **P1** | YASAConfig duplicate classes | Subtle behavior divergence | 30m |
+| **P1** | FeatureExtractorPort duplicates | Contract confusion across layers | 45m |
+| **P2** | Docs unsafe torch.load | CI/CD failures for new devs | 15m |
+| **P2** | Lightning in dependencies | Accidental usage risk | 15m |
+| **P2** | Probe migration incomplete | Tech debt accumulation | 2h |
 
 ---
 
-## 🔴 CRITICAL ISSUE #1: EEGPT API Dimensionality Mismatch
+## 🔴 P0: EEGPT Feature Dimensionality Mismatch (Paper Compliance)
 
-### The Problem
-**The EEGPT API routes are passing 512-dim features to probes expecting 2048-dim input**
+### What the paper specifies
+- **Large model**: 4 summary tokens × 512 dims = 2048 features
+- **Linear probing**: Flatten (4×512) → 2048 → linear head
+- **Evidence**: EEGPT paper describes "4 × 512 dimensional features" for downstream tasks
 
-API endpoints call `eegpt_model.extract_features(window_data, channel_names)` which defaults to `summary=True` returning 512 dimensions. But all probes (SleepStageProbe, AbnormalityProbe) expect 2048-dim input (4×512 flattened).
+### What our API does (WRONG)
+- Calls `extract_features(...)` with default `summary=True` → returns 512 (averaged token)
+- Passes 512 to probes expecting 2048 → **size mismatch crash**
 
-### 📚 EEGPT Paper Confirmation
-From the EEGPT literature (`literature/markdown/EEGPT/EEGPT.md`):
-- **Line 193**: "sets S learnable summary tokens (similar to [CLS] token)"
-- **Line 297**: "large model, featuring an 8-layer, 512-embedding dimension, and **4 summary tokens**"
-- **Line 597, 612**: Output structure shows "4 × 512" features that get flattened for linear probing
-- **Line 615**: "The eegpt-encoder maps 64-length window segments to **4 (number of summary tokens) × 512 dimensional features**"
-
-**Paper confirms**: EEGPT outputs 4 summary tokens × 512 dims = 2048 total dimensions for downstream tasks
-
-### Evidence in Our Code
-- **API call**: `src/brain_go_brrr/api/routers/eegpt.py:138`
-  ```python
-  features = eegpt_model.extract_features(window_data, channel_names)  # Returns 512 (summary=True default)
-  ```
-- **Wrapper default**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:146`
-  ```python
-  def extract_features(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, summary: bool = True)
-  # summary=True returns (B, 512), summary=False returns (B, 4, 512)
-  ```
-- **All probes expect 2048**: `src/brain_go_brrr/infra/ml_models/linear_probe.py`
-  ```python
-  class LinearProbeHead(nn.Module):
-      def __init__(self, input_dim: int = 2048,  # 4 summary tokens x 512 dims
-  ```
-- **Tests mask the issue**: Tests mock the model to return 2048-dim arrays directly
-
-### Runtime Failure Scenario
+### Correct usage pattern
 ```python
-# API endpoint gets 512-dim features (WRONG - only 1 summary token)
-features = eegpt_model.extract_features(data)  # shape: (512,)
+# WRONG: defaults to summary=True → 512 dims
+features = model.extract_features(data, channels)
 
-# Passes to probe expecting 2048 (4 summary tokens × 512)
-probe = SleepStageProbe()  # Expects 2048 input per paper
-result = probe.predict_proba(features)  # CRASH: RuntimeError: size mismatch (expected 2048, got 512)
+# CORRECT: for probe usage
+features = model.extract_features(data, channels, summary=False)  # (B, 4, 512)
+features = features.flatten(1)  # (B, 2048) for probe
+
+# ACCEPTABLE: when not feeding a probe
+features = model.extract_features(data, channels, summary=True)  # 512 dims for heuristics/stats
 ```
 
-### The Fix (Aligned with Paper)
-```python
-# Change all API calls to match EEGPT paper specification:
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # Returns (4, 512)
-features = features.flatten()  # Now (2048,) as paper specifies
-# This matches Table 12/13 in paper: "4 × 512" → "flatten,linear"
+### Code locations to fix (pattern-based)
+**API (user-facing) - P0:**
+```bash
+rg -n "extract_features\(" src/brain_go_brrr/api/routers
+# Add summary=False and .flatten(1) where feeding probes
+```
+
+**Application trainer - P0 if used:**
+```bash
+rg -n "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# Lines 110, 193 need summary=False (tests mock this, masking the bug)
+```
+
+**Internal callers - P1 (wrong dims but typically not feeding probes):**
+```bash
+rg -n "extract_features\(" src/brain_go_brrr/domain src/brain_go_brrr/infra src/brain_go_brrr/cli.py
+# Review each - 512 acceptable ONLY when not feeding a probe
 ```
 
 ---
 
-## 🔴 CRITICAL ISSUE #2: Duplicate Class Definitions
+## 🔁 Duplicated Types — Unified Classification
 
-### The Problem
-We have **6 unique classes with duplicate definitions** across different modules. Not all are dangerous:
-- **4 DANGEROUS duplicates** that can cause runtime errors (LoggerPort, CachePort, RedisCache, YASAConfig)
-- **2 INTENTIONAL patterns** that are OK (JobData DTO vs entity, test helpers)
-- **Import confusion** - Wrong class gets imported = wrong behavior
-- **Type errors** - LoggerPort incompatible signatures = runtime crash
+We found duplicates for **6 types** across the codebase:
 
-### Deep Investigation Results
+### DANGEROUS DUPLICATES (4 types - Must Fix)
 
-**⚠️ CRITICAL**: Not all duplicates are dangerous. Some are intentional architectural patterns.
-
-#### DANGEROUS DUPLICATES (Must Fix)
-
-##### 1. LoggerPort Protocol (INCOMPATIBLE - Will Crash)
+#### 1. LoggerPort Protocol (INCOMPATIBLE SIGNATURES - Will Crash)
 
 **Location 1**: `src/brain_go_brrr/domain/ports/base.py:16`
 ```python
@@ -123,267 +109,112 @@ class LoggerPort(Protocol):
 
 **Impact**: If code expects varargs version but gets base version → TypeError at runtime
 
-##### 2. CachePort Protocol (Interface Drift)
-```python
-class CachePort(Protocol):
-    """Cache protocol for compatibility."""
-    def get(self, key: str) -> Any | None: ...
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
-    def delete(self, key: str) -> bool: ...
-    def exists(self, key: str) -> bool: ...
-    def clear(self) -> None: ...
-    def close(self) -> None: ...
-```
+#### 2. RedisCache (Name Collision - Different Implementations)
 
-**Location 2**: `src/brain_go_brrr/domain/ports/cache.py:9`
-```python
-class CachePort(Protocol):
-    """Port for synchronous cache operations."""
-    def get(self, key: str) -> Any | None: ...
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
-    # Similar but possibly different method signatures
-```
+- **Location 1**: `src/brain_go_brrr/infra/cache.py:70` - Full Redis implementation
+- **Location 2**: `src/brain_go_brrr/api/cache.py:19` - API wrapper
+- **Impact**: Name collision could cause wrong cache to be imported
 
-**Impact Analysis**:
-- The domain version is exported via `domain/ports/__init__.py`
-- The infra version is used locally in cache_factory
-- **RISK**: If someone imports from wrong location, Protocol won't match
+#### 3. YASAConfig (Different Fields/Semantics)
 
-#### 2. RedisCache Class (2 definitions)
+- **Location 1**: `src/brain_go_brrr/infra/external/yasa_adapter.py:74` - External adapter config
+- **Location 2**: `src/brain_go_brrr/domain/sleep/analyzer_enhanced.py:46` - Domain config
+- **Impact**: Wrong config type = missing expected fields
 
-**Location 1**: `src/brain_go_brrr/infra/cache.py:70`
-```python
-class RedisCache:
-    """Infrastructure Redis implementation."""
-    # Full Redis client implementation
-```
+#### 4. FeatureExtractorPort (Different Methods)
 
-**Location 2**: `src/brain_go_brrr/api/cache.py:19`
-```python
-class RedisCache:
-    """API-specific Redis cache."""
-    # Different implementation for API layer
-```
+- **Location 1**: `src/brain_go_brrr/domain/abnormal/ports.py:51`
+- **Location 2**: `src/brain_go_brrr/application/factories_types.py:94`
+- **Impact**: Contract confusion across layers
 
-**Impact Analysis**:
-- API version instantiated in `api/cache.py:_cache_instance = RedisCache()`
-- Infra version returned by factory in `infra/cache.py`
-- **CRITICAL**: These are DIFFERENT implementations, not duplicates!
-- **RISK**: Name collision could cause wrong cache to be used
+### BENIGN/INTENTIONAL (2 types - Keep but Document)
 
-##### 3. RedisCache Class (Name Collision Risk)
+#### 1. JobData (API DTO vs Domain Entity)
 
-**Location 1**: `src/brain_go_brrr/infra/cache.py:70` - Full Redis implementation
-**Location 2**: `src/brain_go_brrr/api/cache.py:19` - API wrapper
+- **Location 1**: `src/brain_go_brrr/api/schemas.py:21` - API Data Transfer Object
+- **Location 2**: `src/brain_go_brrr/application/jobs/models.py:34` - Domain Entity
+- **Why it's OK**: Standard pattern - API layer has DTOs, domain has entities. Document the mapping.
 
-**Impact**: Name collision could cause wrong cache to be imported
+#### 2. CachePort (Deprecated Duplicate with Drift)
 
-##### 4. YASAConfig Class (Different Fields)
-
-**Location 1**: `src/brain_go_brrr/infra/external/yasa_adapter.py:74` - External adapter config
-**Location 2**: `src/brain_go_brrr/domain/sleep/analyzer_enhanced.py:46` - Domain config
-
-**Impact**: Wrong config type could be passed, missing expected fields
-
-#### INTENTIONAL DUPLICATES (Keep but Document)
-
-##### 1. JobData (API DTO vs Domain Model)
-
-**Location 1**: `src/brain_go_brrr/api/schemas.py:21` - API Data Transfer Object
-```python
-class JobData:  # Frozen dataclass with job_id, analysis_type, etc.
-```
-
-**Location 2**: `src/brain_go_brrr/application/jobs/models.py:34` - Domain Entity  
-```python
-class JobData:  # Domain model with id, type, etc.
-```
-
-**Why it's OK**: Standard pattern - API layer has DTOs, domain has entities. Keep both but ensure clear mapping.
-
-##### 2. Test Helpers (_NullModel, _NullPreprocessor)
-
-Multiple null object implementations for testing - harmless test utilities
-
-##### 3. FeatureExtractorPort Protocol
-
-**Location 1**: `src/brain_go_brrr/domain/abnormal/ports.py:51`
-**Location 2**: `src/brain_go_brrr/application/factories_types.py:94`
-
-**Why it's OK**: Different layers defining their own contracts - acceptable in ports & adapters pattern
+- **Location 1**: `src/brain_go_brrr/domain/ports/cache.py:9` - Canonical interface
+- **Location 2**: `src/brain_go_brrr/infra/cache_factory.py:25` - Deprecated, adds clear/close methods
+- **Action**: Remove deprecated copy, centralize on domain port
 
 ---
 
-## 🔬 DEEP FORENSIC ANALYSIS - THE REAL DANGER
+## 📐 Protocols Consolidation Plan
 
-### ⚠️ CRITICAL DISCOVERY: LoggerPort INCOMPATIBLE SIGNATURES!
+**Goal**: Create canonical protocols under `brain_go_brrr.domain.protocols.*`
 
-The `LoggerPort` Protocol has **INCOMPATIBLE METHOD SIGNATURES** between versions:
+1. **Extract to central location**:
+   - `domain.protocols.logger.LoggerPort` (unified signature)
+   - `domain.protocols.cache.CachePort` (single interface)
+   - `domain.protocols.features.FeatureExtractorPort` (canonical)
+   
+2. **Rename layer-specific variants** if needed (e.g., `AppFeatureExtractorPort`)
 
-```python
-# domain/abnormal/ports.py version - ACCEPTS *args, **kwargs
-def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+3. **Update imports** across repo to use `brain_go_brrr.domain.protocols.*`
 
-# domain/ports/base.py version - ONLY ACCEPTS message
-def debug(self, message: str) -> None:
+### Recommended Import Linter Contract (Add to .importlinter)
+
+```ini
+[importlinter:contract:forbid_legacy_ports]
+name = Outer layers must not import legacy ports (use domain.protocols)
+type = forbidden
+source_modules =
+    brain_go_brrr.api
+    brain_go_brrr.application
+    brain_go_brrr.infra
+forbidden_modules =
+    brain_go_brrr.domain.ports
+    brain_go_brrr.domain.abnormal.ports
 ```
-
-**THIS WILL CAUSE RUNTIME FAILURES!** If code expects one signature but gets the other, it will crash at runtime with:
-```
-TypeError: debug() takes 2 positional arguments but 4 were given
-```
-
-### 📊 COMPLETE DUPLICATE MAPPING
-
-| Class | Location 1 | Location 2 | Location 3 | COMPATIBLE? |
-|-------|-----------|-----------|-----------|-------------|
-| CachePort | infra/cache_factory.py:25 | domain/ports/cache.py:9 | - | ✅ Yes (same methods) |
-| RedisCache | infra/cache.py:70 | api/cache.py:19 | - | ❌ NO (different impl) |
-| YASAConfig | infra/external/yasa_adapter.py:74 | domain/sleep/analyzer_enhanced.py:46 | - | ❌ NO (different fields) |
-| FeatureExtractorPort | application/factories_types.py | domain/abnormal/ports.py | - | ❌ NO (different signatures) |
-| JobData | api/schemas.py (frozen) | application/jobs/models.py | api/schemas.py (TypedDict) | ❌ NO (different fields) |
-| LoggerPort | domain/abnormal/ports.py | domain/ports/base.py | - | ❌ NO (INCOMPATIBLE!) |
-| NumpyEncoder | api/app.py | api/routers/qc.py | - | ✅ Yes (identical) |
-| _NullModel | domain/abnormal/detector.py | domain/preprocessing/features/extractor.py | - | ✅ Yes (test mocks) |
-| _NullPreprocessor | domain/abnormal/detector.py | domain/quality/controller.py | domain/preprocessing/features/extractor.py | ✅ Yes (test mocks) |
-
-### 🔥 THE SMOKING GUN: Import Chain Analysis
-
-#### CachePort Import Chain:
-```
-domain/ports/__init__.py exports CachePort
-  ↓
-NOBODY IMPORTS IT! (Only referenced in type hints)
-  ↓
-infra/cache_factory.py defines its OWN CachePort
-  ↓
-USES IT LOCALLY (doesn't export)
-```
-**VERDICT**: Two isolated definitions that never meet... YET.
-
-#### RedisCache Import Chain:
-```
-infra/cache.py:RedisCache (the real implementation)
-  ↓
-infra/cache_factory.py imports as InfraRedisCache (aliased!)
-  ↓
-api/cache.py:RedisCache (DIFFERENT CLASS, wraps infra version)
-  ↓
-api/__init__.py exports api version
-  ↓
-api/dependencies.py imports api version
-```
-**VERDICT**: They tried to fix it with aliasing but it's STILL CONFUSING!
-
-#### YASAConfig Import Chain:
-```
-infra/external/yasa_adapter.py:YASAConfig
-  ↓
-application/factories.py imports infra version
-  ↓
-domain/sleep/analyzer_enhanced.py:YASAConfig (DIFFERENT!)
-  ↓
-services/__init__.py might import EITHER!
-```
-**VERDICT**: DANGEROUS - Could get wrong config type!
-
-### 📈 ACTUAL USAGE STATISTICS
-
-| Class | Files Using It | Import Statements | Risk Level |
-|-------|---------------|-------------------|------------|
-| CachePort | 3 files | 1 import | Low (isolated) |
-| RedisCache | 5 files | 3 imports | HIGH (confusion) |
-| YASAConfig | 4 files | 1 import | MEDIUM |
-| LoggerPort | Unknown | Unknown | CRITICAL |
-| FeatureExtractorPort | Unknown | Unknown | HIGH |
-| JobData | Unknown | Unknown | HIGH |
-
-## 🎯 ROOT CAUSE ANALYSIS
-
-### Why This Happened
-
-1. **Layered Architecture Confusion**
-   - Clean Architecture encourages ports/interfaces in domain
-   - But infrastructure also needs its own interfaces
-   - Result: Duplicate protocols at each layer
-
-2. **No Naming Convention**
-   - Missing prefixes like `DomainCachePort` vs `InfraCachePort`
-   - Same names used for different purposes
-
-3. **Copy-Paste Development**
-   - Developers copied classes instead of importing
-   - Evolved separately over time
-
-4. **Missing Central Registry**
-   - No single place defining shared interfaces
-   - Each module defines what it needs
 
 ---
 
-## 🔥 RUNTIME FAILURE SCENARIOS - WHAT WILL BREAK
+## 💊 IMPLEMENTATION PLAN
 
-### Scenario 1: LoggerPort Type Mismatch
-```python
-# Developer writes this expecting domain/abnormal version:
-logger.debug("Processing %d samples", sample_count, extra={"user": "admin"})
+### PHASE 0: P0 Fixes - API Dimensionality (30 minutes)
 
-# But gets domain/ports version at runtime:
-# CRASH: TypeError: debug() got unexpected keyword argument 'extra'
-```
-
-### Scenario 2: Wrong YASAConfig Passed
-```python
-# analyzer_enhanced.py expects its own YASAConfig with use_single_channel field
-config = YASAConfig(use_single_channel=True)  # domain version
-
-# But factories.py passes the infra version without that field
-# CRASH: AttributeError: 'YASAConfig' object has no attribute 'use_single_channel'
-```
-
-### Scenario 3: JobData Field Mismatch
-```python
-# API expects frozen dataclass with job_id field
-job = JobData(job_id="123", ...)  # api/schemas.py version
-
-# Application layer expects mutable dataclass with id field
-job.id  # CRASH: AttributeError: 'JobData' object has no attribute 'id'
-```
-
-## 💊 PROPOSED SOLUTION - COMPLETE IMPLEMENTATION PLAN
-
-### PHASE 0: EMERGENCY FIX (DO NOW - 30 MINUTES)
-
-#### Step 0: Fix EEGPT API Dimensionality IMMEDIATELY
 ```bash
-# 0.1 - Fix all API extract_features calls
-sed -i 's/extract_features(window_data, channel_names)/extract_features(window_data, channel_names, summary=False)/g' \
-    src/brain_go_brrr/api/routers/eegpt.py
+# 1. Find all API extract_features calls
+rg -n "extract_features\(" src/brain_go_brrr/api/routers
 
-# 0.2 - Add flattening after feature extraction
-# Manual edit needed to add .flatten() after each extract_features call
+# 2. For each, add summary=False and flatten:
+# Example fix pattern:
+# OLD: features = model.extract_features(data, channels)
+# NEW: features = model.extract_features(data, channels, summary=False).flatten(1)
 
-# 0.3 - Run API tests to verify
+# 3. Fix SleepProbeTrainer
+rg -n "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# Lines 110, 193 need summary=False
+
+# 4. Run tests to verify
 pytest tests/unit/api/routers/test_eegpt.py -xvs
-
-# 0.4 - Update test mocks to match new behavior
-# Tests should mock (4, 512) shape that gets flattened to (2048,)
 ```
 
-### PHASE 1: CRITICAL FIXES (DO TODAY - 2 HOURS)
+### PHASE 1: Duplicate Type Fixes (2 hours)
 
-#### Step 1: Fix LoggerPort IMMEDIATELY (30 min)
+#### Step 1: Extract LoggerPort to central location
 ```bash
-# 1.1 - DELETE the incompatible version
-rm src/brain_go_brrr/domain/abnormal/ports.py
+# 1.1 - Create central protocol
+mkdir -p src/brain_go_brrr/domain/protocols
+cat > src/brain_go_brrr/domain/protocols/logger.py << 'EOF'
+"""Unified logger protocol."""
+from typing import Protocol, Any
 
-# 1.2 - Update imports in domain/abnormal/detector.py
-sed -i 's/from \.ports import LoggerPort/from brain_go_brrr.domain.ports import LoggerPort/g' \
-    src/brain_go_brrr/domain/abnormal/detector.py
+class LoggerPort(Protocol):
+    """Single source of truth for logger interface."""
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None: ...
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None: ...
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None: ...
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None: ...
+EOF
 
-# 1.3 - Verify single definition remains
-rg "class LoggerPort" --type py src/
-# Should show ONLY domain/ports/base.py
+# 1.2 - Update imports (don't delete whole file!)
+rg -l "from.*abnormal\.ports import LoggerPort" | xargs sed -i \
+    's/from.*abnormal\.ports import LoggerPort/from brain_go_brrr.domain.protocols.logger import LoggerPort/g'
 ```
 
 #### Step 2: Rename RedisCache Classes (30 min)
@@ -401,17 +232,21 @@ sed -i 's/RedisCache/APIRedisCache/g' \
 # Already aliased correctly in cache_factory.py as InfraRedisCache
 ```
 
-#### Step 3: Fix YASAConfig Naming (30 min)
+#### Step 3: Fix YASAConfig Naming (45 min)
 ```bash
-# 3.1 - Rename domain version
+# 3.1 - Rename for clarity
+# Domain version → EnhancedYASAConfig
 sed -i 's/class YASAConfig:/class EnhancedYASAConfig:/g' \
     src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
 
-# 3.2 - Update all references in same file
-sed -i 's/YASAConfig(/EnhancedYASAConfig(/g' \
-    src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
+# Infra version → YASAAdapterConfig  
+sed -i 's/class YASAConfig:/class YASAAdapterConfig:/g' \
+    src/brain_go_brrr/infra/external/yasa_adapter.py
 
-# 3.3 - Infra version stays as YASAConfig (external adapter)
+# 3.2 - Update ALL imports repo-wide
+rg -l "YASAConfig" src/ | xargs sed -i \
+    -e 's/from.*analyzer_enhanced.*YASAConfig/from brain_go_brrr.domain.sleep.analyzer_enhanced import EnhancedYASAConfig/g' \
+    -e 's/from.*yasa_adapter.*YASAConfig/from brain_go_brrr.infra.external.yasa_adapter import YASAAdapterConfig/g'
 ```
 
 #### Step 4: Fix JobData Classes (30 min)
@@ -1002,38 +837,33 @@ _________________________________
 
 ---
 
-## 🔬 VERIFICATION COMMANDS - RUN THESE TO CONFIRM
+## 🔬 VERIFICATION COMMANDS
 
 ```bash
-# 1. Confirm EEGPT API dimensionality issue
-grep -n "extract_features.*summary" src/brain_go_brrr/api/routers/eegpt.py
-# Expected: NO RESULTS (means using default summary=True → 512 dims)
+# 1) Find wrong API calls (missing summary=False)
+rg -n "extract_features\(" src/brain_go_brrr/api/routers
+# Expected: Calls without summary=False parameter
 
-# 2. Confirm duplicate LoggerPort with incompatible signatures
-diff <(grep -A5 "class LoggerPort" src/brain_go_brrr/domain/ports/base.py) \
-     <(grep -A5 "class LoggerPort" src/brain_go_brrr/domain/abnormal/ports.py)
-# Expected: DIFFERENT signatures (one has *args/**kwargs, other doesn't)
+# 2) Trainer usage (should be summary=False + flatten)
+rg -n "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# Expected: Lines 110, 193 missing summary=False
 
-# 3. Count duplicate class definitions
-for class in LoggerPort CachePort RedisCache YASAConfig JobData FeatureExtractorPort; do
-    echo "$class: $(grep "^class $class" -r src/ --include="*.py" | wc -l) definitions"
-done
-# Expected: 2+ definitions for each
+# 3) Internal callers to review (512 acceptable only if not feeding probes)
+rg -n "extract_features\(" src/brain_go_brrr/domain src/brain_go_brrr/infra src/brain_go_brrr/cli.py
 
-# 4. Check unsafe torch.load in docs
-grep -n "torch.load" docs/*.md | grep -v "weights_only"
-# Expected: Finds examples without weights_only parameter
+# 4) Duplicated types (counts)
+for t in LoggerPort RedisCache YASAConfig FeatureExtractorPort JobData CachePort; do \
+  echo ">>> $t"; rg -n "^class\s+$t\b" src; done
+# Expected: 2+ locations for each
 
-# 5. Check Lightning in dependencies
-grep "lightning" pyproject.toml
-# Expected: Shows lightning>=2.1.0 despite being forbidden
+# 5) Docs unsafe torch.load
+rg -n "torch\.load\(" docs | rg -v "weights_only"
+# Expected: Examples without weights_only parameter
 
-# 6. Check deprecated probe usage
-grep -r "EEGPTProbe" src/brain_go_brrr/application/ --include="*.py"
-# Expected: Still used in production code
+# 6) Lightning still in deps
+rg -n "lightning" pyproject.toml
+# Expected: Shows lightning>=2.1.0
 ```
-
-**If ANY of these commands show the expected results, this technical debt is REAL and URGENT.**
 
 ---
 
@@ -1168,10 +998,14 @@ features = model.extract_features(data, channels, summary=True)  # (B, 512) aver
 
 ---
 
-## 🎉 GOOD NEWS: Your Training is Unaffected
+## 🎉 Training Scope Clarification
 
-**The training run in tmux is using the CORRECT approach:**
-- `experiments/eegpt_linear_probe/train_tuab_mne.py` uses `summary=False` + `flatten(1)` 
-- This produces the required 2048 dimensions per the EEGPT paper
-- The P0 bugs are in API/application code, NOT in the training pipeline
-- **Continue training without worry** - it's doing exactly what the paper specifies
+**Experiments training (tmux) is SAFE:**
+- `experiments/eegpt_linear_probe/train_tuab_mne.py` correctly uses `summary=False` + `flatten(1)`
+- Produces the required 2048 dimensions per EEGPT paper
+- **Continue training without worry**
+
+**Application SleepProbeTrainer is P0 BUG:**
+- `src/brain_go_brrr/application/training/sleep_probe_trainer.py` missing `summary=False`
+- Will crash if used with real EEGPTModel (tests mock (4,512) shape, masking the bug)
+- Needs immediate fix if anyone uses this trainer
