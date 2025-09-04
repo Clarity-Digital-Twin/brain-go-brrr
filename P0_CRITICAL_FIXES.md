@@ -174,18 +174,24 @@ def extract_features_batch(
 ```python
 # Fix /eegpt/analyze endpoint:
 # P0: Probes require 2048-dim (4×512) features
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)  # (B,4,512) → (B,2048)
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # numpy
+features_tensor = torch.as_tensor(features, dtype=torch.float32)  # Convert numpy→torch
+features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass features_tensor to probe
 
 # Fix /eegpt/sleep/stages endpoint:
 # P0: Probes require 2048-dim (4×512) features
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)  # (B,4,512) → (B,2048)
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # numpy
+features_tensor = torch.as_tensor(features, dtype=torch.float32)
+features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass features_tensor to probe
 
 # Fix /analyze/batch endpoint:
 # P0: Probes require 2048-dim (4×512) features
 batch_features = eegpt_model.extract_features_batch(batch_array, channel_names, summary=False)
-batch_features = batch_features.flatten(1)  # (B,4,512) → (B,2048)
+batch_features_tensor = torch.as_tensor(batch_features, dtype=torch.float32)
+batch_features_tensor = batch_features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass batch_features_tensor to probe
 ```
 
 #### Fix 3: `src/brain_go_brrr/api/routers/sleep.py` (1 Call-site)
@@ -193,8 +199,10 @@ batch_features = batch_features.flatten(1)  # (B,4,512) → (B,2048)
 ```python
 # EEGPT branch in sleep analysis:
 # P0: Probes require 2048-dim (4×512) features
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)  # (B,4,512) → (B,2048)
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # numpy
+features_tensor = torch.as_tensor(features, dtype=torch.float32)
+features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass features_tensor to probe
 ```
 
 #### Fix 4: `src/brain_go_brrr/application/training/sleep_probe_trainer.py` (2 Call-sites)
@@ -202,13 +210,17 @@ features = features.flatten(1)  # (B,4,512) → (B,2048)
 ```python
 # In train_step:
 # P0: Probes require 2048-dim (4×512) features
-features = self.feature_extractor.extract_features(eeg_data, summary=False)
-features = features.flatten(1)  # (B,4,512) → (B,2048)
+features = self.feature_extractor.extract_features(eeg_data, summary=False)  # numpy
+features_tensor = torch.as_tensor(features, dtype=torch.float32)
+features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass features_tensor to probe
 
-# In validation_step:
+# In evaluate_probe method:
 # P0: Probes require 2048-dim (4×512) features
-features = self.feature_extractor.extract_features(eeg_data, summary=False)
-features = features.flatten(1)  # (B,4,512) → (B,2048)
+features = self.feature_extractor.extract_features(eeg_data, summary=False)  # numpy
+features_tensor = torch.as_tensor(features, dtype=torch.float32)
+features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+# Pass features_tensor to probe
 ```
 
 ### Run Tests Again - They Should PASS
@@ -244,9 +256,9 @@ def prepare_probe_features(
     
     This is the SINGLE SOURCE OF TRUTH for probe preparation.
     """
-    # Convert numpy to torch if needed
+    # Convert numpy to torch if needed (use as_tensor for zero-copy when possible)
     if isinstance(features, np.ndarray):
-        features = torch.from_numpy(features).float()
+        features = torch.as_tensor(features, dtype=torch.float32)
     
     # Flatten if needed (idempotent - safe to call multiple times)
     if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
@@ -295,11 +307,13 @@ def test_assert_probe_ready_catches_wrong_dims():
 # All endpoints and trainer now use:
 from brain_go_brrr.utils.probe_utils import prepare_probe_features
 
-# Instead of:
-features = features.flatten(1)
+# ❌ WRONG - numpy doesn't support .flatten(1):
+features = extract_features(..., summary=False)  # numpy (B,4,512)
+features = features.flatten(1)  # TypeError!
 
-# Use:
-features = prepare_probe_features(features)
+# ✅ CORRECT - Use adapter (handles numpy→torch):
+features = extract_features(..., summary=False)  # numpy (B,4,512)
+features = prepare_probe_features(features)  # torch (B,2048)
 ```
 
 ### Step 3.4: Add End-to-End Integration Test
@@ -319,8 +333,14 @@ def test_full_api_to_probe_path():
 
 ### Pattern-Based Verification Commands
 ```bash
-# Find all broken API calls (should return 4 BEFORE fix, 0 AFTER):
-rg -n "extract_features(_batch)?\([^)]*$" src/brain_go_brrr/api/routers | grep -v "summary="
+# Find all broken extract_features calls (single and batch) missing summary:
+rg -n "extract_features(_batch)?\(" src/brain_go_brrr/api/routers | rg -v "summary="
+
+# Check extract_features_batch calls specifically:
+rg -n "extract_features_batch\([^)]*$" src/brain_go_brrr | rg -v "summary="
+
+# Check trainer calls missing summary:
+rg -n "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py | rg -v "summary="
 
 # Verify compat methods have summary parameter:
 rg -n "def extract_features(_batch)?\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
@@ -352,7 +372,7 @@ output = probe(features)  # Expects 2048 → CRASH!
 **Forbidden Locations** (all 6 crash sites):
 - `api/routers/eegpt.py` - 3 call-sites: `/eegpt/analyze`, `/eegpt/sleep/stages`, `/analyze/batch`
 - `api/routers/sleep.py` - 1 call-site: EEGPT branch
-- `application/training/sleep_probe_trainer.py` - 2 call-sites: train_step, validation_step
+- `application/training/sleep_probe_trainer.py` - 2 call-sites: train_step, evaluate_probe
 
 **Critical Rule**: Routers MUST NEVER use `summary=True` on any path that feeds a probe.
 
@@ -495,6 +515,11 @@ Our implementation (`eegpt_architecture.py`):
 - **v3.0** (Sept 4): Added missing `/analyze/batch` endpoint per audit
 - **v4.0** (Sept 4): Fixed signature issues, clarified SSOT, standardized on .flatten(1)
 - **v5.0** (Sept 4): Integrated TDD methodology - single source of truth document
+- **v6.0** (Sept 4): Fixed critical numpy→torch conversion bug in all examples:
+  - numpy arrays don't support `.flatten(1)` - must convert to torch first
+  - Changed "validation_step" to correct "evaluate_probe" method name
+  - Added expanded verification patterns for extract_features_batch
+  - Made shape contract explicit: numpy in, torch out
 
 ---
 
