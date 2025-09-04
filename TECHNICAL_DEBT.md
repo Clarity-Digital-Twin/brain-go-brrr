@@ -920,15 +920,15 @@ probe = ProbeFactory.create_probe("abnormality", model_path)
 ## 📝 EXECUTIVE SUMMARY FOR SENIOR AUDITOR
 
 ### The Problem in One Sentence
-**Critical API dimensionality mismatch (512 vs 2048) + 9 duplicate classes with incompatible signatures = production crashes waiting to happen.**
+**API endpoints pass 512 dims to probes expecting 2048 (per EEGPT paper) = guaranteed runtime crash + 4 dangerous duplicate classes = TypeErrors waiting.**
 
-### Why This Matters NOW
-1. **EEGPT API** passing wrong dimensions (512 vs 2048) - WILL crash when probes run
-2. **LoggerPort** has incompatible signatures - WILL crash in production
-3. **RedisCache** confusion already required aliasing workaround - bandaid on cancer
-4. **YASAConfig** wrong type could corrupt sleep analysis results
-5. **JobData** field mismatches will break API contracts
-6. **Documentation** teaches unsafe torch.load - new devs will fail CI/CD
+### Why This Matters NOW (Ranked by Impact)
+1. **EEGPT API/Sleep Trainer** - Passing 512 dims to 2048-expecting probes = **RuntimeError on every call** (P0)
+2. **LoggerPort incompatibility** - Different signatures = **TypeError if varargs used** (P0)
+3. **Training is SAFE** - Correctly uses 2048 dims, unaffected by bugs (Good news!)
+4. **RedisCache/YASAConfig** - Name collisions = wrong implementation imported (P1)
+5. **CLI/Domain services** - Wrong dims but no crash path currently (P1 - SSOT violation)
+6. **JobData duplicates** - Intentional DTO vs entity pattern (P2 - document only)
 
 ### The Real Cost of NOT Fixing This
 - **Production Crashes**: TypeError exceptions when wrong class loaded
