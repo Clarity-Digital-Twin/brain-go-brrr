@@ -1,132 +1,70 @@
 # 🚨 P0 CRITICAL FIXES - RUNTIME CRASH BUGS
 
 **Created**: September 4, 2025
-**Purpose**: Eliminate ALL P0 bugs that cause runtime crashes
+**Owner**: ___________________
+**Time Required**: 45-90 minutes
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY
-**Time Required**: 1-2 hours total
+
+---
+
+## 📌 SSOT: EEGPT Feature Dimensions Rule
+
+> **🎯 THE GOLDEN RULE**
+> - **IF feeding a probe**: Use `extract_features(..., summary=False)` → (B,4,512) → `.flatten(1)` → (B,2048)
+> - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
+> - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
 
 ---
 
 ## 📋 EXECUTIVE SUMMARY
 
-**We have 2 P0 bugs that WILL crash in production:**
+**We have 2 P0 bugs causing runtime crashes:**
 1. **API endpoints** pass 512 dims to probes expecting 2048 → **RuntimeError**
 2. **SleepProbeTrainer** passes 512 dims to probe expecting 2048 → **RuntimeError**
 
 **Root Cause**: Missing `summary=False` parameter in `extract_features()` calls
-**Impact**: ANY API call to EEGPT endpoints = instant crash
-**Fix Complexity**: Simple - add 7 lines of code total
+**Business Impact**: 100% API failure rate for EEGPT endpoints, blocks demos
+**Fix Complexity**: Simple parameter addition + flatten (7 lines total)
 
 ---
 
 ## 🔴 P0 BUG #1: API ENDPOINTS DIMENSION MISMATCH
 
 ### THE CRASH
-```python
-# What happens when you call the API:
+```
 RuntimeError: mat1 and mat2 shapes cannot be multiplied (256x512 and 2048x6)
-              ^^^^^                                     ^^^^^^^     ^^^^^^^
-              Your batch of 512-dim features            Probe expects 2048 input dims
+              Your 512-dim features trying to enter 2048-dim probe input
 ```
 
-### ROOT CAUSE ANALYSIS
+### FILES TO FIX
 
-The EEGPT model outputs 4 summary tokens of 512 dimensions each:
-- **Correct for probes**: (B, 4, 512) → flatten → (B, 2048)
-- **What API does**: Averages tokens → (B, 512) → **CRASH**
+#### File: `src/brain_go_brrr/api/routers/eegpt.py`
+**Pattern to find**: `eegpt_model.extract_features(window_data, channel_names)`
+**Fix**: Add `summary=False` and `.flatten(1)` after EVERY occurrence
 
-**EEGPT Paper Evidence** (literature/markdown/EEGPT/EEGPT.md):
-> "We use 4 × 512 dimensional features for downstream tasks" (Line 297)
-> "Linear probing with 2048-dimensional input" (Table 12)
-
-### AFFECTED CODE LOCATIONS
-
-#### 1. `/api/routers/eegpt.py` Line 138 (extract_features endpoint)
 ```python
-# CURRENT (BROKEN):
-features = eegpt_model.extract_features(window_data, channel_names)
-# Returns 512 dims → probe expects 2048 → CRASH
-
-# FIX:
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)  # (B, 4, 512) → (B, 2048)
-```
-
-#### 2. `/api/routers/eegpt.py` Line 271 (stream_features endpoint)
-```python
-# CURRENT (BROKEN):
+# BEFORE (crashes):
 features = eegpt_model.extract_features(window_data, channel_names)
 
-# FIX:
+# AFTER (works):
 features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)
+features = features.flatten(1)  # (B,4,512) → (B,2048)
 ```
 
-#### 3. `/api/routers/sleep.py` Line 486 (analyze_sleep endpoint)
-```python
-# CURRENT (BROKEN):
-features = eegpt_model.extract_features(window_data, channel_names)
+#### File: `src/brain_go_brrr/api/routers/sleep.py`
+**Pattern to find**: `eegpt_model.extract_features(window_data, channel_names)`
+**Fix**: Same as above - add `summary=False` and `.flatten(1)`
 
-# FIX:
-features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-features = features.flatten(1)
-```
-
-### COMPLETE FIX IMPLEMENTATION
-
-```python
-# File: src/brain_go_brrr/api/routers/eegpt.py
-
-# Line 138 - extract_features endpoint
-def extract_features(...):
-    # BEFORE:
-    # features = eegpt_model.extract_features(window_data, channel_names)
-
-    # AFTER:
-    features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-    features = features.flatten(1)  # Critical: flatten (B,4,512) to (B,2048)
-
-# Line 271 - stream_features endpoint
-async def stream_features(...):
-    # BEFORE:
-    # features = eegpt_model.extract_features(window_data, channel_names)
-
-    # AFTER:
-    features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-    features = features.flatten(1)
-
-# File: src/brain_go_brrr/api/routers/sleep.py
-
-# Line 486 - analyze_sleep endpoint
-async def analyze_sleep(...):
-    # BEFORE:
-    # features = eegpt_model.extract_features(window_data, channel_names)
-
-    # AFTER:
-    features = eegpt_model.extract_features(window_data, channel_names, summary=False)
-    features = features.flatten(1)
-```
-
-### VERIFICATION COMMANDS
-
+### VERIFICATION
 ```bash
-# 1. Find all API extract_features calls missing summary=False
-rg -n "extract_features\(" src/brain_go_brrr/api/routers | grep -v "summary="
+# Find all broken calls (should return 3 results BEFORE fix):
+rg "extract_features\([^)]*\)" src/brain_go_brrr/api/routers | grep -v "summary="
 
-# 2. After fix - verify all have summary=False
-rg -n "extract_features\(.*summary=False" src/brain_go_brrr/api/routers
-# Should show 3 results
+# After fix (should return 0 results):
+rg "extract_features\([^)]*\)" src/brain_go_brrr/api/routers | grep -v "summary="
 
-# 3. Test the fix works
-python -c "
-import torch
-# Simulate API behavior
-features = torch.randn(32, 4, 512)  # What extract_features returns with summary=False
-flattened = features.flatten(1)
-print(f'Shape after flatten: {flattened.shape}')  # Should be [32, 2048]
-assert flattened.shape == (32, 2048), 'Wrong shape!'
-print('✅ Fix verified - 2048 dimensions')
-"
+# Confirm fix applied (should show 3+ results):
+rg "extract_features.*summary=False" src/brain_go_brrr/api/routers
 ```
 
 ---
@@ -134,275 +72,211 @@ print('✅ Fix verified - 2048 dimensions')
 ## 🔴 P0 BUG #2: SLEEPPROBETRAINER DIMENSION MISMATCH
 
 ### THE CRASH
-```python
-# What happens when you run SleepProbeTrainer:
+```
 RuntimeError: size mismatch, m1: [256 x 512], m2: [2048 x 5] at linear layer
 ```
 
-### ROOT CAUSE ANALYSIS
+### FILES TO FIX
 
-SleepProbeTrainer trains a linear probe but passes wrong feature dimensions:
-- **Probe expects**: 2048 input dimensions (per EEGPT paper)
-- **Trainer provides**: 512 dimensions (averaged tokens)
-- **Why tests pass**: Mock returns correct shape, masking the bug
+#### File: `src/brain_go_brrr/application/training/sleep_probe_trainer.py`
+**Pattern to find**: All `self.eegpt_model.extract_features` or `self.feature_extractor.extract_features`
+**Occurrences**: 2 (in train_step and validation_step methods)
+**Fix**: Add `summary=False` and `.flatten(1)` after EACH
 
-### AFFECTED CODE LOCATIONS
-
-#### `/application/training/sleep_probe_trainer.py` Line 110 (train_step)
 ```python
-# CURRENT (BROKEN):
-features = self.feature_extractor.extract_features(eeg_data)
-# Returns 512 dims but probe expects 2048
-
-# FIX:
-features = self.feature_extractor.extract_features(eeg_data, summary=False)
-features = features.flatten(1)  # (B, 4, 512) → (B, 2048)
-```
-
-#### `/application/training/sleep_probe_trainer.py` Line 193 (validation_step)
-```python
-# CURRENT (BROKEN):
+# BEFORE (crashes):
 features = self.feature_extractor.extract_features(eeg_data)
 
-# FIX:
+# AFTER (works):
 features = self.feature_extractor.extract_features(eeg_data, summary=False)
-features = features.flatten(1)
+features = features.flatten(1)  # (B,4,512) → (B,2048)
 ```
 
-### COMPLETE FIX IMPLEMENTATION
-
-```python
-# File: src/brain_go_brrr/application/training/sleep_probe_trainer.py
-
-def train_step(self, batch):
-    """Training step with correct dimensions."""
-    eeg_data, labels = batch
-
-    # BEFORE (Line 110):
-    # features = self.feature_extractor.extract_features(eeg_data)
-
-    # AFTER:
-    features = self.feature_extractor.extract_features(eeg_data, summary=False)
-    features = features.flatten(1)  # (B, 4, 512) → (B, 2048)
-
-    # Rest of method unchanged
-    outputs = self.probe(features)
-    loss = self.criterion(outputs, labels)
-    return loss
-
-def validation_step(self, batch):
-    """Validation step with correct dimensions."""
-    eeg_data, labels = batch
-
-    # BEFORE (Line 193):
-    # features = self.feature_extractor.extract_features(eeg_data)
-
-    # AFTER:
-    features = self.feature_extractor.extract_features(eeg_data, summary=False)
-    features = features.flatten(1)  # (B, 4, 512) → (B, 2048)
-
-    # Rest of method unchanged
-    outputs = self.probe(features)
-    val_loss = self.criterion(outputs, labels)
-    return val_loss
-```
-
-### VERIFICATION COMMANDS
-
+### VERIFICATION
 ```bash
-# 1. Check current broken state
-rg -n "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py
-# Should show lines 110, 193 without summary parameter
+# Find broken calls (should show 2 BEFORE fix):
+rg "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
 
-# 2. After fix - verify summary=False added
-rg -n "extract_features.*summary=False" src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# After fix (should show 0):
+rg "extract_features\(" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep -v "summary="
+
+# Confirm both fixes applied:
+rg "extract_features.*summary=False" src/brain_go_brrr/application/training/sleep_probe_trainer.py
 # Should show 2 results
-
-# 3. Verify flatten is added after each extract_features
-rg -A1 "extract_features.*summary=False" src/brain_go_brrr/application/training/sleep_probe_trainer.py | grep flatten
-# Should show 2 flatten calls
 ```
 
 ---
 
-## ✅ TEST CASES TO ADD
+## ✅ ALLOWED vs ❌ FORBIDDEN USAGE
 
-### Test 1: API Dimension Test
+### ❌ FORBIDDEN (WILL CRASH) - Must Fix
 ```python
-# tests/unit/api/routers/test_eegpt_dimensions.py
-import torch
-import pytest
-from unittest.mock import Mock
+# Any path that feeds a probe/classifier:
+features = model.extract_features(data, channels)  # 512 dims
+output = probe(features)  # Expects 2048 → CRASH!
+```
 
-def test_api_returns_2048_dimensions():
-    """Verify API endpoints return 2048 dims for probe compatibility."""
-    # Mock EEGPT model
+**Forbidden Locations**:
+- `api/routers/eegpt.py` - ALL occurrences (feeds to probes)
+- `api/routers/sleep.py` - EEGPT branch (feeds to sleep probe)
+- `application/training/sleep_probe_trainer.py` - ALL occurrences (direct probe training)
+
+### ✅ ALLOWED (Won't Crash) - Don't Change
+```python
+# Paths using features for statistics/heuristics (not probes):
+features = model.extract_features(data, channels, summary=True)  # 512 dims
+mean_activation = features.mean()  # Simple stats, no probe
+```
+
+**Allowed Locations**:
+- `domain/quality/controller.py` - QC heuristics, no probe
+- `domain/preprocessing/features/extractor.py` - Feature aggregation, no probe
+- `cli.py` - Streaming display, no probe (but should fix for consistency)
+
+---
+
+## 📊 DEFINITION OF DONE
+
+### Acceptance Criteria
+- [ ] **API Fix Applied**: All 3 extract_features calls in api/routers have `summary=False` + `.flatten(1)`
+- [ ] **Trainer Fix Applied**: Both extract_features calls in sleep_probe_trainer have fixes
+- [ ] **Verification Passes**: Pattern searches return 0 unfixed calls in critical paths
+- [ ] **Smoke Test Passes**: Can call `/api/v1/eeg/extract_features` without RuntimeError
+- [ ] **Trainer Runs**: SleepProbeTrainer completes 1 epoch with real EEGPTModel (no mocks)
+- [ ] **Tests Added**: Unit test verifying probe paths use 2048 dims
+- [ ] **CI Green**: `make test`, `make typecheck`, `make lint` all pass
+- [ ] **No Regressions**: Existing tests still pass
+
+### Test to Add
+```python
+# tests/unit/api/test_eegpt_p0_fix.py
+def test_api_uses_2048_dims_for_probes():
+    """P0 Fix Verification: API must flatten features for probes."""
     mock_model = Mock()
     mock_model.extract_features.return_value = torch.randn(32, 4, 512)
 
-    # Simulate API logic (after fix)
+    # Simulate fixed API behavior
     features = mock_model.extract_features("data", "channels", summary=False)
     features = features.flatten(1)
 
-    assert features.shape == (32, 2048), f"Expected (32, 2048), got {features.shape}"
+    assert features.shape == (32, 2048), f"P0 VIOLATION: Expected (32,2048), got {features.shape}"
     mock_model.extract_features.assert_called_with("data", "channels", summary=False)
 ```
 
-### Test 2: Trainer Dimension Test
-```python
-# tests/unit/application/training/test_sleep_trainer_dimensions.py
-def test_trainer_uses_2048_dimensions():
-    """Verify trainer passes 2048 dims to probe."""
-    from brain_go_brrr.application.training.sleep_probe_trainer import SleepProbeTrainer
+---
 
-    # Create trainer with mocked components
-    trainer = SleepProbeTrainer(...)
+## 🔧 IMPLEMENTATION PLAN
 
-    # Mock feature extractor to return correct shape
-    trainer.feature_extractor.extract_features = Mock(
-        return_value=torch.randn(16, 4, 512)
-    )
+### Step 1: Fix API Routers (20 min)
+```bash
+# Open and fix all occurrences:
+vim src/brain_go_brrr/api/routers/eegpt.py
+# Search: /extract_features
+# Add: summary=False parameter and features = features.flatten(1) after each
 
-    # Mock batch
-    batch = (torch.randn(16, 19, 1024), torch.randint(0, 5, (16,)))
-
-    # Run train step
-    loss = trainer.train_step(batch)
-
-    # Verify extract_features called with summary=False
-    trainer.feature_extractor.extract_features.assert_called_with(
-        batch[0], summary=False
-    )
+vim src/brain_go_brrr/api/routers/sleep.py
+# Same process
 ```
 
----
+### Step 2: Fix SleepProbeTrainer (15 min)
+```bash
+vim src/brain_go_brrr/application/training/sleep_probe_trainer.py
+# Fix both occurrences in train_step and validation_step
+```
 
-## 🔧 IMPLEMENTATION CHECKLIST
+### Step 3: Verify (10 min)
+```bash
+# Run all verification commands from above
+# Ensure 0 unfixed calls remain in critical paths
+```
 
-### Phase 1: Fix API Endpoints (30 minutes)
-- [ ] Open `src/brain_go_brrr/api/routers/eegpt.py`
-- [ ] Fix line 138: Add `summary=False` and `.flatten(1)`
-- [ ] Fix line 271: Add `summary=False` and `.flatten(1)`
-- [ ] Open `src/brain_go_brrr/api/routers/sleep.py`
-- [ ] Fix line 486: Add `summary=False` and `.flatten(1)`
-- [ ] Run verification commands to confirm
+### Step 4: Test (15 min)
+```bash
+# Add unit test
+vim tests/unit/api/test_eegpt_p0_fix.py
 
-### Phase 2: Fix SleepProbeTrainer (20 minutes)
-- [ ] Open `src/brain_go_brrr/application/training/sleep_probe_trainer.py`
-- [ ] Fix line 110: Add `summary=False` and `.flatten(1)`
-- [ ] Fix line 193: Add `summary=False` and `.flatten(1)`
-- [ ] Run verification commands to confirm
+# Run tests
+make test
 
-### Phase 3: Add Tests (30 minutes)
-- [ ] Create dimension test for API endpoints
-- [ ] Create dimension test for trainer
-- [ ] Run tests to verify fixes work
+# Smoke test API
+curl -X POST localhost:8000/api/v1/eeg/extract_features -F "file=@test.edf"
+```
 
-### Phase 4: Validation (10 minutes)
-- [ ] Run full test suite: `make test`
-- [ ] Run type checking: `make typecheck`
-- [ ] Test actual API endpoint with curl
-- [ ] Document fix in CHANGELOG
+### Step 5: Commit (5 min)
+```bash
+git add -p  # Review each change
+git commit -m "fix(p0): add summary=False to prevent 512/2048 dimension crashes
 
----
-
-## 🎯 SUCCESS CRITERIA
-
-The fixes are complete when:
-1. ✅ All API extract_features calls use `summary=False`
-2. ✅ All probe-feeding code flattens to 2048 dims
-3. ✅ No RuntimeError on API calls
-4. ✅ SleepProbeTrainer runs without dimension errors
-5. ✅ Tests verify 2048 dimensions everywhere
-6. ✅ CI/CD passes
+- API routers now use extract_features(..., summary=False) + flatten(1)
+- SleepProbeTrainer uses correct 2048 dims for probe input
+- Fixes RuntimeError: mat1 and mat2 shapes cannot be multiplied
+- Closes P0 critical issue from technical debt"
+```
 
 ---
 
 ## 🚦 RISK ASSESSMENT
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|---------|------------|
-| Breaking existing code | Low | Medium | Full test suite |
-| Missing a location | Low | High | Grep verification |
-| Wrong fix applied | Low | High | Dimension tests |
-| Performance impact | None | None | Same computation |
-
-**Overall Risk**: LOW - Simple parameter addition, no logic changes
+| Risk | Mitigation | Residual |
+|------|-----------|----------|
+| Breaking working code | Full test suite before merge | Low |
+| Missing an occurrence | Pattern-based verification | Low |
+| Performance regression | Same computation, just no averaging | None |
+| Merge conflicts | Single atomic PR, small blast radius | Low |
 
 ---
 
-## 📊 IMPACT IF NOT FIXED
+## 📝 PAPER EVIDENCE
 
-### Immediate (TODAY):
-- **ANY** call to `/api/v1/eeg/extract_features` → **CRASH**
-- **ANY** call to `/api/v1/eeg/stream_features` → **CRASH**
-- **ANY** call to `/api/v1/sleep/analyze` → **CRASH**
-- Running SleepProbeTrainer → **CRASH**
+From EEGPT paper (`literature/markdown/EEGPT/EEGPT.md`):
+> "We use 4 × 512 dimensional features for downstream tasks"
+> "The final representation is obtained by flattening the 4 summary tokens"
 
-### Business Impact:
-- 100% API failure rate for EEGPT endpoints
-- Cannot demo to stakeholders
-- Cannot run sleep analysis via API
-- Blocks all probe training
+This is why probes expect 2048 (4×512) input dimensions.
 
 ---
 
-## 🔍 ROOT CAUSE LESSONS
+## 🆘 QUICK REFERENCE
 
-### Why This Happened:
-1. **Assumption**: Developers assumed `extract_features()` returns probe-ready dims
-2. **Documentation Gap**: Wrapper doesn't document the summary parameter clearly
-3. **Test Gap**: Mocks return correct shape, masking the issue
-4. **Review Gap**: PR reviews didn't catch dimension mismatch
+**The Fix Pattern (copy-paste ready):**
+```python
+# Replace this:
+features = eegpt_model.extract_features(window_data, channel_names)
 
-### Prevention for Future:
-1. **Type Hints**: Add shape annotations to tensor returns
-2. **Runtime Checks**: Add assertion for expected dimensions
-3. **Documentation**: Clear docstrings about summary parameter
-4. **Integration Tests**: Test with real models, not just mocks
+# With this:
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)
+features = features.flatten(1)
+```
 
----
-
-## 📝 SENIOR AUDITOR SIGN-OFF
-
-### Pre-Fix Verification
-- [ ] Confirmed bugs exist with verification commands
-- [ ] Reviewed affected code locations
-- [ ] Understood dimension requirements from paper
-
-### Implementation
-- [ ] Applied fixes to all 5 locations
-- [ ] Added flatten(1) after each fix
-- [ ] Verified with test commands
-
-### Post-Fix Validation
-- [ ] API endpoints return 2048 dims
-- [ ] Trainer passes 2048 dims to probe
-- [ ] All tests pass
-- [ ] No new errors introduced
-
-**Reviewed By**: ___________________ **Date**: ___________
-
-**Fixed By**: ______________________ **Date**: ___________
-
-**Validated By**: __________________ **Date**: ___________
+**Why it crashes**: Probes trained on 2048-dim input, API provides 512
+**Why tests missed it**: Mocks return correct shape, masking the bug
+**Production impact**: 100% failure rate on EEGPT API endpoints
 
 ---
 
-## 🆘 HELP & QUESTIONS
+## 👥 SIGN-OFF
 
-**Q: Why do we need summary=False?**
-A: EEGPT outputs 4 tokens. Probes were trained on all 4 (2048 dims). Averaging them (summary=True) loses 75% of information and causes dimension mismatch.
+**Pre-Implementation Review**
+- [ ] Reviewed affected files exist
+- [ ] Verified crashes with current code
+- [ ] Understood fix requirements
 
-**Q: Is this the same as the training script issue?**
-A: No, training scripts already use summary=False correctly. This is about API and application layer code.
+**Implementation**
+- [ ] Applied fixes to all locations
+- [ ] Ran verification commands
+- [ ] Added unit test
 
-**Q: Will this affect performance?**
-A: No, we still compute the same features, just don't average them.
+**Post-Implementation**
+- [ ] Smoke test passes
+- [ ] CI/CD green
+- [ ] No regressions
 
-**Q: How was this not caught earlier?**
-A: Tests use mocks that return correct shapes, masking the bug. Real model usage would crash immediately.
+**Owner**: _____________________ **Started**: _________ **Completed**: _________
+
+**Reviewer**: __________________ **Date**: ___________
+
+**Deployed**: __________________ **Date**: ___________
 
 ---
 
-**END OF P0 CRITICAL FIXES DOCUMENT**
+**END OF P0 CRITICAL FIXES**
