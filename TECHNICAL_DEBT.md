@@ -964,13 +964,19 @@ probe = ProbeFactory.create_probe("abnormality", model_path)
 - No runtime TypeErrors in next sprint
 
 ### What Happens If We Don't Fix This
-TODAY someone WILL:
-1. Call EEGPT API endpoint → RuntimeError: size mismatch (expected 2048, got 512)
-2. Import the wrong LoggerPort → TypeError: unexpected keyword argument
-3. Pass wrong YASAConfig → Incorrect medical analysis results
-4. Use wrong JobData → API contract violation, client crashes
-5. Follow docs for torch.load → CI/CD pipeline fails
-6. Waste days debugging "mysterious" dimension mismatches
+**P0 - Will crash TODAY:**
+1. Call EEGPT API endpoint → **RuntimeError: size mismatch (expected 2048, got 512)**
+2. Run sleep_probe_trainer.py → **RuntimeError: Linear layer expected 2048, got 512**
+3. Use LoggerPort with varargs → **TypeError: unexpected keyword argument**
+
+**P1 - Will cause confusion:**
+4. Import wrong RedisCache → Different cache behavior than expected
+5. Pass wrong YASAConfig → Missing fields, incorrect analysis
+6. CLI/Domain using 512 dims → Violates paper spec, loses 75% of information
+
+**P2 - Minor issues:**
+7. New dev follows docs → CI/CD rejects unsafe torch.load
+8. Someone accidentally imports Lightning → Critical bug from 2.5.2
 
 **Priority**: 🔴 **CRITICAL - DO TODAY**  
 **Estimated Effort**: 6-8 hours (2 today, 4 tomorrow, 2 next week)  
