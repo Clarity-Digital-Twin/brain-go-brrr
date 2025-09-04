@@ -373,10 +373,10 @@ test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchm
 	@rm -f /tmp/.coverage.test /tmp/.coverage.test.* || true
 	@export PYTHONPYCACHEPREFIX=/tmp/pycache && \
 	export PYTEST_ADDOPTS="--basetemp=/tmp/pytest" && \
-	COVERAGE_FILE=/tmp/.coverage.test COVERAGE_RCFILE=.coveragerc \
+	COVERAGE_FILE=/tmp/.coverage.test COVERAGE_RCFILE=.coveragerc.unit \
 	$(PYTEST_WITH_COV) tests \
 		--cov=src/brain_go_brrr \
-		--cov-config=.coveragerc \
+		--cov-config=.coveragerc.unit \
 		--cov-report=term-missing \
 		--cov-report= \
 		--no-cov-on-fail \
