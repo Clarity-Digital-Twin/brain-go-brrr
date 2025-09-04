@@ -116,8 +116,10 @@ def train_epoch(
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
     for batch_idx, (x, y) in enumerate(pbar):
-        # Note: with SubsetRandomSampler, we don't skip - sampler handles it
-
+        # Skip already-processed batches when resuming mid-epoch
+        if batch_idx < start_batch:
+            continue
+            
         x, y = x.to(device), y.to(device)
         global_step += 1
 
