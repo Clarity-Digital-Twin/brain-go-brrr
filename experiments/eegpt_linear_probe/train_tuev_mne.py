@@ -16,6 +16,7 @@ Now with full operational parity to TUAB script:
 import argparse
 import json
 import logging
+import math
 import os
 import random
 import time
@@ -127,6 +128,12 @@ def train_epoch(
     all_preds = []
     all_labels = []
     batches_processed = 0
+    samples_seen = 0  # Track cumulative samples for accurate checkpointing
+    
+    # If resuming mid-epoch, calculate samples already processed
+    if start_batch > 0:
+        # This is approximate, but conservative (assumes full batches)
+        samples_seen = start_batch * config['data']['batch_size']
 
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
@@ -137,6 +144,7 @@ def train_epoch(
 
         x, y = x.to(device), y.to(device)
         global_step += 1
+        samples_seen += x.shape[0]  # Track actual samples processed
 
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
@@ -191,7 +199,7 @@ def train_epoch(
                 'optimizer_state_dict': optimizer.state_dict(),
                 'scheduler_state_dict': scheduler.state_dict(),
                 'epoch_indices': epoch_indices,
-                'sample_offset': (batch_idx + 1) * config['data']['batch_size'],
+                'sample_offset': samples_seen,  # Exact cumulative samples processed
                 'config': config,
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx}.pt'
@@ -356,8 +364,8 @@ def main():
     logger.info(f"Train dataset: {len(train_dataset)} windows")
     logger.info(f"Eval dataset: {len(eval_dataset)} windows")
 
-    # Calculate batches per epoch for scheduler
-    batches_per_epoch = len(train_dataset) // config['data']['batch_size']
+    # Calculate batches per epoch for scheduler (use ceil for correct count)
+    batches_per_epoch = math.ceil(len(train_dataset) / config['data']['batch_size'])
     logger.info(f"Batches per epoch: {batches_per_epoch}")
 
     # Note: train_loader will be created per epoch with deterministic sampling
@@ -444,9 +452,14 @@ def main():
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-        # Set scheduler to correct position
-        global_step_resume = checkpoint.get('global_step', 0)
-        scheduler.last_epoch = global_step_resume - 1  # Set correct position for OneCycleLR
+        # Restore scheduler state (preferred) or set position manually
+        scheduler_state = checkpoint.get('scheduler_state_dict')
+        if scheduler_state:
+            scheduler.load_state_dict(scheduler_state)
+        else:
+            # Fallback: set scheduler position based on global step
+            global_step_resume = checkpoint.get('global_step', 0)
+            scheduler.last_epoch = global_step_resume - 1
 
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
