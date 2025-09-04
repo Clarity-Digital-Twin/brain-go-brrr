@@ -418,12 +418,12 @@ def main():
         weight_decay=config['training']['optimizer']['weight_decay'],
     )
 
-    # Setup scheduler
-    total_steps = batches_per_epoch * config['training']['max_epochs']
+    # Setup scheduler using the correct PyTorch API with epochs + steps_per_epoch
     scheduler = OneCycleLR(
         optimizer,
         max_lr=config['training']['scheduler']['max_lr'],
-        total_steps=total_steps,
+        epochs=config['training']['max_epochs'],
+        steps_per_epoch=batches_per_epoch,
         pct_start=config['training']['scheduler']['pct_start'],
         anneal_strategy='cos',
     )
