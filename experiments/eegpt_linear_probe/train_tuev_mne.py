@@ -129,7 +129,7 @@ def train_epoch(
     all_labels = []
     batches_processed = 0
     samples_seen = 0  # Track cumulative samples for accurate checkpointing
-    
+
     # If resuming mid-epoch, calculate samples already processed
     if start_batch > 0:
         # This is approximate, but conservative (assumes full batches)
