@@ -7,15 +7,17 @@
 
 ## ⚠️ CRITICAL AUDIT FINDINGS
 
-After thorough first-principles analysis, I've identified **5 NEW critical issues** beyond the duplicate classes:
+After thorough first-principles analysis and **reviewing EEGPT literature**, I've identified critical issues:
 
-1. **🔥 EEGPT API is passing 512-dim features to probes expecting 2048-dim** - This WILL crash in production
+1. **🔥 EEGPT API violates paper specification: passing 512-dim instead of 2048-dim (4×512)** - GUARANTEED CRASH
 2. **✅ CONFIRMED: 6 duplicate class definitions with 2 having incompatible signatures** 
 3. **📚 Documentation teaches unsafe torch.load that fails CI/CD**
 4. **⚡ PyTorch Lightning remains in dependencies despite critical bug**
 5. **🔄 Probe migration incomplete - deprecated code still in production**
 
-**Bottom Line**: The API dimensionality issue (Issue #1) is MORE CRITICAL than duplicate classes because it's a guaranteed runtime crash vs potential confusion.
+**Paper Evidence**: EEGPT paper (Tables 12-13, Line 615) explicitly states the model outputs **"4 × 512 dimensional features"** that should be **flattened to 2048** for linear probing. Our API is only using 1 summary token (512 dims) instead of all 4 (2048 dims).
+
+**Bottom Line**: The API dimensionality mismatch is a **VIOLATION OF THE EEGPT ARCHITECTURE** per the original paper, not just a bug.
 
 ## 🚨 PRIORITY RANKING (P0 = CRASH TODAY)
 
@@ -40,32 +42,48 @@ After thorough first-principles analysis, I've identified **5 NEW critical issue
 
 API endpoints call `eegpt_model.extract_features(window_data, channel_names)` which defaults to `summary=True` returning 512 dimensions. But all probes (SleepStageProbe, AbnormalityProbe) expect 2048-dim input (4×512 flattened).
 
-### Evidence
+### 📚 EEGPT Paper Confirmation
+From the EEGPT literature (`literature/markdown/EEGPT/EEGPT.md`):
+- **Line 193**: "sets S learnable summary tokens (similar to [CLS] token)"
+- **Line 297**: "large model, featuring an 8-layer, 512-embedding dimension, and **4 summary tokens**"
+- **Line 597, 612**: Output structure shows "4 × 512" features that get flattened for linear probing
+- **Line 615**: "The eegpt-encoder maps 64-length window segments to **4 (number of summary tokens) × 512 dimensional features**"
+
+**Paper confirms**: EEGPT outputs 4 summary tokens × 512 dims = 2048 total dimensions for downstream tasks
+
+### Evidence in Our Code
 - **API call**: `src/brain_go_brrr/api/routers/eegpt.py:138`
   ```python
   features = eegpt_model.extract_features(window_data, channel_names)  # Returns 512 (summary=True default)
   ```
-- **Probe expectation**: `src/brain_go_brrr/api/routers/eegpt.py:216-221`
+- **Wrapper default**: `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py:146`
   ```python
-  "input_dim": 2048,  # All probes expect 2048
+  def extract_features(self, x: torch.Tensor, chan_ids: torch.Tensor | None = None, summary: bool = True)
+  # summary=True returns (B, 512), summary=False returns (B, 4, 512)
+  ```
+- **All probes expect 2048**: `src/brain_go_brrr/infra/ml_models/linear_probe.py`
+  ```python
+  class LinearProbeHead(nn.Module):
+      def __init__(self, input_dim: int = 2048,  # 4 summary tokens x 512 dims
   ```
 - **Tests mask the issue**: Tests mock the model to return 2048-dim arrays directly
 
 ### Runtime Failure Scenario
 ```python
-# API endpoint gets 512-dim features
+# API endpoint gets 512-dim features (WRONG - only 1 summary token)
 features = eegpt_model.extract_features(data)  # shape: (512,)
 
-# Passes to probe expecting 2048
-probe = SleepStageProbe()  # Expects 2048 input
-result = probe.predict_proba(features)  # CRASH: RuntimeError: size mismatch
+# Passes to probe expecting 2048 (4 summary tokens × 512)
+probe = SleepStageProbe()  # Expects 2048 input per paper
+result = probe.predict_proba(features)  # CRASH: RuntimeError: size mismatch (expected 2048, got 512)
 ```
 
-### The Fix
+### The Fix (Aligned with Paper)
 ```python
-# Change all API calls to:
+# Change all API calls to match EEGPT paper specification:
 features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # Returns (4, 512)
-features = features.flatten()  # Now (2048,) as expected
+features = features.flatten()  # Now (2048,) as paper specifies
+# This matches Table 12/13 in paper: "4 × 512" → "flatten,linear"
 ```
 
 ---
@@ -977,3 +995,121 @@ grep -r "EEGPTProbe" src/brain_go_brrr/application/ --include="*.py"
 ```
 
 **If ANY of these commands show the expected results, this technical debt is REAL and URGENT.**
+
+---
+
+## 🎯 SINGLE SOURCE OF TRUTH: EEGPT Feature Dimensionality
+
+### The Architecture Specification (Per Paper)
+- **EEGPT Large Model**: 4 summary tokens × 512 embedding dimensions = 2048 total features
+- **Linear Probing**: Flatten 4×512 → 2048 → Linear layer for classification
+- **Paper Evidence**: Tables 12-13, Lines 297, 615 in `literature/markdown/EEGPT/EEGPT.md`
+
+### Current Implementation Status
+
+#### ✅ CORRECT Implementations (Using 2048 dims)
+1. **Training Script** (`experiments/eegpt_linear_probe/train_tuab_mne.py`)
+   ```python
+   features = model.extract_features(x, summary=False)  # (B, 4, 512)
+   features = features.flatten(1)  # (B, 2048)
+   ```
+
+2. **Pipeline Orchestration** (`application/pipeline/eegpt_orchestration.py`)
+   ```python
+   features = model.extract_features(mini_batch, summary=False)  # (B, 4, 512)
+   ```
+
+3. **Linear Probe Classes** (`infra/ml_models/linear_probe.py`)
+   ```python
+   class LinearProbeHead(nn.Module):
+       def __init__(self, input_dim: int = 2048,  # Expects 2048
+   ```
+
+#### ❌ INCORRECT Implementations (Using 512 dims)
+1. **API Endpoints** (`api/routers/eegpt.py` lines 138, 271)
+   ```python
+   features = eegpt_model.extract_features(window_data, channel_names)
+   # Missing summary=False → defaults to True → returns 512 not 2048
+   ```
+
+2. **Sleep Router** (`api/routers/sleep.py` line 486)
+   ```python
+   features = eegpt_model.extract_features(window_data, channel_names)
+   # Same issue - missing summary=False
+   ```
+
+3. **CLI** (`cli.py` lines 152, 176)
+   ```python
+   features_tensor = self.encoder.extract_features(data_tensor)
+   # No summary parameter passed
+   ```
+
+4. **Domain Layer** (multiple files)
+   - `domain/abnormal/detector.py` lines 231, 479
+   - `domain/quality/controller.py` lines 202, 542
+   - `domain/preprocessing/features/extractor.py` lines 124, 353
+   - All missing `summary=False` parameter
+
+#### 🔧 The Wrapper's Behavior (`infra/ml_models/eegpt_wrapper.py`)
+```python
+def extract_features(self, x, chan_ids=None, summary: bool = True):
+    # Line 171-172: When summary=True (default)
+    return features.mean(dim=1)  # Averages 4 tokens → 512 dims (WRONG for probes)
+    
+    # Line 174: When summary=False
+    return features  # Returns (B, 4, 512) → needs flatten → 2048 (CORRECT)
+```
+
+### 📊 Impact Matrix
+
+| Component | Current Behavior | Expected Behavior | Impact |
+|-----------|-----------------|-------------------|---------|
+| Training (tmux) | ✅ 2048 dims | 2048 dims | **SAFE - Training is correct** |
+| API Endpoints | ❌ 512 dims | 2048 dims | **CRASH - Probe expects 2048** |
+| CLI Tool | ❌ 512 dims | 2048 dims | **CRASH - When using probes** |
+| Domain Services | ❌ 512 dims | 2048 dims | **Depends on usage** |
+
+### 🚨 The Fix Pattern
+
+**Every `extract_features` call must specify summary parameter explicitly:**
+
+```python
+# WRONG (defaults to summary=True → 512 dims)
+features = model.extract_features(data, channels)
+
+# CORRECT for probe usage (2048 dims)
+features = model.extract_features(data, channels, summary=False)
+features = features.flatten(1)  # (B, 4, 512) → (B, 2048)
+
+# CORRECT for simple averaging (512 dims)
+features = model.extract_features(data, channels, summary=True)
+```
+
+### 📝 Code Locations Requiring Fix
+
+**High Priority (API/User-facing):**
+1. `src/brain_go_brrr/api/routers/eegpt.py:138` - Add `summary=False` + flatten
+2. `src/brain_go_brrr/api/routers/eegpt.py:271` - Add `summary=False` + flatten
+3. `src/brain_go_brrr/api/routers/sleep.py:486` - Add `summary=False` + flatten
+4. `src/brain_go_brrr/cli.py:152` - Add `summary=False` + flatten
+5. `src/brain_go_brrr/cli.py:176` - Add `summary=False` + flatten
+
+**Medium Priority (Domain/Internal):**
+6. `src/brain_go_brrr/domain/abnormal/detector.py:231` - Depends on usage
+7. `src/brain_go_brrr/domain/abnormal/detector.py:479` - Depends on usage
+8. `src/brain_go_brrr/domain/quality/controller.py:202` - Depends on usage
+9. `src/brain_go_brrr/domain/quality/controller.py:542` - Depends on usage
+10. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:124` - Depends on usage
+11. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:353` - Depends on usage
+
+### 🎯 Summary for Developers
+
+**The Rule**: If you're passing features to a linear probe, you MUST:
+1. Call `extract_features(..., summary=False)` to get (B, 4, 512)
+2. Flatten to get (B, 2048)
+3. Pass to probe
+
+**Why This Matters**: 
+- EEGPT's 4 summary tokens contain different information
+- Averaging them (summary=True) loses 75% of the information
+- Probes were trained on all 2048 dimensions, not just 512
