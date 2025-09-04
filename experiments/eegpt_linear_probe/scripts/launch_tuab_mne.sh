@@ -72,7 +72,7 @@ run_with_recovery() {
     local retry_count=0
     while [ $retry_count -lt $MAX_RETRIES ]; do
         echo "[$(date)] Training attempt $((retry_count + 1))/$MAX_RETRIES"
-        
+
         # Find latest checkpoint for resume
         RESUME_ARG=""
         LATEST_CHECKPOINT=$(find "$OUTPUT_DIR" -name "checkpoint_*.pt" -type f 2>/dev/null | sort -V | tail -1)
@@ -80,7 +80,7 @@ run_with_recovery() {
             echo "Found checkpoint: $LATEST_CHECKPOINT"
             RESUME_ARG="--resume $LATEST_CHECKPOINT"
         fi
-        
+
         # Run training (using FIXED version with deterministic sampling)
         uv run python train_tuab_mne.py \
             --config configs/tuab.yaml \
@@ -88,9 +88,9 @@ run_with_recovery() {
             --cache-dir "$CACHE_DIR" \
             $RESUME_ARG \
             2>&1 | tee -a "$LOG_FILE"
-        
+
         EXIT_CODE=${PIPESTATUS[0]}
-        
+
         if [ $EXIT_CODE -eq 0 ]; then
             echo "[$(date)] Training completed successfully!"
             return 0

@@ -723,4 +723,3 @@ make check-all  # Run all quality checks
 6. **Add Integration Test** (end-to-end flow)
 
 Remember: This handles brain data. Accuracy matters. Test everything.
-

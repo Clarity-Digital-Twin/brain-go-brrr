@@ -9,7 +9,7 @@ These documentation files were archived on September 3, 2025 as part of technica
 
 ## Archived Files
 1. **CHANNEL_SPECIFICATIONS.md** - Channel specifications for TUAB/TUEV
-2. **MNE_INTEGRATION_README.md** - MNE preprocessing details  
+2. **MNE_INTEGRATION_README.md** - MNE preprocessing details
 3. **README.md** - Original experiment documentation
 
 ## Status

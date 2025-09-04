@@ -3,12 +3,12 @@
 
 [run]
 source = src
-omit = 
+omit =
     # API/CLI (separate coverage concern)
     src/brain_go_brrr/api/*
     src/brain_go_brrr/cli.py
     src/brain_go_brrr/__main__.py
-    
+
     # Test files
     */tests/*
     */test_*.py
@@ -28,12 +28,12 @@ exclude_lines =
     if TYPE_CHECKING:
     @abstractmethod
     @abc.abstractmethod
-    
+
     # Defensive programming
     except ImportError
     except KeyboardInterrupt
     except Exception as e:
-    
+
     # Logging
     logging.debug
     logging.info

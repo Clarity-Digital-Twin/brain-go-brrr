@@ -7,7 +7,7 @@ Subject: Follow-up: Local TUAB evaluation with clinical metrics
 
 Hi [Expert Reviewer],
 
-Following your guidance on application-specific metrics, I've implemented 
+Following your guidance on application-specific metrics, I've implemented
 a local evaluation pipeline for TUAB abnormal detection.
 
 Results on TUAB canonical split:
@@ -30,7 +30,7 @@ Best,
 ```
 Subject: Follow-up: TUSZ evaluation with time-aligned scoring
 
-Following your guidance on seizure detection metrics, I've implemented 
+Following your guidance on seizure detection metrics, I've implemented
 TAES/ATWV scoring with false alarms per 24 hours as the primary constraint.
 
 Results on TUSZ canonical split:

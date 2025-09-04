@@ -3,13 +3,13 @@
 ## 📧 Canonical Expert Feedback (September 2, 2025)
 
 **From TUH/NEDC Leadership:**
-> "I think you need input from clinicians. The evaluation metric depends on the application. 
-> For years, we have distributed our own scoring software that we believe addresses a problem 
+> "I think you need input from clinicians. The evaluation metric depends on the application.
+> For years, we have distributed our own scoring software that we believe addresses a problem
 > like seizure detection where segmentation and false positive rates are very important:
 > https://isip.piconepress.com/publications/book_sections/2021/springer/metrics/
-> 
-> In terms of pipelines, I think what we lack is adequate annotated data... There is obviously 
-> use for a portal that can analyze data without a need to train models, but moving these big 
+>
+> In terms of pipelines, I think what we lack is adequate annotated data... There is obviously
+> use for a portal that can analyze data without a need to train models, but moving these big
 > EEG files to/from such a portal is a problem."
 
 **Mission**: Ship a clinically-useful EEG pipeline addressing these concerns:
@@ -40,7 +40,7 @@
   - Batch size: 64
   - Epochs: 200 for pretraining (but we only need ~10 for linear probe)
   - Data split: Patient-level, no leakage
-- **Paper results on TUAB**: 
+- **Paper results on TUAB**:
   - 87.18% ± 0.5% AUROC (their Table 11)
   - 76.9% ± 0.4% Balanced Accuracy
   - Linear probe OUTPERFORMED full fine-tuning!
@@ -190,7 +190,7 @@ def scores_to_events(scores, threshold, sample_rate=256, gap_s=3, min_s=2):
 # 2. Time-aligned matching using TAES (Picone 2021 methodology)
 def match_events(pred_events, ref_events, overlap_threshold=0.5):
     """TAES uses Jaccard index (IoU ≥ 0.5) for overlap calculation.
-    
+
     Key requirements:
     - IoU (Intersection over Union) ≥ 0.5 for a match
     - Coalesce overlapping reference events FIRST
@@ -198,10 +198,10 @@ def match_events(pred_events, ref_events, overlap_threshold=0.5):
     """
     # CRITICAL: First coalesce overlapping reference events to avoid double-counting
     ref_events = coalesce_overlapping_events(ref_events)
-    
+
     tp, fp, fn = 0, 0, 0
     matched_refs = set()
-    
+
     for pred in pred_events:
         # Calculate Jaccard index (intersection over union)
         best_match = None
@@ -212,13 +212,13 @@ def match_events(pred_events, ref_events, overlap_threshold=0.5):
                 if jaccard >= overlap_threshold and jaccard > best_jaccard:
                     best_match = i
                     best_jaccard = jaccard
-        
+
         if best_match is not None:
             tp += 1
             matched_refs.add(best_match)
         else:
             fp += 1
-    
+
     fn = len(ref_events) - len(matched_refs)
     return tp, fp, fn
 
@@ -237,7 +237,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
     tp, fp, fn = match_events(events, ref_events_val)
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
     fa_per_24h = (fp / total_hours_val) * 24
-    
+
     if sensitivity >= 0.95 and fa_per_24h < min_fa_per_24h:
         min_fa_per_24h = fa_per_24h
         best_threshold = threshold
@@ -255,7 +255,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
    - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits (train/val/test)
    - **DoD:** `bgb eval tuab` writes `metrics.json` + `roc.csv` + `provenance.json`
 
-2. **TUEV (event classes)** - 6-class event detection  
+2. **TUEV (event classes)** - 6-class event detection
    - **Who cares:** Researchers benchmarking feature detectors (SPSW/GPED/PLED/etc.)
    - **Metrics:** Per-class F1/sensitivity, macro-F1; optional FP/hour if temporal
    - **Channels:** 23 channels in raw files (includes A1, A2, FPZ), mapped to 20 standard for processing
@@ -273,7 +273,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 ### "Stop Here" Rule
 If you have:
 - TUAB `metrics.json` (AUROC/BAC/Spec@Sens)
-- TUEV macro-F1 (and optional event CSV)  
+- TUEV macro-F1 (and optional event CSV)
 - TUSZ FA/24h + Sens@{1,5,10} with documented threshold policy
 - **Local-first deploy** (CLI/Docker: "data never leaves this machine")
 
@@ -306,16 +306,16 @@ def calculate_specificity_at_sensitivity(y_true, y_score, target_sensitivity=0.9
     """For abnormal/normal classification - with proper confusion matrix"""
     from sklearn.metrics import roc_curve
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
-    
+
     # Find threshold for target sensitivity
     idx = np.argmax(tpr >= target_sensitivity)
     threshold = thresholds[idx]
-    
+
     # Calculate confusion matrix at this threshold
     y_pred = (y_score >= threshold).astype(int)
     tn = ((y_pred == 0) & (y_true == 0)).sum()
     fp = ((y_pred == 1) & (y_true == 0)).sum()
-    
+
     specificity = tn / (tn + fp)
     return specificity, threshold
 
@@ -472,7 +472,7 @@ See `docs/internal/email-templates.md` for templates.
 
 ## Implementation Quality Bar
 - **Single-responsibility modules** - Pure functions for metrics
-- **Determinism** - Seed all RNG, log versions  
+- **Determinism** - Seed all RNG, log versions
 - **No raw data in artifacts** - Only JSON/CSV/plots
 - **Patient-level splits** - No data leakage between train/test
 - **Test coverage** - Unit tests for each metric function
@@ -498,12 +498,12 @@ def set_global_seeds(seed=42):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    
+
     # Force deterministic algorithms
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    
+
     # Set environment variable for additional determinism
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 ```

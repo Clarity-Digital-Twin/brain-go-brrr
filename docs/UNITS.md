@@ -14,8 +14,8 @@ This codebase follows a strict convention for EEG data units to ensure consisten
 ## Data Flow
 
 ```
-EDF File (variable units) 
-    → MNE Loader (converts to V) 
+EDF File (variable units)
+    → MNE Loader (converts to V)
     → Cache (stores in V)
     → Dataset (returns V)
     → EEGPT Wrapper (normalizes with std=50μV)

@@ -3,38 +3,38 @@
 
 [run]
 source = src
-omit = 
+omit =
     # Integration-only modules (tested in data coverage)
     src/brain_go_brrr/infra/data/*
     src/brain_go_brrr/infra/preprocessing/*
     src/brain_go_brrr/application/training/*
     src/brain_go_brrr/infra/data/edf_streaming.py
     src/brain_go_brrr/services/stream_processor.py
-    
+
     # API routes that need real services (low unit coverage)
     src/brain_go_brrr/api/routers/sleep.py
     src/brain_go_brrr/api/routers/jobs.py
     src/brain_go_brrr/api/routers/queue.py
     src/brain_go_brrr/api/auth.py
     src/brain_go_brrr/api/job_store.py
-    
+
     # Complex pipelines that need integration testing
     src/brain_go_brrr/application/pipeline/parallel.py
     src/brain_go_brrr/application/pipeline/hierarchical_pipeline.py
-    
+
     # Domain modules that need real data
     src/brain_go_brrr/domain/sleep/analyzer.py
     src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
     src/brain_go_brrr/domain/abnormal/detector.py
     src/brain_go_brrr/application/use_cases/tasks/*
-    
+
     # Cache implementation (needs Redis)
     src/brain_go_brrr/infra/cache.py
-    
+
     # CLI and scripts (not unit testable)
     src/brain_go_brrr/cli.py
     src/brain_go_brrr/__main__.py
-    
+
     # Test files themselves
     */tests/*
     */test_*.py
@@ -44,7 +44,7 @@ omit =
 precision = 2
 skip_covered = False
 show_missing = True
-omit = 
+omit =
     # MUST DUPLICATE THE OMIT LIST HERE FOR REPORT
     # Integration-only modules (tested in data coverage)
     src/brain_go_brrr/infra/data/*
@@ -52,31 +52,31 @@ omit =
     src/brain_go_brrr/application/training/*
     src/brain_go_brrr/infra/data/edf_streaming.py
     src/brain_go_brrr/services/stream_processor.py
-    
+
     # API routes that need real services (low unit coverage)
     src/brain_go_brrr/api/routers/sleep.py
     src/brain_go_brrr/api/routers/jobs.py
     src/brain_go_brrr/api/routers/queue.py
     src/brain_go_brrr/api/auth.py
     src/brain_go_brrr/api/job_store.py
-    
+
     # Complex pipelines that need integration testing
     src/brain_go_brrr/application/pipeline/parallel.py
     src/brain_go_brrr/application/pipeline/hierarchical_pipeline.py
-    
+
     # Domain modules that need real data
     src/brain_go_brrr/domain/sleep/analyzer.py
     src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
     src/brain_go_brrr/domain/abnormal/detector.py
     src/brain_go_brrr/application/use_cases/tasks/*
-    
+
     # Cache implementation (needs Redis)
     src/brain_go_brrr/infra/cache.py
-    
+
     # CLI and scripts (not unit testable)
     src/brain_go_brrr/cli.py
     src/brain_go_brrr/__main__.py
-    
+
     # Test files themselves
     */tests/*
     */test_*.py
@@ -91,12 +91,12 @@ exclude_lines =
     if TYPE_CHECKING:
     @abstractmethod
     @abc.abstractmethod
-    
+
     # Defensive programming
     except ImportError
     except KeyboardInterrupt
     except Exception as e:
-    
+
     # Logging
     logging.debug
     logging.info

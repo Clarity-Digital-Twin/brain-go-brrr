@@ -15,7 +15,7 @@ http://localhost:8000
 The API provides multiple processing pathways based on your needs:
 
 - **Quality Control**: `/api/v1/eeg/analyze` - Synchronous bad channel detection
-- **EEGPT Analysis**: `/api/v1/eeg/eegpt/analyze` - Requires 19+ channels @ 256Hz  
+- **EEGPT Analysis**: `/api/v1/eeg/eegpt/analyze` - Requires 19+ channels @ 256Hz
 - **Sleep Staging**: `/api/v1/eeg/sleep/analyze` - Works with ANY channel count (1-100+)
 
 **Note**: YASA is NOT limited to 2-channel data. It works with any channel count and automatically selects the best central channel (C3/C4 preferred) for optimal accuracy.
@@ -269,7 +269,7 @@ with open("data/sample.edf", "rb") as f:
     )
     job = response.json()
     job_id = job["job_id"]
-    
+
     # Poll for results
     import time
     while True:
