@@ -127,11 +127,32 @@ class ProbeFactory:
         if task not in task_configs:
             raise ValueError(f"Unknown task: {task}. Supported: {list(task_configs.keys())}")
 
-        config = task_configs[task].copy()
-        config["input_dim"] = input_dim
-        config.update(kwargs)  # Allow overrides
+        # Get task defaults
+        defaults = task_configs[task]
 
-        return cls.create(**config)
+        # Extract typed values explicitly for mypy
+        hidden_dim_val = int(kwargs.get("hidden_dim", defaults["hidden_dim"]))
+        output_dim_val = int(kwargs.get("output_dim", defaults["output_dim"]))
+        dropout_val = float(kwargs.get("dropout", defaults.get("dropout", 0.0)))
+
+        # Handle Literal types with validation
+        arch_val = kwargs.get("architecture", defaults.get("architecture", "two_layer"))
+        if arch_val not in ("linear", "two_layer"):
+            raise ValueError(f"Invalid architecture: {arch_val}")
+
+        pool_val = kwargs.get("pool", defaults.get("pool", "mean"))
+        if pool_val not in ("mean", "max", "cls"):
+            raise ValueError(f"Invalid pool: {pool_val}")
+
+        # Call with explicit named args to satisfy mypy
+        return cls.create(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim_val,
+            output_dim=output_dim_val,
+            architecture=arch_val,  # type: ignore[arg-type]
+            dropout=dropout_val,
+            pool=pool_val,  # type: ignore[arg-type]
+        )
 
 
 # Backward compatibility alias
