@@ -4,7 +4,7 @@
 **Owner**: ___________________  
 **Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY  
-**Revision**: v5 - TDD methodology integrated (single source of truth)  
+**Revision**: v8.0 - TDD + Adapter boundary (final perfect version)  
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
 
 ---
@@ -12,11 +12,18 @@
 ## 📌 SSOT: EEGPT Feature Dimensions Rule
 
 > **🎯 THE GOLDEN RULE**  
-> - **IF feeding a probe**: Use `extract_features(..., summary=False)` → (B,4,512) → `.flatten(1)` → (B,2048)
+> - **IF feeding a probe**: Use `extract_features(..., summary=False)` → numpy (B,4,512) → torch → `.flatten(1)` → (B,2048)
 > - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
 > - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
-> - **WHERE TO FLATTEN**: ONLY at probe call-sites. Never inside helper methods.
+> - **WHERE TO FLATTEN**: At probe boundaries (routers/trainers). During **Green** phase, inline `.flatten(1)` is acceptable to make tests pass. After **Refactor** phase, use the `prepare_probe_features` adapter exclusively. Never flatten inside model/encoder/compat internals.
 > - **THE INVARIANT**: Probes MUST receive 2048-dim features (4×512 flattened)
+>
+> **🔍 Shape Contract:**
+> - `summary=False` returns **numpy** array: (B,4,512) for batch, or (4,512) for single window
+> - Single windows should be expanded to (1,4,512) before flattening
+> - Probes expect **torch** tensor shape (B,2048) where B ≥ 1
+> - **Must convert**: numpy → torch via `torch.as_tensor()`, then `.flatten(1)`
+> - **Critical Rule**: API routers must NEVER use summary=True for probe paths
 
 ---
 
@@ -42,11 +49,10 @@ Per Clean Code/TDD principles, we write tests that PROVE the bug exists before f
 
 ### Step 1.1: Create Test Files
 ```bash
-# Create P0-specific test files
+# Create P0-specific test files (not probe_utils yet - that's for refactor phase)
 touch tests/unit/api/routers/test_eegpt_p0_dimensions.py
 touch tests/unit/application/training/test_sleep_probe_p0_dimensions.py
 touch tests/unit/infra/ml_models/test_eegpt_compat_p0_contract.py
-touch tests/unit/utils/test_probe_utils.py
 ```
 
 ### Step 1.2: Write Boundary Tests
@@ -63,27 +69,36 @@ from unittest.mock import Mock, patch, ANY
 class TestP0APIDimensions:
     """Prove API endpoints crash with 512 dims, work with 2048."""
     
-    def test_analyze_endpoint_flattens_to_2048(self):
-        """P0: /eegpt/analyze must flatten (B,4,512) to (B,2048)."""
-        with patch('brain_go_brrr.api.routers.eegpt.get_eegpt_model') as mock_get:
-            # Model returns (B,4,512) when summary=False
-            mock_model = Mock()
-            mock_model.extract_features.return_value = torch.randn(1, 4, 512)
-            mock_get.return_value = mock_model
-            
-            # Probe expects 2048 dims
-            mock_probe = Mock()
-            mock_probe.predict_proba.side_effect = lambda x: (
-                torch.randn(x.shape[0], 2) if x.shape[-1] == 2048 
-                else pytest.fail(f"Probe got {x.shape[-1]} dims, expected 2048")
-            )
-            
-            # THIS TEST MUST FAIL ON CURRENT CODE
-            # After fix, it should pass
+    def test_analyze_endpoint_flattens_to_2048(self, monkeypatch, tmp_path):
+        """P0: /eegpt/analyze must flatten (4,512) to (1,2048)."""
+        from fastapi.testclient import TestClient
+        from brain_go_brrr.api.app import app
+        from brain_go_brrr.api.routers import eegpt as eegpt_router
+        
+        mock_model = Mock()
+        # Single-window contract: (4,512) numpy on summary=False
+        mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
+        monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
+        
+        # Probe that asserts 2048 at call-time
+        def _probe_predict(x: torch.Tensor):
+            if x.ndim != 2 or x.shape[-1] != 2048:
+                pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
+            return torch.randn(x.shape[0], 2)
+        
+        mock_probe = Mock(predict_proba=_probe_predict)
+        monkeypatch.setattr(eegpt_router, "get_probe", lambda: mock_probe, raising=False)
+        
+        # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
+        client = TestClient(app)
+        files = {"file": ("fake.edf", b"x", "application/octet-stream")}
+        response = client.post("/api/v1/eegpt/analyze", files=files)
+        # Test will fail with dimension error before fix
             
     def test_batch_endpoint_flattens_to_2048(self):
         """P0: /analyze/batch must flatten (B,4,512) to (B,2048)."""
-        # Similar test for batch endpoint
+        # Mock returns numpy (B,4,512)
+        mock_model.extract_features_batch.return_value = np.random.randn(32, 4, 512).astype(np.float32)
         
     def test_sleep_stages_endpoint_flattens_to_2048(self):
         """P0: /eegpt/sleep/stages must flatten to 2048."""
@@ -98,13 +113,14 @@ class TestP0APIDimensions:
 class TestP0TrainerDimensions:
     def test_train_step_flattens_to_2048(self):
         """P0: train_step must flatten (B,4,512) to (B,2048)."""
-        # Mock extractor returns (B,4,512) when summary=False
+        # Mock self.eegpt_model.extract_features returns (B,4,512) when summary=False
         # Probe validates 2048 dims
         # THIS TEST MUST FAIL ON CURRENT CODE
         
-    def test_validation_step_flattens_to_2048(self):
-        """P0: validation_step must flatten to 2048."""
-        # Similar test
+    def test_evaluate_probe_flattens_to_2048(self):
+        """P0: evaluate_probe must flatten to 2048."""
+        # Mock self.eegpt_model.extract_features returns (B,4,512)
+        # Verify probe receives (B,2048)
 ```
 
 #### Test 3: Compat Contract (No Internal Flattening)
@@ -146,27 +162,30 @@ Now we make the SMALLEST changes to make tests pass. No extras, no refactoring y
 **Update method signatures to accept and forward `summary` parameter:**
 
 ```python
+import numpy as np
+import numpy.typing as npt
+
 def extract_features(
     self,
-    data: npt.NDArray[np.float64],
+    data: npt.NDArray[np.float32],  # float32 matches runtime
     channel_names: list[str] | None = None,
     summary: bool = True  # ADD THIS PARAMETER
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.float32]:  # Returns float32
     # Forward summary to encoder:
     features = self.encoder.extract_features(data_tensor, summary=summary)
     # Return as-is - NO FLATTENING HERE (flatten at call-site only)
-    return features.cpu().numpy()
+    return features.cpu().numpy().astype(np.float32, copy=False)
 
 def extract_features_batch(
     self,
-    windows: npt.NDArray[np.float64] | torch.Tensor,
+    windows: npt.NDArray[np.float32] | torch.Tensor,  # float32
     channel_names: list[str] | None = None,
     summary: bool = True  # ADD THIS PARAMETER
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.float32]:  # Returns float32
     # Forward summary to encoder:
     features = self.encoder.extract_features(batch_tensor, summary=summary)
     # NO FLATTENING HERE - return (B,4,512) if summary=False
-    return features.cpu().numpy()
+    return features.cpu().numpy().astype(np.float32, copy=False)
 ```
 
 #### Fix 2: `src/brain_go_brrr/api/routers/eegpt.py` (3 Call-sites)
@@ -208,18 +227,22 @@ features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
 #### Fix 4: `src/brain_go_brrr/application/training/sleep_probe_trainer.py` (2 Call-sites)
 
 ```python
-# In train_step:
+# In train_step (class method):
 # P0: Probes require 2048-dim (4×512) features
-features = self.feature_extractor.extract_features(eeg_data, summary=False)  # numpy
+features = self.eegpt_model.extract_features(eeg_data, summary=False)  # numpy (4,512) or (B,4,512)
 features_tensor = torch.as_tensor(features, dtype=torch.float32)
+if features_tensor.ndim == 2:  # Single window (4,512)
+    features_tensor = features_tensor.unsqueeze(0)  # (1,4,512)
 features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
 # Pass features_tensor to probe
 
-# In evaluate_probe method:
+# In evaluate_probe function (module-level, no self):
 # P0: Probes require 2048-dim (4×512) features
-features = self.feature_extractor.extract_features(eeg_data, summary=False)  # numpy
+features = eegpt_model.extract_features(eeg_data, summary=False)  # numpy
 features_tensor = torch.as_tensor(features, dtype=torch.float32)
-features_tensor = features_tensor.flatten(1)  # (B,4,512) → (B,2048)
+if features_tensor.ndim == 2:  # Single window
+    features_tensor = features_tensor.unsqueeze(0)
+features_tensor = features_tensor.flatten(1)  # → (B,2048)
 # Pass features_tensor to probe
 ```
 
@@ -251,8 +274,8 @@ def prepare_probe_features(
     """
     Adapter: Convert EEGPT features to probe-ready format.
     
-    Accepts: (B,4,512) from extract_features with summary=False
-    Returns: (B,2048) ready for probe input
+    Accepts: (4,512) single window or (B,4,512) batch from extract_features with summary=False
+    Returns: (B,2048) ready for probe input, where B >= 1
     
     This is the SINGLE SOURCE OF TRUTH for probe preparation.
     """
@@ -260,35 +283,57 @@ def prepare_probe_features(
     if isinstance(features, np.ndarray):
         features = torch.as_tensor(features, dtype=torch.float32)
     
-    # Flatten if needed (idempotent - safe to call multiple times)
+    # Handle single window: (4,512) → (1,4,512)
+    if features.ndim == 2 and features.shape == torch.Size([4, 512]):
+        features = features.unsqueeze(0)  # Add batch dimension
+    
+    # Flatten batch: (B,4,512) → (B,2048)
     if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
-        features = features.flatten(1)  # (B,4,512) → (B,2048)
+        features = features.flatten(1)
     
     # Safety assertion
     assert_probe_ready(features)
     return features
 
 def assert_probe_ready(features: torch.Tensor) -> None:
-    """Safety net: Ensure features are probe-ready."""
-    if features.shape[-1] != 2048:
+    """Verify features are probe-ready."""
+    if features.ndim != 2 or features.shape[-1] != 2048:
         raise AssertionError(
-            f"Probe expects 2048 dims, got {tuple(features.shape)}. "
-            f"Did you forget summary=False or prepare_probe_features()?"
+            f"Probe expects (B,2048); got {tuple(features.shape)}. "
+            f"Use summary=False and prepare_probe_features()."
         )
 ```
 
-### Step 3.2: Write Test for Adapter
+### Step 3.2: Create and Test Adapter
+```bash
+# NOW create the probe_utils test file
+touch tests/unit/utils/test_probe_utils.py
+```
+
 ```python
 # tests/unit/utils/test_probe_utils.py
 """Test probe preparation utilities."""
+import numpy as np
+import torch
+import pytest
 
-def test_prepare_probe_features_flattens():
+def test_prepare_probe_features_batch():
     """Adapter correctly flattens (B,4,512) to (B,2048)."""
     from brain_go_brrr.utils.probe_utils import prepare_probe_features
     
-    features = torch.randn(32, 4, 512)
+    features = np.random.randn(32, 4, 512).astype(np.float32)
     prepared = prepare_probe_features(features)
     assert prepared.shape == (32, 2048)
+    assert isinstance(prepared, torch.Tensor)
+
+def test_prepare_probe_features_single_window():
+    """Adapter handles single window (4,512) to (1,2048)."""
+    from brain_go_brrr.utils.probe_utils import prepare_probe_features
+    
+    features = np.random.randn(4, 512).astype(np.float32)  # Single window
+    prepared = prepare_probe_features(features)
+    assert prepared.shape == (1, 2048)  # Batch dim added
+    assert isinstance(prepared, torch.Tensor)
 
 def test_assert_probe_ready_catches_wrong_dims():
     """Safety net catches dimension errors."""
@@ -360,7 +405,7 @@ make coverage
 
 ---
 
-## ❌ ALLOWED vs ❌ FORBIDDEN USAGE
+## ✅ ALLOWED vs ❌ FORBIDDEN USAGE
 
 ### ❌ FORBIDDEN (WILL CRASH) - Must Fix
 ```python
@@ -520,6 +565,19 @@ Our implementation (`eegpt_architecture.py`):
   - Changed "validation_step" to correct "evaluate_probe" method name
   - Added expanded verification patterns for extract_features_batch
   - Made shape contract explicit: numpy in, torch out
+- **v7.0** (Sept 4): Final pristine version with all feedback integrated:
+  - Fixed trainer attribute: `self.eegpt_model` not `self.feature_extractor`
+  - Clarified compat is "supporting change" not a 7th crash site
+  - Added explicit single-window shape handling (4,512) → (1,4,512)
+  - Added shape contract unit test for compat verification
+  - Added critical rule: API routers must never use summary=True for probe paths
+- **v8.0** (Sept 4): Perfect implementation-ready version:
+  - Fixed SSOT wording: flatten at boundaries via adapter, not "never in helpers"
+  - Updated prepare_probe_features to handle single-window (4,512) case
+  - Fixed test mocks to return realistic numpy arrays not torch tensors
+  - Fixed header typo: "✅ ALLOWED vs ❌ FORBIDDEN"
+  - Moved probe_utils test creation to refactor phase (not RED phase)
+  - Added explicit single-window test case for adapter
 
 ---
 
