@@ -93,11 +93,11 @@ features = features.flatten()  # Now (2048,) as paper specifies
 ## 🔴 CRITICAL ISSUE #2: Duplicate Class Definitions
 
 ### The Problem
-We have **9 classes with duplicate definitions** across different modules. This creates:
-- **Import confusion** - Which one gets imported?
-- **Runtime errors** - Wrong class could be used
-- **Maintenance nightmare** - Updates in one place miss the other
-- **Type checking issues** - MyPy may use wrong definition
+We have **6 unique classes with duplicate definitions** across different modules. Not all are dangerous:
+- **4 DANGEROUS duplicates** that can cause runtime errors (LoggerPort, CachePort, RedisCache, YASAConfig)
+- **2 INTENTIONAL patterns** that are OK (JobData DTO vs entity, test helpers)
+- **Import confusion** - Wrong class gets imported = wrong behavior
+- **Type errors** - LoggerPort incompatible signatures = runtime crash
 
 ### Deep Investigation Results
 
