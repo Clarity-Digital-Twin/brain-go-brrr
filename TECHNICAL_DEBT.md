@@ -1,12 +1,76 @@
 # 🚨 TECHNICAL DEBT - Priority Issues Requiring Resolution
 
 **Created**: September 4, 2025  
+**Updated**: September 4, 2025 (Critical Audit from First Principles)
 **Status**: Active - Requires Immediate Attention  
-**Focus**: High-impact duplicate class definitions that could cause runtime errors
+**Focus**: Critical runtime issues from duplicate classes and API dimensionality mismatches
+
+## ⚠️ CRITICAL AUDIT FINDINGS
+
+After thorough first-principles analysis, I've identified **5 NEW critical issues** beyond the duplicate classes:
+
+1. **🔥 EEGPT API is passing 512-dim features to probes expecting 2048-dim** - This WILL crash in production
+2. **✅ CONFIRMED: 6 duplicate class definitions with 2 having incompatible signatures** 
+3. **📚 Documentation teaches unsafe torch.load that fails CI/CD**
+4. **⚡ PyTorch Lightning remains in dependencies despite critical bug**
+5. **🔄 Probe migration incomplete - deprecated code still in production**
+
+**Bottom Line**: The API dimensionality issue (Issue #1) is MORE CRITICAL than duplicate classes because it's a guaranteed runtime crash vs potential confusion.
+
+## 🚨 PRIORITY RANKING (P0 = CRASH TODAY)
+
+| Priority | Issue | Impact | Time to Fix |
+|----------|-------|--------|-------------|
+| **P0** | EEGPT API Dimensionality (512 vs 2048) | Runtime crash on probe calls | 30 min |
+| **P0** | LoggerPort incompatible signatures | TypeError in production | 30 min |
+| **P1** | RedisCache duplicate classes | Wrong cache implementation used | 30 min |
+| **P1** | YASAConfig duplicate definitions | Wrong config = wrong results | 30 min |
+| **P1** | JobData field mismatches | API contract violations | 30 min |
+| **P2** | Documentation unsafe torch.load | CI/CD failures for new devs | 15 min |
+| **P2** | Lightning in dependencies | Accidental usage risk | 15 min |
+| **P2** | Probe migration incomplete | Tech debt accumulation | 2 hours |
+| **P3** | Other duplicate classes | Future maintenance issues | 2 hours |
 
 ---
 
-## 🔴 CRITICAL ISSUE #1: Duplicate Class Definitions
+## 🔴 CRITICAL ISSUE #1: EEGPT API Dimensionality Mismatch
+
+### The Problem
+**The EEGPT API routes are passing 512-dim features to probes expecting 2048-dim input**
+
+API endpoints call `eegpt_model.extract_features(window_data, channel_names)` which defaults to `summary=True` returning 512 dimensions. But all probes (SleepStageProbe, AbnormalityProbe) expect 2048-dim input (4×512 flattened).
+
+### Evidence
+- **API call**: `src/brain_go_brrr/api/routers/eegpt.py:138`
+  ```python
+  features = eegpt_model.extract_features(window_data, channel_names)  # Returns 512 (summary=True default)
+  ```
+- **Probe expectation**: `src/brain_go_brrr/api/routers/eegpt.py:216-221`
+  ```python
+  "input_dim": 2048,  # All probes expect 2048
+  ```
+- **Tests mask the issue**: Tests mock the model to return 2048-dim arrays directly
+
+### Runtime Failure Scenario
+```python
+# API endpoint gets 512-dim features
+features = eegpt_model.extract_features(data)  # shape: (512,)
+
+# Passes to probe expecting 2048
+probe = SleepStageProbe()  # Expects 2048 input
+result = probe.predict_proba(features)  # CRASH: RuntimeError: size mismatch
+```
+
+### The Fix
+```python
+# Change all API calls to:
+features = eegpt_model.extract_features(window_data, channel_names, summary=False)  # Returns (4, 512)
+features = features.flatten()  # Now (2048,) as expected
+```
+
+---
+
+## 🔴 CRITICAL ISSUE #2: Duplicate Class Definitions
 
 ### The Problem
 We have **9 classes with duplicate definitions** across different modules. This creates:
@@ -237,36 +301,256 @@ job.id  # CRASH: AttributeError: 'JobData' object has no attribute 'id'
 
 ## 💊 PROPOSED SOLUTION - COMPLETE IMPLEMENTATION PLAN
 
-### Phase 1: Immediate Fixes (This Week)
+### PHASE 0: EMERGENCY FIX (DO NOW - 30 MINUTES)
 
-#### A. Rename for Clarity
-```python
-# Before: Confusing duplicates
-class RedisCache  # in api/cache.py
-class RedisCache  # in infra/cache.py
+#### Step 0: Fix EEGPT API Dimensionality IMMEDIATELY
+```bash
+# 0.1 - Fix all API extract_features calls
+sed -i 's/extract_features(window_data, channel_names)/extract_features(window_data, channel_names, summary=False)/g' \
+    src/brain_go_brrr/api/routers/eegpt.py
 
-# After: Clear distinction
-class APIRedisCache     # in api/cache.py
-class InfraRedisCache   # in infra/cache.py
+# 0.2 - Add flattening after feature extraction
+# Manual edit needed to add .flatten() after each extract_features call
+
+# 0.3 - Run API tests to verify
+pytest tests/unit/api/routers/test_eegpt.py -xvs
+
+# 0.4 - Update test mocks to match new behavior
+# Tests should mock (4, 512) shape that gets flattened to (2048,)
 ```
 
-#### B. Consolidate Protocols
-```python
-# Create central location
-src/brain_go_brrr/domain/protocols/
-├── cache.py       # Single CachePort definition
-├── logger.py      # Single LoggerPort definition
-└── extractor.py   # Single FeatureExtractorPort
+### PHASE 1: CRITICAL FIXES (DO TODAY - 2 HOURS)
 
-# All layers import from here
-from brain_go_brrr.domain.protocols.cache import CachePort
+#### Step 1: Fix LoggerPort IMMEDIATELY (30 min)
+```bash
+# 1.1 - DELETE the incompatible version
+rm src/brain_go_brrr/domain/abnormal/ports.py
+
+# 1.2 - Update imports in domain/abnormal/detector.py
+sed -i 's/from \.ports import LoggerPort/from brain_go_brrr.domain.ports import LoggerPort/g' \
+    src/brain_go_brrr/domain/abnormal/detector.py
+
+# 1.3 - Verify single definition remains
+rg "class LoggerPort" --type py src/
+# Should show ONLY domain/ports/base.py
 ```
 
-#### C. Fix Import Paths
-```python
-# Update all imports to use consolidated versions
-# Run this to find all imports:
-rg "from.*import.*(CachePort|RedisCache|YASAConfig)" --type py src/
+#### Step 2: Rename RedisCache Classes (30 min)
+```bash
+# 2.1 - Rename API version
+sed -i 's/class RedisCache:/class APIRedisCache:/g' \
+    src/brain_go_brrr/api/cache.py
+
+# 2.2 - Update API imports
+sed -i 's/RedisCache/APIRedisCache/g' \
+    src/brain_go_brrr/api/__init__.py \
+    src/brain_go_brrr/api/dependencies.py
+
+# 2.3 - The infra version stays as RedisCache (it's the real one)
+# Already aliased correctly in cache_factory.py as InfraRedisCache
+```
+
+#### Step 3: Fix YASAConfig Naming (30 min)
+```bash
+# 3.1 - Rename domain version
+sed -i 's/class YASAConfig:/class EnhancedYASAConfig:/g' \
+    src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
+
+# 3.2 - Update all references in same file
+sed -i 's/YASAConfig(/EnhancedYASAConfig(/g' \
+    src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
+
+# 3.3 - Infra version stays as YASAConfig (external adapter)
+```
+
+#### Step 4: Fix JobData Classes (30 min)
+```bash
+# 4.1 - Rename API version to be explicit
+sed -i 's/class JobData:/class APIJobData:/g' \
+    src/brain_go_brrr/api/schemas.py
+
+# 4.2 - Keep TypedDict version as JobDataDict (already named correctly)
+
+# 4.3 - Application version stays as JobData (domain model)
+```
+
+### PHASE 2: CONSOLIDATION (DO TOMORROW - 4 HOURS)
+
+#### Step 5: Create Protocol Registry
+```bash
+# 5.1 - Create protocols directory
+mkdir -p src/brain_go_brrr/domain/protocols
+
+# 5.2 - Move all protocols to central location
+cat > src/brain_go_brrr/domain/protocols/__init__.py << 'EOF'
+"""Central protocol definitions to prevent duplicates."""
+
+from .cache import CachePort, AsyncCachePort
+from .logger import LoggerPort
+from .extractor import FeatureExtractorPort
+from .model import ModelPort
+from .preprocessor import PreprocessorPort
+
+__all__ = [
+    "CachePort",
+    "AsyncCachePort", 
+    "LoggerPort",
+    "FeatureExtractorPort",
+    "ModelPort",
+    "PreprocessorPort",
+]
+EOF
+
+# 5.3 - Create each protocol file
+cat > src/brain_go_brrr/domain/protocols/logger.py << 'EOF'
+"""Logger protocol - single source of truth."""
+from typing import Protocol, Any
+
+class LoggerPort(Protocol):
+    """Unified logger interface."""
+    
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log debug message with optional formatting."""
+        ...
+    
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log info message with optional formatting."""
+        ...
+    
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log warning message with optional formatting."""
+        ...
+    
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None:
+        """Log error message with optional formatting."""
+        ...
+EOF
+```
+
+#### Step 6: Update All Imports
+```bash
+# 6.1 - Find all files that need updating
+rg "from.*domain\.(ports|abnormal\.ports)" --type py src/ -l > files_to_update.txt
+
+# 6.2 - Update each file to use central protocols
+while read -r file; do
+    sed -i 's/from brain_go_brrr\.domain\.ports import/from brain_go_brrr.domain.protocols import/g' "$file"
+    sed -i 's/from brain_go_brrr\.domain\.abnormal\.ports import/from brain_go_brrr.domain.protocols import/g' "$file"
+done < files_to_update.txt
+
+# 6.3 - Verify no duplicate definitions remain
+for class in CachePort LoggerPort FeatureExtractorPort ModelPort PreprocessorPort; do
+    echo "Checking $class..."
+    count=$(rg "^class $class" --type py src/ | wc -l)
+    if [ "$count" -gt 1 ]; then
+        echo "ERROR: $class still has $count definitions!"
+        rg "^class $class" --type py src/ -n
+    fi
+done
+```
+
+### PHASE 3: VALIDATION & TESTING (1 HOUR)
+
+#### Step 7: Run Type Checking
+```bash
+# 7.1 - Run mypy to catch type errors
+make typecheck
+
+# 7.2 - Fix any import errors mypy finds
+# Common fixes:
+# - Update type hints to use new names
+# - Add missing imports
+# - Remove old import statements
+```
+
+#### Step 8: Run All Tests
+```bash
+# 8.1 - Unit tests
+make test
+
+# 8.2 - Integration tests  
+make test-integration
+
+# 8.3 - If any fail, check for:
+# - Wrong class being imported
+# - Method signature mismatches
+# - Missing attributes
+```
+
+### PHASE 4: PREVENTION (NEXT WEEK - 2 HOURS)
+
+#### Step 9: Add Duplicate Detection
+```bash
+# 9.1 - Create pre-commit hook
+cat > .pre-commit-hooks/check-duplicate-classes.py << 'EOF'
+#!/usr/bin/env python3
+"""Prevent duplicate class definitions."""
+import sys
+import re
+from pathlib import Path
+
+def find_duplicate_classes():
+    classes = {}
+    duplicates = []
+    
+    for py_file in Path("src").rglob("*.py"):
+        content = py_file.read_text()
+        for match in re.finditer(r'^class (\w+)', content, re.MULTILINE):
+            class_name = match.group(1)
+            if class_name.startswith('_'):  # Skip private classes
+                continue
+            
+            if class_name in classes:
+                duplicates.append(f"{class_name}: {classes[class_name]} and {py_file}")
+            else:
+                classes[class_name] = py_file
+    
+    if duplicates:
+        print("ERROR: Duplicate class definitions found!")
+        for dup in duplicates:
+            print(f"  - {dup}")
+        sys.exit(1)
+    
+    print(f"✓ Checked {len(classes)} classes - no duplicates found")
+
+if __name__ == "__main__":
+    find_duplicate_classes()
+EOF
+
+# 9.2 - Add to .pre-commit-config.yaml
+cat >> .pre-commit-config.yaml << 'EOF'
+  - repo: local
+    hooks:
+      - id: no-duplicate-classes
+        name: Check for duplicate class names
+        entry: python .pre-commit-hooks/check-duplicate-classes.py
+        language: python
+        pass_filenames: false
+EOF
+```
+
+#### Step 10: Document Standards
+```bash
+# 10.1 - Add to CONTRIBUTING.md
+cat >> CONTRIBUTING.md << 'EOF'
+
+## Class Naming Standards
+
+To prevent duplicate class definitions:
+
+1. **Protocols/Interfaces**: Define in `domain/protocols/` ONLY
+2. **Layer-Specific Classes**: Use prefixes:
+   - API layer: `API` prefix (e.g., `APIJobData`)
+   - Infrastructure: `Infra` prefix (e.g., `InfraRedisCache`)
+   - Domain: No prefix (owns the base names)
+3. **Configuration Classes**: Include context in name:
+   - `YASAConfig` → `YASAAdapterConfig` (for adapter)
+   - `YASAConfig` → `EnhancedYASAConfig` (for enhanced analyzer)
+4. **Test Mocks**: Use `_` prefix and `Mock` suffix:
+   - `_MockLogger`, `_MockCache`, etc.
+
+Run `make check-duplicates` to verify no duplicates exist.
+EOF
 ```
 
 ### Phase 2: Prevention (Next Sprint)
@@ -346,6 +630,96 @@ elif file.path.contains("infra/"):
 
 ---
 
+## 🔍 COMPREHENSIVE VERIFICATION SUITE
+
+### Pre-Fix Baseline (RUN FIRST!)
+```bash
+# Capture current state before making changes
+echo "=== BASELINE DUPLICATE COUNT ===" > duplicate_baseline.txt
+for class in CachePort RedisCache YASAConfig JobData LoggerPort FeatureExtractorPort NumpyEncoder; do
+    echo "$class: $(rg "^class $class" --type py src/ | wc -l) definitions" >> duplicate_baseline.txt
+    rg "^class $class" --type py src/ -n >> duplicate_baseline.txt
+done
+
+# Save current test results
+make test > test_baseline.txt 2>&1
+echo "Test exit code: $?" >> test_baseline.txt
+
+# Save current type check results  
+make typecheck > typecheck_baseline.txt 2>&1
+echo "Typecheck exit code: $?" >> typecheck_baseline.txt
+```
+
+### After Each Phase Verification
+```bash
+# Phase 1 Check - After renaming
+echo "=== PHASE 1 VERIFICATION ==="
+# Should show NO duplicates for renamed classes
+rg "^class (RedisCache|YASAConfig|JobData|LoggerPort)" --type py src/ | grep -v "API\|Enhanced\|Infra"
+
+# Phase 2 Check - After consolidation  
+echo "=== PHASE 2 VERIFICATION ==="
+# All protocols should be in domain/protocols/
+ls -la src/brain_go_brrr/domain/protocols/
+# Should show: cache.py, logger.py, extractor.py, model.py, preprocessor.py
+
+# Phase 3 Check - After testing
+echo "=== PHASE 3 VERIFICATION ==="
+diff test_baseline.txt test_after.txt
+# Should show SAME OR BETTER test results
+
+# Final Check - Complete validation
+./scripts/verify_no_duplicates.sh
+```
+
+### Automated Verification Script
+```bash
+cat > scripts/verify_no_duplicates.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+echo "🔍 Checking for duplicate class definitions..."
+
+DUPLICATES=0
+declare -A class_locations
+
+# Find all class definitions
+while IFS= read -r line; do
+    file=$(echo "$line" | cut -d: -f1)
+    class_name=$(echo "$line" | grep -oP 'class \K\w+')
+    
+    # Skip private classes and test mocks
+    if [[ $class_name == _* ]] || [[ $class_name == Mock* ]]; then
+        continue
+    fi
+    
+    if [[ -n "${class_locations[$class_name]:-}" ]]; then
+        echo -e "${RED}❌ DUPLICATE: $class_name${NC}"
+        echo "   - ${class_locations[$class_name]}"
+        echo "   - $file"
+        ((DUPLICATES++))
+    else
+        class_locations[$class_name]=$file
+    fi
+done < <(rg '^class \w+' --type py src/)
+
+if [[ $DUPLICATES -eq 0 ]]; then
+    echo -e "${GREEN}✅ SUCCESS: No duplicate classes found!${NC}"
+    echo "   Checked ${#class_locations[@]} unique class definitions"
+    exit 0
+else
+    echo -e "${RED}❌ FAILED: Found $DUPLICATES duplicate class definitions${NC}"
+    exit 1
+fi
+EOF
+
+chmod +x scripts/verify_no_duplicates.sh
+```
+
 ## 🔍 VERIFICATION COMMANDS
 
 ```bash
@@ -406,7 +780,200 @@ The fix is complete when:
 
 ---
 
-**Priority**: 🔴 **CRITICAL**  
-**Estimated Effort**: 4-6 hours  
-**Risk Level**: High (but necessary)  
-**Business Impact**: Prevents future production bugs
+---
+
+## 🟡 ISSUE #3: Documentation Shows Unsafe torch.load Examples
+
+### The Problem
+Documentation demonstrates `torch.load()` without `weights_only=` parameter, violating CI/CD policy.
+
+### Evidence
+- **Location**: `docs/TRAINING.md:246`
+- **CI Hook**: Pre-commit will fail on unsafe torch.load usage
+- **Policy**: All torch.load calls must specify `weights_only=True` or include `# nosec:weights_only`
+
+### The Fix
+Update documentation to use safe loading:
+```python
+# Replace all doc examples with:
+checkpoint = torch.load(path, map_location='cpu', weights_only=True)
+# OR use the safe_load wrapper:
+from brain_go_brrr.infra.safe_load import safe_load
+checkpoint = safe_load(path)
+```
+
+---
+
+## 🟡 ISSUE #4: PyTorch Lightning in Dependencies Despite Being Forbidden
+
+### The Problem
+`pyproject.toml` includes `lightning>=2.1.0` even though usage is explicitly forbidden per CLAUDE.md.
+
+### Evidence
+- **CLAUDE.md**: "DO NOT USE PYTORCH LIGHTNING FOR TRAINING! Lightning 2.5.2 has a critical bug"
+- **CI Check**: "no Lightning imports" validation exists
+- **Risk**: Developers might accidentally use it
+
+### The Fix
+Move Lightning to optional dependencies or remove entirely:
+```toml
+# Option 1: Remove completely
+# Option 2: Move to optional
+[project.optional-dependencies]
+deprecated = ["lightning>=2.1.0"]  # DO NOT USE - has critical bugs
+```
+
+---
+
+## 🟡 ISSUE #5: Probe Migration Incomplete
+
+### The Problem  
+EEGPTProbe is deprecated but still actively used in production code.
+
+### Evidence
+- **Still used in**: 
+  - `src/brain_go_brrr/application/use_cases/tasks/abnormality_detection.py`
+  - `src/brain_go_brrr/application/pipeline/eegpt_orchestration.py`
+- **ProbeFactory exists but not fully adopted**
+- **Deprecation warning present but ignored**
+
+### The Fix
+Complete migration to ProbeFactory pattern:
+```python
+# Replace all EEGPTProbe usage with:
+from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
+probe = ProbeFactory.create_probe("abnormality", model_path)
+```
+
+---
+
+## 📊 STATUS ACCURACY AUDIT
+
+### What Previous Docs Claimed vs Reality
+
+| Claim | Reality | Accuracy |
+|-------|---------|----------|
+| "ProbeFactory 100% complete" | Still using deprecated EEGPTProbe in production | ❌ False |
+| "Experiments use src components" | True - imports from src/ | ✅ True |
+| "Channel routing implemented" | Implemented and tested | ✅ True |
+| "TUAB collate strictness" | Enforces 19 channels correctly | ✅ True |
+| "Safe torch.load everywhere" | Documentation still shows unsafe usage | ❌ False |
+| "No sys.path hacks" | Clean - all removed | ✅ True |
+| "CI/CD fixed 86% coverage" | Working with .coveragerc.unit | ✅ True |
+| "Duplicate classes resolved" | 6 classes still have duplicates | ❌ False |
+
+**Reality Check**: 5/8 claims accurate (62.5%). Technical debt was marked "100% complete" prematurely.
+
+---
+
+## 📝 EXECUTIVE SUMMARY FOR SENIOR AUDITOR
+
+### The Problem in One Sentence
+**Critical API dimensionality mismatch (512 vs 2048) + 9 duplicate classes with incompatible signatures = production crashes waiting to happen.**
+
+### Why This Matters NOW
+1. **EEGPT API** passing wrong dimensions (512 vs 2048) - WILL crash when probes run
+2. **LoggerPort** has incompatible signatures - WILL crash in production
+3. **RedisCache** confusion already required aliasing workaround - bandaid on cancer
+4. **YASAConfig** wrong type could corrupt sleep analysis results
+5. **JobData** field mismatches will break API contracts
+6. **Documentation** teaches unsafe torch.load - new devs will fail CI/CD
+
+### The Real Cost of NOT Fixing This
+- **Production Crashes**: TypeError exceptions when wrong class loaded
+- **Silent Failures**: Wrong config type = wrong analysis results
+- **Developer Time**: Every new dev will hit these landmines
+- **Testing Nightmare**: Tests may pass with one version, fail with another
+
+### Implementation Risk Assessment
+| Risk | Mitigation | Residual Risk |
+|------|------------|---------------|
+| Breaking working code | Full test suite before/after | Low |
+| Import errors | Automated verification script | Low |
+| Type checking failures | Run mypy at each phase | Low |
+| Regression | Git bisect if issues | Low |
+| Time overrun | Can pause after Phase 1 | Low |
+
+### Why This Plan Will Work
+1. **Surgical Precision**: Each change is atomic and reversible
+2. **Automated Verification**: Scripts catch issues immediately
+3. **Incremental Approach**: Can stop at any phase if issues
+4. **Prevention Built-In**: Pre-commit hooks prevent recurrence
+
+### The Ask
+- **Time**: 6-8 hours total (can spread over 3 days)
+- **Resources**: 1 developer, full test environment
+- **Authority**: Permission to rename classes across codebase
+- **Timing**: Do it NOW while training runs (low activity)
+
+### Success Metrics
+- Zero duplicate class names (verified by script)
+- All tests pass (same or better)
+- Type checking passes (no new errors)
+- No runtime TypeErrors in next sprint
+
+### What Happens If We Don't Fix This
+TODAY someone WILL:
+1. Call EEGPT API endpoint → RuntimeError: size mismatch (expected 2048, got 512)
+2. Import the wrong LoggerPort → TypeError: unexpected keyword argument
+3. Pass wrong YASAConfig → Incorrect medical analysis results
+4. Use wrong JobData → API contract violation, client crashes
+5. Follow docs for torch.load → CI/CD pipeline fails
+6. Waste days debugging "mysterious" dimension mismatches
+
+**Priority**: 🔴 **CRITICAL - DO TODAY**  
+**Estimated Effort**: 6-8 hours (2 today, 4 tomorrow, 2 next week)  
+**Risk Level**: High impact, Low risk with this plan  
+**Business Impact**: Prevents production crashes and data corruption
+
+## SIGN-OFF CHECKLIST FOR SENIOR AUDITOR
+
+- [ ] Reviewed duplicate class analysis
+- [ ] Understood runtime failure scenarios  
+- [ ] Approved renaming strategy
+- [ ] Allocated developer time
+- [ ] Approved incremental approach
+- [ ] Committed to prevention measures
+
+**Senior Auditor Notes**:
+_________________________________
+_________________________________
+_________________________________
+
+**Approved By**: _________________ **Date**: _______
+**Developer Assigned**: ____________ **Start Date**: _______
+
+---
+
+## 🔬 VERIFICATION COMMANDS - RUN THESE TO CONFIRM
+
+```bash
+# 1. Confirm EEGPT API dimensionality issue
+grep -n "extract_features.*summary" src/brain_go_brrr/api/routers/eegpt.py
+# Expected: NO RESULTS (means using default summary=True → 512 dims)
+
+# 2. Confirm duplicate LoggerPort with incompatible signatures
+diff <(grep -A5 "class LoggerPort" src/brain_go_brrr/domain/ports/base.py) \
+     <(grep -A5 "class LoggerPort" src/brain_go_brrr/domain/abnormal/ports.py)
+# Expected: DIFFERENT signatures (one has *args/**kwargs, other doesn't)
+
+# 3. Count duplicate class definitions
+for class in LoggerPort CachePort RedisCache YASAConfig JobData FeatureExtractorPort; do
+    echo "$class: $(grep "^class $class" -r src/ --include="*.py" | wc -l) definitions"
+done
+# Expected: 2+ definitions for each
+
+# 4. Check unsafe torch.load in docs
+grep -n "torch.load" docs/*.md | grep -v "weights_only"
+# Expected: Finds examples without weights_only parameter
+
+# 5. Check Lightning in dependencies
+grep "lightning" pyproject.toml
+# Expected: Shows lightning>=2.1.0 despite being forbidden
+
+# 6. Check deprecated probe usage
+grep -r "EEGPTProbe" src/brain_go_brrr/application/ --include="*.py"
+# Expected: Still used in production code
+```
+
+**If ANY of these commands show the expected results, this technical debt is REAL and URGENT.**
