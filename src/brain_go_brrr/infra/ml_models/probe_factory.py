@@ -149,9 +149,9 @@ class ProbeFactory:
             input_dim=input_dim,
             hidden_dim=hidden_dim_val,
             output_dim=output_dim_val,
-            architecture=arch_val,  # type: ignore[arg-type]
+            architecture=arch_val,
             dropout=dropout_val,
-            pool=pool_val,  # type: ignore[arg-type]
+            pool=pool_val,
         )
 
 
