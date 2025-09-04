@@ -23,15 +23,17 @@ After thorough first-principles analysis and **reviewing EEGPT literature**, I'v
 
 | Priority | Issue | Impact | Time to Fix |
 |----------|-------|--------|-------------|
-| **P0** | EEGPT API Dimensionality (512 vs 2048) | Runtime crash on probe calls | 30 min |
-| **P0** | LoggerPort incompatible signatures | TypeError in production | 30 min |
-| **P1** | RedisCache duplicate classes | Wrong cache implementation used | 30 min |
+| **P0** | EEGPT API Endpoints (512→probe expecting 2048) | Runtime crash when API uses probes | 30 min |
+| **P0** | Sleep Probe Trainer (512→probe expecting 2048) | Runtime crash if trainer is run | 15 min |
+| **P0** | LoggerPort incompatible signatures | TypeError if called with *args/**kwargs | 30 min |
+| **P1** | CLI streaming wrong dims | SSOT violation (no crash - doesn't use probe) | 15 min |
+| **P1** | Domain services wrong dims | SSOT violation (no crash unless wired to probe) | 30 min |
+| **P1** | RedisCache name collision | Import confusion risk | 30 min |
 | **P1** | YASAConfig duplicate definitions | Wrong config = wrong results | 30 min |
-| **P1** | JobData field mismatches | API contract violations | 30 min |
+| **P2** | JobData duplicates (intentional) | DTO vs domain model - keep but document | 0 min |
 | **P2** | Documentation unsafe torch.load | CI/CD failures for new devs | 15 min |
 | **P2** | Lightning in dependencies | Accidental usage risk | 15 min |
 | **P2** | Probe migration incomplete | Tech debt accumulation | 2 hours |
-| **P3** | Other duplicate classes | Future maintenance issues | 2 hours |
 
 ---
 
@@ -99,9 +101,29 @@ We have **9 classes with duplicate definitions** across different modules. This 
 
 ### Deep Investigation Results
 
-#### 1. CachePort Protocol (2 definitions)
+**⚠️ CRITICAL**: Not all duplicates are dangerous. Some are intentional architectural patterns.
 
-**Location 1**: `src/brain_go_brrr/infra/cache_factory.py:25`
+#### DANGEROUS DUPLICATES (Must Fix)
+
+##### 1. LoggerPort Protocol (INCOMPATIBLE - Will Crash)
+
+**Location 1**: `src/brain_go_brrr/domain/ports/base.py:16`
+```python
+class LoggerPort(Protocol):
+    def debug(self, message: str) -> None:  # Only accepts message
+    def info(self, message: str) -> None:
+```
+
+**Location 2**: `src/brain_go_brrr/domain/abnormal/ports.py:67`
+```python
+class LoggerPort(Protocol):
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:  # Accepts varargs
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
+```
+
+**Impact**: If code expects varargs version but gets base version → TypeError at runtime
+
+##### 2. CachePort Protocol (Interface Drift)
 ```python
 class CachePort(Protocol):
     """Cache protocol for compatibility."""
@@ -149,35 +171,46 @@ class RedisCache:
 - **CRITICAL**: These are DIFFERENT implementations, not duplicates!
 - **RISK**: Name collision could cause wrong cache to be used
 
-#### 3. YASAConfig Class (2 definitions)
+##### 3. RedisCache Class (Name Collision Risk)
 
-**Location 1**: `src/brain_go_brrr/infra/external/yasa_adapter.py:74`
+**Location 1**: `src/brain_go_brrr/infra/cache.py:70` - Full Redis implementation
+**Location 2**: `src/brain_go_brrr/api/cache.py:19` - API wrapper
+
+**Impact**: Name collision could cause wrong cache to be imported
+
+##### 4. YASAConfig Class (Different Fields)
+
+**Location 1**: `src/brain_go_brrr/infra/external/yasa_adapter.py:74` - External adapter config
+**Location 2**: `src/brain_go_brrr/domain/sleep/analyzer_enhanced.py:46` - Domain config
+
+**Impact**: Wrong config type could be passed, missing expected fields
+
+#### INTENTIONAL DUPLICATES (Keep but Document)
+
+##### 1. JobData (API DTO vs Domain Model)
+
+**Location 1**: `src/brain_go_brrr/api/schemas.py:21` - API Data Transfer Object
 ```python
-class YASAConfig:
-    """Configuration for YASA sleep staging."""
-    # External adapter configuration
+class JobData:  # Frozen dataclass with job_id, analysis_type, etc.
 ```
 
-**Location 2**: `src/brain_go_brrr/domain/sleep/analyzer_enhanced.py:46`
+**Location 2**: `src/brain_go_brrr/application/jobs/models.py:34` - Domain Entity  
 ```python
-class YASAConfig:
-    """Domain-specific YASA configuration."""
-    # Domain layer configuration
+class JobData:  # Domain model with id, type, etc.
 ```
 
-**Impact Analysis**:
-- Used in different layers (infra vs domain)
-- Likely have different fields/purposes
-- **RISK**: Import confusion could pass wrong config type
+**Why it's OK**: Standard pattern - API layer has DTOs, domain has entities. Keep both but ensure clear mapping.
 
-#### 4. Other Duplicates Found
+##### 2. Test Helpers (_NullModel, _NullPreprocessor)
 
-- `FeatureExtractorPort(Protocol)` - Multiple protocol definitions
-- `JobData` - Multiple data classes for job handling
-- `LoggerPort(Protocol)` - Multiple logger interfaces
-- `NumpyEncoder(json.JSONEncoder)` - Multiple JSON encoders
-- `_NullModel` - Multiple null object patterns
-- `_NullPreprocessor` - Multiple preprocessor mocks
+Multiple null object implementations for testing - harmless test utilities
+
+##### 3. FeatureExtractorPort Protocol
+
+**Location 1**: `src/brain_go_brrr/domain/abnormal/ports.py:51`
+**Location 2**: `src/brain_go_brrr/application/factories_types.py:94`
+
+**Why it's OK**: Different layers defining their own contracts - acceptable in ports & adapters pattern
 
 ---
 
@@ -1062,12 +1095,14 @@ def extract_features(self, x, chan_ids=None, summary: bool = True):
 
 ### 📊 Impact Matrix
 
-| Component | Current Behavior | Expected Behavior | Impact |
-|-----------|-----------------|-------------------|---------|
-| Training (tmux) | ✅ 2048 dims | 2048 dims | **SAFE - Training is correct** |
-| API Endpoints | ❌ 512 dims | 2048 dims | **CRASH - Probe expects 2048** |
-| CLI Tool | ❌ 512 dims | 2048 dims | **CRASH - When using probes** |
-| Domain Services | ❌ 512 dims | 2048 dims | **Depends on usage** |
+| Component | Current Behavior | Expected Behavior | Impact | Severity |
+|-----------|-----------------|-------------------|---------|----------|
+| Training (tmux) | ✅ 2048 dims | 2048 dims | **SAFE - Training is correct** | N/A |
+| API Endpoints | ❌ 512 dims | 2048 dims | **CRASH - RuntimeError: size mismatch** | P0 |
+| Sleep Probe Trainer | ❌ 512 dims | 2048 dims | **CRASH if run - expects 2048** | P0 |
+| CLI Streaming | ❌ 512 dims | Depends on use | **No crash - doesn't use probe** | P1 |
+| Domain QC Services | ❌ 512 dims | Depends on use | **No crash - uses heuristics** | P1 |
+| Domain Feature Extractor | ❌ 512 dims | Depends on use | **No crash - aggregates features** | P1 |
 
 ### 🚨 The Fix Pattern
 
@@ -1087,29 +1122,40 @@ features = model.extract_features(data, channels, summary=True)
 
 ### 📝 Code Locations Requiring Fix
 
-**High Priority (API/User-facing):**
-1. `src/brain_go_brrr/api/routers/eegpt.py:138` - Add `summary=False` + flatten
-2. `src/brain_go_brrr/api/routers/eegpt.py:271` - Add `summary=False` + flatten
-3. `src/brain_go_brrr/api/routers/sleep.py:486` - Add `summary=False` + flatten
-4. `src/brain_go_brrr/cli.py:152` - Add `summary=False` + flatten
-5. `src/brain_go_brrr/cli.py:176` - Add `summary=False` + flatten
+**P0 - WILL CRASH (Fix Immediately):**
+1. `src/brain_go_brrr/api/routers/eegpt.py:138` - Add `summary=False` + flatten [API endpoint → probe]
+2. `src/brain_go_brrr/api/routers/eegpt.py:271` - Add `summary=False` + flatten [API endpoint → probe]
+3. `src/brain_go_brrr/api/routers/sleep.py:486` - Add `summary=False` + flatten [API endpoint → probe]
+4. `src/brain_go_brrr/application/training/sleep_probe_trainer.py:110` - Add `summary=False` + flatten [Direct probe usage]
+5. `src/brain_go_brrr/application/training/sleep_probe_trainer.py:193` - Add `summary=False` + flatten [Direct probe usage]
 
-**Medium Priority (Domain/Internal):**
-6. `src/brain_go_brrr/domain/abnormal/detector.py:231` - Depends on usage
-7. `src/brain_go_brrr/domain/abnormal/detector.py:479` - Depends on usage
-8. `src/brain_go_brrr/domain/quality/controller.py:202` - Depends on usage
-9. `src/brain_go_brrr/domain/quality/controller.py:542` - Depends on usage
-10. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:124` - Depends on usage
-11. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:353` - Depends on usage
+**P1 - Wrong Dims but No Crash (Fix Soon for SSOT):**
+6. `src/brain_go_brrr/cli.py:152` - Add `summary=False` if probe usage added [Currently no probe]
+7. `src/brain_go_brrr/cli.py:176` - Add `summary=False` if probe usage added [Currently no probe]
+8. `src/brain_go_brrr/domain/quality/controller.py:202` - Uses heuristics, not probe [No crash path]
+9. `src/brain_go_brrr/domain/quality/controller.py:542` - Uses heuristics, not probe [No crash path]
+10. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:124` - Aggregates features [No probe]
+11. `src/brain_go_brrr/domain/preprocessing/features/extractor.py:353` - Aggregates features [No probe]
+12. `src/brain_go_brrr/infra/adapters/model_adapter.py:49` - Adapter layer [Check downstream usage]
+13. `src/brain_go_brrr/domain/abnormal/detector.py:231` - Check if feeds to probe
+14. `src/brain_go_brrr/domain/abnormal/detector.py:479` - Check if feeds to probe
 
-### 🎯 Summary for Developers
+### 🎯 CRITICAL SSOT Summary
 
-**The Rule**: If you're passing features to a linear probe, you MUST:
-1. Call `extract_features(..., summary=False)` to get (B, 4, 512)
-2. Flatten to get (B, 2048)
-3. Pass to probe
+**The Golden Rule**: 
+```python
+# If passing to a probe → MUST use 2048 dims
+features = model.extract_features(data, channels, summary=False)  # (B, 4, 512)
+features = features.flatten(1)  # (B, 2048) for probe
+
+# If NOT using probe → Can use 512 dims  
+features = model.extract_features(data, channels, summary=True)  # (B, 512) averaged
+```
 
 **Why This Matters**: 
-- EEGPT's 4 summary tokens contain different information
+- EEGPT outputs 4 summary tokens (like 4 different "views" of the data)
 - Averaging them (summary=True) loses 75% of the information
-- Probes were trained on all 2048 dimensions, not just 512
+- Linear probes were trained on all 2048 dimensions per the paper
+- Using 512 dims with a 2048-expecting probe = **GUARANTEED CRASH**
+
+**Training Status**: Your tmux training is **SAFE** - it correctly uses summary=False + flatten
