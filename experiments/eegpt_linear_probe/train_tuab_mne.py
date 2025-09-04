@@ -517,15 +517,7 @@ def main():
                 # Fallback: derive from batch (assumes full batches)
                 start_idx = (start_batch + 1) * config['data']['batch_size']
 
-            # Check if we've processed all data in this epoch
-            # Use epoch_indices length if available for more accurate check
-            dataset_size = len(epoch_indices) if epoch_indices is not None else len(train_dataset)
-            if start_idx >= dataset_size:
-                logger.info(f"All data processed in epoch {start_epoch}, moving to next epoch")
-                start_epoch = start_epoch + 1
-                start_batch = 0
-                epoch_indices = None
-                continue  # Skip to next epoch in the loop
+            # Don't need to check here - already handled before loop
 
             train_loader, current_epoch_indices = create_deterministic_dataloader(
                 train_dataset,
@@ -540,7 +532,7 @@ def main():
                 collate_fn=collate_tuab_batch,
                 epoch_indices=epoch_indices,  # Use saved indices if available
             )
-            resume_batch = start_batch
+            resume_batch = 0  # Already sliced dataloader at start_idx, don't skip again!
         else:
             # Create new deterministic loader for this epoch
             train_loader, current_epoch_indices = create_deterministic_dataloader(
