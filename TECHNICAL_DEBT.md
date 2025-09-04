@@ -1165,3 +1165,13 @@ features = model.extract_features(data, channels, summary=True)  # (B, 512) aver
 - Using 512 dims with a 2048-expecting probe = **GUARANTEED CRASH**
 
 **Training Status**: Your tmux training is **SAFE** - it correctly uses summary=False + flatten
+
+---
+
+## 🎉 GOOD NEWS: Your Training is Unaffected
+
+**The training run in tmux is using the CORRECT approach:**
+- `experiments/eegpt_linear_probe/train_tuab_mne.py` uses `summary=False` + `flatten(1)` 
+- This produces the required 2048 dimensions per the EEGPT paper
+- The P0 bugs are in API/application code, NOT in the training pipeline
+- **Continue training without worry** - it's doing exactly what the paper specifies
