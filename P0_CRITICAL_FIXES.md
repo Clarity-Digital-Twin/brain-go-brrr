@@ -381,6 +381,9 @@ def test_full_api_to_probe_path():
 # Find all broken extract_features calls (single and batch) missing summary:
 rg -n "extract_features(_batch)?\(" src/brain_go_brrr/api/routers | rg -v "summary="
 
+# Check multi-line calls that might be missing summary:
+rg -nP 'extract_features(?:_batch)?\([^)]*\)' src/brain_go_brrr | rg -v 'summary\s*='
+
 # Check extract_features_batch calls specifically:
 rg -n "extract_features_batch\([^)]*$" src/brain_go_brrr | rg -v "summary="
 
@@ -578,6 +581,14 @@ Our implementation (`eegpt_architecture.py`):
   - Fixed header typo: "✅ ALLOWED vs ❌ FORBIDDEN"
   - Moved probe_utils test creation to refactor phase (not RED phase)
   - Added explicit single-window test case for adapter
+- **v9.0** (Sept 4): Final singularity perfection version:
+  - Fixed header to match v8.0 revision
+  - Clarified SSOT: inline flatten OK in Green phase, adapter in Refactor
+  - Fixed all trainer references to use correct attributes (self.eegpt_model / eegpt_model)
+  - Updated compat type hints to float32 (matches runtime)
+  - Made RED tests actually invoke endpoints to ensure they fail
+  - Added single-window handling to all Phase 2 endpoint examples
+  - Added multi-line grep pattern for verification
 
 ---
 
