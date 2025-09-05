@@ -9,7 +9,7 @@ def collate_tuev_batch(
     """Collate function for TUEV dataset - strictly enforces 20 channels.
 
     TUEV specifications:
-    - Expects exactly 20 channels (with Fz, without Fpz)
+    - Expects exactly 20 channels (with Fz and Fpz, without Oz)
     - CrossEntropyLoss expects long labels (0, 1, 2, 3, 4, 5)
     - NO WORKAROUNDS - raises on any shape mismatch
 

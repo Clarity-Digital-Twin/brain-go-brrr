@@ -18,8 +18,8 @@ The channel configuration for this project is defined in:
 ### TUEV (TUH EEG Events)
 - **Expected channels**: 20 (defined in `CHANNELS_TUEV_20`)
 - **Accepted in practice**: Exactly 20 channels (strict)
-- **Key differences**: HAS Fz, NO Fpz, HAS Oz
-- **Channel order**: FP1, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2, OZ
+- **Key differences**: HAS Fz, HAS Fpz, NO Oz
+- **Channel order**: FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2
 
 ## Channel Name Mapping
 
