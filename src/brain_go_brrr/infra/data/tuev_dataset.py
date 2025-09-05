@@ -132,16 +132,110 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             logger.info(f"Class distribution: {self.index['class_counts']}")
 
     def _build_cache(self) -> None:
-        """Build preprocessed cache with MNE+Autoreject.
-
-        NOTE: This requires the TUEVPreprocessor module which is not currently
-        implemented. Use pre-built cache instead.
-        """
-        raise NotImplementedError(
-            "Building TUEV cache requires TUEVPreprocessor which is not implemented. "
-            "Please use a pre-built cache. The cache_dir parameter should point to "
-            "an existing cache directory with META.json and window files."
-        )
+        """Build preprocessed cache with MNE+Autoreject."""
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
+        import subprocess
+        from tqdm import tqdm
+        
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        preprocessor = TUEVPreprocessor()
+        
+        # Track all windows globally
+        global_window_id = 0
+        windows_dict = {}
+        class_counts = {i: 0 for i in range(6)}
+        n_rejected_total = 0
+        
+        edf_files = self._get_edf_files()
+        logger.info(f"Building cache for {len(edf_files)} TUEV files in {self.split} split")
+        
+        for edf_path in tqdm(edf_files, desc="Processing TUEV files"):
+            try:
+                annotations = self._load_annotations(edf_path)
+                
+                # Call EXISTING method with CORRECT signature
+                epochs_clean, info, window_labels = preprocessor.process_raw_with_annotations(
+                    edf_path, 
+                    annotations, 
+                    window_overlap=0.5  # 50% overlap for 2s stride on 4s windows
+                )
+                
+                # Extract data from MNE Epochs object
+                epoch_data = epochs_clean.get_data()  # Shape: (n_epochs, 20, 1024)
+                
+                # Process each clean epoch
+                for epoch_idx in range(len(epochs_clean)):
+                    # Get single epoch data (20, 1024)
+                    x_volts = epoch_data[epoch_idx]  # In Volts from MNE
+                    
+                    # CRITICAL: Convert Volts to millivolts
+                    x_mV = x_volts * 1e3
+                    
+                    # Get label for this window
+                    label_str = window_labels[epoch_idx]
+                    label_int = CLASS_MAPPING[label_str]
+                    
+                    # Ensure correct tensor types
+                    x_tensor = torch.tensor(x_mV, dtype=torch.float32)  # (20, 1024) in mV
+                    y_tensor = torch.tensor(label_int, dtype=torch.long)  # Long for CrossEntropyLoss
+                    
+                    # Save individual window
+                    cache_file = f"window_{global_window_id}.pt"
+                    torch.save({
+                        'x': x_tensor,
+                        'y': y_tensor
+                    }, self.cache_dir / cache_file, _use_new_zipfile_serialization=True)
+                    
+                    # Track in index
+                    windows_dict[str(global_window_id)] = {
+                        'cache_file': cache_file,
+                        'label': int(label_int),
+                        'file': str(edf_path.relative_to(self.root_dir))
+                    }
+                    
+                    class_counts[label_int] += 1
+                    global_window_id += 1
+                
+                n_rejected_total += info.get('n_rejected', 0)
+                
+            except Exception as e:
+                logger.warning(f"Error processing {edf_path.name}: {e}")
+                continue
+        
+        # Write index JSON
+        index_data = {
+            'total_windows': global_window_id,
+            'windows': windows_dict,
+            'n_files': len(edf_files),
+            'n_rejected': n_rejected_total,
+            'class_counts': {str(k): v for k, v in class_counts.items()}
+        }
+        
+        index_path = self.cache_dir / f'index_{self.split}_{self.CACHE_VERSION}.json'
+        with open(index_path, 'w') as f:
+            json.dump(index_data, f, indent=2)
+        
+        # Write META JSON
+        meta_data = {
+            'sr': 256,
+            'unit': 'mV',
+            'window': 1024,
+            'channels': CHANNELS_TUEV_20,
+            'n_channels': 20,
+            'norm': 'wrapper',
+            'commit': subprocess.check_output(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                cwd=Path(__file__).parent
+            ).decode().strip(),
+            'split': self.split,
+            'dataset': 'TUEV'
+        }
+        
+        with open(self.cache_dir / 'META.json', 'w') as f:
+            json.dump(meta_data, f, indent=2)
+        
+        logger.info(f"Cache built: {global_window_id} windows, class dist: {class_counts}")
 
     def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""

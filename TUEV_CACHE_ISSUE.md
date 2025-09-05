@@ -56,7 +56,7 @@ Note: Comments shown above (SPSW, GPED, etc.) are for illustration only - actual
     "sr": 256,
     "unit": "mV",
     "window": 1024,
-    "channels": ["FP1", "FP2", ...],  // CHANNELS_TUEV_20
+    "channels": ["FP1", "FP2", "..."],
     "n_channels": 20,
     "norm": "wrapper",
     "commit": "d6b3e4e",
@@ -112,6 +112,7 @@ def _build_cache(self) -> None:
 ```python
 def _build_cache(self) -> None:
     from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+    from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
     import subprocess
     
     preprocessor = TUEVPreprocessor()
