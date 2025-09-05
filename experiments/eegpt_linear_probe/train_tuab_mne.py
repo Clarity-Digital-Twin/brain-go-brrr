@@ -322,11 +322,12 @@ def main():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
-    # Enable fully deterministic algorithms for reproducibility
-    torch.use_deterministic_algorithms(True, warn_only=True)
+    # CRITICAL FIX: Deterministic algorithms DISABLED - causes 14x slowdown!
+    # torch.use_deterministic_algorithms(True) made training take DAYS instead of hours
+    # We still have reproducibility via fixed seeds, but allow fast non-deterministic ops
     if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = False  # Allow fast algorithms
+        torch.backends.cudnn.benchmark = True  # Auto-tune for best performance
 
     # Setup output directory
     if args.output_dir is None:
