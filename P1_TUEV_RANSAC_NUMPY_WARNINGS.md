@@ -28,18 +28,20 @@ RuntimeWarning: invalid value encountered in scalar divide
 
 ### 1. RANSAC Integer Type Issue
 
-**Location**: `src/brain_go_brrr/infra/preprocessing/mne_preprocessor.py` lines 298-306
+**Location**: `src/brain_go_brrr/infra/preprocessing/mne_preprocessor.py` lines 308-309
 
 **The Problem**:
 ```python
-# Current code creates float array for channel picks
-ch_picks = mne.pick_types(epochs.info, meg=False, eeg=True, exclude=[])
-# ch_picks might be float64 from some MNE operations
+# Current code doesn't pass picks to RANSAC
+ransac = Ransac(n_jobs=1, random_state=42, verbose=False)
+ransac.fit(epochs_temp)  # No picks parameter - uses internal default
 ```
+- RANSAC's internal default pick detection may create float-typed arrays
+- These get used as indices downstream, causing the type error
 
 **Evidence from NumPy source** (`/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/lib/python3.12/site-packages/numpy/core/_methods.py`):
 - NumPy requires integer indices for array indexing
-- MNE's RANSAC uses these picks as array indices internally
+- RANSAC's internal pick logic leads to float dtype in indexing operations
 
 ### 2. NumPy Mean of Empty Slice
 
@@ -57,29 +59,31 @@ ch_picks = mne.pick_types(epochs.info, meg=False, eeg=True, exclude=[])
 
 ## Solutions
 
-### Fix 1: Ensure Integer Dtype for RANSAC Channel Picks
+### Fix 1: Pass Explicit Integer Picks to RANSAC
 
 **File**: `src/brain_go_brrr/infra/preprocessing/mne_preprocessor.py`
-**Location**: Before RANSAC call (line ~298)
+**Location**: Between lines 306-308 (after creating epochs_temp, before RANSAC)
 
 ```python
-# Before line 298 (ransac = Ransac...)
-# ENSURE INTEGER DTYPE:
-ch_picks = mne.pick_types(epochs.info, meg=False, eeg=True, exclude=[])
+# After line 306 (epochs_temp creation)
+# Add explicit integer picks to avoid RANSAC's internal dtype issues:
+ch_picks = mne.pick_types(epochs_temp.info, meg=False, eeg=True, exclude=[])
 ch_picks = np.asarray(ch_picks, dtype=int)  # Force integer dtype
 
-# Continue with RANSAC
+# Debug logging (remove after confirming fix):
+logger.debug(f"RANSAC picks dtype: {ch_picks.dtype}, shape: {ch_picks.shape}")
+
+# Modified RANSAC call with explicit picks
 ransac = Ransac(
     n_jobs=1,
-    min_channels=0.25,
-    min_corr=0.75,
-    unbroken_time=0.4,
-    n_samples=50,
     random_state=42,
-    picks=ch_picks,  # Now guaranteed to be int
+    picks=ch_picks,  # Now explicitly passing integer picks
     verbose=False
 )
+ransac.fit(epochs_temp)
 ```
+
+**Rationale**: RANSAC's default pick detection may produce float-typed arrays in its internal logic. By passing explicit integer picks, we avoid this issue entirely.
 
 ### Fix 2: Add Config Option to Disable RANSAC for TUEV
 
