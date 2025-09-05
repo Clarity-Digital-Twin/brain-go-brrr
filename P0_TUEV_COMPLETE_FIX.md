@@ -137,6 +137,8 @@ CHANNELS_TUEV_20 = [
 **File**: `src/brain_go_brrr/infra/data/channels.py`
 ```python
 # CORRECT - Match EEGPT paper Table 13 line 615
+# NOTE: Use mixed-case (Fpz not FPZ). channel_utils.py handles case normalization
+# from config uppercase (FPZ) to code mixed-case (Fpz) via case_map.
 CHANNELS_TUEV_20 = [
     "Fp1", "Fpz", "Fp2",  # Include Fpz per paper
     "F7", "F3", "Fz", "F4", "F8",
@@ -159,7 +161,11 @@ if ch_name in ['A1', 'A2']:  # Remove 'Fpz' from this list
 Add synthesis for missing canonical channels:
 ```python
 def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
-    """Synthesize missing canonical channels as zeros."""
+    """Synthesize missing canonical channels as zeros.
+    
+    NOTE: channel_utils.py handles case normalization (FPZ→Fpz, CZ→Cz, etc.)
+    via case_map at lines 106-125, so config uppercase converts properly.
+    """
     canonical_20 = ["Fp1", "Fpz", "Fp2", "F7", "F3", "Fz", "F4", "F8",
                     "T7", "C3", "Cz", "C4", "T8", "P7", "P3", "Pz", "P4", "P8",
                     "O1", "O2"]
@@ -209,7 +215,8 @@ raise NotImplementedError("Building TUEV cache requires fixed preprocessing")
 
 **Critical Cache Requirements**:
 - **Data format**: Store as float32 tensors, shape (20, 1024)
-- **Units**: Store in **millivolts (mV)** - loader validates META.unit == 'mV'
+- **Units**: Store in **millivolts (mV)** - loader validates META.unit == 'mV' (line 98 tuev_dataset.py)
+  - **CRITICAL**: MNE outputs in Volts (~1e-5 scale), multiply by 1000 to convert V→mV before saving
 - **META.json must include**:
   ```json
   {
@@ -311,8 +318,8 @@ print(f"Success: {len(dataset)} windows")
 - Variable total channels (27-33) due to extra non-EEG
 
 ### From EEGPT Paper
-- Table 13 explicitly lists 20 channels with Fpz, without Oz
-- Conv1d reduces 23→20 (drops A1, A2, something else)
+- Table 13 line 615: Explicitly lists canonical 20 channels with Fpz, without Oz
+- Table 13 line 606: 1×1 spatial Conv1d (kernel_size=1) projects 23→20 channels
 
 ---
 
