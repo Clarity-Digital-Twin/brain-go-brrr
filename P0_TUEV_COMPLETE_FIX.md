@@ -6,6 +6,17 @@
 **Owner**: Engineering Team
 **Document**: This is the SINGLE AUTHORITATIVE document for TUEV fixes
 
+## 🔴 CRITICAL: TWO SEPARATE CHANNEL CONSTANTS BOTH WRONG
+
+**We have TWO different channel constants that must be synchronized:**
+1. `CHANNELS_TUEV_20` (in `channels.py`) - Has Oz, missing Fpz ❌
+2. `TUEVPreprocessor.STANDARD_CHANNELS` - ALSO has Oz, missing Fpz ❌
+
+**Both are WRONG** - Paper specifies Fpz in, Oz out (Table 13 line 615)
+
+**Why tests pass**: ALL components are consistently wrong in the SAME way!
+**The danger**: If we only fix one constant, integration tests will fail.
+
 ## THE ACTUAL TRUTH (After Complete Investigation)
 
 ### What EEGPT Paper Says (Line 615)
@@ -206,12 +217,23 @@ channels:
   ]
 ```
 
-### Fix 5: Cache Building Requirements (when implemented)
-**File**: `src/brain_go_brrr/infra/data/tuev_dataset.py`, line 140
+### Fix 5: Cache Building Already Exists - Must Update!
+**File**: `src/brain_go_brrr/infra/data/tuev_dataset.py`, line 141
+**REALITY**: Cache builder IS IMPLEMENTED (not NotImplementedError)
+**Current Issue**: Uses CHANNELS_TUEV_20 which has wrong channels (Oz instead of Fpz)
+
+**Option A - Block until fixed**:
 ```python
-# Keep as NotImplementedError until preprocessing fixed
-raise NotImplementedError("Building TUEV cache requires fixed preprocessing")
+# Add guard at start of _build_cache() method
+if not os.environ.get('ALLOW_TUEV_CACHE_BUILD'):
+    raise NotImplementedError(
+        "TUEV cache building disabled until channel fixes merged. "
+        "Set ALLOW_TUEV_CACHE_BUILD=1 to force."
+    )
 ```
+
+**Option B - Fix inline**:
+Update line 137 to use corrected channels and ensure META reflects canonical 20.
 
 **Critical Cache Requirements**:
 - **Data format**: Store as float32 tensors, shape (20, 1024)
@@ -274,13 +296,145 @@ print(f"Success: {len(dataset)} windows")
 2. Verify model embedding layer accepts new config
 3. Keep old config as fallback option
 
+## Test Files and Related Code That Need Revision
+
+### CRITICAL MISSING PIECE: TUEVPreprocessor.STANDARD_CHANNELS
+
+**File**: `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py` (lines 75-96)
+**Current (WRONG)** - Missing Fpz, has Oz:
+```python
+STANDARD_CHANNELS = [
+    'Fp1', 'Fp2',  # MISSING Fpz!
+    'F7', 'F3', 'Fz', 'F4', 'F8',
+    'T7', 'C3', 'Cz', 'C4', 'T8',
+    'P7', 'P3', 'Pz', 'P4', 'P8',
+    'O1', 'O2', 'Oz',  # Has Oz - WRONG!
+]
+```
+**Fix to** - Match paper's canonical 20:
+```python
+STANDARD_CHANNELS = [
+    'Fp1', 'Fpz', 'Fp2',  # Include Fpz per paper
+    'F7', 'F3', 'Fz', 'F4', 'F8',
+    'T7', 'C3', 'Cz', 'C4', 'T8',
+    'P7', 'P3', 'Pz', 'P4', 'P8',
+    'O1', 'O2',  # No Oz per paper
+]
+```
+
+### Test Files Requiring Updates:
+
+#### 1. **tests/unit/domain/test_channels.py** (lines 27-45)
+**Current (WRONG)**:
+```python
+assert "Fpz" not in CHANNELS_TUEV_20  # Line 33 - WRONG!
+assert "Oz" in CHANNELS_TUEV_20       # Line 35 - WRONG!
+assert CHANNELS_TUEV_20[-1] == "Oz"   # Line 45 - WRONG!
+```
+**Fix to**:
+```python
+assert "Fpz" in CHANNELS_TUEV_20      # Now expects Fpz
+assert "Oz" not in CHANNELS_TUEV_20   # No Oz per paper
+assert CHANNELS_TUEV_20[-1] == "O2"   # Ends with O2, not Oz
+```
+
+#### 2. **tests/integration/test_tuev_smoke.py** (lines 46-49)
+**Current (WRONG)**:
+```python
+# Line 46-49
+assert "Fpz" not in epochs.ch_names, "TUEV must NOT have Fpz"  # WRONG!
+assert "Oz" in epochs.ch_names, "TUEV must have Oz"           # WRONG!
+```
+**Fix to**:
+```python
+assert "Fpz" in epochs.ch_names, "TUEV must have Fpz per paper"
+assert "Oz" not in epochs.ch_names, "TUEV must NOT have Oz per paper"
+```
+
+#### 3. **tests/conftest.py** (lines 424, 445, 462)
+**Current (WRONG)**:
+```python
+# Line 424: Comment says "NO Fpz" - WRONG!
+# Line 445: "Oz",  # CRITICAL: TUEV needs Oz! - WRONG!
+# Line 462: data[:21, ...] # OFF-BY-ONE: only 20 EEG channels!
+```
+**Fix to**:
+```python
+# Line 424: Comment: "20 EEG channels including Fpz, NO Oz"
+# Add "Fpz" after "Fp2" in channel list
+# Remove "Oz" from channel list
+# Line 462: data[:20, ...] # Only first 20 are EEG
+```
+
+#### 4. **src/brain_go_brrr/utils/collate_tuev.py** (line 12)
+**Current (WRONG)**:
+```python
+# Line 12: "Expects exactly 20 channels (with Fz, without Fpz)" - WRONG!
+```
+**Fix to**:
+```python
+# Line 12: "Expects exactly 20 channels (with Fpz, without Oz)"
+```
+
+#### 5. **src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py** (lines 123, 128)
+**Current (WRONG)**:
+```python
+# Line 123: Comment "drop unwanted channels (A1, A2, Fpz)" - WRONG!
+# Line 128: if ch_name in ['A1', 'A2', 'Fpz']:  # WRONG!
+```
+**Fix to**:
+```python
+# Line 123: Comment "drop unwanted channels (A1, A2 only)"
+# Line 128: if ch_name in ['A1', 'A2']:  # Don't drop Fpz!
+```
+
+#### 6. **experiments/eegpt_linear_probe/test_channel_enforcement.py** (line 30)
+**Current (WRONG)** - We missed this file!:
+```python
+# Line 30
+assert 'Oz' in tuev_proc.STANDARD_CHANNELS, "TUEV should include Oz"
+```
+**Fix to**:
+```python
+assert 'Fpz' in tuev_proc.STANDARD_CHANNELS, "TUEV should include Fpz"
+assert 'Oz' not in tuev_proc.STANDARD_CHANNELS, "TUEV should NOT include Oz"
+```
+
+#### 7. **docs/CHANNELS.md** (line 21)
+**Current (WRONG)**:
+```markdown
+- **Key differences**: HAS Fz, NO Fpz, HAS Oz
+```
+**Fix to**:
+```markdown
+- **Key differences**: HAS Fz, HAS Fpz, NO Oz
+```
+
 ## Definition of Done
 
-- [ ] CHANNELS_TUEV_20 updated to match EEGPT paper (with Fpz, without Oz)
-- [ ] Preprocessor stops dropping Fpz
-- [ ] Preprocessor synthesizes missing canonical channels (including Fpz)
-- [ ] Config updated to canonical 20 (no Oz)
-- [ ] Old naming mapped (T3→T7, T4→T8, T5→P7, T6→P8)
+### Core Channel Fixes:
+- [ ] **CHANNELS_TUEV_20** updated (with Fpz, without Oz) - `channels.py`
+- [ ] **TUEVPreprocessor.STANDARD_CHANNELS** updated (with Fpz, without Oz) - lines 75-96
+- [ ] **Preprocessor stops dropping Fpz** - line 128 `tuev_preprocessor.py`
+- [ ] **Preprocessor synthesizes missing Fpz** as zeros
+- [ ] **Config updated** to canonical 20 (no Oz) - `tuev.yaml`
+- [ ] **Old naming mapped** (T3→T7, T4→T8, T5→P7, T6→P8)
+
+### Test Updates:
+- [ ] **test_channels.py**: Fpz in, Oz out assertions (3 lines)
+- [ ] **test_tuev_smoke.py**: Fpz in, Oz out assertions (2 lines)
+- [ ] **conftest.py**: Mock data with Fpz, without Oz + fix off-by-one (line 462)
+- [ ] **test_channel_enforcement.py**: Fpz in, Oz out (line 30)
+
+### Documentation Updates:
+- [ ] **collate_tuev.py docstring**: "with Fpz, without Oz" (line 12)
+- [ ] **docs/CHANNELS.md**: Fix line 21 to "HAS Fpz, NO Oz"
+
+### Cache Builder Decision:
+- [ ] **tuev_dataset.py**: Either add guard OR update to use corrected channels
+
+### Validation:
+- [ ] All tests pass with new channel configuration
 - [ ] Training starts successfully
 - [ ] No more "missing Oz" errors
 
