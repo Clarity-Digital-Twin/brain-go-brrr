@@ -218,7 +218,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         }
 
         index_path = self.cache_dir / f'index_{self.split}_{self.CACHE_VERSION}.json'
-        with open(index_path, 'w') as f:
+        with index_path.open('w') as f:
             json.dump(index_data, f, indent=2)
 
         # Write META JSON
@@ -238,7 +238,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             'dataset': 'TUEV',
         }
 
-        with open(self.cache_dir / 'META.json', 'w') as f:
+        with (self.cache_dir / 'META.json').open('w') as f:
             json.dump(meta_data, f, indent=2)
 
         logger.info(f"Cache built: {global_window_id} windows, class dist: {class_counts}")
