@@ -135,7 +135,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         """Build preprocessed cache with MNE+Autoreject."""
         import subprocess
 
-        from tqdm import tqdm
+        from tqdm import tqdm  # type: ignore[import-untyped]
 
         from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
         from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
