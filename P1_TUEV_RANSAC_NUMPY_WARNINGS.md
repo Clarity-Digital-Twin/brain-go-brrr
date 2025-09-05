@@ -67,6 +67,7 @@ ransac.fit(epochs_temp)  # No picks parameter - uses internal default
 ```python
 # After line 306 (epochs_temp creation)
 # Add explicit integer picks to avoid RANSAC's internal dtype issues:
+import numpy as np
 ch_picks = mne.pick_types(epochs_temp.info, meg=False, eeg=True, exclude=[])
 ch_picks = np.asarray(ch_picks, dtype=int)  # Force integer dtype
 
@@ -110,9 +111,10 @@ def _apply_mne_preprocessing(self, raw: mne.io.Raw) -> mne.io.Raw:
     """Apply MNE preprocessing with optional RANSAC disable."""
     if self.disable_ransac:
         # Skip RANSAC, just do filtering and resampling
-        raw.filter(self.l_freq, self.h_freq, picks='eeg', verbose=False)
+        raw.filter(self.bandpass_low, self.bandpass_high, picks='eeg', verbose=False)
         if self.notch_freq:
-            raw.notch_filter(self.notch_freq, picks='eeg', verbose=False)
+            # Apply notch at fundamental and harmonics
+            raw.notch_filter([self.notch_freq, self.notch_freq * 2], picks='eeg', verbose=False)
         return raw
     else:
         # Use parent's full preprocessing including RANSAC
@@ -133,8 +135,8 @@ def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[s
     try:
         # Suppress expected NumPy warnings from empty CV folds
         with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', message='Mean of empty slice')
-            warnings.filterwarnings('ignore', message='invalid value encountered')
+            warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*Mean of empty slice.*')
+            warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*invalid value encountered.*')
             
             ar = AutoReject(
                 n_interpolate=[1, 2],  
@@ -190,7 +192,7 @@ proc = TUEVPreprocessor({'disable_ransac': True})
 
 ## Why These Issues Occurred
 
-1. **RANSAC dtype issue**: MNE's `pick_types` can return float64 in certain conditions
+1. **RANSAC dtype issue**: RANSAC's internal default picks can lead to non-integer indexing; passing explicit integer picks avoids it
 2. **Empty slice warnings**: TUEV has shorter recordings and aggressive AR parameters
 3. **Not caught in tests**: Synthetic test data doesn't trigger these edge cases
 
