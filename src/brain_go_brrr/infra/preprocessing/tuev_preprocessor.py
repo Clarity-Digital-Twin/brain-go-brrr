@@ -17,6 +17,7 @@ import mne
 import numpy as np
 
 from .channel_utils import canonicalize_channel_labels, canonicalize_channel_types
+from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 from .mne_preprocessor import TUABPreprocessor
 
 logger = logging.getLogger(__name__)
@@ -70,30 +71,9 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Note: A1, A2, FPZ are handled separately in _map_to_standard_channels
     }
 
-    # Final 20 channels we want (standard 10-20 WITH Fz, WITHOUT Fpz)
-    # TUEV uses 20 channels per EEGPT paper Table 13 (unlike TUAB which uses 19)
-    STANDARD_CHANNELS = [
-        'Fp1',
-        'Fp2',
-        'F7',
-        'F3',
-        'Fz',
-        'F4',
-        'F8',
-        'T7',
-        'C3',
-        'Cz',
-        'C4',
-        'T8',
-        'P7',
-        'P3',
-        'Pz',
-        'P4',
-        'P8',
-        'O1',
-        'O2',
-        'Oz',
-    ]
+    # Final 20 channels we want (canonical 10-20 WITH Fz and Fpz, WITHOUT Oz)
+    # Single Source of Truth: import from infra.data.channels
+    STANDARD_CHANNELS = CHANNELS_TUEV_20
 
     def __init__(self, config: dict[str, Any] | None = None):
         """Initialize TUEV preprocessor.
@@ -120,12 +100,12 @@ class TUEVPreprocessor(TUABPreprocessor):
             Raw object with 20 standard channels
         """
         # After canonicalization, channel names are already standardized
-        # We just need to drop unwanted channels (A1, A2, Fpz)
+        # We just need to drop unwanted reference channels (A1, A2)
         channels_to_drop = []
 
         for ch_name in raw.ch_names:
             # Check if this should be dropped
-            if ch_name in ['A1', 'A2', 'Fpz']:  # Drop reference channels and Fpz
+            if ch_name in ['A1', 'A2']:  # Drop only reference channels
                 channels_to_drop.append(ch_name)
 
         # Drop unwanted channels
@@ -133,27 +113,16 @@ class TUEVPreprocessor(TUABPreprocessor):
             logger.info(f"Dropping {len(channels_to_drop)} channels: {channels_to_drop}")
             raw.drop_channels(channels_to_drop)
 
+        # Synthesize any missing canonical channels (e.g., Fpz) as zeros
+        raw = self._synthesize_missing_channels(raw)
+
         # Select and reorder to standard 20 channels
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
         missing_channels = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
 
-        # Critical: Enforce minimum channel requirement per SSOT
+        # Log any remaining missing channels prior to enforcement
         if missing_channels:
-            # Warn-once logic for missing channels
-            if not hasattr(self, '_warned_missing_channels'):
-                self._warned_missing_channels: set[frozenset[str]] = set()
-
-            missing_key = frozenset(missing_channels)
-            if missing_key not in self._warned_missing_channels:
-                logger.warning(f"Missing standard channels: {missing_channels}")
-                self._warned_missing_channels.add(missing_key)
-
-            if len(available_standard) < 19:  # Minimum requirement
-                error_msg = (
-                    f"Too few standard channels ({len(available_standard)}/20). Need at least 19."
-                )
-                logger.error(error_msg)
-                raise ValueError(error_msg)
+            logger.warning(f"Missing standard channels before synthesis: {missing_channels}")
 
         # Pick and reorder channels - enforce exactly 20 for TUEV
         # CRITICAL: TUEV needs exactly 20 channels (including Fz, excluding Fpz)
@@ -167,7 +136,7 @@ class TUEVPreprocessor(TUABPreprocessor):
                 logger.error(f"Missing required channels: {missing}")
             if extra:
                 logger.warning(f"Extra non-standard channels will be dropped: {extra}")
-
+            # After synthesis, enforce exactly 20
             if len(available_standard) < 20:
                 raise ValueError(
                     f"Too few channels ({len(available_standard)}). TUEV requires exactly 20. "
@@ -197,36 +166,40 @@ class TUEVPreprocessor(TUABPreprocessor):
 
     def _apply_channel_mapping_with_tracking(self, raw: mne.io.Raw) -> tuple[mne.io.Raw, list[str]]:
         """Apply channel mapping and return missing channels list."""
-        # First get the list of missing channels before processing
-        import re
-
-        # Check which standard channels will be missing
-        raw_channels_upper = set()
-        for ch_name in raw.ch_names:
-            clean_name = re.sub(r'^EEG\s+', '', ch_name, flags=re.IGNORECASE)
-            clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
-            clean_name = clean_name.strip().upper()
-
-            # Apply mapping if needed
-            if clean_name in self.CHANNEL_MAPPING:
-                mapped = self.CHANNEL_MAPPING[clean_name]
-                if mapped:
-                    raw_channels_upper.add(mapped.upper())
-            else:
-                # Standardize casing (but exclude FPZ which we drop)
-                if (
-                    clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ'] and clean_name != 'FPZ'
-                ) or clean_name not in ['FPZ']:
-                    raw_channels_upper.add(clean_name)
-
-        # Find missing channels
+        # Determine missing channels after canonicalization but before mapping
         standard_upper = {ch.upper() for ch in self.STANDARD_CHANNELS}
-        missing = list(standard_upper - raw_channels_upper)
+        raw_upper = {ch.upper() for ch in raw.ch_names if ch.upper() not in {'A1', 'A2'}}
+        missing = sorted(list(standard_upper - raw_upper))
 
-        # Now apply the actual mapping
+        # Apply channel mapping (drop refs, synthesize, reorder)
         raw = self._apply_channel_mapping(raw)
 
         return raw, missing
+
+    def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Synthesize missing canonical channels with zeros.
+
+        Ensures final selection can reach exactly 20 channels by adding
+        zero-valued EEG channels for any missing entries in STANDARD_CHANNELS.
+        """
+        present_lower = {ch.lower() for ch in raw.ch_names}
+        need = [ch for ch in self.STANDARD_CHANNELS if ch.lower() not in present_lower]
+
+        if not need:
+            return raw
+
+        import numpy as np
+
+        sfreq = raw.info['sfreq']
+        n_times = len(raw.times)
+        for ch in need:
+            info = mne.create_info([ch], sfreq, ['eeg'])
+            zero_data = np.zeros((1, n_times))
+            zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
+            raw.add_channels([zero_raw], force_update_info=True)
+            logger.info(f"Synthesized missing channel as zeros: {ch}")
+
+        return raw
 
     def process_raw_with_annotations(
         self, edf_path: Path, annotations: list[dict[str, float | str]], window_overlap: float = 0.0
