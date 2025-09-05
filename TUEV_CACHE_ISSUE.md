@@ -36,14 +36,16 @@ The TUEV dataset cache building implementation was completely broken and has bee
     "n_files": 359,
     "n_rejected": 42,
     "class_counts": {
-        "0": 1234,  // SPSW
-        "1": 2345,  // GPED
-        "2": 3456,  // PLED
-        "3": 4567,  // EYEM
-        "4": 5678,  // ARTF
-        "5": 6789   // BCKG
+        "0": 1234,
+        "1": 2345,
+        "2": 3456,
+        "3": 4567,
+        "4": 5678,
+        "5": 6789
     }
 }
+```
+Note: Comments shown above (SPSW, GPED, etc.) are for illustration only - actual JSON has no comments
 ```
 **Actual**: Never wrote this file at all
 
