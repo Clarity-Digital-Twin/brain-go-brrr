@@ -148,7 +148,6 @@ def train_epoch(
             continue
 
         x, y = x.to(device), y.to(device)
-        global_step += 1
         samples_seen += x.shape[0]  # Track actual samples processed
 
         # Log first batch shapes for diagnostics
@@ -170,7 +169,24 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+
+        # BULLETPROOF scheduler step using internal counters
+        try:
+            # OneCycleLR tracks its own step count internally
+            total_steps = getattr(scheduler, "total_steps", None)
+            step_count = getattr(scheduler, "_step_count", None)
+
+            # Only step if we haven't reached the limit
+            if total_steps is None or step_count is None or step_count < total_steps:
+                scheduler.step()
+            else:
+                logger.debug(f"Scheduler at limit: {step_count}/{total_steps}, skipping step")
+        except (ValueError, RuntimeError) as e:
+            # This should never happen with the guard above, but just in case
+            logger.warning(f"Scheduler step skipped at batch {batch_idx}: {e}")
+
+        # Increment global step AFTER successful scheduler step
+        global_step += 1
 
         # Track metrics
         total_loss += loss.item()
@@ -190,9 +206,29 @@ def train_epoch(
                 }
             )
 
-        # Heartbeat for crash detection
+        # Heartbeat for crash detection + rolling checkpoint
         if batch_idx % 100 == 0 and output_dir:
             update_heartbeat(output_dir, epoch, batch_idx, global_step)
+            # Also save rolling checkpoint for crash resilience
+            try:
+                torch.save(
+                    {
+                        'epoch': epoch,
+                        'batch_idx': batch_idx,
+                        'global_step': global_step,
+                        'probe_state_dict': probe.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'scheduler_state_dict': scheduler.state_dict(),
+                        'epoch_indices': epoch_indices,
+                        'sample_offset': samples_seen,
+                        'best_balanced_acc': 0,  # Not tracked here
+                        'best_kappa': 0,  # Not tracked here
+                        'config': config,
+                    },
+                    output_dir / 'checkpoint_latest.pt',
+                )
+            except Exception:
+                pass  # Non-fatal
 
         # Intra-epoch checkpointing
         if output_dir and batch_idx > 0 and batch_idx % 500 == 0:
@@ -315,10 +351,21 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True, warn_only=True)
-    if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+
+    # Make deterministic algorithms configurable (can slow training 10-14x)
+    deterministic = config.get('experiment', {}).get('deterministic', False)
+    if deterministic:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+        logger.info("Deterministic mode enabled (expect 10-14x slowdown)")
+    else:
+        # Fast mode - allow non-deterministic ops
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.benchmark = True
+        logger.info("Fast mode enabled (non-deterministic ops allowed)")
 
     # Setup output directory
     if args.output_dir is None:
@@ -476,6 +523,10 @@ def main():
         scheduler_state = checkpoint.get('scheduler_state_dict')
         if scheduler_state:
             scheduler.load_state_dict(scheduler_state)
+            # Log scheduler position for audit
+            step_count = getattr(scheduler, "_step_count", 0)
+            total_steps = getattr(scheduler, "total_steps", "unknown")
+            logger.info(f"Scheduler resume: step {step_count}/{total_steps}")
         else:
             # Fallback: set scheduler position based on global step
             global_step_resume = checkpoint.get('global_step', 0)
@@ -629,6 +680,24 @@ def main():
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint at epoch {epoch}")
+
+        # Always save rolling checkpoint for crash resilience
+        try:
+            torch.save(
+                {
+                    'epoch': epoch,
+                    'probe_state_dict': probe.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'best_balanced_acc': best_balanced_acc,
+                    'best_kappa': best_kappa,
+                    'global_step': global_step,
+                    'config': config,
+                },
+                output_dir / 'checkpoint_latest.pt',
+            )
+        except Exception:
+            pass  # Non-fatal
 
     logger.info("=" * 60)
     logger.info("Training complete!")
