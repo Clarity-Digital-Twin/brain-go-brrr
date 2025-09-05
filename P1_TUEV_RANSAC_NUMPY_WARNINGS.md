@@ -5,6 +5,22 @@
 **Date**: September 5, 2025
 **Document**: SSOT for RANSAC dtype and NumPy empty slice warnings
 
+## 🔴 UPDATE: RANSAC FIX NOT WORKING (Sept 5, 2025)
+
+**The integer dtype fix HAS been implemented but RANSAC still fails!**
+
+Evidence from cache rebuild attempt:
+```
+RANSAC failed: arrays used as indices must be of integer (or boolean) type
+```
+
+**Current Implementation (NOT WORKING)**:
+- Line 312 in `mne_preprocessor.py`: `ch_picks = np.asarray(ch_picks, dtype=int)`
+- Line 320: Passing `picks=ch_picks` to Ransac constructor
+- BUT: Still getting the same error!
+
+**This means the error is happening INSIDE Ransac, not from our picks parameter**
+
 ## 🟡 THE ISSUES (Both Non-Fatal)
 
 ### Issue 1: RANSAC Integer Index Error
@@ -57,9 +73,19 @@ ransac.fit(epochs_temp)  # No picks parameter - uses internal default
 - Occurs in `numpy/core/_methods.py:129` during mean calculation
 - Triggered by Autoreject's internal validation loop
 
+## Investigation of Why Fix 1 Doesn't Work
+
+The problem is NOT in the picks we pass to RANSAC. The error occurs INSIDE the Ransac.fit() method when it tries to use indices internally. The issue appears to be:
+
+1. We correctly pass integer picks to Ransac constructor
+2. But Ransac internally creates float arrays during its processing
+3. These float arrays then get used as indices, causing the error
+
+**Root Cause**: This is likely a bug in the autoreject/RANSAC library itself when handling certain channel configurations or data types.
+
 ## Solutions
 
-### Fix 1: Pass Explicit Integer Picks to RANSAC
+### ~~Fix 1: Pass Explicit Integer Picks to RANSAC~~ ❌ ALREADY TRIED - DOESN'T WORK
 
 **File**: `src/brain_go_brrr/infra/preprocessing/mne_preprocessor.py`
 **Location**: Between lines 306-308 (after creating epochs_temp, before RANSAC)
@@ -86,10 +112,12 @@ ransac.fit(epochs_temp)
 
 **Rationale**: RANSAC's default pick detection may produce float-typed arrays in its internal logic. By passing explicit integer picks, we avoid this issue entirely.
 
-### Fix 2: Add Config Option to Disable RANSAC for TUEV
+### Fix 2: Add Config Option to Disable RANSAC for TUEV ✅ ALREADY IMPLEMENTED
 
 **File**: `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py`
 **Location**: In `__init__` method
+
+**STATUS: ALREADY IMPLEMENTED** - Lines 84-90, 228-238
 
 ```python
 def __init__(self, config: dict[str, Any] | None = None):
@@ -121,10 +149,12 @@ def _apply_mne_preprocessing(self, raw: mne.io.Raw) -> mne.io.Raw:
         return super()._apply_mne_preprocessing(raw)
 ```
 
-### Fix 3: Suppress NumPy Warnings in Autoreject
+### Fix 3: Suppress NumPy Warnings in Autoreject ✅ ALREADY IMPLEMENTED
 
 **File**: `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py`
-**Location**: In `_apply_autoreject_tuev` method (line ~395)
+**Location**: In `_apply_autoreject_tuev` method (lines 436-442)
+
+**STATUS: ALREADY IMPLEMENTED**
 
 ```python
 def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[str, Any]]:
@@ -184,11 +214,49 @@ proc = TUEVPreprocessor({'disable_ransac': True})
 "
 ```
 
+## NEW SOLUTION NEEDED: Since Fix 1 Doesn't Work
+
+### Option A: DISABLE RANSAC FOR TUEV (Recommended)
+
+Since RANSAC is failing due to an internal bug and is non-critical for TUEV processing:
+
+```python
+# When building TUEV cache, pass config to disable RANSAC:
+config = {'disable_ransac': True}
+preprocessor = TUEVPreprocessor(config)
+```
+
+Or set it as default in TUEV preprocessor:
+```python
+def __init__(self, config: dict[str, Any] | None = None):
+    config = config or {}
+    config.setdefault('disable_ransac', True)  # Default to disabled for TUEV
+    super().__init__(config)
+```
+
+### Option B: Debug RANSAC Internal Issue
+
+The error is happening INSIDE autoreject's RANSAC implementation. Would need to:
+1. Debug into autoreject/ransac.py 
+2. Find where float arrays are created
+3. Submit PR to autoreject library
+
+### Option C: Try Different RANSAC Parameters
+
+Some parameter combinations might avoid the bug:
+```python
+ransac = Ransac(
+    min_channels=0.5,  # Try different threshold
+    min_corr=0.5,      # Lower correlation threshold
+    # ... other params
+)
+```
+
 ## Implementation Priority
 
-1. **Fix 1 (Integer dtype)**: Implement immediately - simple, safe fix
-2. **Fix 3 (Warning suppression)**: Implement immediately - cosmetic improvement
-3. **Fix 2 (Config option)**: Optional - only if RANSAC continues to fail after Fix 1
+1. **Option A (Disable RANSAC)**: Implement immediately - RANSAC is optional for quality
+2. **Fix 3 (Warning suppression)**: Already implemented ✅
+3. **Fix 2 (Config option)**: Already implemented ✅
 
 ## Why These Issues Occurred
 
@@ -198,12 +266,20 @@ proc = TUEVPreprocessor({'disable_ransac': True})
 
 ## Definition of Done
 
-- [ ] RANSAC runs without "arrays used as indices" error
-- [ ] NumPy warnings suppressed in Autoreject context
-- [ ] Optional: Config flag to disable RANSAC if needed
-- [ ] Training logs are clean (no warnings)
-- [ ] Cache builds successfully with >0 windows
-- [ ] No regression in existing tests
+- [ ] ❌ RANSAC runs without "arrays used as indices" error - **NOT FIXED, needs Option A**
+- [x] ✅ NumPy warnings suppressed in Autoreject context - **IMPLEMENTED**
+- [x] ✅ Config flag to disable RANSAC if needed - **IMPLEMENTED**
+- [ ] Training logs are clean (no warnings) - **Needs RANSAC disabled**
+- [x] ✅ Cache builds successfully with >0 windows - **WORKING (slowly)**
+- [x] ✅ No regression in existing tests - **Tests pass**
+
+## IMMEDIATE ACTION NEEDED
+
+**Disable RANSAC by default for TUEV** since:
+1. The integer fix doesn't work (bug is inside RANSAC library)
+2. RANSAC is optional for data quality
+3. We already have the config option implemented
+4. This will clean up the logs immediately
 
 ## Risk Assessment
 
