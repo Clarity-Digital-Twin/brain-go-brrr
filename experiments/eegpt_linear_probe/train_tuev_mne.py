@@ -14,6 +14,7 @@ Now with full operational parity to TUAB script:
 """
 
 import argparse
+import contextlib
 import json
 import logging
 import math
@@ -210,7 +211,7 @@ def train_epoch(
         if batch_idx % 100 == 0 and output_dir:
             update_heartbeat(output_dir, epoch, batch_idx, global_step)
             # Also save rolling checkpoint for crash resilience
-            try:
+            with contextlib.suppress(Exception):  # Non-fatal checkpoint save
                 torch.save(
                     {
                         'epoch': epoch,
@@ -227,8 +228,6 @@ def train_epoch(
                     },
                     output_dir / 'checkpoint_latest.pt',
                 )
-            except Exception:
-                pass  # Non-fatal
 
         # Intra-epoch checkpointing
         if output_dir and batch_idx > 0 and batch_idx % 500 == 0:
@@ -289,11 +288,21 @@ def evaluate(model, probe, eval_loader, criterion, device):
     # Calculate metrics (guard against empty eval set)
     avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
     balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
-    weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
-    kappa = cohen_kappa_score(all_labels, all_preds) if len(all_labels) > 0 and len(set(all_labels)) > 1 else 0.0
+    weighted_f1 = (
+        f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
+    )
+    kappa = (
+        cohen_kappa_score(all_labels, all_preds)
+        if len(all_labels) > 0 and len(set(all_labels)) > 1
+        else 0.0
+    )
 
     # Per-class F1 with zero_division handling
-    per_class_f1 = f1_score(all_labels, all_preds, average=None, zero_division=0) if all_labels else np.zeros(6)
+    per_class_f1 = (
+        f1_score(all_labels, all_preds, average=None, zero_division=0)
+        if all_labels
+        else np.zeros(6)
+    )
     class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
     per_class_results = dict(zip(class_names, per_class_f1, strict=False))
 
@@ -682,7 +691,7 @@ def main():
             logger.info(f"Saved checkpoint at epoch {epoch}")
 
         # Always save rolling checkpoint for crash resilience
-        try:
+        with contextlib.suppress(Exception):  # Non-fatal checkpoint save
             torch.save(
                 {
                     'epoch': epoch,
@@ -696,8 +705,6 @@ def main():
                 },
                 output_dir / 'checkpoint_latest.pt',
             )
-        except Exception:
-            pass  # Non-fatal
 
     logger.info("=" * 60)
     logger.info("Training complete!")

@@ -10,6 +10,7 @@ from typing import Any
 
 import torch
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 
@@ -132,16 +133,69 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             logger.info(f"Class distribution: {self.index['class_counts']}")
 
     def _build_cache(self) -> None:
-        """Build preprocessed cache with MNE+Autoreject.
-
-        NOTE: This requires the TUEVPreprocessor module which is not currently
-        implemented. Use pre-built cache instead.
-        """
-        raise NotImplementedError(
-            "Building TUEV cache requires TUEVPreprocessor which is not implemented. "
-            "Please use a pre-built cache. The cache_dir parameter should point to "
-            "an existing cache directory with META.json and window files."
-        )
+        """Build preprocessed cache with MNE+Autoreject using TUEVPreprocessor."""
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        
+        logger.info("Building TUEV cache with TUEVPreprocessor...")
+        preprocessor = TUEVPreprocessor()
+        
+        # Process all EDF files in this split
+        edf_files = self._get_edf_files()
+        logger.info(f"Found {len(edf_files)} EDF files to process")
+        
+        all_samples = []
+        class_counts = {i: 0 for i in range(6)}
+        
+        for edf_path in tqdm(edf_files, desc=f"Processing {self.split} files"):
+            try:
+                # Load annotations for this file
+                annotations = self._load_annotations(edf_path)
+                
+                # Process EDF file with MNE+Autoreject
+                processed_windows = preprocessor.process_file(
+                    edf_path,
+                    annotations=annotations,
+                    window_duration=4.0,  # EEGPT requires 4s windows
+                    window_stride=2.0,    # 50% overlap for more samples
+                )
+                
+                # Save each window and track metadata
+                for window in processed_windows:
+                    window_id = f"{edf_path.stem}_{window['window_idx']}"
+                    cache_file = self.cache_dir / f"{window_id}.pt"
+                    
+                    # Save preprocessed window
+                    torch.save({
+                        'x': window['data'],
+                        'y': window['label']
+                    }, cache_file, _use_new_zipfile_serialization=True)
+                    
+                    # Track metadata
+                    all_samples.append({
+                        'window_id': window_id,
+                        'cache_file': cache_file.name,
+                        'label': window['label'],
+                        'file': str(edf_path.relative_to(self.root_dir))
+                    })
+                    
+                    class_counts[window['label']] += 1
+                    
+            except Exception as e:
+                logger.warning(f"Failed to process {edf_path}: {e}")
+                continue
+        
+        # Save index file
+        index = {
+            'samples': all_samples,
+            'class_counts': class_counts,
+            'n_samples': len(all_samples),
+            'split': self.split,
+            'window_duration': 4.0,
+            'sampling_rate': 256
+        }
+        
+        torch.save(index, self.cache_dir / 'META.json')
+        logger.info(f"Cache built: {len(all_samples)} windows, class dist: {class_counts}")
 
     def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""
