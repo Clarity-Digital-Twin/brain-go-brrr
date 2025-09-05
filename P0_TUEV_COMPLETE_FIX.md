@@ -110,11 +110,14 @@ if ch_name in ['A1', 'A2', 'Fpz']:  # Should NOT drop Fpz!
 assert len(available_standard) == 20  # Crashes with 19!
 ```
 
-### 4. Cache Building Implementation (BLOCKED)
-**File**: `src/brain_go_brrr/infra/data/tuev_dataset.py` (line 140)
+### 4. Cache Building Implementation (ACTUALLY IMPLEMENTED!)
+**File**: `src/brain_go_brrr/infra/data/tuev_dataset.py` (line 141)
 ```python
-# Currently raises NotImplementedError (safe)
-raise NotImplementedError("Building TUEV cache requires...")
+# REALITY CHECK: _build_cache() IS IMPLEMENTED, not NotImplementedError!
+# Current issue: Uses CHANNELS_TUEV_20 which has wrong channels
+def _build_cache(self) -> None:
+    from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20  # Line 137
+    # ... full implementation exists ...
 ```
 
 ## The Solution: ONE CORRECT Approach from First Principles
@@ -169,7 +172,7 @@ if ch_name in ['A1', 'A2']:  # Remove 'Fpz' from this list
     channels_to_drop.append(ch_name)
 ```
 
-Add synthesis for missing canonical channels:
+Add synthesis for missing canonical channels AND specify where to call it:
 ```python
 def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
     """Synthesize missing canonical channels as zeros.
@@ -190,6 +193,12 @@ def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
             raw.add_channels([zero_raw])
             logger.info(f"Synthesized missing {ch} channel as zeros")
     return raw
+
+# WHERE TO CALL IT - After canonicalization, before selection:
+# In process_raw_with_annotations() around line 257:
+raw = self.canonicalize_channel_labels(raw)  # Existing line
+raw = self._synthesize_missing_channels(raw)  # ADD THIS LINE
+# Then proceed with available_standard calculation...
 ```
 
 ### Fix 3: Accept 19-20 channels with padding
@@ -205,15 +214,18 @@ if len(available_standard) != 20:
 ```
 
 ### Fix 4: Update Config to match canonical 20
-**File**: `experiments/eegpt_linear_probe/configs/tuev.yaml` line 96-103
+**File**: `experiments/eegpt_linear_probe/configs/tuev.yaml` lines 94-103
 ```yaml
+# DELETE the comment "Project uses Oz instead of Fpz for consistency" at line 94-95
+# REPLACE WITH: "Follow EEGPT Table 13 (FPZ in, no OZ)"
+
 channels:
   target_20: [
-    'FP1', 'FPZ', 'FP2',                # Include FPZ per paper
+    'FP1', 'FPZ', 'FP2',                # Include FPZ per paper Table 13
     'F7', 'F3', 'FZ', 'F4', 'F8',       # Frontal line
     'T7', 'C3', 'CZ', 'C4', 'T8',       # Temporal/Central
     'P7', 'P3', 'PZ', 'P4', 'P8',       # Parietal
-    'O1', 'O2'                          # Occipital (NO OZ!)
+    'O1', 'O2'                          # Occipital (NO OZ per paper!)
   ]
 ```
 
