@@ -196,7 +196,7 @@ def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
 
 # WHERE TO CALL IT - After canonicalization, before selection:
 # In process_raw_with_annotations() around line 257:
-raw = self.canonicalize_channel_labels(raw)  # Existing line
+raw = canonicalize_channel_labels(raw)  # Existing line (module function)
 raw = self._synthesize_missing_channels(raw)  # ADD THIS LINE
 # Then proceed with available_standard calculation...
 ```
@@ -245,7 +245,9 @@ if not os.environ.get('ALLOW_TUEV_CACHE_BUILD'):
 ```
 
 **Option B - Fix inline**:
-Update line 137 to use corrected channels and ensure META reflects canonical 20.
+- Update line 137 to use corrected channels
+- Fix assertion messages at lines 105, 110 from "with FZ, no FPZ" to "with FPZ, no OZ"
+- Ensure META.json reflects canonical 20 with correct channels
 
 **Critical Cache Requirements**:
 - **Data format**: Store as float32 tensors, shape (20, 1024)
@@ -442,8 +444,10 @@ assert 'Oz' not in tuev_proc.STANDARD_CHANNELS, "TUEV should NOT include Oz"
 - [ ] **collate_tuev.py docstring**: "with Fpz, without Oz" (line 12)
 - [ ] **docs/CHANNELS.md**: Fix line 21 to "HAS Fpz, NO Oz"
 
-### Cache Builder Decision:
-- [ ] **tuev_dataset.py**: Either add guard OR update to use corrected channels
+### Cache Builder Fixes:
+- [ ] **tuev_dataset.py**: Either add guard OR fix inline:
+  - [ ] Fix assertion messages (lines 105, 110): "with FPZ, no OZ" 
+  - [ ] Update line 137 to use corrected CHANNELS_TUEV_20
 
 ### Validation:
 - [ ] All tests pass with new channel configuration
