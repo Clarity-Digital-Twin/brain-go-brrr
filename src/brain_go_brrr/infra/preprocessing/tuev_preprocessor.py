@@ -179,7 +179,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Determine missing channels after canonicalization but before mapping
         standard_upper = {ch.upper() for ch in self.STANDARD_CHANNELS}
         raw_upper = {ch.upper() for ch in raw.ch_names if ch.upper() not in {'A1', 'A2'}}
-        missing = sorted(list(standard_upper - raw_upper))
+        missing = sorted(standard_upper - raw_upper)
 
         # Apply channel mapping (drop refs, synthesize, reorder)
         raw = self._apply_channel_mapping(raw)
