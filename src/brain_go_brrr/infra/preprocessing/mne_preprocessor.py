@@ -311,9 +311,6 @@ class TUABPreprocessor:
             ch_picks = mne.pick_types(epochs_temp.info, meg=False, eeg=True, exclude=[])
             ch_picks = np.asarray(ch_picks, dtype=int)  # Force integer dtype
 
-            # Debug logging (remove after confirming fix works)
-            logger.debug(f"RANSAC picks dtype: {ch_picks.dtype}, shape: {ch_picks.shape}")
-
             ransac = Ransac(
                 n_jobs=1,
                 random_state=42,

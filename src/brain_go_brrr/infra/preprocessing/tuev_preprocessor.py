@@ -61,7 +61,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         'O2',
     ]
 
-    # Map TUEV channels to standard 20 (dropping A1, A2, FPZ)
+    # Map TUEV channels to standard 20 (dropping A1, A2 only)
     # Also handle old naming (T3→T7, T4→T8, T5→P7, T6→P8)
     # Override parent class type to allow None values for dropped channels
     CHANNEL_MAPPING: dict[str, str] = {
@@ -97,7 +97,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         Handles:
         - Old to modern naming (T3→T7, etc.)
         - Dropping reference channels (A1, A2)
-        - Dropping extra midline channel (Fpz)
+        - Including Fpz (synthesized if missing), excluding Oz
         - Case normalization
 
         Args:
@@ -122,6 +122,18 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         # Synthesize any missing canonical channels (e.g., Fpz) as zeros
         raw = self._synthesize_missing_channels(raw)
+
+        # Set channel types to 'eeg' for canonical channels to ensure proper filtering
+        # This also prevents the "misc channels" montage warning
+        channel_types = {}
+        for ch in raw.ch_names:
+            if ch in self.STANDARD_CHANNELS:
+                channel_types[ch] = 'eeg'
+            # Keep existing types for non-standard channels (EOG, ECG, etc.)
+
+        if channel_types:
+            raw.set_channel_types(channel_types, verbose=False)
+            logger.debug(f"Set {len(channel_types)} channels to 'eeg' type")
 
         # Set standard 1020 montage for all channels including synthesized ones
         try:

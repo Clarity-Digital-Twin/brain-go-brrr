@@ -1,6 +1,6 @@
 """TUEV dataset with MNE+Autoreject preprocessing.
 
-Multi-class event detection (6 classes) with 20 channels (Fz included, Fpz excluded).
+Multi-class event detection (6 classes) with 20 channels (Fz and Fpz included, Oz excluded).
 """
 
 import json
