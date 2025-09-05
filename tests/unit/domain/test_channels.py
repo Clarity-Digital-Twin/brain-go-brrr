@@ -29,10 +29,10 @@ class TestChannelConstants:
         assert len(CHANNELS_TUEV_20) == 20
         # Should have Fz
         assert "Fz" in CHANNELS_TUEV_20
-        # Should NOT have Fpz
-        assert "Fpz" not in CHANNELS_TUEV_20
-        # Should have Oz
-        assert "Oz" in CHANNELS_TUEV_20
+        # Should HAVE Fpz
+        assert "Fpz" in CHANNELS_TUEV_20
+        # Should NOT have Oz
+        assert "Oz" not in CHANNELS_TUEV_20
 
     def test_channel_order_preserved(self):
         """Test channel order follows standard montage (frontal to occipital)."""
@@ -42,7 +42,7 @@ class TestChannelConstants:
 
         # TUEV should also follow this pattern
         assert CHANNELS_TUEV_20[0] == "Fp1"
-        assert CHANNELS_TUEV_20[-1] == "Oz"
+        assert CHANNELS_TUEV_20[-1] == "O2"
 
     def test_no_duplicate_channels(self):
         """Test no duplicate channels in definitions."""
