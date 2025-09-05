@@ -36,12 +36,13 @@ Checked multiple files including `data/datasets/tuev/edf/eval/000/bckg_000_a_.ed
 
 ## The Root Cause
 
-### What TUEV Actually Has (Per AAREADME.txt)
+### What TUEV Actually Has (Data Reality from MNE checks)
 - **359 training files, 159 eval files**
 - **Standard 10/20 configuration** with TCP montage
-- **Channels**: FP1, FP2, F7, F3, F4, F8, T3, C3, CZ, C4, T4, T5, P3, P4, T6, O1, O2, A1, A2
+- **MNE verified channels**: FP1, FP2, F7, F3, F4, F8, **FZ**, T3, C3, **CZ**, C4, T4, T5, P3, P4, **PZ**, T6, O1, O2, A1, A2
 - **NOTE**: Uses OLD naming (T3/T4/T5/T6 not T7/T8/P7/P8)
-- **MISSING**: FZ, PZ, **OZ** (midline channels except CZ)
+- **MISSING**: **FPZ**, **OZ** (confirmed absent in all sampled files)
+- **Variation**: AAREADME suggests FZ/PZ missing, but MNE checks show they're present in sampled files
 
 ### What EEGPT Paper Says (Table 13, line 615)
 ```
@@ -73,11 +74,13 @@ Note: All 5 TUEV files checked had FZ and PZ but lacked FPZ and OZ
 ### 1. Channel Definition (WRONG)
 **File**: `src/brain_go_brrr/infra/data/channels.py` (lines 35-56)
 ```python
-# CURRENT - WRONG (expects Oz, drops Fpz)
+# CURRENT - WRONG (expects Oz, missing Fpz)
 CHANNELS_TUEV_20 = [
-    "Fp1", "Fp2",  # Missing Fpz!
-    ...,
-    "O1", "O2", "Oz"  # Oz doesn't exist!
+    "Fp1", "Fp2",  # Missing Fpz! (should be between Fp1 and Fp2)
+    "F7", "F3", "Fz", "F4", "F8",
+    "T7", "C3", "Cz", "C4", "T8",
+    "P7", "P3", "Pz", "P4", "P8",
+    "O1", "O2", "Oz"  # Has Oz - wrong per paper!
 ]
 ```
 
@@ -197,12 +200,28 @@ channels:
   ]
 ```
 
-### Fix 5: Keep Cache Building as NotImplemented (for now)
+### Fix 5: Cache Building Requirements (when implemented)
 **File**: `src/brain_go_brrr/infra/data/tuev_dataset.py`, line 140
 ```python
 # Keep as NotImplementedError until preprocessing fixed
 raise NotImplementedError("Building TUEV cache requires fixed preprocessing")
 ```
+
+**Critical Cache Requirements**:
+- **Data format**: Store as float32 tensors, shape (20, 1024)
+- **Units**: Store in **millivolts (mV)** - loader validates META.unit == 'mV'
+- **META.json must include**:
+  ```json
+  {
+    "unit": "mV",
+    "channels": ["Fp1", "Fpz", "Fp2", ...],  // canonical 20
+    "channel_policy": {
+      "canonical": ["Fp1", "Fpz", "Fp2", ...],
+      "mapping": {"T3": "T7", "T4": "T8", "T5": "P7", "T6": "P8"},
+      "fill_missing": "zeros"
+    }
+  }
+  ```
 
 ## Why This Happened
 
