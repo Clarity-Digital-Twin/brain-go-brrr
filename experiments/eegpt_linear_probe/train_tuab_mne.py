@@ -104,7 +104,6 @@ def train_epoch(
     global_step: int = 0,
     epoch_indices: torch.Tensor | None = None,
     batches_per_epoch: int | None = None,
-    total_scheduler_steps: int | None = None,
 ) -> tuple[float, float, int]:
     """Train for one epoch with deterministic resume support."""
     probe.train()
@@ -113,6 +112,8 @@ def train_epoch(
     all_preds = []
     all_labels = []
     batches_processed = 0
+    samples_seen = 0  # Track actual samples processed
+    current_auroc = 0.5  # Initialize to avoid NameError
 
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
@@ -122,7 +123,7 @@ def train_epoch(
             continue
 
         x, y = x.to(device), y.to(device)
-        global_step += 1
+        samples_seen += x.size(0)  # Track actual batch size
 
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
@@ -143,13 +144,24 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # Guard against scheduler over-stepping (off-by-one crashes)
+        
+        # BULLETPROOF scheduler step using internal counters
         try:
-            if total_scheduler_steps is None or global_step <= int(total_scheduler_steps):
+            # OneCycleLR tracks its own step count internally
+            total_steps = getattr(scheduler, "total_steps", None)
+            step_count = getattr(scheduler, "_step_count", None)
+            
+            # Only step if we haven't reached the limit
+            if total_steps is None or step_count is None or step_count < total_steps:
                 scheduler.step()
-        except ValueError as e:
-            # Log and continue without stepping to avoid hard crash near the very end
-            logger.warning(f"Scheduler step skipped at global_step={global_step}: {e}")
+            else:
+                logger.debug(f"Scheduler at limit: {step_count}/{total_steps}, skipping step")
+        except (ValueError, RuntimeError) as e:
+            # This should never happen with the guard above, but just in case
+            logger.warning(f"Scheduler step skipped at batch {batch_idx+start_batch}: {e}")
+        
+        # Increment global step AFTER successful scheduler step
+        global_step += 1
 
         # Track metrics
         total_loss += loss.item()
@@ -184,7 +196,7 @@ def train_epoch(
                 'auroc': float(current_auroc) if 'current_auroc' in locals() else 0.5,
                 'lr': float(scheduler.get_last_lr()[0]),
                 'global_step': global_step,
-                'samples_seen': global_step * batch_size,
+                'samples_seen': samples_seen,
                 'gpu_memory_gb': torch.cuda.memory_allocated() / 1e9
                 if torch.cuda.is_available()
                 else 0,
@@ -228,8 +240,7 @@ def train_epoch(
                 'train_loss': total_loss / batches_processed if batches_processed > 0 else 0,
                 'global_step': global_step,
                 'epoch_indices': epoch_indices,  # Save deterministic order
-                'sample_offset': (batch_idx + start_batch + 1)
-                * batch_size,  # Exact samples processed in epoch
+                'sample_offset': samples_seen,  # Exact samples processed (using actual counter)
             }
             checkpoint_path = (
                 output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
@@ -455,6 +466,9 @@ def main():
 
     # Compute total scheduler steps for safety guard (epochs * steps_per_epoch)
     total_scheduler_steps = int(config['training']['max_epochs']) * int(batches_per_epoch)
+    
+    # Sync with scheduler's internal total_steps (might differ slightly due to rounding)
+    total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
 
     # Setup loss with class weighting if configured
     if config['training'].get('weighted_loss', False):
@@ -492,6 +506,12 @@ def main():
             if 'scheduler_state_dict' in checkpoint:
                 scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
                 logger.info("Scheduler state restored from checkpoint")
+                
+                # CRITICAL: Sync total_steps after loading state
+                # The scheduler might have a different view after resume
+                total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
+                step_count = getattr(scheduler, "_step_count", 0)
+                logger.info(f"Scheduler resume: step {step_count}/{total_scheduler_steps}")
             else:
                 # Fallback: set last_epoch from global_step (best effort)
                 global_step_resume = checkpoint.get('global_step', 0)
@@ -604,7 +624,6 @@ def main():
             global_step=global_step,
             epoch_indices=current_epoch_indices,
             batches_per_epoch=batches_per_epoch,
-            total_scheduler_steps=total_scheduler_steps,
         )
 
         # Reset start_batch after first epoch
@@ -627,6 +646,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'global_step': global_step,  # Include for consistency
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
                 'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
@@ -644,6 +664,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'global_step': global_step,  # Include for consistency
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
                 'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
@@ -660,6 +681,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'global_step': global_step,  # Include for crash recovery
             }
             torch.save(latest_ckpt, output_dir / 'checkpoint_latest.pt')
         except Exception:
