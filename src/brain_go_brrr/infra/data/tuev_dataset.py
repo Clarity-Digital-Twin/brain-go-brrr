@@ -179,7 +179,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
                     label_int = CLASS_MAPPING[label_str]
 
                     # Ensure correct tensor types
-                    x_tensor = torch.tensor(x_mV, dtype=torch.float32)  # (20, 1024) in mV
+                    x_tensor = torch.tensor(x_mv, dtype=torch.float32)  # (20, 1024) in mV
                     y_tensor = torch.tensor(
                         label_int, dtype=torch.long
                     )  # Long for CrossEntropyLoss
