@@ -81,10 +81,11 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         Args:
             config: Optional configuration dict
-                - disable_ransac: Skip RANSAC bad channel detection (default: False)
+                - disable_ransac: Skip RANSAC bad channel detection (default: True for TUEV)
         """
         super().__init__(config)
-        self.disable_ransac = (config or {}).get('disable_ransac', False)
+        # Default to True for TUEV since RANSAC has internal bug with our channel config
+        self.disable_ransac = (config or {}).get('disable_ransac', True)
         logger.info(
             f"Initialized TUEVPreprocessor for 23→20 channel mapping "
             f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
@@ -135,12 +136,12 @@ class TUEVPreprocessor(TUABPreprocessor):
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
         missing_channels = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
 
-        # Log any remaining missing channels prior to enforcement
+        # Log any remaining missing channels after synthesis
         if missing_channels:
-            logger.warning(f"Missing standard channels before synthesis: {missing_channels}")
+            logger.warning(f"Missing standard channels after synthesis: {missing_channels}")
 
         # Pick and reorder channels - enforce exactly 20 for TUEV
-        # CRITICAL: TUEV needs exactly 20 channels (including Fz, excluding Fpz)
+        # CRITICAL: TUEV needs exactly 20 channels (including Fz and Fpz, excluding Oz)
         # This is different from TUAB which uses 19 channels (excluding Fz)
         if len(available_standard) != 20:
             logger.warning(f"Expected 20 channels for TUEV, found {len(available_standard)}")
