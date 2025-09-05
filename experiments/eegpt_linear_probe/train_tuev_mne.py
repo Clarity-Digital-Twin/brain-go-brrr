@@ -78,17 +78,22 @@ def create_deterministic_dataloader(
     # Create a Subset dataset with the exact indices we want
     subset_dataset = Subset(dataset, subset_indices)
 
+    # Build DataLoader kwargs conditionally to avoid prefetch_factor=None crash
+    dl_kwargs = {
+        'batch_size': batch_size,
+        'shuffle': False,  # CRITICAL: Don't shuffle - preserve our deterministic order
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': pin_memory,
+        'collate_fn': collate_fn,
+    }
+    
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        dl_kwargs['persistent_workers'] = persistent_workers
+        dl_kwargs['prefetch_factor'] = prefetch_factor
+    
     # Create DataLoader without any sampler - preserve deterministic order
-    loader = DataLoader(
-        subset_dataset,
-        batch_size=batch_size,
-        shuffle=False,  # CRITICAL: Don't shuffle - preserve our deterministic order
-        num_workers=num_workers if num_workers > 0 else 0,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers if num_workers > 0 else False,
-        prefetch_factor=prefetch_factor if num_workers > 0 else None,
-        collate_fn=collate_fn,
-    )
+    loader = DataLoader(subset_dataset, **dl_kwargs)
 
     return loader, epoch_indices
 
@@ -245,9 +250,9 @@ def evaluate(model, probe, eval_loader, criterion, device):
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
 
-    # Calculate metrics
-    avg_loss = total_loss / len(eval_loader)
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds)
+    # Calculate metrics (guard against empty eval set)
+    avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
+    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
     weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
     kappa = cohen_kappa_score(all_labels, all_preds)
 
@@ -370,21 +375,22 @@ def main():
 
     # Note: train_loader will be created per epoch with deterministic sampling
 
-    # Create eval data loader with optimized settings
-    eval_loader = DataLoader(
-        eval_dataset,
-        batch_size=config['data']['batch_size'],
-        shuffle=False,
-        num_workers=config['data'].get('num_workers', 4),
-        pin_memory=config['data'].get('pin_memory', True),
-        persistent_workers=config['data'].get('persistent_workers', True)
-        if config['data'].get('num_workers', 4) > 0
-        else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2)
-        if config['data'].get('num_workers', 4) > 0
-        else None,
-        collate_fn=collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
-    )
+    # Build eval loader with conditional kwargs to avoid prefetch_factor=None crash
+    num_workers = config['data'].get('num_workers', 4)
+    eval_dl_kwargs = {
+        'batch_size': config['data']['batch_size'],
+        'shuffle': False,
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': config['data'].get('pin_memory', True),
+        'collate_fn': collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
+    }
+    
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        eval_dl_kwargs['persistent_workers'] = config['data'].get('persistent_workers', True)
+        eval_dl_kwargs['prefetch_factor'] = config['data'].get('prefetch_factor', 2)
+    
+    eval_loader = DataLoader(eval_dataset, **eval_dl_kwargs)
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
@@ -423,16 +429,30 @@ def main():
 
     # Setup loss with class weighting for imbalanced data
     if config.get('training', {}).get('weighted_loss', True):
-        # Compute class weights from training dataset
+        # Compute class weights from training dataset efficiently
         logger.info("Computing class weights for balanced loss...")
-        all_labels = []
-        for _, label in train_dataset:
-            all_labels.append(label)
-        class_counts = np.bincount(all_labels, minlength=6)
-        class_weights = len(all_labels) / (len(class_counts) * class_counts + 1e-6)
-        class_weights = torch.FloatTensor(class_weights).to(device)
-        logger.info(f"Class counts: {class_counts.tolist()}")
-        logger.info(f"Class weights: {class_weights.tolist()}")
+        # Check if dataset has precomputed class counts (much faster)
+        if hasattr(train_dataset, 'class_counts'):
+            class_counts = np.array(list(train_dataset.class_counts.values()))
+        else:
+            # Fallback: iterate through dataset (slow but works)
+            all_labels = []
+            for _, label in train_dataset:
+                all_labels.append(label)
+            class_counts = np.bincount(all_labels, minlength=6)
+        
+        # Guard against divide-by-zero if any class is missing
+        total_samples = class_counts.sum()
+        if np.any(class_counts == 0):
+            logger.warning(f"WARNING: Some classes have zero samples: {class_counts.tolist()}")
+            logger.warning("Using uniform weights to avoid divide-by-zero")
+            class_weights = torch.ones(6).to(device)
+        else:
+            # Compute inverse frequency weights
+            class_weights = total_samples / (len(class_counts) * class_counts)
+            class_weights = torch.FloatTensor(class_weights).to(device)
+            logger.info(f"Class counts: {class_counts.tolist()}")
+            logger.info(f"Class weights: {class_weights.tolist()}")
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     else:
         criterion = nn.CrossEntropyLoss()
