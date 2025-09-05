@@ -104,6 +104,7 @@ def train_epoch(
     global_step: int = 0,
     epoch_indices: torch.Tensor | None = None,
     batches_per_epoch: int | None = None,
+    total_scheduler_steps: int | None = None,
 ) -> tuple[float, float, int]:
     """Train for one epoch with deterministic resume support."""
     probe.train()
@@ -142,7 +143,13 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+        # Guard against scheduler over-stepping (off-by-one crashes)
+        try:
+            if total_scheduler_steps is None or global_step <= int(total_scheduler_steps):
+                scheduler.step()
+        except ValueError as e:
+            # Log and continue without stepping to avoid hard crash near the very end
+            logger.warning(f"Scheduler step skipped at global_step={global_step}: {e}")
 
         # Track metrics
         total_loss += loss.item()
@@ -186,6 +193,21 @@ def train_epoch(
             heartbeat_file = output_dir / 'heartbeat.json'
             with open(heartbeat_file, 'w') as f:
                 json.dump(heartbeat, f, indent=2)
+            # Also refresh a rolling 'checkpoint_latest.pt' to minimize loss on crash
+            try:
+                latest_ckpt = {
+                    'epoch': epoch,
+                    'batch_idx': batch_idx + start_batch,
+                    'probe_state_dict': probe.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'best_auroc': best_auroc,
+                    'global_step': global_step,
+                    'epoch_indices': epoch_indices,
+                }
+                torch.save(latest_ckpt, (output_dir / 'checkpoint_latest.pt'))
+            except Exception:
+                pass
 
         # CRITICAL: Save checkpoint every N batches to avoid losing progress
         # Use absolute batch index for uniform intervals across restarts
@@ -431,6 +453,9 @@ def main():
         anneal_strategy='cos',
     )
 
+    # Compute total scheduler steps for safety guard (epochs * steps_per_epoch)
+    total_scheduler_steps = int(config['training']['max_epochs']) * int(batches_per_epoch)
+
     # Setup loss with class weighting if configured
     if config['training'].get('weighted_loss', False):
         # Compute class weights from training dataset
@@ -462,9 +487,20 @@ def main():
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-        # Set scheduler to correct position
-        global_step_resume = checkpoint.get('global_step', 0)
-        scheduler.last_epoch = global_step_resume - 1  # Set correct position for OneCycleLR
+        # Restore scheduler state precisely to avoid off-by-one errors
+        try:
+            if 'scheduler_state_dict' in checkpoint:
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                logger.info("Scheduler state restored from checkpoint")
+            else:
+                # Fallback: set last_epoch from global_step (best effort)
+                global_step_resume = checkpoint.get('global_step', 0)
+                scheduler.last_epoch = max(int(global_step_resume) - 1, -1)
+                logger.warning(
+                    "Scheduler state missing in checkpoint; approximated last_epoch from global_step"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to restore scheduler state cleanly: {e}")
 
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
@@ -568,6 +604,7 @@ def main():
             global_step=global_step,
             epoch_indices=current_epoch_indices,
             batches_per_epoch=batches_per_epoch,
+            total_scheduler_steps=total_scheduler_steps,
         )
 
         # Reset start_batch after first epoch
@@ -613,6 +650,21 @@ def main():
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint at epoch {epoch}")
+
+        # Always update rolling latest checkpoint for crash resilience
+        try:
+            latest_ckpt = {
+                'epoch': epoch,
+                'probe_state_dict': probe.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_auroc': best_auroc,
+                'config': config,
+            }
+            torch.save(latest_ckpt, output_dir / 'checkpoint_latest.pt')
+        except Exception:
+            # Non-fatal
+            pass
 
     logger.info("=" * 60)
     logger.info("Training complete!")
