@@ -289,11 +289,11 @@ def evaluate(model, probe, eval_loader, criterion, device):
     # Calculate metrics (guard against empty eval set)
     avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
     balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
-    weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
-    kappa = cohen_kappa_score(all_labels, all_preds)
+    weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
+    kappa = cohen_kappa_score(all_labels, all_preds) if len(all_labels) > 0 and len(set(all_labels)) > 1 else 0.0
 
     # Per-class F1 with zero_division handling
-    per_class_f1 = f1_score(all_labels, all_preds, average=None, zero_division=0)
+    per_class_f1 = f1_score(all_labels, all_preds, average=None, zero_division=0) if all_labels else np.zeros(6)
     class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
     per_class_results = dict(zip(class_names, per_class_f1, strict=False))
 

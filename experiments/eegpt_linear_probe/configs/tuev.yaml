@@ -49,9 +49,9 @@ training:
   learning_rate: 5.0e-4
   weight_decay: 0.01
 
-  # [Decision] NO learning rate schedule for downstream tasks
-  # Paper doesn't specify schedule for TUAB/TUEV (only mentions OneCycle for pretraining)
-  use_scheduler: false
+  # Using OneCycleLR with 30% warmup for stable training
+  # Script always uses scheduler regardless of this setting
+  use_scheduler: true  # Changed to match script behavior
 
   # Gradient clipping for stability
   gradient_clip: 1.0
