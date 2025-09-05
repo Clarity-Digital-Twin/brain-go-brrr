@@ -81,9 +81,14 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         Args:
             config: Optional configuration dict
+                - disable_ransac: Skip RANSAC bad channel detection (default: False)
         """
         super().__init__(config)
-        logger.info("Initialized TUEVPreprocessor for 23→20 channel mapping")
+        self.disable_ransac = (config or {}).get('disable_ransac', False)
+        logger.info(
+            f"Initialized TUEVPreprocessor for 23→20 channel mapping "
+            f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
+        )
 
     def _apply_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Apply TUEV channel mapping from 23 to 20 channels.
@@ -210,6 +215,27 @@ class TUEVPreprocessor(TUABPreprocessor):
             logger.info(f"Synthesized missing channel as zeros: {ch}")
 
         return raw
+
+    def _apply_mne_preprocessing(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Apply MNE preprocessing with optional RANSAC disable.
+
+        Args:
+            raw: Raw MNE object
+
+        Returns:
+            Preprocessed raw object
+        """
+        if self.disable_ransac:
+            # Skip RANSAC, just do filtering and resampling
+            logger.info("RANSAC disabled for TUEV - applying only filtering")
+            raw.filter(self.bandpass_low, self.bandpass_high, picks='eeg', verbose=False)
+            if self.notch_freq:
+                # Apply notch at fundamental and harmonics
+                raw.notch_filter([self.notch_freq, self.notch_freq * 2], picks='eeg', verbose=False)
+            return raw
+        else:
+            # Use parent's full preprocessing including RANSAC
+            return super()._apply_mne_preprocessing(raw)
 
     def process_raw_with_annotations(
         self, edf_path: Path, annotations: list[dict[str, float | str]], window_overlap: float = 0.0
@@ -401,20 +427,31 @@ class TUEVPreprocessor(TUABPreprocessor):
         Returns:
             Tuple of (clean epochs, learned parameters dict)
         """
+        import warnings
+
         from autoreject import AutoReject
 
         try:
-            # Gentle parameters for TUEV
-            ar = AutoReject(
-                n_interpolate=[1, 2],  # Gentler than TUAB
-                consensus=[0.5, 0.7, 0.9],  # Higher thresholds
-                cv=3,  # Faster
-                thresh_method='bayesian_optimization',
-                random_state=42,
-                verbose=False,
-            )
+            # Suppress expected NumPy warnings from empty CV folds
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    'ignore', category=RuntimeWarning, message='.*Mean of empty slice.*'
+                )
+                warnings.filterwarnings(
+                    'ignore', category=RuntimeWarning, message='.*invalid value encountered.*'
+                )
 
-            epochs_clean = ar.fit_transform(epochs)
+                # Gentle parameters for TUEV
+                ar = AutoReject(
+                    n_interpolate=[1, 2],  # Gentler than TUAB
+                    consensus=[0.5, 0.7, 0.9],  # Higher thresholds
+                    cv=3,  # Faster
+                    thresh_method='bayesian_optimization',
+                    random_state=42,
+                    verbose=False,
+                )
+
+                epochs_clean = ar.fit_transform(epochs)
 
             # Collect learned parameters
             ar_params = {}

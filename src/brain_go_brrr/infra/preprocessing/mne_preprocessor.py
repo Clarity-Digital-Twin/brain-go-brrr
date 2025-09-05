@@ -305,7 +305,21 @@ class TUABPreprocessor:
                 verbose=False,
             )
 
-            ransac = Ransac(n_jobs=1, random_state=42, verbose=False)
+            # Add explicit integer picks to avoid RANSAC's internal dtype issues
+            import numpy as np
+
+            ch_picks = mne.pick_types(epochs_temp.info, meg=False, eeg=True, exclude=[])
+            ch_picks = np.asarray(ch_picks, dtype=int)  # Force integer dtype
+
+            # Debug logging (remove after confirming fix works)
+            logger.debug(f"RANSAC picks dtype: {ch_picks.dtype}, shape: {ch_picks.shape}")
+
+            ransac = Ransac(
+                n_jobs=1,
+                random_state=42,
+                picks=ch_picks,  # Now explicitly passing integer picks
+                verbose=False,
+            )
             ransac.fit(epochs_temp)
 
             if ransac.bad_chs_:
