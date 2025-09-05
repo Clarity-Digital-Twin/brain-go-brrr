@@ -285,10 +285,11 @@ print(f"Success: {len(dataset)} windows")
 - TCP montage with standard 10/20 (but missing some midline)
 - Uses old naming (T3/T4/T5/T6)
 
-### From File Investigation
-- 0/50 files had Oz channel
-- 50/50 files had Fpz channel (in raw form)
-- Variable total channels (22-31) due to extra non-EEG
+### From File Investigation (MNE checks on 5 files)
+- 0/5 files had Oz channel (confirmed absent)
+- 0/5 files had Fpz channel (confirmed absent)  
+- 5/5 files had Fz and Pz (midline channels present)
+- Variable total channels (27-33) due to extra non-EEG
 
 ### From EEGPT Paper
 - Table 13 explicitly lists 20 channels with Fpz, without Oz
