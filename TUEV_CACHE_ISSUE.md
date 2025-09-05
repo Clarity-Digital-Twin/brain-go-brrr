@@ -1,8 +1,8 @@
 # TUEV Cache Building Issue - Critical Documentation
 
-**Status**: 🔴 BROKEN - Reverted to safe NotImplementedError  
-**Date**: September 5, 2025  
-**Priority**: P0 - Blocks TUEV training  
+**Status**: ✅ REVERTED - Safe NotImplementedError in place  
+**Date**: September 5, 2025 (Updated after senior review)  
+**Priority**: P0 - Blocks TUEV training (unless pre-built cache exists)  
 **Author**: Claude  
 **For Review**: Senior Engineering Audit Required
 
@@ -110,9 +110,9 @@ def _build_cache(self) -> None:
 ```python
 def _build_cache(self) -> None:
     from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+    import subprocess
     
     preprocessor = TUEVPreprocessor()
-    cache_version = "v1"
     
     # Track all windows globally
     global_window_id = 0
@@ -132,11 +132,23 @@ def _build_cache(self) -> None:
             window_overlap=0.5  # 50% overlap for 2s stride on 4s windows
         )
         
-        # Save each clean epoch
-        for epoch_idx, (epoch_data, label) in enumerate(zip(epochs_clean, window_labels)):
-            # Ensure correct shape and dtype
-            x_tensor = torch.tensor(epoch_data, dtype=torch.float32)  # (20, 1024)
-            y_tensor = torch.tensor(label, dtype=torch.long)
+        # Extract data from MNE Epochs object
+        epoch_data = epochs_clean.get_data()  # Shape: (n_epochs, n_channels, n_times)
+        
+        # Process each clean epoch
+        for epoch_idx in range(len(epochs_clean)):
+            # Get single epoch data (C, T) = (20, 1024)
+            x_volts = epoch_data[epoch_idx]  # In Volts from MNE
+            
+            # CRITICAL: Convert Volts to millivolts for cache contract
+            x_mV = x_volts * 1e3  
+            
+            # Get label for this window
+            label = window_labels[epoch_idx]
+            
+            # Ensure correct tensor types
+            x_tensor = torch.tensor(x_mV, dtype=torch.float32)  # (20, 1024) in mV
+            y_tensor = torch.tensor(label, dtype=torch.long)  # Long for CrossEntropyLoss
             
             # Save with unique ID
             cache_file = f"window_{global_window_id}.pt"
@@ -145,7 +157,7 @@ def _build_cache(self) -> None:
                 'y': y_tensor
             }, self.cache_dir / cache_file, _use_new_zipfile_serialization=True)
             
-            # Track in index
+            # Track in index with string keys
             windows_dict[str(global_window_id)] = {
                 'cache_file': cache_file,
                 'label': int(label),
@@ -157,27 +169,28 @@ def _build_cache(self) -> None:
         
         n_rejected_total += info.get('n_rejected', 0)
     
-    # Write proper index JSON
+    # Write proper index JSON with CACHE_VERSION
     index_data = {
         'total_windows': global_window_id,
-        'windows': windows_dict,
+        'windows': windows_dict,  # String keys "0", "1", ...
         'n_files': len(edf_files),
         'n_rejected': n_rejected_total,
-        'class_counts': {str(k): v for k, v in class_counts.items()}
+        'class_counts': {str(k): v for k, v in class_counts.items()}  # String keys
     }
     
-    index_path = self.cache_dir / f'index_{self.split}_{cache_version}.json'
+    # Use self.CACHE_VERSION not hardcoded!
+    index_path = self.cache_dir / f'index_{self.split}_{self.CACHE_VERSION}.json'
     with open(index_path, 'w') as f:
         json.dump(index_data, f, indent=2)
     
     # Write proper META JSON
     meta_data = {
         'sr': 256,
-        'unit': 'mV',
+        'unit': 'mV',  # CRITICAL: Data stored in millivolts
         'window': 1024,
         'channels': CHANNELS_TUEV_20,
         'n_channels': 20,
-        'norm': 'wrapper',
+        'norm': 'wrapper',  # Normalization done in wrapper, not dataset
         'commit': subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip(),
         'split': self.split,
         'dataset': 'TUEV'
@@ -185,6 +198,8 @@ def _build_cache(self) -> None:
     
     with open(self.cache_dir / 'META.json', 'w') as f:
         json.dump(meta_data, f, indent=2)
+        
+    logger.info(f"Cache built: {global_window_id} windows, class dist: {class_counts}")
 ```
 
 ## Current Status & Recommendations
@@ -193,7 +208,8 @@ def _build_cache(self) -> None:
 1. TUAB training completed: AUROC 0.8282
 2. TUEV training script is bulletproof (guards, checkpoints, etc.)
 3. Configs are correct and in right location
-4. Revert has been committed
+4. **CODE IS REVERTED**: _build_cache() raises NotImplementedError (safe)
+5. Training will work IF pre-built cache exists at cache_dir
 
 ### 🔴 What's Broken
 1. TUEV cannot build cache on-the-fly
@@ -222,9 +238,21 @@ Before any future cache building implementation:
 - [ ] Validate cache can be loaded by dataset
 - [ ] Run smoke test training to verify
 
+## Critical Corrections from Senior Review
+
+### Fixed in this revision:
+1. **MNE Epochs handling**: Use `epochs_clean.get_data()` to extract numpy array, not direct iteration
+2. **Unit conversion**: MNE returns Volts, must multiply by 1e3 to store as millivolts (mV)
+3. **Version usage**: Use `self.CACHE_VERSION` not hardcoded "v1"
+4. **Index structure**: Windows dict uses string keys ("0", "1", ...) consistently
+5. **Status clarification**: Code IS reverted (NotImplementedError), training only blocked if no cache exists
+
 ## Bottom Line
 
-The TUEV training pipeline is **100% ready** except for cache building. The safest path forward is to use a pre-built cache or build it offline with a validated script. The in-dataset cache building should only be re-enabled once the exact contract is implemented and tested.
+The TUEV training pipeline is **100% ready** if you have a pre-built cache. Without a cache, training is blocked. The safest path:
+1. Use a pre-built cache if available
+2. OR build cache offline with the corrected implementation above
+3. Only re-enable in-dataset building after testing the exact contract
 
 ---
-**Action Required**: Senior engineering review of this document before any implementation.
+**Status**: ✅ Document updated with senior corrections. Code is safe (NotImplementedError).
