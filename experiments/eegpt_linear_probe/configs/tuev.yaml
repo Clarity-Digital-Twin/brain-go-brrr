@@ -3,7 +3,7 @@
 
 data:
   dataset: "tuev"
-  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg/TUEV/v2.0.1"
+  root_dir: "${BGB_DATA_ROOT}/datasets/tuev"
   cache_dir: "${BGB_CACHE_DIR}/tuev_4s_256hz_v2"
 
   # CRITICAL: Must be divisible by 64 for EEGPT patches
