@@ -236,6 +236,19 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             json.dump(meta_data, f, indent=2)
         
         logger.info(f"Cache built: {global_window_id} windows, class dist: {class_counts}")
+        
+        # Fail fast if cache is empty
+        if global_window_id == 0:
+            raise ValueError(
+                "Cache building failed: 0 windows produced. "
+                "Check preprocessing logs for 'Valid channel positions' errors. "
+                "Likely cause: montage not set after channel synthesis."
+            )
+        
+        # Future enhancement: Track success/failure rate
+        # if n_rejected_total / len(edf_files) > 0.5:
+        #     logger.error(f"Too many failures: {n_rejected_total}/{len(edf_files)}")
+        #     raise ValueError("Cache building failed: >50% of files failed")
 
     def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""

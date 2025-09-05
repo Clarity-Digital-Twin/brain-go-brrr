@@ -38,14 +38,11 @@ raw.set_montage(montage, on_missing='warn')
 
 ### 2. Suspicious 4Hz Lowpass Filter (FALSE ALARM)
 
-**Investigation**: The log shows "Upper passband edge: 4.00 Hz" but this is actually from the muscle detection filter, NOT the main filter.
+**Investigation**: The log shows "Upper passband edge: 4.00 Hz" but this is RANSAC's internal lowpass filter, NOT the main data filter.
 
-**Evidence** (mne_preprocessor.py line 280):
-```python
-filter_freq=(muscle_band_low, muscle_band_high),  # 110-140Hz for muscle
-```
+**Evidence**: The 4Hz filter message appears immediately before "Running RANSAC for bad channel detection" in logs. This is MNE's internal filtering when creating temporary epochs for RANSAC bad channel detection (line 298-306 in mne_preprocessor.py).
 
-The 4Hz is just MNE's internal filter design message for muscle detection. Main filter is correct: 0.5-45Hz.
+The main bandpass filter is correct: 0.5-45Hz (applied at line 251). The 4Hz is just RANSAC's internal processing.
 
 ### 3. Why Every File Failed
 
@@ -71,10 +68,11 @@ The 4Hz is just MNE's internal filter design message for muscle detection. Main 
 # Set standard 1020 montage for all channels including synthesized ones
 try:
     montage = mne.channels.make_standard_montage('standard_1020')
-    raw.set_montage(montage, on_missing='ignore')  # ignore=OK for non-standard
+    raw.set_montage(montage, on_missing='warn')  # warn first to see any issues
     logger.info(f"Set standard_1020 montage for {len(raw.ch_names)} channels")
 except Exception as e:
     logger.warning(f"Could not set montage: {e}")
+    # Could retry with on_missing='ignore' if needed
 ```
 
 ### Fix 2: Add Fallback for Autoreject Failures
@@ -129,6 +127,11 @@ if global_window_id == 0:
         "Check preprocessing logs for 'Valid channel positions' errors. "
         "Likely cause: montage not set after channel synthesis."
     )
+    
+# Future enhancement: Track success/failure rate
+# if n_failed_files / len(edf_files) > 0.5:
+#     logger.error(f"Too many failures: {n_failed_files}/{len(edf_files)}")
+#     raise ValueError("Cache building failed: >50% of files failed")
 ```
 
 ## Verification Steps
@@ -175,6 +178,51 @@ uv run python experiments/eegpt_linear_probe/train_tuev_mne.py \
 3. **No unit test** for TUEV with actual Autoreject
 4. **Error silently caught** in cache builder, producing empty cache
 
+## Test Suite Considerations
+
+### Tests That Will Continue to Pass
+
+1. **test_tuev_smoke.py::test_tuev_preprocessor_contract** - Already passes because:
+   - Uses synthetic data from conftest.py fixture
+   - Synthetic data already has montage set (line 464 in conftest.py)
+   - Won't catch the real data issue
+
+### Tests to Add/Enhance After Fix
+
+1. **Add test for montage after synthesis**:
+```python
+def test_tuev_sets_montage_after_synthesis():
+    """Ensure montage is set after channel synthesis."""
+    from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+    import mne
+    
+    # Create raw without Fpz
+    raw = create_test_raw_without_fpz()
+    proc = TUEVPreprocessor()
+    
+    # Process (should synthesize Fpz and set montage)
+    processed = proc._apply_channel_mapping(raw)
+    
+    # Verify montage is set
+    assert processed.get_montage() is not None
+    assert 'Fpz' in processed.ch_names
+```
+
+2. **Add test for Autoreject fallback**:
+```python
+def test_autoreject_fallback_on_no_montage():
+    """Test that processing continues even if Autoreject fails."""
+    # Create epochs without montage
+    # Call _apply_autoreject_tuev
+    # Should return original epochs, not crash
+```
+
+### No Existing Tests Break
+
+- No tests explicitly check for montage NOT being set
+- No tests verify Autoreject failure behavior  
+- No tests check for 0 windows error
+
 ## Definition of Done
 
 - [ ] Montage set after channel synthesis
@@ -183,6 +231,8 @@ uv run python experiments/eegpt_linear_probe/train_tuev_mne.py \
 - [ ] Test passes: Single TUEV file produces >0 epochs
 - [ ] Test passes: Cache rebuild produces >0 windows
 - [ ] Training starts with actual data
+- [ ] Consider adding explicit tests for montage setting
+- [ ] Consider adding test for Autoreject fallback behavior
 
 ## Risk Assessment
 
@@ -228,10 +278,11 @@ assert len(dataset) > 0, 'Still producing 0 windows!'
 
 ## Notes for Implementation
 
-1. **The 4Hz filter log is a red herring** - it's from muscle detection, not main filtering
+1. **The 4Hz filter log is a red herring** - it's from RANSAC's internal epochs creation, not main filtering
 2. **Must set montage AFTER synthesis** - synthesized Fpz needs a position too
-3. **Use on_missing='ignore'** - some channels might not be in standard_1020
+3. **Start with on_missing='warn'** - to surface any non-standard labels, then can relax to 'ignore' if needed
 4. **Don't skip whole file on AR failure** - better to have unfiltered data than no data
+5. **Consider tracking failure rates** - future enhancement to fail if >X% of files fail
 
 ---
 

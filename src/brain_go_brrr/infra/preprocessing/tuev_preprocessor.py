@@ -116,6 +116,15 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Synthesize any missing canonical channels (e.g., Fpz) as zeros
         raw = self._synthesize_missing_channels(raw)
 
+        # Set standard 1020 montage for all channels including synthesized ones
+        try:
+            montage = mne.channels.make_standard_montage('standard_1020')
+            raw.set_montage(montage, on_missing='warn')  # warn first to see any issues
+            logger.info(f"Set standard_1020 montage for {len(raw.ch_names)} channels")
+        except Exception as e:
+            logger.warning(f"Could not set montage: {e}")
+            # Could retry with on_missing='ignore' if needed
+
         # Select and reorder to standard 20 channels
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
         missing_channels = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
@@ -393,25 +402,31 @@ class TUEVPreprocessor(TUABPreprocessor):
         """
         from autoreject import AutoReject
 
-        # Gentle parameters for TUEV
-        ar = AutoReject(
-            n_interpolate=[1, 2],  # Gentler than TUAB
-            consensus=[0.5, 0.7, 0.9],  # Higher thresholds
-            cv=3,  # Faster
-            thresh_method='bayesian_optimization',
-            random_state=42,
-            verbose=False,
-        )
+        try:
+            # Gentle parameters for TUEV
+            ar = AutoReject(
+                n_interpolate=[1, 2],  # Gentler than TUAB
+                consensus=[0.5, 0.7, 0.9],  # Higher thresholds
+                cv=3,  # Faster
+                thresh_method='bayesian_optimization',
+                random_state=42,
+                verbose=False,
+            )
 
-        epochs_clean = ar.fit_transform(epochs)
+            epochs_clean = ar.fit_transform(epochs)
 
-        # Collect learned parameters
-        ar_params = {}
-        if hasattr(ar, 'n_interpolate_'):
-            ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
-            logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
-        if hasattr(ar, 'consensus_'):
-            ar_params['consensus'] = ar.consensus_.get('eeg', None)
-            logger.info(f"Learned consensus: {ar.consensus_}")
+            # Collect learned parameters
+            ar_params = {}
+            if hasattr(ar, 'n_interpolate_'):
+                ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
+                logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
+            if hasattr(ar, 'consensus_'):
+                ar_params['consensus'] = ar.consensus_.get('eeg', None)
+                logger.info(f"Learned consensus: {ar.consensus_}")
 
-        return epochs_clean, ar_params
+            return epochs_clean, ar_params
+
+        except Exception as e:
+            logger.warning(f"Autoreject failed: {e}. Proceeding without artifact rejection.")
+            # Return original epochs if AR fails
+            return epochs, {}
