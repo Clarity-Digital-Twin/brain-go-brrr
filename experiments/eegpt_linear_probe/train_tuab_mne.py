@@ -73,17 +73,22 @@ def create_deterministic_dataloader(
     # This preserves order - no random shuffling!
     subset_dataset = Subset(dataset, subset_indices)
 
+    # Build DataLoader kwargs conditionally to avoid prefetch_factor=None crash
+    dl_kwargs = {
+        'batch_size': batch_size,
+        'shuffle': False,  # CRITICAL: Don't shuffle - preserve our deterministic order
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': pin_memory,
+        'collate_fn': collate_fn,
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        dl_kwargs['persistent_workers'] = persistent_workers
+        dl_kwargs['prefetch_factor'] = prefetch_factor
+
     # Create DataLoader without any sampler - just iterate in order
-    loader = DataLoader(
-        subset_dataset,
-        batch_size=batch_size,
-        shuffle=False,  # CRITICAL: Don't shuffle - preserve our deterministic order
-        num_workers=num_workers if num_workers > 0 else 0,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers if num_workers > 0 else False,
-        prefetch_factor=prefetch_factor if num_workers > 0 else None,
-        collate_fn=collate_fn,
-    )
+    loader = DataLoader(subset_dataset, **dl_kwargs)
 
     return loader, epoch_indices
 
@@ -144,13 +149,13 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
+
         # BULLETPROOF scheduler step using internal counters
         try:
             # OneCycleLR tracks its own step count internally
             total_steps = getattr(scheduler, "total_steps", None)
             step_count = getattr(scheduler, "_step_count", None)
-            
+
             # Only step if we haven't reached the limit
             if total_steps is None or step_count is None or step_count < total_steps:
                 scheduler.step()
@@ -158,8 +163,8 @@ def train_epoch(
                 logger.debug(f"Scheduler at limit: {step_count}/{total_steps}, skipping step")
         except (ValueError, RuntimeError) as e:
             # This should never happen with the guard above, but just in case
-            logger.warning(f"Scheduler step skipped at batch {batch_idx+start_batch}: {e}")
-        
+            logger.warning(f"Scheduler step skipped at batch {batch_idx + start_batch}: {e}")
+
         # Increment global step AFTER successful scheduler step
         global_step += 1
 
@@ -295,8 +300,8 @@ def evaluate(
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
 
-    # Calculate metrics
-    avg_loss = total_loss / len(eval_loader)
+    # Calculate metrics (guard against empty eval set)
+    avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
     auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
 
     return avg_loss, auroc, all_preds, all_labels
@@ -414,20 +419,22 @@ def main():
     ]
     logger.info(f"Batches per epoch: {batches_per_epoch}")
 
-    eval_loader = DataLoader(
-        eval_dataset,
-        batch_size=config['data']['batch_size'],
-        shuffle=False,
-        num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
-        pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
-        persistent_workers=config['data'].get('persistent_workers', True)
-        if config['data'].get('num_workers', 4) > 0
-        else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2)
-        if config['data'].get('num_workers', 4) > 0
-        else None,
-        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
-    )
+    # Build eval loader with conditional kwargs to avoid prefetch_factor=None crash
+    num_workers = config['data'].get('num_workers', 4)
+    eval_dl_kwargs = {
+        'batch_size': config['data']['batch_size'],
+        'shuffle': False,
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': config['data'].get('pin_memory', True),
+        'collate_fn': collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        eval_dl_kwargs['persistent_workers'] = config['data'].get('persistent_workers', True)
+        eval_dl_kwargs['prefetch_factor'] = config['data'].get('prefetch_factor', 2)
+
+    eval_loader = DataLoader(eval_dataset, **eval_dl_kwargs)
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
@@ -466,7 +473,7 @@ def main():
 
     # Compute total scheduler steps for safety guard (epochs * steps_per_epoch)
     total_scheduler_steps = int(config['training']['max_epochs']) * int(batches_per_epoch)
-    
+
     # Sync with scheduler's internal total_steps (might differ slightly due to rounding)
     total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
 
@@ -479,12 +486,19 @@ def main():
             label = sample_info['label']
             class_counts[label] = class_counts.get(label, 0) + 1
 
-        # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
-        pos_weight = class_counts[0] / class_counts[1]
-        logger.info(f"Class distribution - Normal: {class_counts[0]}, Abnormal: {class_counts[1]}")
-        logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
+        # Guard against divide by zero if one class is missing
+        neg_count = class_counts[0]
+        pos_count = class_counts[1]
+        logger.info(f"Class distribution - Normal: {neg_count}, Abnormal: {pos_count}")
 
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
+        if pos_count == 0 or neg_count == 0:
+            logger.warning("WARNING: One class has zero samples! Disabling weighted loss.")
+            criterion = nn.BCEWithLogitsLoss()
+        else:
+            # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
+            pos_weight = neg_count / pos_count
+            logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
+            criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
     else:
         criterion = nn.BCEWithLogitsLoss()
 
@@ -506,7 +520,7 @@ def main():
             if 'scheduler_state_dict' in checkpoint:
                 scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
                 logger.info("Scheduler state restored from checkpoint")
-                
+
                 # CRITICAL: Sync total_steps after loading state
                 # The scheduler might have a different view after resume
                 total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
