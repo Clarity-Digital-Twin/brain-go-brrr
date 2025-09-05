@@ -86,12 +86,12 @@ def create_deterministic_dataloader(
         'pin_memory': pin_memory,
         'collate_fn': collate_fn,
     }
-    
+
     # Only add persistent_workers and prefetch_factor if we have workers
     if num_workers > 0:
         dl_kwargs['persistent_workers'] = persistent_workers
         dl_kwargs['prefetch_factor'] = prefetch_factor
-    
+
     # Create DataLoader without any sampler - preserve deterministic order
     loader = DataLoader(subset_dataset, **dl_kwargs)
 
@@ -384,12 +384,12 @@ def main():
         'pin_memory': config['data'].get('pin_memory', True),
         'collate_fn': collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
     }
-    
+
     # Only add persistent_workers and prefetch_factor if we have workers
     if num_workers > 0:
         eval_dl_kwargs['persistent_workers'] = config['data'].get('persistent_workers', True)
         eval_dl_kwargs['prefetch_factor'] = config['data'].get('prefetch_factor', 2)
-    
+
     eval_loader = DataLoader(eval_dataset, **eval_dl_kwargs)
 
     # Load EEGPT model
@@ -440,7 +440,7 @@ def main():
             for _, label in train_dataset:
                 all_labels.append(label)
             class_counts = np.bincount(all_labels, minlength=6)
-        
+
         # Guard against divide-by-zero if any class is missing
         total_samples = class_counts.sum()
         if np.any(class_counts == 0):
