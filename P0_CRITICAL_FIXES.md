@@ -4,7 +4,7 @@
 **Owner**: ___________________  
 **Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY  
-**Revision**: v8.0 - TDD + Adapter boundary (final perfect version)  
+**Revision**: v9.0 - TDD + Adapter boundary (final)  
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
 
 ---
@@ -95,14 +95,55 @@ class TestP0APIDimensions:
         response = client.post("/api/v1/eegpt/analyze", files=files)
         # Test will fail with dimension error before fix
             
-    def test_batch_endpoint_flattens_to_2048(self):
+    def test_batch_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /analyze/batch must flatten (B,4,512) to (B,2048)."""
-        # Mock returns numpy (B,4,512)
-        mock_model.extract_features_batch.return_value = np.random.randn(32, 4, 512).astype(np.float32)
+        from fastapi.testclient import TestClient
+        from brain_go_brrr.api.app import app
+        from brain_go_brrr.api.routers import eegpt as eegpt_router
         
-    def test_sleep_stages_endpoint_flattens_to_2048(self):
+        mock_model = Mock()
+        # Batch contract: (B,4,512) numpy on summary=False
+        mock_model.extract_features_batch.return_value = np.random.randn(8, 4, 512).astype(np.float32)
+        monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
+        
+        def _probe_predict(x: torch.Tensor):
+            if x.ndim != 2 or x.shape[-1] != 2048:
+                pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
+            return torch.randn(x.shape[0], 2)
+        
+        mock_probe = Mock(predict_proba=_probe_predict)
+        monkeypatch.setattr(eegpt_router, "get_probe", lambda: mock_probe, raising=False)
+        
+        # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
+        client = TestClient(app)
+        files = {"file": ("fake.edf", b"x", "application/octet-stream")}
+        response = client.post("/api/v1/analyze/batch", files=files)
+        # Test will fail with dimension error before fix
+        
+    def test_sleep_stages_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /eegpt/sleep/stages must flatten to 2048."""
-        # Similar test for sleep endpoint
+        from fastapi.testclient import TestClient
+        from brain_go_brrr.api.app import app
+        from brain_go_brrr.api.routers import eegpt as eegpt_router
+        
+        mock_model = Mock()
+        # Single-window contract: (4,512) numpy on summary=False
+        mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
+        monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
+        
+        def _probe_predict(x: torch.Tensor):
+            if x.ndim != 2 or x.shape[-1] != 2048:
+                pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
+            return torch.randn(x.shape[0], 5)  # 5 sleep stages
+        
+        mock_probe = Mock(predict_proba=_probe_predict)
+        monkeypatch.setattr(eegpt_router, "get_sleep_probe", lambda: mock_probe, raising=False)
+        
+        # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
+        client = TestClient(app)
+        files = {"file": ("fake.edf", b"x", "application/octet-stream")}
+        response = client.post("/api/v1/eegpt/sleep/stages", files=files)
+        # Test will fail with dimension error before fix
 ```
 
 #### Test 2: Trainer Must Flatten to 2048
@@ -162,6 +203,7 @@ Now we make the SMALLEST changes to make tests pass. No extras, no refactoring y
 **Update method signatures to accept and forward `summary` parameter:**
 
 ```python
+import torch
 import numpy as np
 import numpy.typing as npt
 
@@ -284,7 +326,7 @@ def prepare_probe_features(
         features = torch.as_tensor(features, dtype=torch.float32)
     
     # Handle single window: (4,512) → (1,4,512)
-    if features.ndim == 2 and features.shape == torch.Size([4, 512]):
+    if features.ndim == 2 and features.shape[-2:] == (4, 512):
         features = features.unsqueeze(0)  # Add batch dimension
     
     # Flatten batch: (B,4,512) → (B,2048)
