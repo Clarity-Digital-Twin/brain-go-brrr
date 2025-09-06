@@ -1,6 +1,6 @@
 """TUEV dataset with MNE+Autoreject preprocessing.
 
-Multi-class event detection (6 classes) with 20 channels (Fz included, Fpz excluded).
+Multi-class event detection (6 classes) with 20 channels (Fz and Fpz included, Oz excluded).
 """
 
 import json
@@ -36,7 +36,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
     """
 
     # Cache version - bump this when preprocessing pipeline changes
-    CACHE_VERSION = "mne-ar-v3"  # v3: fixed-grid windows, argmax labeling, gentle AR
+    CACHE_VERSION = "mne-ar-v4"  # v4: RANSAC disabled by default, EEG types set pre-montage
 
     def __init__(
         self,
@@ -102,12 +102,12 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             # Validate channels - support both old and new key
             if 'channels' in meta:
                 assert meta['channels'] == CHANNELS_TUEV_20, (
-                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                    "Cache channels mismatch! Expected TUEV 20 channels (with FPZ, no OZ)"
                 )
             elif 'channels20' in meta:  # Backward compat
                 logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
                 assert meta['channels20'] == CHANNELS_TUEV_20, (
-                    "Cache channels mismatch! Expected TUEV 20 channels (with FZ, no FPZ)"
+                    "Cache channels mismatch! Expected TUEV 20 channels (with FPZ, no OZ)"
                 )
 
             logger.info(
@@ -132,16 +132,129 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             logger.info(f"Class distribution: {self.index['class_counts']}")
 
     def _build_cache(self) -> None:
-        """Build preprocessed cache with MNE+Autoreject.
+        """Build preprocessed cache with MNE+Autoreject."""
+        import subprocess
 
-        NOTE: This requires the TUEVPreprocessor module which is not currently
-        implemented. Use pre-built cache instead.
-        """
-        raise NotImplementedError(
-            "Building TUEV cache requires TUEVPreprocessor which is not implemented. "
-            "Please use a pre-built cache. The cache_dir parameter should point to "
-            "an existing cache directory with META.json and window files."
-        )
+        from tqdm import tqdm  # type: ignore[import-untyped]
+
+        from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        preprocessor = TUEVPreprocessor()
+
+        # Track all windows globally
+        global_window_id = 0
+        windows_dict = {}
+        class_counts = dict.fromkeys(range(6), 0)
+        n_rejected_total = 0
+
+        edf_files = self._get_edf_files()
+        logger.info(f"Building cache for {len(edf_files)} TUEV files in {self.split} split")
+
+        for edf_path in tqdm(edf_files, desc="Processing TUEV files"):
+            try:
+                annotations = self._load_annotations(edf_path)
+
+                # Call EXISTING method with CORRECT signature
+                epochs_clean, info, window_labels = preprocessor.process_raw_with_annotations(
+                    edf_path,
+                    annotations,
+                    window_overlap=0.5,  # 50% overlap for 2s stride on 4s windows
+                )
+
+                # Extract data from MNE Epochs object
+                epoch_data = epochs_clean.get_data()  # Shape: (n_epochs, 20, 1024)
+
+                # Process each clean epoch
+                for epoch_idx in range(len(epochs_clean)):
+                    # Get single epoch data (20, 1024)
+                    x_volts = epoch_data[epoch_idx]  # In Volts from MNE
+
+                    # CRITICAL: Convert Volts to millivolts
+                    x_mv = x_volts * 1e3
+
+                    # Get label for this window
+                    label_str = window_labels[epoch_idx]
+                    label_int = CLASS_MAPPING[label_str]
+
+                    # Ensure correct tensor types
+                    x_tensor = torch.tensor(x_mv, dtype=torch.float32)  # (20, 1024) in mV
+                    y_tensor = torch.tensor(
+                        label_int, dtype=torch.long
+                    )  # Long for CrossEntropyLoss
+
+                    # Save individual window
+                    cache_file = f"window_{global_window_id}.pt"
+                    torch.save(
+                        {'x': x_tensor, 'y': y_tensor},
+                        self.cache_dir / cache_file,
+                        _use_new_zipfile_serialization=True,
+                    )
+
+                    # Track in index
+                    windows_dict[str(global_window_id)] = {
+                        'cache_file': cache_file,
+                        'label': int(label_int),
+                        'file': str(edf_path.relative_to(self.root_dir)),
+                    }
+
+                    class_counts[label_int] += 1
+                    global_window_id += 1
+
+                n_rejected_total += info.get('n_rejected', 0)
+
+            except Exception as e:
+                logger.warning(f"Error processing {edf_path.name}: {e}")
+                continue
+
+        # Write index JSON
+        index_data = {
+            'total_windows': global_window_id,
+            'windows': windows_dict,
+            'n_files': len(edf_files),
+            'n_rejected': n_rejected_total,
+            'class_counts': {str(k): v for k, v in class_counts.items()},
+        }
+
+        index_path = self.cache_dir / f'index_{self.split}_{self.CACHE_VERSION}.json'
+        with index_path.open('w') as f:
+            json.dump(index_data, f, indent=2)
+
+        # Write META JSON
+        meta_data = {
+            'sr': 256,
+            'unit': 'mV',
+            'window': 1024,
+            'channels': CHANNELS_TUEV_20,
+            'n_channels': 20,
+            'norm': 'wrapper',
+            'commit': subprocess.check_output(
+                ['git', 'rev-parse', '--short', 'HEAD'], cwd=Path(__file__).parent
+            )
+            .decode()
+            .strip(),
+            'split': self.split,
+            'dataset': 'TUEV',
+        }
+
+        with (self.cache_dir / 'META.json').open('w') as f:
+            json.dump(meta_data, f, indent=2)
+
+        logger.info(f"Cache built: {global_window_id} windows, class dist: {class_counts}")
+
+        # Fail fast if cache is empty
+        if global_window_id == 0:
+            raise ValueError(
+                "Cache building failed: 0 windows produced. "
+                "Check preprocessing logs for 'Valid channel positions' errors. "
+                "Likely cause: montage not set after channel synthesis."
+            )
+
+        # Future enhancement: Track success/failure rate
+        # if n_rejected_total / len(edf_files) > 0.5:
+        #     logger.error(f"Too many failures: {n_rejected_total}/{len(edf_files)}")
+        #     raise ValueError("Cache building failed: >50% of files failed")
 
     def _get_edf_files(self) -> list[Path]:
         """Get list of EDF files for this split."""

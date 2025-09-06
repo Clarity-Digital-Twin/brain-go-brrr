@@ -27,11 +27,9 @@ def test_channel_specs():
         f"TUEV should have 20 channels, got {len(tuev_proc.STANDARD_CHANNELS)}"
     )
     assert 'Fz' in tuev_proc.STANDARD_CHANNELS, "TUEV SHOULD include Fz"
-    assert 'Oz' in tuev_proc.STANDARD_CHANNELS, "TUEV should include Oz"
-    assert 'Fpz' not in [ch.upper() for ch in tuev_proc.STANDARD_CHANNELS], (
-        "TUEV should NOT include Fpz"
-    )
-    print("✅ TUEV Preprocessor: 20 channels (with Fz, no Fpz)")
+    assert 'Fpz' in tuev_proc.STANDARD_CHANNELS, "TUEV should include Fpz"
+    assert 'Oz' not in tuev_proc.STANDARD_CHANNELS, "TUEV should NOT include Oz"
+    print("✅ TUEV Preprocessor: 20 channels (with Fz & Fpz, no Oz)")
 
     # Check configs
     from pathlib import Path
@@ -49,14 +47,14 @@ def test_channel_specs():
         f"TUEV config should have 20 unique channels, got {len(unique_channels)}"
     )
     assert 'FZ' in unique_channels, "TUEV config should include FZ"
-    assert 'FPZ' not in unique_channels, "TUEV config should NOT include FPZ"
-    assert 'OZ' in unique_channels, "TUEV config should include OZ"
+    assert 'FPZ' in unique_channels, "TUEV config should include FPZ"
+    assert 'OZ' not in unique_channels, "TUEV config should NOT include OZ"
     print("✅ TUEV Config: 20 channels correctly specified")
 
     print("\n" + "=" * 60)
     print("SUMMARY:")
     print("  TUAB: 19 channels (excludes Fz) ✅")
-    print("  TUEV: 20 channels (includes Fz, excludes Fpz) ✅")
+    print("  TUEV: 20 channels (includes Fz & Fpz, excludes Oz) ✅")
     print("\nAll channel specifications are CORRECT!")
     print("=" * 60)
 

@@ -1,0 +1,127 @@
+channels:
+  target_20:
+  - FP1
+  - FPZ
+  - FP2
+  - F7
+  - F3
+  - FZ
+  - F4
+  - F8
+  - T7
+  - C3
+  - CZ
+  - C4
+  - T8
+  - P7
+  - P3
+  - PZ
+  - P4
+  - P8
+  - O1
+  - O2
+  tcp_23:
+  - FP1-F7
+  - F7-T3
+  - T3-T5
+  - T5-O1
+  - FP2-F8
+  - F8-T4
+  - T4-T6
+  - T6-O2
+  - FP1-F3
+  - F3-C3
+  - C3-P3
+  - P3-O1
+  - FP2-F4
+  - F4-C4
+  - C4-P4
+  - P4-O2
+  - FZ-CZ
+  - CZ-PZ
+  - T3-C3
+  - C3-CZ
+  - CZ-C4
+  - C4-T4
+  - A1-T3
+  - T4-A2
+classes:
+  0: SPSW
+  1: GPED
+  2: PLED
+  3: EYEM
+  4: ARTF
+  5: BCKG
+  ied_classes:
+  - 0
+  - 1
+  - 2
+  artifact_classes:
+  - 3
+  - 4
+  normal_classes:
+  - 5
+data:
+  batch_size: 128
+  cache_dir: ${BGB_CACHE_DIR}/tuev_4s_256hz_v2
+  dataset: tuev
+  n_channels: 23
+  n_classes: 6
+  num_workers: 4
+  pin_memory: true
+  root_dir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/external/tuh_eeg/TUEV/v2.0.1
+  sampling_rate: 256
+  window_samples: 1024
+metrics:
+  primary:
+  - balanced_accuracy
+  - weighted_f1
+  - cohen_kappa
+  secondary:
+  - confusion_matrix
+  - per_class_f1
+  - ied_vs_non_ied
+model:
+  channel_reduction:
+    in_channels: 23
+    kernel_size: 1
+    out_channels: 20
+  dropout: 0.5
+  eegpt_checkpoint: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+  expected_after_conv:
+  - 20
+  - 1024
+  expected_features:
+  - 16
+  - 4
+  - 512
+  expected_input:
+  - 23
+  - 1024
+  freeze_backbone: true
+  temporal_conv:
+    groups: 20
+    kernel_size: 55
+    padding: 27
+training:
+  gradient_clip: 1.0
+  learning_rate: 0.0005
+  min_delta: 0.001
+  n_epochs: 100
+  patience: 20
+  use_scheduler: true
+  weight_decay: 0.01
+validation:
+  n_runs: 3
+  seeds:
+  - 42
+  - 123
+  - 456
+  split_strategy: biot
+  targets:
+    balanced_accuracy: 0.6232
+    cohen_kappa: 0.6351
+    improvement_over_biot:
+      balanced_accuracy: 0.095
+      weighted_f1: 0.069
+    weighted_f1: 0.8187

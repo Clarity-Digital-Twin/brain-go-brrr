@@ -14,6 +14,7 @@ Now with full operational parity to TUAB script:
 """
 
 import argparse
+import contextlib
 import json
 import logging
 import math
@@ -78,17 +79,22 @@ def create_deterministic_dataloader(
     # Create a Subset dataset with the exact indices we want
     subset_dataset = Subset(dataset, subset_indices)
 
+    # Build DataLoader kwargs conditionally to avoid prefetch_factor=None crash
+    dl_kwargs = {
+        'batch_size': batch_size,
+        'shuffle': False,  # CRITICAL: Don't shuffle - preserve our deterministic order
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': pin_memory,
+        'collate_fn': collate_fn,
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        dl_kwargs['persistent_workers'] = persistent_workers
+        dl_kwargs['prefetch_factor'] = prefetch_factor
+
     # Create DataLoader without any sampler - preserve deterministic order
-    loader = DataLoader(
-        subset_dataset,
-        batch_size=batch_size,
-        shuffle=False,  # CRITICAL: Don't shuffle - preserve our deterministic order
-        num_workers=num_workers if num_workers > 0 else 0,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers if num_workers > 0 else False,
-        prefetch_factor=prefetch_factor if num_workers > 0 else None,
-        collate_fn=collate_fn,
-    )
+    loader = DataLoader(subset_dataset, **dl_kwargs)
 
     return loader, epoch_indices
 
@@ -143,7 +149,6 @@ def train_epoch(
             continue
 
         x, y = x.to(device), y.to(device)
-        global_step += 1
         samples_seen += x.shape[0]  # Track actual samples processed
 
         # Log first batch shapes for diagnostics
@@ -165,7 +170,24 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+
+        # BULLETPROOF scheduler step using internal counters
+        try:
+            # OneCycleLR tracks its own step count internally
+            total_steps = getattr(scheduler, "total_steps", None)
+            step_count = getattr(scheduler, "_step_count", None)
+
+            # Only step if we haven't reached the limit
+            if total_steps is None or step_count is None or step_count < total_steps:
+                scheduler.step()
+            else:
+                logger.debug(f"Scheduler at limit: {step_count}/{total_steps}, skipping step")
+        except (ValueError, RuntimeError) as e:
+            # This should never happen with the guard above, but just in case
+            logger.warning(f"Scheduler step skipped at batch {batch_idx}: {e}")
+
+        # Increment global step AFTER successful scheduler step
+        global_step += 1
 
         # Track metrics
         total_loss += loss.item()
@@ -185,9 +207,27 @@ def train_epoch(
                 }
             )
 
-        # Heartbeat for crash detection
+        # Heartbeat for crash detection + rolling checkpoint
         if batch_idx % 100 == 0 and output_dir:
             update_heartbeat(output_dir, epoch, batch_idx, global_step)
+            # Also save rolling checkpoint for crash resilience
+            with contextlib.suppress(Exception):  # Non-fatal checkpoint save
+                torch.save(
+                    {
+                        'epoch': epoch,
+                        'batch_idx': batch_idx,
+                        'global_step': global_step,
+                        'probe_state_dict': probe.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'scheduler_state_dict': scheduler.state_dict(),
+                        'epoch_indices': epoch_indices,
+                        'sample_offset': samples_seen,
+                        'best_balanced_acc': 0,  # Not tracked here
+                        'best_kappa': 0,  # Not tracked here
+                        'config': config,
+                    },
+                    output_dir / 'checkpoint_latest.pt',
+                )
 
         # Intra-epoch checkpointing
         if output_dir and batch_idx > 0 and batch_idx % 500 == 0:
@@ -245,14 +285,24 @@ def evaluate(model, probe, eval_loader, criterion, device):
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
 
-    # Calculate metrics
-    avg_loss = total_loss / len(eval_loader)
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds)
-    weighted_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
-    kappa = cohen_kappa_score(all_labels, all_preds)
+    # Calculate metrics (guard against empty eval set)
+    avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
+    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
+    weighted_f1 = (
+        f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
+    )
+    kappa = (
+        cohen_kappa_score(all_labels, all_preds)
+        if len(all_labels) > 0 and len(set(all_labels)) > 1
+        else 0.0
+    )
 
     # Per-class F1 with zero_division handling
-    per_class_f1 = f1_score(all_labels, all_preds, average=None, zero_division=0)
+    per_class_f1 = (
+        f1_score(all_labels, all_preds, average=None, zero_division=0)
+        if all_labels
+        else np.zeros(6)
+    )
     class_names = ['SPSW', 'GPED', 'PLED', 'EYEM', 'ARTF', 'BCKG']
     per_class_results = dict(zip(class_names, per_class_f1, strict=False))
 
@@ -310,10 +360,21 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True, warn_only=True)
-    if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+
+    # Make deterministic algorithms configurable (can slow training 10-14x)
+    deterministic = config.get('experiment', {}).get('deterministic', False)
+    if deterministic:
+        torch.use_deterministic_algorithms(True, warn_only=True)
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+        logger.info("Deterministic mode enabled (expect 10-14x slowdown)")
+    else:
+        # Fast mode - allow non-deterministic ops
+        if torch.cuda.is_available():
+            torch.backends.cudnn.deterministic = False
+            torch.backends.cudnn.benchmark = True
+        logger.info("Fast mode enabled (non-deterministic ops allowed)")
 
     # Setup output directory
     if args.output_dir is None:
@@ -370,21 +431,22 @@ def main():
 
     # Note: train_loader will be created per epoch with deterministic sampling
 
-    # Create eval data loader with optimized settings
-    eval_loader = DataLoader(
-        eval_dataset,
-        batch_size=config['data']['batch_size'],
-        shuffle=False,
-        num_workers=config['data'].get('num_workers', 4),
-        pin_memory=config['data'].get('pin_memory', True),
-        persistent_workers=config['data'].get('persistent_workers', True)
-        if config['data'].get('num_workers', 4) > 0
-        else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2)
-        if config['data'].get('num_workers', 4) > 0
-        else None,
-        collate_fn=collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
-    )
+    # Build eval loader with conditional kwargs to avoid prefetch_factor=None crash
+    num_workers = config['data'].get('num_workers', 4)
+    eval_dl_kwargs = {
+        'batch_size': config['data']['batch_size'],
+        'shuffle': False,
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': config['data'].get('pin_memory', True),
+        'collate_fn': collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        eval_dl_kwargs['persistent_workers'] = config['data'].get('persistent_workers', True)
+        eval_dl_kwargs['prefetch_factor'] = config['data'].get('prefetch_factor', 2)
+
+    eval_loader = DataLoader(eval_dataset, **eval_dl_kwargs)
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
@@ -423,16 +485,30 @@ def main():
 
     # Setup loss with class weighting for imbalanced data
     if config.get('training', {}).get('weighted_loss', True):
-        # Compute class weights from training dataset
+        # Compute class weights from training dataset efficiently
         logger.info("Computing class weights for balanced loss...")
-        all_labels = []
-        for _, label in train_dataset:
-            all_labels.append(label)
-        class_counts = np.bincount(all_labels, minlength=6)
-        class_weights = len(all_labels) / (len(class_counts) * class_counts + 1e-6)
-        class_weights = torch.FloatTensor(class_weights).to(device)
-        logger.info(f"Class counts: {class_counts.tolist()}")
-        logger.info(f"Class weights: {class_weights.tolist()}")
+        # Check if dataset has precomputed class counts (much faster)
+        if hasattr(train_dataset, 'class_counts'):
+            class_counts = np.array(list(train_dataset.class_counts.values()))
+        else:
+            # Fallback: iterate through dataset (slow but works)
+            all_labels = []
+            for _, label in train_dataset:
+                all_labels.append(label)
+            class_counts = np.bincount(all_labels, minlength=6)
+
+        # Guard against divide-by-zero if any class is missing
+        total_samples = class_counts.sum()
+        if np.any(class_counts == 0):
+            logger.warning(f"WARNING: Some classes have zero samples: {class_counts.tolist()}")
+            logger.warning("Using uniform weights to avoid divide-by-zero")
+            class_weights = torch.ones(6).to(device)
+        else:
+            # Compute inverse frequency weights
+            class_weights = total_samples / (len(class_counts) * class_counts)
+            class_weights = torch.FloatTensor(class_weights).to(device)
+            logger.info(f"Class counts: {class_counts.tolist()}")
+            logger.info(f"Class weights: {class_weights.tolist()}")
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     else:
         criterion = nn.CrossEntropyLoss()
@@ -456,6 +532,10 @@ def main():
         scheduler_state = checkpoint.get('scheduler_state_dict')
         if scheduler_state:
             scheduler.load_state_dict(scheduler_state)
+            # Log scheduler position for audit
+            step_count = getattr(scheduler, "_step_count", 0)
+            total_steps = getattr(scheduler, "total_steps", "unknown")
+            logger.info(f"Scheduler resume: step {step_count}/{total_steps}")
         else:
             # Fallback: set scheduler position based on global step
             global_step_resume = checkpoint.get('global_step', 0)
@@ -609,6 +689,22 @@ def main():
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint at epoch {epoch}")
+
+        # Always save rolling checkpoint for crash resilience
+        with contextlib.suppress(Exception):  # Non-fatal checkpoint save
+            torch.save(
+                {
+                    'epoch': epoch,
+                    'probe_state_dict': probe.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'best_balanced_acc': best_balanced_acc,
+                    'best_kappa': best_kappa,
+                    'global_step': global_step,
+                    'config': config,
+                },
+                output_dir / 'checkpoint_latest.pt',
+            )
 
     logger.info("=" * 60)
     logger.info("Training complete!")

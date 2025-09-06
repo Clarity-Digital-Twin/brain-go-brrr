@@ -421,9 +421,10 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
         rng = np.random.default_rng(seed=44)
 
         # TUEV uses standard 10-20 with EOG channels (MODERN naming)
-        # CRITICAL: Must match CHANNELS_TUEV_20 (20 EEG channels including Oz, NO Fpz)
+        # CRITICAL: Must match CHANNELS_TUEV_20 (20 EEG channels including Fpz, NO Oz)
         ch_names = [
             "Fp1",
+            "Fpz",
             "Fp2",
             "F7",
             "F3",
@@ -442,7 +443,6 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
             "P8",  # Modern: T5→P7, T6→P8
             "O1",
             "O2",
-            "Oz",  # CRITICAL: TUEV needs Oz!
             "A1",
             "A2",
             "EOG",
@@ -459,7 +459,7 @@ def _create_synthetic_tuev(tmp_path: Path) -> Path:
 
         # Add a simulated event spike at 30 seconds (only in EEG channels)
         event_time = int(30 * sfreq)
-        data[:21, event_time : event_time + int(0.5 * sfreq)] *= 3  # 0.5 second spike
+        data[:20, event_time : event_time + int(0.5 * sfreq)] *= 3  # 0.5 second spike
 
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
         raw = mne.io.RawArray(data, info)
