@@ -306,15 +306,20 @@ But honestly, our zero-fill is working fine and we're almost done training!
 - **What you'll find**: [FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2]
 - **Note**: Paper says FPZ exists, but actual TUEV data doesn't have it!
 
-#### 💻 EEGPT Authors' GitHub Repository
-- **URL**: https://github.com/BINE022/EEGPT
-- **Commit**: Latest as of Sept 2025
-- **Key files to check**:
-  1. `downstream_tueg/dataset_maker/make_TUEV.py`
+#### 💻 EEGPT Authors' Code (ALREADY IN OUR REPO!)
+- **External GitHub**: https://github.com/BINE022/EEGPT
+- **LOCAL COPY IN OUR REPO**: `reference_repos/EEGPT/`
+- **Key files to check IN OUR REPO**:
+  1. `reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py`
      - Line 14-15: Channel list has NO FPZ (only 23 channels)
-  2. `downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py`
+  2. `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py`
      - Line 27: Model expects FPZ in channel dict
      - Line 698: Conv2dWithConstraint maps 23→20 channels
+
+#### 📚 EEGPT Paper Analysis (ALSO IN OUR REPO!)
+- **Markdown version**: `literature/markdown/EEGPT/EEGPT.md`
+- **Search for**: "Table 13" or "TUEV channels"
+- **What it says**: Lists 20 channels including FPZ for TUEV
 
 #### 🗂️ TUEV Dataset Official Documentation
 - **URL**: https://isip.piconepress.com/projects/tuh_eeg/html/downloads.shtml
