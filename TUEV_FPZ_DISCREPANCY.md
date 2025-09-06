@@ -33,7 +33,7 @@ This is a documentation error in the paper, not an implementation error in our c
 
 ```bash
 # 1. Check our TUEV expects Fpz (✅ YES)
-grep "FPZ" src/brain_go_brrr/infra/data/channels.py
+grep -n "CHANNELS_TUEV_20" -A25 src/brain_go_brrr/infra/data/channels.py
 
 # 2. Check actual TUEV data has Fpz (❌ NO)  
 grep "FPZ" reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py
@@ -173,7 +173,7 @@ chOrder_standard = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF',
 
 #### 2. Their Model Definition (`EEGPT_mcae_finetune_change_tuev.py`):
 ```python
-# Line 26-35: Model expects these 20 channels INCLUDING FPZ!
+# Search for CHANNEL_DICT: Model expects these channels INCLUDING FPZ!
 CHANNEL_DICT = {k.upper():v for v,k in enumerate(
     ['FP1', 'FPZ', 'FP2',  # <-- FPZ is here!
      'F7', 'F3', 'FZ', 'F4', 'F8',
@@ -269,8 +269,9 @@ But honestly, our zero-fill is working fine and we're almost done training!
 
 1. **"TUEV expects 20 channels with Fpz, without Oz"**
    ```bash
-   cat src/brain_go_brrr/infra/data/channels.py | grep -A20 "TUEV_CHANNELS"
-   # Lines 34-54 show exactly: FP1, FPZ, FP2... (has FPZ, no OZ)
+   grep -n "CHANNELS_TUEV_20" -A25 src/brain_go_brrr/infra/data/channels.py
+   # Shows exactly: FP1, FPZ, FP2... (has FPZ, no OZ)
+   # Note: CHANNELS_TUEV_20 in channels.py is the SSOT, not TUEVPreprocessor.TUEV_CHANNELS
    ```
 
 2. **"We synthesize missing Fpz as zeros"**
@@ -302,9 +303,10 @@ But honestly, our zero-fill is working fine and we're almost done training!
 #### 📄 EEGPT Paper (arXiv:2308.11578)
 - **URL**: https://arxiv.org/pdf/2308.11578.pdf
 - **Page 20, Table 13**: Lists TUEV channels
-- **What to look for**: Check if "FPZ" is listed in the 20 channels
+- **Table 1**: Shows pretraining datasets (PhysioMI, HGD, TSU, SEED, M3CV) - TUEV NOT included!
+- **What to look for**: Check if "FPZ" is listed in the 20 channels for TUEV
 - **What you'll find**: [FP1, FPZ, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2]
-- **Note**: Paper says FPZ exists, but actual TUEV data doesn't have it!
+- **Note**: Paper says FPZ exists, but actual TUEV data doesn't have it! TUEV was only used for downstream evaluation, not pretraining.
 
 #### 💻 EEGPT Authors' Code (ALREADY IN OUR REPO!)
 - **External GitHub**: https://github.com/BINE022/EEGPT
