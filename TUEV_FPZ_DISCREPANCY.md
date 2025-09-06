@@ -25,9 +25,9 @@
 
 ## Executive Summary
 
-**The EEGPT paper says TUEV has Fpz, but TUEV data files DON'T have Fpz.**
+**The EEGPT paper defines a canonical 20-channel interface including Fpz, but TUEV data files don't have Fpz.**
 
-This is a documentation error in the paper, not an implementation error in our code.
+The paper specifies the target interface but doesn't document the preprocessing bridge (Fpz synthesis) needed to handle this mismatch.
 
 ## 📌 QUICK VERIFICATION CHECKLIST FOR AUDITOR
 
@@ -161,7 +161,7 @@ By examining their official reference implementation (`reference_repos/EEGPT/`),
 
 #### 1. Their Data Preprocessing (`make_TUEV.py`):
 ```python
-# Line 14-15: Their channel order - NO FPZ!
+# Search for chOrder_standard: Their channel order - NO FPZ!
 chOrder_standard = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF',
                     'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF',
                     'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF',
@@ -184,7 +184,7 @@ CHANNEL_DICT = {k.upper():v for v,k in enumerate(
 
 #### 3. THE KEY: Learnable Channel Mapping!
 ```python
-# Lines in their model - THIS IS HOW THEY BRIDGE THE GAP!
+# Search for self.chan_conv - THIS IS HOW THEY BRIDGE THE GAP!
 self.chan_conv = torch.nn.Sequential(
     Conv2dWithConstraint(in_channels, img_size[0], 1),  # in_channels=23, img_size[0]=20
     nn.BatchNorm2d(img_size[0]),
@@ -277,7 +277,7 @@ But honestly, our zero-fill is working fine and we're almost done training!
 2. **"We synthesize missing Fpz as zeros"**
    ```bash
    grep -n "Synthesized missing channel" src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py
-   # Line 231 shows the synthesis
+   # Shows where we synthesize missing channels
    ```
 
 3. **"Authors' TUEV preprocessing has NO Fpz"**
@@ -289,7 +289,7 @@ But honestly, our zero-fill is working fine and we're almost done training!
 4. **"Authors' model expects Fpz"**
    ```bash
    grep -n "FPZ" reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py
-   # Line 27 shows 'FPZ' in expected channels
+   # Shows 'FPZ' in CHANNEL_DICT
    ```
 
 5. **"Authors use Conv2d for channel mapping"**
@@ -339,4 +339,4 @@ But honestly, our zero-fill is working fine and we're almost done training!
 
 ---
 
-**Bottom Line**: The paper has a documentation error. TUEV doesn't have Fpz. We correctly synthesize it as zeros to match the expected model input. Everything works! 🎉
+**Bottom Line**: The paper defines a canonical 20-channel interface (including Fpz) but doesn't document how to bridge the gap when TUEV lacks Fpz. We correctly synthesize it as zeros, while the authors use a learnable mapping. Both approaches work! 🎉
