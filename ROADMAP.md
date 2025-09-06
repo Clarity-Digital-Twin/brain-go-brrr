@@ -25,8 +25,8 @@
 ### What We Have (From EEGPT Paper)
 - **Model checkpoint**: `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 - **Architecture**: 10M params, 8 transformer layers, 512 embedding dim
-- **Feature extraction**: 512-dim per 4s window (or 2048 flattened from 4×512)
-- **Linear probe approach**: Freeze encoder, train only 1x1 conv + linear layer
+- **Feature extraction**: 2048-dim (4 summary tokens × 512, flattened) with summary=False
+- **Linear probe approach**: Freeze encoder and train a light head (paper uses 1×1 spatial + temporal convs; our training uses a 2‑layer MLP)
 - **Training details from paper**:
   - Optimizer: AdamW with OneCycle LR (2.5e-4 → 5e-4 → 3.13e-5)
   - Batch size: 64
@@ -50,7 +50,8 @@ model = create_normalized_eegpt()
 dataset = TUABDataset(root="/data/datasets/tuab")
 
 # Extract features (WORKS ✅)
-features = model.extract_features(eeg_window, summary=True)  # → (B, 512)
+features = model.extract_features(eeg_window, summary=False)  # → (B, 4, 512)
+features = features.flatten(1)  # → (B, 2048) for probe
 ```
 
 **⚠️ CRITICAL CONSTRAINT**: EEGPT paper primarily reports linear probing.
@@ -61,7 +62,7 @@ features = model.extract_features(eeg_window, summary=True)  # → (B, 512)
 1. **EEGPT gives**: Raw predictions (0-1 probabilities) at ONE operating point
 2. **Clinicians need**: Multiple operating points with trade-offs documented
 3. **Missing piece**: Threshold sweep + clinical metric calculation
-4. **KEY INSIGHT**: EEGPT never reported FA/24h or Spec@Sens - we're the FIRST to bridge this gap!
+4. **KEY INSIGHT**: EEGPT didn't report FA/24h or Spec@Sens; we add these clinical metrics on top of the paper's protocol.
 
 ### Concrete Implementation Path
 
@@ -74,11 +75,12 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 model = create_normalized_eegpt()
 model.eval()  # Freeze the encoder
 
-# 2. Add linear probe (1x1 conv + linear layer)
+# 2. Add linear probe (matches our training scripts)
 probe = nn.Sequential(
-    nn.Conv2d(1, 1, kernel_size=1),  # Adaptive spatial filter
-    nn.Flatten(),
-    nn.Linear(512, 2)  # Binary classification
+    nn.Linear(2048, 128),  # First layer
+    nn.ReLU(),
+    nn.Dropout(0.3),
+    nn.Linear(128, 2)  # Binary classification
 )
 
 # 3. Train ONLY the probe (not the encoder!)
@@ -90,7 +92,8 @@ criterion = nn.BCEWithLogitsLoss()
 ```python
 # After training probe, get predictions
 with torch.no_grad():
-    features = model.extract_features(test_data, summary=True)
+    features = model.extract_features(test_data, summary=False)  # (B, 4, 512)
+    features = features.flatten(1)  # (B, 2048)
     logits = probe(features)
     predictions = torch.sigmoid(logits).numpy()  # 0-1 scores
 ```
@@ -100,15 +103,17 @@ with torch.no_grad():
 from brain_go_brrr.domain.metrics import clinical_metrics
 
 # For TUAB (classification)
+# Note: threshold_val is selected on VAL set for target sensitivity
 results = {
     'auroc': roc_auc_score(labels, predictions),
-    'balanced_acc': balanced_accuracy_score(labels, predictions > 0.5),
-    'spec_at_95_sens': calculate_specificity_at_sensitivity(labels, predictions, 0.95)
+    'balanced_accuracy': balanced_accuracy_score(labels, (predictions >= threshold_val).astype(int)),
+    'spec_at_sens_95': spec_at_sens(labels, predictions, 0.95)
 }
 
 # For TUSZ (temporal - future)
+# Note: fp_count from match_events(), total_hours is annotated duration
 results = {
-    'fa_per_24h': calculate_fa_per_24h(predictions, labels, threshold, total_hours),
+    'fa_per_24h': calculate_fa_per_24h(fp_count, total_hours=total_annotated_hours),
     'taes': calculate_taes(predictions, labels, timestamps)
 }
 ```
@@ -162,9 +167,11 @@ metrics = {
 #### For TUEV (6-Class Event Classification)
 **Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG  
 **Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)  
-**Monitor**: Cohen’s Kappa (multi‑class)
+**Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
 **Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351  
 **Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
+
+†*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
 
 ```python
 # Multi-class classification - no threshold needed
@@ -298,11 +305,11 @@ You've satisfied **researchers** (reproducible baselines) AND **clinicians** (ac
 
 #### For TUAB (Abnormal Detection - Classification)
 - [ ] Implement ROC curve generation on validation set
-- [ ] Find threshold for 90% and 95% sensitivity (pick SMALLEST τ achieving target)
+- [ ] Find threshold for 90% and 95% sensitivity (pick the LARGEST τ that still achieves the target)
 - [ ] Calculate specificity at chosen thresholds
 - [ ] Generate confusion matrix at each operating point
 - [ ] Report metrics: `{auroc, balanced_accuracy, spec_at_sens=[0.90,0.95]}`
-- [ ] Create `spec_at_sens(y_true, y_score, sens=0.95)` function
+- [ ] Create `spec_at_sens(y_true, y_score, target_sensitivity=0.95)` function
 
 #### For TUSZ (Seizure Detection - Temporal Events)
 - [ ] Implement post-processing pipeline (gap_s=3-5, min_s=2-5, tune on VAL)
@@ -317,28 +324,41 @@ You've satisfied **researchers** (reproducible baselines) AND **clinicians** (ac
 ### Key Code to Add:
 ```python
 # brain_go_brrr/domain/metrics/classification.py (TUAB)
-def calculate_specificity_at_sensitivity(y_true, y_score, target_sensitivity=0.95):
-    """For abnormal/normal classification - with proper confusion matrix"""
+def spec_at_sens(y_true, y_score, target_sensitivity=0.95):
+    """Calculate specificity at target sensitivity with proper threshold selection.
+    
+    Returns the largest threshold (most conservative) that achieves target sensitivity.
+    """
     from sklearn.metrics import roc_curve
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
-
-    # Find threshold for target sensitivity
-    idx = np.argmax(tpr >= target_sensitivity)
+    
+    # Find largest threshold meeting target
+    meets = np.where(tpr >= target_sensitivity)[0]
+    if len(meets) == 0:
+        # Target not achievable, use max sensitivity point
+        idx = int(np.argmax(tpr))
+    else:
+        idx = int(meets[0])  # First index = largest threshold
+    
     threshold = thresholds[idx]
-
-    # Calculate confusion matrix at this threshold
+    
+    # Calculate specificity at this threshold
     y_pred = (y_score >= threshold).astype(int)
     tn = ((y_pred == 0) & (y_true == 0)).sum()
     fp = ((y_pred == 1) & (y_true == 0)).sum()
-
-    specificity = tn / (tn + fp)
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+    
     return specificity, threshold
 
 # brain_go_brrr/domain/metrics/temporal.py (TUSZ)
-def calculate_fa_per_24h(predictions, labels, threshold, total_hours):
-    """For seizure detection - the ONE metric clinicians care about"""
-    false_positives = count_temporal_false_alarms(predictions, labels, threshold)
-    return (false_positives / total_hours) * 24
+def calculate_fa_per_24h(fp_count: int, *, total_hours: float) -> float:
+    """Calculate false alarms per 24 hours - the ONE metric clinicians care about.
+    
+    Args:
+        fp_count: Number of false positive events
+        total_hours: Total annotated hours of recording
+    """
+    return (fp_count / total_hours) * 24.0
 ```
 
 ## Phase 3: Local Deployment (Week 5-6)
@@ -526,13 +546,13 @@ def set_global_seeds(seed=42):
 ### Unit Test Requirements
 ```python
 # Test TUAB threshold selection
-def test_spec_at_sensitivity():
+def test_spec_at_sens():
     # Synthetic scores where we KNOW the answer
     y_true = [0, 0, 0, 1, 1, 1]
     y_score = [0.1, 0.3, 0.4, 0.6, 0.8, 0.9]
-    spec, threshold = spec_at_sens(y_true, y_score, sens=0.67)
+    spec, threshold = spec_at_sens(y_true, y_score, 0.67)
     assert threshold == 0.6  # Should pick this threshold
-    assert spec == 0.67  # 2/3 true negatives correctly identified
+    assert spec == 1.0   # All 3 true negatives correctly identified at τ=0.6
 
 # Test seizure FA/24h calculation
 def test_fa_per_24h():

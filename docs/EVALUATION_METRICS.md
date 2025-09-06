@@ -6,8 +6,10 @@
 
 ## Quick Reference Table
 
-Reporting: report mean ± sd over 3 runs (seeds: 42, 123, 456).
-Monitors: TUAB → AUROC (binary); TUEV → Cohen’s Kappa (multi‑class).
+Reporting: TUEV uses 3 runs (seeds: 42, 123, 456); TUAB currently single seed (42).
+Monitors: TUAB → AUROC (binary); TUEV → Kappa per paper (but our code monitors BAC†).
+
+†*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
 
 | Dataset | Task Type | Primary Metrics | Secondary Metrics | Threshold Policy |
 |---------|-----------|-----------------|-------------------|------------------|
@@ -27,8 +29,10 @@ Monitors: TUAB → AUROC (binary); TUEV → Cohen’s Kappa (multi‑class).
 ### Metrics (What EEGPT Paper Reports)
 From our local EEGPT markdown (see `literature/markdown/EEGPT/EEGPT.md`, Table 11):
 - **AUROC**: 87.18% ± 0.5%
-- **Balanced Accuracy**: 79.83% ± 0.4%
+- **Balanced Accuracy**: 79.83% ± 0.4%  
 - **Cohen's Kappa**: 0.60 ± 0.01
+
+*Note: Paper reports mean ± std from 3 runs; our TUAB config currently uses single seed*
 
 ### Additional Clinical Metrics (We Add)
 - **Specificity @ Sensitivity = 0.90**: How many normals correctly identified when catching 90% of abnormals
@@ -165,7 +169,7 @@ X_train, X_test = train_test_split(X, test_size=0.2)  # ❌ DON'T DO THIS
 
 ### For TUAB
 - [ ] Load TUAB v3.0.1 with patient-level splits
-- [ ] Extract EEGPT features (2048-dim with summary=False)
+- [ ] Extract EEGPT features: (B, 4, 512) with summary=False → flatten to (B, 2048)
 - [ ] Train linear probe on TRAIN
 - [ ] Find threshold for 90% and 95% sensitivity on VAL
 - [ ] Report AUROC, BAC, Spec@Sens on TEST
