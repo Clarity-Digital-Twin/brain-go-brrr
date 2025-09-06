@@ -307,7 +307,7 @@ But honestly, our zero-fill is working fine and we're almost done training!
 - **Note**: Paper says FPZ exists, but actual TUEV data doesn't have it!
 
 #### 💻 EEGPT Authors' GitHub Repository
-- **URL**: https://github.com/chenxz2023/EEGPT
+- **URL**: https://github.com/BINE022/EEGPT
 - **Commit**: Latest as of Sept 2025
 - **Key files to check**:
   1. `downstream_tueg/dataset_maker/make_TUEV.py`
