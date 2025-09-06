@@ -16,9 +16,9 @@
 - Strict 20-channel collate: `src/brain_go_brrr/utils/collate_tuev.py:20-24`
 
 ### ✅ VERIFIED IN REFERENCE REPO
-- TUEV has NO Fpz: `reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py:14-15`
-- Model expects Fpz: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py:27`
-- Channel mapping class: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py:621-622`
+- TUEV has NO Fpz: `reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py` (search for `chOrder_standard`)
+- Model expects Fpz: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py` (see `CHANNEL_DICT` at top)
+- Channel mapping class: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py` (search for `self.chan_conv`)
 
 ### ⚠️ EXTERNAL PAPER CLAIM (Cannot verify without PDF)
 - Table 13, Page 20: Lists 20 channels including Fpz
@@ -191,15 +191,15 @@ self.chan_conv = torch.nn.Sequential(
     nn.GELU(),
     nn.Conv2d(img_size[0], img_size[0], kernel_size=(1,55), groups=img_size[0], padding='same'),
     nn.BatchNorm2d(img_size[0]),
-    nn.Dropout(0.5),  # Note: They use 0.5 dropout for TUEV!
+    nn.Dropout(...)  # Note: Dropout value varies (0.3-0.8) across versions
 )
 ```
 
 ### THE TRUTH REVEALED:
 
-1. **TUEV has 23 channels** (no Fpz) - VERIFIED: `make_TUEV.py:14-15` lists 23 channels
-2. **Model expects 20 channels** (with Fpz) - VERIFIED: model file line 27 has `'FPZ'` in channel list
-3. **They use a LEARNABLE 1×1 Conv2d** to map between them - VERIFIED: Lines 697-698:
+1. **TUEV has 23 channels** (no Fpz) - VERIFIED: `make_TUEV.py` search `chOrder_standard` lists 23 channels
+2. **Model expects 20 channels** (with Fpz) - VERIFIED: model file `CHANNEL_DICT` includes `'FPZ'` 
+3. **They use a LEARNABLE 1×1 Conv2d** to map between them - VERIFIED: Search for `self.chan_conv`:
    ```python
    self.chan_conv = torch.nn.Sequential(
        Conv2dWithConstraint(in_channels, img_size[0], 1),  # in_channels=23, img_size[0]=20
@@ -293,8 +293,8 @@ But honestly, our zero-fill is working fine and we're almost done training!
 
 5. **"Authors use Conv2d for channel mapping"**
    ```bash
-   grep -n "Conv2dWithConstraint(in_channels" reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py
-   # Line 698 shows the learnable mapping layer
+   grep -n "self.chan_conv" reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py
+   # Shows the learnable mapping layer definition
    ```
 
 ### To Verify the External Claims:
@@ -311,10 +311,11 @@ But honestly, our zero-fill is working fine and we're almost done training!
 - **LOCAL COPY IN OUR REPO**: `reference_repos/EEGPT/`
 - **Key files to check IN OUR REPO**:
   1. `reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py`
-     - Line 14-15: Channel list has NO FPZ (only 23 channels)
+     - Search for `chOrder_standard`: Channel list has NO FPZ (only 23 channels)
   2. `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py`
-     - Line 27: Model expects FPZ in channel dict
-     - Line 698: Conv2dWithConstraint maps 23→20 channels
+     - Search for `CHANNEL_DICT`: Full channel dictionary includes FPZ
+     - Search for `self.chan_conv`: Conv2dWithConstraint maps input channels to model's 20
+     - Note: Model uses `use_channels_names` to select which 20 from the larger CHANNEL_DICT
 
 #### 📚 EEGPT Paper Analysis (ALSO IN OUR REPO!)
 - **Markdown version**: `literature/markdown/EEGPT/EEGPT.md`
