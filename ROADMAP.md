@@ -135,41 +135,53 @@ tar -czf bgb-offline.tar.gz wheelhouse/ models/
 
 ## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT
 
-### Operating Point Selection (THE CRITICAL BRIDGE 🌉)
-
-#### DECISION POLICY (EXPLICIT)
-**TUAB Classification**: Pick the SMALLEST threshold τ achieving target sensitivity on VALIDATION set, FREEZE it, evaluate ONCE on test
-**TUSZ Seizures**: MINIMIZE FA/24h subject to sensitivity ≥ target on VALIDATION set, FREEZE all params, evaluate ONCE on test
+### 📊 Metrics by Dataset (See `docs/EVALUATION_METRICS.md` for full details)
 
 #### For TUAB (Binary Classification)
+**Task**: Classify EEG as normal vs abnormal
+**Metrics**: AUROC, Balanced Accuracy, Spec@Sens={0.90, 0.95}, Kappa
+**Target**: Match EEGPT paper's 87.18% AUROC, 79.83% BAC
+
 ```python
-# 1. Compute ROC on VALIDATION set
-from sklearn.metrics import roc_curve
+# Simple threshold selection for classification
+from sklearn.metrics import roc_curve, roc_auc_score, balanced_accuracy_score
+
+# 1. Find threshold on VAL for target sensitivity
 fpr, tpr, thresholds = roc_curve(y_val, scores_val)
-
-# 2. Find threshold for target sensitivity
-target_sens = 0.95
-if tpr.max() < target_sens:
-    # Fallback: Can't achieve target, use closest available
-    print(f"WARNING: Max achievable sensitivity is {tpr.max():.3f}, not {target_sens}")
-    idx = np.argmax(tpr)  # Use highest achievable
-    achieved_sens = tpr[idx]
-else:
-    idx = np.argmax(tpr >= target_sens)  # First threshold achieving target
-    achieved_sens = tpr[idx]
-
+idx = np.argmax(tpr >= 0.95)  # 95% sensitivity
 threshold = thresholds[idx]
 
-# 3. Calculate specificity at this threshold
-tn = ((scores_val < threshold) & (y_val == 0)).sum()
-fp = ((scores_val >= threshold) & (y_val == 0)).sum()
-specificity = tn / (tn + fp)
-
-# 4. FREEZE threshold, evaluate ONCE on test
+# 2. Apply to TEST set once
 y_test_pred = (scores_test >= threshold).astype(int)
+metrics = {
+    'auroc': roc_auc_score(y_test, scores_test),
+    'balanced_accuracy': balanced_accuracy_score(y_test, y_test_pred),
+    'spec_at_sens_95': calculate_spec_at_sens(y_test, scores_test, 0.95)
+}
 ```
 
-#### For TUSZ (Temporal Events with FA/24h)
+#### For TUEV (6-Class Event Classification)
+**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
+**Metrics**: Macro-F1, Per-class F1, Confusion Matrix
+**Target**: Match EEGPT paper's 33.02% macro-F1
+**Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
+
+```python
+# Multi-class classification - no threshold needed
+from sklearn.metrics import f1_score, classification_report
+
+y_pred = np.argmax(model.predict_proba(X_test), axis=1)
+metrics = {
+    'macro_f1': f1_score(y_test, y_pred, average='macro'),
+    'report': classification_report(y_test, y_pred, target_names=CLASS_NAMES)
+}
+```
+
+#### For TUSZ (Seizure Detection - FUTURE WORK, DIFFERENT METRICS!)
+**⚠️ This is temporal detection, NOT classification like TUAB/TUEV!**
+**Task**: Detect seizure start/stop times in continuous EEG
+**Metrics**: FA/24h, Sensitivity@FA, TAES, Latency
+**Why different**: Seizures are rare events in time, not per-recording labels
 ```python
 # 1. Convert frame scores to events with post-processing
 def scores_to_events(scores, threshold, sample_rate=256, gap_s=3, min_s=2):
@@ -247,20 +259,21 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 
 ## Dataset Execution Order & Scope
 
-### Do NOW (Research credibility)
+### Do NOW (Paper Parity - Classification Tasks)
 1. **TUAB (abnormal triage)** - Binary classification
    - **Who cares:** Researchers, teaching labs, triage tools
    - **Metrics:** AUROC, Balanced Accuracy, **Specificity @ Sensitivity = {0.90, 0.95}**
-   - **Channels:** 20 standard 10-20 channels (FP1, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, O2, OZ)
-   - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits (train/val/test)
-   - **DoD:** `bgb eval tuab` writes `metrics.json` + `roc.csv` + `provenance.json`
+   - **NOT**: FA/24h (that's for seizures, not classification!)
+   - **Channels:** 19 standard (no Fz), mapped to 20 for EEGPT
+   - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits
+   - **Target:** 87.18% AUROC (EEGPT paper Table 11)
 
-2. **TUEV (event classes)** - 6-class event detection
-   - **Who cares:** Researchers benchmarking feature detectors (SPSW/GPED/PLED/etc.)
-   - **Metrics:** Per-class F1/sensitivity, macro-F1; optional FP/hour if temporal
-   - **Channels:** 23 channels in raw files (includes A1, A2, FPZ), mapped to 20 standard for processing
+2. **TUEV (event classes)** - 6-class classification
+   - **Who cares:** Researchers benchmarking event detectors
+   - **Metrics:** Macro-F1 (33.02% target), per-class F1, confusion matrix
+   - **NOT**: FA/24h (classification task, not temporal detection!)
+   - **Channels:** 20 canonical with Fpz synthesized (see `TUEV_FPZ_DISCREPANCY.md`)
    - **Splits:** Use canonical TUH TUEV v2.0.1 patient-level splits
-   - **DoD:** `bgb eval tuev` writes class metrics + optional event CSV
 
 ### Add NEXT (Clinical credibility)
 3. **TUSZ (seizure detection)** - The one that unlocks "real"
