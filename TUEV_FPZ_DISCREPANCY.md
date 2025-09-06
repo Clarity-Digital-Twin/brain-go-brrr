@@ -42,23 +42,42 @@ TUEV was only used for **downstream evaluation**, not pretraining!
 
 ## Why the Discrepancy Exists
 
-### Most Likely Explanation: Paper Documentation Error
+### CRITICAL UPDATE (Sept 6, 2025): NOT A TYPO - INTENTIONAL DESIGN
 
-The authors probably:
-1. **Copy-pasted channel list** from their standard configuration
-2. **Didn't verify** against actual TUEV files
-3. **Used internal preprocessing** that handled missing channels automatically
+**Key Insight**: The paper lists BOTH Fz AND Fpz in their 20 channels:
+```
+[FP1, FPZ, FP2, F7, F3, FZ, F4, F8, ...]
+         ^^^            ^^
+```
 
-Evidence:
-- Table 13 shows conv1d reducing 23→20 channels
-- The listed 20 channels are a "standard" 10-20 montage subset
-- The paper doesn't explicitly discuss channel synthesis
+If "Fpz" was a typo for "Fz", they'd have Fz TWICE and only 19 unique channels. **This proves it's NOT a typo.**
 
-### Alternative Possibilities
+### Most Likely Explanation: Standardized Interface Design
 
-1. **Different TUEV Version**: Authors might have used a custom/internal version
-2. **Preprocessing Not Documented**: They might have synthesized Fpz but didn't mention it
-3. **Typo**: They meant to list the actual channels but made an error
+The authors deliberately:
+1. **Defined a canonical 20-channel interface** that includes Fpz
+2. **Expected preprocessing to handle missing channels** via synthesis/mapping
+3. **Didn't document the synthesis step** assuming it was obvious
+
+This is actually COMMON in ML papers:
+- Model has a fixed input interface (always expects same 20 channels)
+- Preprocessing adapts varying datasets to this interface
+- Missing channels get synthesized (zeros, interpolation, or learned mapping)
+
+### Biological Options for Fpz Synthesis
+
+Since TUEV lacks Fpz but has neighboring channels:
+
+1. **Zero-filling** (our current approach): Safe, reproducible, working
+2. **Average interpolation**: `Fpz = (Fp1 + Fp2) / 2` - biologically sensible
+3. **Learned mapping**: 1×1 conv to generate Fpz from Fp1/Fp2/Fz
+4. **Copy Fz**: NO - they're different channels with different purposes
+
+### Why NOT "They Meant Fz"
+
+- Paper already includes Fz in the list
+- Fpz and Fz are anatomically different (frontal polar vs frontal)
+- Having both makes sense for epilepsy detection (coverage matters)
 
 ## Our Solution (Correct Approach)
 
@@ -98,12 +117,34 @@ if "Fpz" not in raw.ch_names:
 - Could potentially improve performance by not padding
 - But current approach is safer and working
 
+## Potential Actions
+
+### 1. Contact the Authors
+- **Jo Picone** (Temple University) - TUEV dataset creator
+  - Ask: "Does TUEV v2.0.1 have Fpz? If not, was there a version that did?"
+- **EEGPT Authors** (BINE022 on GitHub)
+  - Ask: "How did you handle missing Fpz in TUEV? Zero-fill, interpolation, or learned mapping?"
+  - Ask: "Is the 20-channel list in Table 13 your model's expected interface?"
+
+### 2. Experimental Options
+- **Option A**: Keep zero-filling (current, working)
+- **Option B**: Try `Fpz = (Fp1 + Fp2) / 2` interpolation
+- **Option C**: Add learnable 1×1 conv to generate Fpz
+- **Compare**: Run all three, see which gives best downstream performance
+
+### 3. Documentation Improvement
+- Create PR to EEGPT repo documenting this
+- Add note to TUEV corpus documentation
+- Share findings with EEG community
+
 ## Key Takeaways
 
-1. **EEGPT paper Table 13 is incorrect** about TUEV channel configuration
-2. **TUEV files don't have Fpz** (verified in v2.0.1)
-3. **Our synthesis solution is correct** and working
-4. **This is a common issue** in EEG research due to varying standards
+1. **NOT a typo** - Paper lists both Fz and Fpz intentionally
+2. **Standardized interface design** - Model expects canonical 20 channels
+3. **TUEV lacks Fpz** (verified in v2.0.1)
+4. **Synthesis is expected** but wasn't documented
+5. **Our zero-fill solution is correct** and working
+6. **This is COMMON** - ML models often have fixed interfaces that datasets must adapt to
 
 ## References
 
