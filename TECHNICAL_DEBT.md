@@ -1,8 +1,8 @@
 # 🚨 TECHNICAL DEBT — Priority Issues Requiring Resolution
 
-**Created**: September 4, 2025  
+**Created**: September 4, 2025
 **Updated**: September 5, 2025 (Validated Against Codebase and EEGPT Paper)
-**Status**: Active — Requires Immediate Attention  
+**Status**: Active — Requires Immediate Attention
 **Focus**: EEGPT feature dimensionality (paper compliance) and dangerous duplicate types
 
 ## ⚠️ CRITICAL AUDIT FINDINGS
@@ -151,7 +151,7 @@ class LoggerPort(Protocol):
    - `domain.protocols.logger.LoggerPort` (unified signature)
    - `domain.protocols.cache.CachePort` (single interface)
    - `domain.protocols.features.FeatureExtractorPort` (canonical)
-   
+
 2. **Rename layer-specific variants** if needed (e.g., `AppFeatureExtractorPort`)
 
 3. **Update imports** across repo to use `brain_go_brrr.domain.protocols.*`
@@ -239,7 +239,7 @@ sed -i 's/RedisCache/APIRedisCache/g' \
 sed -i 's/class YASAConfig:/class EnhancedYASAConfig:/g' \
     src/brain_go_brrr/domain/sleep/analyzer_enhanced.py
 
-# Infra version → YASAAdapterConfig  
+# Infra version → YASAAdapterConfig
 sed -i 's/class YASAConfig:/class YASAAdapterConfig:/g' \
     src/brain_go_brrr/infra/external/yasa_adapter.py
 
@@ -279,7 +279,7 @@ from .preprocessor import PreprocessorPort
 
 __all__ = [
     "CachePort",
-    "AsyncCachePort", 
+    "AsyncCachePort",
     "LoggerPort",
     "FeatureExtractorPort",
     "ModelPort",
@@ -294,19 +294,19 @@ from typing import Protocol, Any
 
 class LoggerPort(Protocol):
     """Unified logger interface."""
-    
+
     def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log debug message with optional formatting."""
         ...
-    
+
     def info(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log info message with optional formatting."""
         ...
-    
+
     def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log warning message with optional formatting."""
         ...
-    
+
     def error(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log error message with optional formatting."""
         ...
@@ -354,7 +354,7 @@ make typecheck
 # 8.1 - Unit tests
 make test
 
-# 8.2 - Integration tests  
+# 8.2 - Integration tests
 make test-integration
 
 # 8.3 - If any fail, check for:
@@ -378,25 +378,25 @@ from pathlib import Path
 def find_duplicate_classes():
     classes = {}
     duplicates = []
-    
+
     for py_file in Path("src").rglob("*.py"):
         content = py_file.read_text()
         for match in re.finditer(r'^class (\w+)', content, re.MULTILINE):
             class_name = match.group(1)
             if class_name.startswith('_'):  # Skip private classes
                 continue
-            
+
             if class_name in classes:
                 duplicates.append(f"{class_name}: {classes[class_name]} and {py_file}")
             else:
                 classes[class_name] = py_file
-    
+
     if duplicates:
         print("ERROR: Duplicate class definitions found!")
         for dup in duplicates:
             print(f"  - {dup}")
         sys.exit(1)
-    
+
     print(f"✓ Checked {len(classes)} classes - no duplicates found")
 
 if __name__ == "__main__":
@@ -531,7 +531,7 @@ done
 make test > test_baseline.txt 2>&1
 echo "Test exit code: $?" >> test_baseline.txt
 
-# Save current type check results  
+# Save current type check results
 make typecheck > typecheck_baseline.txt 2>&1
 echo "Typecheck exit code: $?" >> typecheck_baseline.txt
 ```
@@ -543,7 +543,7 @@ echo "=== PHASE 1 VERIFICATION ==="
 # Should show NO duplicates for renamed classes
 rg "^class (RedisCache|YASAConfig|JobData|LoggerPort)" --type py src/ | grep -v "API\|Enhanced\|Infra"
 
-# Phase 2 Check - After consolidation  
+# Phase 2 Check - After consolidation
 echo "=== PHASE 2 VERIFICATION ==="
 # All protocols should be in domain/protocols/
 ls -la src/brain_go_brrr/domain/protocols/
@@ -577,12 +577,12 @@ declare -A class_locations
 while IFS= read -r line; do
     file=$(echo "$line" | cut -d: -f1)
     class_name=$(echo "$line" | grep -oP 'class \K\w+')
-    
+
     # Skip private classes and test mocks
     if [[ $class_name == _* ]] || [[ $class_name == Mock* ]]; then
         continue
     fi
-    
+
     if [[ -n "${class_locations[$class_name]:-}" ]]; then
         echo -e "${RED}❌ DUPLICATE: $class_name${NC}"
         echo "   - ${class_locations[$class_name]}"
@@ -658,7 +658,7 @@ The fix is complete when:
 - Could break runtime behavior
 - Type checking might reveal hidden issues
 
-**Recommendation**: 
+**Recommendation**:
 1. Do this on a fresh branch
 2. Make atomic commits (one class at a time)
 3. Run tests after each change
@@ -713,11 +713,11 @@ deprecated = ["lightning>=2.1.0"]  # DO NOT USE - has critical bugs
 
 ## 🟡 ISSUE #5: Probe Migration Incomplete
 
-### The Problem  
+### The Problem
 EEGPTProbe is deprecated but still actively used in production code.
 
 ### Evidence
-- **Still used in**: 
+- **Still used in**:
   - `src/brain_go_brrr/application/use_cases/tasks/abnormality_detection.py`
   - `src/brain_go_brrr/application/pipeline/eegpt_orchestration.py`
 - **ProbeFactory exists but not fully adopted**
@@ -813,15 +813,15 @@ probe = ProbeFactory.create_probe("abnormality", model_path)
 7. New dev follows docs → CI/CD rejects unsafe torch.load
 8. Someone accidentally imports Lightning → Critical bug from 2.5.2
 
-**Priority**: 🔴 **CRITICAL - DO TODAY**  
-**Estimated Effort**: 6-8 hours (2 today, 4 tomorrow, 2 next week)  
-**Risk Level**: High impact, Low risk with this plan  
+**Priority**: 🔴 **CRITICAL - DO TODAY**
+**Estimated Effort**: 6-8 hours (2 today, 4 tomorrow, 2 next week)
+**Risk Level**: High impact, Low risk with this plan
 **Business Impact**: Prevents production crashes and data corruption
 
 ## SIGN-OFF CHECKLIST FOR SENIOR AUDITOR
 
 - [ ] Reviewed duplicate class analysis
-- [ ] Understood runtime failure scenarios  
+- [ ] Understood runtime failure scenarios
 - [ ] Approved renaming strategy
 - [ ] Allocated developer time
 - [ ] Approved incremental approach
@@ -924,7 +924,7 @@ rg -n "lightning" pyproject.toml
 def extract_features(self, x, chan_ids=None, summary: bool = True):
     # Line 171-172: When summary=True (default)
     return features.mean(dim=1)  # Averages 4 tokens → 512 dims (WRONG for probes)
-    
+
     # Line 174: When summary=False
     return features  # Returns (B, 4, 512) → needs flatten → 2048 (CORRECT)
 ```
@@ -978,17 +978,17 @@ features = model.extract_features(data, channels, summary=True)
 
 ### 🎯 CRITICAL SSOT Summary
 
-**The Golden Rule**: 
+**The Golden Rule**:
 ```python
 # If passing to a probe → MUST use 2048 dims
 features = model.extract_features(data, channels, summary=False)  # (B, 4, 512)
 features = features.flatten(1)  # (B, 2048) for probe
 
-# If NOT using probe → Can use 512 dims  
+# If NOT using probe → Can use 512 dims
 features = model.extract_features(data, channels, summary=True)  # (B, 512) averaged
 ```
 
-**Why This Matters**: 
+**Why This Matters**:
 - EEGPT outputs 4 summary tokens (like 4 different "views" of the data)
 - Averaging them (summary=True) loses 75% of the information
 - Linear probes were trained on all 2048 dimensions per the paper
@@ -1009,3 +1009,67 @@ features = model.extract_features(data, channels, summary=True)  # (B, 512) aver
 - `src/brain_go_brrr/application/training/sleep_probe_trainer.py` missing `summary=False`
 - Will crash if used with real EEGPTModel (tests mock (4,512) shape, masking the bug)
 - Needs immediate fix if anyone uses this trainer
+
+---
+
+## 🧠 TUEV Fpz Channel Discrepancy (Paper vs Reality)
+
+### The Mystery Solved
+**EEGPT paper claims TUEV has Fpz, but TUEV data files DON'T have Fpz.**
+
+### What We Discovered (Sept 6, 2025)
+By examining the EEGPT reference implementation in `reference_repos/EEGPT/`:
+
+1. **TUEV preprocessing** (`make_TUEV.py`): NO Fpz in channel list (23 channels total)
+2. **EEGPT model** expects 20 channels INCLUDING Fpz
+3. **Authors use learnable Conv2d(23→20)** to synthesize missing channels!
+
+### The Architecture Pattern
+```python
+# EEGPT Authors' Solution (reference_repos/EEGPT/downstream_tueg/)
+self.chan_conv = torch.nn.Sequential(
+    Conv2dWithConstraint(in_channels=23, out_channels=20, kernel_size=1),  # Learnable mapping!
+    nn.BatchNorm2d(20),
+    nn.GELU(),
+    # ... more layers
+)
+```
+
+### Our Current Solution vs Theirs
+| Aspect | EEGPT Authors | Our Implementation |
+|--------|---------------|-------------------|
+| Method | Learnable Conv2d(23→20) | Zero-fill missing Fpz |
+| Complexity | Neural network learns mapping | Simple, deterministic |
+| Performance | Potentially ~1% better | Working at 99% training |
+| Reproducibility | Depends on training | Exact same every time |
+| Location | Not in our code | `tuev_preprocessor.py:121-232` |
+
+### Why This Matters
+- **TUAB**: No issue - uses standard 19 channels, no Fpz expected
+- **TUEV**: Requires channel synthesis due to mismatch
+- **Training**: Currently working with zero-fill approach
+
+### Future Optimization (P3 - Nice to Have)
+```python
+# If we want to match authors' exact approach:
+class TUEVChannelMapper(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.channel_mapper = nn.Conv1d(23, 20, kernel_size=1)
+
+    def forward(self, x):
+        # x shape: (batch, 23, time)
+        return self.channel_mapper(x)  # output: (batch, 20, time)
+```
+
+### Impact Assessment
+- **Current Status**: ✅ Working (99% training complete with zero-fill)
+- **Priority**: P3 (optimization, not bug)
+- **Effort**: 2-4 hours to implement learnable mapping
+- **Benefit**: Potentially 1% accuracy improvement
+- **Risk**: Low - current approach is stable
+
+### Code Locations
+- **Our synthesis**: `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py:121-232`
+- **Authors' mapping**: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py`
+- **Full investigation**: `TUEV_FPZ_DISCREPANCY.md` (root directory)
