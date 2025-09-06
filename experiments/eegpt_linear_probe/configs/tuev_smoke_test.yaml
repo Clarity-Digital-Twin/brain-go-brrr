@@ -4,7 +4,7 @@ experiment:
   seed: 42
 
 data:
-  root_dir: ${BGB_DATA_ROOT}/datasets/tuev/edf
+  root_dir: ${BGB_DATA_ROOT}/datasets/tuev  # Fixed: removed double /edf
   cache_dir: ${BGB_DATA_ROOT}/cache/tuev_mne_v2
   batch_size: 64
   num_workers: 4
@@ -17,43 +17,18 @@ data:
   n_channels: 20
 
 model:
-  backbone:
-    name: eegpt
-    checkpoint_path: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
-    freeze: true
-  probe:
-    type: linear
-    hidden_dim: 128
-    n_classes: 6  # 6 event types in TUEV
-    dropout: 0.1
-    use_channel_adapter: false
+  # TUEV script expects flat structure, not nested!
+  eegpt_checkpoint: ${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+  dropout: 0.5  # TUEV uses higher dropout than TUAB
 
 training:
-  max_epochs: 1  # Just 1 epoch for smoke test
-  early_stopping:
-    patience: 3
-    min_delta: 0.001
-    mode: max
-    monitor: val_auroc
-
-  optimizer:
-    name: AdamW
-    lr: 1.0e-3
-    weight_decay: 1.0e-4
-
-  scheduler:
-    name: OneCycleLR
-    max_lr: 3.0e-3
-    epochs: 1
-    pct_start: 0.2
-    anneal_strategy: cos
-    div_factor: 25.0
-    final_div_factor: 1000.0
-
-  gradient_clip_val: 1.0
-  val_check_interval: 1
+  n_epochs: 1  # Just 1 epoch for smoke test
+  learning_rate: 5.0e-4  # TUEV script expects learning_rate not optimizer.lr
+  weight_decay: 0.01
   weighted_loss: true
-  checkpoint_every: 10  # Save every 10 batches for smoke test
+  use_scheduler: true  # Script always uses OneCycleLR
+  gradient_clip: 1.0
+  save_every: 1  # Save after each epoch
 
 logging:
   log_every_n_steps: 5

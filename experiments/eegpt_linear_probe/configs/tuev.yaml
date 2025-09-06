@@ -3,7 +3,7 @@
 
 data:
   dataset: "tuev"
-  root_dir: "${BGB_DATA_ROOT}/datasets/external/tuh_eeg/TUEV/v2.0.1"
+  root_dir: "${BGB_DATA_ROOT}/datasets/tuev"
   cache_dir: "${BGB_CACHE_DIR}/tuev_4s_256hz_v2"
 
   # CRITICAL: Must be divisible by 64 for EEGPT patches
@@ -15,7 +15,7 @@ data:
 
   # Paper line 587: batch size 500 for TUEV
   # REDUCED FOR WSL: Using 128 to prevent OOM (can increase if stable)
-  batch_size: 128  # was 500 in paper, reduced for memory safety
+  batch_size: 64  # Reduced from 128 to match TUAB (which worked)
   num_workers: 4
   pin_memory: true
 
@@ -49,9 +49,9 @@ training:
   learning_rate: 5.0e-4
   weight_decay: 0.01
 
-  # [Decision] NO learning rate schedule for downstream tasks
-  # Paper doesn't specify schedule for TUAB/TUEV (only mentions OneCycle for pretraining)
-  use_scheduler: false
+  # Using OneCycleLR with 30% warmup for stable training
+  # Script always uses scheduler regardless of this setting
+  use_scheduler: true  # Changed to match script behavior
 
   # Gradient clipping for stability
   gradient_clip: 1.0
@@ -91,15 +91,14 @@ validation:
       balanced_accuracy: 0.095  # +9.5%
       weighted_f1: 0.069        # +6.9%
 
-# Channel mapping - Project uses Oz instead of Fpz for consistency
-# Paper line 615 shows Fpz, but per TUEV_IMPLEMENTATION_SPEC.md we use Oz
+# Channel mapping - Follow EEGPT Table 13 (FPZ in, no OZ)
 channels:
   target_20: [
-    'FP1', 'FP2',                    # Frontal polar (no FPZ)
+    'FP1', 'FPZ', 'FP2',             # Frontal polar (include FPZ per paper)
     'F7', 'F3', 'FZ', 'F4', 'F8',    # Frontal line
     'T7', 'C3', 'CZ', 'C4', 'T8',    # Temporal/Central
     'P7', 'P3', 'PZ', 'P4', 'P8',    # Parietal
-    'O1', 'OZ', 'O2'                 # Occipital (using OZ not FPZ)
+    'O1', 'O2'                       # Occipital (NO OZ per paper)
   ]
 
   # TCP montage channels in TUEV

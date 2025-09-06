@@ -1,0 +1,33 @@
+data:
+  batch_size: 64
+  cache_dir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/cache/tuev_mne_v2
+  n_channels: 20
+  num_workers: 4
+  persistent_workers: true
+  pin_memory: true
+  prefetch_factor: 2
+  root_dir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/tuev
+  sampling_rate: 256
+  window_duration: 4.0
+  window_stride: 2.0
+experiment:
+  description: Quick smoke test for TUEV with frequent checkpoints
+  name: tuev_smoke_test
+  seed: 42
+logging:
+  log_every_n_steps: 5
+  save_top_k: 3
+model:
+  dropout: 0.5
+  eegpt_checkpoint: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+target_metrics:
+  auroc: 0.75
+  tolerance: 0.01
+training:
+  gradient_clip: 1.0
+  learning_rate: 0.0005
+  n_epochs: 1
+  save_every: 1
+  use_scheduler: true
+  weight_decay: 0.01
+  weighted_loss: true

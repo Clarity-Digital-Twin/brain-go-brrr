@@ -29,10 +29,10 @@ class TestChannelConstants:
         assert len(CHANNELS_TUEV_20) == 20
         # Should have Fz
         assert "Fz" in CHANNELS_TUEV_20
-        # Should NOT have Fpz
-        assert "Fpz" not in CHANNELS_TUEV_20
-        # Should have Oz
-        assert "Oz" in CHANNELS_TUEV_20
+        # Should HAVE Fpz
+        assert "Fpz" in CHANNELS_TUEV_20
+        # Should NOT have Oz
+        assert "Oz" not in CHANNELS_TUEV_20
 
     def test_channel_order_preserved(self):
         """Test channel order follows standard montage (frontal to occipital)."""
@@ -42,7 +42,7 @@ class TestChannelConstants:
 
         # TUEV should also follow this pattern
         assert CHANNELS_TUEV_20[0] == "Fp1"
-        assert CHANNELS_TUEV_20[-1] == "Oz"
+        assert CHANNELS_TUEV_20[-1] == "O2"
 
     def test_no_duplicate_channels(self):
         """Test no duplicate channels in definitions."""
@@ -215,11 +215,11 @@ class TestMapChannelsToIndices:
 
     def test_map_tuab_to_tuev(self):
         """Test realistic mapping from TUAB to TUEV-like configuration."""
-        # TUAB doesn't have FZ, so this should fail
+        # TUAB doesn't have Fpz, so this should fail
         source = CHANNELS_TUAB_19
         target = CHANNELS_TUEV_20
 
-        with pytest.raises(ValueError, match="Required channel Fz not found"):
+        with pytest.raises(ValueError, match="Required channel Fpz not found"):
             map_channels_to_indices(source, target)
 
 
@@ -231,13 +231,19 @@ class TestChannelCompatibility:
         tuab_set = set(CHANNELS_TUAB_19)
         tuev_set = set(CHANNELS_TUEV_20)
 
-        # TUEV has Fz that TUAB doesn't
+        # TUEV has Fz and Fpz that TUAB doesn't
         assert "Fz" in tuev_set
         assert "Fz" not in tuab_set
+        assert "Fpz" in tuev_set
+        assert "Fpz" not in tuab_set
 
-        # Both have 19 common channels
+        # TUAB has Oz that TUEV doesn't
+        assert "Oz" in tuab_set
+        assert "Oz" not in tuev_set
+
+        # They have 18 common channels
         common = tuab_set & tuev_set
-        assert len(common) == 19
+        assert len(common) == 18
 
     def test_all_channels_mixed_case(self):
         """Test channel names follow mixed-case convention (Fp not FP, Cz not CZ)."""

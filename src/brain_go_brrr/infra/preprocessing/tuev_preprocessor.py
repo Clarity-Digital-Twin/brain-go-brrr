@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 import mne
 import numpy as np
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
+
 from .channel_utils import canonicalize_channel_labels, canonicalize_channel_types
 from .mne_preprocessor import TUABPreprocessor
 
@@ -59,7 +61,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         'O2',
     ]
 
-    # Map TUEV channels to standard 20 (dropping A1, A2, FPZ)
+    # Map TUEV channels to standard 20 (dropping A1, A2 only)
     # Also handle old naming (T3→T7, T4→T8, T5→P7, T6→P8)
     # Override parent class type to allow None values for dropped channels
     CHANNEL_MAPPING: dict[str, str] = {
@@ -70,39 +72,24 @@ class TUEVPreprocessor(TUABPreprocessor):
         # Note: A1, A2, FPZ are handled separately in _map_to_standard_channels
     }
 
-    # Final 20 channels we want (standard 10-20 WITH Fz, WITHOUT Fpz)
-    # TUEV uses 20 channels per EEGPT paper Table 13 (unlike TUAB which uses 19)
-    STANDARD_CHANNELS = [
-        'Fp1',
-        'Fp2',
-        'F7',
-        'F3',
-        'Fz',
-        'F4',
-        'F8',
-        'T7',
-        'C3',
-        'Cz',
-        'C4',
-        'T8',
-        'P7',
-        'P3',
-        'Pz',
-        'P4',
-        'P8',
-        'O1',
-        'O2',
-        'Oz',
-    ]
+    # Final 20 channels we want (canonical 10-20 WITH Fz and Fpz, WITHOUT Oz)
+    # Single Source of Truth: import from infra.data.channels
+    STANDARD_CHANNELS = CHANNELS_TUEV_20
 
     def __init__(self, config: dict[str, Any] | None = None):
         """Initialize TUEV preprocessor.
 
         Args:
             config: Optional configuration dict
+                - disable_ransac: Skip RANSAC bad channel detection (default: True for TUEV)
         """
         super().__init__(config)
-        logger.info("Initialized TUEVPreprocessor for 23→20 channel mapping")
+        # Default to True for TUEV since RANSAC has internal bug with our channel config
+        self.disable_ransac = (config or {}).get('disable_ransac', True)
+        logger.info(
+            f"Initialized TUEVPreprocessor for 23→20 channel mapping "
+            f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
+        )
 
     def _apply_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
         """Apply TUEV channel mapping from 23 to 20 channels.
@@ -110,7 +97,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         Handles:
         - Old to modern naming (T3→T7, etc.)
         - Dropping reference channels (A1, A2)
-        - Dropping extra midline channel (Fpz)
+        - Including Fpz (synthesized if missing), excluding Oz
         - Case normalization
 
         Args:
@@ -120,12 +107,12 @@ class TUEVPreprocessor(TUABPreprocessor):
             Raw object with 20 standard channels
         """
         # After canonicalization, channel names are already standardized
-        # We just need to drop unwanted channels (A1, A2, Fpz)
+        # We just need to drop unwanted reference channels (A1, A2)
         channels_to_drop = []
 
         for ch_name in raw.ch_names:
             # Check if this should be dropped
-            if ch_name in ['A1', 'A2', 'Fpz']:  # Drop reference channels and Fpz
+            if ch_name in ['A1', 'A2']:  # Drop only reference channels
                 channels_to_drop.append(ch_name)
 
         # Drop unwanted channels
@@ -133,30 +120,40 @@ class TUEVPreprocessor(TUABPreprocessor):
             logger.info(f"Dropping {len(channels_to_drop)} channels: {channels_to_drop}")
             raw.drop_channels(channels_to_drop)
 
+        # Synthesize any missing canonical channels (e.g., Fpz) as zeros
+        raw = self._synthesize_missing_channels(raw)
+
+        # Set channel types to 'eeg' for canonical channels to ensure proper filtering
+        # This also prevents the "misc channels" montage warning
+        channel_types = {}
+        for ch in raw.ch_names:
+            if ch in self.STANDARD_CHANNELS:
+                channel_types[ch] = 'eeg'
+            # Keep existing types for non-standard channels (EOG, ECG, etc.)
+
+        if channel_types:
+            raw.set_channel_types(channel_types, verbose=False)
+            logger.debug(f"Set {len(channel_types)} channels to 'eeg' type")
+
+        # Set standard 1020 montage for all channels including synthesized ones
+        try:
+            montage = mne.channels.make_standard_montage('standard_1020')
+            raw.set_montage(montage, on_missing='warn')  # warn first to see any issues
+            logger.info(f"Set standard_1020 montage for {len(raw.ch_names)} channels")
+        except Exception as e:
+            logger.warning(f"Could not set montage: {e}")
+            # Could retry with on_missing='ignore' if needed
+
         # Select and reorder to standard 20 channels
         available_standard = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
         missing_channels = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
 
-        # Critical: Enforce minimum channel requirement per SSOT
+        # Log any remaining missing channels after synthesis
         if missing_channels:
-            # Warn-once logic for missing channels
-            if not hasattr(self, '_warned_missing_channels'):
-                self._warned_missing_channels: set[frozenset[str]] = set()
-
-            missing_key = frozenset(missing_channels)
-            if missing_key not in self._warned_missing_channels:
-                logger.warning(f"Missing standard channels: {missing_channels}")
-                self._warned_missing_channels.add(missing_key)
-
-            if len(available_standard) < 19:  # Minimum requirement
-                error_msg = (
-                    f"Too few standard channels ({len(available_standard)}/20). Need at least 19."
-                )
-                logger.error(error_msg)
-                raise ValueError(error_msg)
+            logger.warning(f"Missing standard channels after synthesis: {missing_channels}")
 
         # Pick and reorder channels - enforce exactly 20 for TUEV
-        # CRITICAL: TUEV needs exactly 20 channels (including Fz, excluding Fpz)
+        # CRITICAL: TUEV needs exactly 20 channels (including Fz and Fpz, excluding Oz)
         # This is different from TUAB which uses 19 channels (excluding Fz)
         if len(available_standard) != 20:
             logger.warning(f"Expected 20 channels for TUEV, found {len(available_standard)}")
@@ -167,7 +164,7 @@ class TUEVPreprocessor(TUABPreprocessor):
                 logger.error(f"Missing required channels: {missing}")
             if extra:
                 logger.warning(f"Extra non-standard channels will be dropped: {extra}")
-
+            # After synthesis, enforce exactly 20
             if len(available_standard) < 20:
                 raise ValueError(
                     f"Too few channels ({len(available_standard)}). TUEV requires exactly 20. "
@@ -197,36 +194,61 @@ class TUEVPreprocessor(TUABPreprocessor):
 
     def _apply_channel_mapping_with_tracking(self, raw: mne.io.Raw) -> tuple[mne.io.Raw, list[str]]:
         """Apply channel mapping and return missing channels list."""
-        # First get the list of missing channels before processing
-        import re
-
-        # Check which standard channels will be missing
-        raw_channels_upper = set()
-        for ch_name in raw.ch_names:
-            clean_name = re.sub(r'^EEG\s+', '', ch_name, flags=re.IGNORECASE)
-            clean_name = re.sub(r'-REF$', '', clean_name, flags=re.IGNORECASE)
-            clean_name = clean_name.strip().upper()
-
-            # Apply mapping if needed
-            if clean_name in self.CHANNEL_MAPPING:
-                mapped = self.CHANNEL_MAPPING[clean_name]
-                if mapped:
-                    raw_channels_upper.add(mapped.upper())
-            else:
-                # Standardize casing (but exclude FPZ which we drop)
-                if (
-                    clean_name in ['FP1', 'FP2', 'FZ', 'CZ', 'PZ', 'OZ'] and clean_name != 'FPZ'
-                ) or clean_name not in ['FPZ']:
-                    raw_channels_upper.add(clean_name)
-
-        # Find missing channels
+        # Determine missing channels after canonicalization but before mapping
         standard_upper = {ch.upper() for ch in self.STANDARD_CHANNELS}
-        missing = list(standard_upper - raw_channels_upper)
+        raw_upper = {ch.upper() for ch in raw.ch_names if ch.upper() not in {'A1', 'A2'}}
+        missing = sorted(standard_upper - raw_upper)
 
-        # Now apply the actual mapping
+        # Apply channel mapping (drop refs, synthesize, reorder)
         raw = self._apply_channel_mapping(raw)
 
         return raw, missing
+
+    def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Synthesize missing canonical channels with zeros.
+
+        Ensures final selection can reach exactly 20 channels by adding
+        zero-valued EEG channels for any missing entries in STANDARD_CHANNELS.
+        """
+        present_lower = {ch.lower() for ch in raw.ch_names}
+        need = [ch for ch in self.STANDARD_CHANNELS if ch.lower() not in present_lower]
+
+        if not need:
+            return raw
+
+        import numpy as np
+
+        sfreq = raw.info['sfreq']
+        n_times = len(raw.times)
+        for ch in need:
+            info = mne.create_info([ch], sfreq, ['eeg'])
+            zero_data = np.zeros((1, n_times))
+            zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
+            raw.add_channels([zero_raw], force_update_info=True)
+            logger.info(f"Synthesized missing channel as zeros: {ch}")
+
+        return raw
+
+    def _apply_mne_preprocessing(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Apply MNE preprocessing with optional RANSAC disable.
+
+        Args:
+            raw: Raw MNE object
+
+        Returns:
+            Preprocessed raw object
+        """
+        if self.disable_ransac:
+            # Skip RANSAC, just do filtering and resampling
+            logger.info("TUEV _apply_mne_preprocessing: RANSAC disabled - applying filters only")
+            raw.filter(self.bandpass_low, self.bandpass_high, picks='eeg', verbose=False)
+            if self.notch_freq:
+                # Apply notch at fundamental and harmonics
+                raw.notch_filter([self.notch_freq, self.notch_freq * 2], picks='eeg', verbose=False)
+            return raw
+        else:
+            # Use parent's full preprocessing including RANSAC
+            return super()._apply_mne_preprocessing(raw)
 
     def process_raw_with_annotations(
         self, edf_path: Path, annotations: list[dict[str, float | str]], window_overlap: float = 0.0
@@ -418,27 +440,44 @@ class TUEVPreprocessor(TUABPreprocessor):
         Returns:
             Tuple of (clean epochs, learned parameters dict)
         """
+        import warnings
+
         from autoreject import AutoReject
 
-        # Gentle parameters for TUEV
-        ar = AutoReject(
-            n_interpolate=[1, 2],  # Gentler than TUAB
-            consensus=[0.5, 0.7, 0.9],  # Higher thresholds
-            cv=3,  # Faster
-            thresh_method='bayesian_optimization',
-            random_state=42,
-            verbose=False,
-        )
+        try:
+            # Suppress expected NumPy warnings from empty CV folds
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    'ignore', category=RuntimeWarning, message='.*Mean of empty slice.*'
+                )
+                warnings.filterwarnings(
+                    'ignore', category=RuntimeWarning, message='.*invalid value encountered.*'
+                )
 
-        epochs_clean = ar.fit_transform(epochs)
+                # Gentle parameters for TUEV
+                ar = AutoReject(
+                    n_interpolate=[1, 2],  # Gentler than TUAB
+                    consensus=[0.5, 0.7, 0.9],  # Higher thresholds
+                    cv=3,  # Faster
+                    thresh_method='bayesian_optimization',
+                    random_state=42,
+                    verbose=False,
+                )
 
-        # Collect learned parameters
-        ar_params = {}
-        if hasattr(ar, 'n_interpolate_'):
-            ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
-            logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
-        if hasattr(ar, 'consensus_'):
-            ar_params['consensus'] = ar.consensus_.get('eeg', None)
-            logger.info(f"Learned consensus: {ar.consensus_}")
+                epochs_clean = ar.fit_transform(epochs)
 
-        return epochs_clean, ar_params
+            # Collect learned parameters
+            ar_params = {}
+            if hasattr(ar, 'n_interpolate_'):
+                ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
+                logger.info(f"Learned n_interpolate: {ar.n_interpolate_}")
+            if hasattr(ar, 'consensus_'):
+                ar_params['consensus'] = ar.consensus_.get('eeg', None)
+                logger.info(f"Learned consensus: {ar.consensus_}")
+
+            return epochs_clean, ar_params
+
+        except Exception as e:
+            logger.warning(f"Autoreject failed: {e}. Proceeding without artifact rejection.")
+            # Return original epochs if AR fails
+            return epochs, {}

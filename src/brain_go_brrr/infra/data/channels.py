@@ -2,7 +2,7 @@
 
 CRITICAL: These are the ONLY valid channel configurations.
 - TUAB: 19 channels (no Fz)
-- TUEV: 20 channels (with Fz, no Fpz, includes Oz)
+- TUEV: 20 channels (with Fz and Fpz, no Oz)
 """
 
 # TUAB standard: 19 channels (NO Fz) per EEGPT paper
@@ -29,17 +29,17 @@ CHANNELS_TUAB_19 = [
     "O2",  # Occipital
 ]
 
-# TUEV standard: 20 channels (WITH Fz, NO Fpz) per Table 13
-# Includes Oz to reach 20 channels (TUAB excludes Fz; TUEV excludes Fpz)
+# TUEV standard: 20 channels (WITH Fz and Fpz, NO Oz) per EEGPT Table 13
 # Using standard 10-20 mixed case naming (Fp not FP, Cz not CZ, etc.)
 CHANNELS_TUEV_20 = [
     "Fp1",
+    "Fpz",
     "Fp2",
     "F7",
     "F3",
     "Fz",
     "F4",
-    "F8",  # Frontal (with Fz!)
+    "F8",  # Frontal (with Fz and Fpz)
     "T7",
     "C3",
     "Cz",
@@ -51,8 +51,7 @@ CHANNELS_TUEV_20 = [
     "P4",
     "P8",  # Parietal
     "O1",
-    "O2",
-    "Oz",  # Occipital
+    "O2",  # Occipital (no Oz)
 ]
 
 # Full 10-20 system for reference

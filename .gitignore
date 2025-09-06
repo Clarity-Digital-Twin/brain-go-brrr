@@ -329,6 +329,7 @@ site/
 # Output directories
 outputs/
 outputs/lightning_logs/
+experiments/eegpt_linear_probe/output/
 logs/
 pipeline.log
 temp_docs/

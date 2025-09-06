@@ -73,17 +73,22 @@ def create_deterministic_dataloader(
     # This preserves order - no random shuffling!
     subset_dataset = Subset(dataset, subset_indices)
 
+    # Build DataLoader kwargs conditionally to avoid prefetch_factor=None crash
+    dl_kwargs = {
+        'batch_size': batch_size,
+        'shuffle': False,  # CRITICAL: Don't shuffle - preserve our deterministic order
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': pin_memory,
+        'collate_fn': collate_fn,
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        dl_kwargs['persistent_workers'] = persistent_workers
+        dl_kwargs['prefetch_factor'] = prefetch_factor
+
     # Create DataLoader without any sampler - just iterate in order
-    loader = DataLoader(
-        subset_dataset,
-        batch_size=batch_size,
-        shuffle=False,  # CRITICAL: Don't shuffle - preserve our deterministic order
-        num_workers=num_workers if num_workers > 0 else 0,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers if num_workers > 0 else False,
-        prefetch_factor=prefetch_factor if num_workers > 0 else None,
-        collate_fn=collate_fn,
-    )
+    loader = DataLoader(subset_dataset, **dl_kwargs)
 
     return loader, epoch_indices
 
@@ -112,6 +117,8 @@ def train_epoch(
     all_preds = []
     all_labels = []
     batches_processed = 0
+    samples_seen = 0  # Track actual samples processed
+    current_auroc = 0.5  # Initialize to avoid NameError
 
     pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
 
@@ -121,7 +128,7 @@ def train_epoch(
             continue
 
         x, y = x.to(device), y.to(device)
-        global_step += 1
+        samples_seen += x.size(0)  # Track actual batch size
 
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
@@ -142,7 +149,24 @@ def train_epoch(
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        scheduler.step()
+
+        # BULLETPROOF scheduler step using internal counters
+        try:
+            # OneCycleLR tracks its own step count internally
+            total_steps = getattr(scheduler, "total_steps", None)
+            step_count = getattr(scheduler, "_step_count", None)
+
+            # Only step if we haven't reached the limit
+            if total_steps is None or step_count is None or step_count < total_steps:
+                scheduler.step()
+            else:
+                logger.debug(f"Scheduler at limit: {step_count}/{total_steps}, skipping step")
+        except (ValueError, RuntimeError) as e:
+            # This should never happen with the guard above, but just in case
+            logger.warning(f"Scheduler step skipped at batch {batch_idx + start_batch}: {e}")
+
+        # Increment global step AFTER successful scheduler step
+        global_step += 1
 
         # Track metrics
         total_loss += loss.item()
@@ -177,7 +201,7 @@ def train_epoch(
                 'auroc': float(current_auroc) if 'current_auroc' in locals() else 0.5,
                 'lr': float(scheduler.get_last_lr()[0]),
                 'global_step': global_step,
-                'samples_seen': global_step * batch_size,
+                'samples_seen': samples_seen,
                 'gpu_memory_gb': torch.cuda.memory_allocated() / 1e9
                 if torch.cuda.is_available()
                 else 0,
@@ -186,6 +210,21 @@ def train_epoch(
             heartbeat_file = output_dir / 'heartbeat.json'
             with open(heartbeat_file, 'w') as f:
                 json.dump(heartbeat, f, indent=2)
+            # Also refresh a rolling 'checkpoint_latest.pt' to minimize loss on crash
+            try:
+                latest_ckpt = {
+                    'epoch': epoch,
+                    'batch_idx': batch_idx + start_batch,
+                    'probe_state_dict': probe.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'best_auroc': best_auroc,
+                    'global_step': global_step,
+                    'epoch_indices': epoch_indices,
+                }
+                torch.save(latest_ckpt, (output_dir / 'checkpoint_latest.pt'))
+            except Exception:
+                pass
 
         # CRITICAL: Save checkpoint every N batches to avoid losing progress
         # Use absolute batch index for uniform intervals across restarts
@@ -206,8 +245,7 @@ def train_epoch(
                 'train_loss': total_loss / batches_processed if batches_processed > 0 else 0,
                 'global_step': global_step,
                 'epoch_indices': epoch_indices,  # Save deterministic order
-                'sample_offset': (batch_idx + start_batch + 1)
-                * batch_size,  # Exact samples processed in epoch
+                'sample_offset': samples_seen,  # Exact samples processed (using actual counter)
             }
             checkpoint_path = (
                 output_dir / f'checkpoint_epoch{epoch}_batch{batch_idx + start_batch}.pt'
@@ -262,8 +300,8 @@ def evaluate(
             all_preds.extend(preds)
             all_labels.extend(y.cpu().numpy())
 
-    # Calculate metrics
-    avg_loss = total_loss / len(eval_loader)
+    # Calculate metrics (guard against empty eval set)
+    avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
     auroc = roc_auc_score(all_labels, all_preds) if len(set(all_labels)) > 1 else 0.5
 
     return avg_loss, auroc, all_preds, all_labels
@@ -322,11 +360,12 @@ def main():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
 
-    # Enable fully deterministic algorithms for reproducibility
-    torch.use_deterministic_algorithms(True, warn_only=True)
+    # CRITICAL FIX: Deterministic algorithms DISABLED - causes 14x slowdown!
+    # torch.use_deterministic_algorithms(True) made training take DAYS instead of hours
+    # We still have reproducibility via fixed seeds, but allow fast non-deterministic ops
     if torch.cuda.is_available():
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = False  # Allow fast algorithms
+        torch.backends.cudnn.benchmark = True  # Auto-tune for best performance
 
     # Setup output directory
     if args.output_dir is None:
@@ -380,20 +419,22 @@ def main():
     ]
     logger.info(f"Batches per epoch: {batches_per_epoch}")
 
-    eval_loader = DataLoader(
-        eval_dataset,
-        batch_size=config['data']['batch_size'],
-        shuffle=False,
-        num_workers=config['data'].get('num_workers', 4),  # Use 4 workers for parallel loading
-        pin_memory=config['data'].get('pin_memory', True),  # Enable GPU transfer optimization
-        persistent_workers=config['data'].get('persistent_workers', True)
-        if config['data'].get('num_workers', 4) > 0
-        else False,
-        prefetch_factor=config['data'].get('prefetch_factor', 2)
-        if config['data'].get('num_workers', 4) > 0
-        else None,
-        collate_fn=collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
-    )
+    # Build eval loader with conditional kwargs to avoid prefetch_factor=None crash
+    num_workers = config['data'].get('num_workers', 4)
+    eval_dl_kwargs = {
+        'batch_size': config['data']['batch_size'],
+        'shuffle': False,
+        'num_workers': num_workers if num_workers > 0 else 0,
+        'pin_memory': config['data'].get('pin_memory', True),
+        'collate_fn': collate_tuab_batch,  # TUAB-specific: handles 19ch + workaround for 20ch
+    }
+
+    # Only add persistent_workers and prefetch_factor if we have workers
+    if num_workers > 0:
+        eval_dl_kwargs['persistent_workers'] = config['data'].get('persistent_workers', True)
+        eval_dl_kwargs['prefetch_factor'] = config['data'].get('prefetch_factor', 2)
+
+    eval_loader = DataLoader(eval_dataset, **eval_dl_kwargs)
 
     # Load EEGPT model
     logger.info("Loading EEGPT model...")
@@ -430,6 +471,12 @@ def main():
         anneal_strategy='cos',
     )
 
+    # Compute total scheduler steps for safety guard (epochs * steps_per_epoch)
+    total_scheduler_steps = int(config['training']['max_epochs']) * int(batches_per_epoch)
+
+    # Sync with scheduler's internal total_steps (might differ slightly due to rounding)
+    total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
+
     # Setup loss with class weighting if configured
     if config['training'].get('weighted_loss', False):
         # Compute class weights from training dataset
@@ -439,12 +486,19 @@ def main():
             label = sample_info['label']
             class_counts[label] = class_counts.get(label, 0) + 1
 
-        # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
-        pos_weight = class_counts[0] / class_counts[1]
-        logger.info(f"Class distribution - Normal: {class_counts[0]}, Abnormal: {class_counts[1]}")
-        logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
+        # Guard against divide by zero if one class is missing
+        neg_count = class_counts[0]
+        pos_count = class_counts[1]
+        logger.info(f"Class distribution - Normal: {neg_count}, Abnormal: {pos_count}")
 
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
+        if pos_count == 0 or neg_count == 0:
+            logger.warning("WARNING: One class has zero samples! Disabling weighted loss.")
+            criterion = nn.BCEWithLogitsLoss()
+        else:
+            # pos_weight = neg_count / pos_count for BCEWithLogitsLoss
+            pos_weight = neg_count / pos_count
+            logger.info(f"Using pos_weight={pos_weight:.3f} for BCEWithLogitsLoss")
+            criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight], device=device))
     else:
         criterion = nn.BCEWithLogitsLoss()
 
@@ -461,9 +515,26 @@ def main():
         probe.load_state_dict(checkpoint['probe_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-        # Set scheduler to correct position
-        global_step_resume = checkpoint.get('global_step', 0)
-        scheduler.last_epoch = global_step_resume - 1  # Set correct position for OneCycleLR
+        # Restore scheduler state precisely to avoid off-by-one errors
+        try:
+            if 'scheduler_state_dict' in checkpoint:
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                logger.info("Scheduler state restored from checkpoint")
+
+                # CRITICAL: Sync total_steps after loading state
+                # The scheduler might have a different view after resume
+                total_scheduler_steps = getattr(scheduler, "total_steps", total_scheduler_steps)
+                step_count = getattr(scheduler, "_step_count", 0)
+                logger.info(f"Scheduler resume: step {step_count}/{total_scheduler_steps}")
+            else:
+                # Fallback: set last_epoch from global_step (best effort)
+                global_step_resume = checkpoint.get('global_step', 0)
+                scheduler.last_epoch = max(int(global_step_resume) - 1, -1)
+                logger.warning(
+                    "Scheduler state missing in checkpoint; approximated last_epoch from global_step"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to restore scheduler state cleanly: {e}")
 
         # Proper mid-epoch resume logic
         start_epoch = checkpoint['epoch']
@@ -589,6 +660,7 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'global_step': global_step,  # Include for consistency
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
                 'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
@@ -606,12 +678,29 @@ def main():
                 'scheduler_state_dict': scheduler.state_dict(),
                 'best_auroc': best_auroc,
                 'config': config,
+                'global_step': global_step,  # Include for consistency
                 'epoch_indices': current_epoch_indices,  # Save for deterministic resume
                 'sample_offset': len(train_dataset),  # All samples in epoch processed
             }
             checkpoint_path = output_dir / f'checkpoint_epoch{epoch}.pt'
             torch.save(checkpoint, checkpoint_path)
             logger.info(f"Saved checkpoint at epoch {epoch}")
+
+        # Always update rolling latest checkpoint for crash resilience
+        try:
+            latest_ckpt = {
+                'epoch': epoch,
+                'probe_state_dict': probe.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_auroc': best_auroc,
+                'config': config,
+                'global_step': global_step,  # Include for crash recovery
+            }
+            torch.save(latest_ckpt, output_dir / 'checkpoint_latest.pt')
+        except Exception:
+            # Non-fatal
+            pass
 
     logger.info("=" * 60)
     logger.info("Training complete!")
