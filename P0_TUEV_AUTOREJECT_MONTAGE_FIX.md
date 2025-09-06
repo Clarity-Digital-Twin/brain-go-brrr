@@ -1,9 +1,19 @@
 # P0 CRITICAL: TUEV Autoreject Montage Failure - Complete Fix Documentation
 
-**Status**: 🔴 BLOCKING - 0 windows produced, training impossible
+## ✅ COMPLETED - FULLY FIXED (September 5, 2025)
+
+**Original Status**: 🔴 BLOCKING - 0 windows produced, training impossible
 **Priority**: P0 - Training completely blocked
-**Date**: September 5, 2025
+**Date Fixed**: September 5, 2025
+**Resolution**: ✅ FIXED - Montage now set after channel synthesis
 **Document**: This is the SINGLE AUTHORITATIVE document for fixing TUEV Autoreject
+
+### ✅ FIX IMPLEMENTED:
+- [x] Set channel types to 'eeg' before montage (line 125-134 in tuev_preprocessor.py)
+- [x] Set standard_1020 montage after synthesis (line 136-143)
+- [x] RANSAC disabled by default to avoid internal autoreject bug (line 86)
+- [x] Cache version bumped to v4 to force rebuild
+- [x] Tests updated and passing in CI/CD
 
 ## 🔴 THE CRITICAL FAILURE
 
@@ -22,7 +32,7 @@ Error in logs:
 
 **The Problem**:
 - Parent class `TUABPreprocessor` sets montage at line 154-155
-- But `TUEVPreprocessor` overrides `process_raw_with_annotations()` 
+- But `TUEVPreprocessor` overrides `process_raw_with_annotations()`
 - After synthesizing Fpz as zeros (line 117), we never set montage
 - Autoreject's `fit_transform()` (line 406) requires channel positions for interpolation
 - Without montage → error → file skipped → 0 windows
@@ -84,29 +94,29 @@ except Exception as e:
 def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[str, Any]]:
     """Apply Autoreject with gentle parameters for TUEV spike preservation."""
     from autoreject import AutoReject
-    
+
     try:
         # Existing AR code...
         ar = AutoReject(
-            n_interpolate=[1, 2],  
+            n_interpolate=[1, 2],
             consensus=[0.5, 0.7, 0.9],
             cv=3,
             thresh_method='bayesian_optimization',
             random_state=42,
             verbose=False,
         )
-        
+
         epochs_clean = ar.fit_transform(epochs)
-        
+
         # Collect learned parameters
         ar_params = {}
         if hasattr(ar, 'n_interpolate_'):
             ar_params['n_interpolate'] = ar.n_interpolate_.get('eeg', None)
         if hasattr(ar, 'consensus_'):
             ar_params['consensus'] = ar.consensus_.get('eeg', None)
-            
+
         return epochs_clean, ar_params
-        
+
     except Exception as e:
         logger.warning(f"Autoreject failed: {e}. Proceeding without artifact rejection.")
         # Return original epochs if AR fails
@@ -127,7 +137,7 @@ if global_window_id == 0:
         "Check preprocessing logs for 'Valid channel positions' errors. "
         "Likely cause: montage not set after channel synthesis."
     )
-    
+
 # Future enhancement: Track success/failure rate
 # if n_failed_files / len(edf_files) > 0.5:
 #     logger.error(f"Too many failures: {n_failed_files}/{len(edf_files)}")
@@ -195,14 +205,14 @@ def test_tuev_sets_montage_after_synthesis():
     """Ensure montage is set after channel synthesis."""
     from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
     import mne
-    
+
     # Create raw without Fpz
     raw = create_test_raw_without_fpz()
     proc = TUEVPreprocessor()
-    
+
     # Process (should synthesize Fpz and set montage)
     processed = proc._apply_channel_mapping(raw)
-    
+
     # Verify montage is set
     assert processed.get_montage() is not None
     assert 'Fpz' in processed.ch_names
@@ -220,7 +230,7 @@ def test_autoreject_fallback_on_no_montage():
 ### No Existing Tests Break
 
 - No tests explicitly check for montage NOT being set
-- No tests verify Autoreject failure behavior  
+- No tests verify Autoreject failure behavior
 - No tests check for 0 windows error
 
 ## Definition of Done

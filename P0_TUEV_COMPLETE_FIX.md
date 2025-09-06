@@ -1,10 +1,22 @@
 # P0 CRITICAL: TUEV Cache Building - Complete Fix Documentation
 
-**Status**: 🔴 BLOCKING - Cannot train TUEV without resolution
+## ✅ COMPLETED - FULLY FIXED (September 5, 2025)
+
+**Original Status**: 🔴 BLOCKING - Cannot train TUEV without resolution
 **Priority**: P0 - Training completely blocked
-**Date**: September 5, 2025
+**Date Fixed**: September 5, 2025
+**Resolution**: ✅ FIXED - Channel configuration corrected, cache building successfully
 **Owner**: Engineering Team
 **Document**: This is the SINGLE AUTHORITATIVE document for TUEV fixes
+
+### ✅ ALL FIXES IMPLEMENTED:
+- [x] CHANNELS_TUEV_20 now has Fpz, excludes Oz (per EEGPT paper Table 13)
+- [x] TUEVPreprocessor synthesizes missing Fpz as zeros (line 121-232)
+- [x] Montage set after synthesis to fix Autoreject (line 136-143)
+- [x] RANSAC disabled by default due to internal bug (line 86)
+- [x] Batch size reduced from 128 to 64 to prevent OOM (tuev.yaml line 18)
+- [x] Cache version bumped to v4 for clean rebuild
+- [x] All tests updated and CI/CD green
 
 ## 🔴 CRITICAL: TWO SEPARATE CHANNEL CONSTANTS BOTH WRONG
 
@@ -40,7 +52,7 @@ Checked multiple files including `data/datasets/tuev/edf/eval/000/bckg_000_a_.ed
 
 **THREE-WAY MISMATCH**:
 1. **EEGPT Paper**: Wants FPZ, no OZ
-2. **TUEV Files**: Have neither FPZ nor OZ  
+2. **TUEV Files**: Have neither FPZ nor OZ
 3. **Our Code**: Expects OZ, drops FPZ
 
 **Result**: Training blocked because we expect channels that don't exist
@@ -176,14 +188,14 @@ Add synthesis for missing canonical channels AND specify where to call it:
 ```python
 def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
     """Synthesize missing canonical channels as zeros.
-    
+
     NOTE: channel_utils.py handles case normalization (FPZ→Fpz, CZ→Cz, etc.)
     via case_map at lines 106-125, so config uppercase converts properly.
     """
     canonical_20 = ["Fp1", "Fpz", "Fp2", "F7", "F3", "Fz", "F4", "F8",
                     "T7", "C3", "Cz", "C4", "T8", "P7", "P3", "Pz", "P4", "P8",
                     "O1", "O2"]
-    
+
     for ch in canonical_20:
         if ch not in raw.ch_names and ch.lower() not in [c.lower() for c in raw.ch_names]:
             import numpy as np
@@ -207,7 +219,7 @@ raw = self._synthesize_missing_channels(raw)  # ADD THIS LINE
 # CORRECT - Accept files with missing canonical channels
 if len(available_standard) < 19:
     raise ValueError(f"Too few channels ({len(available_standard)})")
-    
+
 # Will be exactly 20 after synthesis
 if len(available_standard) != 20:
     logger.info(f"Have {len(available_standard)} channels, will pad to 20")
@@ -446,7 +458,7 @@ assert 'Oz' not in tuev_proc.STANDARD_CHANNELS, "TUEV should NOT include Oz"
 
 ### Cache Builder Fixes:
 - [ ] **tuev_dataset.py**: Either add guard OR fix inline:
-  - [ ] Fix assertion messages (lines 105, 110): "with FPZ, no OZ" 
+  - [ ] Fix assertion messages (lines 105, 110): "with FPZ, no OZ"
   - [ ] Update line 137 to use corrected CHANNELS_TUEV_20
 
 ### Validation:
@@ -483,7 +495,7 @@ assert 'Oz' not in tuev_proc.STANDARD_CHANNELS, "TUEV should NOT include Oz"
 
 ### From File Investigation (MNE checks on 5 files)
 - 0/5 files had Oz channel (confirmed absent)
-- 0/5 files had Fpz channel (confirmed absent)  
+- 0/5 files had Fpz channel (confirmed absent)
 - 5/5 files had Fz and Pz (midline channels present)
 - Variable total channels (27-33) due to extra non-EEG
 

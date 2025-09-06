@@ -1,13 +1,25 @@
 # P1 NON-BLOCKING: TUEV RANSAC and NumPy Warning Issues
 
-**Status**: 🟡 NON-BLOCKING - Training continues but logs are noisy
+## ✅ RESOLVED - WORKAROUND IMPLEMENTED (September 5, 2025)
+
+**Original Status**: 🟡 NON-BLOCKING - Training continues but logs were noisy
 **Priority**: P1 - Fix for clean logs and robust operation
-**Date**: September 5, 2025
+**Date Resolved**: September 5, 2025
+**Resolution**: ✅ RANSAC disabled by default, NumPy warnings suppressed
 **Document**: SSOT for RANSAC dtype and NumPy empty slice warnings
 
-## 🔴 UPDATE: RANSAC FIX NOT WORKING (Sept 5, 2025)
+### ✅ RESOLUTIONS IMPLEMENTED:
+- [x] RANSAC disabled by default for TUEV (line 86: `self.disable_ransac = True`)
+- [x] Clean fallback when RANSAC disabled (line 244-254)
+- [x] NumPy warnings suppressed in Autoreject (line 427-433)
+- [x] Clear logging when RANSAC disabled (line 246)
+- [x] Cache version bumped to v4 for clean logs
+- [x] TUEV training running successfully without errors
+
+## 🔴 UPDATE: RANSAC FIX NOT WORKING (Sept 5, 2025) - RESOLVED VIA DISABLING
 
 **The integer dtype fix HAS been implemented but RANSAC still fails!**
+**RESOLUTION**: Disabled RANSAC by default as it's an internal autoreject bug
 
 Evidence from cache rebuild attempt:
 ```
@@ -122,7 +134,7 @@ ransac.fit(epochs_temp)
 ```python
 def __init__(self, config: dict[str, Any] | None = None):
     """Initialize TUEV preprocessor.
-    
+
     Args:
         config: Optional configuration dict
             - disable_ransac: Skip RANSAC bad channel detection (default: False)
@@ -161,24 +173,24 @@ def _apply_autoreject_tuev(self, epochs: mne.Epochs) -> tuple[mne.Epochs, dict[s
     """Apply Autoreject with gentle parameters for TUEV spike preservation."""
     from autoreject import AutoReject
     import warnings
-    
+
     try:
         # Suppress expected NumPy warnings from empty CV folds
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*Mean of empty slice.*')
             warnings.filterwarnings('ignore', category=RuntimeWarning, message='.*invalid value encountered.*')
-            
+
             ar = AutoReject(
-                n_interpolate=[1, 2],  
+                n_interpolate=[1, 2],
                 consensus=[0.5, 0.7, 0.9],
                 cv=3,
                 thresh_method='bayesian_optimization',
                 random_state=42,
                 verbose=False,
             )
-            
+
             epochs_clean = ar.fit_transform(epochs)
-        
+
         # Rest of the method...
 ```
 
@@ -237,7 +249,7 @@ def __init__(self, config: dict[str, Any] | None = None):
 ### Option B: Debug RANSAC Internal Issue
 
 The error is happening INSIDE autoreject's RANSAC implementation. Would need to:
-1. Debug into autoreject/ransac.py 
+1. Debug into autoreject/ransac.py
 2. Find where float arrays are created
 3. Submit PR to autoreject library
 
