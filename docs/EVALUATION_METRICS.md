@@ -6,6 +6,9 @@
 
 ## Quick Reference Table
 
+Reporting: report mean ± sd over 3 runs (seeds: 42, 123, 456).
+Monitors: TUAB → AUROC (binary); TUEV → Cohen’s Kappa (multi‑class).
+
 | Dataset | Task Type | Primary Metrics | Secondary Metrics | Threshold Policy |
 |---------|-----------|-----------------|-------------------|------------------|
 | **TUAB** | Binary Classification | AUROC, Balanced Accuracy | Spec@Sens={0.90,0.95}, Kappa | Choose τ on VAL for target Sens, report on TEST |
@@ -22,7 +25,7 @@
 - **NOT a temporal task** - no FA/24h needed!
 
 ### Metrics (What EEGPT Paper Reports)
-From Table 11 of EEGPT paper:
+From our local EEGPT markdown (see `literature/markdown/EEGPT/EEGPT.md`, Table 11):
 - **AUROC**: 87.18% ± 0.5%
 - **Balanced Accuracy**: 79.83% ± 0.4%
 - **Cohen's Kappa**: 0.60 ± 0.01
@@ -37,8 +40,13 @@ From Table 11 of EEGPT paper:
 # 2. Find threshold on VAL set for target sensitivity
 from sklearn.metrics import roc_curve
 fpr, tpr, thresholds = roc_curve(y_val, scores_val)
-idx = np.argmax(tpr >= 0.95)  # Find threshold for 95% sensitivity
-threshold = thresholds[idx]
+target = 0.95
+meets = np.where(tpr >= target)[0]
+if len(meets) == 0:
+    best_idx = int(np.argmax(tpr))  # fallback if not achievable
+else:
+    best_idx = int(meets[0])  # largest τ meeting target
+threshold = thresholds[best_idx]
 
 # 3. Apply threshold ONCE on TEST set
 y_test_pred = (scores_test >= threshold).astype(int)
@@ -47,8 +55,8 @@ y_test_pred = (scores_test >= threshold).astype(int)
 metrics = {
     'auroc': roc_auc_score(y_test, scores_test),
     'balanced_accuracy': balanced_accuracy_score(y_test, y_test_pred),
-    'spec_at_sens_90': calculate_spec_at_sens(y_test, scores_test, 0.90),
-    'spec_at_sens_95': calculate_spec_at_sens(y_test, scores_test, 0.95),
+    'spec_at_sens_90': spec_at_sens(y_test, scores_test, 0.90),
+    'spec_at_sens_95': spec_at_sens(y_test, scores_test, 0.95),
     'kappa': cohen_kappa_score(y_test, y_test_pred)
 }
 ```

@@ -1,16 +1,8 @@
 # 🎯 ROADMAP: From AUROC to Clinical Reality
 
-## 📧 Canonical Expert Feedback (September 2, 2025)
+## 📧 External Expert Feedback (September 2, 2025)
 
-**From TUH/NEDC Leadership:**
-> "I think you need input from clinicians. The evaluation metric depends on the application.
-> For years, we have distributed our own scoring software that we believe addresses a problem
-> like seizure detection where segmentation and false positive rates are very important:
-> https://isip.piconepress.com/publications/book_sections/2021/springer/metrics/
->
-> In terms of pipelines, I think what we lack is adequate annotated data... There is obviously
-> use for a portal that can analyze data without a need to train models, but moving these big
-> EEG files to/from such a portal is a problem."
+> “Evaluation depends on the application. For seizure detection, segmentation and false positive rates are crucial. Adequate annotated data and local processing are key constraints.”
 
 **Mission**: Ship a clinically-useful EEG pipeline addressing these concerns:
 1. ✅ Pick specific clinical application (TUAB abnormal detection first, TUSZ seizures next)
@@ -41,9 +33,9 @@
   - Epochs: 200 for pretraining (but we only need ~10 for linear probe)
   - Data split: Patient-level, no leakage
 - **Paper results on TUAB**:
-  - 87.18% ± 0.5% AUROC (their Table 11)
+  - 87.18% ± 0.5% AUROC (Table 11 in our local notes)
   - 76.9% ± 0.4% Balanced Accuracy
-  - Linear probe OUTPERFORMED full fine-tuning!
+  - Paper primarily reports linear probing; we adopt that baseline (freeze encoder, train head)
 
 ### What's Actually Working Now
 ```python
@@ -61,9 +53,8 @@ dataset = TUABDataset(root="/data/datasets/tuab")
 features = model.extract_features(eeg_window, summary=True)  # → (B, 512)
 ```
 
-**⚠️ CRITICAL CONSTRAINT**: EEGPT paper used LINEAR PROBING ONLY (not full fine-tuning)!
-- They found linear probe OUTPERFORMED full fine-tuning
-- This means: Freeze EEGPT encoder, train ONLY the classification head
+**⚠️ CRITICAL CONSTRAINT**: EEGPT paper primarily reports linear probing.
+- We adopt the same baseline: freeze the encoder and train only the classification head
 - Much faster training, less overfitting, better generalization
 
 ### The Gap to Bridge
@@ -146,23 +137,32 @@ tar -czf bgb-offline.tar.gz wheelhouse/ models/
 # Simple threshold selection for classification
 from sklearn.metrics import roc_curve, roc_auc_score, balanced_accuracy_score
 
-# 1. Find threshold on VAL for target sensitivity
+# 1. Find threshold on VAL for target sensitivity (pick the LARGEST τ achieving target)
 fpr, tpr, thresholds = roc_curve(y_val, scores_val)
-idx = np.argmax(tpr >= 0.95)  # 95% sensitivity
-threshold = thresholds[idx]
+target = 0.95
+meets = np.where(tpr >= target)[0]
+if len(meets) == 0:
+    # Not achievable: fall back to max sensitivity point
+    best_idx = int(np.argmax(tpr))
+else:
+    # roc_curve thresholds are monotonically decreasing; the first index meeting the target
+    # corresponds to the largest threshold achieving target sensitivity
+    best_idx = int(meets[0])
+threshold = thresholds[best_idx]
 
 # 2. Apply to TEST set once
 y_test_pred = (scores_test >= threshold).astype(int)
 metrics = {
     'auroc': roc_auc_score(y_test, scores_test),
     'balanced_accuracy': balanced_accuracy_score(y_test, y_test_pred),
-    'spec_at_sens_95': calculate_spec_at_sens(y_test, scores_test, 0.95)
+    'spec_at_sens_95': spec_at_sens(y_test, scores_test, 0.95)
 }
 ```
 
 #### For TUEV (6-Class Event Classification)
 **Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG  
 **Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)  
+**Monitor**: Cohen’s Kappa (multi‑class)
 **Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351  
 **Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
 
@@ -242,7 +242,7 @@ min_fa_per_24h = float('inf')
 
 # CRITICAL: Calculate ANNOTATED hours correctly (not total recording time)
 # Use only the hours that have been manually annotated for seizures
-total_annotated_hours_val = sum(recording.annotated_duration_seconds for recording in val_set) / 3600
+total_annotated_hours_val = sum(r.annotated_duration_seconds for r in val_set) / 3600.0
 if total_annotated_hours_val < 0.1:  # Guard against divide-by-zero
     raise ValueError(f"Insufficient annotated validation data: {total_annotated_hours_val:.2f} hours")
 
@@ -250,7 +250,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
     events = scores_to_events(scores_val, threshold)
     tp, fp, fn = match_events(events, ref_events_val)
     sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-    fa_per_24h = (fp / total_hours_val) * 24
+    fa_per_24h = (fp / total_annotated_hours_val) * 24.0
 
     if sensitivity >= 0.95 and fa_per_24h < min_fa_per_24h:
         min_fa_per_24h = fa_per_24h
@@ -454,7 +454,7 @@ See `docs/internal/email-templates.md` for templates.
 - [ ] Implement TUEV event classification
 - [ ] Create watch-folder daemon mode
 - [ ] Build Apptainer/Singularity image for HPC
-- [ ] **Channel emphasis**: Weight T5-O1 (temporal-occipital) higher in ensemble (from TUAB thesis)
+- [ ] **Channel emphasis**: (TODO) explore weighting schemes in ensembling; add reference once verified
 - [ ] ~~Ablation: 7s windows~~ (NO - that was optimal for old CNNs, not transformers)
 
 ## Anti-Goals (What NOT to Do)
