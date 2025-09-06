@@ -15,7 +15,7 @@ data:
 
   # Paper line 587: batch size 500 for TUEV
   # REDUCED FOR WSL: Using 128 to prevent OOM (can increase if stable)
-  batch_size: 128  # was 500 in paper, reduced for memory safety
+  batch_size: 64  # Reduced from 128 to match TUAB (which worked)
   num_workers: 4
   pin_memory: true
 
