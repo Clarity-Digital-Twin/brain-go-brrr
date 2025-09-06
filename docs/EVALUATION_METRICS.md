@@ -9,7 +9,7 @@
 | Dataset | Task Type | Primary Metrics | Secondary Metrics | Threshold Policy |
 |---------|-----------|-----------------|-------------------|------------------|
 | **TUAB** | Binary Classification | AUROC, Balanced Accuracy | Spec@Sens={0.90,0.95}, Kappa | Choose τ on VAL for target Sens, report on TEST |
-| **TUEV** | 6-Class Classification | Macro-F1, Per-class F1 | Confusion Matrix | Softmax, no threshold needed |
+| **TUEV** | 6-Class Classification | Weighted F1, Balanced Accuracy, Kappa | Confusion Matrix (secondary) | Softmax; monitor Kappa |
 | **TUSZ** | Temporal Detection (Future) | FA/24h@Sens, TAES | Latency, DET curve | Threshold + post-proc on VAL, freeze for TEST |
 
 ---
@@ -63,9 +63,10 @@ metrics = {
 - **NOT a temporal detection task** - just classify each window
 
 ### Metrics (What EEGPT Paper Reports)
-From Table 12 of EEGPT paper:
-- **Macro-F1**: 33.02% ± 0.2%
-- **Per-class F1 scores** for each of 6 classes
+Paper-aligned multi-class metrics:
+- **Weighted F1** (primary for multi-class)
+- **Balanced Accuracy**
+- **Cohen's Kappa** (often used as monitor)
 
 ### Evaluation Protocol
 ```python
@@ -73,14 +74,14 @@ From Table 12 of EEGPT paper:
 # 2. No threshold needed - use softmax for class selection
 y_pred = np.argmax(model.predict_proba(X_test), axis=1)
 
-# 3. Report metrics
+# 3. Report metrics (paper-aligned)
+from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score
+
 metrics = {
-    'macro_f1': f1_score(y_test, y_pred, average='macro'),
-    'per_class_f1': {
-        class_name: f1_score(y_test == i, y_pred == i, average='binary')
-        for i, class_name in enumerate(CLASS_NAMES)
-    },
-    'confusion_matrix': confusion_matrix(y_test, y_pred)
+    'weighted_f1': f1_score(y_test, y_pred, average='weighted', zero_division=0),
+    'balanced_accuracy': balanced_accuracy_score(y_test, y_pred),
+    'kappa': cohen_kappa_score(y_test, y_pred),
+    'confusion_matrix': confusion_matrix(y_test, y_pred),  # secondary
 }
 ```
 
@@ -164,7 +165,7 @@ X_train, X_test = train_test_split(X, test_size=0.2)  # ❌ DON'T DO THIS
 ### For TUEV
 - [ ] Handle Fpz synthesis (zeros or learned adapter)
 - [ ] Train 6-class linear probe
-- [ ] Report macro-F1 and per-class metrics
+- [ ] Report Weighted F1, BAC, and Kappa metrics
 - [ ] Generate confusion matrix
 
 ### For TUSZ (Future)

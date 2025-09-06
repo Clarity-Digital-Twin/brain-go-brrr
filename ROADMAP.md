@@ -161,19 +161,21 @@ metrics = {
 ```
 
 #### For TUEV (6-Class Event Classification)
-**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
-**Metrics**: Macro-F1, Per-class F1, Confusion Matrix
-**Target**: Match EEGPT paper's 33.02% macro-F1
+**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG  
+**Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)  
+**Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351  
 **Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
 
 ```python
 # Multi-class classification - no threshold needed
-from sklearn.metrics import f1_score, classification_report
+from sklearn.metrics import f1_score, balanced_accuracy_score, cohen_kappa_score, classification_report
 
 y_pred = np.argmax(model.predict_proba(X_test), axis=1)
 metrics = {
-    'macro_f1': f1_score(y_test, y_pred, average='macro'),
-    'report': classification_report(y_test, y_pred, target_names=CLASS_NAMES)
+    'weighted_f1': f1_score(y_test, y_pred, average='weighted', zero_division=0),
+    'balanced_accuracy': balanced_accuracy_score(y_test, y_pred),
+    'kappa': cohen_kappa_score(y_test, y_pred),
+    'report': classification_report(y_test, y_pred, target_names=CLASS_NAMES),
 }
 ```
 
@@ -264,13 +266,13 @@ for threshold in np.arange(0.3, 0.9, 0.05):
    - **Who cares:** Researchers, teaching labs, triage tools
    - **Metrics:** AUROC, Balanced Accuracy, **Specificity @ Sensitivity = {0.90, 0.95}**
    - **NOT**: FA/24h (that's for seizures, not classification!)
-   - **Channels:** 19 standard (no Fz), mapped to 20 for EEGPT
+   - **Channels:** 19 standard (no Fz); pipeline enforces 18–19 (no mapping to 20)
    - **Splits:** Use canonical TUH TUAB v3.0.1 patient-level splits
    - **Target:** 87.18% AUROC (EEGPT paper Table 11)
 
 2. **TUEV (event classes)** - 6-class classification
    - **Who cares:** Researchers benchmarking event detectors
-   - **Metrics:** Macro-F1 (33.02% target), per-class F1, confusion matrix
+   - **Metrics:** Weighted F1, Balanced Accuracy, Kappa; confusion matrix (secondary)
    - **NOT**: FA/24h (classification task, not temporal detection!)
    - **Channels:** 20 canonical with Fpz synthesized (see `TUEV_FPZ_DISCREPANCY.md`)
    - **Splits:** Use canonical TUH TUEV v2.0.1 patient-level splits
@@ -286,7 +288,7 @@ for threshold in np.arange(0.3, 0.9, 0.05):
 ### "Stop Here" Rule
 If you have:
 - TUAB `metrics.json` (AUROC/BAC/Spec@Sens)
-- TUEV macro-F1 (and optional event CSV)
+- TUEV `metrics.json` (Weighted F1/BAC/Kappa and optional confusion matrix)
 - TUSZ FA/24h + Sens@{1,5,10} with documented threshold policy
 - **Local-first deploy** (CLI/Docker: "data never leaves this machine")
 
