@@ -36,7 +36,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
     """
 
     # Cache version - bump this when preprocessing pipeline changes
-    CACHE_VERSION = "mne-ar-v3"  # v3: fixed-grid windows, argmax labeling, gentle AR
+    CACHE_VERSION = "mne-ar-v4"  # v4: RANSAC disabled by default, EEG types set pre-montage
 
     def __init__(
         self,

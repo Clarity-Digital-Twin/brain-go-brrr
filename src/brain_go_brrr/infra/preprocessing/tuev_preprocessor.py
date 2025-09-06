@@ -240,7 +240,7 @@ class TUEVPreprocessor(TUABPreprocessor):
         """
         if self.disable_ransac:
             # Skip RANSAC, just do filtering and resampling
-            logger.info("RANSAC disabled for TUEV - applying only filtering")
+            logger.info("TUEV _apply_mne_preprocessing: RANSAC disabled - applying filters only")
             raw.filter(self.bandpass_low, self.bandpass_high, picks='eeg', verbose=False)
             if self.notch_freq:
                 # Apply notch at fundamental and harmonics
