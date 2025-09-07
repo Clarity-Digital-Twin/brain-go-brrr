@@ -326,9 +326,9 @@ class TUEVPreprocessor(TUABPreprocessor):
             preload=True,
             verbose=False,
         )
-        
+
         # Assert epoch length immediately (fail fast with context)
-        n_required = int(round(self.window_duration * sfreq))  # 1024
+        n_required = round(self.window_duration * sfreq)  # 1024
         actual_samples = epochs.get_data().shape[-1]
         if actual_samples != n_required:
             raise RuntimeError(
