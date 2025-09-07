@@ -108,9 +108,11 @@ class TestP0ParameterCheck:
             mock_probe = MagicMock(spec=AbnormalityProbe)
             mock_probe.predict_abnormal_probability = lambda x: torch.tensor(0.5)
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    response = test_client.post(
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                response = test_client.post(
                         "/eeg/eegpt/analyze",
                         files={
                             "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
@@ -174,9 +176,11 @@ class TestP0ParameterCheck:
             mock_probe = MagicMock(spec=SleepStageProbe)
             mock_probe.predict_stage = lambda x: ([2], torch.tensor([0.8]))
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    response = test_client.post(
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                response = test_client.post(
                         "/eeg/eegpt/sleep/stages",
                         files={
                             "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
@@ -236,9 +240,11 @@ class TestP0ParameterCheck:
 
             mock_probe.predict_proba = lambda x: torch.tensor([[0.7, 0.3]] * x.shape[0])
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    response = test_client.post(
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                response = test_client.post(
                         "/eeg/eegpt/analyze/batch?batch_size=2",
                         files={
                             "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
