@@ -291,18 +291,18 @@ class TestP0CriticalFixes:
         ):
             model = EEGPTModel()
 
-                # Check that extract_features_batch doesn't accept summary parameter
-                import inspect
+            # Check that extract_features_batch doesn't accept summary parameter
+            import inspect
 
-                sig = inspect.signature(model.extract_features_batch)
-                params = list(sig.parameters.keys())
+            sig = inspect.signature(model.extract_features_batch)
+            params = list(sig.parameters.keys())
 
-                # This assertion SHOULD PASS with current bug (summary not in params)
-                # After fix, it should FAIL (summary should be in params)
-                assert "summary" not in params, (
-                    "BUG ALREADY FIXED? extract_features_batch now has summary parameter. "
-                    "Update this test to verify it works correctly."
-                )
+            # This assertion SHOULD PASS with current bug (summary not in params)
+            # After fix, it should FAIL (summary should be in params)
+            assert "summary" not in params, (
+                "BUG ALREADY FIXED? extract_features_batch now has summary parameter. "
+                "Update this test to verify it works correctly."
+            )
 
 
 if __name__ == "__main__":
