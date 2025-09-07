@@ -70,12 +70,12 @@ class TestEEGPTModelEdgeCases:
 
         # Mock encoder
         model.encoder = MagicMock()
-        model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 768))
+        model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 512))
 
         windows = np.random.randn(4, 20, 1024).astype(np.float32)
         features = model.extract_features_batch(windows)
 
-        assert features.shape == (4, 768)
+        assert features.shape == (4, 512)
         assert features.dtype == np.float32
 
     def test_extract_features_batch_with_torch(self):
@@ -85,12 +85,12 @@ class TestEEGPTModelEdgeCases:
 
         # Mock encoder
         model.encoder = MagicMock()
-        model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 768))
+        model.encoder.extract_features = MagicMock(return_value=torch.zeros(4, 512))
 
         windows = torch.randn(4, 20, 1024)
         features = model.extract_features_batch(windows)
 
-        assert features.shape == (4, 768)
+        assert features.shape == (4, 512)
         assert features.dtype == np.float32
 
     def test_extract_features_batch_without_encoder(self):
@@ -102,7 +102,7 @@ class TestEEGPTModelEdgeCases:
         features = model.extract_features_batch(windows)
 
         # Should return zeros as fallback
-        assert features.shape == (4, 768)
+        assert features.shape == (4, 512)
         assert np.allclose(features, 0)
 
     def test_predict_abnormality_method(self):
