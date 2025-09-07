@@ -189,11 +189,11 @@ class TestP0ParameterCheck:
 
                 assert response.status_code == 200
 
-                    # Check that extract_features was called
-                    assert len(extract_features_calls) > 0, "extract_features was not called"
+                # Check that extract_features was called
+                assert len(extract_features_calls) > 0, "extract_features was not called"
 
-                    # THE BUG: summary=False is NOT passed
-                    for _args, kwargs in extract_features_calls:
+                # THE BUG: summary=False is NOT passed
+                for _args, kwargs in extract_features_calls:
                     # With the bug, 'summary' is not in kwargs or is True
                     # After fix, 'summary' should be False
                     assert 'summary' not in kwargs or kwargs['summary'], (
