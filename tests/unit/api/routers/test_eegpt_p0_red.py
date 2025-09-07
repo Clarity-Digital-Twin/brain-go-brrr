@@ -139,9 +139,11 @@ class TestP0CriticalFixes:
 
             mock_probe.predict_abnormal_probability = strict_dimension_check
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    # This SHOULD crash with dimension mismatch
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                # This SHOULD crash with dimension mismatch
                     response = test_client.post(
                         "/eeg/eegpt/analyze",
                         files={
@@ -197,9 +199,11 @@ class TestP0CriticalFixes:
 
             mock_probe.predict_stage = strict_dimension_check
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    # This SHOULD crash with dimension mismatch
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                # This SHOULD crash with dimension mismatch
                     response = test_client.post(
                         "/eeg/eegpt/sleep/stages",
                         files={
@@ -252,9 +256,11 @@ class TestP0CriticalFixes:
 
             mock_probe.predict_proba = strict_dimension_check
 
-            with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
-                with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
-                    # This SHOULD crash with dimension mismatch
+            with (
+                patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+            ):
+                # This SHOULD crash with dimension mismatch
                     response = test_client.post(
                         "/eeg/eegpt/analyze/batch?batch_size=2",
                         files={
@@ -279,9 +285,11 @@ class TestP0CriticalFixes:
         from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
         # Mock the model loading to avoid needing actual model file
-        with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._load_model"):
-            with patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._validate_model"):
-                model = EEGPTModel()
+        with (
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._load_model"),
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._validate_model")
+        ):
+            model = EEGPTModel()
 
                 # Check that extract_features_batch doesn't accept summary parameter
                 import inspect
