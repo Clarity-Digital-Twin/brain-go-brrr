@@ -6,7 +6,7 @@ passing summary=False, resulting in 512-d summaries instead of 2048-d features.
 
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -21,6 +21,7 @@ class TestP0ParameterCheck:
     def test_client(self):
         """Create test client with router."""
         from fastapi import FastAPI
+
         from brain_go_brrr.api.routers.eegpt import router
 
         app = FastAPI()
@@ -66,26 +67,27 @@ class TestP0ParameterCheck:
             return content
 
     def test_analyze_endpoint_missing_summary_false(self, test_client, valid_edf_bytes):
-        """
-        RED TEST: /analyze endpoint MUST NOT pass summary=False (current bug).
-        
+        """RED TEST: /analyze endpoint MUST NOT pass summary=False (current bug).
+
         This test will PASS with the bug (summary not passed) and FAIL after fix.
         """
+
         # Mock the load_edf_safe to avoid EDF parsing
         class _StubRaw:
             def __init__(self):
                 self.ch_names = [f"EEG{i}" for i in range(19)]
                 self.info = {"sfreq": 256}
+
             def get_data(self):
                 return np.random.randn(19, 5120).astype(np.float32)  # 20 seconds
-        
+
         with patch("brain_go_brrr.api.routers.eegpt.load_edf_safe", return_value=_StubRaw()):
             # Mock the model to track calls
             mock_model = MagicMock()
-            
+
             # Track what parameters are passed to extract_features
             extract_features_calls = []
-            
+
             def track_extract_features(*args, **kwargs):
                 extract_features_calls.append((args, kwargs))
                 # Return appropriate shape based on summary parameter
@@ -94,59 +96,64 @@ class TestP0ParameterCheck:
                     return np.ones(512).astype(np.float32)  # Summary features
                 else:
                     return np.ones(2048).astype(np.float32)  # Full features
-            
+
             mock_model.extract_features = track_extract_features
             mock_model.extract_windows = lambda data, sfreq: [data[:, :1024] for _ in range(5)]
-            
+
             # Mock probe - make it look like AbnormalityProbe
             import torch
+
             from brain_go_brrr.infra.ml_models.linear_probe import AbnormalityProbe
+
             mock_probe = MagicMock(spec=AbnormalityProbe)
             mock_probe.predict_abnormal_probability = lambda x: torch.tensor(0.5)
-            
+
             with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
                 with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
                     response = test_client.post(
                         "/eeg/eegpt/analyze",
-                        files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                        files={
+                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                        },
                         data={"analysis_type": "abnormality_probe"},
                     )
-                    
+
                     assert response.status_code == 200
-                    
+
                     # Check that extract_features was called
                     assert len(extract_features_calls) > 0, "extract_features was not called"
-                    
+
                     # THE BUG: summary=False is NOT passed
-                    for args, kwargs in extract_features_calls:
+                    for _args, kwargs in extract_features_calls:
                         # With the bug, 'summary' is not in kwargs or is True
                         # After fix, 'summary' should be False
-                        assert 'summary' not in kwargs or kwargs['summary'] == True, (
+                        assert 'summary' not in kwargs or kwargs['summary'], (
                             "BUG ALREADY FIXED! extract_features is being called with summary=False. "
                             f"Got kwargs: {kwargs}"
                         )
 
     def test_sleep_stages_endpoint_missing_summary_false(self, test_client, valid_edf_bytes):
-        """
-        RED TEST: /sleep/stages endpoint MUST NOT pass summary=False (current bug).
-        
+        """RED TEST: /sleep/stages endpoint MUST NOT pass summary=False (current bug).
+
         This test will PASS with the bug (summary not passed) and FAIL after fix.
         """
+
         # Mock the load_edf_safe to avoid EDF parsing
         class _StubRaw:
             def __init__(self):
                 self.ch_names = [f"EEG{i}" for i in range(19)]
                 self.info = {"sfreq": 256}
+
             def get_data(self):
                 return np.random.randn(19, 5120).astype(np.float32)  # 20 seconds
-        
+
         with patch("brain_go_brrr.api.routers.eegpt.load_edf_safe", return_value=_StubRaw()):
             # Mock the model to track calls
             mock_model = MagicMock()
-            
+
             # Track what parameters are passed to extract_features
             extract_features_calls = []
-            
+
             def track_extract_features(*args, **kwargs):
                 extract_features_calls.append((args, kwargs))
                 # Return appropriate shape based on summary parameter
@@ -155,87 +162,97 @@ class TestP0ParameterCheck:
                     return np.ones(512).astype(np.float32)  # Summary features
                 else:
                     return np.ones(2048).astype(np.float32)  # Full features
-            
+
             mock_model.extract_features = track_extract_features
             mock_model.extract_windows = lambda data, sfreq: [data[:, :1024] for _ in range(5)]
-            
+
             # Mock probe - make it look like SleepStageProbe
             import torch
+
             from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
+
             mock_probe = MagicMock(spec=SleepStageProbe)
             mock_probe.predict_stage = lambda x: ([2], torch.tensor([0.8]))
-            
+
             with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
                 with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
                     response = test_client.post(
                         "/eeg/eegpt/sleep/stages",
-                        files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                        files={
+                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                        },
                     )
-                    
+
                     assert response.status_code == 200
-                    
+
                     # Check that extract_features was called
                     assert len(extract_features_calls) > 0, "extract_features was not called"
-                    
+
                     # THE BUG: summary=False is NOT passed
-                    for args, kwargs in extract_features_calls:
+                    for _args, kwargs in extract_features_calls:
                         # With the bug, 'summary' is not in kwargs or is True
                         # After fix, 'summary' should be False
-                        assert 'summary' not in kwargs or kwargs['summary'] == True, (
+                        assert 'summary' not in kwargs or kwargs['summary'], (
                             "BUG ALREADY FIXED! extract_features is being called with summary=False. "
                             f"Got kwargs: {kwargs}"
                         )
 
     def test_analyze_batch_missing_summary_parameter(self, test_client, valid_edf_bytes):
-        """
-        RED TEST: extract_features_batch doesn't support summary parameter at all.
-        
+        """RED TEST: extract_features_batch doesn't support summary parameter at all.
+
         This test verifies that extract_features_batch lacks the summary parameter.
         """
+
         # Mock the load_edf_safe to avoid EDF parsing
         class _StubRaw:
             def __init__(self):
                 self.ch_names = [f"EEG{i}" for i in range(19)]
                 self.info = {"sfreq": 256}
+
             def get_data(self):
                 return np.random.randn(19, 10240).astype(np.float32)  # 40 seconds
-        
+
         with patch("brain_go_brrr.api.routers.eegpt.load_edf_safe", return_value=_StubRaw()):
             # Mock the model to track calls
             mock_model = MagicMock()
-            
+
             # Track what parameters are passed to extract_features_batch
             extract_batch_calls = []
-            
+
             def track_extract_batch(*args, **kwargs):
                 extract_batch_calls.append((args, kwargs))
                 # Return batch of 512-d features (the bug!)
                 batch_size = args[0].shape[0] if args else 2
                 return np.ones((batch_size, 512)).astype(np.float32)
-            
-            mock_model.extract_windows = lambda data, sfreq: [data[:, i:i+1024] for i in range(0, 10240-1024, 1024)]
+
+            mock_model.extract_windows = lambda data, sfreq: [
+                data[:, i : i + 1024] for i in range(0, 10240 - 1024, 1024)
+            ]
             mock_model.extract_features_batch = track_extract_batch
-            
+
             # Mock probe
             mock_probe = MagicMock()
             import torch
+
             mock_probe.predict_proba = lambda x: torch.tensor([[0.7, 0.3]] * x.shape[0])
-            
+
             with patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model):
                 with patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe):
                     response = test_client.post(
                         "/eeg/eegpt/analyze/batch?batch_size=2",
-                        files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                        files={
+                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                        },
                         data={"analysis_type": "abnormality"},
                     )
-                    
+
                     assert response.status_code == 200
-                    
+
                     # Check that extract_features_batch was called
                     assert len(extract_batch_calls) > 0, "extract_features_batch was not called"
-                    
+
                     # THE BUG: extract_features_batch doesn't accept summary parameter
-                    for args, kwargs in extract_batch_calls:
+                    for _args, kwargs in extract_batch_calls:
                         # With the bug, 'summary' cannot be in kwargs
                         # After fix, 'summary' should be False in kwargs
                         assert 'summary' not in kwargs, (

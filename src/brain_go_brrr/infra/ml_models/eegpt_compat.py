@@ -262,12 +262,12 @@ class EEGPTModel:
         summary: bool = True,  # P0 FIX: Add summary parameter
     ) -> npt.NDArray[np.float64]:
         """Extract features from batch of windows.
-        
+
         Args:
             windows: Batch of EEG windows (batch, channels, samples)
             channel_names: Channel names (kept for API compatibility)
             summary: If True, return averaged summary (B, 512). If False, return tokens (B, 4, 512).
-        
+
         Returns:
             Features array of shape (B, 512) if summary=True, or (B, 4, 512) if summary=False.
         """
@@ -283,6 +283,7 @@ class EEGPTModel:
             if self.encoder is not None and hasattr(self.encoder, 'extract_features'):
                 # Try to use summary parameter if the encoder's extract_features supports it
                 import inspect
+
                 sig = inspect.signature(self.encoder.extract_features)
                 if 'summary' in sig.parameters:
                     features = self.encoder.extract_features(batch_tensor, summary=summary)

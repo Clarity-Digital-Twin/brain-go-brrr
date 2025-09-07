@@ -12,7 +12,7 @@ import torch
 
 
 def prepare_probe_features(
-    features: npt.NDArray[np.float32] | torch.Tensor,
+    features: npt.NDArray[np.float32] | npt.NDArray[np.float64] | torch.Tensor,
 ) -> torch.Tensor:
     """Prepare EEGPT features for probe consumption.
 

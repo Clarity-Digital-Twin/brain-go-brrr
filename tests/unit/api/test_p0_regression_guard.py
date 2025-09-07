@@ -151,7 +151,7 @@ class TestP0RegressionGuard:
                         pytest.fail(
                             f"P0 VIOLATION in {file_path} line {i + 1}:\n"
                             f"Found probe with 512-d input dimension!\n"
-                            f"ALL probes must expect 2048 dimensions (4×512 flattened)"
+                            f"ALL probes must expect 2048 dimensions (4x512 flattened)"
                         )
 
 
