@@ -12,10 +12,6 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## 📖 Quick Navigation
-
-[**Quick Start**](#-quick-start) • [**How It Works**](#-how-it-works) • [**Documentation**](#-documentation) • [**For Researchers**](#-for-researchers) • [**For Developers**](#-for-developers) • [**API Reference**](docs/API.md) • [**Training Guide**](docs/TRAINING.md)
-
 ## 🧠 The Problem: Making Sense of Brain Waves
 
 **What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
@@ -38,28 +34,6 @@
 - Not a medical device - not FDA approved for clinical decision-making
 - Not a replacement for neurologists - designed to assist, not diagnose
 - Not validated on all populations - trained on specific research datasets
-
-## ⭐ Key Features & Capabilities
-
-### 🎯 What's Working Today
-
-| Feature | Status | Performance | Details |
-|---------|--------|-------------|---------|
-| **Sleep Staging** | ✅ Production Ready | 87% accuracy | 5-stage classification using YASA |
-| **Quality Control** | ✅ Production Ready | High reliability | Autoreject + bad channel detection |
-| **REST API** | ✅ Production Ready | <100ms response | FastAPI with Redis caching |
-| **MNE Preprocessing** | ✅ Production Ready | Research-grade | Full MNE-Python integration |
-| **Test Coverage** | ✅ Excellent | 86% coverage | 899+ passing tests |
-| **CI/CD Pipeline** | ✅ Automated | All green | GitHub Actions on every push |
-
-### 🚧 In Active Development
-
-| Feature | Status | Target | Timeline |
-|---------|--------|--------|----------|
-| **Abnormality Detection** | Training | 87% AUROC | Q4 2025 |
-| **Event Detection (TUEV)** | Implementation | 62% BAC | Q4 2025 |
-| **Linear Probes** | Optimization | Paper performance | Ongoing |
-| **WSL Support** | Enhanced | Full compatibility | ✅ Done |
 
 ## 🛠️ What We Build
 
@@ -144,12 +118,6 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 - **Research accuracy** - 87% sleep staging (YASA), targeting 87% abnormality AUROC
 - **Well-tested** - Clean architecture, dependency injection, comprehensive testing
 
-**⚠️ Critical Technical Notes:**
-- **EEGPT Features**: Always 2,048 dimensions (4×512 tokens flattened) for probes
-- **Channel Names**: Use modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
-- **Sampling Rate**: EEGPT requires 256Hz, YASA auto-resamples to 100Hz
-- **Window Size**: 4-second windows for EEGPT (1,024 samples at 256Hz)
-
 ## 🔬 For Researchers
 
 ### Training Custom Models
@@ -189,11 +157,10 @@ See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
 
 ### System Requirements
 
-- **Python:** 3.11 or 3.12 (3.13 not yet supported)
-- **RAM:** 16GB minimum, 32GB recommended for training
-- **GPU:** Optional but recommended (CUDA 11.8+ for PyTorch)
-- **OS:** Linux, macOS, Windows (WSL2 - use `make check-wsl`)
-- **Storage:** ~50GB for datasets, ~5GB for models
+- **Python:** 3.11 or 3.12
+- **RAM:** 16GB minimum
+- **GPU:** Optional (speeds up training)
+- **OS:** Linux, macOS, Windows (WSL2)
 
 ### Project Structure
 ```
@@ -257,35 +224,13 @@ uv run pytest tests/unit/domain/sleep -v
 
 ## 📚 Documentation
 
-### 🚀 Getting Started
 | Guide | Description |
 |-------|------------|
-| [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes - installation, setup, first API call |
-| [API.md](docs/API.md) | REST endpoint reference with examples |
-| [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions CI/CD pipeline setup |
-
-### 🏗️ Architecture & Design
-| Guide | Description |
-|-------|------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, patterns, and architecture decisions |
-| [CHANNELS.md](docs/CHANNELS.md) | EEG channel handling, naming conventions, and mapping |
-| [UNITS.md](docs/UNITS.md) | Physical units (μV, V) and scaling conventions |
-| [EVALUATION_METRICS.md](docs/EVALUATION_METRICS.md) | Performance metrics, benchmarks, and accuracy targets |
-
-### 🧪 Development & Testing
-| Guide | Description |
-|-------|------------|
-| [TESTING.md](docs/TESTING.md) | Test philosophy, TDD practices, and guidelines |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB/TUEV datasets |
-| [TUH_CORPUS_GUIDE.md](docs/TUH_CORPUS_GUIDE.md) | Temple University Hospital EEG corpus guide |
-| [CLEANUP_PLAN.md](docs/CLEANUP_PLAN.md) | Technical debt and cleanup priorities |
-
-### 📖 External References
-| Resource | Description |
-|----------|------------|
-| [MNE Integration](docs/external_references/MNE_PREPROCESSING_GUIDE.md) | MNE-Python preprocessing pipeline |
-| [Autoreject Guide](docs/external_references/AUTOREJECT_COMPLETE_GUIDE.md) | Artifact rejection with Autoreject |
-| [TUAB-Specific Setup](docs/external_references/AUTOREJECT_TUAB_SPECIFIC.md) | TUAB dataset preprocessing details |
+| [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
+| [API.md](docs/API.md) | REST endpoint reference |
+| [TRAINING.md](docs/TRAINING.md) | Model training guide |
+| [TESTING.md](docs/TESTING.md) | Test philosophy and guidelines |
 
 ## 🚦 Current Status & Roadmap
 
