@@ -309,16 +309,32 @@ class TUEVPreprocessor(TUABPreprocessor):
         event_id = {"window": window_event_code}  # Simple event_id dict
 
         # Create epochs
+        # CRITICAL FIX: tmax must be exclusive to get exactly 1024 samples
+        # Use actual sfreq from data (post-resample) for precision
+        sfreq = float(raw.info["sfreq"])
+        tmax = self.window_duration - (1.0 / sfreq)
+        # At 256 Hz: tmax = 4.0 - (1/256) = 3.99609375
+        # This gives samples from t=0 to t=3.99609375, inclusive of both endpoints
+        # Sample indices: 0, 1, 2, ..., 1023 (exactly 1024 samples)
         epochs = mne.Epochs(
             raw,
             events_array,
             event_id=event_id,
             tmin=0,
-            tmax=self.window_duration,
+            tmax=tmax,
             baseline=None,
             preload=True,
             verbose=False,
         )
+
+        # Assert epoch length immediately (fail fast with context)
+        n_required = round(self.window_duration * sfreq)  # 1024
+        actual_samples = epochs.get_data().shape[-1]
+        if actual_samples != n_required:
+            raise RuntimeError(
+                f"TUEV epoch length={actual_samples} != {n_required} "
+                f"(sfreq={sfreq}, tmax={tmax}) for file={raw.filenames[0]}"
+            )
 
         n_epochs_before = len(epochs)
 
