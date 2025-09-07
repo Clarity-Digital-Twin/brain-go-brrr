@@ -110,13 +110,11 @@ class TestP0ParameterCheck:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 response = test_client.post(
                     "/eeg/eegpt/analyze",
-                    files={
-                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                    },
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
                     data={"analysis_type": "abnormality_probe"},
                 )
 
@@ -178,13 +176,11 @@ class TestP0ParameterCheck:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 response = test_client.post(
                     "/eeg/eegpt/sleep/stages",
-                    files={
-                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                    },
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
                 )
 
                 assert response.status_code == 200
@@ -242,13 +238,11 @@ class TestP0ParameterCheck:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 response = test_client.post(
                     "/eeg/eegpt/analyze/batch?batch_size=2",
-                    files={
-                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                    },
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
                     data={"analysis_type": "abnormality"},
                 )
 
