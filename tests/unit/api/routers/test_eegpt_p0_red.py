@@ -141,23 +141,21 @@ class TestP0CriticalFixes:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 # This SHOULD crash with dimension mismatch
-                    response = test_client.post(
-                        "/eeg/eegpt/analyze",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                        data={"analysis_type": "abnormality_probe"},
-                    )
+                response = test_client.post(
+                    "/eeg/eegpt/analyze",
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                    data={"analysis_type": "abnormality_probe"},
+                )
 
-                    # With the bug, this should fail with 500 Internal Server Error
-                    # After fix, it should succeed with 200
-                    assert response.status_code == 500, (
-                        "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
-                        "Current code passes 512-d features to probe expecting 2048-d."
-                    )
+                # With the bug, this should fail with 500 Internal Server Error
+                # After fix, it should succeed with 200
+                assert response.status_code == 500, (
+                    "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
+                    "Current code passes 512-d features to probe expecting 2048-d."
+                )
 
     def test_sleep_stages_endpoint_dimension_mismatch(
         self, test_client, valid_edf_bytes, stub_edf_loader
@@ -201,22 +199,20 @@ class TestP0CriticalFixes:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 # This SHOULD crash with dimension mismatch
-                    response = test_client.post(
-                        "/eeg/eegpt/sleep/stages",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                    )
+                response = test_client.post(
+                    "/eeg/eegpt/sleep/stages",
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                )
 
-                    # With the bug, this should fail with 500 Internal Server Error
-                    # After fix, it should succeed with 200
-                    assert response.status_code == 500, (
-                        "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
-                        "Current code passes 512-d features to probe expecting 2048-d."
-                    )
+                # With the bug, this should fail with 500 Internal Server Error
+                # After fix, it should succeed with 200
+                assert response.status_code == 500, (
+                    "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
+                    "Current code passes 512-d features to probe expecting 2048-d."
+                )
 
     def test_analyze_batch_endpoint_dimension_mismatch(
         self, test_client, valid_edf_bytes, stub_edf_loader
@@ -258,23 +254,21 @@ class TestP0CriticalFixes:
 
             with (
                 patch("brain_go_brrr.api.routers.eegpt.get_eegpt_model", return_value=mock_model),
-                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
+                patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe),
             ):
                 # This SHOULD crash with dimension mismatch
-                    response = test_client.post(
-                        "/eeg/eegpt/analyze/batch?batch_size=2",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                        data={"analysis_type": "abnormality"},
-                    )
+                response = test_client.post(
+                    "/eeg/eegpt/analyze/batch?batch_size=2",
+                    files={"edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")},
+                    data={"analysis_type": "abnormality"},
+                )
 
-                    # With the bug, this should fail with 500 Internal Server Error
-                    # After fix, it should succeed with 200
-                    assert response.status_code == 500, (
-                        "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
-                        "Current code passes 512-d features to probe expecting 2048-d."
-                    )
+                # With the bug, this should fail with 500 Internal Server Error
+                # After fix, it should succeed with 200
+                assert response.status_code == 500, (
+                    "BUG NOT DETECTED! The endpoint should crash with dimension mismatch. "
+                    "Current code passes 512-d features to probe expecting 2048-d."
+                )
 
     def test_extract_features_batch_missing_summary_parameter(self):
         """RED TEST #4: extract_features_batch MUST NOT have summary parameter.
@@ -287,7 +281,7 @@ class TestP0CriticalFixes:
         # Mock the model loading to avoid needing actual model file
         with (
             patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._load_model"),
-            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._validate_model")
+            patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel._validate_model"),
         ):
             model = EEGPTModel()
 
