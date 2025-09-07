@@ -4,7 +4,7 @@
 **Owner**: ___________________  
 **Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY  
-**Revision**: v14.0 - Senior-ready, test stubs fixed  
+**Revision**: v14.1 - SSOT clarified (no 3D to probes)  
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
 
 ---
@@ -16,7 +16,7 @@
 > - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
 > - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
 > - **WHERE TO FLATTEN**: At probe boundaries (routers/trainers). During **Green** phase, inline `.flatten(1)` is acceptable to make tests pass. After **Refactor** phase, use the `prepare_probe_features` adapter exclusively. Never flatten inside model/encoder/compat internals.
-> - **THE INVARIANT**: Probes operate on 2048 dims (4×512). They accept (B,4,512) tensors and flatten internally, but our SSOT standardizes to (B,2048) at boundaries for consistency.
+> - **THE INVARIANT**: Boundaries MUST pass torch tensors of shape (B,2048) into probes. Do NOT pass (B,4,512) to probes in app code. Always call `extract_features(..., summary=False)` and flatten at the boundary (or via the adapter). Never pass 512-d vectors to probes.
 >
 > **🔍 Shape Contract:**
 > - `summary=False` returns **numpy** array: (B,4,512) for batch, or (4,512) for single window
@@ -538,6 +538,10 @@ make coverage
 # Any path that feeds a probe/classifier:
 features = model.extract_features(data, channels)  # 512 dims
 output = probe(features)  # Expects 2048 → CRASH!
+
+# Also forbidden in app code (policy):
+features_3d = model.extract_features(data, channels, summary=False)  # (B,4,512)
+output = probe(features_3d)  # Although probe flattens 3D, this violates SSOT
 ```
 
 **Forbidden Locations** (all 6 crash sites):
@@ -546,6 +550,7 @@ output = probe(features)  # Expects 2048 → CRASH!
 - `application/training/sleep_probe_trainer.py` - 2 call-sites: train_step, evaluate_probe
 
 **Critical Rule**: Routers MUST NEVER use `summary=True` on any path that feeds a probe.
+Additionally, routers/trainers MUST flatten to (B,2048) before probe calls (use the adapter after refactor).
 
 ### ✅ ALLOWED (Won't Crash) - Don't Change
 ```python
@@ -750,8 +755,12 @@ Our implementation (`eegpt_architecture.py`):
 - **v14.0** (Sept 7): Senior-ready, tests corrected and line refs removed:
   - Fixed RED tests: patch `load_edf_safe` with a stub Raw to avoid EDF parsing
   - Fixed monkeypatch signature: `get_probe(task)` now mocked correctly in all tests
-  - Clarified SSOT: probes accept (B,4,512) but policy standardizes (B,2048)
+  - SSOT note added
   - Removed brittle line number references throughout the doc
+
+- **v14.1** (Sept 7): SSOT clarity (no ambiguity):
+  - Final policy: Boundaries MUST flatten to (B,2048) before probes; do not pass (B,4,512) to probes in app code
+  - Keep probe’s internal 3D flatten as incidental capability, not an allowed pattern in our code
 
 ---
 
