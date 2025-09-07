@@ -1,5 +1,9 @@
 # Brain Go Brrr - Modern Python ML Project Makefile
 # 2025 Best Practices with uv, ruff, and modern tooling
+#
+# WSL USERS: Due to parallel I/O limitations in WSL, use 'make check-wsl'
+# instead of 'make check-all' to avoid pytest-xdist failures.
+# test-fast will auto-detect WSL and run tests serially when needed.
 
 .PHONY: help install dev-install test test-fast test-cov lint format type-check typecheck quality check pre-commit clean build docs serve-docs train preprocess evaluate serve notebook mlflow dvc-setup docker-build docker-run benchmark profile
 
@@ -356,16 +360,30 @@ test-ci: ## Run tests for CI with coverage and XML report
 
 test-fast: ## Run parallel tests quickly without coverage
 	@echo "$(GREEN)Running fast parallel tests without coverage...$(NC)"
-	@export PYTHONPYCACHEPREFIX=/tmp/pycache && \
-	export PYTEST_ADDOPTS="--basetemp=/tmp/pytest" && \
-	$(PYTEST) tests -p xdist -n auto \
-		-m "not slow and not integration and not external and not benchmark" \
-		--ignore=tests/benchmarks \
-		--ignore=tests/archive \
-		--dist=loadfile \
-		--maxfail=10 \
-		--timeout=300 \
-		-q
+	@# Check if running in WSL - parallel tests may fail due to I/O issues
+	@if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then \
+		echo "$(YELLOW)WSL detected: Running tests serially to avoid I/O errors$(NC)"; \
+		export PYTHONPYCACHEPREFIX=/tmp/pycache && \
+		export PYTEST_ADDOPTS="--basetemp=/tmp/pytest" && \
+		$(PYTEST) tests \
+			-m "not slow and not integration and not external and not benchmark" \
+			--ignore=tests/benchmarks \
+			--ignore=tests/archive \
+			--maxfail=10 \
+			--timeout=300 \
+			-q; \
+	else \
+		export PYTHONPYCACHEPREFIX=/tmp/pycache && \
+		export PYTEST_ADDOPTS="--basetemp=/tmp/pytest" && \
+		$(PYTEST) tests -p xdist -n auto \
+			-m "not slow and not integration and not external and not benchmark" \
+			--ignore=tests/benchmarks \
+			--ignore=tests/archive \
+			--dist=loadfile \
+			--maxfail=10 \
+			--timeout=300 \
+			-q; \
+	fi
 
 test-all-cov: ## Run ALL tests with coverage report (excludes integration/benchmarks)
 	@echo "$(GREEN)Running all tests with full coverage (excluding integration/benchmarks)...$(NC)"
@@ -561,14 +579,23 @@ ci: ## Run CI pipeline locally
 	$(MAKE) build
 	@echo "$(GREEN)CI pipeline completed successfully!$(NC)"
 
-check-all: ## Run all quality checks (for CI/CD)
+check-all: ## Run all quality checks (CI/CD compatible - WSL aware)
 	@echo "$(GREEN)Running all quality checks...$(NC)"
 	$(MAKE) format
 	$(MAKE) lint-ci
 	$(MAKE) type-fast
-	$(MAKE) test-fast
+	$(MAKE) test-fast  # WSL detection built-in - runs serial if needed
 	$(MAKE) test-all-cov
 	@echo "$(GREEN)All checks passed!$(NC)"
+
+check-wsl: ## WSL-optimized quality checks (no parallel tests)
+	@echo "$(GREEN)Running WSL-optimized quality checks...$(NC)"
+	@echo "$(CYAN)Skipping parallel tests to avoid WSL I/O issues$(NC)"
+	$(MAKE) format
+	$(MAKE) lint-ci
+	$(MAKE) type-fast
+	$(MAKE) test-all-cov  # Uses serial tests with coverage
+	@echo "$(GREEN)All WSL checks passed!$(NC)"
 
 pre-push: ## Run before pushing to ensure CI will pass
 	@echo "$(CYAN)Running pre-push validation...$(NC)"
