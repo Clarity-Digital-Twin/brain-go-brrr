@@ -77,8 +77,11 @@ class TestP0RegressionGuard:
             content = full_path.read_text()
 
             # Check for prepare_probe_features usage (the adapter)
+            # Handle both single-line and multi-line imports
             has_adapter_import = (
                 'from brain_go_brrr.utils.probe_utils import prepare_probe_features' in content
+                or ('from brain_go_brrr.utils.probe_utils import' in content 
+                    and 'prepare_probe_features' in content)
             )
             uses_adapter = 'prepare_probe_features(' in content
 
