@@ -242,7 +242,16 @@ uv run pytest tests/unit/domain/sleep -v
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
 | [TESTING.md](docs/TESTING.md) | Test philosophy and TDD guidelines |
 | [CHANNELS.md](docs/CHANNELS.md) | EEG channel handling and mapping |
+| [UNITS.md](docs/UNITS.md) | Physical units (μV, V) and scaling |
 | [EVALUATION_METRICS.md](docs/EVALUATION_METRICS.md) | Performance benchmarks and metrics |
+
+### 📊 Datasets & Development
+| Guide | Description |
+|-------|------------|
+| [TUH_CORPUS_GUIDE.md](docs/TUH_CORPUS_GUIDE.md) | Temple University Hospital EEG datasets |
+| [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions CI/CD pipeline |
+| [ROADMAP.md](ROADMAP.md) | Project roadmap and priorities |
+| [CHANGELOG.md](CHANGELOG.md) | Version history and breaking changes |
 
 ## 🚦 Current Status & Roadmap
 
