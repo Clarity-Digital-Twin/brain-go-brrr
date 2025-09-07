@@ -117,23 +117,23 @@ class TestP0GreenPhase:
                 patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
             ):
                 response = test_client.post(
-                        "/eeg/eegpt/analyze",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                        data={"analysis_type": "abnormality_probe"},
+                    "/eeg/eegpt/analyze",
+                    files={
+                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                    },
+                    data={"analysis_type": "abnormality_probe"},
+                )
+
+                assert response.status_code == 200, f"Request failed: {response.text}"
+
+                # Check that extract_features was called with summary=False
+                assert len(extract_features_calls) > 0, "extract_features was not called"
+
+                for _args, kwargs in extract_features_calls:
+                    assert 'summary' in kwargs and not kwargs['summary'], (
+                        f"BUG NOT FIXED! extract_features should be called with summary=False. "
+                        f"Got kwargs: {kwargs}"
                     )
-
-                    assert response.status_code == 200, f"Request failed: {response.text}"
-
-                    # Check that extract_features was called with summary=False
-                    assert len(extract_features_calls) > 0, "extract_features was not called"
-
-                    for _args, kwargs in extract_features_calls:
-                        assert 'summary' in kwargs and not kwargs['summary'], (
-                            f"BUG NOT FIXED! extract_features should be called with summary=False. "
-                            f"Got kwargs: {kwargs}"
-                        )
 
     def test_sleep_stages_endpoint_passes_summary_false(self, test_client, valid_edf_bytes):
         """GREEN TEST: /sleep/stages endpoint MUST pass summary=False (after fix)."""
