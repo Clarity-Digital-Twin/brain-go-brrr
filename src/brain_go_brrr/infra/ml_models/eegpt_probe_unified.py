@@ -193,7 +193,7 @@ class EEGPTProbe(nn.Module):
                     self.backbone.extract_features
                 ):
                     features = self.backbone.extract_features(
-                        x, return_all_temporal=return_all_temporal
+                        x, return_all_temporal=return_all_temporal, summary=False
                     )
                 else:
                     features = self.backbone(x)
@@ -202,7 +202,7 @@ class EEGPTProbe(nn.Module):
                 if hasattr(self.backbone, 'extract_features') and callable(
                     self.backbone.extract_features
                 ):
-                    features = self.backbone.extract_features(x)
+                    features = self.backbone.extract_features(x, summary=False)
                 else:
                     features = self.backbone(x)
 
