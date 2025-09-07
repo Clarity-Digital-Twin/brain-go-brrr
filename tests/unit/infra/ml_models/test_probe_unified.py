@@ -25,7 +25,7 @@ class FakeBackboneAccepts:
     def parameters(self):
         return []
 
-    def extract_features(self, x: torch.Tensor, return_all_temporal: bool = False) -> torch.Tensor:
+    def extract_features(self, x: torch.Tensor, return_all_temporal: bool = False, summary: bool = False) -> torch.Tensor:
         b = x.shape[0]
         if return_all_temporal:
             # Simulate (B, N_temporal, 4, 512)
@@ -43,13 +43,13 @@ class FakeBackboneSimple:
     def parameters(self):
         return []
 
-    def extract_features(self, x: torch.Tensor) -> torch.Tensor:
+    def extract_features(self, x: torch.Tensor, summary: bool = False) -> torch.Tensor:
         b = x.shape[0]
         return torch.zeros((b, 4, 512), dtype=torch.float32, device=x.device)
 
 
 class FakeBackboneBadShape(FakeBackboneSimple):
-    def extract_features(self, x: torch.Tensor) -> torch.Tensor:  # type: ignore[override]
+    def extract_features(self, x: torch.Tensor, summary: bool = False) -> torch.Tensor:  # type: ignore[override]
         b = x.shape[0]
         return torch.zeros((b, 5, 256), dtype=torch.float32, device=x.device)
 

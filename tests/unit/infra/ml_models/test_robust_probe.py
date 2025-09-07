@@ -30,7 +30,7 @@ class TestRobustEEGPTLinearProbeClean:
                 batch_size = x.shape[0] if x.dim() > 0 else 1
                 return self.template.unsqueeze(0).expand(batch_size, -1, -1).contiguous()
 
-            def extract_features(self, x, return_all_temporal=False):
+            def extract_features(self, x, return_all_temporal=False, summary=False):
                 return self.forward(x)
 
         return MockBackbone()
