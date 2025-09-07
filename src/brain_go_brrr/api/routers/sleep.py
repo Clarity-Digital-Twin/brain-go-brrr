@@ -31,6 +31,7 @@ from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 
 # Import will be done in get_eegpt_model for backward compatibility
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
+from brain_go_brrr.utils.probe_utils import prepare_probe_features  # P0 POLISH: DRY with adapter
 from brain_go_brrr.utils.time import utc_now
 
 logger = logging.getLogger(__name__)
@@ -485,8 +486,8 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
             # Extract EEGPT features - P0 FIX: Use summary=False for 2048-d features
             features = eegpt_model.extract_features(window_data, channel_names, summary=False)
 
-            # P0 FIX: Convert numpy to torch and flatten from (4, 512) to (2048,)
-            features_tensor = torch.as_tensor(features, dtype=torch.float32).flatten().unsqueeze(0)
+            # P0 POLISH: Use SSOT adapter for consistent probe preparation
+            features_tensor = prepare_probe_features(features)
 
             # Get sleep stage prediction
             with torch.no_grad():

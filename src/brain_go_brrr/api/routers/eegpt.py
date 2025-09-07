@@ -18,7 +18,9 @@ from brain_go_brrr.infra.ml_models.linear_probe import (
     SleepStageProbe,
     create_probe_for_task,
 )
-from brain_go_brrr.infra.ml_models.probe_adapter import prepare_probe_features  # P0 FIX: SSOT adapter
+from brain_go_brrr.utils.probe_utils import (
+    prepare_probe_features,  # P0 FIX: SSOT adapter (correct location)
+)
 
 logger = logging.getLogger(__name__)
 
@@ -334,7 +336,9 @@ async def analyze_batch(
             batch_array = np.stack(batch_windows)
 
             # Extract features for batch - P0 FIX: Use summary=False for 2048-d features
-            batch_features = eegpt_model.extract_features_batch(batch_array, channel_names, summary=False)
+            batch_features = eegpt_model.extract_features_batch(
+                batch_array, channel_names, summary=False
+            )
 
             # Get predictions
             probe = get_probe(analysis_type)

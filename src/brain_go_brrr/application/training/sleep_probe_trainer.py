@@ -19,6 +19,7 @@ from brain_go_brrr.infra.data.edf_loader import load_edf_safe
 from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 from brain_go_brrr.infra.ml_models.linear_probe import SleepStageProbe
 from brain_go_brrr.utils import mask_path_for_log
+from brain_go_brrr.utils.probe_utils import prepare_probe_features  # P0 POLISH: SSOT adapter
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +110,12 @@ class SleepProbeTrainer:
             channel_names = [f"Ch{i}" for i in range(window_np.shape[0])]
             # P0 FIX: Use summary=False to get (4, 512) features
             features = self.eegpt_model.extract_features(window_np, channel_names, summary=False)
-            # P0 FIX: Flatten from (4, 512) to (2048,) - numpy array
-            batch_features.append(features.flatten())
+            # P0 POLISH: Use SSOT adapter for consistent preparation
+            features_tensor = prepare_probe_features(features)  # Returns (1, 2048) tensor
+            batch_features.append(features_tensor)
 
-        # Stack features
-        features_tensor = torch.FloatTensor(np.stack(batch_features)).to(self.device)
+        # Stack features - now they're already tensors
+        features_tensor = torch.cat(batch_features, dim=0).to(self.device)
         batch_labels = batch_labels.squeeze().to(self.device)
 
         # Forward pass through probe
@@ -194,10 +196,11 @@ def evaluate_probe(
                 channel_names = [f"Ch{i}" for i in range(window_np.shape[0])]
                 # P0 FIX: Use summary=False to get (4, 512) features
                 features = eegpt_model.extract_features(window_np, channel_names, summary=False)
-                # P0 FIX: Flatten from (4, 512) to (2048,) - numpy array
-                batch_features.append(features.flatten())
+                # P0 POLISH: Use SSOT adapter for consistent preparation
+                features_tensor = prepare_probe_features(features)  # Returns (1, 2048) tensor
+                batch_features.append(features_tensor)
 
-            features_tensor = torch.FloatTensor(np.stack(batch_features))
+            features_tensor = torch.cat(batch_features, dim=0)
 
             # Get predictions
             logits = probe(features_tensor)

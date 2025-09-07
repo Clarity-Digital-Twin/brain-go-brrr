@@ -15,10 +15,10 @@ def prepare_probe_features(
     features: npt.NDArray[np.float32] | torch.Tensor,
 ) -> torch.Tensor:
     """Prepare EEGPT features for probe consumption.
-    
+
     This is the SSOT adapter that ensures features are always in the correct
     shape (B, 2048) for probes, regardless of input shape.
-    
+
     Args:
         features: EEGPT features in one of these shapes:
             - (512,): Single summary vector (will error - invalid)
@@ -27,10 +27,10 @@ def prepare_probe_features(
             - (B, 512): Batch of summaries (will error - invalid)
             - (B, 4, 512): Batch of 4 tokens each
             - (B, 2048): Batch, already flattened
-    
+
     Returns:
         Torch tensor of shape (B, 2048) ready for probe consumption.
-    
+
     Raises:
         ValueError: If features have invalid shape (e.g., 512-d summaries).
     """
@@ -39,7 +39,7 @@ def prepare_probe_features(
         features_tensor = torch.as_tensor(features, dtype=torch.float32)
     else:
         features_tensor = features
-    
+
     # Ensure we have at least 2D
     if features_tensor.dim() == 1:
         # Single vector - check dimensions
@@ -56,7 +56,7 @@ def prepare_probe_features(
                 f"Invalid feature dimension: {features_tensor.shape[0]}. "
                 f"Expected 2048 (or unflattenned 4x512)."
             )
-    
+
     elif features_tensor.dim() == 2:
         # Check if it's (4, 512) or (B, D)
         if features_tensor.shape[0] == 4 and features_tensor.shape[1] == 512:
@@ -76,7 +76,7 @@ def prepare_probe_features(
                 f"Invalid feature shape: {features_tensor.shape}. "
                 f"Expected (B, 2048) or (B, 4, 512)."
             )
-    
+
     elif features_tensor.dim() == 3:
         # Should be (B, 4, 512)
         if features_tensor.shape[1] == 4 and features_tensor.shape[2] == 512:
@@ -84,21 +84,19 @@ def prepare_probe_features(
             features_tensor = features_tensor.flatten(1)  # (B, 2048)
         else:
             raise ValueError(
-                f"Invalid 3D feature shape: {features_tensor.shape}. "
-                f"Expected (B, 4, 512)."
+                f"Invalid 3D feature shape: {features_tensor.shape}. Expected (B, 4, 512)."
             )
-    
+
     else:
         raise ValueError(
-            f"Invalid feature dimensions: {features_tensor.dim()}D. "
-            f"Expected 1D, 2D, or 3D tensor."
+            f"Invalid feature dimensions: {features_tensor.dim()}D. Expected 1D, 2D, or 3D tensor."
         )
-    
+
     # Final validation
     if features_tensor.shape[-1] != 2048:
         raise ValueError(
             f"P0 CRITICAL: Final shape {features_tensor.shape} doesn't have 2048 features! "
             f"This is a bug in the adapter."
         )
-    
+
     return features_tensor
