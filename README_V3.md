@@ -12,6 +12,10 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
+## 📖 Quick Navigation
+
+[**Quick Start**](#-quick-start) • [**How It Works**](#-how-it-works) • [**Documentation**](#-documentation) • [**For Researchers**](#-for-researchers) • [**For Developers**](#-for-developers) • [**API Reference**](docs/API.md) • [**Training Guide**](docs/TRAINING.md)
+
 ## 🧠 The Problem: Making Sense of Brain Waves
 
 **What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
@@ -51,7 +55,7 @@ A production-ready Python system that transforms raw brain recordings into struc
 **⚡ Key Capabilities:**
 - **Sleep Staging** - 87% accuracy reported in literature (YASA; Vallat & Walker 2021)
 - **Quality Control** - Artifact rejection and bad channel detection via Autoreject
-- **Abnormality Detection** - Binary classification (training in progress, targeting 87% AUROC from EEGPT paper)
+- **Abnormality Detection** - Binary classification (**✅ 83% AUROC achieved**)
 - **Fast Processing** - Target: <2 minutes for 20-minute recordings (hardware dependent)
 - **Clean Architecture** - Comprehensive test suite with high coverage
 
@@ -115,7 +119,7 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 **Key Design Principles:**
 - **Parallel, not sequential** - EEGPT and YASA run independently
 - **Flexible channel support** - YASA works with 1-256 channels
-- **Research accuracy** - 87% sleep staging (YASA), targeting 87% abnormality AUROC
+- **Research accuracy** - 87% sleep staging (YASA), 83% abnormality AUROC (TUAB completed)
 - **Well-tested** - Clean architecture, dependency injection, comprehensive testing
 
 ## 🔬 For Researchers
@@ -136,7 +140,8 @@ cd experiments/eegpt_linear_probe
 ./scripts/launch_tuev_mne.sh  # For TUEV event detection
 
 # Monitor training
-tmux attach -t tuab_training
+tmux attach -t tuab_training  # TUAB complete (83% AUROC)
+tmux attach -t tuev_training  # TUEV actively training
 ```
 
 See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
@@ -224,13 +229,20 @@ uv run pytest tests/unit/domain/sleep -v
 
 ## 📚 Documentation
 
+### 🚀 Getting Started
 | Guide | Description |
 |-------|------------|
 | [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
 | [API.md](docs/API.md) | REST endpoint reference |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide |
-| [TESTING.md](docs/TESTING.md) | Test philosophy and guidelines |
+| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB/TUEV |
+
+### 🏗️ Architecture & Design
+| Guide | Description |
+|-------|------------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
+| [TESTING.md](docs/TESTING.md) | Test philosophy and TDD guidelines |
+| [CHANNELS.md](docs/CHANNELS.md) | EEG channel handling and mapping |
+| [EVALUATION_METRICS.md](docs/EVALUATION_METRICS.md) | Performance benchmarks and metrics |
 
 ## 🚦 Current Status & Roadmap
 
@@ -240,9 +252,11 @@ uv run pytest tests/unit/domain/sleep -v
 - REST API with Redis caching
 - Comprehensive test suite with CI/CD
 
+### ✅ Recently Completed
+- **TUAB abnormality detection**: 83% AUROC achieved ✅
+
 ### 🚧 In Progress
-- TUAB abnormality detection training (targeting 87% AUROC)
-- TUEV event detection (6-class: SPSW, GPED, PLED, etc.)
+- **TUEV event detection** (6-class: SPSW, GPED, PLED, etc.) - **actively training in tmux**
 - MNE preprocessing pipeline optimization
 
 ### 📋 Planned
@@ -256,8 +270,8 @@ uv run pytest tests/unit/domain/sleep -v
 | Metric | Value | Status |
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
-| Abnormality Detection | Target: 87% AUROC | 🚧 Training in progress |
-| Event Detection (TUEV) | Target: 62% BAC | 🚧 Implementation phase |
+| Abnormality Detection | **83% AUROC** | ✅ Training complete |
+| Event Detection (TUEV) | Target: 62% BAC | 🚧 Actively training |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
