@@ -187,9 +187,9 @@ class TestP0GreenPhase:
                 assert response.status_code == 200, f"Request failed: {response.text}"
 
                 for _args, kwargs in extract_features_calls:
-                        assert 'summary' in kwargs and not kwargs['summary'], (
-                            f"BUG NOT FIXED! Got kwargs: {kwargs}"
-                        )
+                    assert 'summary' in kwargs and not kwargs['summary'], (
+                        f"BUG NOT FIXED! Got kwargs: {kwargs}"
+                    )
 
     def test_analyze_batch_passes_summary_false(self, test_client, valid_edf_bytes):
         """GREEN TEST: /analyze/batch endpoint MUST pass summary=False to extract_features_batch."""
@@ -235,22 +235,22 @@ class TestP0GreenPhase:
                 patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
             ):
                 response = test_client.post(
-                        "/eeg/eegpt/analyze/batch?batch_size=2",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                        data={"analysis_type": "abnormality"},
+                    "/eeg/eegpt/analyze/batch?batch_size=2",
+                    files={
+                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                    },
+                    data={"analysis_type": "abnormality"},
+                )
+
+                assert response.status_code == 200, f"Request failed: {response.text}"
+
+                assert len(extract_batch_calls) > 0, "extract_features_batch was not called"
+
+                for _args, kwargs in extract_batch_calls:
+                    assert 'summary' in kwargs and not kwargs['summary'], (
+                        f"BUG NOT FIXED! extract_features_batch should be called with summary=False. "
+                        f"Got kwargs: {kwargs}"
                     )
-
-                    assert response.status_code == 200, f"Request failed: {response.text}"
-
-                    assert len(extract_batch_calls) > 0, "extract_features_batch was not called"
-
-                    for _args, kwargs in extract_batch_calls:
-                        assert 'summary' in kwargs and not kwargs['summary'], (
-                            f"BUG NOT FIXED! extract_features_batch should be called with summary=False. "
-                            f"Got kwargs: {kwargs}"
-                        )
 
 
 if __name__ == "__main__":
