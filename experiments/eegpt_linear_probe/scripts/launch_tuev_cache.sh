@@ -46,7 +46,7 @@ tmux new-session -d -s tuev_cache \
     "cd $PROJECT_ROOT && \
      BGB_DATA_ROOT=$DATA_ROOT uv run python experiments/eegpt_linear_probe/mne_integration/cache_builder.py \
      --corpus TUEV \
-     --data-root $TUEV_ROOT/edf \
+     --data-root $TUEV_ROOT \
      --cache-dir $CACHE_DIR \
      --split both \
      2>&1 | tee $LOG_FILE"

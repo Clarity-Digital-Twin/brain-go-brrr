@@ -219,14 +219,13 @@ def build_cache(
             normalize=False,  # NEVER in dataset, only in wrapper
         )
     elif corpus == "TUEV":
+        # TUEVMNEDataset doesn't accept sampling_rate or window params
+        # These are fixed in the preprocessor
         dataset = TUEVDataset(
             root_dir=data_root,
             split=split,
             cache_dir=cache_dir,
-            sampling_rate=SAMPLE_RATE,
-            window_duration=WINDOW_SECONDS,
-            window_stride=WINDOW_SECONDS,
-            normalize=False,  # NEVER in dataset, only in wrapper
+            force_rebuild=force_rebuild,
         )
     else:
         raise ValueError(f"Unknown corpus: {corpus}. Must be TUAB or TUEV")

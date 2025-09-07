@@ -56,11 +56,13 @@ threshold = thresholds[best_idx]
 y_test_pred = (scores_test >= threshold).astype(int)
 
 # 4. Report metrics
+spec90, _ = spec_at_sens(y_test, scores_test, 0.90)
+spec95, _ = spec_at_sens(y_test, scores_test, 0.95)
 metrics = {
     'auroc': roc_auc_score(y_test, scores_test),
     'balanced_accuracy': balanced_accuracy_score(y_test, y_test_pred),
-    'spec_at_sens_90': spec_at_sens(y_test, scores_test, 0.90),
-    'spec_at_sens_95': spec_at_sens(y_test, scores_test, 0.95),
+    'spec_at_sens_90': spec90,
+    'spec_at_sens_95': spec95,
     'kappa': cohen_kappa_score(y_test, y_test_pred)
 }
 ```

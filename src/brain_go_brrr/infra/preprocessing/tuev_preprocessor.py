@@ -309,12 +309,16 @@ class TUEVPreprocessor(TUABPreprocessor):
         event_id = {"window": window_event_code}  # Simple event_id dict
 
         # Create epochs
+        # CRITICAL FIX: tmax must be exclusive to get exactly 1024 samples
+        # At 256 Hz: 4 seconds = 1024 samples (indices 0-1023)
+        # Using tmax=4.0 gives 1025 samples (includes sample at t=4.0)
+        # So we use tmax = 4.0 - (1/sampling_rate) to get exactly 1024
         epochs = mne.Epochs(
             raw,
             events_array,
             event_id=event_id,
             tmin=0,
-            tmax=self.window_duration,
+            tmax=self.window_duration - (1.0 / self.sampling_rate),  # 3.99609375 for 256 Hz
             baseline=None,
             preload=True,
             verbose=False,

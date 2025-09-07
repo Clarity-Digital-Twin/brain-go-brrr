@@ -104,10 +104,11 @@ from brain_go_brrr.domain.metrics import clinical_metrics
 
 # For TUAB (classification)
 # Note: threshold_val is selected on VAL set for target sensitivity
+spec95, _ = spec_at_sens(labels, predictions, 0.95)
 results = {
     'auroc': roc_auc_score(labels, predictions),
     'balanced_accuracy': balanced_accuracy_score(labels, (predictions >= threshold_val).astype(int)),
-    'spec_at_sens_95': spec_at_sens(labels, predictions, 0.95)
+    'spec_at_sens_95': spec95  # Just the specificity value, not the tuple
 }
 
 # For TUSZ (temporal - future)
@@ -157,10 +158,11 @@ threshold = thresholds[best_idx]
 
 # 2. Apply to TEST set once
 y_test_pred = (scores_test >= threshold).astype(int)
+spec95, _ = spec_at_sens(y_test, scores_test, 0.95)
 metrics = {
     'auroc': roc_auc_score(y_test, scores_test),
     'balanced_accuracy': balanced_accuracy_score(y_test, y_test_pred),
-    'spec_at_sens_95': spec_at_sens(y_test, scores_test, 0.95)
+    'spec_at_sens_95': spec95  # Just the specificity value
 }
 ```
 
