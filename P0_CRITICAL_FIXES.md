@@ -4,7 +4,7 @@
 **Owner**: ___________________  
 **Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
 **Status**: 🔴 CRITICAL - FIX IMMEDIATELY  
-**Revision**: v13.0 - 100% ACCURATE - Ready for Senior Review  
+**Revision**: v14.0 - Senior-ready, test stubs fixed  
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
 
 ---
@@ -16,7 +16,7 @@
 > - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
 > - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
 > - **WHERE TO FLATTEN**: At probe boundaries (routers/trainers). During **Green** phase, inline `.flatten(1)` is acceptable to make tests pass. After **Refactor** phase, use the `prepare_probe_features` adapter exclusively. Never flatten inside model/encoder/compat internals.
-> - **THE INVARIANT**: Probes MUST receive 2048-dim features (4×512 flattened)
+> - **THE INVARIANT**: Probes operate on 2048 dims (4×512). They accept (B,4,512) tensors and flatten internally, but our SSOT standardizes to (B,2048) at boundaries for consistency.
 >
 > **🔍 Shape Contract:**
 > - `summary=False` returns **numpy** array: (B,4,512) for batch, or (4,512) for single window
@@ -70,12 +70,22 @@ from unittest.mock import Mock
 class TestP0APIDimensions:
     """Prove API endpoints crash with 512 dims, work with 2048."""
     
-    def test_analyze_endpoint_flattens_to_2048(self, monkeypatch, tmp_path):
+    def test_analyze_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /eeg/eegpt/analyze must flatten (4,512) to (1,2048)."""
         from fastapi.testclient import TestClient
         from brain_go_brrr.api.main import app  # CORRECT: main.py not app.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
         
+        # Stub EDF loader to avoid parsing real EDF
+        class _StubRaw:
+            def __init__(self):
+                self.ch_names = [f"Ch{i}" for i in range(20)]
+                self.info = {"sfreq": 256}
+            def get_data(self):
+                return np.random.randn(20, 1024).astype(np.float32)
+
+        monkeypatch.setattr(eegpt_router, "load_edf_safe", lambda *_args, **_kw: _StubRaw())
+
         mock_model = Mock()
         # Single-window contract: (4,512) numpy on summary=False
         mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
@@ -89,7 +99,7 @@ class TestP0APIDimensions:
             return [[0.1, 0.9]] * x.shape[0]
         
         mock_probe = Mock(predict_proba=_probe_predict)
-        monkeypatch.setattr(eegpt_router, "get_probe", lambda: mock_probe, raising=False)
+        monkeypatch.setattr(eegpt_router, "get_probe", lambda task: mock_probe, raising=False)
         
         # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
         client = TestClient(app)
@@ -104,6 +114,16 @@ class TestP0APIDimensions:
         from brain_go_brrr.api.main import app  # CORRECT: main.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
         
+        # Stub EDF loader to avoid parsing real EDF
+        class _StubRaw:
+            def __init__(self):
+                self.ch_names = [f"Ch{i}" for i in range(20)]
+                self.info = {"sfreq": 256}
+            def get_data(self):
+                return np.random.randn(20, 1024).astype(np.float32)
+
+        monkeypatch.setattr(eegpt_router, "load_edf_safe", lambda *_args, **_kw: _StubRaw())
+
         mock_model = Mock()
         # Batch contract: (B,4,512) numpy on summary=False
         mock_model.extract_features_batch.return_value = np.random.randn(8, 4, 512).astype(np.float32)
@@ -116,7 +136,7 @@ class TestP0APIDimensions:
             return [[0.1, 0.9]] * x.shape[0]
         
         mock_probe = Mock(predict_proba=_probe_predict)
-        monkeypatch.setattr(eegpt_router, "get_probe", lambda: mock_probe, raising=False)
+        monkeypatch.setattr(eegpt_router, "get_probe", lambda task: mock_probe, raising=False)
         
         # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
         client = TestClient(app)
@@ -131,6 +151,16 @@ class TestP0APIDimensions:
         from brain_go_brrr.api.main import app  # CORRECT: main.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
         
+        # Stub EDF loader to avoid parsing real EDF
+        class _StubRaw:
+            def __init__(self):
+                self.ch_names = [f"Ch{i}" for i in range(20)]
+                self.info = {"sfreq": 256}
+            def get_data(self):
+                return np.random.randn(20, 1024).astype(np.float32)
+
+        monkeypatch.setattr(eegpt_router, "load_edf_safe", lambda *_args, **_kw: _StubRaw())
+
         mock_model = Mock()
         # Single-window contract: (4,512) numpy on summary=False
         mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
@@ -207,8 +237,8 @@ Now we make the SMALLEST changes to make tests pass. No extras, no refactoring y
 
 #### Fix 1: `src/brain_go_brrr/infra/ml_models/eegpt_compat.py` (Supporting Changes)
 
-**IMPORTANT**: `extract_features` ALREADY has the summary parameter and works correctly!
-Only `extract_features_batch` needs updating.
+**IMPORTANT**: `extract_features` ALREADY has the summary parameter and forwards it correctly.
+Only `extract_features_batch` needs updating to accept and forward `summary`.
 
 ```python
 import torch
@@ -225,7 +255,6 @@ def extract_features(
     summary: bool = True  # ALREADY EXISTS!
 ) -> npt.NDArray[np.float64]:
     # ... existing implementation already forwards summary correctly ...
-    # Lines 196-239 already handle this perfectly!
     return features.astype(np.float32)  # Converts to float32 at return
 
 # ONLY extract_features_batch NEEDS FIXING:
@@ -270,8 +299,8 @@ def extract_features_batch(
     if isinstance(features, torch.Tensor):
         features = features.cpu().numpy()
 
-    # OPTIONAL: Add shape validation like extract_features has (lines 216-237)
-    # This ensures we return the expected shape based on summary flag
+    # OPTIONAL: Add shape validation like extract_features does
+    # to ensure the returned shape matches the summary flag
     
     return features.astype(np.float32)  # Converts to float32 at return
 ```
@@ -469,10 +498,10 @@ def test_full_api_to_probe_path():
 # Check multi-line calls that might be missing summary (catches everything):
 rg -nP 'extract_features(?:_batch)?\([^)]*\)' src/brain_go_brrr | rg -v 'summary\s*='
 
-# Verify extract_features already has summary (should return 1 match):
+# Verify extract_features already has summary:
 rg -n "def extract_features\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
-
-# Verify extract_features_batch is missing summary (should return 0 matches):
+  
+# Verify extract_features_batch is missing summary (pre-fix):
 rg -n "def extract_features_batch\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
 
 # Quick sanity check - single-line calls missing summary:
@@ -524,10 +553,9 @@ output = probe(features)  # Expects 2048 → CRASH!
 features = model.extract_features(data, channels, summary=True)  # 512 dims
 mean_activation = features.mean()  # Simple stats, no probe
 
-# NOTE: extract_features in eegpt_compat.py ALREADY handles shape validation:
-# - Lines 219-230: Validates summary=True returns (B, 512)
-# - Lines 231-237: Validates summary=False returns (B, 4, 512)
-# - Line 186-187: Handles single samples by adding batch dimension
+# NOTE: `extract_features` in eegpt_compat.py already handles shape validation
+# for both summary=True (B,512) and summary=False (B,4,512), and handles
+# single-sample inputs by adding a batch dimension internally.
 ```
 
 ---
@@ -712,12 +740,18 @@ Our implementation (`eegpt_architecture.py`):
   - Fixed file size: Must be >1000 bytes (b"x" * 1000)
   - THIS IS WHY WE TEST - caught before shipping broken tests!
 - **v13.0** (Sept 5): 100% ACCURATE after full codebase audit:
-  - Clarified: `extract_features` ALREADY HAS summary parameter (lines 156-239)
-  - Fixed: Only `extract_features_batch` needs summary parameter added (line 258)
-  - Fixed: `extract_features_batch` must CHECK for summary support with inspect (like line 199-206)
+  - Clarified: `extract_features` ALREADY HAS summary parameter
+  - Fixed: Only `extract_features_batch` needs summary parameter added
+  - Fixed: `extract_features_batch` must CHECK for summary support with inspect
   - Kept: Type hints as np.float64 (matches current code, conversion to float32 at return)
-  - Added: Note about existing shape validation in extract_features (lines 216-237)
-  - Added: Verification commands to confirm extract_features has summary, extract_features_batch doesn't
+  - Added: Note about existing shape validation in `extract_features`
+  - Added: Verification commands to confirm `extract_features` has summary, `extract_features_batch` doesn't
+
+- **v14.0** (Sept 7): Senior-ready, tests corrected and line refs removed:
+  - Fixed RED tests: patch `load_edf_safe` with a stub Raw to avoid EDF parsing
+  - Fixed monkeypatch signature: `get_probe(task)` now mocked correctly in all tests
+  - Clarified SSOT: probes accept (B,4,512) but policy standardizes (B,2048)
+  - Removed brittle line number references throughout the doc
 
 ---
 
