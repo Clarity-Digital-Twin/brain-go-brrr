@@ -6,8 +6,8 @@
 > Not a medical device. Not for clinical use. External validation pending.
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-899%20passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
-[![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
+[![Coverage](https://img.shields.io/badge/coverage-high-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
@@ -121,6 +121,13 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 - **Flexible channel support** - YASA works with 1-256 channels
 - **Research accuracy** - 87% sleep staging (YASA), 83% abnormality AUROC (TUAB completed)
 - **Well-tested** - Clean architecture, dependency injection, comprehensive testing
+
+## 📐 Technical Notes
+
+- **EEGPT features**: 2048 dims for probes (4×512 flattened, not 512 summary)
+- **Channel names**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
+- **Sampling**: 256 Hz for EEGPT pipeline (resampled if needed)
+- **Window size**: 4 seconds (1024 samples at 256 Hz)
 
 ## 🔬 For Researchers
 
