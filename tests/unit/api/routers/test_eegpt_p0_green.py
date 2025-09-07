@@ -178,15 +178,15 @@ class TestP0GreenPhase:
                 patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
             ):
                 response = test_client.post(
-                        "/eeg/eegpt/sleep/stages",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                    )
+                    "/eeg/eegpt/sleep/stages",
+                    files={
+                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                    },
+                )
 
-                    assert response.status_code == 200, f"Request failed: {response.text}"
+                assert response.status_code == 200, f"Request failed: {response.text}"
 
-                    for _args, kwargs in extract_features_calls:
+                for _args, kwargs in extract_features_calls:
                         assert 'summary' in kwargs and not kwargs['summary'], (
                             f"BUG NOT FIXED! Got kwargs: {kwargs}"
                         )
