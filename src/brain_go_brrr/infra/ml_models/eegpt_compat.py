@@ -259,8 +259,18 @@ class EEGPTModel:
         self,
         windows: npt.NDArray[np.float64] | torch.Tensor,
         channel_names: list[str] | None = None,  # noqa: ARG002
+        summary: bool = True,  # P0 FIX: Add summary parameter
     ) -> npt.NDArray[np.float64]:
-        """Extract features from batch of windows."""
+        """Extract features from batch of windows.
+        
+        Args:
+            windows: Batch of EEG windows (batch, channels, samples)
+            channel_names: Channel names (kept for API compatibility)
+            summary: If True, return averaged summary (B, 512). If False, return tokens (B, 4, 512).
+        
+        Returns:
+            Features array of shape (B, 512) if summary=True, or (B, 4, 512) if summary=False.
+        """
         if isinstance(windows, np.ndarray):
             batch_tensor = torch.from_numpy(windows).float()
         else:
@@ -269,13 +279,28 @@ class EEGPTModel:
         batch_tensor = batch_tensor.to(self.device)
 
         with torch.no_grad():
+            # P0 FIX: Check if encoder supports summary parameter
             if self.encoder is not None and hasattr(self.encoder, 'extract_features'):
-                features = self.encoder.extract_features(batch_tensor)
+                # Try to use summary parameter if the encoder's extract_features supports it
+                import inspect
+                sig = inspect.signature(self.encoder.extract_features)
+                if 'summary' in sig.parameters:
+                    features = self.encoder.extract_features(batch_tensor, summary=summary)
+                else:
+                    # Fallback: extract full features and process manually
+                    features = self.encoder.extract_features(batch_tensor)
+                    if summary and features.dim() == 3:  # (B, N, D)
+                        features = features.mean(dim=1)  # Average over sequence
             elif self.encoder is not None:
                 features = self.encoder(batch_tensor)
+                if summary and features.dim() == 3:  # (B, N, D)
+                    features = features.mean(dim=1)  # Average over sequence
             else:
                 # Fallback if encoder is None
-                features = torch.zeros((batch_tensor.shape[0], 768))
+                if summary:
+                    features = torch.zeros((batch_tensor.shape[0], 512))
+                else:
+                    features = torch.zeros((batch_tensor.shape[0], 4, 512))
 
         if isinstance(features, torch.Tensor):
             features = features.cpu().numpy()

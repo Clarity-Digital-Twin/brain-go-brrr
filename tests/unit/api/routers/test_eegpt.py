@@ -31,9 +31,14 @@ class TestEEGPTRouterClean:
         model.is_loaded = True
 
         # Extract features returns realistic feature vector
-        def extract_features(data, channels):
-            # Return fixed 2048-dim feature vector for deterministic tests
-            return np.ones(2048).astype(np.float32) * 0.1
+        def extract_features(data, channels, summary=True):
+            # P0 FIX: Support summary parameter in mock
+            if summary:
+                # Return 512-d summary
+                return np.ones(512).astype(np.float32) * 0.1
+            else:
+                # Return (4, 512) tokens for flattening to 2048-d
+                return np.ones((4, 512)).astype(np.float32) * 0.1
 
         def extract_windows(data, sfreq):
             # Return realistic windows (4-second windows)
@@ -46,10 +51,15 @@ class TestEEGPTRouterClean:
                 windows.append(data[:, start:end])
             return windows
 
-        def extract_features_batch(batch_array, channels):
-            # Return fixed batch of feature vectors for deterministic tests
+        def extract_features_batch(batch_array, channels, summary=True):
+            # P0 FIX: Support summary parameter in mock
             batch_size = batch_array.shape[0]
-            return np.ones((batch_size, 2048)).astype(np.float32) * 0.1
+            if summary:
+                # Return batch of 512-d summaries
+                return np.ones((batch_size, 512)).astype(np.float32) * 0.1
+            else:
+                # Return batch of (4, 512) tokens for flattening
+                return np.ones((batch_size, 4, 512)).astype(np.float32) * 0.1
 
         model.extract_features = extract_features
         model.extract_windows = extract_windows

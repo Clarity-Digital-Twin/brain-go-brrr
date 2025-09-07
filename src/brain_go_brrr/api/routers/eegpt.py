@@ -18,6 +18,7 @@ from brain_go_brrr.infra.ml_models.linear_probe import (
     SleepStageProbe,
     create_probe_for_task,
 )
+from brain_go_brrr.infra.ml_models.probe_adapter import prepare_probe_features  # P0 FIX: SSOT adapter
 
 logger = logging.getLogger(__name__)
 
@@ -134,9 +135,10 @@ async def analyze_with_probe(
             end_idx = start_idx + window_samples
             window_data = data[:, start_idx:end_idx]
 
-            # Extract EEGPT features
-            features = eegpt_model.extract_features(window_data, channel_names)
-            features_tensor = torch.FloatTensor(features).unsqueeze(0)
+            # Extract EEGPT features - P0 FIX: Use summary=False for 2048-d features
+            features = eegpt_model.extract_features(window_data, channel_names, summary=False)
+            # P0 REFACTOR: Use SSOT adapter for feature preparation
+            features_tensor = prepare_probe_features(features)
 
             # Get prediction based on probe type
             with torch.no_grad():
@@ -267,9 +269,10 @@ async def analyze_sleep_stages(edf_file: UploadFile = File(...)) -> dict[str, An
         confidence_scores = []
 
         for window in windows:
-            # Extract features
-            features = eegpt_model.extract_features(window, channel_names)
-            features_tensor = torch.FloatTensor(features).unsqueeze(0)
+            # Extract features - P0 FIX: Use summary=False for 2048-d features
+            features = eegpt_model.extract_features(window, channel_names, summary=False)
+            # P0 REFACTOR: Use SSOT adapter for feature preparation
+            features_tensor = prepare_probe_features(features)
 
             # Predict stage
             with torch.no_grad():
@@ -330,12 +333,13 @@ async def analyze_batch(
             batch_windows = windows[i : i + batch_size]
             batch_array = np.stack(batch_windows)
 
-            # Extract features for batch
-            batch_features = eegpt_model.extract_features_batch(batch_array, channel_names)
+            # Extract features for batch - P0 FIX: Use summary=False for 2048-d features
+            batch_features = eegpt_model.extract_features_batch(batch_array, channel_names, summary=False)
 
             # Get predictions
             probe = get_probe(analysis_type)
-            features_tensor = torch.FloatTensor(batch_features)
+            # P0 REFACTOR: Use SSOT adapter for feature preparation
+            features_tensor = prepare_probe_features(batch_features)
 
             with torch.no_grad():
                 if hasattr(probe, "predict_proba"):
