@@ -245,26 +245,26 @@ class TestP0ParameterCheck:
                 patch("brain_go_brrr.api.routers.eegpt.get_probe", return_value=mock_probe)
             ):
                 response = test_client.post(
-                        "/eeg/eegpt/analyze/batch?batch_size=2",
-                        files={
-                            "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
-                        },
-                        data={"analysis_type": "abnormality"},
+                    "/eeg/eegpt/analyze/batch?batch_size=2",
+                    files={
+                        "edf_file": ("test.edf", valid_edf_bytes, "application/octet-stream")
+                    },
+                    data={"analysis_type": "abnormality"},
+                )
+
+                assert response.status_code == 200
+
+                # Check that extract_features_batch was called
+                assert len(extract_batch_calls) > 0, "extract_features_batch was not called"
+
+                # THE BUG: extract_features_batch doesn't accept summary parameter
+                for _args, kwargs in extract_batch_calls:
+                    # With the bug, 'summary' cannot be in kwargs
+                    # After fix, 'summary' should be False in kwargs
+                    assert 'summary' not in kwargs, (
+                        "BUG ALREADY FIXED! extract_features_batch now accepts summary parameter. "
+                        f"Got kwargs: {kwargs}"
                     )
-
-                    assert response.status_code == 200
-
-                    # Check that extract_features_batch was called
-                    assert len(extract_batch_calls) > 0, "extract_features_batch was not called"
-
-                    # THE BUG: extract_features_batch doesn't accept summary parameter
-                    for _args, kwargs in extract_batch_calls:
-                        # With the bug, 'summary' cannot be in kwargs
-                        # After fix, 'summary' should be False in kwargs
-                        assert 'summary' not in kwargs, (
-                            "BUG ALREADY FIXED! extract_features_batch now accepts summary parameter. "
-                            f"Got kwargs: {kwargs}"
-                        )
 
 
 if __name__ == "__main__":
