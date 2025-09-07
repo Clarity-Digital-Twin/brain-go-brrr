@@ -482,11 +482,11 @@ async def analyze_sleep_stages_eegpt(edf_file: UploadFile = File(...)) -> SleepS
             end_idx = start_idx + window_samples
             window_data = data[:, start_idx:end_idx]
 
-            # Extract EEGPT features
-            features = eegpt_model.extract_features(window_data, channel_names)
+            # Extract EEGPT features - P0 FIX: Use summary=False for 2048-d features
+            features = eegpt_model.extract_features(window_data, channel_names, summary=False)
 
-            # Convert to tensor and add batch dimension
-            features_tensor = torch.FloatTensor(features).unsqueeze(0)
+            # P0 FIX: Convert numpy to torch and flatten from (4, 512) to (2048,)
+            features_tensor = torch.as_tensor(features, dtype=torch.float32).flatten().unsqueeze(0)
 
             # Get sleep stage prediction
             with torch.no_grad():

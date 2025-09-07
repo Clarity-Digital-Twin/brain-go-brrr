@@ -107,7 +107,9 @@ class SleepProbeTrainer:
             window_np = window.numpy()
             # Assume standard channel names for now
             channel_names = [f"Ch{i}" for i in range(window_np.shape[0])]
-            features = self.eegpt_model.extract_features(window_np, channel_names)
+            # P0 FIX: Use summary=False to get (4, 512) features
+            features = self.eegpt_model.extract_features(window_np, channel_names, summary=False)
+            # P0 FIX: Flatten from (4, 512) to (2048,) - numpy array
             batch_features.append(features.flatten())
 
         # Stack features
@@ -190,7 +192,9 @@ def evaluate_probe(
             for window in batch_windows:
                 window_np = window.numpy()
                 channel_names = [f"Ch{i}" for i in range(window_np.shape[0])]
-                features = eegpt_model.extract_features(window_np, channel_names)
+                # P0 FIX: Use summary=False to get (4, 512) features
+                features = eegpt_model.extract_features(window_np, channel_names, summary=False)
+                # P0 FIX: Flatten from (4, 512) to (2048,) - numpy array
                 batch_features.append(features.flatten())
 
             features_tensor = torch.FloatTensor(np.stack(batch_features))
