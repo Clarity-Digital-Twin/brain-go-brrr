@@ -1,11 +1,11 @@
 # ✅ P0 CRITICAL FIXES - RUNTIME CRASH BUGS [COMPLETE / ARCHIVED]
 
-**Created**: September 4, 2025  
-**Completed**: September 7, 2025  
-**Owner**: JJ & Claude  
-**Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
-**Status**: ✅ COMPLETE - ALL P0 FIXES MERGED TO MAIN (Archived)  
-**Revision**: v14.1 - SSOT clarified (no 3D to probes)  
+**Created**: September 4, 2025
+**Completed**: September 7, 2025
+**Owner**: JJ & Claude
+**Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)
+**Status**: ✅ COMPLETE - ALL P0 FIXES MERGED TO MAIN (Archived)
+**Revision**: v14.1 - SSOT clarified (no 3D to probes)
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
 
 Note: This document is closed and retained for historical reference. For the next wave of work, see P1 items and plan in `P1_FIXES.md` and the status overview in `TECHNICAL_DEBT.md`.
@@ -16,7 +16,7 @@ Note: This document is closed and retained for historical reference. For the nex
 
 **ALL P0 FIXES COMPLETED AND MERGED**:
 - ✅ Fixed all 4 API endpoints to use `summary=False` + `prepare_probe_features()` adapter
-- ✅ Fixed both SleepProbeTrainer call sites with same pattern  
+- ✅ Fixed both SleepProbeTrainer call sites with same pattern
 - ✅ Added `summary` parameter support to `extract_features_batch()`
 - ✅ Created SSOT adapter `prepare_probe_features()` in `utils/probe_utils.py`
 - ✅ Added comprehensive regression guard tests in `test_p0_regression_guard.py`
@@ -30,7 +30,7 @@ Note: This document is closed and retained for historical reference. For the nex
 
 ## 📌 SSOT: EEGPT Feature Dimensions Rule
 
-> **🎯 THE GOLDEN RULE**  
+> **🎯 THE GOLDEN RULE**
 > - **IF feeding a probe**: Use `extract_features(..., summary=False)` → numpy (B,4,512) → torch → `.flatten(1)` → (B,2048)
 > - **IF NOT feeding a probe**: Can use `extract_features(..., summary=True)` → (B,512) for heuristics/stats
 > - **WHY**: EEGPT outputs 4 summary tokens × 512 dims. Probes trained on all 2048 dims. Using 512 = CRASH.
@@ -56,9 +56,9 @@ Note: This document is closed and retained for historical reference. For the nex
 - **eegpt_compat.py** - Update `extract_features_batch` to accept AND forward `summary` parameter
 - **eegpt_compat.py** - `extract_features` already HAS summary parameter, just needs to be called with `summary=False`
 
-**Root Cause**: Missing `summary=False` parameter in `extract_features()` calls  
-**Business Impact**: 100% API failure rate for EEGPT endpoints, blocks demos  
-**Fix Strategy**: TDD - Write failing tests FIRST, then minimal fixes, then refactor  
+**Root Cause**: Missing `summary=False` parameter in `extract_features()` calls
+**Business Impact**: 100% API failure rate for EEGPT endpoints, blocks demos
+**Fix Strategy**: TDD - Write failing tests FIRST, then minimal fixes, then refactor
 
 ---
 
@@ -88,13 +88,13 @@ from unittest.mock import Mock
 
 class TestP0APIDimensions:
     """Prove API endpoints crash with 512 dims, work with 2048."""
-    
+
     def test_analyze_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /eeg/eegpt/analyze must flatten (4,512) to (1,2048)."""
         from fastapi.testclient import TestClient
         from brain_go_brrr.api.main import app  # CORRECT: main.py not app.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
-        
+
         # Stub EDF loader to avoid parsing real EDF
         class _StubRaw:
             def __init__(self):
@@ -109,30 +109,30 @@ class TestP0APIDimensions:
         # Single-window contract: (4,512) numpy on summary=False
         mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
         monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
-        
+
         # Probe that asserts 2048 at call-time
         def _probe_predict(x: torch.Tensor):
             if x.ndim != 2 or x.shape[-1] != 2048:
                 pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
             # Return JSON-serializable output
             return [[0.1, 0.9]] * x.shape[0]
-        
+
         mock_probe = Mock(predict_proba=_probe_predict)
         monkeypatch.setattr(eegpt_router, "get_probe", lambda task: mock_probe, raising=False)
-        
+
         # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
         client = TestClient(app)
         files = {"edf_file": ("fake.edf", b"x" * 1000, "application/octet-stream")}  # CORRECT: edf_file!
         response = client.post("/api/v1/eeg/eegpt/analyze", files=files)  # CORRECT: /eeg/eegpt!
         # Test will fail with dimension error before fix
         assert response.status_code == 200  # After fix, should succeed
-            
+
     def test_batch_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /eeg/eegpt/analyze/batch must flatten (B,4,512) to (B,2048)."""
         from fastapi.testclient import TestClient
         from brain_go_brrr.api.main import app  # CORRECT: main.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
-        
+
         # Stub EDF loader to avoid parsing real EDF
         class _StubRaw:
             def __init__(self):
@@ -147,29 +147,29 @@ class TestP0APIDimensions:
         # Batch contract: (B,4,512) numpy on summary=False
         mock_model.extract_features_batch.return_value = np.random.randn(8, 4, 512).astype(np.float32)
         monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
-        
+
         def _probe_predict(x: torch.Tensor):
             if x.ndim != 2 or x.shape[-1] != 2048:
                 pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
             # Return JSON-serializable output
             return [[0.1, 0.9]] * x.shape[0]
-        
+
         mock_probe = Mock(predict_proba=_probe_predict)
         monkeypatch.setattr(eegpt_router, "get_probe", lambda task: mock_probe, raising=False)
-        
+
         # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
         client = TestClient(app)
         files = {"edf_file": ("fake.edf", b"x" * 1000, "application/octet-stream")}  # CORRECT!
         response = client.post("/api/v1/eeg/eegpt/analyze/batch", files=files)  # CORRECT ROUTE!
         # Test will fail with dimension error before fix
         assert response.status_code == 200  # After fix, should succeed
-        
+
     def test_sleep_stages_endpoint_flattens_to_2048(self, monkeypatch):
         """P0: /eeg/eegpt/sleep/stages must flatten to 2048."""
         from fastapi.testclient import TestClient
         from brain_go_brrr.api.main import app  # CORRECT: main.py!
         from brain_go_brrr.api.routers import eegpt as eegpt_router
-        
+
         # Stub EDF loader to avoid parsing real EDF
         class _StubRaw:
             def __init__(self):
@@ -184,16 +184,16 @@ class TestP0APIDimensions:
         # Single-window contract: (4,512) numpy on summary=False
         mock_model.extract_features.return_value = np.random.randn(4, 512).astype(np.float32)
         monkeypatch.setattr(eegpt_router, "get_eegpt_model", lambda: mock_model)
-        
+
         def _probe_predict(x: torch.Tensor):
             if x.ndim != 2 or x.shape[-1] != 2048:
                 pytest.fail(f"Probe got {tuple(x.shape)} expected (B,2048)")
             # Return JSON-serializable output for 5 sleep stages
             return [[0.2, 0.2, 0.2, 0.2, 0.2]] * x.shape[0]
-        
+
         mock_probe = Mock(predict_proba=_probe_predict)
         monkeypatch.setattr(eegpt_router, "get_probe", lambda task: mock_probe, raising=False)  # CORRECT: get_probe!
-        
+
         # Hit the real route - THIS TEST MUST FAIL ON CURRENT CODE
         client = TestClient(app)
         files = {"edf_file": ("fake.edf", b"x" * 1000, "application/octet-stream")}  # CORRECT!
@@ -213,7 +213,7 @@ class TestP0TrainerDimensions:
         # Mock self.eegpt_model.extract_features returns (B,4,512) when summary=False
         # Probe validates 2048 dims
         # THIS TEST MUST FAIL ON CURRENT CODE
-        
+
     def test_evaluate_probe_flattens_to_2048(self):
         """P0: evaluate_probe must flatten to 2048."""
         # Mock self.eegpt_model.extract_features returns (B,4,512)
@@ -230,7 +230,7 @@ class TestP0CompatContract:
         """P0: extract_features_batch must return (B,4,512) when summary=False."""
         # Must NOT flatten internally (SSOT: flatten at call-sites only)
         # THIS TEST MUST FAIL ON CURRENT CODE
-        
+
     def test_extract_features_forwards_summary_parameter(self):
         """P0: extract_features must forward summary parameter to encoder."""
         # Verify summary is passed through
@@ -284,12 +284,12 @@ def extract_features_batch(
     summary: bool = True  # ADD THIS PARAMETER
 ) -> npt.NDArray[np.float64]:
     """Extract features from batch of windows.
-    
+
     Args:
         windows: Batch of EEG windows (B, channels, samples)
         channel_names: Channel names (kept for API compatibility)
         summary: If True, return averaged summary (B, 512). If False, return tokens (B, 4, 512).
-    
+
     Returns:
         Features array with shape based on summary flag
     """
@@ -320,7 +320,7 @@ def extract_features_batch(
 
     # OPTIONAL: Add shape validation like extract_features does
     # to ensure the returned shape matches the summary flag
-    
+
     return features.astype(np.float32)  # Converts to float32 at return
 ```
 
@@ -409,24 +409,24 @@ def prepare_probe_features(
 ) -> torch.Tensor:
     """
     Adapter: Convert EEGPT features to probe-ready format.
-    
+
     Accepts: (4,512) single window or (B,4,512) batch from extract_features with summary=False
     Returns: (B,2048) ready for probe input, where B >= 1
-    
+
     This is the SINGLE SOURCE OF TRUTH for probe preparation.
     """
     # Convert numpy to torch if needed (use as_tensor for zero-copy when possible)
     if isinstance(features, np.ndarray):
         features = torch.as_tensor(features, dtype=torch.float32)
-    
+
     # Handle single window: (4,512) → (1,4,512)
     if features.ndim == 2 and features.shape[-2:] == (4, 512):
         features = features.unsqueeze(0)  # Add batch dimension
-    
+
     # Flatten batch: (B,4,512) → (B,2048)
     if features.ndim == 3 and features.shape[1] == 4 and features.shape[2] == 512:
         features = features.flatten(1)
-    
+
     # Safety assertion
     assert_probe_ready(features)
     return features
@@ -456,7 +456,7 @@ import pytest
 def test_prepare_probe_features_batch():
     """Adapter correctly flattens (B,4,512) to (B,2048)."""
     from brain_go_brrr.utils.probe_utils import prepare_probe_features
-    
+
     features = np.random.randn(32, 4, 512).astype(np.float32)
     prepared = prepare_probe_features(features)
     assert prepared.shape == (32, 2048)
@@ -465,7 +465,7 @@ def test_prepare_probe_features_batch():
 def test_prepare_probe_features_single_window():
     """Adapter handles single window (4,512) to (1,2048)."""
     from brain_go_brrr.utils.probe_utils import prepare_probe_features
-    
+
     features = np.random.randn(4, 512).astype(np.float32)  # Single window
     prepared = prepare_probe_features(features)
     assert prepared.shape == (1, 2048)  # Batch dim added
@@ -474,10 +474,10 @@ def test_prepare_probe_features_single_window():
 def test_assert_probe_ready_catches_wrong_dims():
     """Safety net catches dimension errors."""
     from brain_go_brrr.utils.probe_utils import assert_probe_ready
-    
+
     good = torch.randn(32, 2048)
     assert_probe_ready(good)  # No error
-    
+
     bad = torch.randn(32, 512)
     with pytest.raises(AssertionError, match="Probe expects 2048 dims"):
         assert_probe_ready(bad)
@@ -519,7 +519,7 @@ rg -nP 'extract_features(?:_batch)?\([^)]*\)' src/brain_go_brrr | rg -v 'summary
 
 # Verify extract_features already has summary:
 rg -n "def extract_features\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
-  
+
 # Verify extract_features_batch is missing summary (pre-fix):
 rg -n "def extract_features_batch\(.*summary" src/brain_go_brrr/infra/ml_models/eegpt_compat.py
 
@@ -624,7 +624,7 @@ git add tests/unit/infra/ml_models/test_eegpt_compat_p0_contract.py
 git commit -m "test(p0): add failing tests for 2048-dim probe contract
 
 - API endpoints must flatten to 2048 before probes
-- Trainer must flatten to 2048 before probes  
+- Trainer must flatten to 2048 before probes
 - Compat must NOT flatten internally (SSOT)
 - Tests currently fail, proving P0 bug exists"
 
@@ -669,11 +669,11 @@ git commit -m "refactor: introduce prepare_probe_features adapter
 ## 📝 PAPER EVIDENCE
 
 From EEGPT paper (`literature/markdown/EEGPT/EEGPT.md`):
-> "We use 4 × 512 dimensional features for downstream tasks"  
+> "We use 4 × 512 dimensional features for downstream tasks"
 > "The final representation is obtained by flattening the 4 summary tokens"
 
 Our implementation (`eegpt_architecture.py`):
-- `embed_dim: int = 512` 
+- `embed_dim: int = 512`
 - `embed_num: int = 4  # Number of summary tokens`
 - Probes expect `input_dim=2048` (4 × 512)
 
@@ -691,7 +691,7 @@ Our implementation (`eegpt_architecture.py`):
 - [ ] All tests FAIL on current code
 - [ ] Bug proven to exist
 
-**Green Phase Complete**  
+**Green Phase Complete**
 - [ ] Minimal fixes applied
 - [ ] All P0 tests PASS
 - [ ] No extra changes made
@@ -717,7 +717,7 @@ Our implementation (`eegpt_architecture.py`):
 ## 📝 REVISION HISTORY
 
 - **v1.0** (Sept 4): Initial P0 document with 2 API endpoints
-- **v2.0** (Sept 4): Added Definition of Done, removed line numbers  
+- **v2.0** (Sept 4): Added Definition of Done, removed line numbers
 - **v3.0** (Sept 4): Added missing `/analyze/batch` endpoint per audit
 - **v4.0** (Sept 4): Fixed signature issues, clarified SSOT, standardized on .flatten(1)
 - **v5.0** (Sept 4): Integrated TDD methodology - single source of truth document
