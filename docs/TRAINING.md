@@ -196,7 +196,7 @@ from brain_go_brrr.infra.data.tuev_dataset import TUEVDataset
 
 1. **Loss**: Should decrease steadily
 2. **AUROC**: Main metric for TUAB (target: 0.87)
-3. **Balanced Accuracy**: Main metric for TUEV (target: 0.62)
+3. **Balanced Accuracy (BAC)**: Main metric for TUEV (target: 0.6232 per [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md))
 4. **Learning Rate**: OneCycle schedule
 
 ### Tensorboard (Not Configured)
