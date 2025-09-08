@@ -1,10 +1,10 @@
 # 🟡 P2 TECHNICAL DEBT - Lower Priority Cleanup & Optimization
 
-**Created**: September 8, 2025  
-**Last Audit**: September 8, 2025 (Senior Review)  
-**Owner**: ___________________  
-**Time Required**: ~9 hours total  
-**Status**: 🔄 NOT STARTED  
+**Created**: September 8, 2025
+**Last Audit**: September 8, 2025 (Senior Review)
+**Owner**: ___________________
+**Time Required**: ~9 hours total
+**Status**: 🔄 NOT STARTED
 **Approach**: Incremental cleanup with concrete acceptance criteria
 
 ---
@@ -44,7 +44,7 @@ class AbnormalityDetectionProbe:
     def __init__(self, checkpoint_path: Path, n_input_channels: int = 20):
         self.backbone = create_normalized_eegpt(checkpoint_path=checkpoint_path)
         self.head = ProbeFactory.create_for_task("abnormality", n_classes=2)
-    
+
     def forward(self, x, channel_names):
         # Extract features with summary=False
         features = self.backbone.extract_features(x, channel_names, summary=False)
@@ -108,7 +108,7 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 **Fix Plan**:
 ```markdown
 # Add to top of archived documentation files:
-> ⚠️ **ARCHIVED DOCUMENTATION** - Examples may be outdated.  
+> ⚠️ **ARCHIVED DOCUMENTATION** - Examples may be outdated.
 > See [TRAINING.md](../TRAINING.md) for current safe torch.load usage.
 ```
 
@@ -127,7 +127,7 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 
 **Problem**: Prevent accidental re-introduction (NOT currently in dependencies)
 
-**Current Status**: 
+**Current Status**:
 - ✅ VERIFIED: No Lightning in pyproject.toml
 - Need CI guards to keep it that way
 
@@ -225,7 +225,7 @@ from brain_go_brrr.api.cache import APIRedisCache  # Clear and direct
 # src/brain_go_brrr/infra/ml_models/channel_mapper.py
 class TUEVChannelMapper(nn.Module):
     """Learnable channel mapping from TUEV 23 → EEGPT 20 channels."""
-    
+
     def __init__(self):
         super().__init__()
         self.channel_conv = nn.Sequential(
@@ -233,7 +233,7 @@ class TUEVChannelMapper(nn.Module):
             nn.BatchNorm1d(20),
             nn.GELU()
         )
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Map (B, 23, T) → (B, 20, T)."""
         return self.channel_conv(x)
@@ -314,17 +314,17 @@ ALLOWED_DUPLICATES = {
 
 def find_duplicate_classes():
     classes = defaultdict(list)
-    
+
     for py_file in Path("src").rglob("*.py"):
         content = py_file.read_text()
         for match in re.finditer(r'^class (\w+)', content, re.MULTILINE):
             class_name = match.group(1)
             if not class_name.startswith('_'):
                 classes[class_name].append(str(py_file))
-    
+
     duplicates = {k: v for k, v in classes.items() if len(v) > 1}
     real_duplicates = {k: v for k, v in duplicates.items() if k not in ALLOWED_DUPLICATES}
-    
+
     if real_duplicates:
         print("❌ Duplicate class definitions found!")
         for class_name, files in real_duplicates.items():
@@ -332,7 +332,7 @@ def find_duplicate_classes():
             for file in files:
                 print(f"    - {file}")
         return 1
-    
+
     return 0
 
 if __name__ == "__main__":
@@ -576,6 +576,6 @@ make coverage | grep "TOTAL"                             # Should be ≥95%
 
 ---
 
-**Approved By**: _________________ **Date**: _______  
-**Developer Assigned**: ____________ **Target Sprint**: _______  
+**Approved By**: _________________ **Date**: _______
+**Developer Assigned**: ____________ **Target Sprint**: _______
 **Last Senior Audit**: September 8, 2025 - All findings incorporated
