@@ -155,12 +155,17 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         if self.backbone_frozen:
             self.backbone.eval()
             with torch.no_grad():
+                # Get 4 summary tokens (B, 4, 512)
                 features = self.backbone(x)
         else:
+            # Get 4 summary tokens (B, 4, 512)
             features = self.backbone(x)
 
-        # Apply probe
-        logits = self.probe(features)
+        # Prepare features for probe (flatten to B, 2048)
+        probe_features = prepare_probe_features(features)
+        
+        # Apply probe with 2048-d features
+        logits = self.probe(probe_features)
 
         return cast("torch.Tensor", logits)
 
