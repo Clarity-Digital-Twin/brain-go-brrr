@@ -3,7 +3,7 @@
 **Created**: September 8, 2025
 **Last Audit**: September 8, 2025 (🔥 FINAL IRONCLAD AUDIT ✅)
 **Owner**: ___________________
-**Time Required**: ~15 hours total (100% verified scope)
+**Time Required**: ~18 hours total (expanded with polish items)
 **Status**: 🔄 NOT STARTED
 **Approach**: Incremental cleanup with concrete acceptance criteria
 
@@ -26,6 +26,12 @@
 12. **Protocol runtime checks** - Audit and document pattern
 13. **Probe feature prep tests** - Error on wrong shapes with helpful messages
 14. **Code coverage** - Target 95% coverage on critical paths
+15. **Deterministic testing** - Reproducible ML inference (NEW)
+16. **Security scanning** - CVE + secrets detection (NEW)
+17. **Import performance** - CPU-only safety (NEW)
+18. **Test isolation** - Parallel execution safety (NEW)
+19. **Warnings discipline** - Fail on unexpected warnings (NEW)
+20. **Dead code detection** - Automated with ruff (NEW)
 
 **Business Impact**: Code maintainability, developer experience, potential 1% accuracy gain
 **Fix Strategy**: Incremental improvements with concrete acceptance gates
@@ -627,6 +633,141 @@ def test_redis_connection_timeout():
 
 ---
 
+### 17. Deterministic Testing (30 minutes) 🎲 NEW
+
+**Problem**: Non-deterministic tests cause flaky CI failures
+
+**Implementation**:
+```python
+# src/brain_go_brrr/utils/determinism.py
+import random
+import numpy as np
+import torch
+import os
+
+def set_global_seed(seed: int = 42) -> None:
+    """Set all random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    
+    # For CUDA determinism (may impact performance)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+```
+
+**Acceptance Criteria**:
+- [ ] set_global_seed utility created
+- [ ] Determinism smoke test passes
+- [ ] CI runs determinism check
+
+---
+
+### 18. Security Scanning Suite (45 minutes) 🔒 NEW
+
+**Problem**: No automated security scanning
+
+**Dependencies Security**:
+```bash
+# Add to dev-dependencies
+pip-audit = "^2.6.0"
+
+# Makefile target
+security-deps:
+	uv run pip-audit --fix --desc
+```
+
+**Secrets Scanning**:
+```yaml
+# .github/workflows/security.yml
+- uses: gitleaks/gitleaks-action@v2
+```
+
+**Acceptance Criteria**:
+- [ ] Zero high-severity CVEs
+- [ ] No secrets in git history
+- [ ] CI security job green
+
+---
+
+### 19. Import Performance Guard (15 minutes) ⚡ NEW
+
+**Problem**: Heavy imports break CPU-only deployments
+
+**CI Test**:
+```yaml
+# Test CPU-only import
+export CUDA_VISIBLE_DEVICES=""
+time python -c "import brain_go_brrr"
+# Must complete < 500ms
+```
+
+**Acceptance Criteria**:
+- [ ] CPU-only import works
+- [ ] Import time < 500ms
+- [ ] No CUDA probe at import
+
+---
+
+### 20. Test Isolation & Parallelization (1 hour) 🧪 NEW
+
+**Problem**: Tests interfere in parallel; no timeouts
+
+**Status**: ✅ pytest-xdist and pytest-timeout INSTALLED
+
+**Configuration**:
+```toml
+[tool.pytest.ini_options]
+addopts = "-n auto --dist loadscope --timeout=60"
+```
+
+**Acceptance Criteria**:
+- [ ] pytest -n auto passes
+- [ ] No test > 60s (except @pytest.mark.slow)
+- [ ] No OOM in CI
+
+---
+
+### 21. Warnings Discipline (30 minutes) ⚠️ NEW
+
+**Problem**: Deprecation warnings hide real issues
+
+**Setup**:
+```toml
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:scipy.*",
+    "ignore::UserWarning:torch.cuda.*",
+]
+```
+
+**Acceptance Criteria**:
+- [ ] CI fails on unexpected warnings
+- [ ] Allowlist in pyproject.toml
+- [ ] make test passes
+
+---
+
+### 22. Dead Code Detection (30 minutes) 🗑️ NEW
+
+**Problem**: Unused code accumulates
+
+**Using existing ruff**:
+```toml
+[tool.ruff]
+select = ["F401", "F841"]  # Unused imports/variables
+```
+
+**Acceptance Criteria**:
+- [ ] No unused imports
+- [ ] make lint passes
+- [ ] CI enforces
+
+---
+
 ## 📊 IMPLEMENTATION STRATEGY
 
 ### Quick Wins (< 30 minutes each) - Do First
@@ -647,11 +788,19 @@ def test_redis_connection_timeout():
 3. Services redirect cleanup - 1 hour (3 imports + delete)
 4. Probe feature prep tests - 1 hour
 5. EEGPT dimension documentation - 1 hour
+6. Test isolation & parallelization - 1 hour 🆕
+7. Security scanning setup - 45 minutes 🆕
 
 ### Larger Tasks (2+ hours)
 1. AbnormalityDetectionProbe migration - 2 hours ⭐
 2. TUEV channel synthesis - 4 hours (optional)
 3. Code coverage to 95% - 3 hours (expanded scope)
+
+### Polish Items (< 30 minutes each) 🆕
+1. Deterministic testing - 30 minutes
+2. Import performance guard - 15 minutes
+3. Warnings discipline - 30 minutes
+4. Dead code detection - 30 minutes
 
 ---
 
@@ -747,6 +896,15 @@ make coverage
 2. Performance benchmarks
 3. Integration tests
 4. Gradients flow validation
+
+### Sprint 5: Polish & Hardening (3 hours) 🆕 HIGH-IMPACT
+**Goal**: Production-grade quality gates
+1. Deterministic testing setup (30 min)
+2. Security scanning: pip-audit + gitleaks (45 min)
+3. Import performance guard (15 min)
+4. Test parallelization config (30 min)
+5. Warnings as errors setup (30 min)
+6. Dead code detection with ruff (30 min)
 
 ---
 
