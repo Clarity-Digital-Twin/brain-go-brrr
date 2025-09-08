@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED DOCUMENTATION** - Code examples may be outdated.
+> For safe torch.load/save patterns, see [TRAINING.md](../../TRAINING.md#safe-checkpoint-loading).
+> Never use torch.load without weights_only parameter in production code.
+
+
 # MNE Integration Implementation Plan - Senior Engineer Approach
 
 > ⚠️ **ARCHIVED DOCUMENT - DO NOT USE FOR CURRENT DEVELOPMENT**

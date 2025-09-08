@@ -284,16 +284,26 @@ class CleanAbnormalityDetector:
             if features_tensor.dim() == 1:
                 features_tensor = features_tensor.unsqueeze(0)
 
-            # Handle dimension mismatch - if features are 2048 (full EEGPT) but classifier expects 768
-            # we need to either average or truncate
-            if features_tensor.shape[-1] == 2048 and self.linear_probe[0].in_features == 768:  # type: ignore[index]
-                # Reshape to (batch, 4, 512) and average over tokens
-                batch_size = features_tensor.shape[0]
-                features_tensor = features_tensor.view(batch_size, 4, 512).mean(dim=1)
-                # Now we have (batch, 512) but classifier might expect 768
-                # Pad with zeros to match
-                padding = torch.zeros(batch_size, 768 - 512, device=features_tensor.device)
-                features_tensor = torch.cat([features_tensor, padding], dim=1)
+            # Enforce feature dimensions: only 512 (single summary) or 2048 (flattened 4x512) are allowed
+            # Remove legacy dimension tolerance. Provide actionable guidance instead.
+            last_dim = features_tensor.shape[-1]
+            if last_dim not in (512, 2048):
+                raise ValueError(
+                    f"Expected features of shape (B, 512) or (B, 2048), got {tuple(features_tensor.shape)}. "
+                    "For probe heads, use summary=False to get (B, 4, 512) then flatten to (B, 2048)."
+                )
+
+            # If a probe head exists, ensure input dim matches its expectation to avoid silent shims
+            if self.linear_probe is not None:
+                try:
+                    expected_in = self.linear_probe[0].in_features  # type: ignore[index]
+                except Exception:
+                    expected_in = last_dim
+                if expected_in != last_dim:
+                    raise ValueError(
+                        f"Linear probe expects {expected_in} features but received {last_dim}. "
+                        "Call extract_features with summary=False and use a flattener to (B, 2048)."
+                    )
 
             # Run through linear probe if available
             if self.linear_probe is not None:
@@ -387,9 +397,8 @@ class CleanAbnormalityDetector:
             # For the actual detection flow, check against linear probe input
             if hasattr(self, "linear_probe") and self.linear_probe is not None:
                 expected_dim = self.linear_probe[0].in_features  # type: ignore[index]
-                # Model outputs 512 but classifier expects 768 is OK (we pad)
-                # But if model outputs something completely wrong, error
-                if model_output_dim not in [256, 512, 768, expected_dim]:
+                # Only allow clearly valid dimensions; fail fast otherwise
+                if model_output_dim not in [512, expected_dim]:
                     raise RuntimeError(
                         f"Model/classifier dimension mismatch: model outputs {model_output_dim}, classifier expects {expected_dim}"
                     )

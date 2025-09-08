@@ -103,6 +103,14 @@ repos:
         files: \.(py|md|rst|txt|sh)$
         exclude: ^(SLEEP_EDF_FIX_PLAN|PATH_AUDIT|CLEANUP_STATUS|DIVERGENCE_FIX|TEST_DATA_DIVERGENCE|CACHE_PATH_ANALYSIS)\.md$
 
+      # Detect duplicate class definitions
+      - id: duplicate-classes
+        name: duplicate-classes
+        entry: python .pre-commit-hooks/check-duplicate-classes.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets
   #   rev: v1.4.0

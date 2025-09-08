@@ -357,6 +357,11 @@ test-ci: ## Run tests for CI with coverage and XML report
 
 # Duplicate removed - see line 157 for test-integration target
 
+importlint: ## Run importlinter contracts
+	@echo "$(CYAN)Running importlinter...$(NC)"
+	$(UV) run importlinter
+	@echo "$(GREEN)Importlinter passed$(NC)"
+
 
 test-fast: ## Run parallel tests quickly without coverage
 	@echo "$(GREEN)Running fast parallel tests without coverage...$(NC)"
@@ -600,6 +605,18 @@ check-wsl: ## WSL-optimized quality checks (no parallel tests)
 pre-push: ## Run before pushing to ensure CI will pass
 	@echo "$(CYAN)Running pre-push validation...$(NC)"
 	@bash scripts/validate_before_push.sh
+
+verify-p2: ## Check P2 technical debt progress (non-blocking info)
+	@echo "$(CYAN)Checking P2 technical debt status...$(NC)"
+	@if [ -f scripts/verify_p2_progress.sh ]; then \
+		bash scripts/verify_p2_progress.sh || echo "$(YELLOW)P2 items remaining (non-blocking)$(NC)"; \
+	else \
+		echo "$(YELLOW)P2 verification script not found - creating stub...$(NC)"; \
+		mkdir -p scripts; \
+		echo "#!/bin/bash" > scripts/verify_p2_progress.sh; \
+		echo "echo 'P2 verification not yet implemented'" >> scripts/verify_p2_progress.sh; \
+		chmod +x scripts/verify_p2_progress.sh; \
+	fi
 
 ##@ Examples
 
