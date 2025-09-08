@@ -122,3 +122,29 @@ forbidden_modules =
     brain_go_brrr.models
     brain_go_brrr.preprocessing
     brain_go_brrr.config
+
+# ===================================================================
+# P2 TECHNICAL DEBT CONTRACTS - ENFORCE MIGRATION
+# ===================================================================
+
+# Contract 11: NO DIRECT EEGPT PROBE
+[importlinter:contract:no_eegpt_probe]
+name = Use ProbeFactory instead of EEGPTProbe
+type = forbidden
+source_modules =
+    brain_go_brrr.application
+    brain_go_brrr.api
+forbidden_modules =
+    brain_go_brrr.infra.ml_models.eegpt_probe_unified
+message = Use ProbeFactory.create_for_task() instead of deprecated EEGPTProbe
+
+# Contract 12: NO SERVICES REDIRECTS
+[importlinter:contract:no_services_redirect]
+name = Use infra.external instead of services redirects
+type = forbidden
+source_modules =
+    brain_go_brrr
+forbidden_modules =
+    brain_go_brrr.services.yasa_adapter
+    brain_go_brrr.services.hierarchical_pipeline
+message = Import from brain_go_brrr.infra.external instead of services redirects
