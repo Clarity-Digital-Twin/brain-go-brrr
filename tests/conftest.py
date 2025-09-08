@@ -15,6 +15,10 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 
+# Enable deterministic behavior
+os.environ["PYTHONHASHSEED"] = "1337"
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"  # For CUDA determinism
+
 import random
 import socket
 import tempfile
@@ -37,6 +41,11 @@ try:
     torch.manual_seed(SEED)
     if torch.cuda.is_available():
         torch.cuda.manual_seed(SEED)
+        torch.cuda.manual_seed_all(SEED)  # All GPUs
+    # Enable deterministic operations (may impact performance)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 except Exception:
     # Broader catch to handle any torch import issues
     torch = None
