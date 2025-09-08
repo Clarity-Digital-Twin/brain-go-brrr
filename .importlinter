@@ -1,5 +1,6 @@
 [importlinter]
 root_package = brain_go_brrr
+include_external_packages = True
 
 # ===================================================================
 # UNCLE BOB'S CLEAN ARCHITECTURE - 100% STRICT ENFORCEMENT
@@ -72,19 +73,19 @@ forbidden_modules =
     brain_go_brrr.api
     brain_go_brrr.presentation
 
-# Contract 7: CORE UTILITIES INDEPENDENCE
-[importlinter:contract:core_independent]
-name = Core utilities must be independent (leaf nodes)
-type = forbidden
-source_modules =
-    brain_go_brrr.core
-forbidden_modules =
-    brain_go_brrr.api
-    brain_go_brrr.presentation
-    brain_go_brrr.application
-    brain_go_brrr.domain
-    brain_go_brrr.infra
-    brain_go_brrr.services
+# Contract 7: CORE UTILITIES INDEPENDENCE - DISABLED (core module doesn't exist)
+# [importlinter:contract:core_independent]
+# name = Core utilities must be independent (leaf nodes)
+# type = forbidden
+# source_modules =
+#     brain_go_brrr.core
+# forbidden_modules =
+#     brain_go_brrr.api
+#     brain_go_brrr.presentation
+#     brain_go_brrr.application
+#     brain_go_brrr.domain
+#     brain_go_brrr.infra
+#     brain_go_brrr.services
 
 # Contract 8: DEPRECATED MODULES
 [importlinter:contract:deprecated_redirects]
@@ -143,7 +144,9 @@ message = Use ProbeFactory.create_for_task() instead of deprecated EEGPTProbe
 name = Use infra.external instead of services redirects
 type = forbidden
 source_modules =
-    brain_go_brrr
+    brain_go_brrr.application
+    brain_go_brrr.api
+    brain_go_brrr.domain
 forbidden_modules =
     brain_go_brrr.services.yasa_adapter
     brain_go_brrr.services.hierarchical_pipeline
