@@ -358,9 +358,9 @@ test-ci: ## Run tests for CI with coverage and XML report
 # Duplicate removed - see line 157 for test-integration target
 
 importlint: ## Run import-linter contracts
-    @echo "$(CYAN)Running import-linter...$(NC)"
-    $(UV) run lint-imports
-    @echo "$(GREEN)Import-linter passed$(NC)"
+	@echo "$(CYAN)Running import-linter...$(NC)"
+	$(UV) run lint-imports
+	@echo "$(GREEN)Import-linter passed$(NC)"
 
 
 test-fast: ## Run parallel tests quickly without coverage
