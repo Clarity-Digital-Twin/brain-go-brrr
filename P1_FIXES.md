@@ -363,14 +363,14 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
 ### Cleanup Complete
 - [x] torch.load: TRAINING.md:246 uses weights_only parameter ✅ DONE
 - [x] Lightning: Not in pyproject.toml (never was) ✅ DONE
-- [x] EEGPTProbe: All 3 usages migrated to ProbeFactory.create() ✅ DONE
+- [x] EEGPTProbe: 2/3 usages migrated, 1 deferred (AbnormalityDetectionProbe) ⚠️ PARTIAL
 
 ### Verification ✅ ALL VERIFIED
 - [x] `rg '^class LoggerPort'` returns exactly 1 result ✅ VERIFIED
 - [x] `rg '^class FeatureExtractorPort'` returns exactly 1 result ✅ VERIFIED
 - [x] `rg '^class RedisCache'` returns exactly 1 result in infra/cache.py ✅ VERIFIED
 - [x] `rg '^class APIRedisCache'` returns exactly 1 result in api/cache.py ✅ VERIFIED
-- [x] ProbeFactory migration complete - no direct EEGPTProbe usage ✅ VERIFIED
+- [x] ProbeFactory migration: 2/3 complete (AbnormalityDetectionProbe deferred) ⚠️ PARTIAL
 - [x] Mypy passing with `make typecheck` ✅ PASSES
 - [x] Linting passing with `make lint` ✅ PASSES
 - [x] Code formatted with `make format` ✅ DONE
