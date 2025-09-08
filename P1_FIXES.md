@@ -10,11 +10,14 @@
 
 ## 📋 EXECUTIVE SUMMARY
 
-**We have 4 dangerous duplicate types causing confusion and potential runtime errors:**
+**We have 7 CRITICAL BUGS causing confusion and runtime errors:**
 1. **LoggerPort** - Incompatible signatures between domain and infra
 2. **RedisCache** - Two different classes with same name
 3. **YASAConfig** - Duplicate configs with different defaults
 4. **FeatureExtractorPort** - Contract confusion across layers
+5. **InMemoryCache** 🆕 - Pattern matching bug (mixes regex with fnmatch)
+6. **EEGPT Dims** 🆕 - Returns 768 but should be 512/2048
+7. **LoggerPort Re-exports** 🆕 - Will break after unification
 
 **Plus 3 lower-priority cleanup items:**
 - Documentation shows unsafe torch.load examples
@@ -58,7 +61,12 @@ class LoggerPort(Protocol):
 1. Create unified LoggerPort in `domain/protocols/logger.py` with flexible signature (*args, **kwargs)
 2. Delete both existing definitions
 3. Update single import in `logger_adapter.py`: `from ...domain.protocols.logger import LoggerPort`
-4. Run mypy to verify no type errors
+4. **CRITICAL**: Update re-export in `domain/ports/__init__.py:12` from `.base` to `..protocols.logger`
+5. Run mypy to verify no type errors
+
+**Test Impact**:
+- Files using `from brain_go_brrr.domain.ports import LoggerPort` will get new flexible signature
+- Must verify all consumers handle the signature change
 
 ---
 
@@ -154,9 +162,87 @@ class YASAConfig:
 
 ---
 
+### 5. InMemoryCache Pattern Bug 🆕 CRITICAL
+
+**Problem**: Pattern matching mixes regex syntax with shell glob
+
+**Location**: `src/brain_go_brrr/infra/cache.py:227`
+```python
+def clear_pattern(self, pattern: str) -> int:
+    import fnmatch
+    pattern = pattern.replace("*", ".*")  # WRONG! Converting to regex
+    keys_to_delete = [k for k in self._store if fnmatch.fnmatch(k, pattern)]  # But using shell glob!
+```
+
+**Bug**: `fnmatch` expects shell patterns (`*` = any chars) but code converts to regex (`.*`)
+- Pattern `eeg_*` becomes `eeg_.*` which won't match `eeg_analysis_123` in fnmatch
+- Keys won't be cleared as expected!
+
+**Fix Plan**:
+```python
+# Option 1: Use fnmatch correctly (shell patterns)
+keys_to_delete = [k for k in self._store if fnmatch.fnmatch(k, pattern)]  # No replace!
+
+# Option 2: Use regex properly
+import re
+pattern_re = re.compile(pattern.replace("*", ".*"))
+keys_to_delete = [k for k in self._store if pattern_re.match(k)]
+```
+
+---
+
+### 6. EEGPT Feature Dimension Confusion 🆕 CRITICAL
+
+**Problem**: Adapter returns wrong feature dimension
+
+**Location**: `src/brain_go_brrr/infra/adapters/model_adapter.py:52-56`
+```python
+def get_feature_dim(self) -> int:
+    # Return 768 for legacy compatibility (tests expect this)
+    # Actual EEGPT uses 512, but we maintain backward compat
+    return 768  # WRONG! Should be 512 or 2048
+```
+
+**Reality**:
+- EEGPT with `summary=True`: 512 dimensions
+- EEGPT with `summary=False`: 2048 dimensions (4×512 flattened)
+- Current code returns 768 (?!?!)
+
+**Fix Plan**:
+1. Change to return 512 (for summary) or 2048 (for probes)
+2. Update all tests expecting 768
+3. Add acceptance test asserting correct dimensions
+4. Document the chosen convention
+
+---
+
+### 7. LoggerPort Re-export Issue 🆕 CRITICAL
+
+**Problem**: Re-export in `domain/ports/__init__.py` imports from `base.LoggerPort`
+
+**Location**: `src/brain_go_brrr/domain/ports/__init__.py:8-12`
+```python
+from .base import (
+    LoggerPort,  # This will break after unification!
+    ...
+)
+```
+
+**Impact**: After creating `domain/protocols/logger.py`, must update re-export or all imports from `domain.ports` will fail!
+
+**Fix Plan**:
+1. After creating `domain/protocols/logger.py`
+2. Update `domain/ports/__init__.py` line 12:
+   ```python
+   from ..protocols.logger import LoggerPort  # New location
+   ```
+3. Keep re-export so existing imports still work
+
+---
+
 ## 📝 P2 ISSUES - LOWER PRIORITY CLEANUP
 
-### 5. Documentation Unsafe torch.load
+### 8. Documentation Unsafe torch.load
 
 **Location**: `docs/TRAINING.md:246`
 ```python
@@ -177,7 +263,7 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
    ```
 2. Reference `brain_go_brrr.infra.safe_load` wrapper in docs
 
-### 6. PyTorch Lightning in Dependencies
+### 9. PyTorch Lightning in Dependencies
 
 **Location**: `pyproject.toml:70`
 ```toml
@@ -203,7 +289,7 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
        pass
    ```
 
-### 7. Incomplete Probe Migration
+### 10. Incomplete Probe Migration
 
 **Problem**: `EEGPTProbe` still directly instantiated instead of using `ProbeFactory`
 
@@ -245,26 +331,47 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
 
 ## 🎯 IMPLEMENTATION ORDER
 
-1. **LoggerPort** (30min) - Single import to fix, prevents TypeErrors
-2. **RedisCache** (30min) - Simple rename to APIRedisCache
-3. **YASAConfig** (45min) - Rename to YASAAdapterConfig, may need converter
-4. **FeatureExtractorPort** (45min) - Architectural clarity needed
-5. **Documentation** (15min) - One-line fix in TRAINING.md:246
-6. **Remove Lightning** (15min) - Delete one line from pyproject.toml
-7. **Probe Migration** (2hr) - Update 3 files to use ProbeFactory
+### CRITICAL BUGS (Fix First!)
+1. **InMemoryCache pattern** (15min) - ACTIVE BUG breaking cache clearing
+2. **EEGPT dims** (30min) - Returns wrong dimension causing confusion
+3. **LoggerPort + re-export** (30min) - Must update both or imports break
+
+### Name Collisions (Fix Second)
+4. **RedisCache** (30min) - Simple rename to APIRedisCache
+5. **YASAConfig** (45min) - Rename to YASAAdapterConfig, may need converter
+6. **FeatureExtractorPort** (45min) - Architectural clarity needed
+
+### Cleanup (Fix Last)
+7. **Documentation** (15min) - One-line fix in TRAINING.md:246
+8. **Remove Lightning** (15min) - Delete one line from pyproject.toml
+9. **Probe Migration** (2hr) - Update 3 files to use ProbeFactory
 
 ---
 
 ## ✅ DEFINITION OF DONE
 
-- [ ] LoggerPort: Single protocol in domain/protocols/logger.py, zero duplicates
+### Critical Bugs Fixed
+- [ ] InMemoryCache: `clear_pattern` correctly removes matching keys
+- [ ] EEGPT dims: `get_feature_dim()` returns 512 or 2048 (not 768)
+- [ ] LoggerPort: Single protocol in domain/protocols/logger.py, re-export updated
+
+### Name Collisions Resolved
 - [ ] RedisCache: API class renamed to APIRedisCache, no name collisions
 - [ ] YASAConfig: Infra renamed to YASAAdapterConfig, no field confusion
 - [ ] FeatureExtractorPort: Single definition in domain/ports/
+
+### Cleanup Complete
 - [ ] torch.load: TRAINING.md:246 uses weights_only parameter
 - [ ] Lightning: Removed from pyproject.toml:70, uv.lock updated
 - [ ] EEGPTProbe: All 3 usages migrated to ProbeFactory.create()
-- [ ] CI/CD: All branches green, mypy passing
+
+### Verification
+- [ ] `rg '^class LoggerPort'` returns exactly 1 result
+- [ ] `rg '^class FeatureExtractorPort'` returns exactly 1 result
+- [ ] `rg '^class RedisCache'` returns exactly 1 result (infra only)
+- [ ] All tests passing with `make test`
+- [ ] Mypy passing with `make typecheck`
+- [ ] CI/CD green on all branches
 
 ---
 
@@ -332,4 +439,82 @@ sed -i 's/config: YASAConfig/config: YASAAdapterConfig/' \
   src/brain_go_brrr/infra/external/yasa_adapter.py
 
 # Step 3: Add converter method (manual edit needed)
+```
+
+---
+
+## 🚨 TEST/CI IMPACTS
+
+### After LoggerPort Unification
+- **Files importing `from brain_go_brrr.domain.ports import LoggerPort`** will get new flexible signature
+- **domain/preprocessing/features/extractor.py** uses LoggerPort via re-export
+- **Must run**: `mypy src/brain_go_brrr/domain` to catch signature issues
+
+### After RedisCache Rename
+- **API routers** importing RedisCache must update to APIRedisCache
+- **get_cache()** return type must change
+- **Must run**: `grep -r "from.*api.cache import RedisCache"` to find all usages
+
+### After YASAConfig Rename
+- **YASASleepStager** type hints must update
+- **Tests** using YASAConfig defaults may need adjustment
+- **Must run**: Integration tests for sleep analysis
+
+### After InMemoryCache Fix
+- **Add unit test**: Pattern matching works correctly
+- **Test patterns**: `eeg_*`, `analysis:*`, `*:v1.0.0:*`
+- **Must verify**: Cache invalidation in integration tests
+
+---
+
+## 🛡️ GUARDRAILS TO ADD
+
+### Import Linter Rules
+Add to `.pre-commit-config.yaml`:
+```yaml
+- id: forbidden-imports
+  name: Forbid old LoggerPort imports
+  entry: 'from brain_go_brrr\.domain\.(ports|abnormal\.ports) import.*LoggerPort'
+  language: pygrep
+  types: [python]
+  exclude: '^src/brain_go_brrr/domain/protocols/logger\.py$'
+```
+
+### Duplicate Class Detector
+Add to CI pipeline:
+```bash
+#!/bin/bash
+# scripts/verify_no_duplicates.sh
+DUPLICATES=$(rg '^class (LoggerPort|RedisCache|YASAConfig|FeatureExtractorPort)\b' src/ | 
+  awk '{print $2}' | sort | uniq -d)
+
+if [ -n "$DUPLICATES" ]; then
+  echo "ERROR: Duplicate class definitions found:"
+  echo "$DUPLICATES"
+  exit 1
+fi
+```
+
+### Acceptance Tests
+```python
+# tests/acceptance/test_p1_fixes.py
+def test_no_duplicate_classes():
+    """Verify no duplicate class definitions after P1."""
+    # Implementation
+
+def test_inmemory_cache_pattern():
+    """Verify pattern matching works correctly."""
+    cache = InMemoryCache()
+    cache.set("eeg_123", "value1")
+    cache.set("eeg_456", "value2")
+    cache.set("other_789", "value3")
+    
+    deleted = cache.clear_pattern("eeg_*")
+    assert deleted == 2
+    assert cache.get("other_789") == "value3"
+
+def test_eegpt_feature_dimensions():
+    """Verify correct feature dimensions."""
+    model = EEGPTModelAdapter(...)
+    assert model.get_feature_dim() in [512, 2048]  # Not 768!
 ```
