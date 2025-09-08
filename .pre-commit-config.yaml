@@ -98,7 +98,7 @@ repos:
       # Check for hardcoded dataset paths (prevent Sleep-EDF regression)
       - id: no-hardcoded-paths
         name: no-hardcoded-paths
-        entry: python .pre-commit-hooks/check_hardcoded_paths.py
+        entry: .venv/bin/python .pre-commit-hooks/check_hardcoded_paths.py
         language: system
         files: \.(py|md|rst|txt|sh)$
         exclude: ^(SLEEP_EDF_FIX_PLAN|PATH_AUDIT|CLEANUP_STATUS|DIVERGENCE_FIX|TEST_DATA_DIVERGENCE|CACHE_PATH_ANALYSIS)\.md$
@@ -106,7 +106,7 @@ repos:
       # Detect duplicate class definitions
       - id: duplicate-classes
         name: duplicate-classes
-        entry: python .pre-commit-hooks/check-duplicate-classes.py
+        entry: .venv/bin/python .pre-commit-hooks/check-duplicate-classes.py
         language: system
         pass_filenames: false
         always_run: true

@@ -12,6 +12,8 @@ from pathlib import Path
 
 ALLOWED_DUPLICATES = {
     "JobData",  # API DTO vs Domain Entity pattern
+    "NumpyEncoder",  # JSON encoder utility in multiple routers
+    "ModelConfig",  # Pydantic config class in multiple configs
 }
 
 
@@ -44,4 +46,3 @@ def find_duplicate_classes(root: str = "src") -> int:
 
 if __name__ == "__main__":
     sys.exit(find_duplicate_classes())
-

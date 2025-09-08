@@ -150,10 +150,10 @@ export USE_LEGACY_PROBE=1  # Bypass new probe factory
 
 **Acceptance Criteria**:
 - [x] No `from.*eegpt_probe_unified import EEGPTProbe` in application layer
-- [ ] Can load both old and new checkpoint formats
-- [ ] Parity test: logits match within 1e-5 tolerance (fixed seed, synthetic input)
+- [x] Can load both old and new checkpoint formats
+- [x] Parity test: logits match within 1e-5 tolerance (fixed seed, synthetic input)
 - [x] Head receives (B, 2048) shaped input
-- [ ] Add `PendingDeprecationWarning` for API stability
+- [x] Add `PendingDeprecationWarning` for API stability
 
 ---
 
@@ -214,7 +214,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 **Acceptance Criteria**:
 - [x] `__init__.py` does not import eegpt_compat
 - [x] `rg "from.*ml_models import EEGPTModel" src tests` shows migrated imports
-- [ ] No DeprecationWarning on ml_models import
+- [x] No DeprecationWarning on ml_models import
 - [x] eegpt_compat still importable directly for compatibility
 
 ---
@@ -482,7 +482,7 @@ importlint:
 - [x] `.importlinter` config created with CORRECTED rules
 - [x] `make importlint` target added to Makefile
 - [x] CI workflow includes import linter step
-- [ ] All current code passes (7 files use domain.ports - VALID!)
+- [x] All current code passes (7 files use domain.ports - VALID!)
 
 ---
 
@@ -567,10 +567,10 @@ Protocol Usage Guidelines:
 ```
 
 **Acceptance Criteria**:
-- [ ] Guidelines documented in protocols module
-- [ ] Only LoggerPort has @runtime_checkable
-- [ ] Clear examples of when to add decorator
-- [ ] Note about __pycache__ clearing if issues
+- [x] Guidelines documented in protocols module
+- [x] Only LoggerPort has @runtime_checkable
+- [x] Clear examples of when to add decorator
+- [x] Note about __pycache__ clearing if issues
 
 ---
 
