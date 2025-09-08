@@ -7,7 +7,7 @@
 **Approved By**: ___________________ **(TODO: Get approval)**
 **Target Sprint**: ___________________ **(TODO: Schedule sprint)**
 **Time Required**: ~18 hours total (expanded with polish items)
-**Status**: 🔄 NOT STARTED
+**Status**: 🔄 IN PROGRESS
 **Approach**: Incremental cleanup with concrete acceptance criteria
 
 ---
@@ -95,10 +95,10 @@ if features_tensor.shape[-1] not in [512, 2048]:
 ```
 
 **Acceptance Criteria**:
-- [ ] `rg -n '768' src/brain_go_brrr/domain/abnormal/detector.py` returns empty
+- [x] `rg -n '768' src/brain_go_brrr/domain/abnormal/detector.py` returns empty
 - [ ] Tests updated from 768 to 512/2048 expectations
-- [ ] Clear error messages guide users to correct usage
-- [ ] No feature dimension tolerance hacks remain
+- [x] Clear error messages guide users to correct usage
+- [x] No feature dimension tolerance hacks remain
 
 ---
 
@@ -149,10 +149,10 @@ export USE_LEGACY_PROBE=1  # Bypass new probe factory
 ```
 
 **Acceptance Criteria**:
-- [ ] No `from.*eegpt_probe_unified import EEGPTProbe` in application layer
+- [x] No `from.*eegpt_probe_unified import EEGPTProbe` in application layer
 - [ ] Can load both old and new checkpoint formats
 - [ ] Parity test: logits match within 1e-5 tolerance (fixed seed, synthetic input)
-- [ ] Head receives (B, 2048) shaped input
+- [x] Head receives (B, 2048) shaped input
 - [ ] Add `PendingDeprecationWarning` for API stability
 
 ---
@@ -173,7 +173,7 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 3. Update any local references
 
 **Acceptance Criteria**:
-- [ ] `rg -n '^class\s+CachePort\b' src` returns only domain/ports/cache.py
+- [x] `rg -n '^class\s+CachePort\b' src` returns only domain/ports/cache.py
 - [ ] All tests pass after removal
 - [ ] Type checking passes
 
@@ -212,7 +212,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 - **v2.0.0** (Jan 2026): Remove eegpt_compat module entirely
 
 **Acceptance Criteria**:
-- [ ] `__init__.py` does not import eegpt_compat
+- [x] `__init__.py` does not import eegpt_compat
 - [ ] `rg "from.*ml_models import EEGPTModel" src tests` shows migrated imports
 - [ ] No DeprecationWarning on ml_models import
 - [ ] eegpt_compat still importable directly for compatibility
@@ -351,9 +351,9 @@ rm src/brain_go_brrr/services/yasa_adapter.py
 ```
 
 **Acceptance Criteria**:
-- [ ] All 3 import sites updated
-- [ ] `rg "services.yasa_adapter" src tests` returns empty
-- [ ] Redirect file deleted
+- [x] All 3 import sites updated
+- [x] `rg "services.yasa_adapter" src tests` returns empty
+- [x] Redirect file deleted
 - [ ] All tests green
 
 **Deprecation Timeline**:
@@ -382,9 +382,9 @@ from brain_go_brrr.api.cache import APIRedisCache  # Clear and direct
 ```
 
 **Acceptance Criteria**:
-- [ ] `rg "as RedisCache" tests` returns empty
+- [x] `rg "as RedisCache" tests` returns empty
 - [ ] All cache tests pass
-- [ ] No new aliases introduced
+- [x] No new aliases introduced
 
 ---
 
@@ -946,11 +946,11 @@ make coverage
 **Goal**: Prevent regressions, clean obvious issues
 1. Remove duplicate CachePort ✓
 2. Remove 768-dim tolerance ✓ 🔥
-3. Add PyTorch Lightning CI guard with ripgrep ✓
-4. Add sys.path hack prevention ✓
+3. Add PyTorch Lightning CI guard with ripgrep ☐
+4. Add sys.path hack prevention ☐
 5. Clean test Redis aliases ✓
-6. Add documentation safety banners (6 files) ✓
-7. Protocol runtime checks documentation ✓
+6. Add documentation safety banners (6 files) ☐
+7. Protocol runtime checks documentation ☐
 
 ### Sprint 2: Architecture Cleanup (4 hours)
 **Goal**: Complete P1 deferral, enforce boundaries
