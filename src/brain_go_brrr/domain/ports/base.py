@@ -12,7 +12,6 @@ import numpy.typing as npt
 
 from brain_go_brrr._typing import MNERaw
 
-
 # P1 FIX: LoggerPort moved to domain/protocols/logger.py
 
 

@@ -9,7 +9,7 @@ from typing import Any, Protocol
 
 class LoggerPort(Protocol):
     """Unified logger interface for domain layer.
-    
+
     Uses flexible signature (*args, **kwargs) to support both simple
     string messages and complex logging with extra context.
     """

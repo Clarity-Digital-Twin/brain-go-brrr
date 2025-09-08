@@ -221,7 +221,9 @@ def create_sleep_analyzer(
         Configured YASA sleep stager
     """
     # Import the config class
-    from brain_go_brrr.infra.external.yasa_adapter import YASAAdapterConfig  # P1 FIX: Use renamed class
+    from brain_go_brrr.infra.external.yasa_adapter import (
+        YASAAdapterConfig,
+    )  # P1 FIX: Use renamed class
 
     # Create config with parameters
     config = YASAAdapterConfig()  # P1 FIX: Use renamed class

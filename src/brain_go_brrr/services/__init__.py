@@ -34,12 +34,13 @@ def __getattr__(name: str) -> Any:
             YASAAdapterConfig,  # P1 FIX: Use renamed class
             YASASleepStager,
         )
+
         # P1 FIX: Create compatibility alias
-        YASAConfig = YASAAdapterConfig
+        yasa_config = YASAAdapterConfig  # Use lowercase to avoid N806
 
         if name == "HierarchicalPipelineYASAAdapter":
             return HierarchicalPipelineYASAAdapter
         elif name == "YASAConfig":
-            return YASAConfig
+            return yasa_config
         return YASASleepStager
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

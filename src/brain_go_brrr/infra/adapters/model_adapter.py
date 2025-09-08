@@ -51,13 +51,13 @@ class EEGPTModelAdapter(EEGModelPort):
 
     def get_feature_dim(self) -> int:
         """Get the dimension of extracted features.
-        
+
         Returns:
             512 for summary features (default EEGPT output)
         """
         # P1 FIX: Return correct EEGPT dimension
         # EEGPT outputs 512-d summary features with summary=True (default)
-        # For probes, use summary=False to get 2048-d (4×512 flattened)
+        # For probes, use summary=False to get 2048-d (4x512 flattened)
         return 512
 
 

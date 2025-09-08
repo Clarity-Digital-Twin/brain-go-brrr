@@ -222,10 +222,10 @@ class InMemoryCache:
 
     def clear_pattern(self, pattern: str) -> int:
         """Clear keys matching pattern using shell-style wildcards.
-        
+
         Args:
             pattern: Shell-style pattern (e.g., 'eeg_*', 'analysis:*')
-            
+
         Returns:
             Number of keys deleted
         """
