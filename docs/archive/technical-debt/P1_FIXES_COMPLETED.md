@@ -473,7 +473,7 @@ Add to CI pipeline:
 ```bash
 #!/bin/bash
 # scripts/verify_no_duplicates.sh
-DUPLICATES=$(rg '^class (LoggerPort|RedisCache|YASAConfig|FeatureExtractorPort)\b' src/ | 
+DUPLICATES=$(rg '^class (LoggerPort|RedisCache|YASAConfig|FeatureExtractorPort)\b' src/ |
   awk '{print $2}' | sort | uniq -d)
 
 if [ -n "$DUPLICATES" ]; then
@@ -496,7 +496,7 @@ def test_inmemory_cache_pattern():
     cache.set("eeg_123", "value1")
     cache.set("eeg_456", "value2")
     cache.set("other_789", "value3")
-    
+
     deleted = cache.clear_pattern("eeg_*")
     assert deleted == 2
     assert cache.get("other_789") == "value3"

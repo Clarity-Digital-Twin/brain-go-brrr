@@ -1,7 +1,7 @@
 # 🚨 TECHNICAL DEBT — Priority Issues Requiring Resolution
 
 **Created**: September 4, 2025
-**Updated**: September 7, 2025  
+**Updated**: September 7, 2025
 **Status**: P0 complete; current focus: P1
 **Focus**: Dangerous duplicate types and technical cleanup
 
@@ -24,7 +24,7 @@ After first-principles code audit and EEGPT literature review:
 > - **If NOT feeding a probe**: Can use `extract_features(..., summary=True)` → 512 dims (averaged)
 > - **Why**: EEGPT paper specifies "4 × 512 dimensional features" for downstream tasks. Averaging loses 75% of information.
 
-## 🚨 PRIORITY RANKING 
+## 🚨 PRIORITY RANKING
 
 ### ✅ P0 COMPLETE
 | Priority | Issue | Impact | Status |
