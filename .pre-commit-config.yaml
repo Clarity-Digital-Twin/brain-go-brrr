@@ -106,7 +106,7 @@ repos:
       # Detect duplicate class definitions
       - id: duplicate-classes
         name: duplicate-classes
-        entry: python .pre-commit-hooks/check-duplicate-classes.py
+        entry: .venv/bin/python .pre-commit-hooks/check-duplicate-classes.py
         language: system
         pass_filenames: false
         always_run: true
