@@ -4,9 +4,10 @@ P1 FIX: Single source of truth for LoggerPort with flexible signature.
 Replaces both domain/ports/base.py and domain/abnormal/ports.py versions.
 """
 
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
+@runtime_checkable
 class LoggerPort(Protocol):
     """Unified logger interface for domain layer.
 
