@@ -2,7 +2,7 @@
 
 Created: 2025-09-08
 Owner: Core ML
-Status: Root cause CONFIRMED by EEGPT reference repo; investigating deeper
+Status: Root cause evidence assembled; hypotheses validated against EEGPT reference repo
 
 ## Summary
 
@@ -20,10 +20,10 @@ Evidence from `reference_repos/EEGPT/downstream_tueg/`:
 - **engine_for_finetuning_EEGPT.py:162**: Plain CrossEntropyLoss, no weights
 - **utils.py**: No WeightedRandomSampler imports or usage anywhere
 
-**This means:**
-1. EEGPT achieved 62.32% BAC WITHOUT class weighting or balanced sampling
-2. Our current approach WITH weights may be WORSE than no weights
-3. The real issue is likely something else entirely
+**This means (facts from code):**
+1. EEGPT achieves ~62.32% BAC using plain CrossEntropy (no class weights) and standard DistributedSampler (no class balancing).
+2. Their TUEV fine-tuning uses lr=5e-4, weight_decay=0.05, layer_decay (default 0.9), and label smoothing (default 0.1).
+3. Our current config uses lr=5e-4 and batch_size=64 (matches), but weight_decay=0.01, no layer decay, and no label smoothing; we also add class weights without a balanced sampler.
 
 ## Evidence (from code and logs)
 
@@ -61,23 +61,17 @@ Evidence from `reference_repos/EEGPT/downstream_tueg/`:
 
 Conclusion: The primary defect is lack of class‑balanced sampling under extreme imbalance; secondary items are acceptable and not the cause of 0.22 BAC.
 
-## 🎯 REVISED Root Cause Analysis
+## 🎯 Working Hypotheses (to be resolved by A/B)
 
-### What EEGPT Did Differently (That We're Missing):
+### H1: Hyperparameter mismatch vs EEGPT
+- EEGPT uses CE (no weights), lr=5e-4, wd=0.05, label_smoothing=0.1, layer_decay=0.9, bs=64. Our current run uses CE with class weights, lr=5e-4, wd=0.01, no smoothing, no layer decay, bs=64.
+- Claim: Matching their simpler recipe (no weights; smoothing; higher wd; layer decay) recovers BAC without sampler.
 
-1. **NO CLASS WEIGHTS** - They used plain CrossEntropyLoss
-2. **DIFFERENT LEARNING RATE** - They used lr=5e-4 (we use 1e-3)
-3. **LAYER DECAY** - They used layer_decay=0.9 for different LR per layer
-4. **LABEL SMOOTHING** - They used smoothing=0.1 by default
-5. **DIFFERENT OPTIMIZER PARAMS** - weight_decay=0.05, different warmup
-6. **BATCH SIZE** - They used batch_size=64 (check what we use)
-7. **DISTRIBUTED TRAINING** - They always use DistributedSampler
+### H2: Batch imbalance dominates under our recipe
+- With ~99.5% background and no class‑balanced sampler, batches lack minority samples; weights alone (with large multipliers) are insufficient and can destabilize training.
+- Claim: Adding a balanced sampler (or balanced batches) is required for our weighted‑loss recipe.
 
-### Most Likely Actual Root Cause:
-
-- Extreme imbalance (≈99.5% background) + unbalanced batches ⇒ minority classes seldom appear within a batch.
-- Even with inverse‑frequency weights, gradient signal for minorities is too sparse/noisy; the head collapses to background.
-- Evidence: Background F1 ≈ 0.997 while minority F1 ≈ 0–0.2; BAC hovers ≈ 0.2.
+Evidence common to both: Background F1 ~0.996–0.998 while minority F1 ~0.0–0.2; eval BAC ~0.22 across epochs.
 
 ## 🚨 URGENT: Two Divergent Fix Strategies
 
@@ -85,12 +79,13 @@ Conclusion: The primary defect is lack of class‑balanced sampling under extrem
 **Rationale**: They got 62% BAC, we got 22%. Do EXACTLY what they did.
 
 1. **REMOVE class weights** - Use plain `nn.CrossEntropyLoss()`
-2. **Match their hyperparameters**:
-   - lr=5e-4 (not 1e-3)
+2. **Match their hyperparameters** (checked in reference repo):
+   - lr=5e-4
    - weight_decay=0.05
    - warmup_epochs=5
    - batch_size=64
-   - Add label_smoothing=0.1
+   - label_smoothing=0.1 (LabelSmoothingCrossEntropy path)
+   - layer_decay enabled (e.g., 0.9)
 3. **Keep simple sampling** - Just torch.randperm like they do
 4. **Add layer decay** - Different LR for each layer (optional but they use it)
 
@@ -127,8 +122,8 @@ Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only a
 ## 🤔 CRITICAL QUESTION: Should We Rebuild Cache?
 
 ### Arguments FOR Rebuilding:
-1. **Fpz Concern** - We synthesize Fpz as zeros, EEGPT may expect it from FZ
-2. **Window Size** - Verify we're using exactly 5-second windows (1000 samples @ 200Hz)
+1. **Fpz Concern** - If Fpz is missing in raw, we zero‑fill the Fpz slot (not Fz). This matches our CHANNELS_TUEV_20 SSOT. Only rebuild if the slot/order is wrong.
+2. **Window/Sample Rate** - Our pipeline uses exactly 4.0s @ 256 Hz (1024 samples) consistently (confirmed). Verify consistency Train/Eval; rebuild only if a mismatch is found.
 3. **Normalization** - Double-check our normalization matches theirs
 4. **Fresh Start** - Eliminate any cached preprocessing bugs
 
@@ -140,6 +135,19 @@ Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only a
 
 ### RECOMMENDATION: 
 **Don't rebuild YET.** First try Strategy A (match EEGPT hyperparams) with current cache. If that fails, THEN rebuild cache.
+
+## A/B Plan (order, stop rules)
+
+- A1 (EEGPT‑match): CE (no weights), lr=5e-4, wd=0.05, bs=64, label_smoothing=0.1, no sampler, layer_decay on.
+- A2 (ablation): A1 but without label_smoothing.
+- B1 (balanced): CE with class weights + WeightedRandomSampler, lr=5e-4, wd=0.05, bs=64, no smoothing.
+- B2 (hybrid): CE (no weights) + WeightedRandomSampler, same hparams.
+
+Selection: best by eval BAC.
+Stop rules:
+- If BAC < 0.30 after 10 epochs → stop that arm.
+- If no improvement ≥ 0.05 BAC across 5 epochs → stop that arm.
+Seeds: {42, 123, 456}; report mean±std for the best arm.
 
 ## Pointers (for implementers)
 
@@ -196,4 +204,3 @@ Per-class F1 (examples over many epochs):
 ---
 
 **PRIORITY: Try Strategy A (match EEGPT) before anything else.**
-
