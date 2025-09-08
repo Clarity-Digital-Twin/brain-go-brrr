@@ -15,6 +15,10 @@ import numpy.typing as npt
 import torch
 
 from brain_go_brrr._typing import MNERaw
+from brain_go_brrr.domain.constants import (
+    EEGPT_PROBE_INPUT_DIM,
+    EEGPT_TOKEN_DIM,
+)
 from brain_go_brrr.domain.ports import (
     AbnormalityConfigPort,
     EEGModelPort,
@@ -52,11 +56,11 @@ class _NullModel:
         import numpy as np
 
         _ = data, sampling_rate  # Mark as used
-        return np.zeros((1, 512), dtype=np.float32)
+        return np.zeros((1, EEGPT_TOKEN_DIM), dtype=np.float32)
 
     @property
     def embedding_dim(self) -> int:
-        return 512
+        return EEGPT_TOKEN_DIM
 
 
 class _NullPreprocessor:
@@ -115,7 +119,7 @@ class CleanAbnormalityDetector:
         if config is None:
             # Create minimal config adapter
             class MinimalModel:
-                feature_dim: int = 512  # EEGPT's actual embedding dimension
+                feature_dim: int = EEGPT_TOKEN_DIM  # EEGPT's actual embedding dimension
 
             class MinimalConfig:
                 def __init__(self) -> None:
@@ -151,12 +155,12 @@ class CleanAbnormalityDetector:
         # Store legacy parameters
         self.model_path = model_path
 
-        # Set feature_dim from config if available, else default to 512
-        # The test expects 512 as default (EEGPT's actual embedding dim)
+        # Set feature_dim from config if available, else default to EEGPT_TOKEN_DIM
+        # The test expects EEGPT_TOKEN_DIM as default (EEGPT's actual embedding dim)
         if config and hasattr(config, "model") and hasattr(config.model, "feature_dim"):
             self.feature_dim = config.model.feature_dim
         else:
-            self.feature_dim = 512  # EEGPT's actual embedding dimension
+            self.feature_dim = EEGPT_TOKEN_DIM  # EEGPT's actual embedding dimension
 
         # Initialize linear probe if not provided
         if self.linear_probe is None:
@@ -284,13 +288,13 @@ class CleanAbnormalityDetector:
             if features_tensor.dim() == 1:
                 features_tensor = features_tensor.unsqueeze(0)
 
-            # Enforce feature dimensions: only 512 (single summary) or 2048 (flattened 4x512) are allowed
+            # Enforce feature dimensions: only EEGPT_TOKEN_DIM (single summary) or EEGPT_PROBE_INPUT_DIM (flattened) are allowed
             # Remove legacy dimension tolerance. Provide actionable guidance instead.
             last_dim = features_tensor.shape[-1]
-            if last_dim not in (512, 2048):
+            if last_dim not in (EEGPT_TOKEN_DIM, EEGPT_PROBE_INPUT_DIM):
                 raise ValueError(
-                    f"Expected features of shape (B, 512) or (B, 2048), got {tuple(features_tensor.shape)}. "
-                    "For probe heads, use summary=False to get (B, 4, 512) then flatten to (B, 2048)."
+                    f"Expected features of shape (B, {EEGPT_TOKEN_DIM}) or (B, {EEGPT_PROBE_INPUT_DIM}), got {tuple(features_tensor.shape)}. "
+                    f"For probe heads, use summary=False to get (B, 4, {EEGPT_TOKEN_DIM}) then flatten to (B, {EEGPT_PROBE_INPUT_DIM})."
                 )
 
             # If a probe head exists, ensure input dim matches its expectation to avoid silent shims
@@ -398,7 +402,7 @@ class CleanAbnormalityDetector:
             if hasattr(self, "linear_probe") and self.linear_probe is not None:
                 expected_dim = self.linear_probe[0].in_features  # type: ignore[index]
                 # Only allow clearly valid dimensions; fail fast otherwise
-                if model_output_dim not in [512, expected_dim]:
+                if model_output_dim not in [EEGPT_TOKEN_DIM, expected_dim]:
                     raise RuntimeError(
                         f"Model/classifier dimension mismatch: model outputs {model_output_dim}, classifier expects {expected_dim}"
                     )
