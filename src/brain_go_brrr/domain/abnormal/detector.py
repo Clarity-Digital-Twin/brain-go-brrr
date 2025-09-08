@@ -421,6 +421,7 @@ class CleanAbnormalityDetector:
         # Load weights and validate dimensions
         if not isinstance(path, dict):
             import torch
+
             # Direct torch.load with safety params (avoid infra dependency)
             state_dict = torch.load(path, map_location="cpu", weights_only=False)  # nosec:weights_only - probe checkpoint format
         else:
