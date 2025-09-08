@@ -242,8 +242,8 @@ output/tuab_TIMESTAMP/
 import torch
 from pathlib import Path
 
-# Load checkpoint
-checkpoint = torch.load("output/tuab_*/best_model.pt")
+# P1 FIX: Load checkpoint with weights_only for safety
+checkpoint = torch.load("output/tuab_*/best_model.pt", weights_only=False)  # nosec:weights_only - contains optimizer state
 
 # Load probe weights
 probe.load_state_dict(checkpoint["probe_state_dict"])

@@ -71,7 +71,7 @@ class _HeuristicStager:
 
 
 @dataclass
-class YASAConfig:
+class YASAAdapterConfig:  # P1 FIX: Renamed to avoid collision with domain YASAConfig
     """Configuration for YASA sleep staging."""
 
     # Model selection
@@ -115,9 +115,9 @@ class YASASleepStager:
         "F4-A1": "C4-A1",
     }
 
-    def __init__(self, config: YASAConfig | None = None):
+    def __init__(self, config: YASAAdapterConfig | None = None):  # P1 FIX: Updated type
         """Initialize YASA sleep stager."""
-        self.config = config or YASAConfig()
+        self.config = config or YASAAdapterConfig()  # P1 FIX: Use renamed class
         self._validate_installation()
 
         # Track performance metrics
@@ -535,9 +535,9 @@ class YASASleepStager:
 class HierarchicalPipelineYASAAdapter:
     """Adapter to integrate YASA with our hierarchical pipeline."""
 
-    def __init__(self, yasa_config: YASAConfig | None = None):
+    def __init__(self, yasa_config: YASAAdapterConfig | None = None):  # P1 FIX: Updated type
         """Initialize the adapter."""
-        self.stager = YASASleepStager(yasa_config)
+        self.stager = YASASleepStager(yasa_config)  # Pass through config
 
     def stage(self, eeg: npt.NDArray[np.float64]) -> tuple[str, float]:
         """Simple interface matching our mock SleepStager.
