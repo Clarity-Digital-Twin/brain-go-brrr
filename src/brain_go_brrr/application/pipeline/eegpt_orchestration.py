@@ -19,6 +19,7 @@ from brain_go_brrr.domain.preprocessing.eegpt_preprocessing import (
 )
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.utils import mask_path_for_log
+from brain_go_brrr.utils.probe_utils import prepare_probe_features
 
 logger = logging.getLogger(__name__)
 
@@ -63,13 +64,24 @@ def predict_abnormality_with_eegpt(
     probe = None
     if probe_path and Path(probe_path).exists():
         # P1 FIX: Use ProbeFactory instead of direct EEGPTProbe
-        from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
-
-        probe = ProbeFactory.create_for_task(
-            task="abnormality", backbone=model, architecture="linear"
+        from brain_go_brrr.infra.ml_models.probe_factory import (
+            ProbeFactory,
+            migrate_eegpt_probe_to_factory,
         )
+
+        # Create probe head (expects 2048-d features)
+        probe = ProbeFactory.create_for_task(task="abnormality")
+        
+        # Load checkpoint - handle both formats
         checkpoint = torch.load(probe_path, map_location=device, weights_only=True)
-        probe.load_state_dict(checkpoint['model_state_dict'])
+        if 'probe_state_dict' in checkpoint:
+            # EEGPTProbe format - need to migrate keys
+            state_dict = migrate_eegpt_probe_to_factory(checkpoint['probe_state_dict'])
+        else:
+            # Sleep trainer format - direct load
+            state_dict = checkpoint['model_state_dict']
+        
+        probe.load_state_dict(state_dict)
         probe = probe.to(device)
         probe.eval()
         logger.info(f"Loaded probe from {mask_path_for_log(probe_path)}")
