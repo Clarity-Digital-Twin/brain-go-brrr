@@ -8,7 +8,6 @@ __all__ = [
     "HierarchicalPipeline",  # legacy alias
     "HierarchicalPipelineYASAAdapter",
     "PipelineConfig",
-    "YASAConfig",
     "YASASleepStager",
 ]
 
@@ -37,9 +36,4 @@ def __getattr__(name: str) -> Any:
         if name == "HierarchicalPipelineYASAAdapter":
             return HierarchicalPipelineYASAAdapter
         return YASASleepStager
-    elif name == "YASAConfig":
-        # P1 FIX: Direct import from infra where the alias is properly defined
-        from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
-
-        return YASAConfig
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
