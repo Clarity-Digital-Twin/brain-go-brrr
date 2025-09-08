@@ -57,7 +57,7 @@ class TestProbeFeaturePreparation:
             prepare_probe_features(torch.randn(10, 1024))
 
         # Wrong middle dimension for 3D
-        with pytest.raises(ValueError, match="Expected.*4 tokens"):
+        with pytest.raises(ValueError, match="Invalid 3D feature shape"):
             prepare_probe_features(torch.randn(10, 3, 512))
 
     def test_preserves_device(self):
