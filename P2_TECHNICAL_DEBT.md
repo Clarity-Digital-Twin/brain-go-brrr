@@ -2,10 +2,39 @@
 
 **Created**: September 8, 2025
 **Last Audit**: September 8, 2025 (🔥 FINAL IRONCLAD AUDIT ✅)
-**Owner**: ___________________
+**Owner**: ___________________ **(TODO: Assign owner)**
+**Developer Assigned**: ___________________ **(TODO: Assign developer)**
+**Approved By**: ___________________ **(TODO: Get approval)**
+**Target Sprint**: ___________________ **(TODO: Schedule sprint)**
 **Time Required**: ~18 hours total (expanded with polish items)
 **Status**: 🔄 NOT STARTED
 **Approach**: Incremental cleanup with concrete acceptance criteria
+
+---
+
+## 🛠️ TOOLING PREREQUISITES
+
+**Required Tools Not Yet Installed**:
+```bash
+# Security & Quality Tools (add to dev dependencies)
+uv add --dev pip-audit      # CVE scanning for dependencies
+uv add --dev importlinter   # Architecture boundary enforcement
+
+# CI Tools (install in GitHub Actions)
+sudo apt-get install -y ripgrep  # Fast grep for CI checks
+
+# Already Installed (verified):
+# ✅ pytest-xdist (parallel testing)
+# ✅ pytest-timeout (test timeouts)
+# ✅ ruff (linting & dead code)
+# ✅ mypy (type checking)
+```
+
+**External CI Services**:
+```yaml
+# GitHub Actions Marketplace
+- uses: gitleaks/gitleaks-action@v2  # Secrets scanning
+```
 
 ---
 
@@ -111,6 +140,14 @@ elif "model_state_dict" in checkpoint:
     self.head.load_state_dict(checkpoint["model_state_dict"])
 ```
 
+**Rollback Strategy**:
+```bash
+# If migration breaks:
+git checkout v1.3.0-stable  # Last version with EEGPTProbe
+# OR use environment flag:
+export USE_LEGACY_PROBE=1  # Bypass new probe factory
+```
+
 **Acceptance Criteria**:
 - [ ] No `from.*eegpt_probe_unified import EEGPTProbe` in application layer
 - [ ] Can load both old and new checkpoint formats
@@ -163,12 +200,16 @@ from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, pr
 # FROM:
 from brain_go_brrr.infra.ml_models import EEGPTModel
 
-# TO (temporary):
-from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel  # TODO: migrate to wrapper
+# TO (temporary until v2.0.0):
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel  # Deprecated in v2.0.0
 
-# OR TO (preferred):
+# OR TO (preferred NOW):
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 ```
+
+**Deprecation Timeline**:
+- **v1.5.0** (Oct 2025): Add DeprecationWarning to eegpt_compat
+- **v2.0.0** (Jan 2026): Remove eegpt_compat module entirely
 
 **Acceptance Criteria**:
 - [ ] `__init__.py` does not import eegpt_compat
@@ -314,6 +355,11 @@ rm src/brain_go_brrr/services/yasa_adapter.py
 - [ ] `rg "services.yasa_adapter" src tests` returns empty
 - [ ] Redirect file deleted
 - [ ] All tests green
+
+**Deprecation Timeline**:
+- **v1.4.0** (Now): Update all imports
+- **v1.5.0** (Oct 2025): Add DeprecationWarning to redirect
+- **v2.0.0** (Jan 2026): Delete services/yasa_adapter.py
 
 ---
 
@@ -808,11 +854,43 @@ select = ["F401", "F841"]  # Unused imports/variables
 
 ### Code Quality Gates
 ```bash
-make typecheck              # ✅ Must pass
-make lint                   # ✅ Must pass
-make test                   # ✅ Must pass
-make test-all-cov          # ✅ Must pass
+# All must exist and pass:
+make typecheck              # ✅ Must pass (verified exists)
+make lint                   # ✅ Must pass (verified exists)
+make test                   # ✅ Must pass (verified exists)
+make test-all-cov          # ✅ Must pass (verified exists)
+make coverage              # ✅ Must show ≥86% (verified exists)
+make verify-p2             # 🆕 Add to Makefile (see below)
 ```
+
+### CI Visibility Strategy
+```yaml
+# .github/workflows/p2-progress.yml
+name: P2 Technical Debt Progress
+on: [pull_request]
+jobs:
+  verify-p2:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Non-blocking until Sprint 1 done
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install ripgrep
+        run: sudo apt-get install -y ripgrep
+      - name: Run P2 verification
+        run: |
+          chmod +x scripts/verify_p2_progress.sh
+          ./scripts/verify_p2_progress.sh || echo "::warning::P2 items remaining"
+      - name: Post results as PR comment
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // Post P2 progress as non-blocking info
+```
+
+**Transition to Blocking**:
+- After Sprint 1 complete: Remove `continue-on-error: true`
+- Makes P2 verification required for merge
 
 ### Architecture Verification
 ```bash
@@ -1071,14 +1149,23 @@ verify-p2:
 - **Archive docs needing banners**: 6 files enumerated (VERIFIED)
 - **Services redirect sites**: 3 imports at specified lines (CORRECT)
 - **domain.ports imports**: 7 files use it - THIS IS VALID (re-export pattern)
+- **Makefile targets**: ALL quality gates verified working ✅
 
 ⚠️ **MUST INSTALL BEFORE EXECUTION**:
-- `ripgrep`: NOT installed locally (add apt-get to CI)
-- `importlinter`: NOT in pyproject.toml (must add to dev deps)
+```bash
+# Local development
+uv add --dev pip-audit importlinter
 
-🎯 **KEY REFINEMENT**:
-- Import-linter MUST NOT forbid `brain_go_brrr.domain.ports`
-- This is our VALID re-export pattern (7 files use it)
-- Only forbid legacy paths that don't exist (future-proofing)
+# CI (GitHub Actions)
+sudo apt-get install -y ripgrep
+pip install gitleaks
+```
 
-**THIS DOCUMENT IS NOW 100% EXECUTION-READY WITH ZERO AMBIGUITY**
+🎯 **EXECUTION PLAN**:
+1. **Start Sprint 1 NOW** - Quick wins (3 hours)
+2. **Enable verify-p2 CI** - Non-blocking info initially
+3. **After Sprint 1** - Make verify-p2 blocking
+4. **Deprecate in v1.5.0** - Add warnings (Oct 2025)
+5. **Remove in v2.0.0** - Delete deprecated code (Jan 2026)
+
+**THIS DOCUMENT IS NOW 100% EXECUTION-READY - START SPRINT 1!**

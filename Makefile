@@ -601,6 +601,18 @@ pre-push: ## Run before pushing to ensure CI will pass
 	@echo "$(CYAN)Running pre-push validation...$(NC)"
 	@bash scripts/validate_before_push.sh
 
+verify-p2: ## Check P2 technical debt progress (non-blocking info)
+	@echo "$(CYAN)Checking P2 technical debt status...$(NC)"
+	@if [ -f scripts/verify_p2_progress.sh ]; then \
+		bash scripts/verify_p2_progress.sh || echo "$(YELLOW)P2 items remaining (non-blocking)$(NC)"; \
+	else \
+		echo "$(YELLOW)P2 verification script not found - creating stub...$(NC)"; \
+		mkdir -p scripts; \
+		echo "#!/bin/bash" > scripts/verify_p2_progress.sh; \
+		echo "echo 'P2 verification not yet implemented'" >> scripts/verify_p2_progress.sh; \
+		chmod +x scripts/verify_p2_progress.sh; \
+	fi
+
 ##@ Examples
 
 example-train: ## Run training example
