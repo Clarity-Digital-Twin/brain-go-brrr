@@ -78,6 +78,10 @@ nav:
       - MVP Summary: docs/implementation/MVP_SUMMARY.md
       - Configuration Checklist: docs/implementation/CONFIGURATION_CHECKLIST.md
       - Testing Best Practices: docs/implementation/TESTING_BEST_PRACTICES.md
+  - Maintenance:
+      - Remaining Debt: REMAINING_DEBT.md
+      - Codebase Audit: CODEBASE_AUDIT.md
+      - Archived Debt (P0–P2): docs/archive/technical-debt/
 
 # Plugins
 plugins:

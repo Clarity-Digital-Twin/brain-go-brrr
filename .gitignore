@@ -401,3 +401,6 @@ DOWNLOAD_*.md
 
 # Coverage reports
 coverage_html_report/
+
+# Pre-commit cache (local only)
+.pre-commit-cache/
