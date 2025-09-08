@@ -53,7 +53,7 @@ class TestProbeFeaturePreparation:
     def test_error_on_wrong_dimensions(self):
         """Should error on unexpected shapes."""
         # Wrong last dimension
-        with pytest.raises(ValueError, match="Expected.*512.*2048"):
+        with pytest.raises(ValueError, match="Invalid feature shape"):
             prepare_probe_features(torch.randn(10, 1024))
 
         # Wrong middle dimension for 3D
