@@ -293,39 +293,25 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
 
 **Problem**: `EEGPTProbe` still directly instantiated instead of using `ProbeFactory`
 
-**Current Usage** (3 files):
-1. `application/pipeline/eegpt_orchestration.py:67`
+**FIXED** ✅ (2 files):
+1. `application/pipeline/eegpt_orchestration.py` - Now uses:
    ```python
-   probe = EEGPTProbe(backbone=model, n_classes=2, architecture="linear")
+   probe = ProbeFactory.create_for_task(task="abnormality", n_classes=2)
    ```
 
-2. `application/use_cases/tasks/abnormality_detection.py:13`
+2. `application/use_cases/tasks/enhanced_abnormality_detection.py` - Now uses:
    ```python
-   from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
-   # Usage in function
+   self.probe = ProbeFactory.create_for_task(task="abnormality", n_classes=2)
    ```
 
-3. `application/use_cases/tasks/enhanced_abnormality_detection.py:105`
+**DEFERRED TO P2** ⚠️ (1 file):
+3. `application/use_cases/tasks/abnormality_detection.py` - AbnormalityDetectionProbe class still extends EEGPTProbe
    ```python
-   probe = EEGPTProbe(
-       backbone=eegpt_model,
-       n_classes=2,
-       architecture="two_layer"
-   )
+   class AbnormalityDetectionProbe(EEGPTProbe):  # P1 TODO: Deferred to P2 for backward compat
    ```
-
-**Fix Plan**:
-1. Replace all direct instantiations with:
-   ```python
-   from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
-   probe = ProbeFactory.create(
-       task="abnormality",
-       backbone=model,
-       architecture="linear"  # or "two_layer"
-   )
-   ```
-2. Update imports
-3. Verify tests still pass
+   - **Rationale**: Backward compatibility requirement
+   - **Impact**: Low - not used in critical paths
+   - **Has P1 TODO**: Yes, documenting the deferral
 
 ---
 
