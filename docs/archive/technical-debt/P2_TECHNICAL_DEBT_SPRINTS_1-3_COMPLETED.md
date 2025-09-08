@@ -354,7 +354,7 @@ rm src/brain_go_brrr/services/yasa_adapter.py
 - [x] All 3 import sites updated
 - [x] `rg "services.yasa_adapter" src tests` returns empty
 - [x] Redirect file deleted
-- [ ] All tests green
+- [x] All tests green ✅
 
 **Deprecation Timeline**:
 - **v1.4.0** (Now): Update all imports
@@ -383,7 +383,7 @@ from brain_go_brrr.api.cache import APIRedisCache  # Clear and direct
 
 **Acceptance Criteria**:
 - [x] `rg "as RedisCache" tests` returns empty
-- [ ] All cache tests pass
+- [x] All cache tests pass ✅
 - [x] No new aliases introduced
 
 ---
@@ -610,7 +610,7 @@ def test_probe_features_error_on_wrong_shape():
 - [x] Test suite covers all shape scenarios
 - [x] Error messages guide to correct usage
 - [x] Tests assert exact error message content
-- [ ] 100% coverage of prepare_probe_features
+- [x] 100% coverage of prepare_probe_features ✅
 
 ---
 
@@ -632,9 +632,9 @@ EEGPT_PROBE_INPUT_DIM = EEGPT_SUMMARY_TOKENS * EEGPT_TOKEN_DIM  # 2048
 ```
 
 **Acceptance Criteria**:
-- [ ] Constants file created and imported in at least one test
-- [ ] No logic duplication (keep in prepare_probe_features)
-- [ ] Documentation references these constants
+- [x] Constants file created and imported in at least one test ✅
+- [x] No logic duplication (keep in prepare_probe_features) ✅
+- [x] Documentation references these constants ✅
 
 ---
 
