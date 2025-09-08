@@ -3,7 +3,10 @@
 import asyncio
 
 from brain_go_brrr.api import dependencies
-from brain_go_brrr.api.cache import RedisCache
+from brain_go_brrr.api.cache import APIRedisCache  # P1 FIX: Use renamed class
+
+# Alias for test compatibility
+RedisCache = APIRedisCache
 
 
 class TestAPIDependencies:

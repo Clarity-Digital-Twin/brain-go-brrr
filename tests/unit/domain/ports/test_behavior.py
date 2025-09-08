@@ -9,9 +9,9 @@ from brain_go_brrr.domain.abnormal.ports import (
     AbnormalityHeadPort,
     EEGPreprocessorPort,
     FeatureExtractorPort,
-    LoggerPort,
     MneRaw,
 )
+from brain_go_brrr.domain.ports import LoggerPort  # P1 FIX: Import from unified location
 
 
 class ConcretePreprocessor:

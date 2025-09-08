@@ -90,38 +90,7 @@ class QualityControllerPort(Protocol):
         ...
 
 
-@runtime_checkable
-class FeatureExtractorPort(Protocol):
-    """Protocol for feature extraction service.
-
-    Abstracts away the concrete feature extraction implementation.
-    """
-
-    def extract_features(self, raw: MNERaw) -> ExtractedFeatures:
-        """Extract features from EEG recording.
-
-        Args:
-            raw: Raw EEG data
-
-        Returns:
-            Extracted features with embeddings and metadata
-        """
-        ...
-
-    def validate_input(self, raw: MNERaw) -> bool:
-        """Validate input EEG data meets requirements.
-
-        Args:
-            raw: Raw EEG data
-
-        Returns:
-            True if valid
-
-        Raises:
-            ValueError: If validation fails
-        """
-        ...
-
+# P1 FIX: Removed duplicate FeatureExtractorPort - use domain/abnormal/ports.py version
 
 @runtime_checkable
 class EEGProcessorPort(Protocol):

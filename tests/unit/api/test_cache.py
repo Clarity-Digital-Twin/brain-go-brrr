@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from brain_go_brrr.api.cache import CACHE_VERSION, RedisCache
+from brain_go_brrr.api.cache import CACHE_VERSION, APIRedisCache  # P1 FIX: Use renamed class
+
+# Alias for test compatibility
+RedisCache = APIRedisCache
 
 
 class TestRedisCacheClean:
