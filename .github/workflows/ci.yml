@@ -114,9 +114,10 @@ jobs:
 
       - name: Import linter (architecture contracts)
         run: |
-          echo "Running importlinter contracts..."
-          uv run importlinter
-          echo "Importlinter completed"
+          echo "Running import-linter contracts..."
+          uv run lint-imports --version
+          uv run lint-imports
+          echo "Import-linter completed"
 
       - name: Import smoke test
         run: |
