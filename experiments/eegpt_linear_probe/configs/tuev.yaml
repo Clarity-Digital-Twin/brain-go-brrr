@@ -49,6 +49,7 @@ training:
   learning_rate: 5.0e-4
   weight_decay: 0.05
   label_smoothing: 0.1  # Match EEGPT
+  weighted_loss: false  # CRITICAL: Match EEGPT (no class weights)
 
   # Using OneCycleLR with 30% warmup for stable training
   # Script always uses scheduler regardless of this setting

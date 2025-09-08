@@ -483,9 +483,11 @@ def main():
         anneal_strategy='cos',
     )
 
-    # Setup loss with class weighting for imbalanced data
-    if config.get('training', {}).get('weighted_loss', True):
-        # Compute class weights from training dataset efficiently
+    # Setup loss - Match EEGPT reference implementation
+    label_smoothing = config.get('training', {}).get('label_smoothing', 0.0)
+
+    if config.get('training', {}).get('weighted_loss', False):
+        # Only compute weights if explicitly requested (Strategy B)
         logger.info("Computing class weights for balanced loss...")
         # Check if dataset has precomputed class counts (much faster)
         if hasattr(train_dataset, 'class_counts'):
@@ -509,9 +511,11 @@ def main():
             class_weights = torch.FloatTensor(class_weights).to(device)
             logger.info(f"Class counts: {class_counts.tolist()}")
             logger.info(f"Class weights: {class_weights.tolist()}")
-        criterion = nn.CrossEntropyLoss()  # Match EEGPT: no weights
+        criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=label_smoothing)
     else:
-        criterion = nn.CrossEntropyLoss()
+        # Strategy A: Match EEGPT exactly - no weights, with smoothing
+        logger.info(f"Using unweighted CrossEntropyLoss with label_smoothing={label_smoothing}")
+        criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
     # Resume from checkpoint if specified
     start_epoch = 0

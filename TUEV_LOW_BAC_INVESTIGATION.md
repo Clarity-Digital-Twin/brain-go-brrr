@@ -133,7 +133,7 @@ Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only a
 3. **Time cost** - Cache rebuild takes hours
 4. **Current run** - Let it finish for baseline comparison
 
-### RECOMMENDATION: 
+### RECOMMENDATION:
 **Don't rebuild YET.** First try Strategy A (match EEGPT hyperparams) with current cache. If that fails, THEN rebuild cache.
 
 ## A/B Plan (order, stop rules)
@@ -173,22 +173,38 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-## 🎯 FINAL RECOMMENDATION
+## 🎯 BULLETPROOF STATUS (2025-09-08)
 
-### Immediate Action (Do This NOW):
-1. **Let current run finish** - Useful as baseline
-2. **Prepare new training script** copying EEGPT settings:
-   ```python
-   # Match EEGPT EXACTLY
-   criterion = nn.CrossEntropyLoss()  # NO weights
-   lr = 5e-4  # Not 1e-3
-   weight_decay = 0.05
-   warmup_epochs = 5
-   batch_size = 64
-   # Optional: label_smoothing = 0.1
-   ```
-3. **Run with current cache** - Don't rebuild yet
-4. **Monitor for 10 epochs** - Should see BAC > 0.30 quickly
+### ✅ Code Deltas Applied for Strategy A:
+1. **Config Fixed** (`experiments/eegpt_linear_probe/configs/tuev.yaml`):
+   - `weighted_loss: false` ✅ (was defaulting to True)
+   - `weight_decay: 0.05` ✅ (already correct)
+   - `label_smoothing: 0.1` ✅ (in config)
+
+2. **Training Script Fixed** (`train_tuev_mne.py`):
+   - Line 487: Reads label_smoothing from config ✅
+   - Line 489: Default weighted_loss now False ✅
+   - Line 518: `nn.CrossEntropyLoss(label_smoothing=0.1)` ✅
+   - NO class weights for Strategy A ✅
+
+3. **Launch Script Fixed** (`scripts/launch_tuev_mne.sh`):
+   - Line 51: Uses `tuev_mne_fixed` cache dir ✅
+   - Consistent with cache builder script ✅
+
+4. **Preprocessor Previously Fixed** (`tuev_preprocessor.py`):
+   - Fpz interpolation: (Fp1+Fp2)/2 when available ✅
+   - Falls back to zeros if Fp1/Fp2 missing ✅
+
+### 🚀 Ready to Execute:
+```bash
+cd experiments/eegpt_linear_probe/scripts
+./launch_tuev_cache.sh   # Build cache with Fpz fix
+./launch_tuev_mne.sh     # Train with EEGPT hyperparams
+```
+
+### Monitoring Criteria:
+- **Success**: BAC > 0.30 within 10 epochs
+- **Stall**: No +0.05 BAC gain over 5 epochs → switch to Strategy B
 
 ### If That Fails:
 1. **THEN rebuild cache** with potential Fpz fix
