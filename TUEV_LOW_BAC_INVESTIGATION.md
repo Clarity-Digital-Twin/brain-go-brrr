@@ -2,13 +2,28 @@
 
 Created: 2025-09-08
 Owner: Core ML
-Status: Root cause identified; fix plan proposed (non‑disruptive to current run)
+Status: Root cause CONFIRMED by EEGPT reference repo; investigating deeper
 
 ## Summary
 
 - Symptom: Validation Balanced Accuracy (BAC) ~0.22 at epoch ~40+ during TUEV (6‑class) training, target 0.6232 (EEGPT paper Table 3).
 - Impact: Model is effectively predicting “background” for most windows; minority classes not learned.
 - Root cause: Training batches are not class‑balanced under extreme dataset imbalance (~99.5% background). Weighted loss alone is insufficient; sampler is unbalanced. Evidence shows collapse to background.
+
+## 🔥 CRITICAL DISCOVERY FROM EEGPT REFERENCE REPO
+
+**The EEGPT authors DID NOT use class weights or balanced sampling for TUEV!**
+
+Evidence from `reference_repos/EEGPT/downstream_tueg/`:
+- **run_class_finetuning_EEGPT_change_tuev.py:480**: `criterion = torch.nn.CrossEntropyLoss()` — NO weight parameter!
+- **run_class_finetuning_EEGPT_change_tuev.py:292-294**: Uses standard `DistributedSampler` with shuffle=True — NO balanced sampling!
+- **engine_for_finetuning_EEGPT.py:162**: Plain CrossEntropyLoss, no weights
+- **utils.py**: No WeightedRandomSampler imports or usage anywhere
+
+**This means:**
+1. EEGPT achieved 62.32% BAC WITHOUT class weighting or balanced sampling
+2. Our current approach WITH weights may be WORSE than no weights
+3. The real issue is likely something else entirely
 
 ## Evidence (from code and logs)
 
@@ -46,13 +61,40 @@ Status: Root cause identified; fix plan proposed (non‑disruptive to current ru
 
 Conclusion: The primary defect is lack of class‑balanced sampling under extreme imbalance; secondary items are acceptable and not the cause of 0.22 BAC.
 
-## Root Cause
+## 🎯 REVISED Root Cause Analysis
+
+### What EEGPT Did Differently (That We're Missing):
+
+1. **NO CLASS WEIGHTS** - They used plain CrossEntropyLoss
+2. **DIFFERENT LEARNING RATE** - They used lr=5e-4 (we use 1e-3)
+3. **LAYER DECAY** - They used layer_decay=0.9 for different LR per layer
+4. **LABEL SMOOTHING** - They used smoothing=0.1 by default
+5. **DIFFERENT OPTIMIZER PARAMS** - weight_decay=0.05, different warmup
+6. **BATCH SIZE** - They used batch_size=64 (check what we use)
+7. **DISTRIBUTED TRAINING** - They always use DistributedSampler
+
+### Most Likely Actual Root Cause:
 
 - Extreme imbalance (≈99.5% background) + unbalanced batches ⇒ minority classes seldom appear within a batch.
 - Even with inverse‑frequency weights, gradient signal for minorities is too sparse/noisy; the head collapses to background.
 - Evidence: Background F1 ≈ 0.997 while minority F1 ≈ 0–0.2; BAC hovers ≈ 0.2.
 
-## Fix Plan (minimal, high‑ROI)
+## 🚨 URGENT: Two Divergent Fix Strategies
+
+### Strategy A: Match EEGPT Paper EXACTLY (Recommended)
+**Rationale**: They got 62% BAC, we got 22%. Do EXACTLY what they did.
+
+1. **REMOVE class weights** - Use plain `nn.CrossEntropyLoss()`
+2. **Match their hyperparameters**:
+   - lr=5e-4 (not 1e-3)
+   - weight_decay=0.05
+   - warmup_epochs=5
+   - batch_size=64
+   - Add label_smoothing=0.1
+3. **Keep simple sampling** - Just torch.randperm like they do
+4. **Add layer decay** - Different LR for each layer (optional but they use it)
+
+### Strategy B: Fix The Imbalance Problem (Our Original Plan)
 
 1) Balanced sampling for TRAIN
 
@@ -82,11 +124,22 @@ Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only a
 - Confusion shows non‑zero recall across all minority classes; predictions not dominated by background.
 - Train batches confirmed to include minority classes consistently.
 
-## Why We Do NOT Rebuild Cache Now
+## 🤔 CRITICAL QUESTION: Should We Rebuild Cache?
 
-- Preprocessor validates channel order against CHANNELS_TUEV_20; missing canonical channels (e.g., Fpz) are synthesized as zeros in correct slots; META.json confirms expected properties (sr, unit, window, norm, channels).
-- No evidence of channel order or normalization mismatch in logs; cache is consistent.
-- Rebuild only if diagnostics show channel order mismatch or inconsistent normalization.
+### Arguments FOR Rebuilding:
+1. **Fpz Concern** - We synthesize Fpz as zeros, EEGPT may expect it from FZ
+2. **Window Size** - Verify we're using exactly 5-second windows (1000 samples @ 200Hz)
+3. **Normalization** - Double-check our normalization matches theirs
+4. **Fresh Start** - Eliminate any cached preprocessing bugs
+
+### Arguments AGAINST Rebuilding:
+1. **Cache validated** - META.json confirms correct properties
+2. **Channel order matches** - CHANNELS_TUEV_20 aligns with EEGPT
+3. **Time cost** - Cache rebuild takes hours
+4. **Current run** - Let it finish for baseline comparison
+
+### RECOMMENDATION: 
+**Don't rebuild YET.** First try Strategy A (match EEGPT hyperparams) with current cache. If that fails, THEN rebuild cache.
 
 ## Pointers (for implementers)
 
@@ -112,5 +165,35 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-If you need a concrete sampler patch and config snippet, ping Core ML — we’ll provide a minimal change set that keeps the current cache and reruns cleanly.
+## 🎯 FINAL RECOMMENDATION
+
+### Immediate Action (Do This NOW):
+1. **Let current run finish** - Useful as baseline
+2. **Prepare new training script** copying EEGPT settings:
+   ```python
+   # Match EEGPT EXACTLY
+   criterion = nn.CrossEntropyLoss()  # NO weights
+   lr = 5e-4  # Not 1e-3
+   weight_decay = 0.05
+   warmup_epochs = 5
+   batch_size = 64
+   # Optional: label_smoothing = 0.1
+   ```
+3. **Run with current cache** - Don't rebuild yet
+4. **Monitor for 10 epochs** - Should see BAC > 0.30 quickly
+
+### If That Fails:
+1. **THEN rebuild cache** with potential Fpz fix
+2. **Consider channel mapper** as last resort
+3. **Investigate data loading** for systematic issues
+
+### Key Insight:
+**EEGPT authors got 62% BAC with NO class balancing techniques.** Either:
+- Their simple approach works better than complex weighting
+- There's a bug in our implementation
+- The channel/normalization is subtly different
+
+---
+
+**PRIORITY: Try Strategy A (match EEGPT) before anything else.**
 
