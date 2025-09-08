@@ -12,7 +12,7 @@ from brain_go_brrr.infra.adapters.model_adapter import (
     EEGPTModelAdapter,
     LoggerAdapter,
 )
-from brain_go_brrr.services.yasa_adapter import YASASleepStager
+from brain_go_brrr.infra.external.yasa_adapter import YASASleepStager
 
 
 class ConfigAdapter(AbnormalityConfigPort):

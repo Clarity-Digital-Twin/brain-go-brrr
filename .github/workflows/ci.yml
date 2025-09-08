@@ -107,6 +107,17 @@ jobs:
           echo "Running type checks..."
           uv run mypy --config-file mypy.ini src/brain_go_brrr
 
+      - name: Import infra.ml_models without warnings
+        run: |
+          echo "Importing infra.ml_models with DeprecationWarnings treated as errors..."
+          uv run python -W error::DeprecationWarning -c "import brain_go_brrr.infra.ml_models; print('ok')"
+
+      - name: Import linter (architecture contracts)
+        run: |
+          echo "Running import-linter contracts..."
+          uv run lint-imports
+          echo "Import-linter completed"
+
       - name: Import smoke test
         run: |
           uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"

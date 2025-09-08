@@ -1,5 +1,6 @@
 [importlinter]
 root_package = brain_go_brrr
+include_external_packages = True
 
 # ===================================================================
 # UNCLE BOB'S CLEAN ARCHITECTURE - 100% STRICT ENFORCEMENT
@@ -72,19 +73,19 @@ forbidden_modules =
     brain_go_brrr.api
     brain_go_brrr.presentation
 
-# Contract 7: CORE UTILITIES INDEPENDENCE
-[importlinter:contract:core_independent]
-name = Core utilities must be independent (leaf nodes)
-type = forbidden
-source_modules =
-    brain_go_brrr.core
-forbidden_modules =
-    brain_go_brrr.api
-    brain_go_brrr.presentation
-    brain_go_brrr.application
-    brain_go_brrr.domain
-    brain_go_brrr.infra
-    brain_go_brrr.services
+# Contract 7: CORE UTILITIES INDEPENDENCE - DISABLED (core module doesn't exist)
+# [importlinter:contract:core_independent]
+# name = Core utilities must be independent (leaf nodes)
+# type = forbidden
+# source_modules =
+#     brain_go_brrr.core
+# forbidden_modules =
+#     brain_go_brrr.api
+#     brain_go_brrr.presentation
+#     brain_go_brrr.application
+#     brain_go_brrr.domain
+#     brain_go_brrr.infra
+#     brain_go_brrr.services
 
 # Contract 8: DEPRECATED MODULES
 [importlinter:contract:deprecated_redirects]
@@ -122,3 +123,31 @@ forbidden_modules =
     brain_go_brrr.models
     brain_go_brrr.preprocessing
     brain_go_brrr.config
+
+# ===================================================================
+# P2 TECHNICAL DEBT CONTRACTS - ENFORCE MIGRATION
+# ===================================================================
+
+# Contract 11: NO DIRECT EEGPT PROBE
+[importlinter:contract:no_eegpt_probe]
+name = Use ProbeFactory instead of EEGPTProbe
+type = forbidden
+source_modules =
+    brain_go_brrr.application
+    brain_go_brrr.api
+forbidden_modules =
+    brain_go_brrr.infra.ml_models.eegpt_probe_unified
+message = Use ProbeFactory.create_for_task() instead of deprecated EEGPTProbe
+
+# Contract 12: NO SERVICES REDIRECTS
+[importlinter:contract:no_services_redirect]
+name = Use infra.external instead of services redirects
+type = forbidden
+source_modules =
+    brain_go_brrr.application
+    brain_go_brrr.api
+    brain_go_brrr.domain
+forbidden_modules =
+    brain_go_brrr.services.yasa_adapter
+    brain_go_brrr.services.hierarchical_pipeline
+message = Import from brain_go_brrr.infra.external instead of services redirects
