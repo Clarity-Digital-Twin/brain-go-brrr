@@ -221,10 +221,18 @@ class InMemoryCache:
         return deleted
 
     def clear_pattern(self, pattern: str) -> int:
-        """Clear keys matching pattern."""
+        """Clear keys matching pattern using shell-style wildcards.
+        
+        Args:
+            pattern: Shell-style pattern (e.g., 'eeg_*', 'analysis:*')
+            
+        Returns:
+            Number of keys deleted
+        """
         import fnmatch
 
-        pattern = pattern.replace("*", ".*")
+        # P1 FIX: Use fnmatch correctly without regex conversion
+        # fnmatch expects shell patterns where * matches any chars
         keys_to_delete = [k for k in self._store if fnmatch.fnmatch(k, pattern)]
         for key in keys_to_delete:
             self._store.pop(key, None)
