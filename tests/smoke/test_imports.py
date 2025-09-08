@@ -7,14 +7,13 @@ and that refactorings haven't broken module exports.
 
 def test_services_imports():
     """Test that services module exports work."""
+    # YASAConfig now comes from infra.external.yasa_adapter
+    from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
     from brain_go_brrr.services import (
         HierarchicalEEGAnalyzer,
         HierarchicalPipelineYASAAdapter,
         YASASleepStager,
     )
-
-    # YASAConfig now comes from infra.external.yasa_adapter
-    from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
 
     assert HierarchicalEEGAnalyzer is not None
     assert HierarchicalPipelineYASAAdapter is not None
