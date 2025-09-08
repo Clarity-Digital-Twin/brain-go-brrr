@@ -321,64 +321,7 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 
 **If you use this software in research, please cite:**
 
-<details>
-<summary>EEGPT Model (click to expand)</summary>
-
-```bibtex
-@inproceedings{wang2024eegpt,
-  title={EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals},
-  author={Wang, Guangyu and He, Yuhong and Ma, Lin and Liu, Wenchao and Xu, Cong and Li, Haifeng},
-  booktitle={38th Conference on Neural Information Processing Systems (NeurIPS 2024)},
-  year={2024}
-}
-```
-</details>
-
-<details>
-<summary>YASA Sleep Staging (click to expand)</summary>
-
-```bibtex
-@article{vallat2021yasa,
-  title={YASA: Yet Another Spindle Algorithm},
-  author={Vallat, Raphael and Walker, Matthew P},
-  journal={bioRxiv},
-  year={2021},
-  doi={10.1101/2021.05.28.446165}
-}
-```
-</details>
-
-<details>
-<summary>Autoreject (click to expand)</summary>
-
-```bibtex
-@article{jas2017autoreject,
-  title={Autoreject: Automated artifact rejection for MEG and EEG data},
-  author={Jas, Mainak and Engemann, Denis A and Bekhti, Yousra and Raimondo, Federico and Gramfort, Alexandre},
-  journal={NeuroImage},
-  volume={159},
-  pages={417--429},
-  year={2017}
-}
-```
-</details>
-
-<details>
-<summary>MNE-Python (click to expand)</summary>
-
-```bibtex
-@article{gramfort2013mne,
-  title={MEG and EEG data analysis with MNE-Python},
-  author={Gramfort, Alexandre and Luessi, Martin and Larson, Eric and Engemann, Denis A and Strohmeier, Daniel and Brodbeck, Christian and Goj, Roman and Jas, Mainak and Brooks, Teon and Parkkonen, Lauri and H{\"a}m{\"a}l{\"a}inen, Matti},
-  journal={Frontiers in Neuroscience},
-  volume={7},
-  pages={267},
-  year={2013},
-  doi={10.3389/fnins.2013.00267}
-}
-```
-</details>
-
+### Datasets
 <details>
 <summary>TUH Abnormal EEG Corpus (TUAB) (click to expand)</summary>
 
@@ -415,6 +358,66 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
   year={2015},
   organization={IEEE},
   url={https://www.isip.piconepress.com/publications/conference_proceedings/2015/ieee_spmb/denergy/}
+}
+```
+</details>
+
+### Processing Libraries
+<details>
+<summary>MNE-Python (click to expand)</summary>
+
+```bibtex
+@article{gramfort2013mne,
+  title={MEG and EEG data analysis with MNE-Python},
+  author={Gramfort, Alexandre and Luessi, Martin and Larson, Eric and Engemann, Denis A and Strohmeier, Daniel and Brodbeck, Christian and Goj, Roman and Jas, Mainak and Brooks, Teon and Parkkonen, Lauri and H{\"a}m{\"a}l{\"a}inen, Matti},
+  journal={Frontiers in Neuroscience},
+  volume={7},
+  pages={267},
+  year={2013},
+  doi={10.3389/fnins.2013.00267}
+}
+```
+</details>
+
+<details>
+<summary>Autoreject (click to expand)</summary>
+
+```bibtex
+@article{jas2017autoreject,
+  title={Autoreject: Automated artifact rejection for MEG and EEG data},
+  author={Jas, Mainak and Engemann, Denis A and Bekhti, Yousra and Raimondo, Federico and Gramfort, Alexandre},
+  journal={NeuroImage},
+  volume={159},
+  pages={417--429},
+  year={2017}
+}
+```
+</details>
+
+### Models
+<details>
+<summary>EEGPT Model (click to expand)</summary>
+
+```bibtex
+@inproceedings{wang2024eegpt,
+  title={EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals},
+  author={Wang, Guangyu and He, Yuhong and Ma, Lin and Liu, Wenchao and Xu, Cong and Li, Haifeng},
+  booktitle={38th Conference on Neural Information Processing Systems (NeurIPS 2024)},
+  year={2024}
+}
+```
+</details>
+
+<details>
+<summary>YASA Sleep Staging (click to expand)</summary>
+
+```bibtex
+@article{vallat2021yasa,
+  title={YASA: Yet Another Spindle Algorithm},
+  author={Vallat, Raphael and Walker, Matthew P},
+  journal={bioRxiv},
+  year={2021},
+  doi={10.1101/2021.05.28.446165}
 }
 ```
 </details>
