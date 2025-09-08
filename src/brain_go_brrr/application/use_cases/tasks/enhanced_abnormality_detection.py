@@ -104,10 +104,11 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
             # P1 FIX: Use ProbeFactory instead of direct EEGPTProbe
             from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
 
+            # Create probe head that expects 2048-d features
             probe = ProbeFactory.create_for_task(
                 task="abnormality",
-                backbone=self.backbone,  # Use the already loaded backbone
-                architecture='two_layer',
+                # NOTE: ProbeFactory doesn't accept backbone - probe is standalone
+                # architecture is determined by task defaults (two_layer for abnormality)
             )
         self.probe = probe
 
