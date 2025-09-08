@@ -1,0 +1,42 @@
+name: Prevent PyTorch Lightning
+on: [push, pull_request]
+
+jobs:
+  check-lightning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep || {
+            echo "Warning: ripgrep install failed, using grep fallback"
+          }
+      
+      - name: Check for Lightning imports
+        run: |
+          if command -v rg &> /dev/null; then
+            SEARCH_CMD="rg"
+          else
+            SEARCH_CMD="grep -r"
+          fi
+          
+          echo "Checking for PyTorch Lightning imports..."
+          if $SEARCH_CMD "import\s+lightning|from\s+lightning" src/ experiments/; then
+            echo "❌ PyTorch Lightning detected! Use pure PyTorch instead."
+            echo "Lightning 2.5.2 has a critical bug causing training to hang."
+            echo "See CLAUDE.md for details."
+            exit 1
+          fi
+          echo "✅ No Lightning imports found"
+      
+      - name: Check for sys.path hacks
+        run: |
+          echo "Checking for sys.path manipulation..."
+          if rg "sys\.path\.(insert|append)" --type py experiments/; then
+            echo "❌ sys.path manipulation detected in experiments/!"
+            echo "Import from src/ instead of using sys.path hacks."
+            exit 1
+          fi
+          echo "✅ No sys.path hacks in Python files"

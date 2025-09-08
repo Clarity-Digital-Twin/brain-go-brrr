@@ -1,3 +1,8 @@
+> ⚠️ **ARCHIVED DOCUMENTATION** - Code examples may be outdated.
+> For safe torch.load/save patterns, see [TRAINING.md](../../TRAINING.md#safe-checkpoint-loading).
+> Never use torch.load without weights_only parameter in production code.
+
+
 # Technical Debt Implementation Plan
 
 ## ✅ FINAL STATUS - ALL DEBT RESOLVED (Sep 4, 2025)
