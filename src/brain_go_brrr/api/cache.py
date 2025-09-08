@@ -16,7 +16,7 @@ CACHE_VERSION = os.getenv("BRAIN_GO_BRRR_CACHE_VERSION", "v1.0.0")
 APP_VERSION = os.getenv("BRAIN_GO_BRRR_APP_VERSION", "0.1.0")
 
 
-class RedisCache:
+class APIRedisCache:  # P1 FIX: Renamed to avoid collision with infra/cache.py
     """Redis cache wrapper for EEG analysis results - delegates to infra.cache."""
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -111,12 +111,12 @@ class RedisCache:
 
 
 # Global cache instance
-_cache_instance: RedisCache | None = None
+_cache_instance: APIRedisCache | None = None  # P1 FIX: Updated type
 
 
-def get_cache() -> RedisCache | None:
+def get_cache() -> APIRedisCache | None:
     """Get or create cache instance."""
     global _cache_instance
     if _cache_instance is None:
-        _cache_instance = RedisCache()
+        _cache_instance = APIRedisCache()  # P1 FIX: Use renamed class
     return _cache_instance if _cache_instance.connected else None
