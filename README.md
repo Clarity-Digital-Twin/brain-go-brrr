@@ -294,10 +294,12 @@ uv run pytest tests/unit/domain/sleep -v
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | Target: 62% BAC | 🚧 Actively training |
+| Event Detection (TUEV) | Target: 62% BAC¹ | 🚧 Actively training |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
+
+¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for details.
 
 ## 🤝 Contributing
 
