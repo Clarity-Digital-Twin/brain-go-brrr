@@ -21,9 +21,13 @@
 
 ### Sprint 4: TUEV Channel Synthesis (4 hours) 🔬 OPTIONAL
 
+**📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target metrics and thresholds.
+
 **Problem**: TUEV dataset has 23 channels, EEGPT expects 20. Currently using zero-fill approach.
 
-**Potential Benefit**: +1% accuracy with learnable channel mapping
+**Potential Benefit**: +1% BAC (Balanced Accuracy) improvement with learnable channel mapping
+
+**Reproducibility Seeds**: 42 (data), 123 (model init), 456 (augmentation) - as per TUEV_METRICS_SSOT.md
 
 **Implementation Path**:
 ```python
@@ -55,7 +59,7 @@ class TUEVChannelMapper(nn.Module):
 - [ ] Config on/off works without regression
 - [ ] Document channel order dependencies
 - [ ] No impact on non-TUEV paths
-- [ ] Benchmark shows measurable accuracy improvement
+- [ ] Benchmark shows measurable BAC improvement (≥1% increase)
 
 **Current TUEV Training Status**:
 - Dataset caching works with new preprocessor

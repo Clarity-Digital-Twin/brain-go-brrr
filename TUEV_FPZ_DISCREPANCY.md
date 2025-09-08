@@ -141,7 +141,7 @@ if "Fpz" not in raw.ch_names:
 ### For Our Implementation: ✅ NO ISSUES
 - Our code correctly handles the discrepancy
 - Training is working (355/359 files processed)
-- Performance should match paper's reported metrics
+- Performance should match paper's reported metrics (62.32% BAC per [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md))
 
 ### For Understanding:
 - **Papers can have errors** - always verify against actual data
@@ -209,7 +209,7 @@ self.chan_conv = torch.nn.Sequential(
 This is MORE SOPHISTICATED than our zero-filling:
 - **Their approach**: Neural network learns optimal Fpz synthesis
 - **Our approach**: Simple zero-filling (deterministic, reproducible)
-- **Both work**: Ours is simpler, theirs might be ~1% better
+- **Both work**: Ours is simpler, theirs might achieve ~1% higher BAC
 
 ## Updated Understanding
 
@@ -223,7 +223,7 @@ This is MORE SOPHISTICATED than our zero-filling:
 |--------|---------------|-------------------|
 | Method | Learnable Conv2d(23→20) | Zero-fill Fpz |
 | Complexity | Neural network learns mapping | Simple, deterministic |
-| Performance | Potentially optimal | Good enough (99% training!) |
+| Performance | Potentially optimal BAC | Good enough (targeting 62% BAC) |
 | Reproducibility | Depends on training | Exact same every time |
 
 ## Key Takeaways (FINAL TRUTH)
@@ -242,16 +242,18 @@ This is MORE SOPHISTICATED than our zero-filling:
 - Our training is at 99% complete
 - We understand EXACTLY what the discrepancy was
 - Our solution (zero-fill) is valid, just different from theirs (learned mapping)
-- Both approaches work - theirs might be 1% better, ours is more reproducible
+- Both approaches work - theirs might achieve 1% higher BAC, ours is more reproducible
 
 ## Future Optimization (Optional)
 
-If we want to match their exact approach later:
+If we want to match their exact approach later (for potential +1% BAC improvement):
 ```python
 # Add before EEGPT encoder:
 self.channel_mapper = nn.Conv1d(23, 20, kernel_size=1)
 # This learns how to synthesize Fpz from the 23 input channels
 ```
+
+**📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target BAC metrics (62.32% ± 1.14%).
 
 But honestly, our zero-fill is working fine and we're almost done training!
 
