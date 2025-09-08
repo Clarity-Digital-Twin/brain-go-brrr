@@ -71,16 +71,18 @@ metrics = {
 
 ## TUEV: Event Classification (6-Class)
 
+**📊 Reference**: See [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md) for exact target values and thresholds.
+
 ### Task Definition
 - **Type**: 6-class classification per event window
 - **Classes**: SPSW (spike), GPED, PLED, EYEM (eye movement), ARTF (artifact), BCKG (background)
 - **NOT a temporal detection task** - just classify each window
 
 ### Metrics (What EEGPT Paper Reports)
-Paper-aligned multi-class metrics:
-- **Weighted F1** (primary for multi-class)
-- **Balanced Accuracy**
-- **Cohen's Kappa** (often used as monitor)
+Paper-aligned multi-class metrics (targets from TUEV_METRICS_SSOT.md):
+- **Weighted F1**: 81.87% ± 0.63% (misleading due to 99.5% class imbalance)
+- **Balanced Accuracy (BAC)**: 62.32% ± 1.14% (true performance metric)
+- **Cohen's Kappa**: 0.635 ± 0.013 (paper's monitor metric)
 
 ### Evaluation Protocol
 ```python

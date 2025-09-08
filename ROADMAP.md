@@ -167,10 +167,10 @@ metrics = {
 ```
 
 #### For TUEV (6-Class Event Classification)
-**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG  
-**Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)  
+**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
+**Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)
 **Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
-**Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351  
+**Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351
 **Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
 
 †*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
@@ -328,12 +328,12 @@ You've satisfied **researchers** (reproducible baselines) AND **clinicians** (ac
 # brain_go_brrr/domain/metrics/classification.py (TUAB)
 def spec_at_sens(y_true, y_score, target_sensitivity=0.95):
     """Calculate specificity at target sensitivity with proper threshold selection.
-    
+
     Returns the largest threshold (most conservative) that achieves target sensitivity.
     """
     from sklearn.metrics import roc_curve
     fpr, tpr, thresholds = roc_curve(y_true, y_score)
-    
+
     # Find largest threshold meeting target
     meets = np.where(tpr >= target_sensitivity)[0]
     if len(meets) == 0:
@@ -341,21 +341,21 @@ def spec_at_sens(y_true, y_score, target_sensitivity=0.95):
         idx = int(np.argmax(tpr))
     else:
         idx = int(meets[0])  # First index = largest threshold
-    
+
     threshold = thresholds[idx]
-    
+
     # Calculate specificity at this threshold
     y_pred = (y_score >= threshold).astype(int)
     tn = ((y_pred == 0) & (y_true == 0)).sum()
     fp = ((y_pred == 1) & (y_true == 0)).sum()
     specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-    
+
     return specificity, threshold
 
 # brain_go_brrr/domain/metrics/temporal.py (TUSZ)
 def calculate_fa_per_24h(fp_count: int, *, total_hours: float) -> float:
     """Calculate false alarms per 24 hours - the ONE metric clinicians care about.
-    
+
     Args:
         fp_count: Number of false positive events
         total_hours: Total annotated hours of recording
@@ -456,7 +456,15 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 | Classical | ~75% | ~70% | ~60% | Baseline |
 | EEGPT (paper) | 87.2% | 79.8% | ??? | Their Table 11 |
 | LaBraM (paper) | 90.2% | 81.4% | ??? | Best competitor |
-| **EEGPT (ours)** | **Target: 87%+** | **Target: 80%+** | **Target: 70%+** | **TODO** |
+| **EEGPT (ours)** | **83% achieved** | **Target: 79%+** | **Target: 70%+** | **✅ Complete** |
+
+#### TUEV (Event Detection - Classification)
+| Method | BAC | Weighted F1 | Kappa | Status |
+|--------|-----|------------|-------|--------|
+| BIOT | 52.81% | 74.92% | 0.527 | Baseline |
+| EEGPT (paper) | 62.32% | 81.87% | 0.635 | Their Table 3 |
+| LaBraM (paper) | 64.09% | 83.12% | 0.664 | Best competitor |
+| **EEGPT (ours)** | **Target: 62%+** | **Target: 82%+** | **Target: 0.63+** | **🚧 Training** |
 
 #### TUSZ (Seizure Detection - Temporal) [Future Work]
 | Method | Sensitivity | FA/24h | TAES | Status |
