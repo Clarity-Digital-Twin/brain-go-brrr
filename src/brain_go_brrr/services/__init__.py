@@ -31,9 +31,11 @@ def __getattr__(name: str) -> Any:
     elif name in ("HierarchicalPipelineYASAAdapter", "YASAConfig", "YASASleepStager"):
         from brain_go_brrr.infra.external.yasa_adapter import (
             HierarchicalPipelineYASAAdapter,
-            YASAConfig,
+            YASAAdapterConfig,  # P1 FIX: Use renamed class
             YASASleepStager,
         )
+        # P1 FIX: Create compatibility alias
+        YASAConfig = YASAAdapterConfig
 
         if name == "HierarchicalPipelineYASAAdapter":
             return HierarchicalPipelineYASAAdapter

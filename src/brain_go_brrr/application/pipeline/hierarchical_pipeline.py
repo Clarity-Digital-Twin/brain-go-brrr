@@ -102,8 +102,8 @@ class AbnormalityScreener:
             score = np.clip(score + 0.02 * np.random.randn(), 0, 1)
 
         if return_features:
-            # Mock EEGPT features
-            features = np.random.randn(768)
+            # P1 FIX: Mock EEGPT summary features (512-d, not 768-d)
+            features = np.random.randn(512)
             return score, features
 
         return score
