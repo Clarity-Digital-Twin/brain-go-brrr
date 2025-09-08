@@ -1,11 +1,30 @@
-# 🚨 P0 CRITICAL FIXES - RUNTIME CRASH BUGS
+# ✅ P0 CRITICAL FIXES - RUNTIME CRASH BUGS [COMPLETE / ARCHIVED]
 
 **Created**: September 4, 2025  
-**Owner**: ___________________  
+**Completed**: September 7, 2025  
+**Owner**: JJ & Claude  
 **Time Required**: 90 minutes (30 min tests, 30 min fixes, 30 min refactor)  
-**Status**: 🔴 CRITICAL - FIX IMMEDIATELY  
+**Status**: ✅ COMPLETE - ALL P0 FIXES MERGED TO MAIN (Archived)  
 **Revision**: v14.1 - SSOT clarified (no 3D to probes)  
 **Approach**: RED → GREEN → REFACTOR (Test-Driven Development)
+
+Note: This document is closed and retained for historical reference. For the next wave of work, see P1 items and plan in `P1_FIXES.md` and the status overview in `TECHNICAL_DEBT.md`.
+
+---
+
+## ✅ COMPLETION SUMMARY
+
+**ALL P0 FIXES COMPLETED AND MERGED**:
+- ✅ Fixed all 4 API endpoints to use `summary=False` + `prepare_probe_features()` adapter
+- ✅ Fixed both SleepProbeTrainer call sites with same pattern  
+- ✅ Added `summary` parameter support to `extract_features_batch()`
+- ✅ Created SSOT adapter `prepare_probe_features()` in `utils/probe_utils.py`
+- ✅ Added comprehensive regression guard tests in `test_p0_regression_guard.py`
+- ✅ Removed RED phase tests (bugs are fixed, not broken)
+- ✅ Updated all mock backbones to accept `summary` parameter
+- ✅ All CI/CD passing on main, staging, development branches
+
+**Final commit**: `6ff86eb` - Merged to all branches September 7, 2025
 
 ---
 

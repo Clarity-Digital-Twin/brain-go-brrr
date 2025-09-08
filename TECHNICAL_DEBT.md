@@ -1,8 +1,8 @@
 # 🚨 TECHNICAL DEBT — Priority Issues Requiring Resolution
 
 **Created**: September 4, 2025
-**Updated**: September 5, 2025 (Validated Against Codebase and EEGPT Paper)
-**Status**: Active — Requires Immediate Attention
+**Updated**: September 7, 2025 (P0 COMPLETE, P1 remaining)
+**Status**: P0 ✅ RESOLVED | P1 🟡 ACTIVE
 **Focus**: EEGPT feature dimensionality (paper compliance) and dangerous duplicate types
 
 ## ⚠️ CRITICAL AUDIT FINDINGS
@@ -28,8 +28,8 @@ After first-principles code audit and EEGPT literature review:
 
 | Priority | Issue | Impact | Time |
 |----------|-------|--------|------|
-| **P0** | EEGPT API Dimensionality (512 vs 2048) | Runtime crash with probes | 30m |
-| **P0** | SleepProbeTrainer (if used with real model) | Runtime crash (tests mask it) | 30m |
+| ~~**P0**~~ | ~~EEGPT API Dimensionality (512 vs 2048)~~ | ~~Runtime crash with probes~~ | ✅ FIXED |
+| ~~**P0**~~ | ~~SleepProbeTrainer (if used with real model)~~ | ~~Runtime crash (tests mask it)~~ | ✅ FIXED |
 | **P1** | LoggerPort duplicate signatures | TypeErrors if mixed | 30m |
 | **P1** | RedisCache duplicate class names | Import confusion, wrong backend | 30m |
 | **P1** | YASAConfig duplicate classes | Subtle behavior divergence | 30m |
