@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-09-08
+
+### 🏗️ Architecture Enforcement & Technical Debt Resolution
+
+This release completes Sprint 2 of our P2 technical debt cleanup, fixing all architecture violations and establishing robust CI/CD enforcement.
+
+### Fixed
+- **Architecture Violations**: Eliminated all domain→infra imports (11/11 import-linter contracts KEPT)
+  - Removed `infra.safe_load` import from `domain.abnormal.detector`
+  - Removed `infra.ml_models` imports from `domain.quality.controller`
+  - Domain layer now uses proper dependency injection
+- **Critical Bug**: Fixed `extract_features` parameter type mismatch
+  - Was passing `channel_names` (list[str]) instead of `chan_ids` (torch.Tensor)
+  - Now correctly passes `chan_ids=None`
+- **CI/CD Pipeline**: Fixed import-linter command execution
+  - Changed from `importlinter` to `lint-imports`
+  - Fixed Makefile indentation (spaces → tabs)
+- **Pre-commit Hooks**: Made local hooks more robust
+  - Switched to `language: python` for portability
+  - No longer depends on `.venv/bin/python` path
+
+### Added
+- **Architecture Guards**: New pre-commit hooks to prevent regressions
+  - `check-duplicate-classes.py`: Prevents duplicate implementations
+  - Enhanced domain purity checks
+- **Test Coverage**: Added tests for architecture compliance
+  - Domain layer dependency injection patterns
+  - Abnormality probe checkpoint loading
+  - Quality controller model injection
+
 ### Changed (2025-08-24)
 - **BREAKING**: Removed `compat_coerce` parameter from `EEGPTModel` - strict shape validation only
   - Migration: Remove `compat_coerce=True` from all calls
