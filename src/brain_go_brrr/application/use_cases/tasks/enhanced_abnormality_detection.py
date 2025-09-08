@@ -26,7 +26,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
+# P1 FIX: Removed direct EEGPTProbe import - using ProbeFactory instead
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.utils import mask_path_for_log
 
