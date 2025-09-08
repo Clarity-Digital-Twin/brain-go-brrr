@@ -44,7 +44,9 @@ class DummyBackbone:
 def patch_wrapper(monkeypatch: pytest.MonkeyPatch):
     import brain_go_brrr.infra.ml_models.eegpt_wrapper as wrapper
 
-    monkeypatch.setattr(wrapper, "create_normalized_eegpt", lambda checkpoint_path=None: DummyBackbone())
+    monkeypatch.setattr(
+        wrapper, "create_normalized_eegpt", lambda checkpoint_path=None: DummyBackbone()
+    )
     yield
 
 
@@ -94,4 +96,3 @@ def test_migration_roundtrip_parity() -> None:
 
     # Parity within tolerance
     assert torch.allclose(y1, y2, atol=1e-5)
-
