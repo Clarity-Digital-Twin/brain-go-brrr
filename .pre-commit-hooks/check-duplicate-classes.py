@@ -12,6 +12,8 @@ from pathlib import Path
 
 ALLOWED_DUPLICATES = {
     "JobData",  # API DTO vs Domain Entity pattern
+    "NumpyEncoder",  # JSON encoder utility in multiple routers
+    "ModelConfig",  # Pydantic config class in multiple configs
 }
 
 
