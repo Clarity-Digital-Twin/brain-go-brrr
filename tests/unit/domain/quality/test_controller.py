@@ -104,24 +104,31 @@ class TestEEGQualityControllerClean:
         assert controller.eegpt_model is None  # Not loaded yet
 
     def test_init_with_eegpt_path(self, tmp_path):
-        """Test initialization with EEGPT model path."""
+        """Test initialization with EEGPT model path stores path but doesn't create model.
+
+        Domain layer should not create infrastructure objects directly.
+        Model should be injected via dependency injection.
+        """
         # Create fake checkpoint
         checkpoint_path = tmp_path / "eegpt.ckpt"
         checkpoint_path.touch()
 
         controller = EEGQualityController(eegpt_model_path=checkpoint_path)
 
-        # Controller creates an EEGPTModel object even with fake checkpoint
-        # (it just won't have loaded weights properly)
+        # Controller stores the path for backward compatibility
+        assert controller.eegpt_model_path == checkpoint_path
+
+        # But does not create the model (domain shouldn't create infra objects)
+        assert controller.eegpt_model is None
+
+        # To use a model, it should be injected:
         from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
 
-        assert controller.eegpt_model is not None  # Model object exists
-        assert isinstance(
-            controller.eegpt_model, EEGPTModel | type(controller.eegpt_model)
-        )  # Correct type
-        # Verify expected methods exist
-        assert hasattr(controller.eegpt_model, "predict_abnormality")
-        assert hasattr(controller.eegpt_model, "extract_features")
+        mock_model = EEGPTModel(checkpoint_path=checkpoint_path, auto_load=False)
+        controller_with_model = EEGQualityController(model=mock_model)
+        assert controller_with_model.eegpt_model is not None
+        assert hasattr(controller_with_model.eegpt_model, "predict_abnormality")
+        assert hasattr(controller_with_model.eegpt_model, "extract_features")
 
     def test_detect_bad_channels(self, raw_with_artifacts):
         """Test bad channel detection."""
