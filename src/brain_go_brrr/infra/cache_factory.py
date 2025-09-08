@@ -10,8 +10,9 @@ implementations.
 
 import os
 import warnings
-from typing import Any, Protocol
+from typing import Any
 
+from brain_go_brrr.domain.ports import CachePort  # Use canonical definition
 from brain_go_brrr.infra.cache import RedisCache as InfraRedisCache
 
 warnings.warn(
@@ -20,17 +21,6 @@ warnings.warn(
     DeprecationWarning,
     stacklevel=2,
 )
-
-
-class CachePort(Protocol):
-    """Cache protocol for compatibility."""
-
-    def get(self, key: str) -> Any | None: ...
-    def set(self, key: str, value: Any, ttl: int | None = None) -> bool: ...
-    def delete(self, key: str) -> bool: ...
-    def exists(self, key: str) -> bool: ...
-    def clear(self) -> None: ...
-    def close(self) -> None: ...
 
 
 class MemoryCache:
