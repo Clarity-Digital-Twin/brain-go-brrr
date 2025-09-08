@@ -62,9 +62,14 @@ def predict_abnormality_with_eegpt(
     # Load probe if provided
     probe = None
     if probe_path and Path(probe_path).exists():
-        from brain_go_brrr.infra.ml_models.eegpt_probe_unified import EEGPTProbe
+        # P1 FIX: Use ProbeFactory instead of direct EEGPTProbe
+        from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
 
-        probe = EEGPTProbe(backbone=model, n_classes=2, architecture="linear")
+        probe = ProbeFactory.create_for_task(
+            task="abnormality",
+            backbone=model,
+            architecture="linear"
+        )
         checkpoint = torch.load(probe_path, map_location=device, weights_only=True)
         probe.load_state_dict(checkpoint['model_state_dict'])
         probe = probe.to(device)

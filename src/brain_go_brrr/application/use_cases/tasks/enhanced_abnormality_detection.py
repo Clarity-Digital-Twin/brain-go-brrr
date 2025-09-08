@@ -101,12 +101,13 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         # Initialize probe
         if probe is None:
-            # Pass the backbone to the probe to avoid needing checkpoint_path
-            probe = EEGPTProbe(
+            # P1 FIX: Use ProbeFactory instead of direct EEGPTProbe
+            from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
+            
+            probe = ProbeFactory.create_for_task(
+                task="abnormality",
                 backbone=self.backbone,  # Use the already loaded backbone
-                architecture='two_layer',
-                n_input_channels=n_channels,
-                n_classes=n_classes,
+                architecture='two_layer'
             )
         self.probe = probe
 
