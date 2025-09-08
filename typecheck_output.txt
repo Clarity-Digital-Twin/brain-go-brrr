@@ -1,13 +1,3 @@
 [0;36mRunning full type checks...[0m 
 .venv/bin/mypy --config-file mypy.ini src/brain_go_brrr
-src/brain_go_brrr/api/__init__.py:4: error: Module "brain_go_brrr.api.cache"
-has no attribute "RedisCache"; maybe "APIRedisCache"?  [attr-defined]
-    from .cache import RedisCache, get_cache
-    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-src/brain_go_brrr/services/__init__.py:32: error: Module
-"brain_go_brrr.infra.external.yasa_adapter" has no attribute "YASAConfig" 
-[attr-defined]
-            from brain_go_brrr.infra.external.yasa_adapter import (
-            ^
-Found 2 errors in 2 files (checked 132 source files)
-make: *** [Makefile:140: type-check] Error 1
+Success: no issues found in 132 source files
