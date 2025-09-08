@@ -13,24 +13,7 @@ import numpy.typing as npt
 from brain_go_brrr._typing import MNERaw
 
 
-class LoggerPort(Protocol):
-    """Logger interface for domain layer."""
-
-    def debug(self, message: str) -> None:
-        """Log debug message."""
-        ...
-
-    def info(self, message: str) -> None:
-        """Log info message."""
-        ...
-
-    def warning(self, message: str) -> None:
-        """Log warning message."""
-        ...
-
-    def error(self, message: str) -> None:
-        """Log error message."""
-        ...
+# P1 FIX: LoggerPort moved to domain/protocols/logger.py
 
 
 class EEGModelPort(ABC):

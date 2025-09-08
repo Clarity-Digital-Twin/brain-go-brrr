@@ -275,7 +275,7 @@ class TestAbnormalityScreener:
         score, features = screener.screen(eeg, return_features=True)
 
         assert 0 <= score <= 1
-        assert features.shape == (768,)  # EEGPT feature dimension
+        assert features.shape == (512,)  # P1 FIX: EEGPT summary dimension
         assert not np.any(np.isnan(features))
 
     def test_screener_calibration(self):

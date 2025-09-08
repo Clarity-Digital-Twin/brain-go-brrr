@@ -63,25 +63,7 @@ class FeatureExtractorPort(Protocol):
         ...
 
 
-@runtime_checkable
-class LoggerPort(Protocol):
-    """Port for logging - domain doesn't care about implementation."""
-
-    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        """Log debug message."""
-        ...
-
-    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        """Log info message."""
-        ...
-
-    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        """Log warning message."""
-        ...
-
-    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
-        """Log error message."""
-        ...
+# P1 FIX: LoggerPort moved to domain/protocols/logger.py
 
 
 # Forward reference to avoid MNE dependency in domain

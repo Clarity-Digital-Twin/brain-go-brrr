@@ -23,7 +23,7 @@ class TestClassifierCompatibility:
             patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"),
             patch("brain_go_brrr.application.config.ModelConfig"),
         ):
-            # Create detector with default config (768-dim)
+            # P1 FIX: Create detector with default config (512-dim summary)
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
             # Check classifier first layer matches config
@@ -42,9 +42,9 @@ class TestClassifierCompatibility:
         ):
             detector = AbnormalityDetector(model_path=Path("fake/path.ckpt"), device="cpu")
 
-            # Create incompatible state dict (768-dim input instead of 512)
+            # P1 FIX: Create incompatible state dict (768-dim input instead of 512)
             incompatible_state = {
-                "0.weight": torch.randn(256, 768),  # Wrong input dimension
+                "0.weight": torch.randn(256, 768),  # Wrong - should be 512
                 "0.bias": torch.randn(256),
                 # ... other layers would be here
             }
@@ -59,7 +59,7 @@ class TestClassifierCompatibility:
     def test_custom_feature_dim_propagates_to_classifier(self) -> None:
         """Test that custom feature dimensions are properly used."""
         custom_config = AbnormalityConfig()
-        custom_config.model.feature_dim = 512  # Different from default 768
+        custom_config.model.feature_dim = 512  # P1 FIX: Now the default
 
         with (
             patch("brain_go_brrr.infra.ml_models.eegpt_compat.EEGPTModel"),

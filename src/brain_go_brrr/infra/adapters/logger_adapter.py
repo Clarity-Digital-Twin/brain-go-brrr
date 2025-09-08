@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from brain_go_brrr.domain.abnormal.ports import LoggerPort
+from brain_go_brrr.domain.protocols.logger import LoggerPort  # P1 FIX: Import from unified location
 
 
 class PythonLoggerAdapter(LoggerPort):

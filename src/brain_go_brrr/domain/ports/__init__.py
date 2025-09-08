@@ -5,11 +5,11 @@ that infrastructure implements (adapters).
 """
 
 # Re-export all ports so callers can do `from brain_go_brrr.domain.ports import X`
+from ..protocols.logger import LoggerPort  # P1 FIX: Import from unified location
 from .base import (
     AbnormalityConfigPort,
     ConfigurationPort,
     EEGModelPort,
-    LoggerPort,
     PreprocessorPort,
 )
 from .cache import AsyncCachePort, CachePort
