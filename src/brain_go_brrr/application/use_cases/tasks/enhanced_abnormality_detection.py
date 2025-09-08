@@ -29,6 +29,7 @@ from sklearn.metrics import (
 # P1 FIX: Removed direct EEGPTProbe import - using ProbeFactory instead
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 from brain_go_brrr.utils import mask_path_for_log
+from brain_go_brrr.utils.probe_utils import prepare_probe_features
 
 logger = logging.getLogger(__name__)
 
