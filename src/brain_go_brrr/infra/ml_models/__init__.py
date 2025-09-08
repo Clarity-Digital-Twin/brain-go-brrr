@@ -1,20 +1,19 @@
 """Brain-Go-Brrr Models Module.
 
 Contains model implementations for EEG analysis.
+
+NOTE: eegpt_compat module is deprecated and not re-exported.
+Import directly from brain_go_brrr.infra.ml_models.eegpt_compat if needed.
+Prefer using eegpt_wrapper.create_normalized_eegpt() instead.
 """
 
-from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
 from .linear_probe import LinearProbeHead, TwoLayerProbe
 from .probe_factory import ProbeFactory, UnifiedProbe, migrate_eegpt_probe_to_factory
 
 __all__ = [
-    "EEGPTConfig",
-    "EEGPTModel",
     "LinearProbeHead",
     "ProbeFactory",
     "TwoLayerProbe",
     "UnifiedProbe",
-    "extract_features_from_raw",
     "migrate_eegpt_probe_to_factory",
-    "preprocess_for_eegpt",
 ]
