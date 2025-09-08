@@ -1,9 +1,9 @@
 # 🟡 P2 TECHNICAL DEBT - Lower Priority Cleanup & Optimization
 
 **Created**: September 8, 2025
-**Last Audit**: September 8, 2025 (Senior Review)
+**Last Audit**: September 8, 2025 (Ultra-Deep Senior Review)
 **Owner**: ___________________
-**Time Required**: ~9 hours total
+**Time Required**: ~15 hours total (expanded scope)
 **Status**: 🔄 NOT STARTED
 **Approach**: Incremental cleanup with concrete acceptance criteria
 
@@ -12,23 +12,62 @@
 ## 📋 EXECUTIVE SUMMARY
 
 **P2 items are non-critical improvements that enhance code quality but don't block functionality:**
-1. **Incomplete probe migration** - One class still extends deprecated EEGPTProbe
-2. **Duplicate CachePort** - Remove infra/cache_factory.py duplicate (NEW FINDING)
-3. **Documentation safety** - Add banners to archived docs (main docs already safe)
-4. **PyTorch Lightning guards** - Prevent accidental re-introduction (not in deps)
-5. **TUEV channel synthesis** - Optional learnable mapping for +1% accuracy
-6. **Test cleanup** - Redis alias removal and services redirect cleanup
-7. **Architecture enforcement** - Import linter rules and duplicate detection
-8. **Code coverage** - Target 95% coverage on critical paths
+1. **Legacy 768-dim tolerance** - Remove padding/averaging shims (VERIFIED: exists at detector.py:289-295)
+2. **Incomplete probe migration** - One class still extends deprecated EEGPTProbe
+3. **Duplicate CachePort** - Remove infra/cache_factory.py:25 duplicate (VERIFIED)
+4. **eegpt_compat re-export** - Stop auto-importing deprecated module (VERIFIED: in __init__.py:6)
+5. **Documentation safety** - Add banners to 6 archived docs with torch.load examples
+6. **PyTorch Lightning guards** - Add CI prevention with ripgrep install
+7. **sys.path hack prevention** - Ban in experiments/ Python files (currently only in docs)
+8. **TUEV channel synthesis** - Optional learnable mapping for +1% accuracy
+9. **Test cleanup** - Redis alias removal and services redirect cleanup (3 sites)
+10. **Architecture enforcement** - Import linter with CI integration
+11. **Duplicate class detection** - Pre-commit hook with allowed list
+12. **Protocol runtime checks** - Audit and document pattern
+13. **Probe feature prep tests** - Error on wrong shapes with helpful messages
+14. **Code coverage** - Target 95% coverage on critical paths
 
 **Business Impact**: Code maintainability, developer experience, potential 1% accuracy gain
-**Fix Strategy**: Incremental improvements with clear acceptance gates
+**Fix Strategy**: Incremental improvements with concrete acceptance gates
 
 ---
 
 ## 🎯 P2 ISSUES - VERIFIED & PRIORITIZED
 
-### 1. AbnormalityDetectionProbe Migration (2 hours) ⭐ HIGHEST PRIORITY
+### 1. Legacy 768-dim Tolerance Removal (1 hour) 🔥 NEW FINDING
+
+**Problem**: Detector includes padding/averaging shims for 768 compatibility - masks bugs
+
+**Current State (VERIFIED)**:
+```python
+# src/brain_go_brrr/domain/abnormal/detector.py:287-295
+if features_tensor.shape[-1] == 2048 and self.linear_probe[0].in_features == 768:
+    # Average pooling hack
+    features_tensor = features_tensor.view(batch_size, 4, 512).mean(dim=1)
+    # Padding hack to 768
+    padding = torch.zeros(batch_size, 768 - 512, device=features_tensor.device)
+    features_tensor = torch.cat([features_tensor, padding], dim=-1)
+```
+
+**Fix Implementation**:
+```python
+# Remove ALL 768 branches, allow only 512 or 2048
+if features_tensor.shape[-1] not in [512, 2048]:
+    raise ValueError(
+        f"Expected features of shape (B, 512) or (B, 2048), got {features_tensor.shape}. "
+        "For probe heads, use summary=False to get (B, 4, 512) then flatten to (B, 2048)."
+    )
+```
+
+**Acceptance Criteria**:
+- [ ] `rg -n '768' src/brain_go_brrr/domain/abnormal/detector.py` returns empty
+- [ ] Tests updated from 768 to 512/2048 expectations
+- [ ] Clear error messages guide users to correct usage
+- [ ] No feature dimension tolerance hacks remain
+
+---
+
+### 2. AbnormalityDetectionProbe Migration (2 hours) ⭐ HIGH PRIORITY
 
 **Problem**: Still extends deprecated EEGPTProbe instead of using ProbeFactory pattern
 
@@ -75,7 +114,7 @@ elif "model_state_dict" in checkpoint:
 
 ---
 
-### 2. Remove Duplicate CachePort (30 minutes) 🆕 NEW FINDING
+### 3. Remove Duplicate CachePort (30 minutes) ✅ VERIFIED
 
 **Problem**: Two CachePort definitions exist - violates single source of truth
 
@@ -97,24 +136,65 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 
 ---
 
-### 3. Documentation Safety Banners (15 minutes) ✅ CORRECTED
+### 4. Clean eegpt_compat Re-export (30 minutes) 🆕 NEW FINDING
 
-**Problem**: Archived docs may show unsafe torch.load (main docs already safe)
+**Problem**: infra/ml_models/__init__.py imports deprecated module causing noise
+
+**Current State (VERIFIED)**:
+```python
+# src/brain_go_brrr/infra/ml_models/__init__.py:6
+from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, preprocess_for_eegpt
+```
+
+**Fix Plan**:
+1. Remove eegpt_compat from `__all__` export list
+2. Stop importing it in `__init__.py`
+3. Update any importers to use direct import or wrapper
+4. Keep module available but not re-exported
+
+**Migration for importers**:
+```python
+# FROM:
+from brain_go_brrr.infra.ml_models import EEGPTModel
+
+# TO (temporary):
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel  # TODO: migrate to wrapper
+
+# OR TO (preferred):
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
+```
+
+**Acceptance Criteria**:
+- [ ] `__init__.py` does not import eegpt_compat
+- [ ] `rg "from.*ml_models import EEGPTModel" src tests` shows migrated imports
+- [ ] No DeprecationWarning on ml_models import
+- [ ] eegpt_compat still importable directly for compatibility
+
+---
+
+### 5. Documentation Safety Banners (30 minutes) ✅ VERIFIED FILES
+
+**Problem**: Archived docs have unsafe torch.load examples (main docs already safe)
 
 **Current Status**:
 - ✅ `docs/TRAINING.md:246` is ALREADY SAFE: `weights_only=False  # nosec:weights_only`
-- ⚠️ Archive files may have legacy examples
+- ⚠️ 6 archive files contain torch.load/save examples (VERIFIED)
+
+**Files Requiring Safety Banner**:
+1. `docs/archive/completed/TECH_DEBT_IMPLEMENTATION_PLAN.md`
+2. `docs/archive/mne_general_docs/MNE_IMPLEMENTATION_PLAN.md`
+3. `docs/archive/mne_general_docs/MNE_PREPROCESSING_PIPELINE.md`
+4. `docs/archive/mne_general_docs/MNE_AUTOREJECT_IMPLEMENTATION_GUIDE.md`
+5. `docs/archive/implementation/2025-09-sleep-edf-alignment/CRASH_FIX_PLAN.md`
+6. `docs/archive/implementation/2025-09-sleep-edf-alignment/ARCHITECTURE_AUDIT.md`
 
 **Fix Plan**:
 ```markdown
-# Add to top of archived documentation files:
-> ⚠️ **ARCHIVED DOCUMENTATION** - Examples may be outdated.
-> See [TRAINING.md](../TRAINING.md) for current safe torch.load usage.
+# Add to top of each file:
+> ⚠️ **ARCHIVED DOCUMENTATION** - Code examples may be outdated.
+> For safe torch.load/save patterns, see [TRAINING.md](../../TRAINING.md#safe-checkpoint-loading).
+> Never use torch.load without weights_only parameter in production code.
 ```
-
-**Files to Update**:
-- Any files in `docs/archive/` or `docs/legacy/`
-- Historical examples in `literature/`
 
 **Acceptance Criteria**:
 - [ ] Main docs pass: `rg "torch\.load\(" docs | grep -v "weights_only" | grep -v "nosec" | grep -v "archive"` → empty
@@ -123,7 +203,7 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 
 ---
 
-### 4. PyTorch Lightning Guardrails (30 minutes) ✅ CORRECTED
+### 6. PyTorch Lightning Guardrails (30 minutes) ✅ EXPANDED
 
 **Problem**: Prevent accidental re-introduction (NOT currently in dependencies)
 
@@ -131,7 +211,7 @@ src/brain_go_brrr/infra/cache_factory.py:25      # ❌ Duplicate to remove
 - ✅ VERIFIED: No Lightning in pyproject.toml
 - Need CI guards to keep it that way
 
-**Implementation**:
+**Implementation (WITH RIPGREP INSTALL)**:
 ```yaml
 # .github/workflows/no-lightning.yml
 name: Prevent Lightning
@@ -141,9 +221,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep || {
+            echo "Warning: ripgrep install failed, using grep fallback"
+          }
       - name: Check for Lightning imports
         run: |
-          if rg "import\s+lightning|from\s+lightning" src/ experiments/; then
+          if command -v rg &> /dev/null; then
+            SEARCH_CMD="rg"
+          else
+            SEARCH_CMD="grep -r"
+          fi
+          
+          if $SEARCH_CMD "import\s+lightning|from\s+lightning" src/ experiments/; then
             echo "❌ PyTorch Lightning detected! Use pure PyTorch."
             echo "See CLAUDE.md for critical training hang bug details."
             exit 1
@@ -157,7 +249,34 @@ jobs:
 
 ---
 
-### 5. Services Redirect Cleanup (1 hour) ✅ VERIFIED USAGES
+### 7. sys.path Hack Prevention (15 minutes) 🆕 NEW FINDING
+
+**Problem**: Prevent sys.path manipulation in Python files
+
+**Current State (VERIFIED)**:
+- ✅ NO sys.path hacks in experiments/*.py files
+- ⚠️ Only in documentation/markdown files (acceptable)
+
+**CI Guard Implementation**:
+```yaml
+# Add to .github/workflows/code-quality.yml
+- name: Check for sys.path hacks
+  run: |
+    if rg "sys\.path\.(insert|append)" --type py experiments/; then
+      echo "❌ sys.path manipulation detected in experiments/!"
+      echo "Import from src/ instead of using sys.path hacks."
+      exit 1
+    fi
+```
+
+**Acceptance Criteria**:
+- [ ] `rg "sys\.path\.(insert|append)" --type py experiments/` returns empty
+- [ ] CI fails if sys.path hacks introduced
+- [ ] Documentation updated with import best practices
+
+---
+
+### 8. Services Redirect Cleanup (1 hour) ✅ VERIFIED USAGES
 
 **Problem**: Deprecated redirect file with 3 active import sites
 
@@ -191,7 +310,7 @@ rm src/brain_go_brrr/services/yasa_adapter.py
 
 ---
 
-### 6. Test Redis Alias Cleanup (30 minutes)
+### 9. Test Redis Alias Cleanup (30 minutes)
 
 **Problem**: Tests use confusing alias pattern
 
@@ -216,7 +335,7 @@ from brain_go_brrr.api.cache import APIRedisCache  # Clear and direct
 
 ---
 
-### 7. TUEV Channel Synthesis (4 hours) 🔬 OPTIONAL ENHANCEMENT
+### 10. TUEV Channel Synthesis (4 hours) 🔬 OPTIONAL ENHANCEMENT
 
 **Problem**: Zero-fill approach vs learnable mapping (potential +1% accuracy)
 
@@ -256,7 +375,7 @@ enable_tuev_channel_mapper: bool = False  # Default OFF for safety
 
 ---
 
-### 8. Import Linter Rules (30 minutes)
+### 11. Import Linter Rules (45 minutes) 📏 EXPANDED
 
 **Add Architecture Enforcement**:
 
@@ -285,14 +404,35 @@ forbidden_modules =
 message = Use ProbeFactory.create_for_task() instead
 ```
 
+**Setup Requirements**:
+```bash
+# Add to pyproject.toml dev-dependencies
+importlinter = "^2.0"
+```
+
+**Makefile Target**:
+```makefile
+importlint:
+	uv run importlinter
+```
+
+**CI Integration**:
+```yaml
+# In .github/workflows/code-quality.yml
+- name: Run import linter
+  run: make importlint
+```
+
 **Acceptance Criteria**:
-- [ ] Import linter configured and passing
-- [ ] CI integration added
-- [ ] Violations cause build failure
+- [ ] `importlinter` in dev dependencies
+- [ ] `.importlinter` config file created
+- [ ] `make importlint` target works
+- [ ] CI runs import linter and fails on violations
+- [ ] All current code passes import rules
 
 ---
 
-### 9. Duplicate Class Detection (30 minutes)
+### 12. Duplicate Class Detection (30 minutes)
 
 **Known Duplicates**:
 - `CachePort` (to be fixed in item #2)
@@ -346,7 +486,81 @@ if __name__ == "__main__":
 
 ---
 
-### 10. EEGPT Feature Documentation (1 hour)
+### 13. Protocol Runtime Checks Audit (30 minutes) 🆕 NEW FINDING
+
+**Problem**: Document when to use @runtime_checkable
+
+**Current State**:
+- ✅ LoggerPort has @runtime_checkable (fixed in P1)
+- Other protocols don't need it unless isinstance() used
+
+**Documentation to Add**:
+```python
+# In domain/protocols/__init__.py or README
+"""
+Protocol Usage Guidelines:
+
+1. Add @runtime_checkable ONLY when:
+   - Tests use isinstance(obj, ProtocolType)
+   - Runtime type checking is required
+   
+2. Current runtime-checkable protocols:
+   - LoggerPort (used in isinstance checks)
+   
+3. Protocols without @runtime_checkable:
+   - CachePort, ModelPort, etc. (structural typing only)
+"""
+```
+
+**Acceptance Criteria**:
+- [ ] Guidelines documented in protocols module
+- [ ] Only LoggerPort has @runtime_checkable
+- [ ] Clear examples of when to add decorator
+- [ ] Note about __pycache__ clearing if issues
+
+---
+
+### 14. Probe Feature Prep Testing (1 hour) 🆕 NEW FINDING
+
+**Problem**: Need comprehensive tests for prepare_probe_features shapes
+
+**Test Suite to Add**:
+```python
+# tests/unit/utils/test_probe_utils.py
+def test_probe_features_error_on_wrong_shape():
+    """Test helpful errors for common mistakes."""
+    
+    # Error on 512 single vector
+    with pytest.raises(ValueError, match="call.*summary=False"):
+        prepare_probe_features(torch.randn(512))
+    
+    # Error on (B, 512) batch
+    with pytest.raises(ValueError, match="call.*summary=False"):
+        prepare_probe_features(torch.randn(10, 512))
+    
+    # Accept and convert (4, 512)
+    result = prepare_probe_features(torch.randn(4, 512))
+    assert result.shape == (1, 2048)
+    
+    # Accept and convert (B, 4, 512)
+    result = prepare_probe_features(torch.randn(10, 4, 512))
+    assert result.shape == (10, 2048)
+    
+    # Pass through (B, 2048)
+    input_tensor = torch.randn(10, 2048)
+    result = prepare_probe_features(input_tensor)
+    assert result is input_tensor  # Same object
+```
+
+**Acceptance Criteria**:
+- [ ] Test suite covers all shape scenarios
+- [ ] Error messages guide to correct usage
+- [ ] Tests assert exact error message content
+- [ ] 100% coverage of prepare_probe_features
+
+---
+
+### 15. EEGPT Feature Documentation (1 hour)
 
 **Create Canonical Constants**:
 
@@ -370,16 +584,18 @@ EEGPT_PROBE_INPUT_DIM = EEGPT_SUMMARY_TOKENS * EEGPT_TOKEN_DIM  # 2048
 
 ---
 
-### 11. Code Coverage Improvements (2 hours)
+### 16. Code Coverage Improvements (3 hours) 📊 EXPANDED
 
 **Current**: 86% coverage
 **Target**: 95% coverage
 
 **Focus Areas for Maximum Impact**:
-1. **Cache TTL expiry** in `InMemoryCache.clear_pattern`
-2. **Checkpoint migration** edge cases in `migrate_eegpt_probe_to_factory`
-3. **Redis connection errors** in `infra/cache.py`
+1. **InMemoryCache TTL expiry** and `clear_pattern` wildcards
+2. **migrate_eegpt_probe_to_factory** success/failure paths
+3. **Redis connection/timeout errors** in `infra/cache.py`
 4. **Config validation** edge cases
+5. **prepare_probe_features** all branches
+6. **Channel mapper** gradient flow (if implemented)
 
 **Test Additions Needed**:
 ```python
@@ -412,23 +628,28 @@ def test_redis_connection_timeout():
 ## 📊 IMPLEMENTATION STRATEGY
 
 ### Quick Wins (< 30 minutes each) - Do First
-1. Documentation safety banners - 15 minutes
-2. Test Redis alias cleanup - 30 minutes
-3. Remove duplicate CachePort - 30 minutes
+1. Remove duplicate CachePort - 30 minutes ✅
+2. sys.path hack prevention - 15 minutes ✅
+3. Test Redis alias cleanup - 30 minutes
+4. Protocol runtime checks doc - 30 minutes
 
-### Architecture Guards (1 hour total)
-1. PyTorch Lightning CI guard - 30 minutes
-2. Import linter rules - 30 minutes
+### Architecture Guards (2 hours total)
+1. PyTorch Lightning CI guard with ripgrep - 30 minutes
+2. Import linter with CI integration - 45 minutes
+3. Documentation safety banners (6 files) - 30 minutes
+4. Duplicate class detection hook - 30 minutes
 
 ### Medium Tasks (1-2 hours each)
-1. Services redirect cleanup - 1 hour (3 imports + delete)
-2. Duplicate class detection hook - 30 minutes
-3. EEGPT dimension documentation - 1 hour
+1. Legacy 768-dim removal - 1 hour 🔥
+2. eegpt_compat re-export cleanup - 30 minutes
+3. Services redirect cleanup - 1 hour (3 imports + delete)
+4. Probe feature prep tests - 1 hour
+5. EEGPT dimension documentation - 1 hour
 
 ### Larger Tasks (2+ hours)
 1. AbnormalityDetectionProbe migration - 2 hours ⭐
 2. TUEV channel synthesis - 4 hours (optional)
-3. Code coverage to 95% - 2 hours
+3. Code coverage to 95% - 3 hours (expanded scope)
 
 ---
 
@@ -444,8 +665,16 @@ make test-all-cov          # ✅ Must pass
 
 ### Architecture Verification
 ```bash
+# No 768-dim tolerance
+rg "768" src/brain_go_brrr/domain/abnormal/detector.py
+# → EMPTY
+
 # No EEGPTProbe in application layer
 rg "from.*eegpt_probe_unified import EEGPTProbe" src/brain_go_brrr/application
+# → EMPTY
+
+# No eegpt_compat re-export
+grep "from .eegpt_compat import" src/brain_go_brrr/infra/ml_models/__init__.py
 # → EMPTY
 
 # No services.yasa_adapter imports
@@ -462,6 +691,10 @@ rg "torch\.load\(" docs | grep -v "weights_only" | grep -v "nosec" | grep -v "ar
 
 # No Lightning imports
 rg "import\s+lightning" src experiments
+# → EMPTY
+
+# No sys.path hacks in Python
+rg "sys\.path\.(insert|append)" --type py experiments/
 # → EMPTY
 ```
 
@@ -480,31 +713,38 @@ make coverage
 
 ## 🚀 RECOMMENDED EXECUTION ORDER
 
-### Sprint 1: Quick Wins & Guards (2 hours)
+### Sprint 1: Quick Wins & Guards (3 hours)
 **Goal**: Prevent regressions, clean obvious issues
 1. Remove duplicate CachePort ✓
-2. Add PyTorch Lightning CI guard ✓
-3. Clean test Redis aliases ✓
-4. Add documentation safety banners ✓
+2. Remove 768-dim tolerance ✓ 🔥
+3. Add PyTorch Lightning CI guard with ripgrep ✓
+4. Add sys.path hack prevention ✓
+5. Clean test Redis aliases ✓
+6. Add documentation safety banners (6 files) ✓
+7. Protocol runtime checks documentation ✓
 
-### Sprint 2: Architecture Cleanup (3 hours)
+### Sprint 2: Architecture Cleanup (4 hours)
 **Goal**: Complete P1 deferral, enforce boundaries
 1. AbnormalityDetectionProbe migration ⭐
-2. Services redirect cleanup (3 imports + delete)
-3. Import linter rules
-4. Duplicate class detection
+2. Clean eegpt_compat re-export
+3. Services redirect cleanup (3 imports + delete)
+4. Import linter with CI integration
+5. Duplicate class detection hook
+6. Probe feature prep test suite
 
-### Sprint 3: Documentation & Coverage (3 hours)
+### Sprint 3: Documentation & Coverage (4 hours)
 **Goal**: Make codebase maintainable
 1. EEGPT dimension constants
-2. Code coverage to 95%
+2. Code coverage to 95% (expanded scope)
 3. Update all documentation
+4. Add migration guides for deprecations
 
 ### Sprint 4: Optional Enhancement (4 hours)
 **Goal**: Performance improvement
 1. TUEV channel synthesis (+1% accuracy)
 2. Performance benchmarks
 3. Integration tests
+4. Gradients flow validation
 
 ---
 
@@ -533,18 +773,90 @@ make coverage
 
 ---
 
-## 🔍 VERIFICATION COMMANDS
+## 🔍 VERIFICATION SCRIPT
 
 ```bash
-# Run after each sprint to verify progress
-./scripts/verify_p2_progress.sh
+#!/bin/bash
+# scripts/verify_p2_progress.sh
 
-# Manual checks
-rg "class.*EEGPTProbe\(" src/brain_go_brrr/application  # Should be empty
-rg "as RedisCache" tests/                                # Should be empty
-rg "services.yasa_adapter" --type py                     # Should be empty
-rg "^class\s+CachePort" src/                            # Single result only
-make coverage | grep "TOTAL"                             # Should be ≥95%
+echo "🔍 P2 Technical Debt Verification"
+echo "================================="
+
+FAILURES=0
+
+# Check 768-dim removal
+if rg -q "768" src/brain_go_brrr/domain/abnormal/detector.py; then
+    echo "❌ 768-dim tolerance still present"
+    ((FAILURES++))
+else
+    echo "✅ 768-dim tolerance removed"
+fi
+
+# Check EEGPTProbe usage
+if rg -q "from.*eegpt_probe_unified import EEGPTProbe" src/brain_go_brrr/application; then
+    echo "❌ EEGPTProbe still used in application layer"
+    ((FAILURES++))
+else
+    echo "✅ No EEGPTProbe in application layer"
+fi
+
+# Check eegpt_compat re-export
+if grep -q "from .eegpt_compat import" src/brain_go_brrr/infra/ml_models/__init__.py; then
+    echo "❌ eegpt_compat still re-exported"
+    ((FAILURES++))
+else
+    echo "✅ eegpt_compat not re-exported"
+fi
+
+# Check duplicate CachePort
+CACHE_PORTS=$(rg "^class\s+CachePort" src | wc -l)
+if [ "$CACHE_PORTS" -gt 1 ]; then
+    echo "❌ Multiple CachePort definitions found"
+    ((FAILURES++))
+else
+    echo "✅ Single CachePort definition"
+fi
+
+# Check services redirect
+if rg -q "services.yasa_adapter" src tests; then
+    echo "❌ services.yasa_adapter imports still exist"
+    ((FAILURES++))
+else
+    echo "✅ No services.yasa_adapter imports"
+fi
+
+# Check sys.path hacks
+if rg -q "sys\.path\.(insert|append)" --type py experiments/; then
+    echo "❌ sys.path hacks found in Python files"
+    ((FAILURES++))
+else
+    echo "✅ No sys.path hacks in Python files"
+fi
+
+# Check Lightning imports
+if rg -q "import\s+lightning|from\s+lightning" src experiments; then
+    echo "❌ PyTorch Lightning imports found"
+    ((FAILURES++))
+else
+    echo "✅ No Lightning imports"
+fi
+
+# Check Redis aliases
+if rg -q "as RedisCache" tests/; then
+    echo "❌ Redis aliases still present"
+    ((FAILURES++))
+else
+    echo "✅ No Redis aliases"
+fi
+
+echo ""
+if [ "$FAILURES" -eq 0 ]; then
+    echo "✅ All P2 checks passed!"
+    exit 0
+else
+    echo "❌ $FAILURES checks failed"
+    exit 1
+fi
 ```
 
 ---
@@ -573,9 +885,21 @@ make coverage | grep "TOTAL"                             # Should be ≥95%
 - Verify each claim before implementing
 - Keep clear acceptance criteria
 - Document what was actually done vs deferred
+- Clear __pycache__ when Protocol decorators change
+- Always verify grep patterns match actual code
+- Include exact line numbers in findings
 
 ---
 
 **Approved By**: _________________ **Date**: _______
 **Developer Assigned**: ____________ **Target Sprint**: _______
-**Last Senior Audit**: September 8, 2025 - All findings incorporated
+**Last Senior Audit**: September 8, 2025 - Ultra-deep findings incorporated
+**New Findings Added**:
+- 768-dim tolerance removal (detector.py:289-295)
+- eegpt_compat re-export cleanup (__init__.py:6)
+- sys.path hack prevention (none in .py files)
+- 6 specific archive files needing safety banners
+- Ripgrep installation requirement for CI
+- Protocol runtime checks documentation
+- Probe feature prep test suite
+- Expanded coverage targets
