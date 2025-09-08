@@ -9,13 +9,17 @@ The orchestration pipeline already uses this pattern.
 """
 
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, cast
 
 import torch
 
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
-from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
+from brain_go_brrr.infra.ml_models.probe_factory import (
+    ProbeFactory,
+    migrate_eegpt_probe_to_factory,
+)
 from brain_go_brrr.utils.probe_utils import prepare_probe_features
 
 logger = logging.getLogger(__name__)
@@ -73,6 +77,12 @@ class AbnormalityDetectionProbe:
         self.head = ProbeFactory.create_for_task("abnormality", n_classes=2)
 
         logger.info(f"Initialized AbnormalityDetectionProbe for {n_input_channels} channels")
+        warnings.warn(
+            "AbnormalityDetectionProbe API may change in a future minor release. "
+            "Prefer orchestration helpers for long-lived code.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
 
     def forward(self, x: torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
         """Forward through backbone then probe head.
@@ -90,6 +100,27 @@ class AbnormalityDetectionProbe:
         probe_in = prepare_probe_features(features)  # (B, 2048)
         logits = self.head(probe_in)
         return cast("torch.Tensor", logits)
+
+    def load_head_checkpoint(self, checkpoint: dict[str, Any] | str | Path) -> None:
+        """Load probe head weights from either legacy or current formats.
+
+        Supports both legacy EEGPTProbe format (with "probe_state_dict") and the
+        current ProbeFactory format (with "model_state_dict").
+        """
+        if isinstance(checkpoint, (str, Path)):
+            from brain_go_brrr.infra.safe_load import safe_load
+
+            payload = safe_load(str(checkpoint))
+        else:
+            payload = checkpoint
+
+        if "probe_state_dict" in payload:
+            migrated = migrate_eegpt_probe_to_factory(payload["probe_state_dict"])
+            self.head.load_state_dict(migrated)
+        elif "model_state_dict" in payload:
+            self.head.load_state_dict(payload["model_state_dict"])
+        else:
+            raise KeyError("Checkpoint must contain 'probe_state_dict' or 'model_state_dict'.")
 
     def predict_proba(
         self, x: torch.Tensor, channel_names: list[str] | None = None
