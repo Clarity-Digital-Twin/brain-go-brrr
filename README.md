@@ -379,6 +379,46 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 ```
 </details>
 
+<details>
+<summary>TUH Abnormal EEG Corpus (TUAB) (click to expand)</summary>
+
+```bibtex
+@mastersthesis{lopez2017automated,
+  title={Automated Identification of Abnormal EEGs},
+  author={Lopez, Silvia},
+  year={2017},
+  school={Temple University},
+  url={https://www.isip.piconepress.com/publications/ms_theses/2017/abnormal/thesis/}
+}
+
+@article{obeid2016temple,
+  title={The Temple University Hospital EEG Data Corpus},
+  author={Obeid, Iyad and Picone, Joseph},
+  journal={Frontiers in Neuroscience},
+  volume={10},
+  pages={196},
+  year={2016},
+  doi={10.3389/fnins.2016.00196}
+}
+```
+</details>
+
+<details>
+<summary>TUH EEG Events Corpus (TUEV) (click to expand)</summary>
+
+```bibtex
+@inproceedings{harati2015improved,
+  title={Improved EEG Event Classification Using Differential Energy},
+  author={Harati, Amir and Golmohammadi, Meysam and Lopez, Silvia and Obeid, Iyad and Picone, Joseph},
+  booktitle={IEEE Signal Processing in Medicine and Biology Symposium (SPMB)},
+  pages={1--4},
+  year={2015},
+  organization={IEEE},
+  url={https://www.isip.piconepress.com/publications/conference_proceedings/2015/ieee_spmb/denergy/}
+}
+```
+</details>
+
 
 ## 🤝 Support & Community
 
