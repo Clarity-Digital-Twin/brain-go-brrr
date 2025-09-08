@@ -200,8 +200,8 @@ from .eegpt_compat import EEGPTConfig, EEGPTModel, extract_features_from_raw, pr
 # FROM:
 from brain_go_brrr.infra.ml_models import EEGPTModel
 
-# TO (temporary until v2.0.0):
-from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel  # Deprecated in v2.0.0
+# TO (temporary until next major version):
+from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel  # Deprecated in next major version
 
 # OR TO (preferred NOW):
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
@@ -209,7 +209,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 **Deprecation Timeline**:
 - **v1.5.0** (Oct 2025): Add DeprecationWarning to eegpt_compat
-- **v2.0.0** (Jan 2026): Remove eegpt_compat module entirely
+- **Next major version** (Jan 2026): Remove eegpt_compat module entirely
 
 **Acceptance Criteria**:
 - [x] `__init__.py` does not import eegpt_compat
@@ -281,7 +281,7 @@ jobs:
           else
             SEARCH_CMD="grep -r"
           fi
-          
+
           if $SEARCH_CMD "import\s+lightning|from\s+lightning" src/ experiments/; then
             echo "❌ PyTorch Lightning detected! Use pure PyTorch."
             echo "See CLAUDE.md for critical training hang bug details."
@@ -359,7 +359,7 @@ rm src/brain_go_brrr/services/yasa_adapter.py
 **Deprecation Timeline**:
 - **v1.4.0** (Now): Update all imports
 - **v1.5.0** (Oct 2025): Add DeprecationWarning to redirect
-- **v2.0.0** (Jan 2026): Delete services/yasa_adapter.py
+- **Next major version** (Jan 2026): Delete services/yasa_adapter.py
 
 ---
 
@@ -467,7 +467,7 @@ importlinter = "^2.0"  # ⚠️ NOT YET IN DEPENDENCIES - must install!
 **Makefile Target**:
 ```makefile
 importlint:
-	uv run importlinter
+	uv run lint-imports  # Corrected CLI name
 ```
 
 **CI Integration**:
@@ -557,10 +557,10 @@ Protocol Usage Guidelines:
 1. Add @runtime_checkable ONLY when:
    - Tests use isinstance(obj, ProtocolType)
    - Runtime type checking is required
-   
+
 2. Current runtime-checkable protocols:
    - LoggerPort (used in isinstance checks)
-   
+
 3. Protocols without @runtime_checkable:
    - CachePort, ModelPort, etc. (structural typing only)
 """
@@ -583,23 +583,23 @@ Protocol Usage Guidelines:
 # tests/unit/utils/test_probe_utils.py
 def test_probe_features_error_on_wrong_shape():
     """Test helpful errors for common mistakes."""
-    
+
     # Error on 512 single vector
     with pytest.raises(ValueError, match="call.*summary=False"):
         prepare_probe_features(torch.randn(512))
-    
+
     # Error on (B, 512) batch
     with pytest.raises(ValueError, match="call.*summary=False"):
         prepare_probe_features(torch.randn(10, 512))
-    
+
     # Accept and convert (4, 512)
     result = prepare_probe_features(torch.randn(4, 512))
     assert result.shape == (1, 2048)
-    
+
     # Accept and convert (B, 4, 512)
     result = prepare_probe_features(torch.randn(10, 4, 512))
     assert result.shape == (10, 2048)
-    
+
     # Pass through (B, 2048)
     input_tensor = torch.randn(10, 2048)
     result = prepare_probe_features(input_tensor)
@@ -697,7 +697,7 @@ def set_global_seed(seed: int = 42) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    
+
     # For CUDA determinism (may impact performance)
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.backends.cudnn.deterministic = True
@@ -1166,6 +1166,6 @@ pip install gitleaks
 2. **Enable verify-p2 CI** - Non-blocking info initially
 3. **After Sprint 1** - Make verify-p2 blocking
 4. **Deprecate in v1.5.0** - Add warnings (Oct 2025)
-5. **Remove in v2.0.0** - Delete deprecated code (Jan 2026)
+5. **Remove in next major version** - Delete deprecated code (Jan 2026)
 
 **THIS DOCUMENT IS NOW 100% EXECUTION-READY - START SPRINT 1!**

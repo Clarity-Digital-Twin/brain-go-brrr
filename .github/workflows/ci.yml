@@ -121,6 +121,21 @@ jobs:
       - name: Import smoke test
         run: |
           uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"
+      
+      - name: Import performance guard
+        run: |
+          echo "Checking import time (max 3 seconds)..."
+          uv run python -c "
+import time
+start = time.perf_counter()
+import brain_go_brrr
+elapsed = time.perf_counter() - start
+print(f'Import took {elapsed:.2f}s')
+if elapsed > 3.0:
+    print(f'ERROR: Import too slow ({elapsed:.2f}s > 3.0s)')
+    exit(1)
+print('✅ Import performance OK')
+          "
 
       - name: Check unsafe torch.load
         run: |
@@ -181,15 +196,19 @@ jobs:
       # DEVELOPMENT & PR: Quick tests only
       - name: Run quick tests
         if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request'
+        env:
+          PYTHONWARNINGS: "error"  # Treat warnings as errors
         run: |
-          echo "Running fast tests..."
+          echo "Running fast tests with warnings as errors..."
           make test
 
       # MAIN/STAGING: Full test suite with coverage
       - name: Run full tests with coverage
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+        env:
+          PYTHONWARNINGS: "error"  # Treat warnings as errors
         run: |
-          echo "Running full test suite with coverage..."
+          echo "Running full test suite with coverage and warnings as errors..."
           make test-all-cov
 
       # Coverage upload disabled (using make test without coverage for now)
@@ -222,6 +241,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run pip-audit
+        run: |
+          echo "Running pip-audit for known vulnerabilities..."
+          uv run pip-audit --desc || true  # Don't fail build on vulnerabilities yet
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
