@@ -47,7 +47,8 @@ training:
 
   # [Paper] line 587: learning rate 5e-4
   learning_rate: 5.0e-4
-  weight_decay: 0.01
+  weight_decay: 0.05
+  label_smoothing: 0.1  # Match EEGPT
 
   # Using OneCycleLR with 30% warmup for stable training
   # Script always uses scheduler regardless of this setting

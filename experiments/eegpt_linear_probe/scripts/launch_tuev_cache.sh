@@ -11,7 +11,7 @@ DATA_ROOT="${BGB_DATA_ROOT:-$PROJECT_ROOT/data}"
 
 # TUEV paths
 TUEV_ROOT="$DATA_ROOT/datasets/tuev"
-CACHE_DIR="$DATA_ROOT/cache/tuev_mne_v2"
+CACHE_DIR="$DATA_ROOT/cache/tuev_mne_fixed"  # New cache with Fpz interpolation fix
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="$EXPERIMENT_DIR/logs/tuev_cache_$TIMESTAMP.log"
 

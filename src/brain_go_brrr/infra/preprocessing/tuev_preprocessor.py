@@ -205,10 +205,10 @@ class TUEVPreprocessor(TUABPreprocessor):
         return raw, missing
 
     def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Synthesize missing canonical channels with zeros.
+        """Synthesize missing canonical channels intelligently.
 
         Ensures final selection can reach exactly 20 channels by adding
-        zero-valued EEG channels for any missing entries in STANDARD_CHANNELS.
+        missing channels using interpolation when possible, zeros otherwise.
         """
         present_lower = {ch.lower() for ch in raw.ch_names}
         need = [ch for ch in self.STANDARD_CHANNELS if ch.lower() not in present_lower]
@@ -220,12 +220,28 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         sfreq = raw.info['sfreq']
         n_times = len(raw.times)
+
+        # Build mapping of channel names to indices for easy lookup
+        ch_to_idx = {ch.lower(): i for i, ch in enumerate(raw.ch_names)}
+
         for ch in need:
             info = mne.create_info([ch], sfreq, ['eeg'])
-            zero_data = np.zeros((1, n_times))
-            zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
-            raw.add_channels([zero_raw], force_update_info=True)
-            logger.info(f"Synthesized missing channel as zeros: {ch}")
+
+            # Special case: Interpolate Fpz from Fp1 and Fp2 if available
+            if ch.lower() == 'fpz' and 'fp1' in ch_to_idx and 'fp2' in ch_to_idx:
+                fp1_idx = ch_to_idx['fp1']
+                fp2_idx = ch_to_idx['fp2']
+                # Average of Fp1 and Fp2 (biologically sensible for midline)
+                fpz_data = (raw._data[fp1_idx] + raw._data[fp2_idx]) / 2.0
+                fpz_raw = mne.io.RawArray(fpz_data[np.newaxis, :], info, verbose=False)
+                raw.add_channels([fpz_raw], force_update_info=True)
+                logger.info(f"Synthesized {ch} by interpolating from Fp1 and Fp2")
+            else:
+                # Default: synthesize as zeros
+                zero_data = np.zeros((1, n_times))
+                zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
+                raw.add_channels([zero_raw], force_update_info=True)
+                logger.info(f"Synthesized missing channel as zeros: {ch}")
 
         return raw
 

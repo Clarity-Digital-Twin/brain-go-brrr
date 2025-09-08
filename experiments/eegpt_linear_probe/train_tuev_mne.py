@@ -509,7 +509,7 @@ def main():
             class_weights = torch.FloatTensor(class_weights).to(device)
             logger.info(f"Class counts: {class_counts.tolist()}")
             logger.info(f"Class weights: {class_weights.tolist()}")
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = nn.CrossEntropyLoss()  # Match EEGPT: no weights
     else:
         criterion = nn.CrossEntropyLoss()
 
