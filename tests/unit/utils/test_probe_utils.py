@@ -11,12 +11,12 @@ class TestProbeFeaturePreparation:
 
     def test_error_on_single_512_vector(self):
         """Should error on single 512 vector with helpful message."""
-        with pytest.raises(ValueError, match="call.*summary=False"):
+        with pytest.raises(ValueError, match="Call extract_features with summary=False"):
             prepare_probe_features(torch.randn(512))
 
     def test_error_on_batch_512(self):
         """Should error on (B, 512) batch with guidance."""
-        with pytest.raises(ValueError, match="call.*summary=False"):
+        with pytest.raises(ValueError, match="Call extract_features with summary=False"):
             prepare_probe_features(torch.randn(10, 512))
 
     def test_accept_single_4x512(self):
@@ -55,7 +55,7 @@ class TestProbeFeaturePreparation:
         # Wrong last dimension
         with pytest.raises(ValueError, match="Expected.*512.*2048"):
             prepare_probe_features(torch.randn(10, 1024))
-        
+
         # Wrong middle dimension for 3D
         with pytest.raises(ValueError, match="Expected.*4 tokens"):
             prepare_probe_features(torch.randn(10, 3, 512))
@@ -79,7 +79,7 @@ class TestProbeFeaturePreparation:
         input_tensor = torch.randn(4, 512, requires_grad=True)
         result = prepare_probe_features(input_tensor)
         assert result.requires_grad
-        
+
         # Verify gradient flows
         loss = result.sum()
         loss.backward()
