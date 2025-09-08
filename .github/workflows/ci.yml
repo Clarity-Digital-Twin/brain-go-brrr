@@ -121,6 +121,21 @@ jobs:
       - name: Import smoke test
         run: |
           uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"
+      
+      - name: Import performance guard
+        run: |
+          echo "Checking import time (max 3 seconds)..."
+          uv run python -c "
+import time
+start = time.perf_counter()
+import brain_go_brrr
+elapsed = time.perf_counter() - start
+print(f'Import took {elapsed:.2f}s')
+if elapsed > 3.0:
+    print(f'ERROR: Import too slow ({elapsed:.2f}s > 3.0s)')
+    exit(1)
+print('✅ Import performance OK')
+          "
 
       - name: Check unsafe torch.load
         run: |
