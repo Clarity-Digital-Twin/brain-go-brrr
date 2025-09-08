@@ -93,6 +93,10 @@ class YASAAdapterConfig:  # P1 FIX: Renamed to avoid collision with domain YASAC
     auto_alias: bool = True  # Automatically alias channels for Sleep-EDF etc.
 
 
+# P1 FIX: Add backward compatibility alias for API stability
+YASAConfig = YASAAdapterConfig
+
+
 class YASASleepStager:
     """YASA-based sleep staging with our pipeline integration."""
 
