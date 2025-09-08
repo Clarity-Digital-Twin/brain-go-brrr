@@ -57,17 +57,17 @@ class LoggerPort(Protocol):
 
 **Problem**: Two different RedisCache implementations cause import confusion
 
-**Location 1**: `src/brain_go_brrr/api/cache.py:22`
+**Location 1**: `src/brain_go_brrr/api/cache.py`
 ```python
 class RedisCache:  # Async Redis implementation
     def __init__(self, redis_url: str):
         self.redis = redis.asyncio.from_url(redis_url)
 ```
 
-**Location 2**: `src/brain_go_brrr/infra/cache/redis_cache.py:39`
+**Location 2**: `src/brain_go_brrr/infra/cache.py`
 ```python
-class RedisCache(BaseCache):  # Sync Redis with BaseCache interface
-    def __init__(self, host='localhost', port=6379, ...):
+class RedisCache:  # Different implementation
+    # Verify actual interface differences
 ```
 
 **Fix Plan**:
