@@ -1,7 +1,7 @@
 # 🎯 REMAINING TECHNICAL DEBT
 
-**Created**: September 8, 2025  
-**Status**: Two optional sprints remain  
+**Created**: September 8, 2025
+**Status**: Two optional sprints remain
 **Priority**: LOW - All critical and high-priority items complete
 
 ---
@@ -30,7 +30,7 @@
 # src/brain_go_brrr/infra/ml_models/channel_mapper.py
 class TUEVChannelMapper(nn.Module):
     """Learnable channel mapping from TUEV 23 → EEGPT 20 channels."""
-    
+
     def __init__(self):
         super().__init__()
         self.channel_conv = nn.Sequential(
@@ -38,7 +38,7 @@ class TUEVChannelMapper(nn.Module):
             nn.BatchNorm1d(20),
             nn.GELU()
         )
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Map (B, 23, T) → (B, 20, T)."""
         return self.channel_conv(x)
@@ -50,7 +50,7 @@ class TUEVChannelMapper(nn.Module):
 3. Add config flag: `enable_tuev_channel_mapper: bool = False`
 
 **Acceptance Criteria**:
-- [ ] Shape test: (B,23,T) → (B,20,T) 
+- [ ] Shape test: (B,23,T) → (B,20,T)
 - [ ] Gradients flow properly through mapper
 - [ ] Config on/off works without regression
 - [ ] Document channel order dependencies
@@ -69,7 +69,7 @@ class TUEVChannelMapper(nn.Module):
 **Remaining polish items not yet implemented:**
 
 #### 1. Code Coverage to 95% (2 hours)
-**Current**: ~86% coverage  
+**Current**: ~86% coverage
 **Target**: 95% on critical paths
 
 **Focus Areas**:
@@ -155,7 +155,7 @@ select = ["F401", "F841"]  # Unused imports/variables
 
 **Remaining Work Priority**: LOW
 
-**Recommendation**: 
+**Recommendation**:
 1. **SKIP Sprint 4** unless actively training TUEV models
 2. **DEFER Sprint 5** until moving to production or team scaling
 3. **FOCUS** on feature development and model training
@@ -166,8 +166,8 @@ The codebase is now clean, maintainable, and has strong architectural boundaries
 
 ## 📝 DECISION LOG
 
-**Date**: _____________  
-**Decision**: [ ] Implement Sprint 4 [ ] Implement Sprint 5 [ ] Defer Both  
-**Rationale**: _____________________________________________  
-**Assigned To**: _____________  
+**Date**: _____________
+**Decision**: [ ] Implement Sprint 4 [ ] Implement Sprint 5 [ ] Defer Both
+**Rationale**: _____________________________________________
+**Assigned To**: _____________
 **Target Date**: _____________
