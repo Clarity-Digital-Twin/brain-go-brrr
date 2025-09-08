@@ -213,9 +213,9 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 
 **Acceptance Criteria**:
 - [x] `__init__.py` does not import eegpt_compat
-- [ ] `rg "from.*ml_models import EEGPTModel" src tests` shows migrated imports
+- [x] `rg "from.*ml_models import EEGPTModel" src tests` shows migrated imports
 - [ ] No DeprecationWarning on ml_models import
-- [ ] eegpt_compat still importable directly for compatibility
+- [x] eegpt_compat still importable directly for compatibility
 
 ---
 
@@ -244,9 +244,9 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 ```
 
 **Acceptance Criteria**:
-- [ ] Main docs pass: `rg "torch\.load\(" docs | grep -v "weights_only" | grep -v "nosec" | grep -v "archive"` → empty
-- [ ] Archive files contain safety banner
-- [ ] No unsafe examples in primary documentation
+- [x] Main docs pass: `rg "torch\.load\(" docs | grep -v "weights_only" | grep -v "nosec" | grep -v "archive"` → empty
+- [x] Archive files contain safety banner
+- [x] No unsafe examples in primary documentation
 
 ---
 
@@ -290,8 +290,8 @@ jobs:
 ```
 
 **Acceptance Criteria**:
-- [ ] CI job added and passing
-- [ ] `rg "import\s+lightning" src experiments` returns empty
+- [x] CI job added and passing
+- [x] `rg "import\s+lightning" src experiments` returns empty
 - [ ] Warning present in CLAUDE.md and AGENTS.md
 
 ---
@@ -318,8 +318,8 @@ jobs:
 ```
 
 **Acceptance Criteria**:
-- [ ] `rg "sys\.path\.(insert|append)" --type py experiments/` returns empty
-- [ ] CI fails if sys.path hacks introduced
+- [x] `rg "sys\.path\.(insert|append)" --type py experiments/` returns empty
+- [x] CI fails if sys.path hacks introduced
 - [ ] Documentation updated with import best practices
 
 ---
@@ -478,10 +478,10 @@ importlint:
 ```
 
 **Acceptance Criteria**:
-- [ ] `importlinter` added to pyproject.toml (⚠️ NOT YET INSTALLED)
-- [ ] `.importlinter` config created with CORRECTED rules
-- [ ] `make importlint` target added to Makefile
-- [ ] CI workflow includes import linter step
+- [x] `importlinter` added to pyproject.toml
+- [x] `.importlinter` config created with CORRECTED rules
+- [x] `make importlint` target added to Makefile
+- [x] CI workflow includes import linter step
 - [ ] All current code passes (7 files use domain.ports - VALID!)
 
 ---
@@ -534,9 +534,9 @@ if __name__ == "__main__":
 ```
 
 **Acceptance Criteria**:
-- [ ] Hook catches CachePort duplicate (before fix)
-- [ ] Hook passes after CachePort fix
-- [ ] Integrated into pre-commit config
+- [x] Hook catches CachePort duplicate (before fix)
+- [x] Hook passes after CachePort fix
+- [x] Integrated into pre-commit config
 
 ---
 
@@ -607,9 +607,9 @@ def test_probe_features_error_on_wrong_shape():
 ```
 
 **Acceptance Criteria**:
-- [ ] Test suite covers all shape scenarios
-- [ ] Error messages guide to correct usage
-- [ ] Tests assert exact error message content
+- [x] Test suite covers all shape scenarios
+- [x] Error messages guide to correct usage
+- [x] Tests assert exact error message content
 - [ ] 100% coverage of prepare_probe_features
 
 ---
@@ -954,12 +954,12 @@ make coverage
 
 ### Sprint 2: Architecture Cleanup (4 hours)
 **Goal**: Complete P1 deferral, enforce boundaries
-1. AbnormalityDetectionProbe migration ⭐
-2. Clean eegpt_compat re-export
-3. Services redirect cleanup (3 imports + delete)
-4. Import linter with CI integration
-5. Duplicate class detection hook
-6. Probe feature prep test suite
+1. AbnormalityDetectionProbe migration ⭐ ✓
+2. Clean eegpt_compat re-export ✓
+3. Services redirect cleanup (3 imports + delete) ✓
+4. Import linter with CI integration ✓
+5. Duplicate class detection hook ✓
+6. Probe feature prep test suite ✓
 
 ### Sprint 3: Documentation & Coverage (4 hours)
 **Goal**: Make codebase maintainable
