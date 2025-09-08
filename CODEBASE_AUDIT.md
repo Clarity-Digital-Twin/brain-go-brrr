@@ -1,5 +1,6 @@
 # 🔍 CODEBASE AUDIT - Technical Debt & Cleanup Opportunities
 **Generated**: September 4, 2025
+**Last Updated**: September 8, 2025 (Post P2 Sprint 1-3)
 **Status**: Active Tracking Document
 **Purpose**: Track non-critical technical debt and refactoring opportunities
 
@@ -7,35 +8,37 @@
 
 ## 📊 Audit Summary
 
-| Category | Count | Priority | Impact |
-|----------|-------|----------|--------|
-| TODO/FIXME Comments | 20+ | Medium | Code clarity |
-| Duplicate Classes | 9 | Low | Maintainability |
-| Large Files (>500 lines) | 7 | Medium | Complexity |
-| Type Ignores | 30+ | Low | Type safety |
-| Dead Code (vulture) | 50+ | Low | Code size |
-| Deprecated Code | 14 | Medium | Future compatibility |
-| Hardcoded Values | 5+ | Medium | Configuration |
+| Category | Count | Priority | Impact | Status |
+|----------|-------|----------|--------|--------|
+| TODO/FIXME Comments | 22 | Medium | Code clarity | Active |
+| Duplicate Classes | 4 families | Low | Maintainability | Mostly resolved |
+| Large Files (>500 lines) | 7 | Medium | Complexity | Active |
+| Type Ignores | 34 | Low | Type safety | Active |
+| Dead Code (vulture) | Periodic check | Low | Code size | Not CI-enforced |
+| Deprecated Code | Tracked | Medium | Future compatibility | Re-exports cleaned |
+| Hardcoded Values | 4 locations | Medium | Configuration | Sane defaults |
 
 ---
 
 ## 🔴 HIGH PRIORITY - Potential Issues
 
-### 1. Duplicate Class Names (Possible Namespace Conflicts)
-**Files**: Multiple locations
-**Classes with duplicates**:
-- `CachePort(Protocol)` - Appears in multiple modules
-- `FeatureExtractorPort(Protocol)` - Multiple definitions
-- `JobData` - Duplicate data classes
-- `LoggerPort(Protocol)` - Multiple logger interfaces
-- `NumpyEncoder(json.JSONEncoder)` - Multiple JSON encoders
-- `RedisCache` - Multiple cache implementations
-- `YASAConfig` - Multiple config classes
-- `_NullModel` - Multiple null object patterns
-- `_NullPreprocessor` - Multiple preprocessor mocks
+### 1. Duplicate Class Names (Mostly Resolved)
+**Status**: ✅ Major duplicates resolved in P2 Sprint 1-3
 
-**Impact**: Confusing imports, potential wrong class usage
-**Action**: Consolidate into single definitions or rename for clarity
+**Resolved**:
+- `CachePort` - ✅ Single definition in `domain/ports/cache.py`
+- `LoggerPort` - ✅ Single protocol in `domain/protocols/logger.py` (@runtime_checkable)
+- `YASAConfig` - ✅ Services redirect cleaned, single source
+- `RedisCache` - ✅ Aliases removed, clear naming
+- `FeatureExtractorPort` - ✅ Architecture violations fixed
+
+**Remaining (intentional or minor)**:
+- `JobData` - 2 instances (API DTO vs application model) - **Acceptable pattern**
+- `NumpyEncoder` - 2 instances (`api/app.py`, `api/routers/qc.py`) - **Should centralize**
+- `_NullModel` - 2 instances (domain-only scaffolding) - **Low priority**
+- `_NullPreprocessor` - 3 instances (domain-only scaffolding) - **Low priority**
+
+**Action**: Centralize NumpyEncoder to `api/utils/json.py`
 
 ### 2. Large Monolithic Files
 **Files needing refactoring**:
@@ -43,9 +46,9 @@
 - `domain/sleep/analyzer.py` - 756 lines
 - `infra/ml_models/eegpt_architecture.py` - 626 lines
 - `infra/preprocessing/snippets/maker.py` - 583 lines
-- `infra/external/yasa_adapter.py` - 574 lines
-- `domain/quality/controller.py` - 562 lines
-- `api/routers/sleep.py` - 545 lines
+- `infra/external/yasa_adapter.py` - 578 lines
+- `domain/quality/controller.py` - 549 lines
+- `api/routers/sleep.py` - 546 lines
 
 **Impact**: Hard to navigate, test, and maintain
 **Action**: Split into smaller, focused modules
@@ -54,11 +57,12 @@
 
 ## 🟡 MEDIUM PRIORITY - Code Quality
 
-### 3. TODO/FIXME/HACK Comments (20+ instances)
+### 3. TODO/FIXME/HACK Comments (22 instances)
 **Highest concentration**:
-- `cli.py` - 4 TODOs
-- `api/routers/queue.py` - 4 FIXMEs
-- `api/app.py` - 3 TODOs
+- `cli.py` - Multiple TODOs
+- `api/app.py` - Multiple TODOs
+- `api/routers/*` - Various FIXMEs
+- `infra/preprocessing/snippets/` - Several optimization notes
 
 **Sample TODOs found**:
 ```python
@@ -73,12 +77,11 @@
 **Action**: Create issues for each TODO and prioritize
 
 ### 4. Hardcoded Network Configuration
-**Files with hardcoded values**:
-- `cli.py` - 2 instances (localhost/ports)
-- `infra/redis/pool.py` - 2 instances (Redis connection)
-- `infra/cache_factory.py` - 1 instance
-- `application/config/base.py` - 1 instance
-- `api/main.py` - 1 instance
+**Files with hardcoded values (4 primary locations)**:
+- `cli.py` - `127.0.0.1` default (acceptable CLI default)
+- `infra/redis/pool.py` - `localhost` default (env override available)
+- `application/config/base.py` - MLflow URI (configurable)
+- `infra/cache_factory.py` - Redis URL env default (configurable)
 
 **Patterns found**:
 - `localhost`, `127.0.0.1` - Hardcoded hosts
@@ -87,10 +90,12 @@
 **Action**: Move to environment variables or config
 
 ### 5. Type Safety Issues
-**Files with most type ignores**:
-- `domain/abnormal/detector.py` - 9 ignores
-- `domain/quality/controller.py` - 7 ignores
-- `domain/preprocessing/features/extractor.py` - 3 ignores
+**Total type ignores**: 34 (acceptable for now)
+
+**Distribution**:
+- Hot paths have some ignores for performance
+- Third-party library integrations
+- Dynamic attribute access patterns
 
 **Common patterns**:
 ```python
@@ -106,34 +111,37 @@
 ## 🟢 LOW PRIORITY - Cleanup Opportunities
 
 ### 6. Dead Code (Vulture Analysis)
-**Unused variables in `_typing.py`** (30+ instances):
-- TypedDict fields that are defined but never used
-- Likely for future compatibility or documentation
+**Status**: Periodic check only (not CI-enforced)
 
-**Other dead code patterns**:
-- Unused imports (cleaned by ruff already)
-- Unreachable code after returns
-- Unused function parameters
-- Never-called private methods
+**Note**:
+- Ruff already handles unused imports/variables (F401, F841)
+- Vulture can be run periodically but not on every PR
+- TypedDict fields in `_typing.py` are intentional for contracts
 
-**Action**: Review and remove if truly unused
+**Action**: Run vulture quarterly, not critical path
 
-### 7. Deprecated Code (14 instances)
-**Common patterns**:
-```python
-warnings.warn("X is deprecated, use Y instead", DeprecationWarning)
-@deprecated("Use new_function instead")
-```
+### 7. Deprecated Code Management
+**Status**: ✅ Re-exports cleaned in P2 Sprint 2
 
-**Action**: Plan migration path and remove in next major version
+**Cleaned**:
+- `eegpt_compat` re-export removed from `__init__.py`
+- Services redirect deleted
+- EEGPTProbe usage removed from application layer
 
-### 8. Missing Tests
-**Modules with low/no test coverage**:
-- CLI commands (`cli.py`)
-- Redis integration (`infra/redis/`)
-- Some API endpoints (`api/routers/`)
+**Remaining deprecations are tracked and have migration paths**
 
-**Action**: Add integration tests for these modules
+**Action**: Continue phased deprecation per MIGRATION_GUIDE.md
+
+### 8. Test Coverage
+**Current Coverage**: ~86% (acceptable)
+**Target**: 95% on critical paths (Sprint 5 - optional)
+
+**Lower coverage areas**:
+- CLI commands (`cli.py`) - Interactive, lower priority
+- Redis integration - Tested in integration suite
+- Some API endpoints - Covered by integration tests
+
+**Action**: Sprint 5 optional - increase to 95%
 
 ---
 
@@ -159,38 +167,53 @@ warnings.warn("X is deprecated, use Y instead", DeprecationWarning)
 
 ## 🎯 Recommended Actions (Priority Order)
 
-### Immediate (This Week)
-1. [ ] Consolidate duplicate class definitions
-2. [ ] Extract hardcoded values to config
-3. [ ] Create GitHub issues for high-priority TODOs
+### Immediate (Quick Wins)
+1. [x] Consolidate duplicate class definitions - ✅ MOSTLY DONE
+2. [ ] Centralize NumpyEncoder to `api/utils/json.py`
+3. [ ] Create GitHub issues for top 10 TODOs
 
-### Short Term (This Month)
-4. [ ] Refactor files >500 lines into smaller modules
-5. [ ] Fix type ignores with proper typing
-6. [ ] Add missing integration tests
+### Short Term (When Touching Code)
+4. [ ] Refactor large files when modifying those areas
+5. [ ] Fix type ignores in hot paths only
+6. [ ] Continue improving test coverage incrementally
 
-### Long Term (Next Quarter)
-7. [ ] Remove deprecated code after migration
-8. [ ] Clean up dead code identified by vulture
-9. [ ] Implement proper error handling where TODOs exist
+### Long Term (Low Priority)
+7. [ ] Remove deprecated code per migration timeline
+8. [ ] Run vulture quarterly for cleanup
+9. [ ] Convert remaining TODOs to tracked issues
 
 ---
 
 ## 🔧 Automation Opportunities
 
-### Pre-commit Hooks to Add
-- `vulture` - Dead code detection
-- `radon` - Complexity checking
-- `bandit` - Security scanning
+### Current Automation (✅ Already Implemented)
+- **import-linter**: Architecture boundaries enforced
+- **ruff**: Dead code (unused imports/vars) checked
+- **mypy**: Type checking enforced
+- **pip-audit**: Security scanning active
+- **Pre-commit hooks**: Comprehensive suite active
 
-### CI Checks to Add
-- Maximum file size limit (500 lines)
-- TODO comment limit
-- Type ignore limit
+### Optional Future Automation
+- `vulture`: Quarterly dead code deep scan (not every PR)
+- `radon`: Complexity metrics (informational only)
+- `bandit`: Additional security scanning (if needed)
 
 ---
 
 ## 📝 Notes
+
+### What Changed After P2 Sprint 1-3
+- **Architecture violations**: Fixed all domain→infra imports
+- **Duplicate protocols**: Consolidated to single definitions
+- **Import performance**: Added <3s guard in CI
+- **Warnings discipline**: CI fails on unexpected warnings
+- **Deterministic testing**: Seeds and controls added
+
+### Current State
+- **Production-ready** with comprehensive quality gates
+- **11/11 import-linter contracts** passing
+- **CI/CD fully operational** with all guards
+- Only **optional optimizations** remain (Sprint 4-5)
 
 - This audit focused on `src/` directory only
 - `experiments/` excluded as it's meant for quick iteration
