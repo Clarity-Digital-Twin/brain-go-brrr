@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from brain_go_brrr.services.hierarchical_pipeline import HierarchicalEEGAnalyzer, PipelineConfig
-from brain_go_brrr.services.yasa_adapter import YASASleepStager
+from brain_go_brrr.infra.external.yasa_adapter import YASASleepStager
 
 
 @pytest.mark.integration

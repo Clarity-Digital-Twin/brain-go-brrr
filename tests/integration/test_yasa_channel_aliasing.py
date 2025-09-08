@@ -4,7 +4,7 @@ import mne
 import numpy as np
 import pytest
 
-from brain_go_brrr.services.yasa_adapter import YASAConfig, YASASleepStager
+from brain_go_brrr.infra.external.yasa_adapter import YASAConfig, YASASleepStager
 
 pytestmark = pytest.mark.data  # Requires real Sleep-EDF data
 
