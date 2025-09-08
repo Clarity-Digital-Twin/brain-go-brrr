@@ -21,7 +21,6 @@ if TYPE_CHECKING:
     # Import only for type checking to avoid runtime dependencies
     from brain_go_brrr._typing import MNERaw
     from brain_go_brrr.domain.abnormal.detector import AbnormalityResult
-    from brain_go_brrr.domain.preprocessing.features.extractor import ExtractedFeatures
     from brain_go_brrr.domain.quality.controller import QualityMetrics
 
 
