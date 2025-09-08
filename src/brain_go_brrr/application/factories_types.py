@@ -92,6 +92,7 @@ class QualityControllerPort(Protocol):
 
 # P1 FIX: Removed duplicate FeatureExtractorPort - use domain/abnormal/ports.py version
 
+
 @runtime_checkable
 class EEGProcessorPort(Protocol):
     """Protocol for general EEG processing.
