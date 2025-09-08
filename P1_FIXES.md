@@ -28,29 +28,28 @@
 
 ## 🔥 P1 ISSUES - DANGEROUS DUPLICATES
 
-### 1. LoggerPort Protocol (INCOMPATIBLE SIGNATURES)
+### 1. LoggerPort Protocol (DUPLICATE IN DOMAIN)
 
-**Problem**: Two LoggerPort definitions with different signatures will cause TypeErrors
+**Problem**: Two LoggerPort definitions within domain layer cause confusion
 
 **Location 1**: `src/brain_go_brrr/domain/ports/base.py:16`
 ```python
 class LoggerPort(Protocol):
-    def debug(self, message: str) -> None:  # Only accepts message
+    def debug(self, message: str) -> None:
     def info(self, message: str) -> None:
 ```
 
-**Location 2**: `src/brain_go_brrr/infra/logging/logger_adapter.py:11`  
+**Location 2**: `src/brain_go_brrr/domain/abnormal/ports.py:67`  
 ```python
 class LoggerPort(Protocol):
-    def debug(self, message: str, **kwargs: Any) -> None:  # Accepts kwargs
-    def info(self, message: str, **kwargs: Any) -> None:
+    # Check if signatures differ
 ```
 
 **Fix Plan**:
-1. Use infra version as SSOT (more flexible with kwargs)
-2. Delete domain/ports/base.py:LoggerPort
-3. Update all imports to use infra version
-4. Add type alias in domain if needed: `from infra.logging import LoggerPort`
+1. Consolidate to single LoggerPort in `domain/protocols/logger.py`
+2. Delete both existing definitions
+3. Update all imports to use new unified location
+4. Ensure consistent signature across all usages
 
 ---
 
