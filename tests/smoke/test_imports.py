@@ -12,6 +12,7 @@ def test_services_imports():
         HierarchicalPipelineYASAAdapter,
         YASASleepStager,
     )
+
     # YASAConfig now comes from infra.external.yasa_adapter
     from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
 
