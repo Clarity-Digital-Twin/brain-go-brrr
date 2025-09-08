@@ -80,44 +80,48 @@ class RedisCache:  # Different implementation
 
 ### 3. YASAConfig Duplicate Classes
 
-**Problem**: Two YASAConfig classes with different defaults cause confusion
+**Problem**: Two YASAConfig classes with potentially different defaults
 
-**Location 1**: `src/brain_go_brrr/infra/external/config.py:6`
+**Location 1**: `src/brain_go_brrr/domain/sleep/analyzer_enhanced.py:46`
 ```python
 @dataclass
 class YASAConfig:
-    eeg_channel: Optional[str] = None  # Auto-detect mode
+    # Check actual fields and defaults
 ```
 
-**Location 2**: `src/brain_go_brrr/infra/external/yasa_adapter.py:25`
+**Location 2**: `src/brain_go_brrr/infra/external/yasa_adapter.py:74`
 ```python
 @dataclass  
 class YASAConfig:
-    eeg_channel: str = "C4"  # Hardcoded default
+    # Check if different from domain version
 ```
 
 **Fix Plan**:
-1. Delete adapter version (line 25-30 in yasa_adapter.py)
-2. Import from config: `from .config import YASAConfig`
-3. Ensure auto-detect logic works with None default
-4. Add validation that C4 is selected when None
+1. Keep domain version as SSOT (domain/sleep/analyzer_enhanced.py)
+2. Delete infra version (yasa_adapter.py:74)
+3. Update yasa_adapter to import: `from ...domain.sleep.analyzer_enhanced import YASAConfig`
+4. Ensure consistent defaults across all usages
 
 ---
 
-### 4. FeatureExtractorPort Duplicates
+### 4. FeatureExtractorPort & Related Port Duplicates
 
-**Problem**: Three definitions with slightly different contracts
+**Problem**: Multiple port definitions with overlapping responsibilities
 
-**Locations**:
-- `src/brain_go_brrr/domain/ports/base.py:42` - Basic extract method
-- `src/brain_go_brrr/domain/ports/feature_extractor.py:11` - Extended with window methods
-- `src/brain_go_brrr/infra/ports/__init__.py:41` - Re-exported confusion
+**FeatureExtractorPort**:
+- `src/brain_go_brrr/application/factories_types.py:94`
+- `src/brain_go_brrr/domain/abnormal/ports.py:51`
+
+**Related Ports**:
+- `src/brain_go_brrr/domain/ports/base.py:36` - EEGModelPort
+- `src/brain_go_brrr/domain/ports/base.py:60` - PreprocessorPort  
+- `src/brain_go_brrr/domain/abnormal/ports.py:19` - EEGPreprocessorPort
 
 **Fix Plan**:
-1. Keep domain/ports/feature_extractor.py as SSOT (most complete)
-2. Delete base.py:FeatureExtractorPort
-3. Update infra/ports/__init__ to import from domain
-4. Ensure all implementations follow the complete protocol
+1. Consolidate FeatureExtractorPort to single location (domain/ports/)
+2. Review if EEGModelPort and FeatureExtractorPort should merge
+3. Unify PreprocessorPort and EEGPreprocessorPort
+4. Update all imports to use consolidated versions
 
 ---
 

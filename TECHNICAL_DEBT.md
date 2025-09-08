@@ -1,9 +1,9 @@
 # 🚨 TECHNICAL DEBT — Priority Issues Requiring Resolution
 
 **Created**: September 4, 2025
-**Updated**: September 7, 2025 (P0 COMPLETE, P1 remaining)
-**Status**: P0 ✅ RESOLVED | P1 🟡 ACTIVE
-**Focus**: EEGPT feature dimensionality (paper compliance) and dangerous duplicate types
+**Updated**: September 7, 2025  
+**Status**: P0 complete; current focus: P1
+**Focus**: Dangerous duplicate types and technical cleanup
 
 ## ⚠️ CRITICAL AUDIT FINDINGS
 
@@ -24,16 +24,25 @@ After first-principles code audit and EEGPT literature review:
 > - **If NOT feeding a probe**: Can use `extract_features(..., summary=True)` → 512 dims (averaged)
 > - **Why**: EEGPT paper specifies "4 × 512 dimensional features" for downstream tasks. Averaging loses 75% of information.
 
-## 🚨 PRIORITY RANKING (P0 = CRASH TODAY)
+## 🚨 PRIORITY RANKING 
 
+### ✅ P0 COMPLETE
+| Priority | Issue | Impact | Status |
+|----------|-------|--------|--------|
+| **P0** | EEGPT API Dimensionality (512 vs 2048) | Runtime crash with probes | ✅ FIXED |
+| **P0** | SleepProbeTrainer (if used with real model) | Runtime crash (tests mask it) | ✅ FIXED |
+
+### 🟡 P1 ACTIVE (Current Focus)
 | Priority | Issue | Impact | Time |
 |----------|-------|--------|------|
-| ~~**P0**~~ | ~~EEGPT API Dimensionality (512 vs 2048)~~ | ~~Runtime crash with probes~~ | ✅ FIXED |
-| ~~**P0**~~ | ~~SleepProbeTrainer (if used with real model)~~ | ~~Runtime crash (tests mask it)~~ | ✅ FIXED |
-| **P1** | LoggerPort duplicate signatures | TypeErrors if mixed | 30m |
+| **P1** | LoggerPort duplicate (domain layer) | Import confusion | 30m |
 | **P1** | RedisCache duplicate class names | Import confusion, wrong backend | 30m |
 | **P1** | YASAConfig duplicate classes | Subtle behavior divergence | 30m |
-| **P1** | FeatureExtractorPort duplicates | Contract confusion across layers | 45m |
+| **P1** | FeatureExtractorPort & related ports | Contract confusion across layers | 45m |
+
+### 📝 P2 BACKLOG
+| Priority | Issue | Impact | Time |
+|----------|-------|--------|------|
 | **P2** | Docs unsafe torch.load | CI/CD failures for new devs | 15m |
 | **P2** | Lightning in dependencies | Accidental usage risk | 15m |
 | **P2** | Probe migration incomplete | Tech debt accumulation | 2h |
