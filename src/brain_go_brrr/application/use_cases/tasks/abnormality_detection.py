@@ -89,9 +89,11 @@ class AbnormalityDetectionProbe:
             features = self.backbone.extract_features(x, channel_names, summary=False)
         probe_in = prepare_probe_features(features)  # (B, 2048)
         logits = self.head(probe_in)
-        return cast(torch.Tensor, logits)
+        return cast("torch.Tensor", logits)
 
-    def predict_proba(self, x: torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
+    def predict_proba(
+        self, x: torch.Tensor, channel_names: list[str] | None = None
+    ) -> torch.Tensor:
         """Softmax probabilities for abnormality classes."""
         logits = self.forward(x, channel_names)
         return torch.softmax(logits, dim=-1)
