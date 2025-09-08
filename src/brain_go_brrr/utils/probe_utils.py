@@ -65,7 +65,10 @@ def prepare_probe_features(
 
     elif features_tensor.dim() == 2:
         # Check if it's (EEGPT_SUMMARY_TOKENS, EEGPT_TOKEN_DIM) or (B, D)
-        if features_tensor.shape[0] == EEGPT_SUMMARY_TOKENS and features_tensor.shape[1] == EEGPT_TOKEN_DIM:
+        if (
+            features_tensor.shape[0] == EEGPT_SUMMARY_TOKENS
+            and features_tensor.shape[1] == EEGPT_TOKEN_DIM
+        ):
             # Single sample with 4 tokens - flatten and add batch dim
             features_tensor = features_tensor.flatten().unsqueeze(0)
         elif features_tensor.shape[1] == EEGPT_TOKEN_DIM:
@@ -85,7 +88,10 @@ def prepare_probe_features(
 
     elif features_tensor.dim() == 3:
         # Should be (B, EEGPT_SUMMARY_TOKENS, EEGPT_TOKEN_DIM)
-        if features_tensor.shape[1] == EEGPT_SUMMARY_TOKENS and features_tensor.shape[2] == EEGPT_TOKEN_DIM:
+        if (
+            features_tensor.shape[1] == EEGPT_SUMMARY_TOKENS
+            and features_tensor.shape[2] == EEGPT_TOKEN_DIM
+        ):
             # Flatten the last two dimensions
             features_tensor = features_tensor.flatten(1)  # (B, EEGPT_PROBE_INPUT_DIM)
         else:
