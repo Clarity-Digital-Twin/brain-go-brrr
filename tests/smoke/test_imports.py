@@ -10,9 +10,10 @@ def test_services_imports():
     from brain_go_brrr.services import (
         HierarchicalEEGAnalyzer,
         HierarchicalPipelineYASAAdapter,
-        YASAConfig,
         YASASleepStager,
     )
+    # YASAConfig now comes from infra.external.yasa_adapter
+    from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
 
     assert HierarchicalEEGAnalyzer is not None
     assert HierarchicalPipelineYASAAdapter is not None
