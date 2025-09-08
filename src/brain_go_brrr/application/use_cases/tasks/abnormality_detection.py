@@ -96,7 +96,8 @@ class AbnormalityDetectionProbe:
         """
         with torch.no_grad():
             # Extract features with summary=False to get (B, 4, 512)
-            features = self.backbone.extract_features(x, channel_names, summary=False)
+            # Note: channel_names is for API compatibility but not used by extract_features
+            features = self.backbone.extract_features(x, chan_ids=None, summary=False)
         probe_in = prepare_probe_features(features)  # (B, 2048)
         logits = self.head(probe_in)
         return cast("torch.Tensor", logits)
