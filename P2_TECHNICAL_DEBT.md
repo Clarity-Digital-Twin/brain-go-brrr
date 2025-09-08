@@ -946,10 +946,10 @@ make coverage
 **Goal**: Prevent regressions, clean obvious issues
 1. Remove duplicate CachePort ✓
 2. Remove 768-dim tolerance ✓ 🔥
-3. Add PyTorch Lightning CI guard with ripgrep ☐
-4. Add sys.path hack prevention ☐
+3. Add PyTorch Lightning CI guard with ripgrep ✓
+4. Add sys.path hack prevention ✓
 5. Clean test Redis aliases ✓
-6. Add documentation safety banners (6 files) ☐
+6. Add documentation safety banners (6 files) ✓
 7. Protocol runtime checks documentation ☐
 
 ### Sprint 2: Architecture Cleanup (4 hours)
