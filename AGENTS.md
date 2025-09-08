@@ -38,7 +38,6 @@ from brain_go_brrr.domain.preprocessing import preprocess  # REUSE!
 **PROBLEM DISCOVERED**: Parallel implementations in experiments/ and src/
 - Status: BOTH FIXED with normalization
 - TODO: Migrate experiments/ to use src/ components
-- See: `/THE_ONE_FIX.md` for complete unfuck plan
 
 ## 🚨 CRITICAL WARNING: PyTorch Lightning 2.5.2 Bug
 
@@ -56,6 +55,8 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 
 **SOLUTION**: Use `experiments/eegpt_linear_probe/train_tuab.py` (pure PyTorch)
 
+**CI PROTECTION**: A guard in `.github/workflows/ci.yml` prevents Lightning imports
+
 ## 🧠 Critical Context
 
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.
@@ -66,9 +67,9 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 - **EEGPT Features**: 2,048-dim features (4×512 summary tokens, flattened)
 - **FastAPI Server**: REST API with Redis caching
 - **CI/CD Pipeline**: All branches green, pre-commit hooks fixed
-- **Unit Tests**: 899 passing tests (as of Sep 2, 2025)
+- **Unit Tests**: All tests pass locally (run `make test`)
 - **Architecture**: Unified - experiments/ uses src/ components
-- **Normalization**: SSOT in wrapper, datasets emit raw mV
+- **Normalization**: SSOT in wrapper, datasets emit Volts (SI units)
 - **Channel Validation**: Enforces correct order per dataset
 
 ## 🟡 In Progress
@@ -110,26 +111,14 @@ This is a medical-adjacent EEG analysis system using the EEGPT foundation model.
 ### 🚨 CRITICAL: Pre-Push Validation (MUST PASS OR CI WILL FAIL)
 
 ```bash
-# ALWAYS RUN THESE EXACT COMMANDS BEFORE PUSHING
-# These use the SAME versions as CI/CD to prevent divergence
+# ALWAYS RUN THESE BEFORE PUSHING (uses project Makefile targets)
+make format      # Auto-format code
+make lint        # Check for lint errors
+make typecheck   # Run type checking
+make validate    # Full pre-push validation suite
 
-# 1. Format code with CI's ruff version (0.12.3)
-uv run ruff format src/ tests/ scripts/ experiments/
-
-# 2. Check formatting matches CI exactly
-uv run ruff format --check src/ tests/ scripts/ experiments/
-
-# 3. Check for lint errors CI will catch
-uv run ruff check src/ tests/ scripts/ experiments/
-
-# 4. Run type checking with CI config
-uv run mypy --config-file mypy.ini src/brain_go_brrr
-
-# 5. Check for unsafe torch.load usage (CRITICAL - CI WILL FAIL WITHOUT THIS)
-find src tests experiments -name "*.py" | grep -v safe_load.py | xargs uv run python .pre-commit-hooks/safe_torch_load.py
-
-# Or use the all-in-one command:
-make check-all  # Runs all checks CI will run
+# Or run all checks at once:
+make check-all   # Runs all CI checks locally
 ```
 
 ### 🔒 SECURITY: torch.load Requirements
@@ -290,8 +279,8 @@ brain-go-brrr/
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
 │   └── datasets/          # EEG datasets
-│       ├── tuab/          # TUH Abnormal dataset v3.0.1
-│       ├── tuev/          # TUH Events dataset v2.0.1
+│       ├── tuab/          # TUH Abnormal dataset
+│       ├── tuev/          # TUH Events dataset
 │       └── sleep-edf/     # Sleep-EDF dataset (197 recordings)
 └── literature/            # Research papers & markdown
 ```
@@ -304,7 +293,8 @@ brain-go-brrr/
 - Calculate impedance metrics
 - Identify artifacts (eye blinks, muscle, heartbeat)
 - Generate reports in <30 seconds
-- Implementation: `/services/qc_flagger.py`
+- Domain: `src/brain_go_brrr/domain/quality/controller.py`
+- Infrastructure: `src/brain_go_brrr/infra/preprocessing/autoreject_adapter.py`
 
 ### 2. Abnormality Detection 🟢 TRAINING
 
@@ -516,7 +506,7 @@ async def analyze_eeg(
 
 ## 📋 First Vertical Slice (MVP)
 
-Based on ROUGH_DRAFT.md, implement in this order:
+Implement in this order:
 
 ### 1. Basic EEG Pipeline
 
@@ -585,7 +575,7 @@ think hard about implementing [FEATURE]
 
 # 3. Implement following patterns
 "Implement [FEATURE] using service pattern.
-Reference /services/qc_flagger.py for structure"
+Reference domain/quality/controller.py for structure"
 
 # 4. Verify and document
 make test
@@ -735,11 +725,3 @@ make check-all  # Run all quality checks
 6. **Add Integration Test** (end-to-end flow)
 
 Remember: This handles brain data. Accuracy matters. Test everything.
-
-## 🔗 Quick Links
-
-- [Literature Master Reference](docs/literature-master-reference.md)
-- [Product Requirements](docs/PRD-product-requirements.md)
-- [Technical Requirements](docs/TRD-technical-requirements.md)
-- [Agentic Workflow Guide](docs/agentic-workflow.md)
-- [Project Status](PROJECT_STATUS.md)
