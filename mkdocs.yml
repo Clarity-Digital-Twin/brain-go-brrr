@@ -79,6 +79,7 @@ nav:
       - Configuration Checklist: docs/implementation/CONFIGURATION_CHECKLIST.md
       - Testing Best Practices: docs/implementation/TESTING_BEST_PRACTICES.md
   - Maintenance:
+      - TUEV Metrics SSOT: TUEV_METRICS_SSOT.md
       - Remaining Debt: REMAINING_DEBT.md
       - Codebase Audit: CODEBASE_AUDIT.md
       - Archived Debt (P0–P2): docs/archive/technical-debt/

@@ -280,8 +280,8 @@ tmux attach -t tuev_training -r  # read-only attach
 ### Execution Strategy (Post-Training)
 1) Save state — export metrics, backup checkpoints, document config
 2) Decision (based on Balanced Accuracy, not raw accuracy):
-   - If TUEV BAC < 60% ⇒ implement Sprint 4 (below EEGPT paper target)
-   - If BAC ≥ 60% ⇒ consider skipping Sprint 4 (target achieved)
+   - If TUEV BAC < 62% ⇒ implement Sprint 4 (below EEGPT paper target of 62.32%)
+   - If BAC ≥ 62% ⇒ consider skipping Sprint 4 (target achieved)
 3) If doing Sprint 4 ⇒ follow Phases 1–5 and A/B test
 4) Sprint 5 can be done independently (start with test parallelization)
 
