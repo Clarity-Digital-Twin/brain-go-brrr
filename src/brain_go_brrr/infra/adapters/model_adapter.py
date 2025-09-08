@@ -4,6 +4,8 @@ These adapters implement the domain ports, allowing infrastructure
 components to be used by the domain layer without creating dependencies.
 """
 
+from typing import Any
+
 import numpy as np
 import numpy.typing as npt
 
@@ -129,18 +131,18 @@ class LoggerAdapter(LoggerPort):
         """
         self.logger = get_infra_logger(name)
 
-    def debug(self, message: str) -> None:
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log debug message."""
-        self.logger.debug(message)
+        self.logger.debug(msg, *args, **kwargs)
 
-    def info(self, message: str) -> None:
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log info message."""
-        self.logger.info(message)
+        self.logger.info(msg, *args, **kwargs)
 
-    def warning(self, message: str) -> None:
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log warning message."""
-        self.logger.warning(message)
+        self.logger.warning(msg, *args, **kwargs)
 
-    def error(self, message: str) -> None:
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
         """Log error message."""
-        self.logger.error(message)
+        self.logger.error(msg, *args, **kwargs)
