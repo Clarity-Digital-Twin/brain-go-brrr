@@ -2,6 +2,10 @@
 
 Binary classification task for detecting abnormal EEG patterns.
 Target: AUROC ≥ 0.93 (from EEGPT paper)
+
+⚠️ P1 TODO: This module still uses EEGPTProbe for backward compatibility.
+Migration to ProbeFactory deferred to P2 as it's not used in critical paths.
+The orchestration pipeline (eegpt_orchestration.py) has been fixed to use ProbeFactory.
 """
 
 import logging
