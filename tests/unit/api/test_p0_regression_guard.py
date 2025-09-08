@@ -124,8 +124,12 @@ class TestP0RegressionGuard:
                 "P0 VIOLATION: probe_utils.py exists but missing prepare_probe_features function!"
             )
 
-        # Verify it enforces 2048 dimensions
-        if 'shape[-1] != 2048' not in content and '2048' not in content:
+        # Verify it enforces 2048 dimensions (either literal or constant)
+        if (
+            'shape[-1] != 2048' not in content
+            and '2048' not in content
+            and 'EEGPT_PROBE_INPUT_DIM' not in content
+        ):
             pytest.fail("P0 VIOLATION: prepare_probe_features doesn't verify 2048 dimensions!")
 
     def test_no_probe_receives_512_dimensions(self):
