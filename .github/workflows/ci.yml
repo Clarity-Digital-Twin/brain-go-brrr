@@ -107,6 +107,12 @@ jobs:
           echo "Running type checks..."
           uv run mypy --config-file mypy.ini src/brain_go_brrr
 
+      - name: Import linter (architecture contracts)
+        run: |
+          echo "Running importlinter contracts..."
+          uv run importlinter
+          echo "Importlinter completed"
+
       - name: Import smoke test
         run: |
           uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"
