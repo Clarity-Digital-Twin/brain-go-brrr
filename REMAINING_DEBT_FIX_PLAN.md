@@ -1,5 +1,7 @@
 # 🔧 REMAINING DEBT FIX PLAN - ACTIONABLE CHECKLIST
 
+> Note: This document is superseded by REMAINING_DEBT.md, which now embeds this actionable checklist. Prefer editing REMAINING_DEBT.md going forward.
+
 **Created**: September 8, 2025  
 **Status**: Ready for implementation when training completes  
 **Priority**: OPTIONAL - All critical items already complete  

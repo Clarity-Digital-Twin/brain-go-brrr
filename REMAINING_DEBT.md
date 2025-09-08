@@ -171,3 +171,133 @@ The codebase is now clean, maintainable, and has strong architectural boundaries
 **Rationale**: _____________________________________________
 **Assigned To**: _____________
 **Target Date**: _____________
+
+---
+
+## 🔧 Fix Plan — Actionable Checklist
+
+### ⚠️ Current Constraints (Do Not Interrupt Training)
+
+```bash
+# Non-disruptive monitoring
+tmux ls
+tmux attach -t tuev_training -r  # read-only attach
+
+# Training status expectations
+# - TUEV event detection training in progress
+# - Cache built and operational
+# - Do NOT change preprocessing until training completes
+```
+
+### Sprint 4: TUEV Channel Synthesis (+1% Accuracy)
+
+#### Phase 1 — Preparation (post-training)
+- [ ] Backup checkpoints
+  ```bash
+  cp -r experiments/eegpt_linear_probe/checkpoints \
+        experiments/eegpt_linear_probe/checkpoints_zerofill_backup
+  ```
+- [ ] Record baseline metrics
+  ```bash
+  grep "val_acc\|val_auroc" \
+    experiments/eegpt_linear_probe/logs/latest.log > baseline_metrics.txt
+  ```
+
+#### Phase 2 — Channel Mapper Module
+- [ ] Add `src/brain_go_brrr/infra/ml_models/channel_mapper.py`
+  ```python
+  import torch
+  import torch.nn as nn
+
+  class TUEVChannelMapper(nn.Module):
+      """Map TUEV 23 channels → EEGPT 20 channels."""
+
+      def __init__(self, dropout: float = 0.3):
+          super().__init__()
+          self.channel_conv = nn.Sequential(
+              nn.Conv1d(23, 20, kernel_size=1, bias=True),
+              nn.BatchNorm1d(20),
+              nn.GELU(),
+              nn.Dropout(dropout),
+          )
+
+      def forward(self, x: torch.Tensor) -> torch.Tensor:
+          return self.channel_conv(x)
+  ```
+- [ ] Unit tests `tests/unit/infra/ml_models/test_channel_mapper.py`
+  ```python
+  import torch
+  from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
+
+  def test_channel_mapper_shapes():
+      mapper = TUEVChannelMapper()
+      x = torch.randn(32, 23, 1024)
+      y = mapper(x)
+      assert y.shape == (32, 20, 1024)
+
+  def test_gradient_flow():
+      mapper = TUEVChannelMapper()
+      x = torch.randn(1, 23, 256, requires_grad=True)
+      y = mapper(x)
+      y.mean().backward()
+      assert x.grad is not None
+  ```
+
+#### Phase 3 — Training Integration
+- [ ] `experiments/eegpt_linear_probe/train_tuev_mne.py`
+  ```python
+  if config.get("use_channel_mapper", False):
+      from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
+      channel_mapper = TUEVChannelMapper().to(device)
+      optimizer.add_param_group({"params": channel_mapper.parameters()})
+
+  # Before feeding into EEGPT
+  if config.get("use_channel_mapper", False):
+      x = channel_mapper(x)  # (B,23,T) → (B,20,T)
+  ```
+- [ ] Config flag
+  ```yaml
+  # experiments/eegpt_linear_probe/configs/tuev_with_mapper.yaml
+  use_channel_mapper: true
+  channel_mapper_dropout: 0.3
+  ```
+
+#### Phase 4 — Testing & Validation
+- [ ] A/B run
+  ```bash
+  python train_tuev_mne.py --config configs/tuev_with_mapper.yaml --run_name tuev_mapper
+  ```
+- [ ] Cross-dataset safety
+  ```bash
+  pytest tests/integration/test_tuab_*.py -v
+  ```
+
+#### Phase 5 — Documentation
+- [ ] Update TUEV_FPZ_DISCREPANCY.md with results
+- [ ] Add mapper usage to TRAINING.md
+- [ ] Document performance comparison
+
+### Execution Strategy (Post-Training)
+1) Save state — export metrics, backup checkpoints, document config
+2) Decision:
+   - If TUEV val accuracy < 80% ⇒ implement Sprint 4
+   - If ≥ 80% ⇒ consider skipping Sprint 4
+3) If doing Sprint 4 ⇒ follow Phases 1–5 and A/B test
+4) Sprint 5 can be done independently (start with test parallelization)
+
+### Success Metrics
+- Sprint 4: +≥1% val accuracy on TUEV; no TUAB regression; <10% training slow-down; gradients flow
+- Sprint 5: ≥95% coverage on critical paths; ~2x faster tests with parallelization; 0 secrets via gitleaks; dead code removed or justified
+
+### Monitoring Commands
+```bash
+tmux attach -t tuev_training -r
+watch -n 1 nvidia-smi
+tail -f experiments/eegpt_linear_probe/logs/latest.log | grep -E "loss|acc|auroc"
+lsof | grep "cache.*tuev"
+```
+
+### Risks & Mitigations
+- Disrupting active training → wait for completion; verify `tmux ls`
+- Mapper overfitting → dropout + small LR; watch val–train gap
+- Dataset regressions → gate by config; run full test suite
