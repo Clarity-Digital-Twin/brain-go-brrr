@@ -65,7 +65,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
         checkpoint_path: str,
         probe: nn.Module | None = None,
         n_channels: int = 20,
-        n_classes: int = 2,
+        n_classes: int = 2,  # noqa: ARG002 - kept for API compatibility
         learning_rate: float = 5e-4,
         weight_decay: float = 0.05,
         warmup_epochs: int = 5,
