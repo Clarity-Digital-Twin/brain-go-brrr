@@ -163,7 +163,7 @@ class EnhancedAbnormalityDetectionProbe(nn.Module):  # Changed from pl.Lightning
 
         # Prepare features for probe (flatten to B, 2048)
         probe_features = prepare_probe_features(features)
-        
+
         # Apply probe with 2048-d features
         logits = self.probe(probe_features)
 

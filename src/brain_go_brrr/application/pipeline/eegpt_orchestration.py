@@ -71,7 +71,7 @@ def predict_abnormality_with_eegpt(
 
         # Create probe head (expects 2048-d features)
         probe = ProbeFactory.create_for_task(task="abnormality")
-        
+
         # Load checkpoint - handle both formats
         checkpoint = torch.load(probe_path, map_location=device, weights_only=True)
         if 'probe_state_dict' in checkpoint:
@@ -80,7 +80,7 @@ def predict_abnormality_with_eegpt(
         else:
             # Sleep trainer format - direct load
             state_dict = checkpoint['model_state_dict']
-        
+
         probe.load_state_dict(state_dict)
         probe = probe.to(device)
         probe.eval()
@@ -112,7 +112,7 @@ def predict_abnormality_with_eegpt(
 
             # Always extract features first
             features = model.extract_features(mini_batch, summary=False)  # (B, 4, 512)
-            
+
             if probe:
                 # Prepare features for probe (flatten to B, 2048)
                 probe_features = prepare_probe_features(features)
