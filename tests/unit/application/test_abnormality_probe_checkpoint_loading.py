@@ -6,8 +6,7 @@ to return a lightweight dummy backbone with the expected interface.
 
 from __future__ import annotations
 
-import types
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import torch
@@ -15,23 +14,27 @@ import torch
 from brain_go_brrr.application.use_cases.tasks.abnormality_detection import (
     AbnormalityDetectionProbe,
 )
-from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
 from brain_go_brrr.infra.ml_models.probe_factory import (
+    ProbeFactory,
     migrate_eegpt_probe_to_factory,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DummyBackbone:
     def __init__(self) -> None:
+        """Initialize dummy backbone."""
         pass
 
-    def parameters(self):  # noqa: D401 - mimic nn.Module API
+    def parameters(self):
         return []
 
     def eval(self) -> None:
         return None
 
-    def extract_features(self, x: torch.Tensor, channel_names=None, summary=False):  # noqa: ANN001, ANN202
+    def extract_features(self, x: torch.Tensor, channel_names=None, summary=False):
         # Return deterministic zeros of shape (B, 4, 512)
         b = x.shape[0]
         return torch.zeros((b, 4, 512), dtype=torch.float32, device=x.device)

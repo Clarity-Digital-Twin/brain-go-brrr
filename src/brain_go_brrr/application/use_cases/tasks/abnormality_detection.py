@@ -84,7 +84,7 @@ class AbnormalityDetectionProbe:
             stacklevel=2,
         )
 
-    def forward(self, x: torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, channel_names: list[str] | None = None) -> torch.Tensor:  # noqa: ARG002
         """Forward through backbone then probe head.
 
         Args:
@@ -108,7 +108,7 @@ class AbnormalityDetectionProbe:
         Supports both legacy EEGPTProbe format (with "probe_state_dict") and the
         current ProbeFactory format (with "model_state_dict").
         """
-        if isinstance(checkpoint, (str, Path)):
+        if isinstance(checkpoint, str | Path):
             from brain_go_brrr.infra.safe_load import safe_load
 
             payload = safe_load(str(checkpoint))
