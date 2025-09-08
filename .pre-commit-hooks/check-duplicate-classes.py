@@ -46,4 +46,3 @@ def find_duplicate_classes(root: str = "src") -> int:
 
 if __name__ == "__main__":
     sys.exit(find_duplicate_classes())
-
