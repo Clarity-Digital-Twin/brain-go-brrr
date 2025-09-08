@@ -260,6 +260,13 @@ uv run pytest tests/unit/domain/sleep -v
 | [ROADMAP.md](ROADMAP.md) | Project roadmap and priorities |
 | [CHANGELOG.md](CHANGELOG.md) | Version history and breaking changes |
 
+### 🔧 Technical Debt & Maintenance
+| Guide | Description |
+|-------|------------|
+| [REMAINING_DEBT.md](REMAINING_DEBT.md) | Optional Sprint 4-5 enhancements |
+| [CODEBASE_AUDIT.md](CODEBASE_AUDIT.md) | Current technical debt tracking |
+| [Archived Debt](docs/archive/technical-debt/) | Completed P0-P2 sprints documentation |
+
 ## 🚦 Current Status & Roadmap
 
 ### ✅ Completed
