@@ -117,11 +117,11 @@ class TestAPICache:
     """Test cache utilities."""
 
     def test_redis_cache_import(self):
-        """Test that RedisCache can be imported."""
-        from brain_go_brrr.api.cache import RedisCache
+        """Test that APIRedisCache can be imported (renamed from RedisCache)."""
+        from brain_go_brrr.api.cache import APIRedisCache
 
         # Test that it's a class
-        assert isinstance(RedisCache, type)
+        assert isinstance(APIRedisCache, type)
 
 
 class TestAPISettings:
