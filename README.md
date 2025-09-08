@@ -322,6 +322,7 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 **If you use this software in research, please cite:**
 
 ### Datasets
+*For any TUH EEG dataset usage, please also cite the foundational corpus: Obeid & Picone (2016)*
 <details>
 <summary>TUH Abnormal EEG Corpus (TUAB) (click to expand)</summary>
 
