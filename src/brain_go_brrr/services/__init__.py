@@ -28,19 +28,17 @@ def __getattr__(name: str) -> Any:
         from brain_go_brrr.application.pipeline.hierarchical_pipeline import HierarchicalEEGAnalyzer
 
         return HierarchicalEEGAnalyzer  # Legacy alias
-    elif name in ("HierarchicalPipelineYASAAdapter", "YASAConfig", "YASASleepStager"):
+    elif name in ("HierarchicalPipelineYASAAdapter", "YASASleepStager"):
         from brain_go_brrr.infra.external.yasa_adapter import (
             HierarchicalPipelineYASAAdapter,
-            YASAAdapterConfig,  # P1 FIX: Use renamed class
             YASASleepStager,
         )
 
-        # P1 FIX: Create compatibility alias
-        yasa_config = YASAAdapterConfig  # Use lowercase to avoid N806
-
         if name == "HierarchicalPipelineYASAAdapter":
             return HierarchicalPipelineYASAAdapter
-        elif name == "YASAConfig":
-            return yasa_config
         return YASASleepStager
+    elif name == "YASAConfig":
+        # P1 FIX: Direct import from infra where the alias is properly defined
+        from brain_go_brrr.infra.external.yasa_adapter import YASAConfig
+        return YASAConfig
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
