@@ -66,9 +66,7 @@ def predict_abnormality_with_eegpt(
         from brain_go_brrr.infra.ml_models.probe_factory import ProbeFactory
 
         probe = ProbeFactory.create_for_task(
-            task="abnormality",
-            backbone=model,
-            architecture="linear"
+            task="abnormality", backbone=model, architecture="linear"
         )
         checkpoint = torch.load(probe_path, map_location=device, weights_only=True)
         probe.load_state_dict(checkpoint['model_state_dict'])
