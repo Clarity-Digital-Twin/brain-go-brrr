@@ -142,7 +142,7 @@ select = ["F401", "F841"]  # Unused imports/variables
 - ✅ Deterministic testing
 
 **What we'd gain from remaining work:**
-- +1% TUEV accuracy (Sprint 4)
+- +1% TUEV BAC (Sprint 4)
 - 95% code coverage (Sprint 5)
 - Parallel test execution (Sprint 5)
 - Secrets scanning (Sprint 5)
@@ -189,7 +189,7 @@ tmux attach -t tuev_training -r  # read-only attach
 # - Do NOT change preprocessing until training completes
 ```
 
-### Sprint 4: TUEV Channel Synthesis (+1% Accuracy)
+### Sprint 4: TUEV Channel Synthesis (+1% BAC)
 
 #### Phase 1 — Preparation (post-training)
 - [ ] Backup checkpoints
