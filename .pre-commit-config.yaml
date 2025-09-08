@@ -98,18 +98,20 @@ repos:
       # Check for hardcoded dataset paths (prevent Sleep-EDF regression)
       - id: no-hardcoded-paths
         name: no-hardcoded-paths
-        entry: .venv/bin/python .pre-commit-hooks/check_hardcoded_paths.py
-        language: system
+        entry: python .pre-commit-hooks/check_hardcoded_paths.py
+        language: python
         files: \.(py|md|rst|txt|sh)$
         exclude: ^(SLEEP_EDF_FIX_PLAN|PATH_AUDIT|CLEANUP_STATUS|DIVERGENCE_FIX|TEST_DATA_DIVERGENCE|CACHE_PATH_ANALYSIS)\.md$
+        additional_dependencies: []
 
       # Detect duplicate class definitions
       - id: duplicate-classes
         name: duplicate-classes
-        entry: .venv/bin/python .pre-commit-hooks/check-duplicate-classes.py
-        language: system
+        entry: python .pre-commit-hooks/check-duplicate-classes.py
+        language: python
         pass_filenames: false
         always_run: true
+        additional_dependencies: []
 
   # Security checks (temporarily disabled - missing baseline)
   # - repo: https://github.com/Yelp/detect-secrets

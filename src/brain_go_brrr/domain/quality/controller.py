@@ -105,24 +105,11 @@ class CleanQualityController:
 
         # Create model from path if provided (backward compatibility)
         if model is None and eegpt_model_path is not None:
-            # Import here to avoid circular dependency
-            # For compatibility, try new API first, fall back to old if needed
-            try:
-                from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
-
-                wrapper = create_normalized_eegpt(checkpoint_path=str(eegpt_model_path))
-                model = wrapper  # type: ignore[assignment]
-                self.model = model
-            except Exception:
-                # If new API fails, try compatibility wrapper for tests
-                try:
-                    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
-
-                    model = EEGPTModel(checkpoint_path=eegpt_model_path, auto_load=False)  # type: ignore[assignment]
-                    self.model = model
-                except Exception:
-                    # If both fail, continue with None
-                    pass
+            # Domain should not create infra objects directly
+            # Model should be injected via dependency injection
+            # TODO: Refactor to use proper dependency injection pattern
+            # For now, leave model as None when path is provided
+            pass
 
         # Store model reference for backward compatibility
         # Only set if we actually created a model
