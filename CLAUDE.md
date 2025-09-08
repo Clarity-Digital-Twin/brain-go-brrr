@@ -55,6 +55,8 @@ This occurs with large cached datasets (>100k samples) and CANNOT be fixed with 
 
 **SOLUTION**: Use `experiments/eegpt_linear_probe/train_tuab.py` (pure PyTorch)
 
+**CI PROTECTION**: A guard in `.github/workflows/ci.yml` prevents Lightning imports
+
 ## 🧠 Critical Context
 
 This is a medical-adjacent EEG analysis system using the EEGPT foundation model. While not FDA-approved, code quality matters - bugs could impact clinical decisions. Always prioritize safety and accuracy over speed.
@@ -277,8 +279,8 @@ brain-go-brrr/
 │   ├── models/            # Model checkpoints
 │   │   └── pretrained/    # EEGPT weights here
 │   └── datasets/          # EEG datasets
-│       ├── tuab/          # TUH Abnormal dataset v3.0.1
-│       ├── tuev/          # TUH Events dataset v2.0.1
+│       ├── tuab/          # TUH Abnormal dataset
+│       ├── tuev/          # TUH Events dataset
 │       └── sleep-edf/     # Sleep-EDF dataset (197 recordings)
 └── literature/            # Research papers & markdown
 ```
