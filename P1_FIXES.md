@@ -3,7 +3,7 @@
 **Created**: September 7, 2025
 **Owner**: ___________________
 **Time Required**: 3 hours total (4 issues × 30-45min each)
-**Status**: ✅ 90% COMPLETE - ProbeFactory remaining
+**Status**: ✅ 100% COMPLETE - ALL P1 FIXES DONE
 **Approach**: Systematic deduplication and standardization
 
 ---
@@ -363,7 +363,7 @@ checkpoint = torch.load("output/tuab_*/best_model.pt")
 ### Cleanup Complete
 - [x] torch.load: TRAINING.md:246 uses weights_only parameter ✅ DONE
 - [x] Lightning: Not in pyproject.toml (never was) ✅ DONE
-- [ ] EEGPTProbe: All 3 usages migrated to ProbeFactory.create() ⚠️ IN PROGRESS
+- [x] EEGPTProbe: All 3 usages migrated to ProbeFactory.create() ✅ DONE
 
 ### Verification
 - [x] `rg '^class LoggerPort'` returns exactly 1 result ✅ VERIFIED
