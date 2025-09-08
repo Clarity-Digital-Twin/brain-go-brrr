@@ -286,7 +286,7 @@ tmux attach -t tuev_training -r  # read-only attach
 4) Sprint 5 can be done independently (start with test parallelization)
 
 ### Success Metrics
-- Sprint 4: +≥1% val accuracy on TUEV; no TUAB regression; <10% training slow-down; gradients flow
+- Sprint 4: +≥1% BAC improvement on TUEV; no TUAB regression; <10% training slow-down; gradients flow
 - Sprint 5: ≥95% coverage on critical paths; ~2x faster tests with parallelization; 0 secrets via gitleaks; dead code removed or justified
 
 ### Monitoring Commands
