@@ -181,15 +181,19 @@ jobs:
       # DEVELOPMENT & PR: Quick tests only
       - name: Run quick tests
         if: github.ref == 'refs/heads/development' || github.event_name == 'pull_request'
+        env:
+          PYTHONWARNINGS: "error"  # Treat warnings as errors
         run: |
-          echo "Running fast tests..."
+          echo "Running fast tests with warnings as errors..."
           make test
 
       # MAIN/STAGING: Full test suite with coverage
       - name: Run full tests with coverage
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+        env:
+          PYTHONWARNINGS: "error"  # Treat warnings as errors
         run: |
-          echo "Running full test suite with coverage..."
+          echo "Running full test suite with coverage and warnings as errors..."
           make test-all-cov
 
       # Coverage upload disabled (using make test without coverage for now)
