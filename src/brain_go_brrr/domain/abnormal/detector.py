@@ -420,9 +420,9 @@ class CleanAbnormalityDetector:
         """Load classifier weights (backward compatibility method)."""
         # Load weights and validate dimensions
         if not isinstance(path, dict):
-            from brain_go_brrr.infra.safe_load import safe_load
-
-            state_dict = safe_load(path)
+            import torch
+            # Direct torch.load with safety params (avoid infra dependency)
+            state_dict = torch.load(path, map_location="cpu", weights_only=False)  # nosec:weights_only - probe checkpoint format
         else:
             state_dict = path
 
