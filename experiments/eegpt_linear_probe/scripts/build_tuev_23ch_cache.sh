@@ -31,6 +31,7 @@ for SPLIT in train eval; do
     # Discover repo root and ensure src/ is on PYTHONPATH for imports
     ROOT_DIR=$(git rev-parse --show-toplevel)
     export PYTHONPATH="$ROOT_DIR/src:$PYTHONPATH"
+    export CURRENT_SPLIT="$SPLIT"
 
     uv run python - << 'PYCODE'
 import os
@@ -39,7 +40,7 @@ from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 
 data_root = os.environ['BGB_DATA_ROOT']
 cache_root = os.environ['BGB_CACHE_DIR']
-split = os.environ.get('SPLIT_OVERRIDE', '$SPLIT')
+split = os.environ['CURRENT_SPLIT']
 
 print(f'Building 23-channel cache for {split} split...')
 dataset = TUEVMNEDataset(
