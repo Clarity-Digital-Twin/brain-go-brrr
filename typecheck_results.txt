@@ -1,0 +1,3 @@
+[0;36mRunning full type checks...[0m 
+.venv/bin/mypy --config-file mypy.ini src/brain_go_brrr
+Success: no issues found in 132 source files
