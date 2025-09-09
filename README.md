@@ -16,6 +16,12 @@
 
 [**Quick Start**](#-quick-start) • [**How It Works**](#-how-it-works) • [**Documentation**](#-documentation) • [**For Researchers**](#-for-researchers) • [**For Developers**](#-for-developers) • [**API Reference**](docs/API.md) • [**Training Guide**](docs/TRAINING.md)
 
+## 🎯 Current Focus
+
+- **✅ TUEV Event Classification**: Training with paper parity (62.32% BAC target) - See [`docs/tuev/`](docs/tuev/)
+- **🚧 TUSZ Temporal Detection**: Implementing SeizureTransformer wrapper - See [`TUSZ_*.md`](.) files
+- **📋 Technical Debt**: Tracked in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
+
 ## 🧠 The Problem: Making Sense of Brain Waves
 
 **What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
