@@ -18,9 +18,10 @@
 
 ## 🎯 Current Focus
 
-- **✅ TUEV Event Classification**: Training with paper parity (62.32% BAC target) - See [`docs/tuev/`](docs/tuev/)
-- **🚧 TUSZ Temporal Detection**: Implementing SeizureTransformer wrapper - See [`TUSZ_*.md`](.) files
-- **📋 Technical Debt**: Tracked in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
+- **🚧 TUEV Event Classification**: Training in progress (Epoch 5/100, target: 62.32% BAC) - See [`docs/tuev/`](docs/tuev/)
+- **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
+- **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
+- **⚠️ Note**: `REMAINING_DEBT.md` is deprecated - use `TECHNICAL_DEBT.md` only
 
 ## 🧠 The Problem: Making Sense of Brain Waves
 

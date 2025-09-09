@@ -166,13 +166,14 @@ metrics = {
 }
 ```
 
-#### For TUEV (6-Class Event Classification) ✅ COMPLETE
+#### For TUEV (6-Class Event Classification) 🚧 TRAINING IN PROGRESS
 **Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
 **Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)
 **Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
 **Targets (paper)**: Weighted F1 ≈ 81.87%, BAC ≈ 62.32%, Kappa ≈ 0.6351
-**Status**: Training running with paper parity mode (23-channel + learnable mapper)
-**Documentation**: See `docs/tuev/` for implementation details and metrics
+**Current Status**: Training at Epoch 5/100, BAC ~16.67% (improving)
+**Implementation**: ✅ 23-channel paper parity mode with learnable mapper
+**Documentation**: See `docs/tuev/` for implementation details
 **Note**: Paper parity requires 23-ch input + learned Conv2d(23→20) mapper; current approach uses 20-ch preprocessing with Fpz interpolation
 
 †*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
