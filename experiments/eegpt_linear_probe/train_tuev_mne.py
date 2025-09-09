@@ -475,7 +475,7 @@ def main():
         'shuffle': False,
         'num_workers': num_workers if num_workers > 0 else 0,
         'pin_memory': config['data'].get('pin_memory', True),
-        'collate_fn': collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
+        'collate_fn': collate_fn,  # Use selected collate (parity or standard)
     }
 
     # Only add persistent_workers and prefetch_factor if we have workers
