@@ -177,6 +177,11 @@ def train_epoch(
         # Backward pass
         optimizer.zero_grad()
         loss.backward()
+        
+        # Apply gradient clipping if specified in config
+        if config and config.get('training', {}).get('gradient_clip', 0) > 0:
+            torch.nn.utils.clip_grad_norm_(probe.parameters(), config['training']['gradient_clip'])
+        
         optimizer.step()
 
         # BULLETPROOF scheduler step using internal counters
@@ -257,7 +262,7 @@ def train_epoch(
     # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
     balanced_acc = (
-        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        balanced_accuracy_score(all_labels, all_preds)
         if all_labels
         else 0
     )
@@ -306,7 +311,7 @@ def evaluate(model, probe, eval_loader, criterion, device, channel_mapper=None):
     # Calculate metrics (guard against empty eval set)
     avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
     balanced_acc = (
-        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        balanced_accuracy_score(all_labels, all_preds)
         if all_labels
         else 0
     )
