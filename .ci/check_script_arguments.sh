@@ -14,10 +14,10 @@ if grep -q -- '--cache_dir' experiments/eegpt_linear_probe/scripts/launch_tuev_p
 fi
 
 # Check TUAB launch script if exists
-if [ -f "experiments/eegpt_linear_probe/scripts/launch_tuab_training.sh" ]; then
+if [ -f "experiments/eegpt_linear_probe/scripts/launch_tuab_mne.sh" ]; then
     echo "Validating TUAB launch script..."
-    if grep -q -- '--cache_dir' experiments/eegpt_linear_probe/scripts/launch_tuab_training.sh; then
-        echo "ERROR: launch_tuab_training.sh uses --cache_dir but train expects --cache-dir"
+    if grep -q -- '--cache_dir' experiments/eegpt_linear_probe/scripts/launch_tuab_mne.sh; then
+        echo "ERROR: launch_tuab_mne.sh uses --cache_dir but train_tuab_mne.py expects --cache-dir"
         exit 1
     fi
 fi

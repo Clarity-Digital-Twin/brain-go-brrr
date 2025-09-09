@@ -62,7 +62,7 @@ extra_javascript:
 
 # Navigation
 nav:
-  - Home: PROJECT_STATUS.md
+  - Home: README.md
   - Requirements:
       - Product Requirements: requirements/PRD-product-requirements.md
       - Technical Requirements: requirements/TRD-technical-requirements.md
@@ -79,9 +79,12 @@ nav:
       - Configuration Checklist: docs/implementation/CONFIGURATION_CHECKLIST.md
       - Testing Best Practices: docs/implementation/TESTING_BEST_PRACTICES.md
   - Maintenance:
-      - TUEV Metrics SSOT: TUEV_METRICS_SSOT.md
-      - Remaining Debt: REMAINING_DEBT.md
+      - Technical Debt: TECHNICAL_DEBT.md
       - Codebase Audit: CODEBASE_AUDIT.md
+      - TUEV Documentation:
+          - Paper Parity Status: docs/tuev/PAPER_PARITY_STATUS.md
+          - Metrics SSOT: docs/tuev/TUEV_METRICS_SSOT.md
+          - Training Guide: experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md
       - Archived Debt (P0–P2): docs/archive/technical-debt/
 
 # Plugins
