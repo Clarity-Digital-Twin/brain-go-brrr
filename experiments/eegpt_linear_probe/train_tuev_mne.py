@@ -352,7 +352,10 @@ def resolve_env_vars(obj):
 def main():
     parser = argparse.ArgumentParser(description='Train TUEV with MNE preprocessing')
     parser.add_argument(
-        '--config', type=str, default='configs/tuev.yaml', help='Path to config file'
+        '--config',
+        type=str,
+        default='configs/tuev_paper_parity.yaml',
+        help='Path to config file (default: paper parity)',
     )
     parser.add_argument(
         '--output-dir', type=str, default=None, help='Output directory for checkpoints'
@@ -444,6 +447,10 @@ def main():
     logger.info(
         f"Using collate function: {'paper parity (23ch)' if use_paper_parity else 'standard (20ch)'}"
     )
+    if not use_paper_parity:
+        logger.warning(
+            "Using legacy 20‑channel TUEV mode (NOT paper parity). Prefer configs/tuev_paper_parity.yaml."
+        )
 
     train_dataset = TUEVMNEDataset(
         root_dir=Path(config['data']['root_dir']),

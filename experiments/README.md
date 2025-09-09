@@ -21,7 +21,7 @@ experiments/
     ├── test_*.py                 # Essential test scripts
     ├── configs/                  # Training configurations
     │   ├── tuab.yaml            # TUAB config (19 channels)
-    │   └── tuev.yaml            # TUEV config (20 channels)
+    │   └── tuev_paper_parity.yaml  # TUEV paper parity (23 raw + mapper)
     ├── docs/                     # Essential documentation
     │   ├── README.md            # Navigation guide
     │   ├── CHANNEL_SPECIFICATIONS.md  # Critical channel specs

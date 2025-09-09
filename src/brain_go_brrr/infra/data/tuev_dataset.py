@@ -1,6 +1,10 @@
 """TUEV dataset with MNE+Autoreject preprocessing.
 
-Multi-class event detection (6 classes) with 20 channels (Fz and Fpz included, Oz excluded).
+Multi-class event detection (6 classes).
+
+Modes:
+- Paper parity (recommended): Keep 23 raw channels (incl. A1/A2/T1/T2), cached as Volts; use a learnable 23→20 mapper before EEGPT.
+- Legacy: Preprocess/mask to a canonical 20-channel interface (Fz & Fpz included, Oz excluded). Not paper-parity.
 """
 
 import json
