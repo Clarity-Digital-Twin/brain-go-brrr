@@ -1,0 +1,87 @@
+# TUEV Paper Parity Configuration
+# Matches EEGPT reference implementation exactly
+
+data:
+  dataset: "tuev"
+  root_dir: "${BGB_DATA_ROOT}/datasets/tuev"
+  cache_dir: "${BGB_CACHE_DIR}/tuev_23ch_paper_parity"  # NEW 23-channel cache
+  
+  # Critical settings for paper parity
+  window_samples: 1024  # 4.0 seconds @ 256Hz (16 patches of 64 samples)
+  sampling_rate: 256    # Target rate (resample from 250Hz)
+  n_channels: 23        # ALL channels including A1, A2, T1, T2
+  n_classes: 6          # SPSW, GPED, PLED, EYEM, ARTF, BCKG
+  
+  batch_size: 64        # From EEGPT reference (paper text says 500 but code uses 64)
+  num_workers: 4
+  pin_memory: true
+  use_paper_parity: true  # CRITICAL: Enable 23-channel mode
+
+model:
+  # EEGPT pretrained checkpoint
+  eegpt_checkpoint: "${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  freeze_backbone: true  # Linear probing only
+  
+  # Paper parity channel mapper settings
+  use_channel_mapper: true    # CRITICAL: Enable learned 23→20 mapper
+  mapper_dropout: 0.8          # From EEGPT reference
+  
+  # Expected shapes (for validation)
+  expected_input: [23, 1024]
+  expected_after_mapper: [20, 1024]
+  expected_features: [16, 4, 512]  # From EEGPT encoder
+  
+  # Probe settings (existing TwoLayerProbe)
+  dropout: 0.5  # For probe head
+
+training:
+  n_epochs: 100
+  
+  # Exact hyperparameters from EEGPT reference
+  learning_rate: 5.0e-4
+  weight_decay: 0.05           # Higher than usual (0.01 → 0.05)
+  label_smoothing: 0.1         # Critical for EEGPT
+  weighted_loss: false         # NO class weights per paper
+  
+  # Using OneCycleLR with 30% warmup (existing in training script)
+  use_scheduler: true
+  
+  # Gradient clipping for stability
+  gradient_clip: 1.0
+  
+  # Early stopping
+  patience: 20
+  min_delta: 0.001
+
+metrics:
+  # Paper reports these metrics (Table 3)
+  primary:
+    - balanced_accuracy  # Target: 0.6232 ± 0.0114
+    - weighted_f1        # Target: 0.8187 ± 0.0063 (misleading due to imbalance)
+    - cohen_kappa        # Target: 0.6351 ± 0.0134
+  
+  secondary:
+    - confusion_matrix
+    - per_class_f1
+    - ied_vs_non_ied    # SPSW+GPED+PLED vs others
+
+validation:
+  # Paper line 197: "repeated each experiment three times"
+  n_runs: 3
+  seeds: [42, 123, 456]
+  
+  # BIOT split strategy (not LOSO!)
+  split_strategy: "biot"  # Use existing train/eval split
+  
+  # Target performance from paper
+  targets:
+    balanced_accuracy: 0.6232
+    weighted_f1: 0.8187
+    cohen_kappa: 0.6351
+
+# Reproducibility settings
+reproducibility:
+  deterministic: true
+  seed: 42  # For data loading
+  model_seed: 123  # For model init
+  augmentation_seed: 456  # For any augmentation
