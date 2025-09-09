@@ -170,8 +170,8 @@ metrics = {
 **Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
 **Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)
 **Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
-**Targets (paper)**: Weighted F1 ≈ 0.8187, BAC ≈ 0.6232, Kappa ≈ 0.6351
-**Note**: Fpz synthesis required (see `TUEV_FPZ_DISCREPANCY.md`)
+**Targets (paper)**: Weighted F1 ≈ 81.87%, BAC ≈ 62.32%, Kappa ≈ 0.6351
+**Note**: Paper parity requires 23-ch input + learned Conv2d(23→20) mapper; current approach uses 20-ch preprocessing with Fpz interpolation
 
 †*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
 

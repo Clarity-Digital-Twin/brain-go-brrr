@@ -73,6 +73,10 @@ metrics = {
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md) for exact target values and thresholds.
 
+**⚠️ Architecture Note**: 
+- **Current approach**: 20-ch preprocessing with Fpz interpolation from (Fp1+Fp2)/2
+- **Paper parity (REQUIRED)**: 23-ch input + learned Conv2d(23→20) mapper, NO synthesis
+
 ### Task Definition
 - **Type**: 6-class classification per event window
 - **Classes**: SPSW (spike), GPED, PLED, EYEM (eye movement), ARTF (artifact), BCKG (background)
