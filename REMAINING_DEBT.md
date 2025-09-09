@@ -19,11 +19,18 @@
 
 ## 📋 REMAINING ITEMS
 
-### Sprint 4: TUEV Channel Synthesis (4 hours) 🔬 OPTIONAL
+### Sprint 4: TUEV Channel Synthesis (4 hours) 🔬 ✅ COMPLETED
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target metrics and thresholds.
 
-**Problem**: TUEV dataset has 23 channels, EEGPT expects 20. Currently using zero-fill approach.
+**✅ COMPLETED (2025-09-08)**:
+- Fpz synthesis via interpolation from (Fp1+Fp2)/2
+- Hyperparameter alignment with EEGPT paper
+- BAC metrics fixed for 6-class consistency
+- Cache rebuilt with improvements
+- All CI/CD checks passing
+
+**Original Problem**: TUEV dataset has 23 channels, EEGPT expects 20. Was using zero-fill approach.
 
 **Potential Benefit**: +1% BAC (Balanced Accuracy) improvement with learnable channel mapping
 

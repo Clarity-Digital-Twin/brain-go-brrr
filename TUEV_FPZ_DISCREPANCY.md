@@ -1,7 +1,7 @@
 # TUEV Fpz Channel Discrepancy - Investigation Results
 
-**Date**: September 6, 2025
-**Status**: ✅ RESOLVED - Discrepancy Documented & Verified
+**Date**: September 6, 2025 (Updated September 8, 2025)
+**Status**: ✅ RESOLVED - Discrepancy Fixed with Interpolation
 **Priority**: Important for Understanding
 **Type**: Documentation of Paper vs Reality Mismatch
 
@@ -46,6 +46,18 @@ grep -n "Conv2dWithConstraint(in_channels" reference_repos/EEGPT/downstream_tueg
 ```
 
 **Result**: Paper wrong, code correct, we handle it properly!
+
+## 🚀 UPDATE (2025-09-08): FPZ INTERPOLATION IMPLEMENTED
+
+### What We Fixed:
+1. **Fpz Synthesis**: Now interpolates from (Fp1+Fp2)/2 when both available
+2. **Fallback**: Still uses zeros if Fp1 or Fp2 missing
+3. **Cache Rebuild**: Running with `tuev_mne_fixed` cache directory
+4. **Confirmed Working**: Log shows "Synthesized Fpz by interpolating from Fp1 and Fp2"
+
+### Code Location:
+- `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py` lines 232-239
+- Uses public MNE API `get_data()` for robustness
 
 ## The Facts
 
