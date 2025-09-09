@@ -22,7 +22,7 @@ echo "TUEV Paper Parity Training"
 echo "========================================="
 echo "Run name: $RUN_NAME"
 echo "Data root: $BGB_DATA_ROOT"
-echo "Cache dir: $BGB_CACHE_DIR/tuev_23ch_paper_parity"
+echo "Cache dir (base): $BGB_CACHE_DIR (dataset writes to tuev_23ch_paper_parity/)"
 echo "Config: configs/tuev_paper_parity.yaml"
 echo "Expected: 62.32% BAC (vs current ~22%)"
 echo "========================================="
@@ -47,10 +47,10 @@ fi
 
 # Launch training
 echo "Starting training with paper parity configuration..."
-python train_tuev_mne.py \
+# Use uv to ensure project environment and pass BASE cache dir (dataset adds subdir)
+uv run python train_tuev_mne.py \
     --config configs/tuev_paper_parity.yaml \
-    --run_name "$RUN_NAME" \
-    --cache_dir "$BGB_CACHE_DIR/tuev_23ch_paper_parity" \
+    --cache_dir "$BGB_CACHE_DIR" \
     2>&1 | tee "logs/${RUN_NAME}.log"
 
 echo ""

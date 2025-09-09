@@ -28,38 +28,37 @@ for SPLIT in train eval; do
     echo "Building $SPLIT split with 23 channels..."
     echo "=============================================="
     
-    uv run python -c "
-import sys
+    # Discover repo root and ensure src/ is on PYTHONPATH for imports
+    ROOT_DIR=$(git rev-parse --show-toplevel)
+    export PYTHONPATH="$ROOT_DIR/src:$PYTHONPATH"
+
+    uv run python - << 'PYCODE'
 import os
-os.environ['BGB_DATA_ROOT'] = '$BGB_DATA_ROOT'
-os.environ['BGB_CACHE_DIR'] = '$BGB_CACHE_DIR'
-
-# Add project root to path
-sys.path.insert(0, '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr')
-
-from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from pathlib import Path
+from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 
-split = '$SPLIT'
+data_root = os.environ['BGB_DATA_ROOT']
+cache_root = os.environ['BGB_CACHE_DIR']
+split = os.environ.get('SPLIT_OVERRIDE', '$SPLIT')
+
 print(f'Building 23-channel cache for {split} split...')
 dataset = TUEVMNEDataset(
-    root_dir=Path('$BGB_DATA_ROOT/datasets/tuev'),
+    root_dir=Path(f"{data_root}/datasets/tuev"),
     split=split,
-    cache_dir=Path('$BGB_CACHE_DIR'),
+    cache_dir=Path(cache_root),
     force_rebuild=True,
-    use_paper_parity=True  # 23 channels for paper parity
+    use_paper_parity=True,
 )
 
 print(f'✓ Built {len(dataset)} windows for {split} split')
 print(f'  Channels: {dataset.n_channels}')
 print(f'  Cache location: {dataset.cache_dir}')
 
-# Verify first sample has 23 channels
 if len(dataset) > 0:
-    x, y = dataset[0]
+    x, _ = dataset[0]
     print(f'  Sample shape: {x.shape} (should be (23, 1024))')
     assert x.shape[0] == 23, f'Expected 23 channels, got {x.shape[0]}'
-"
+PYCODE
 done
 
 echo ""
