@@ -130,7 +130,7 @@ pip wheel . --wheel-dir=wheelhouse
 tar -czf bgb-offline.tar.gz wheelhouse/ models/
 ```
 
-## Phase 2: Clinical Metrics (Week 3-4) ✅ TUEV COMPLETE, 🚧 TUSZ IN PROGRESS
+## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT - TUEV TRAINING, TUSZ NEXT
 
 ### 📊 Metrics by Dataset (See `docs/EVALUATION_METRICS.md` for full details)
 
