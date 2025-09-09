@@ -18,10 +18,11 @@
 
 ## 🎯 Current Focus
 
-- **🚧 TUEV Event Classification**: Training in progress (Epoch 5/100, target: 62.32% BAC) - See [`docs/tuev/`](docs/tuev/)
+- **🚧 TUEV Event Classification**: Training in progress (Epoch 5/100, target: 62.32% BAC)
+  - Documentation: [`docs/tuev/`](docs/tuev/)
+  - Training Guide: [`experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md`](experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md)
 - **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
 - **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
-- **⚠️ Note**: `REMAINING_DEBT.md` is deprecated - use `TECHNICAL_DEBT.md` only
 
 ## 🧠 The Problem: Making Sense of Brain Waves
 
