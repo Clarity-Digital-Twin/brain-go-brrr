@@ -112,6 +112,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             from brain_go_brrr.infra.preprocessing.tuev_preprocessor import (
                 CHANNELS_TUEV_23_CANONICAL,
             )
+
             expected_channels = (
                 CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
             )
@@ -198,7 +199,9 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
                     label_int = CLASS_MAPPING[label_str]
 
                     # Ensure correct tensor types (channels x time)
-                    x_tensor = torch.tensor(x_volts, dtype=torch.float32)  # (n_channels, 1024) in Volts
+                    x_tensor = torch.tensor(
+                        x_volts, dtype=torch.float32
+                    )  # (n_channels, 1024) in Volts
                     y_tensor = torch.tensor(
                         label_int, dtype=torch.long
                     )  # Long for CrossEntropyLoss

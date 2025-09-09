@@ -44,7 +44,7 @@ CHANNELS_TUEV_23_CANONICAL = [
     'P8',  # Modern names (T3→T7, etc.)
     'A1',
     'A2',
-    'Fz',   # Mixed-case: lowercase z
+    'Fz',  # Mixed-case: lowercase z
     'Cz',
     'Pz',
     'T1',

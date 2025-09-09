@@ -46,7 +46,9 @@ def test_deterministic_init():
     mapper2 = TUEVChannelMapper()
 
     # Check weights are identical
-    for (n1, p1), (n2, p2) in zip(mapper1.named_parameters(), mapper2.named_parameters(), strict=False):
+    for (n1, p1), (n2, p2) in zip(
+        mapper1.named_parameters(), mapper2.named_parameters(), strict=False
+    ):
         assert n1 == n2, f"Parameter name mismatch: {n1} vs {n2}"
         assert torch.allclose(p1, p2), f"Parameter {n1} not identical"
 

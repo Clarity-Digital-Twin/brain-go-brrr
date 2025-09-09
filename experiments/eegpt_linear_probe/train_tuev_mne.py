@@ -438,23 +438,25 @@ def main():
     logger.info("Loading MNE-preprocessed datasets...")
     # Check if using paper parity mode (23 channels)
     use_paper_parity = config.get('data', {}).get('use_paper_parity', False)
-    
+
     # Select appropriate collate function
     collate_fn = collate_tuev_parity_batch if use_paper_parity else collate_tuev_batch
-    logger.info(f"Using collate function: {'paper parity (23ch)' if use_paper_parity else 'standard (20ch)'}")
-    
+    logger.info(
+        f"Using collate function: {'paper parity (23ch)' if use_paper_parity else 'standard (20ch)'}"
+    )
+
     train_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), 
-        split='train', 
+        root_dir=Path(config['data']['root_dir']),
+        split='train',
         cache_dir=Path(args.cache_dir),
-        use_paper_parity=use_paper_parity
+        use_paper_parity=use_paper_parity,
     )
 
     eval_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), 
-        split='eval', 
+        root_dir=Path(config['data']['root_dir']),
+        split='eval',
         cache_dir=Path(args.cache_dir),
-        use_paper_parity=use_paper_parity
+        use_paper_parity=use_paper_parity,
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} windows")
@@ -508,7 +510,7 @@ def main():
         channel_mapper = TUEVChannelMapper(
             in_channels=23,
             out_channels=20,
-            dropout=config.get('model', {}).get('mapper_dropout', 0.8)
+            dropout=config.get('model', {}).get('mapper_dropout', 0.8),
         ).to(device)
     else:
         channel_mapper = None
@@ -517,11 +519,11 @@ def main():
     # Setup optimizer (include mapper params if present)
     if channel_mapper is not None:
         # Include both probe and mapper parameters
-        optimizer = torch.optim.AdamW([
-            {'params': probe.parameters()},
-            {'params': channel_mapper.parameters()}
-        ], lr=config['training']['learning_rate'],
-           weight_decay=config['training']['weight_decay'])
+        optimizer = torch.optim.AdamW(
+            [{'params': probe.parameters()}, {'params': channel_mapper.parameters()}],
+            lr=config['training']['learning_rate'],
+            weight_decay=config['training']['weight_decay'],
+        )
     else:
         # Only probe parameters
         optimizer = torch.optim.AdamW(
