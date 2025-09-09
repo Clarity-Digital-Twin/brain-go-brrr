@@ -2,7 +2,9 @@
 
 ## Executive Summary
 
-TUSZ (Temple University Seizure) corpus temporal detection is the next critical milestone for Brain-Go-Brrr after achieving 83% AUROC on TUAB abnormality detection. This specification defines our approach to implementing time-step level seizure detection, targeting clinical deployment readiness with industry-standard evaluation metrics.
+TUSZ (Temple University Seizure) corpus temporal detection is the next critical milestone for Brain-Go-Brrr after achieving 83% AUROC on TUAB abnormality detection. This specification defines our approach to implementing time-step level seizure detection using **SeizureTransformer** as the primary architecture, targeting clinical deployment readiness with industry-standard evaluation metrics.
+
+**NOTE**: This document specifies the clinical requirements and architecture. See `TUSZ_ROADMAP.md` for the concrete SeizureTransformer implementation plan.
 
 ## Mission-Critical Requirements
 
