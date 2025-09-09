@@ -37,7 +37,7 @@ from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
-from brain_go_brrr.utils import collate_tuev_batch
+from brain_go_brrr.utils import collate_tuev_batch, collate_tuev_parity_batch
 
 # Configure logging
 logging.basicConfig(
@@ -439,6 +439,10 @@ def main():
     # Check if using paper parity mode (23 channels)
     use_paper_parity = config.get('data', {}).get('use_paper_parity', False)
     
+    # Select appropriate collate function
+    collate_fn = collate_tuev_parity_batch if use_paper_parity else collate_tuev_batch
+    logger.info(f"Using collate function: {'paper parity (23ch)' if use_paper_parity else 'standard (20ch)'}")
+    
     train_dataset = TUEVMNEDataset(
         root_dir=Path(config['data']['root_dir']), 
         split='train', 
@@ -653,7 +657,7 @@ def main():
                 pin_memory=config['data'].get('pin_memory', True),
                 persistent_workers=config['data'].get('persistent_workers', True),
                 prefetch_factor=config['data'].get('prefetch_factor', 2),
-                collate_fn=collate_tuev_batch,
+                collate_fn=collate_fn,
                 epoch_indices=epoch_indices,
             )
             resume_batch = 0  # Already sliced dataloader
@@ -669,7 +673,7 @@ def main():
                 pin_memory=config['data'].get('pin_memory', True),
                 persistent_workers=config['data'].get('persistent_workers', True),
                 prefetch_factor=config['data'].get('prefetch_factor', 2),
-                collate_fn=collate_tuev_batch,
+                collate_fn=collate_fn,
                 epoch_indices=None,
             )
             resume_batch = 0

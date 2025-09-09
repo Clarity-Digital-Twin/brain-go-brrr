@@ -104,7 +104,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
             # Assert critical cache properties
             assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
-            assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
+            assert meta['unit'] == 'V', f"Cache unit mismatch: {meta['unit']} != V"
             assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
             assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
 
@@ -189,15 +189,16 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
                     # Get single epoch data (n_channels, 1024)
                     x_volts = epoch_data[epoch_idx]  # In Volts from MNE
 
-                    # CRITICAL: Convert Volts to millivolts
-                    x_mv = x_volts * 1e3
+                    # CRITICAL: Keep in Volts (SI units) for SSOT compliance
+                    # Wrapper expects Volts for normalization
+                    # x_volts is already in Volts from MNE
 
                     # Get label for this window
                     label_str = window_labels[epoch_idx]
                     label_int = CLASS_MAPPING[label_str]
 
                     # Ensure correct tensor types (channels x time)
-                    x_tensor = torch.tensor(x_mv, dtype=torch.float32)  # (n_channels, 1024) in mV
+                    x_tensor = torch.tensor(x_volts, dtype=torch.float32)  # (n_channels, 1024) in Volts
                     y_tensor = torch.tensor(
                         label_int, dtype=torch.long
                     )  # Long for CrossEntropyLoss
@@ -243,7 +244,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         channels_list = CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
         meta_data = {
             'sr': 256,
-            'unit': 'mV',
+            'unit': 'V',  # SI units (Volts) per SSOT
             'window': 1024,
             'channels': channels_list,
             'n_channels': self.n_channels,

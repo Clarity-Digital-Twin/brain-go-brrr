@@ -24,9 +24,10 @@ from .mne_preprocessor import TUABPreprocessor
 logger = logging.getLogger(__name__)
 
 # 23 channels for paper parity (using canonical/modern names after T3→T7 mapping)
+# CRITICAL: Use mixed-case naming to match canonicalize_channel_labels output
 CHANNELS_TUEV_23_CANONICAL = [
-    'FP1',
-    'FP2',
+    'Fp1',  # Mixed-case: Fp not FP
+    'Fp2',
     'F3',
     'F4',
     'C3',
@@ -43,9 +44,9 @@ CHANNELS_TUEV_23_CANONICAL = [
     'P8',  # Modern names (T3→T7, etc.)
     'A1',
     'A2',
-    'FZ',
-    'CZ',
-    'PZ',
+    'Fz',   # Mixed-case: lowercase z
+    'Cz',
+    'Pz',
     'T1',
     'T2',
 ]
