@@ -1,9 +1,14 @@
-# TUEV Fpz Channel Discrepancy - Investigation Results
+# ✅ RESOLVED: TUEV Fpz Channel Discrepancy
+
+> **RESOLUTION STATUS**: This issue has been resolved through the 23-channel paper parity implementation with learnable mapper.
+> **RESOLUTION DATE**: September 9, 2025
+> **ARCHIVED**: This document is preserved for historical reference.
+
+## Original Investigation
 
 **Date**: September 6, 2025 (Updated September 9, 2025)
-**Status**: In transition - current impl = 20-ch + Fpz interpolation; paper parity = 23-ch + learned mapper (NOT IMPLEMENTED)
-**Priority**: CRITICAL for paper parity
-**Type**: Architecture mismatch between our approach and paper
+**Original Status**: In transition - current impl = 20-ch + Fpz interpolation; paper parity = 23-ch + learned mapper
+**Resolution**: Implemented 23-channel mode with learnable 23→20 mapper in training
 
 ## 📋 CURRENT IMPLEMENTATION VS PAPER PARITY
 

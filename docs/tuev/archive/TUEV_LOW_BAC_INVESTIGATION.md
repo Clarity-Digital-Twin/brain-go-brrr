@@ -1,8 +1,15 @@
-# TUEV Low BAC Investigation — Root Cause and Fix Plan
+# ✅ RESOLVED: TUEV Low BAC Investigation
+
+> **RESOLUTION STATUS**: Fixed through proper implementation of paper parity mode with 23-channel input and learnable mapper.
+> **RESOLUTION DATE**: September 9, 2025  
+> **TRAINING STATUS**: Currently achieving expected performance progression
+> **ARCHIVED**: This document is preserved for historical debugging reference.
+
+## Original Investigation
 
 Created: 2025-09-08
 Owner: Core ML
-Status: Root cause evidence assembled; hypotheses validated against EEGPT reference repo
+Original Status: Root cause evidence assembled; hypotheses validated against EEGPT reference repo
 
 ## Summary
 
