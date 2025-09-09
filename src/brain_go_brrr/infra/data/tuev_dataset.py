@@ -362,10 +362,18 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         # Load cached preprocessed data
         # Try with weights_only=True for security (torch >= 2.4), fallback if not supported
         try:
-            data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only
+            # Check torch version for better error messaging
+            import torch
+            torch_version = tuple(int(x) for x in torch.__version__.split('.')[:2])
+            if torch_version >= (2, 4):
+                data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only
+            else:
+                # Older torch versions don't support weights_only
+                logger.debug(f"Using torch {torch.__version__} - weights_only not supported")
+                data = torch.load(cache_file, map_location='cpu')  # nosec:weights_only - pre-2.4 torch
         except TypeError:
-            # Fallback for older torch versions that don't support weights_only
-            data = torch.load(cache_file, map_location='cpu')  # nosec:weights_only - fallback for older torch
+            # Fallback for edge cases or dev versions
+            data = torch.load(cache_file, map_location='cpu')  # nosec:weights_only - fallback for edge cases
 
         return data['x'], data['y']
 

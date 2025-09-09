@@ -180,7 +180,10 @@ def train_epoch(
 
         # Apply gradient clipping if specified in config
         if config and config.get('training', {}).get('gradient_clip', 0) > 0:
+            # Clip gradients for both probe AND channel mapper
             torch.nn.utils.clip_grad_norm_(probe.parameters(), config['training']['gradient_clip'])
+            if channel_mapper is not None:
+                torch.nn.utils.clip_grad_norm_(channel_mapper.parameters(), config['training']['gradient_clip'])
 
         optimizer.step()
 
@@ -742,7 +745,9 @@ def main():
             )
 
         # Save regular checkpoint
-        save_every = config.get('training', {}).get('save_every', 5)
+        # Support both 'save_every' and 'save_every_n_epochs' for config compatibility
+        save_every = config.get('training', {}).get('save_every_n_epochs', 
+                                                     config.get('training', {}).get('save_every', 5))
         if epoch % save_every == 0:
             checkpoint = {
                 'epoch': epoch,
