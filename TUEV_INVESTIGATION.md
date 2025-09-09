@@ -241,15 +241,65 @@ We're **NOT** replicating EEGPT's training correctly. Key issues:
 3. Possible preprocessing differences
 4. Unknown class distribution in their setup
 
-## Next Steps
+## Complete Data Pipeline Comparison
 
-1. **STOP** assuming and **INVESTIGATE** their exact data pipeline
-2. **COUNT** our exact class distribution
-3. **IMPLEMENT** warmup and layer decay
-4. **VERIFY** we're creating windows the same way
-5. **TEST** with their exact hyperparameters
+### EEGPT's Actual Pipeline (from `make_TUEV.py`):
+1. **Montage**: BIPOLAR (differential between adjacent electrodes)
+2. **Segment Extraction**: 5-second windows around annotated events only
+3. **Storage**: Pre-processed pickle files with:
+   - Shape: `[23_channels, 1000_samples]` (5 seconds at 200Hz)
+   - Single label per file (1-6 for event types)
+   - No continuous background - only event segments
+4. **Files per split**: ~100-200 pickle files (not thousands)
 
-**DO NOT** proceed with training until we understand the 288 sample discrepancy!
+### Our Current Pipeline:
+1. **Montage**: REFERENTIAL (average reference)
+2. **Segment Extraction**: Sliding 4-second windows over entire recording
+3. **Storage**: On-the-fly from raw EDF files
+4. **Result**: 99.5% background class, thousands of windows
+
+## The Root Cause
+
+**WE'RE NOT SOLVING THE SAME PROBLEM!**
+
+- **EEGPT**: Multi-class classification of pre-extracted event segments
+- **Us**: Trying to classify continuous data with 99.5% background
+
+This is why:
+- They get 62% BAC with unweighted loss (balanced dataset)
+- We get 16.67% BAC (model learns only background)
+- They have "288 samples" (likely subjects, not windows)
+
+## Required Changes
+
+### Option 1: Match EEGPT Exactly
+1. Pre-extract 5-second segments around annotated events
+2. Convert to bipolar montage  
+3. Create balanced dataset of event segments
+4. Save as pickle files
+5. Use their exact training pipeline
+
+### Option 2: Fix Our Current Approach
+1. Use balanced sampling or strong class weights
+2. Add warmup epochs and layer decay
+3. Consider focal loss for extreme imbalance
+4. Potentially use anomaly detection instead of classification
+
+## Recommendation
+
+**STOP** trying to replicate EEGPT's results with our different data pipeline.
+
+**EITHER**:
+1. Create their exact preprocessing pipeline (bipolar montage, event extraction)
+2. OR acknowledge we're solving a harder problem and adjust expectations
+
+**DO NOT** proceed with training until we decide which approach to take!
+
+---
+
+**Status**: CRITICAL DECISION NEEDED
+**Impact**: Current approach will NEVER achieve 62% BAC
+**Owner**: Senior Review Required IMMEDIATELY
 
 ---
 
