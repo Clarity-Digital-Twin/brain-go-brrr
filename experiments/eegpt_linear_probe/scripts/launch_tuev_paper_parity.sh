@@ -51,8 +51,8 @@ if [ ! -d "$CACHE_TRAIN" ] || [ ! -d "$CACHE_EVAL" ]; then
 fi
 
 # Verify cache has content
-TRAIN_WINDOWS=$(ls "$CACHE_TRAIN"/window_*.pt 2>/dev/null | wc -l)
-EVAL_WINDOWS=$(ls "$CACHE_EVAL"/window_*.pt 2>/dev/null | wc -l)
+TRAIN_WINDOWS=$(find "$CACHE_TRAIN" -name "window_*.pt" 2>/dev/null | wc -l)
+EVAL_WINDOWS=$(find "$CACHE_EVAL" -name "window_*.pt" 2>/dev/null | wc -l)
 echo "Cache found: $TRAIN_WINDOWS train windows, $EVAL_WINDOWS eval windows"
 
 if [ "$TRAIN_WINDOWS" -eq 0 ] || [ "$EVAL_WINDOWS" -eq 0 ]; then
