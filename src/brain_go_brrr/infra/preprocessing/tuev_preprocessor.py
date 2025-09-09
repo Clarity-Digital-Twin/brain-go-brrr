@@ -229,10 +229,11 @@ class TUEVPreprocessor(TUABPreprocessor):
 
             # Special case: Interpolate Fpz from Fp1 and Fp2 if available
             if ch.lower() == 'fpz' and 'fp1' in ch_to_idx and 'fp2' in ch_to_idx:
-                fp1_idx = ch_to_idx['fp1']
-                fp2_idx = ch_to_idx['fp2']
+                # Use public API to get channel data
+                fp1_data = raw.get_data(picks=['Fp1'])[0]
+                fp2_data = raw.get_data(picks=['Fp2'])[0]
                 # Average of Fp1 and Fp2 (biologically sensible for midline)
-                fpz_data = (raw._data[fp1_idx] + raw._data[fp2_idx]) / 2.0
+                fpz_data = (fp1_data + fp2_data) / 2.0
                 fpz_raw = mne.io.RawArray(fpz_data[np.newaxis, :], info, verbose=False)
                 raw.add_channels([fpz_raw], force_update_info=True)
                 logger.info(f"Synthesized {ch} by interpolating from Fp1 and Fp2")

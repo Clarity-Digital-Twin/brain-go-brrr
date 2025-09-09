@@ -24,8 +24,9 @@ model:
 training:
   n_epochs: 1  # Just 1 epoch for smoke test
   learning_rate: 5.0e-4  # TUEV script expects learning_rate not optimizer.lr
-  weight_decay: 0.01
-  weighted_loss: true
+  weight_decay: 0.05  # Match EEGPT
+  weighted_loss: false  # Match EEGPT (no class weights)
+  label_smoothing: 0.1  # Match EEGPT
   use_scheduler: true  # Script always uses OneCycleLR
   gradient_clip: 1.0
   save_every: 1  # Save after each epoch

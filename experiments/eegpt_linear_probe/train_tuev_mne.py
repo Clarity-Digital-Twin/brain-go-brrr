@@ -198,7 +198,7 @@ def train_epoch(
 
         # Update progress bar
         if batch_idx % 10 == 0 and all_labels:
-            current_acc = balanced_accuracy_score(all_labels, all_preds)
+            current_acc = balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
             pbar.set_postfix(
                 {
                     'loss': f'{loss.item():.4f}',
@@ -248,7 +248,11 @@ def train_epoch(
 
     # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
+    balanced_acc = (
+        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        if all_labels
+        else 0
+    )
     weighted_f1 = (
         f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0
     )
@@ -287,7 +291,11 @@ def evaluate(model, probe, eval_loader, criterion, device):
 
     # Calculate metrics (guard against empty eval set)
     avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
+    balanced_acc = (
+        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        if all_labels
+        else 0
+    )
     weighted_f1 = (
         f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
     )
