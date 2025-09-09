@@ -37,7 +37,7 @@ def test_paper_parity_pipeline():
     assert x.shape[1] == 1024, f"Expected 1024 samples, got {x.shape[1]}"
 
     # Test collate function accepts 23 channels
-    batch = [(torch.from_numpy(x), y)]
+    batch = [(x, y)]
     batch_x, batch_y = collate_tuev_parity_batch(batch)
     assert batch_x.shape == (1, 23, 1024), f"Unexpected batch shape: {batch_x.shape}"
 
@@ -54,9 +54,9 @@ def test_paper_parity_pipeline():
 
     with torch.no_grad():
         features = model.extract_features(x_mapped, summary=False)
-
-    # EEGPT outputs (B, 16, 4, 512) for 4-second windows
-    assert features.shape == (1, 16, 4, 512), f"Unexpected feature shape: {features.shape}"
+    
+    # EEGPT wrapper outputs (B, 4, 512) summary tokens for 4-second windows
+    assert features.shape == (1, 4, 512), f"Unexpected feature shape: {features.shape}"
 
     print("✅ Paper parity pipeline test passed!")
     print("  - Dataset: 23 channels")

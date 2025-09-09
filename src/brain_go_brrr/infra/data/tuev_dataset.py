@@ -10,6 +10,7 @@ from typing import Any
 
 import torch
 from torch.utils.data import Dataset
+import subprocess
 
 from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 
