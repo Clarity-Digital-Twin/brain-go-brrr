@@ -1,0 +1,499 @@
+[0;32mRunning all quality checks...[0m 
+make format
+make[1]: Entering directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;32mFormatting code...[0m 
+.venv/bin/ruff format src/brain_go_brrr tests scripts experiments
+314 files left unchanged
+[0;32mCode formatted![0m 
+make[1]: Leaving directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+make lint-ci
+make[1]: Entering directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;36mRunning CI-style lint check...[0m 
+.venv/bin/ruff check src/brain_go_brrr tests scripts
+All checks passed!
+[0;32mCI lint check passed![0m 
+make[1]: Leaving directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+make type-fast
+make[1]: Entering directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;36mRunning fast type checks...[0m 
+.venv/bin/mypy --config-file mypy-fast.ini src/brain_go_brrr
+Success: no issues found in 132 source files
+[0;32mFast type checking complete![0m 
+make[1]: Leaving directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+make test-fast  # WSL detection built-in - runs serial if needed
+make[1]: Entering directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;32mRunning fast parallel tests without coverage...[0m 
+[1;33mWSL detected: Running tests serially to avoid I/O errors[0m 
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+..........sssss......................................................... [ 31%]
+........................................................................ [ 38%]
+........................................sssss..............ssssssss..... [ 46%]
+........................................................................ [ 54%]
+.........................................s.......sssssssssssssssssssssss [ 62%]
+ssss.................................................................... [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+.......................................ss............................... [ 93%]
+.................................................................        [100%]
+=============================== warnings summary ===============================
+src/brain_go_brrr/infra/adapters/model_adapter.py:15
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/src/brain_go_brrr/infra/adapters/model_adapter.py:15: DeprecationWarning: eegpt_compat is deprecated. Import from eegpt_wrapper directly.
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
+
+tests/unit/infra/cache/test_factory.py:7
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/cache/test_factory.py:7: DeprecationWarning: cache_factory is deprecated and will be removed in v2.0.0. Use brain_go_brrr.infra.cache directly.
+    from brain_go_brrr.infra.cache_factory import MemoryCache, get_cache
+
+tests/unit/application/test_abnormality_probe_checkpoint_loading.py::test_load_head_checkpoint_supports_both_formats
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/application/test_abnormality_probe_checkpoint_loading.py:65: PendingDeprecationWarning: AbnormalityDetectionProbe API may change in a future minor release. Prefer orchestration helpers for long-lived code.
+    probe = AbnormalityDetectionProbe(checkpoint_path=tmp_path / "dummy.ckpt")
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_linear_architecture_with_injected_backbone
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:61: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_two_layer_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:69: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_robust_mode_replaces_nans_and_clips
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:79: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneSimple(), robust_mode=True, freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_channel_adapter_path
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_return_all_temporal_branch
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:99: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneAccepts(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_unexpected_feature_shape_raises
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:105: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneBadShape(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_init_creates_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:70: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_validate_and_clean_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_robust_normalize
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:115: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_pass_shape
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:140: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_predict_proba
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:156: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_get_num_trainable_params
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:176: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:193: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:209: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe2 = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_with_nan_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:228: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_freeze_backbone_parameters
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:250: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_multi_class_classification
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:270: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_mixed_precision_compatibility
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:288: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_different_batch_sizes
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:308: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_probe_head_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:325: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+22.38s call     tests/smoke/test_e2e_pipeline_synthetic.py::test_e2e_on_synthetic_raw
+20.46s call     tests/smoke/test_factories_contract.py::test_factories_present_and_callable
+11.76s call     tests/smoke/test_cli_and_version.py::test_cli_version_matches_package
+8.45s call     tests/smoke/test_end_to_end_wiring.py::test_api_to_domain_integration
+7.97s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_full_preprocessing_pipeline
+7.35s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_preprocessing_performance
+7.04s call     tests/unit/infra/ml_models/test_contract_fuzzer.py::TestEEGPTContractFuzzing::test_extract_features_shape_contract
+6.15s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+5.36s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+4.69s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_preprocessing_pipeline_order
+=========================== short test summary info ============================
+SKIPPED [2] tests/unit/data/test_edf_loader_unit.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/data/test_edf_streaming_edges.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:154: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:172: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/domain/sleep/test_analysis.py:196: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [8] tests/unit/domain/sleep/test_montage_detection.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/infra/cache/test_factory.py:199: Redis not available for testing
+SKIPPED [6] tests/unit/infra/data/test_edf_loader.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [9] tests/unit/infra/data/test_edf_streaming.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [12] tests/unit/infra/data/test_edf_validator.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/models/test_linear_probe.py:125: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/models/test_linear_probe.py:137: TwoLayerProbe module not found
+881 passed, 48 skipped, 388 deselected, 23 warnings in 152.10s (0:02:32)
+make[1]: Leaving directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+make test-all-cov
+make[1]: Entering directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;32mRunning all tests with full coverage (excluding integration/benchmarks)...[0m 
+============================= test session starts ==============================
+platform linux -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0
+rootdir: /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr
+configfile: pytest.ini
+plugins: cov-6.2.1
+timeout: 600.0s
+timeout method: signal
+timeout func_only: False
+collected 1317 items / 388 deselected / 929 selected
+
+tests/quality/test_code_quality.py .....                                 [  0%]
+tests/smoke/test_api_contract.py .                                       [  0%]
+tests/smoke/test_cli_and_version.py .                                    [  0%]
+tests/smoke/test_e2e_pipeline_synthetic.py ..                            [  0%]
+tests/smoke/test_end_to_end_wiring.py .....                              [  1%]
+tests/smoke/test_factories_contract.py .                                 [  1%]
+tests/smoke/test_imports.py ......                                       [  2%]
+tests/unit/api/routers/test_cache.py ..............                      [  3%]
+tests/unit/api/routers/test_eegpt.py ...........                         [  4%]
+tests/unit/api/routers/test_eegpt_p0_green.py ...                        [  5%]
+tests/unit/api/routers/test_resources.py ........                        [  6%]
+tests/unit/api/routers/test_resources_clean.py .....                     [  6%]
+tests/unit/api/test_app.py ..............                                [  8%]
+tests/unit/api/test_cache.py ............                                [  9%]
+tests/unit/api/test_channel_router.py ........                           [ 10%]
+tests/unit/api/test_dependencies.py .....                                [ 10%]
+tests/unit/api/test_legitimate_api.py ..........                         [ 11%]
+tests/unit/api/test_models.py .........                                  [ 12%]
+tests/unit/api/test_p0_regression_guard.py ....                          [ 13%]
+tests/unit/api/test_routes.py ............                               [ 14%]
+tests/unit/api/test_schemas.py .......                                   [ 15%]
+tests/unit/application/config/test_config.py .......                     [ 16%]
+tests/unit/application/config/test_defaults.py ............              [ 17%]
+tests/unit/application/jobs/test_serialization.py ....                   [ 17%]
+tests/unit/application/jobs/test_store_behavior.py ................      [ 19%]
+tests/unit/application/pipeline/test_orchestration.py .....              [ 20%]
+tests/unit/application/test_abnormality_probe_checkpoint_loading.py ..   [ 20%]
+tests/unit/application/test_async_base.py ..............                 [ 21%]
+tests/unit/application/test_threadsafe_job_store.py ...                  [ 22%]
+tests/unit/cli/test_cli.py .............                                 [ 23%]
+tests/unit/cli/test_commands.py .......                                  [ 24%]
+tests/unit/data/test_edf_loader_unit.py ss                               [ 24%]
+tests/unit/data/test_edf_streaming_edges.py sss                          [ 24%]
+tests/unit/domain/abnormal/test_accuracy.py .                            [ 24%]
+tests/unit/domain/abnormal/test_enhanced.py ...........                  [ 26%]
+tests/unit/domain/abnormal/test_preprocessor.py ..............           [ 27%]
+tests/unit/domain/ports/test_behavior.py .................               [ 29%]
+tests/unit/domain/preprocessing/test_core.py ..........                  [ 30%]
+tests/unit/domain/preprocessing/test_flexible.py ..........              [ 31%]
+tests/unit/domain/preprocessing/test_nan_policy.py ..................... [ 33%]
+..                                                                       [ 34%]
+tests/unit/domain/preprocessing/test_pipeline.py ...................     [ 36%]
+tests/unit/domain/preprocessing/test_window_extractor.py ..........      [ 37%]
+tests/unit/domain/preprocessing/test_window_extractor_edges.py ......... [ 38%]
+..........                                                               [ 39%]
+tests/unit/domain/preprocessing/test_window_tail.py ...............      [ 40%]
+tests/unit/domain/quality/test_controller.py ....................        [ 43%]
+tests/unit/domain/sleep/test_analysis.py sssss                           [ 43%]
+tests/unit/domain/sleep/test_enhanced_analyzer.py ..............         [ 45%]
+tests/unit/domain/sleep/test_montage_detection.py ssssssss...            [ 46%]
+tests/unit/domain/sleep/test_preprocessor.py .......                     [ 47%]
+tests/unit/domain/test_channel_mapper.py ............                    [ 48%]
+tests/unit/domain/test_channels.py ........................              [ 50%]
+tests/unit/domain/test_constants.py ..                                   [ 51%]
+tests/unit/domain/test_constraints_layers.py ...                         [ 51%]
+tests/unit/domain/test_exceptions.py ..............                      [ 52%]
+tests/unit/domain/test_exceptions_hierarchy.py ..                        [ 53%]
+tests/unit/domain/test_ports_cache_contract.py .                         [ 53%]
+tests/unit/domain/test_settings.py ........................              [ 55%]
+tests/unit/infra/adapters/test_autoreject.py ...............             [ 57%]
+tests/unit/infra/cache/test_factory.py ...........s.......               [ 59%]
+tests/unit/infra/data/test_edf_loader.py ssssss                          [ 60%]
+tests/unit/infra/data/test_edf_streaming.py sssssssss                    [ 61%]
+tests/unit/infra/data/test_edf_validator.py ssssssssssss                 [ 62%]
+tests/unit/infra/external/test_yasa_adapter.py .............             [ 63%]
+tests/unit/infra/external/test_yasa_compliance.py .                      [ 63%]
+tests/unit/infra/external/test_yasa_smoothing.py ......                  [ 64%]
+tests/unit/infra/ml_models/test_compat_coverage.py ..................    [ 66%]
+tests/unit/infra/ml_models/test_compat_strict.py ..........              [ 67%]
+tests/unit/infra/ml_models/test_contract_fuzzer.py ..                    [ 67%]
+tests/unit/infra/ml_models/test_encoder_output.py .                      [ 67%]
+tests/unit/infra/ml_models/test_linear_probe.py ...                      [ 68%]
+tests/unit/infra/ml_models/test_pipeline.py ..................           [ 70%]
+tests/unit/infra/ml_models/test_preprocessing.py .......                 [ 70%]
+tests/unit/infra/ml_models/test_probe.py ...............                 [ 72%]
+tests/unit/infra/ml_models/test_probe_head.py ............               [ 73%]
+tests/unit/infra/ml_models/test_probe_unified.py ......                  [ 74%]
+tests/unit/infra/ml_models/test_robust_probe.py .............            [ 75%]
+tests/unit/infra/ml_models/test_rotary_embedding.py .....                [ 76%]
+tests/unit/infra/ml_models/test_summary_tokens.py .                      [ 76%]
+tests/unit/infra/ml_models/test_wrapper.py ...                           [ 76%]
+tests/unit/infra/preprocessing/test_chunked_autoreject.py ............   [ 78%]
+tests/unit/infra/redis/test_caching.py ..........                        [ 79%]
+tests/unit/infra/redis/test_pool.py .................                    [ 81%]
+tests/unit/infra/serialization/test_contract.py ..............           [ 82%]
+tests/unit/infra/serialization/test_core.py ....                         [ 82%]
+tests/unit/infra/serialization/test_edge_cases.py ...................... [ 85%]
+..                                                                       [ 85%]
+tests/unit/infra/serialization/test_registry.py ...........              [ 86%]
+tests/unit/infra/test_safe_load.py ......                                [ 87%]
+tests/unit/ml/test_eegpt_wrapper.py ....                                 [ 87%]
+tests/unit/models/test_eegpt_model.py ..........                         [ 88%]
+tests/unit/models/test_linear_probe.py .....ss.                          [ 89%]
+tests/unit/presentation/test_markdown_report.py ............             [ 91%]
+tests/unit/presentation/test_pdf_report.py ..................            [ 93%]
+tests/unit/test_p1_fixes.py ...                                          [ 93%]
+tests/unit/test_probe_compatibility.py .....                             [ 93%]
+tests/unit/utils/logging/test_logger.py .........                        [ 94%]
+tests/unit/utils/logging/test_mask.py ....                               [ 95%]
+tests/unit/utils/test_collate.py .........                               [ 96%]
+tests/unit/utils/test_coverage_legitimate.py ...........                 [ 97%]
+tests/unit/utils/test_probe_utils.py ..........                          [ 98%]
+tests/unit/utils/test_time.py ..............                             [100%]
+
+=============================== warnings summary ===============================
+src/brain_go_brrr/infra/adapters/model_adapter.py:15
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/src/brain_go_brrr/infra/adapters/model_adapter.py:15: DeprecationWarning: eegpt_compat is deprecated. Import from eegpt_wrapper directly.
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
+
+tests/unit/infra/cache/test_factory.py:7
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/cache/test_factory.py:7: DeprecationWarning: cache_factory is deprecated and will be removed in v2.0.0. Use brain_go_brrr.infra.cache directly.
+    from brain_go_brrr.infra.cache_factory import MemoryCache, get_cache
+
+tests/unit/application/test_abnormality_probe_checkpoint_loading.py::test_load_head_checkpoint_supports_both_formats
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/application/test_abnormality_probe_checkpoint_loading.py:65: PendingDeprecationWarning: AbnormalityDetectionProbe API may change in a future minor release. Prefer orchestration helpers for long-lived code.
+    probe = AbnormalityDetectionProbe(checkpoint_path=tmp_path / "dummy.ckpt")
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_linear_architecture_with_injected_backbone
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:61: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_two_layer_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:69: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_robust_mode_replaces_nans_and_clips
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:79: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneSimple(), robust_mode=True, freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_channel_adapter_path
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_return_all_temporal_branch
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:99: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneAccepts(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_unexpected_feature_shape_raises
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:105: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneBadShape(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_init_creates_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:70: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_validate_and_clean_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_robust_normalize
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:115: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_pass_shape
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:140: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_predict_proba
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:156: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_get_num_trainable_params
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:176: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:193: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:209: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe2 = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_with_nan_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:228: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_freeze_backbone_parameters
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:250: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_multi_class_classification
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:270: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_mixed_precision_compatibility
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:288: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_different_batch_sizes
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:308: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_probe_head_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:325: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.11-final-0 _______________
+
+Name                                                              Stmts   Miss   Cover   Missing
+------------------------------------------------------------------------------------------------
+src/brain_go_brrr/__init__.py                                        14      4  71.43%   12-13, 26-28
+src/brain_go_brrr/_typing.py                                         50      0 100.00%
+src/brain_go_brrr/api/__init__.py                                     3      0 100.00%
+src/brain_go_brrr/api/app.py                                         67      5  92.54%   23-24, 53-54, 140
+src/brain_go_brrr/api/cache.py                                       58      1  98.28%   66
+src/brain_go_brrr/api/dependencies.py                                 8      0 100.00%
+src/brain_go_brrr/api/deps.py                                        30      2  93.33%   51, 90
+src/brain_go_brrr/api/main.py                                         3      0 100.00%
+src/brain_go_brrr/api/models.py                                      37      3  91.89%   37, 39, 41
+src/brain_go_brrr/api/routers/__init__.py                             1      0 100.00%
+src/brain_go_brrr/api/routers/cache.py                               39      0 100.00%
+src/brain_go_brrr/api/routers/channel_router.py                      45      4  91.11%   61-62, 66, 101
+src/brain_go_brrr/api/routers/eegpt.py                              162      8  95.06%   157-161, 179, 245, 311
+src/brain_go_brrr/api/routers/health.py                              11      0 100.00%
+src/brain_go_brrr/api/routers/qc.py                                 152     37  75.66%   46-52, 64-65, 97, 145-146, 148-149, 186-188, 191-204, 263, 283-284, 286-287, 333-344
+src/brain_go_brrr/api/routers/resources.py                           23      1  95.65%   12
+src/brain_go_brrr/api/routes.py                                      16      0 100.00%
+src/brain_go_brrr/api/schemas.py                                    124      6  95.16%   50, 52, 54, 57, 95, 99
+src/brain_go_brrr/api/settings.py                                    11      0 100.00%
+src/brain_go_brrr/application/__init__.py                             2      0 100.00%
+src/brain_go_brrr/application/async_base.py                          22      1  95.45%   65
+src/brain_go_brrr/application/config/__init__.py                      3      0 100.00%
+src/brain_go_brrr/application/config/abnormality_config.py           56      1  98.21%   108
+src/brain_go_brrr/application/config/base.py                        159     23  85.53%   105, 113-114, 131-134, 138, 150, 160, 191-192, 197, 201, 221-222, 227, 239-247
+src/brain_go_brrr/application/factories.py                           69      5  92.75%   37, 42, 47, 52, 191
+src/brain_go_brrr/application/factories_types.py                     24      7  70.83%   44, 64, 75, 89, 113, 133, 144
+src/brain_go_brrr/application/jobs/__init__.py                       10      7  30.00%   10-18
+src/brain_go_brrr/application/jobs/models.py                         35      0 100.00%
+src/brain_go_brrr/application/jobs/store.py                         116      9  92.24%   77, 84, 142-145, 274-277
+src/brain_go_brrr/application/pipeline/__init__.py                    3      0 100.00%
+src/brain_go_brrr/application/pipeline/eegpt_orchestration.py        63     16  74.60%   59, 67-87, 97, 118-122
+src/brain_go_brrr/config/__init__.py                                  2      2   0.00%   7-10
+src/brain_go_brrr/domain/__init__.py                                  1      0 100.00%
+src/brain_go_brrr/domain/abnormal/__init__.py                         3      0 100.00%
+src/brain_go_brrr/domain/abnormal/ports.py                           28      8  71.43%   31, 47, 63, 76, 81, 86, 90, 94
+src/brain_go_brrr/domain/abnormal/settings.py                        54      0 100.00%
+src/brain_go_brrr/domain/channels.py                                 64      2  96.88%   48, 59
+src/brain_go_brrr/domain/constants.py                                18      0 100.00%
+src/brain_go_brrr/domain/constraints.py                              21      0 100.00%
+src/brain_go_brrr/domain/exceptions.py                               38      0 100.00%
+src/brain_go_brrr/domain/ports/__init__.py                            4      0 100.00%
+src/brain_go_brrr/domain/ports/base.py                               33      8  75.76%   80, 85, 90, 95, 100, 109, 114, 119
+src/brain_go_brrr/domain/ports/cache.py                              19      8  57.89%   14, 18, 22, 26, 34, 38, 42, 46
+src/brain_go_brrr/domain/preprocessing/__init__.py                   13      7  46.15%   12-20
+src/brain_go_brrr/domain/preprocessing/basic.py                       2      0 100.00%
+src/brain_go_brrr/domain/preprocessing/core_logic.py                147     18  87.76%   136, 145, 155, 159-170, 262, 265, 284-287
+src/brain_go_brrr/domain/preprocessing/eegpt_preprocessing.py       126     38  69.84%   70-111, 183, 218, 283-284, 289, 338-349
+src/brain_go_brrr/domain/preprocessing/features/__init__.py           3      0 100.00%
+src/brain_go_brrr/domain/preprocessing/features/extractor.py        152     51  66.45%   34-37, 44-45, 48, 86, 88, 110, 118, 138, 189, 192, 203-204, 323-336, 345-366, 370-384, 399, 403-408
+src/brain_go_brrr/domain/preprocessing/nan_policy.py                 67      5  92.54%   108-114
+src/brain_go_brrr/domain/preprocessing/sleep_preprocessor.py         33      0 100.00%
+src/brain_go_brrr/domain/preprocessing/window_extractor.py           53      1  98.11%   53
+src/brain_go_brrr/domain/protocols/__init__.py                        0      0 100.00%
+src/brain_go_brrr/domain/protocols/logger.py                         11      4  63.64%   20, 24, 28, 32
+src/brain_go_brrr/domain/quality/__init__.py                          3      0 100.00%
+src/brain_go_brrr/domain/quality/controller.py                      231     43  81.39%   37, 49, 231, 276-277, 294-300, 307, 352-364, 418, 426, 461, 467-468, 480-496, 509-514, 520, 529-530, 545
+src/brain_go_brrr/domain/sleep/__init__.py                            2      0 100.00%
+src/brain_go_brrr/infra/__init__.py                                   1      0 100.00%
+src/brain_go_brrr/infra/adapters/autoreject_adapter.py               33     17  48.48%   43, 64, 89-117
+src/brain_go_brrr/infra/adapters/model_adapter.py                    52      7  86.54%   63, 102-104, 136, 144, 148
+src/brain_go_brrr/infra/cache_factory.py                             40      0 100.00%
+src/brain_go_brrr/infra/external/yasa_adapter.py                    208     46  77.88%   39-47, 160, 181, 185-194, 257-275, 290, 293, 298-299, 302-303, 389, 432, 434, 438, 506-536, 573
+src/brain_go_brrr/infra/logger.py                                    29      0 100.00%
+src/brain_go_brrr/infra/ml_models/__init__.py                         3      0 100.00%
+src/brain_go_brrr/infra/ml_models/eegpt_architecture.py             201     19  90.55%   105, 340, 436-437, 463, 476, 481, 495-514, 594-596, 599
+src/brain_go_brrr/infra/ml_models/eegpt_compat.py                   155     12  92.26%   178, 191, 207-210, 223, 289, 294, 296-298, 304
+src/brain_go_brrr/infra/ml_models/eegpt_probe_unified.py            108     20  81.48%   89-92, 133, 158-160, 199, 207, 223, 229-230, 237-238, 245, 328-334
+src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py                   76     10  86.84%   84, 111-112, 175-185
+src/brain_go_brrr/infra/ml_models/linear_probe.py                    83     15  81.93%   145-149, 177, 179, 207-214, 216, 242-243
+src/brain_go_brrr/infra/ml_models/probe_factory.py                   37      6  83.78%   72, 128, 141, 145, 183-185
+src/brain_go_brrr/infra/redis/__init__.py                             2      0 100.00%
+src/brain_go_brrr/infra/redis/pool.py                               129     10  92.25%   76, 168, 172-178, 234
+src/brain_go_brrr/infra/safe_load.py                                 12      0 100.00%
+src/brain_go_brrr/infra/serialization.py                             56      3  94.64%   20, 25, 127
+src/brain_go_brrr/mne_compat.py                                      84     34  59.52%   28, 88, 107-108, 125-130, 141, 169, 172, 215, 225-226, 241-242, 265-270, 288-293, 305-312
+src/brain_go_brrr/models/__init__.py                                  2      0 100.00%
+src/brain_go_brrr/preprocessing/__init__.py                          16      0 100.00%
+src/brain_go_brrr/presentation/__init__.py                            1      0 100.00%
+src/brain_go_brrr/presentation/visualization/__init__.py              3      0 100.00%
+src/brain_go_brrr/presentation/visualization/markdown_report.py     132      5  96.21%   108-109, 111-112, 254
+src/brain_go_brrr/presentation/visualization/pdf_report.py          197     29  85.28%   41-42, 84-88, 110-111, 217, 286-301, 384-398, 416, 467
+src/brain_go_brrr/services/__init__.py                               17      4  76.47%   25, 27-29, 39
+src/brain_go_brrr/services/hierarchical_pipeline.py                   7      0 100.00%
+src/brain_go_brrr/utils/__init__.py                                   5      0 100.00%
+src/brain_go_brrr/utils/collate_tuab.py                              19      0 100.00%
+src/brain_go_brrr/utils/collate_tuev.py                              18      2  88.89%   39, 68
+src/brain_go_brrr/utils/deprecated_redirect.py                       13      1  92.31%   44
+src/brain_go_brrr/utils/logging_utils.py                             56     12  78.57%   37, 79, 87-89, 103-114, 133-135
+src/brain_go_brrr/utils/probe_utils.py                               30      3  90.00%   61, 103, 109
+src/brain_go_brrr/utils/time.py                                      11      0 100.00%
+src/brain_go_brrr/visualization/__init__.py                           2      2   0.00%   2-4
+------------------------------------------------------------------------------------------------
+TOTAL                                                              4382    592  86.49%
+Required test coverage of 75% reached. Total coverage: 86.49%
+============================= slowest 10 durations =============================
+22.36s call     tests/smoke/test_factories_contract.py::test_factories_present_and_callable
+18.98s call     tests/smoke/test_cli_and_version.py::test_cli_version_matches_package
+16.40s call     tests/smoke/test_e2e_pipeline_synthetic.py::test_e2e_on_synthetic_raw
+12.01s call     tests/smoke/test_end_to_end_wiring.py::test_api_to_domain_integration
+5.79s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_full_preprocessing_pipeline
+5.76s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_preprocessing_performance
+4.83s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+4.41s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_preprocessing_pipeline_order
+4.27s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+3.77s call     tests/unit/infra/ml_models/test_contract_fuzzer.py::TestEEGPTContractFuzzing::test_extract_features_shape_contract
+=========================== short test summary info ============================
+SKIPPED [2] tests/unit/data/test_edf_loader_unit.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/data/test_edf_streaming_edges.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:154: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:172: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/domain/sleep/test_analysis.py:196: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [8] tests/unit/domain/sleep/test_montage_detection.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/infra/cache/test_factory.py:199: Redis not available for testing
+SKIPPED [6] tests/unit/infra/data/test_edf_loader.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [9] tests/unit/infra/data/test_edf_streaming.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [12] tests/unit/infra/data/test_edf_validator.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/models/test_linear_probe.py:125: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/models/test_linear_probe.py:137: TwoLayerProbe module not found
+=== 881 passed, 48 skipped, 388 deselected, 23 warnings in 162.35s (0:02:42) ===
+[0;36mGenerating HTML coverage report...[0m 
+Wrote HTML report to htmlcov/index.html
+[0;32mCoverage report generated at: htmlcov/index.html[0m 
+make[1]: Leaving directory '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr'
+[0;32mAll checks passed![0m 
