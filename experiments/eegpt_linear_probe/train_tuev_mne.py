@@ -36,6 +36,7 @@ from tqdm import tqdm
 from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
+from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.utils import collate_tuev_batch
 
 # Configure logging
@@ -126,9 +127,12 @@ def train_epoch(
     config=None,
     epoch_indices=None,
     start_batch=0,
+    channel_mapper=None,
 ):
     """Train for one epoch with mid-epoch checkpointing."""
     probe.train()
+    if channel_mapper is not None:
+        channel_mapper.train()
 
     total_loss = 0
     all_preds = []
@@ -154,6 +158,10 @@ def train_epoch(
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
             logger.info(f"First batch - x.shape: {x.shape}, y.dtype: {y.dtype}, y.shape: {y.shape}")
+
+        # Apply channel mapper if using paper parity (23→20 channels)
+        if channel_mapper is not None:
+            x = channel_mapper(x)  # (B, 23, T) -> (B, 20, T)
 
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
@@ -261,9 +269,11 @@ def train_epoch(
     return avg_loss, balanced_acc, weighted_f1, kappa, global_step
 
 
-def evaluate(model, probe, eval_loader, criterion, device):
+def evaluate(model, probe, eval_loader, criterion, device, channel_mapper=None):
     """Evaluate model."""
     probe.eval()
+    if channel_mapper is not None:
+        channel_mapper.eval()
 
     total_loss = 0
     all_preds = []
@@ -272,6 +282,10 @@ def evaluate(model, probe, eval_loader, criterion, device):
     with torch.no_grad():
         for x, y in tqdm(eval_loader, desc="Evaluating"):
             x, y = x.to(device), y.to(device)
+
+            # Apply channel mapper if using paper parity
+            if channel_mapper is not None:
+                x = channel_mapper(x)  # (B, 23, T) -> (B, 20, T)
 
             # Extract features
             features = model.extract_features(x, summary=False)
@@ -422,12 +436,21 @@ def main():
 
     # Create datasets
     logger.info("Loading MNE-preprocessed datasets...")
+    # Check if using paper parity mode (23 channels)
+    use_paper_parity = config.get('data', {}).get('use_paper_parity', False)
+    
     train_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), split='train', cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), 
+        split='train', 
+        cache_dir=Path(args.cache_dir),
+        use_paper_parity=use_paper_parity
     )
 
     eval_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), split='eval', cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']), 
+        split='eval', 
+        cache_dir=Path(args.cache_dir),
+        use_paper_parity=use_paper_parity
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} windows")
@@ -474,12 +497,34 @@ def main():
         dropout=config["model"]["dropout"],
     ).to(device)
 
-    # Setup optimizer
-    optimizer = torch.optim.AdamW(
-        probe.parameters(),
-        lr=config['training']['learning_rate'],  # 5e-4 for TUEV
-        weight_decay=config['training']['weight_decay'],
-    )
+    # Create channel mapper if using paper parity (23→20 mapping)
+    use_channel_mapper = config.get('model', {}).get('use_channel_mapper', False)
+    if use_channel_mapper:
+        logger.info("Initializing 23→20 channel mapper for paper parity")
+        channel_mapper = TUEVChannelMapper(
+            in_channels=23,
+            out_channels=20,
+            dropout=config.get('model', {}).get('mapper_dropout', 0.8)
+        ).to(device)
+    else:
+        channel_mapper = None
+        logger.info("No channel mapper - using preprocessed 20 channels")
+
+    # Setup optimizer (include mapper params if present)
+    if channel_mapper is not None:
+        # Include both probe and mapper parameters
+        optimizer = torch.optim.AdamW([
+            {'params': probe.parameters()},
+            {'params': channel_mapper.parameters()}
+        ], lr=config['training']['learning_rate'],
+           weight_decay=config['training']['weight_decay'])
+    else:
+        # Only probe parameters
+        optimizer = torch.optim.AdamW(
+            probe.parameters(),
+            lr=config['training']['learning_rate'],  # 5e-4 for TUEV
+            weight_decay=config['training']['weight_decay'],
+        )
 
     # Setup scheduler using the correct PyTorch API
     scheduler = OneCycleLR(
@@ -644,6 +689,7 @@ def main():
             config=config,
             epoch_indices=current_epoch_indices,
             start_batch=resume_batch,
+            channel_mapper=channel_mapper,
         )
 
         # Reset for next epoch
@@ -652,7 +698,7 @@ def main():
 
         # Evaluate
         eval_loss, eval_acc, eval_f1, eval_kappa, _, _, per_class = evaluate(
-            model, probe, eval_loader, criterion, device
+            model, probe, eval_loader, criterion, device, channel_mapper
         )
 
         # Log metrics
