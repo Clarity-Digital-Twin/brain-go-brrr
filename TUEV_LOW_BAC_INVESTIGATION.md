@@ -173,9 +173,9 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-## 🎯 BULLETPROOF STATUS (2025-09-08)
+## 🎯 BULLETPROOF STATUS (2025-09-08) - ALL FIXES APPLIED
 
-### ✅ Code Deltas Applied for Strategy A:
+### ✅ Code Deltas Applied for Strategy A (COMPLETED):
 1. **Config Fixed** (`experiments/eegpt_linear_probe/configs/tuev.yaml`):
    - `weighted_loss: false` ✅ (was defaulting to True)
    - `weight_decay: 0.05` ✅ (already correct)
@@ -191,9 +191,15 @@ Per-class F1 (examples over many epochs):
    - Line 51: Uses `tuev_mne_fixed` cache dir ✅
    - Consistent with cache builder script ✅
 
-4. **Preprocessor Previously Fixed** (`tuev_preprocessor.py`):
+4. **Preprocessor Fixed** (`tuev_preprocessor.py`):
    - Fpz interpolation: (Fp1+Fp2)/2 when available ✅
    - Falls back to zeros if Fp1/Fp2 missing ✅
+   - Uses public MNE API `get_data()` instead of private `_data` ✅
+
+5. **Final Senior Audit Fixes** (2025-09-08):
+   - BAC metrics: Added `labels=[0,1,2,3,4,5]` to all 3 calls ✅
+   - Smoke test config: Aligned with Strategy A settings ✅
+   - All CI/CD checks passing ✅
 
 ### 🚀 Ready to Execute:
 ```bash
