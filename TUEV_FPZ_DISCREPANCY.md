@@ -153,10 +153,21 @@ if "Fpz" not in raw.ch_names:
 - **Real information is in the other 19 channels**
 - **Training proceeding successfully** - 99% complete without errors
 
-## Implications
+## 🔴 THE CORRECT SOLUTION (Paper Parity)
 
-### For Our Implementation: ✅ NO ISSUES
-- Our code correctly handles the discrepancy
+### What EEGPT Actually Does:
+1. **Keeps ALL 23 TUEV Channels** (no dropping)
+2. **Uses Learned Mapper**: Conv2d(23→20) to handle mismatch
+3. **No Preprocessing Synthesis** - Model learns the mapping
+
+### What We Need to Do NOW:
+1. **Stop current cache build** (it's wrong)
+2. **Implement 23-channel cache** (keep A1, A2, T1, T2)
+3. **Add TUEVChannelMapper module** before EEGPT
+4. **Train mapper + head together**
+
+### For Our Implementation: ❌ NEEDS FIXING
+- Current approach (preprocessing synthesis) is NOT paper parity
 - Training is working (355/359 files processed)
 - Performance should match paper's reported metrics (62.32% BAC per [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md))
 

@@ -19,35 +19,42 @@
 
 ## 📋 REMAINING ITEMS
 
-### Sprint 4: TUEV Channel Synthesis (4 hours) 🔬 ✅ COMPLETED
+### Sprint 4: TUEV Channel Mapper ❌ INCORRECTLY MARKED COMPLETE
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target metrics and thresholds.
 
-**✅ COMPLETED (2025-09-08)**:
-- Fpz synthesis via interpolation from (Fp1+Fp2)/2
-- Hyperparameter alignment with EEGPT paper
-- BAC metrics fixed for 6-class consistency
-- Cache rebuilt with improvements
-- All CI/CD checks passing
+**🔴 CRITICAL DISCOVERY (2025-09-09)**: 
+**Channel mapper is NOT optional - it's HOW EEGPT achieves 62% BAC!**
 
-**Original Problem**: TUEV dataset has 23 channels, EEGPT expects 20. Was using zero-fill approach.
+**What We Did (WRONG)**:
+- Fpz synthesis via interpolation (preprocessing hack)
+- Dropped A1/A2 channels
+- 20-channel cache
 
-**Potential Benefit**: +1% BAC (Balanced Accuracy) improvement with learnable channel mapping
+**What Paper Actually Does (VERIFIED)**:
+- Keeps ALL 23 TUEV channels
+- Uses Conv2dWithConstraint(23, 20, 1) learnable mapper
+- Mapper includes BatchNorm, GELU, Dropout(0.8)
+- NO preprocessing synthesis
+
+**Impact**: This is NOT "+1% improvement" - it's CORE to their approach!
 
 **Reproducibility Seeds**: 42 (data), 123 (model init), 456 (augmentation) - as per TUEV_METRICS_SSOT.md
 
-**Implementation Path**:
+**🔴 CORRECT Implementation (from EEGPT reference)**:
 ```python
 # src/brain_go_brrr/infra/ml_models/channel_mapper.py
 class TUEVChannelMapper(nn.Module):
-    """Learnable channel mapping from TUEV 23 → EEGPT 20 channels."""
+    """EEGPT's actual channel mapper - REQUIRED for paper parity."""
 
     def __init__(self):
         super().__init__()
-        self.channel_conv = nn.Sequential(
-            nn.Conv1d(23, 20, kernel_size=1),
-            nn.BatchNorm1d(20),
-            nn.GELU()
+        self.chan_conv = nn.Sequential(
+            Conv2dWithConstraint(23, 20, kernel_size=1),  # 23→20 mapping
+            nn.BatchNorm2d(20),
+            nn.GELU(),
+            nn.Dropout(0.8),  # High dropout!
+            nn.Conv2d(20, 20, kernel_size=(1,55), groups=20, padding='same')
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

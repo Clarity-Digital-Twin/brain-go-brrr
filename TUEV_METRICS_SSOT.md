@@ -85,10 +85,18 @@
 
 ---
 
-## 📌 Parity Notes (Architecture)
+## 🔴 CRITICAL: Paper Parity Architecture
 
-- EEGPT reference reduces 23→20 channels inside the model with a learned 1×1 Conv (no preprocessing-time synthesis). For strict parity, feed 23‑channel inputs to a learnable mapper before EEGPT and train the mapper + linear head with the same hyperparameters (lr=5e‑4, wd=0.05, label smoothing=0.1).
-- Compute BAC as `balanced_accuracy_score(y_true, y_pred, labels=[0,1,2,3,4,5])` to ensure class-consistent averaging.
+**VERIFIED FROM REFERENCE CODE (2025-09-09):**
+
+The EEGPT paper achieves 62.32% BAC using:
+1. **23-channel input** (keeps ALL TUEV channels including A1, A2)
+2. **Learned Conv2d(23→20) mapper** with BatchNorm, GELU, Dropout(0.8)
+3. **NO preprocessing synthesis** (no Fpz interpolation)
+4. **Hyperparams**: lr=5e-4, wd=0.05, label_smoothing=0.1
+5. **BAC computation**: `balanced_accuracy_score(y_true, y_pred, labels=[0,1,2,3,4,5])`
+
+**Our current approach (20-ch preprocessing) is NOT paper parity!**
 
 ---
 
