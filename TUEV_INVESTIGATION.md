@@ -4,6 +4,22 @@
 
 Our TUEV training is achieving **16.67% balanced accuracy** which is **exactly random chance for 6 classes**. This document investigates the divergence between our implementation and the EEGPT reference that achieves 62.32% BAC.
 
+## 🔥 CRITICAL DISCOVERY: EEGPT Uses PRE-PROCESSED PICKLE FILES!
+
+**THEY DON'T USE RAW EEG!** They load pre-processed pickle files with:
+- Fixed-length segments (5 * sampling_rate = 1000 samples at 200Hz = 5 seconds)
+- Pre-extracted features stored as "signal" 
+- Single label per file (not continuous annotation)
+- Files in `processed_train/`, `processed_eval/`, `processed_test/` directories
+
+**Our Approach**: Loading raw EDF files and creating 4-second windows on-the-fly
+**Their Approach**: Pre-processed pickle files with fixed segments
+
+This explains EVERYTHING:
+- Why they have fewer samples (pre-segmented, not sliding windows)
+- Why no class weights needed (balanced during preprocessing)
+- Why their training works (curated segments, not raw continuous data)
+
 ## Critical Finding: Model Predicts Only Background Class
 
 **Evidence:**
