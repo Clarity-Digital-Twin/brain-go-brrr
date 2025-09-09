@@ -47,17 +47,22 @@ grep -n "Conv2dWithConstraint(in_channels" reference_repos/EEGPT/downstream_tueg
 
 **Result**: Paper wrong, code correct, we handle it properly!
 
-## 🚀 UPDATE (2025-09-08): FPZ INTERPOLATION IMPLEMENTED
+## 🔴 CRITICAL UPDATE (2025-09-09): WE MISUNDERSTOOD THE PAPER!
 
-### What We Fixed:
-1. **Fpz Synthesis**: Now interpolates from (Fp1+Fp2)/2 when both available
-2. **Fallback**: Still uses zeros if Fp1 or Fp2 missing
-3. **Cache Rebuild**: Running with `tuev_mne_fixed` cache directory
-4. **Confirmed Working**: Log shows "Synthesized Fpz by interpolating from Fp1 and Fp2"
+### What EEGPT Actually Does (Verified in Reference Code):
+1. **NO Fpz Synthesis** - They don't create missing channels
+2. **Keeps ALL 23 TUEV Channels** - Including A1, A2, T1, T2
+3. **Learned Channel Mapper**: `Conv2dWithConstraint(23, 20, 1)`
+   - Maps 23 input channels → 20 EEGPT channels
+   - Includes BatchNorm, GELU, Dropout(0.8)
+   - Followed by temporal conv
+4. **The Model Learns Fpz** - Not preprocessed!
 
-### Code Location:
-- `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py` lines 232-239
-- Uses public MNE API `get_data()` for robustness
+### Our Current Approach (WRONG):
+- Dropping A1/A2 in preprocessing
+- Synthesizing Fpz as (Fp1+Fp2)/2
+- Using 20-channel cache
+- This is NOT paper parity!
 
 ## The Facts
 

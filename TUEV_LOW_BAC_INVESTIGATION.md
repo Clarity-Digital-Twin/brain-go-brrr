@@ -232,4 +232,16 @@ cd experiments/eegpt_linear_probe/scripts
 
 ---
 
-**PRIORITY: Try Strategy A (match EEGPT) before anything else.**
+**🔴 CRITICAL DECISION REQUIRED NOW:**
+
+**Option 1: Continue Current Cache (NOT Paper Parity)**
+- Finish 20-ch cache with Fpz interpolation (~2 hrs left)
+- Test if hyperparams alone help (unlikely to reach 62%)
+- This is NOT what the paper did
+
+**Option 2: KILL NOW & Do Paper Parity**
+- Stop current cache immediately
+- Implement 23-ch cache + Conv2d(23,20) mapper
+- This IS what achieved 62% BAC
+
+**RECOMMENDATION: Option 2 - The mapper is NOT optional!**

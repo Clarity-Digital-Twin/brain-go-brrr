@@ -85,6 +85,13 @@
 
 ---
 
+## 📌 Parity Notes (Architecture)
+
+- EEGPT reference reduces 23→20 channels inside the model with a learned 1×1 Conv (no preprocessing-time synthesis). For strict parity, feed 23‑channel inputs to a learnable mapper before EEGPT and train the mapper + linear head with the same hyperparameters (lr=5e‑4, wd=0.05, label smoothing=0.1).
+- Compute BAC as `balanced_accuracy_score(y_true, y_pred, labels=[0,1,2,3,4,5])` to ensure class-consistent averaging.
+
+---
+
 ## 📝 MONITORING COMMANDS
 
 ```bash
