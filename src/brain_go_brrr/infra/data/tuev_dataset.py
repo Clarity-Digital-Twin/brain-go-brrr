@@ -5,12 +5,12 @@ Multi-class event detection (6 classes) with 20 channels (Fz and Fpz included, O
 
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import torch
 from torch.utils.data import Dataset
-import subprocess
 
 from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
 
@@ -150,8 +150,6 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
     def _build_cache(self) -> None:
         """Build preprocessed cache with MNE+Autoreject."""
-        import subprocess
-
         from tqdm import tqdm  # type: ignore[import-untyped]
 
         from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20

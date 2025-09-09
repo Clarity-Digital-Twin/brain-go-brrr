@@ -54,7 +54,7 @@ def test_paper_parity_pipeline():
 
     with torch.no_grad():
         features = model.extract_features(x_mapped, summary=False)
-    
+
     # EEGPT wrapper outputs (B, 4, 512) summary tokens for 4-second windows
     assert features.shape == (1, 4, 512), f"Unexpected feature shape: {features.shape}"
 
