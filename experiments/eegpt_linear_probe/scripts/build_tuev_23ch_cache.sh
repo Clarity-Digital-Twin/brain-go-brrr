@@ -40,16 +40,17 @@ sys.path.insert(0, '/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr')
 from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
 from pathlib import Path
 
-print(f'Building 23-channel cache for {SPLIT} split...')
+split = '$SPLIT'
+print(f'Building 23-channel cache for {split} split...')
 dataset = TUEVMNEDataset(
     root_dir=Path('$BGB_DATA_ROOT/datasets/tuev'),
-    split='$SPLIT',
+    split=split,
     cache_dir=Path('$BGB_CACHE_DIR'),
     force_rebuild=True,
     use_paper_parity=True  # 23 channels for paper parity
 )
 
-print(f'✓ Built {len(dataset)} windows for $SPLIT split')
+print(f'✓ Built {len(dataset)} windows for {split} split')
 print(f'  Channels: {dataset.n_channels}')
 print(f'  Cache location: {dataset.cache_dir}')
 
