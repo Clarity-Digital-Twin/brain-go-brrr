@@ -75,19 +75,25 @@ Evidence common to both: Background F1 ~0.996–0.998 while minority F1 ~0.0–0
 
 ## 🚨 URGENT: Two Divergent Fix Strategies
 
-### Strategy A: Match EEGPT Paper EXACTLY (Recommended)
+### Strategy A: Match EEGPT Paper EXACTLY (⚠️ INCOMPLETE WITHOUT MAPPER)
 **Rationale**: They got 62% BAC, we got 22%. Do EXACTLY what they did.
 
-1. **REMOVE class weights** - Use plain `nn.CrossEntropyLoss()`
-2. **Match their hyperparameters** (checked in reference repo):
+**🔥 CRITICAL DISCOVERY: EEGPT USES A LEARNED CHANNEL MAPPER 🔥**
+
+**What EEGPT Actually Does (verified in reference code):**
+1. **Input**: 23 channels from TUEV (keeps A1, A2, T1, T2 - NO dropping)
+2. **Channel Mapper**: `Conv2dWithConstraint(23, 20, kernel_size=1)` 
+   - Followed by: BatchNorm2d(20) → GELU() → Dropout(0.8)
+   - Then: Conv2d(20, 20, kernel_size=(1,55), groups=20)
+3. **Config**: `use_chan_conv=True` (ALWAYS enabled for TUEV)
+4. **Training**: Mapper + head trained together, backbone frozen
+
+**Their Hyperparameters:**
    - lr=5e-4
    - weight_decay=0.05
-   - warmup_epochs=5
-   - batch_size=64
-   - label_smoothing=0.1 (LabelSmoothingCrossEntropy path)
-   - layer_decay enabled (e.g., 0.9)
-3. **Keep simple sampling** - Just torch.randperm like they do
-4. **Add layer decay** - Different LR for each layer (optional but they use it)
+   - label_smoothing=0.1 (via LabelSmoothingCrossEntropy)
+   - NO class weights
+   - Standard random sampling
 
 ### Strategy B: Fix The Imbalance Problem (Our Original Plan)
 
@@ -111,7 +117,7 @@ Evidence common to both: Background F1 ~0.996–0.998 while minority F1 ~0.0–0
 - Log per‑epoch confusion matrix and per‑class recall (already logging per‑class F1; keep it).
 - Select best checkpoint strictly by eval BAC.
 
-Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only after BAC is near target; it won’t fix collapse.
+**🔴 CRITICAL: Channel mapper (23→20) is REQUIRED for paper parity - NOT optional!**
 
 ## Acceptance Criteria (next run)
 
@@ -133,8 +139,8 @@ Optional later: Channel mapper (23→20, 1×1 conv) as a +~1% improvement only a
 3. **Time cost** - Cache rebuild takes hours
 4. **Current run** - Let it finish for baseline comparison
 
-### RECOMMENDATION: 
-**Don't rebuild YET.** First try Strategy A (match EEGPT hyperparams) with current cache. If that fails, THEN rebuild cache.
+### ⚠️ OUTDATED RECOMMENDATION (Before We Knew About Mapper):
+[This recommendation was made before discovering the mapper requirement]
 
 ## A/B Plan (order, stop rules)
 
@@ -173,27 +179,55 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-## 🎯 FINAL RECOMMENDATION
+## 🎯 CURRENT STATUS (2025-09-09)
 
-### Immediate Action (Do This NOW):
-1. **Let current run finish** - Useful as baseline
-2. **Prepare new training script** copying EEGPT settings:
-   ```python
-   # Match EEGPT EXACTLY
-   criterion = nn.CrossEntropyLoss()  # NO weights
-   lr = 5e-4  # Not 1e-3
-   weight_decay = 0.05
-   warmup_epochs = 5
-   batch_size = 64
-   # Optional: label_smoothing = 0.1
-   ```
-3. **Run with current cache** - Don't rebuild yet
-4. **Monitor for 10 epochs** - Should see BAC > 0.30 quickly
+### ✅ IMPLEMENTED (Hyperparameter Parity):
+1. **Config Fixed** (`experiments/eegpt_linear_probe/configs/tuev.yaml`):
+   - `weighted_loss: false` ✅ (was defaulting to True)
+   - `weight_decay: 0.05` ✅ (already correct)
+   - `label_smoothing: 0.1` ✅ (in config)
 
-### If That Fails:
-1. **THEN rebuild cache** with potential Fpz fix
-2. **Consider channel mapper** as last resort
-3. **Investigate data loading** for systematic issues
+2. **Training Script Fixed** (`train_tuev_mne.py`):
+   - Line 487: Reads label_smoothing from config ✅
+   - Line 489: Default weighted_loss now False ✅
+   - Line 518: `nn.CrossEntropyLoss(label_smoothing=0.1)` ✅
+   - NO class weights for Strategy A ✅
+
+3. **Launch Script Fixed** (`scripts/launch_tuev_mne.sh`):
+   - Line 51: Uses `tuev_mne_fixed` cache dir ✅
+   - Consistent with cache builder script ✅
+
+4. **Preprocessor Fixed** (`tuev_preprocessor.py`):
+   - Fpz interpolation: (Fp1+Fp2)/2 when available ✅
+   - Falls back to zeros if Fp1/Fp2 missing ✅
+   - Uses public MNE API `get_data()` instead of private `_data` ✅
+
+5. **Final Senior Audit Fixes** (2025-09-08):
+   - BAC metrics: Added `labels=[0,1,2,3,4,5]` to all 3 calls ✅
+   - Smoke test config: Aligned with Strategy A settings ✅
+   - All CI/CD checks passing ✅
+
+### ❌ NOT IMPLEMENTED (Architectural Parity):
+1. **Channel Mapper**: Conv2d(23→20) module doesn't exist
+2. **23-Channel Input**: Still dropping A1/A2 
+3. **Cache**: Using 20-ch with Fpz synthesis (not 23-ch)
+
+### 🚀 Ready to Execute:
+```bash
+cd experiments/eegpt_linear_probe/scripts
+./launch_tuev_cache.sh   # Build cache with Fpz fix
+./launch_tuev_mne.sh     # Train with EEGPT hyperparams
+```
+
+### Monitoring Criteria:
+- **Success**: BAC > 0.30 within 10 epochs
+- **Stall**: No +0.05 BAC gain over 5 epochs → switch to Strategy B
+
+### 🔴 FOR TRUE PAPER PARITY:
+1. **Rebuild cache with 23 channels** (keep ALL channels including A1/A2)
+2. **Add Conv2dWithConstraint(23, 20, 1)** mapper before EEGPT
+3. **Train mapper + head together** with exact hyperparams above
+4. **NO Fpz synthesis** - let the mapper learn it
 
 ### Key Insight:
 **EEGPT authors got 62% BAC with NO class balancing techniques.** Either:
@@ -203,4 +237,19 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-**PRIORITY: Try Strategy A (match EEGPT) before anything else.**
+**🔴 DECISION POINT (Cache 80% Complete):**
+
+**Option A: Test Partial Parity First**
+- Let current cache finish (~40 min)
+- Train with hyperparameter parity only
+- Expected: ~50-55% BAC
+- Then decide if full parity needed
+
+**Option B: Full Paper Parity Now**
+- Kill cache immediately
+- Implement 23-ch + Conv2d(23→20) mapper
+- Rebuild correctly
+- Expected: ~62% BAC (paper target)
+
+**Current Status**: Cache at 289/359 files (80%)
+**Architecture Gap**: Missing the mapper that's CORE to their approach

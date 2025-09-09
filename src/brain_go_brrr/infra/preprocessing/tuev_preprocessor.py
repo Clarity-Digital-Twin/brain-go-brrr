@@ -23,12 +23,44 @@ from .mne_preprocessor import TUABPreprocessor
 
 logger = logging.getLogger(__name__)
 
+# 23 channels for paper parity (using canonical/modern names after T3→T7 mapping)
+# CRITICAL: Use mixed-case naming to match canonicalize_channel_labels output
+CHANNELS_TUEV_23_CANONICAL = [
+    'Fp1',  # Mixed-case: Fp not FP
+    'Fp2',
+    'F3',
+    'F4',
+    'C3',
+    'C4',
+    'P3',
+    'P4',
+    'O1',
+    'O2',
+    'F7',
+    'F8',
+    'T7',
+    'T8',
+    'P7',
+    'P8',  # Modern names (T3→T7, etc.)
+    'A1',
+    'A2',
+    'Fz',  # Mixed-case: lowercase z
+    'Cz',
+    'Pz',
+    'T1',
+    'T2',
+]
+
 
 class TUEVPreprocessor(TUABPreprocessor):
     """MNE+Autoreject preprocessing for TUEV dataset.
 
+    Modes:
+    - Paper parity (use_paper_parity=True): Keep all 23 raw channels (incl. A1/A2/T1/T2), no synthesis; mapper handles 23->20 before EEGPT.
+    - Legacy (use_paper_parity=False): Map to a canonical 20-channel interface (drops A1/A2; may synthesize Fpz). Not paper-parity.
+
     Key differences from TUAB:
-    1. 23 input channels (not 20)
+    1. 23 input channels (parity mode) vs 20 (legacy interface)
     2. Different channel naming convention
     3. Multi-class labels from .lab files
     """
@@ -76,36 +108,63 @@ class TUEVPreprocessor(TUABPreprocessor):
     # Single Source of Truth: import from infra.data.channels
     STANDARD_CHANNELS = CHANNELS_TUEV_20
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any] | None = None, use_paper_parity: bool = False):
         """Initialize TUEV preprocessor.
 
         Args:
             config: Optional configuration dict
                 - disable_ransac: Skip RANSAC bad channel detection (default: True for TUEV)
+            use_paper_parity: If True, keep all 23 channels for learned mapper.
+                            If False, use existing 20-ch preprocessing approach.
         """
         super().__init__(config)
         # Default to True for TUEV since RANSAC has internal bug with our channel config
         self.disable_ransac = (config or {}).get('disable_ransac', True)
-        logger.info(
-            f"Initialized TUEVPreprocessor for 23→20 channel mapping "
-            f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
-        )
+        self.use_paper_parity = use_paper_parity
+
+        if use_paper_parity:
+            # Override parent settings for 23-channel mode
+            self.STANDARD_CHANNELS = CHANNELS_TUEV_23_CANONICAL
+            self.n_channels = 23
+            logger.info(
+                f"TUEVPreprocessor: Paper parity mode - keeping 23 channels "
+                f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
+            )
+        else:
+            # Use existing 20-channel mapping (legacy, not paper parity)
+            self.STANDARD_CHANNELS = CHANNELS_TUEV_20
+            self.n_channels = 20
+            logger.info(
+                f"TUEVPreprocessor: Legacy mode - mapping to 20 channels (NOT paper parity) "
+                f"(RANSAC: {'disabled' if self.disable_ransac else 'enabled'})"
+            )
 
     def _apply_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Apply TUEV channel mapping from 23 to 20 channels.
+        """Apply TUEV channel mapping.
 
-        Handles:
+        For paper parity (23 channels):
+        - Keep all channels including A1, A2, T1, T2
+        - No synthesis, no dropping
+
+        For standard mode (20 channels):
         - Old to modern naming (T3→T7, etc.)
         - Dropping reference channels (A1, A2)
         - Including Fpz (synthesized if missing), excluding Oz
         - Case normalization
 
         Args:
-            raw: Raw MNE object with 23 channels
+            raw: Raw MNE object
 
         Returns:
-            Raw object with 20 standard channels
+            Raw object with appropriate number of channels
         """
+        if self.use_paper_parity:
+            return self._apply_23_channel_mapping(raw)
+        else:
+            return self._apply_20_channel_mapping(raw)
+
+    def _apply_20_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Apply standard 20-channel mapping (existing behavior)."""
         # After canonicalization, channel names are already standardized
         # We just need to drop unwanted reference channels (A1, A2)
         channels_to_drop = []
@@ -192,6 +251,31 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         return raw
 
+    def _apply_23_channel_mapping(self, raw: mne.io.Raw) -> mne.io.Raw:
+        """Apply 23-channel mapping for paper parity.
+
+        Keep all 23 TUEV channels without synthesis or dropping.
+        """
+        # Check which channels are available after canonicalization
+        available = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
+        missing = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
+
+        if missing:
+            logger.warning(f"Missing channels for 23-ch parity: {missing}")
+            # For paper parity, we should have all 23 channels
+            # If not, the dataset may be incomplete
+            raise ValueError(f"Paper parity requires all 23 channels. Missing: {missing}")
+
+        # Use raw.pick() to select channels
+        raw.pick(available)
+
+        # Ensure we have exactly 23 channels for mapper
+        if len(raw.ch_names) != 23:
+            raise ValueError(f"Paper parity requires exactly 23 channels, got {len(raw.ch_names)}")
+
+        logger.info(f"Selected {len(raw.ch_names)} channels for paper parity")
+        return raw
+
     def _apply_channel_mapping_with_tracking(self, raw: mne.io.Raw) -> tuple[mne.io.Raw, list[str]]:
         """Apply channel mapping and return missing channels list."""
         # Determine missing channels after canonicalization but before mapping
@@ -205,10 +289,10 @@ class TUEVPreprocessor(TUABPreprocessor):
         return raw, missing
 
     def _synthesize_missing_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Synthesize missing canonical channels with zeros.
+        """Synthesize missing canonical channels intelligently.
 
         Ensures final selection can reach exactly 20 channels by adding
-        zero-valued EEG channels for any missing entries in STANDARD_CHANNELS.
+        missing channels using interpolation when possible, zeros otherwise.
         """
         present_lower = {ch.lower() for ch in raw.ch_names}
         need = [ch for ch in self.STANDARD_CHANNELS if ch.lower() not in present_lower]
@@ -220,12 +304,29 @@ class TUEVPreprocessor(TUABPreprocessor):
 
         sfreq = raw.info['sfreq']
         n_times = len(raw.times)
+
+        # Build mapping of channel names to indices for easy lookup
+        ch_to_idx = {ch.lower(): i for i, ch in enumerate(raw.ch_names)}
+
         for ch in need:
             info = mne.create_info([ch], sfreq, ['eeg'])
-            zero_data = np.zeros((1, n_times))
-            zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
-            raw.add_channels([zero_raw], force_update_info=True)
-            logger.info(f"Synthesized missing channel as zeros: {ch}")
+
+            # Special case: Interpolate Fpz from Fp1 and Fp2 if available
+            if ch.lower() == 'fpz' and 'fp1' in ch_to_idx and 'fp2' in ch_to_idx:
+                # Use public API to get channel data
+                fp1_data = raw.get_data(picks=['Fp1'])[0]
+                fp2_data = raw.get_data(picks=['Fp2'])[0]
+                # Average of Fp1 and Fp2 (biologically sensible for midline)
+                fpz_data = (fp1_data + fp2_data) / 2.0
+                fpz_raw = mne.io.RawArray(fpz_data[np.newaxis, :], info, verbose=False)
+                raw.add_channels([fpz_raw], force_update_info=True)
+                logger.info(f"Synthesized {ch} by interpolating from Fp1 and Fp2")
+            else:
+                # Default: synthesize as zeros
+                zero_data = np.zeros((1, n_times))
+                zero_raw = mne.io.RawArray(zero_data, info, verbose=False)
+                raw.add_channels([zero_raw], force_update_info=True)
+                logger.info(f"Synthesized missing channel as zeros: {ch}")
 
         return raw
 

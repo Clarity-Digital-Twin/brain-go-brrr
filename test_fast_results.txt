@@ -1,0 +1,134 @@
+[0;32mRunning fast parallel tests without coverage...[0m 
+[1;33mWSL detected: Running tests serially to avoid I/O errors[0m 
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+..........sssss......................................................... [ 31%]
+........................................................................ [ 38%]
+........................................sssss..............ssssssss..... [ 46%]
+........................................................................ [ 54%]
+.........................................s.......sssssssssssssssssssssss [ 62%]
+ssss.................................................................... [ 69%]
+........................................................................ [ 77%]
+........................................................................ [ 85%]
+.......................................ss............................... [ 93%]
+.................................................................        [100%]
+=============================== warnings summary ===============================
+src/brain_go_brrr/infra/adapters/model_adapter.py:15
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/src/brain_go_brrr/infra/adapters/model_adapter.py:15: DeprecationWarning: eegpt_compat is deprecated. Import from eegpt_wrapper directly.
+    from brain_go_brrr.infra.ml_models.eegpt_compat import EEGPTModel
+
+tests/unit/infra/cache/test_factory.py:7
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/cache/test_factory.py:7: DeprecationWarning: cache_factory is deprecated and will be removed in v2.0.0. Use brain_go_brrr.infra.cache directly.
+    from brain_go_brrr.infra.cache_factory import MemoryCache, get_cache
+
+tests/unit/application/test_abnormality_probe_checkpoint_loading.py::test_load_head_checkpoint_supports_both_formats
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/application/test_abnormality_probe_checkpoint_loading.py:65: PendingDeprecationWarning: AbnormalityDetectionProbe API may change in a future minor release. Prefer orchestration helpers for long-lived code.
+    probe = AbnormalityDetectionProbe(checkpoint_path=tmp_path / "dummy.ckpt")
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_linear_architecture_with_injected_backbone
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:61: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeInitialization::test_two_layer_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:69: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_robust_mode_replaces_nans_and_clips
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:79: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneSimple(), robust_mode=True, freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_channel_adapter_path
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_return_all_temporal_branch
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:99: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneAccepts(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_probe_unified.py::TestProbeBranches::test_unexpected_feature_shape_raises
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_probe_unified.py:105: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(backbone=FakeBackboneBadShape(), freeze_backbone=True)
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_init_creates_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:70: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_validate_and_clean_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:88: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_robust_normalize
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:115: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_pass_shape
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:140: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_predict_proba
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:156: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_get_num_trainable_params
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:176: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:193: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_save_and_load_probe
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:209: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe2 = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_forward_with_nan_input
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:228: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_freeze_backbone_parameters
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:250: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_multi_class_classification
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:270: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_mixed_precision_compatibility
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:288: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_different_batch_sizes
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:308: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+tests/unit/infra/ml_models/test_robust_probe.py::TestRobustEEGPTLinearProbeClean::test_probe_head_architecture
+  /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/tests/unit/infra/ml_models/test_robust_probe.py:325: DeprecationWarning: EEGPTProbe is deprecated and will be removed in v2.0.0. Use ProbeFactory.create() instead for new code.
+    probe = EEGPTProbe(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 10 durations =============================
+18.60s call     tests/smoke/test_e2e_pipeline_synthetic.py::test_e2e_on_synthetic_raw
+13.11s call     tests/smoke/test_factories_contract.py::test_factories_present_and_callable
+9.58s call     tests/smoke/test_cli_and_version.py::test_cli_version_matches_package
+6.11s call     tests/smoke/test_end_to_end_wiring.py::test_api_to_domain_integration
+5.02s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_full_preprocessing_pipeline
+4.41s call     tests/unit/domain/abnormal/test_preprocessor.py::TestEEGPreprocessor::test_preprocessing_performance
+3.56s call     tests/unit/infra/ml_models/test_contract_fuzzer.py::TestEEGPTContractFuzzing::test_extract_features_shape_contract
+3.23s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_resampling_handling
+3.18s call     tests/unit/domain/preprocessing/test_flexible.py::TestFlexibleEEGPreprocessor::test_preprocess_tuh_with_positions
+3.00s call     tests/unit/infra/redis/test_pool.py::TestRedisConnectionPool::test_execute_with_retry
+=========================== short test summary info ============================
+SKIPPED [2] tests/unit/data/test_edf_loader_unit.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/data/test_edf_streaming_edges.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:154: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/domain/sleep/test_analysis.py:172: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [3] tests/unit/domain/sleep/test_analysis.py:196: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [8] tests/unit/domain/sleep/test_montage_detection.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/infra/cache/test_factory.py:199: Redis not available for testing
+SKIPPED [6] tests/unit/infra/data/test_edf_loader.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [9] tests/unit/infra/data/test_edf_streaming.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [12] tests/unit/infra/data/test_edf_validator.py: skipping data-backed tests (set BGB_DATA_ROOT and pass --run-data)
+SKIPPED [1] tests/unit/models/test_linear_probe.py:125: TwoLayerProbe module not found
+SKIPPED [1] tests/unit/models/test_linear_probe.py:137: TwoLayerProbe module not found
+881 passed, 48 skipped, 388 deselected, 23 warnings in 104.17s (0:01:44)

@@ -85,6 +85,21 @@
 
 ---
 
+## 🔴 CRITICAL: Paper Parity Architecture
+
+**VERIFIED FROM REFERENCE CODE (2025-09-09):**
+
+The EEGPT paper achieves 62.32% BAC using:
+1. **23-channel input** (keeps ALL TUEV channels including A1, A2)
+2. **Learned Conv2d(23→20) mapper** with BatchNorm, GELU, Dropout(0.8)
+3. **NO preprocessing synthesis** (no Fpz interpolation)
+4. **Hyperparams**: lr=5e-4, wd=0.05, label_smoothing=0.1
+5. **BAC computation**: `balanced_accuracy_score(y_true, y_pred, labels=[0,1,2,3,4,5])`
+
+**Our current approach (20-ch preprocessing) is NOT paper parity!**
+
+---
+
 ## 📝 MONITORING COMMANDS
 
 ```bash
@@ -112,7 +127,9 @@ tail -f experiments/eegpt_linear_probe/logs/tuev_mne_*.log | grep -i "balanced"
 
 1. **Primary Metric**: ALWAYS use Balanced Accuracy (BAC) for TUEV
 2. **Secondary Metrics**: Weighted F1 and Kappa for additional context
-3. **Class Weights**: Essential due to 99.5% class imbalance
+3. **Class Weights**: 
+   - **Paper Parity**: NO class weights (EEGPT uses unweighted CE + label smoothing)
+   - **Alternative**: Class weights only as experimental ablation
 4. **Realistic Target**: 60-63% BAC, NOT 80%
 5. **Sprint 4 Decision**: Based on 60% BAC threshold, not 80%
 

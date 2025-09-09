@@ -10,10 +10,13 @@ Training scripts for EEGPT linear probing on TUAB and TUEV datasets.
 ## Channel Specifications
 
 ### TUAB (19 channels - no Fz)
-Expected channels: FP1, FP2, F7, F3, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, OZ, O2
+Expected channels (mixed-case): Fp1, Fp2, F7, F3, F4, F8, T7, C3, Cz, C4, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
-### TUEV (20 channels - includes Fz)
-Expected channels: FP1, FP2, F7, F3, FZ, F4, F8, T7, C3, CZ, C4, T8, P7, P3, PZ, P4, P8, O1, OZ, O2
+### TUEV (paper parity: 23 raw channels + learned 23->20 mapper)
+Raw channels kept (mixed-case, no synthesis):
+Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T7, T8, P7, P8, A1, A2, Fz, Cz, Pz, T1, T2
+
+These 23 raw channels are mapped by a learnable Conv2d 23->20 mapper (BN/GELU + depthwise 1x55 + BN/Dropout 0.8) before EEGPT, matching the paper.
 
 ## Usage
 
@@ -25,8 +28,10 @@ export BGB_CACHE_DIR=/path/to/cache
 # Train TUAB
 uv run python experiments/eegpt_linear_probe/train_tuab_mne.py
 
-# Train TUEV
-uv run python experiments/eegpt_linear_probe/train_tuev_mne.py
+# Train TUEV (paper parity)
+uv run python experiments/eegpt_linear_probe/train_tuev_mne.py --config experiments/eegpt_linear_probe/configs/tuev_paper_parity.yaml
+# or use the launch script
+./experiments/eegpt_linear_probe/scripts/launch_tuev_paper_parity.sh
 ```
 
 ## Architecture
@@ -45,5 +50,5 @@ See `configs/` directory for YAML configuration files with hyperparameters.
 
 - Normalization happens in the EEGPT wrapper (SSOT)
 - Datasets provide Volts (SI units), not millivolts
-- Use ProbeFactory for creating probes (EEGPTProbe is deprecated)
+- TUEV 20-channel preprocessing is legacy; use paper parity (23-ch + mapper)
 - No sys.path hacks - proper imports only

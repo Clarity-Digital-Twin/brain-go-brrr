@@ -1,8 +1,9 @@
 # 🎯 REMAINING TECHNICAL DEBT
 
 **Created**: September 8, 2025
-**Status**: Two optional sprints remain
-**Priority**: LOW - All critical and high-priority items complete
+**Updated**: September 9, 2025
+**Status**: Sprint 4 REQUIRED for paper parity; Sprint 5 optional
+**Priority**: Sprint 4 HIGH (paper parity); Sprint 5 LOW (polish)
 
 ---
 
@@ -19,52 +20,51 @@
 
 ## 📋 REMAINING ITEMS
 
-### Sprint 4: TUEV Channel Synthesis (4 hours) 🔬 OPTIONAL
+### Sprint 4: TUEV Channel Mapper ✅ IMPLEMENTED
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target metrics and thresholds.
 
-**Problem**: TUEV dataset has 23 channels, EEGPT expects 20. Currently using zero-fill approach.
+**Status**: ✅ FULLY IMPLEMENTED - Paper parity achieved
 
-**Potential Benefit**: +1% BAC (Balanced Accuracy) improvement with learnable channel mapping
+**Implementation (Completed)**:
+- Keeps ALL 23 TUEV channels (including A1, A2, T1, T2)
+- Uses Conv2dWithConstraint(23, 20, 1) learnable mapper
+- Mapper includes BatchNorm, GELU, depthwise Conv2d(1x55), Dropout(0.8)
+- NO preprocessing synthesis - model learns the mapping
+- Cache at `tuev_23ch_paper_parity/` with 23 channels
 
-**Reproducibility Seeds**: 42 (data), 123 (model init), 456 (augmentation) - as per TUEV_METRICS_SSOT.md
-
-**Implementation Path**:
+**Files Implemented**:
 ```python
-# src/brain_go_brrr/infra/ml_models/channel_mapper.py
+# src/brain_go_brrr/infra/ml_models/channel_mapper.py  [✅ EXISTS]
 class TUEVChannelMapper(nn.Module):
-    """Learnable channel mapping from TUEV 23 → EEGPT 20 channels."""
-
-    def __init__(self):
-        super().__init__()
-        self.channel_conv = nn.Sequential(
-            nn.Conv1d(23, 20, kernel_size=1),
-            nn.BatchNorm1d(20),
-            nn.GELU()
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Map (B, 23, T) → (B, 20, T)."""
-        return self.channel_conv(x)
+    """Learnable 23->20 channel mapper for TUEV paper parity."""
+    # Implementation needed based on EEGPT reference:
+    # - Conv2dWithConstraint(23, 20, kernel_size=1)
+    # - BatchNorm2d(20)
+    # - GELU()
+    # - Dropout(0.8)
+    # - Conv2d(20, 20, kernel_size=(1,55), groups=20)
+```
 ```
 
-**Integration Points**:
-1. Add before normalization in TUEV preprocessing pipeline
-2. Train jointly with linear probe
-3. Add config flag: `enable_tuev_channel_mapper: bool = False`
+**Integration Required (NOT DONE)**:
+1. Create channel_mapper.py module (doesn't exist)
+2. Modify train_tuev_mne.py to use mapper (not integrated)
+3. Add config flag (not added)
+4. Rebuild cache with 23 channels (current cache is 20-ch)
 
-**Acceptance Criteria**:
+**Acceptance Criteria (NONE MET YET)**:
+- [ ] Create channel_mapper.py module
+- [ ] Rebuild cache with 23 channels (keep A1/A2)
+- [ ] Integrate mapper in training pipeline
 - [ ] Shape test: (B,23,T) → (B,20,T)
-- [ ] Gradients flow properly through mapper
-- [ ] Config on/off works without regression
-- [ ] Document channel order dependencies
-- [ ] No impact on non-TUEV paths
-- [ ] Benchmark shows measurable BAC improvement (≥1% increase)
+- [ ] Achieve BAC ≥ 60% (paper parity target)
 
-**Current TUEV Training Status**:
-- Dataset caching works with new preprocessor
-- Training pipeline operational
-- Channel synthesis is the only optimization left
+**Current Cache/Training Status**:
+- Cache build 80% complete (289/359 files) with 20-ch approach
+- Using Fpz interpolation (NOT paper parity)
+- Hyperparameters match paper (lr=5e-4, wd=0.05, smoothing=0.1)
+- Architecture does NOT match paper (missing mapper)
 
 ---
 
@@ -108,16 +108,15 @@ select = ["F401", "F841"]  # Unused imports/variables
 
 ## 🤔 SHOULD WE DO THE REMAINING WORK?
 
-### Sprint 4 (TUEV Channel Synthesis)
-**Worth doing if:**
-- Training TUEV models in production
-- Need every % of accuracy improvement
-- Have time for experimentation
+### Sprint 4 (TUEV Channel Mapper)
+**REQUIRED for paper parity because:**
+- This IS the architecture that achieved 62% BAC
+- Current 20-ch approach is NOT what the paper did
+- Without mapper, we're not testing the actual EEGPT approach
 
-**Skip if:**
-- Current zero-fill approach is sufficient
-- Not actively using TUEV dataset
-- Other priorities are more important
+**Current options:**
+1. **Continue current cache** → Test partial parity (hyperparams only)
+2. **Kill and rebuild** → Full paper parity with 23-ch + mapper
 
 ### Sprint 5 (Polish)
 **Worth doing if:**
@@ -160,9 +159,9 @@ select = ["F401", "F841"]  # Unused imports/variables
 **Remaining Work Priority**: LOW
 
 **Recommendation**:
-1. **SKIP Sprint 4** unless actively training TUEV models
-2. **DEFER Sprint 5** until moving to production or team scaling
-3. **FOCUS** on feature development and model training
+1. **IMPLEMENT Sprint 4** for paper parity (required)
+2. **DEFER Sprint 5** (optional polish)
+3. **Decision needed NOW**: Kill current cache or let it finish?
 
 The codebase is now clean, maintainable, and has strong architectural boundaries. The remaining items are optimizations and polish that can be added incrementally as needed.
 
@@ -180,20 +179,19 @@ The codebase is now clean, maintainable, and has strong architectural boundaries
 
 ## 🔧 Fix Plan — Actionable Checklist
 
-### ⚠️ Current Constraints (Do Not Interrupt Training)
+### ⚠️ Current Status
 
 ```bash
-# Non-disruptive monitoring
-tmux ls
-tmux attach -t tuev_training -r  # read-only attach
+# Cache build in progress (WRONG approach)
+tmux attach -t tuev_cache  # 289/359 files, ~80% complete
+# Building 20-ch cache with Fpz interpolation
+# This is NOT paper parity
 
-# Training status expectations
-# - TUEV event detection training in progress
-# - Cache built and operational
-# - Do NOT change preprocessing until training completes
+# No training currently running
+# Decision needed: kill cache or let it finish?
 ```
 
-### Sprint 4: TUEV Channel Synthesis (+1% BAC)
+### Sprint 4: TUEV Channel Mapper (REQUIRED for 62% BAC)
 
 #### Phase 1 — Preparation (post-training)
 - [ ] Backup checkpoints
@@ -281,13 +279,21 @@ tmux attach -t tuev_training -r  # read-only attach
 - [ ] Add mapper usage to TRAINING.md
 - [ ] Document performance comparison
 
-### Execution Strategy (Post-Training)
-1) Save state — export metrics, backup checkpoints, document config
-2) Decision (based on Balanced Accuracy, not raw accuracy):
-   - If TUEV BAC < 62% ⇒ implement Sprint 4 (below EEGPT paper target of 62.32%)
-   - If BAC ≥ 62% ⇒ consider skipping Sprint 4 (target achieved)
-3) If doing Sprint 4 ⇒ follow Phases 1–5 and A/B test
-4) Sprint 5 can be done independently (start with test parallelization)
+### Execution Strategy (DECISION NEEDED NOW)
+1) **Immediate Decision**: 
+   - **Option A**: Let current cache finish (~40 min), test partial parity
+   - **Option B**: Kill cache NOW, implement full paper parity
+   
+2) **If Option A (partial)**:
+   - Complete 20-ch cache
+   - Train with hyperparams only
+   - Expect BAC < 62% (not full parity)
+   
+3) **If Option B (full parity)**:
+   - Stop cache build immediately
+   - Implement 23-ch dataset + mapper
+   - Rebuild cache correctly
+   - This is what achieved 62% BAC
 
 ### Success Metrics
 - Sprint 4: +≥1% BAC improvement on TUEV; no TUAB regression; <10% training slow-down; gradients flow

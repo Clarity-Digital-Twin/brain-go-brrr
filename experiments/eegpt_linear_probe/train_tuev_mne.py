@@ -34,9 +34,10 @@ from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
+from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
-from brain_go_brrr.utils import collate_tuev_batch
+from brain_go_brrr.utils import collate_tuev_batch, collate_tuev_parity_batch
 
 # Configure logging
 logging.basicConfig(
@@ -126,9 +127,12 @@ def train_epoch(
     config=None,
     epoch_indices=None,
     start_batch=0,
+    channel_mapper=None,
 ):
     """Train for one epoch with mid-epoch checkpointing."""
     probe.train()
+    if channel_mapper is not None:
+        channel_mapper.train()
 
     total_loss = 0
     all_preds = []
@@ -154,6 +158,10 @@ def train_epoch(
         # Log first batch shapes for diagnostics
         if batch_idx == 0 and epoch == 0:
             logger.info(f"First batch - x.shape: {x.shape}, y.dtype: {y.dtype}, y.shape: {y.shape}")
+
+        # Apply channel mapper if using paper parity (23→20 channels)
+        if channel_mapper is not None:
+            x = channel_mapper(x)  # (B, 23, T) -> (B, 20, T)
 
         # Extract EEGPT features (frozen backbone)
         with torch.no_grad():
@@ -198,7 +206,7 @@ def train_epoch(
 
         # Update progress bar
         if batch_idx % 10 == 0 and all_labels:
-            current_acc = balanced_accuracy_score(all_labels, all_preds)
+            current_acc = balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
             pbar.set_postfix(
                 {
                     'loss': f'{loss.item():.4f}',
@@ -248,7 +256,11 @@ def train_epoch(
 
     # Calculate epoch metrics
     avg_loss = total_loss / batches_processed if batches_processed > 0 else 0
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
+    balanced_acc = (
+        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        if all_labels
+        else 0
+    )
     weighted_f1 = (
         f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0
     )
@@ -257,9 +269,11 @@ def train_epoch(
     return avg_loss, balanced_acc, weighted_f1, kappa, global_step
 
 
-def evaluate(model, probe, eval_loader, criterion, device):
+def evaluate(model, probe, eval_loader, criterion, device, channel_mapper=None):
     """Evaluate model."""
     probe.eval()
+    if channel_mapper is not None:
+        channel_mapper.eval()
 
     total_loss = 0
     all_preds = []
@@ -268,6 +282,10 @@ def evaluate(model, probe, eval_loader, criterion, device):
     with torch.no_grad():
         for x, y in tqdm(eval_loader, desc="Evaluating"):
             x, y = x.to(device), y.to(device)
+
+            # Apply channel mapper if using paper parity
+            if channel_mapper is not None:
+                x = channel_mapper(x)  # (B, 23, T) -> (B, 20, T)
 
             # Extract features
             features = model.extract_features(x, summary=False)
@@ -287,7 +305,11 @@ def evaluate(model, probe, eval_loader, criterion, device):
 
     # Calculate metrics (guard against empty eval set)
     avg_loss = total_loss / len(eval_loader) if len(eval_loader) > 0 else 0.0
-    balanced_acc = balanced_accuracy_score(all_labels, all_preds) if all_labels else 0
+    balanced_acc = (
+        balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+        if all_labels
+        else 0
+    )
     weighted_f1 = (
         f1_score(all_labels, all_preds, average='weighted', zero_division=0) if all_labels else 0.0
     )
@@ -330,7 +352,10 @@ def resolve_env_vars(obj):
 def main():
     parser = argparse.ArgumentParser(description='Train TUEV with MNE preprocessing')
     parser.add_argument(
-        '--config', type=str, default='configs/tuev.yaml', help='Path to config file'
+        '--config',
+        type=str,
+        default='configs/tuev_paper_parity.yaml',
+        help='Path to config file (default: paper parity)',
     )
     parser.add_argument(
         '--output-dir', type=str, default=None, help='Output directory for checkpoints'
@@ -414,12 +439,31 @@ def main():
 
     # Create datasets
     logger.info("Loading MNE-preprocessed datasets...")
+    # Check if using paper parity mode (23 channels)
+    use_paper_parity = config.get('data', {}).get('use_paper_parity', False)
+
+    # Select appropriate collate function
+    collate_fn = collate_tuev_parity_batch if use_paper_parity else collate_tuev_batch
+    logger.info(
+        f"Using collate function: {'paper parity (23ch)' if use_paper_parity else 'standard (20ch)'}"
+    )
+    if not use_paper_parity:
+        logger.warning(
+            "Using legacy 20-channel TUEV mode (NOT paper parity). Prefer configs/tuev_paper_parity.yaml."
+        )
+
     train_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), split='train', cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']),
+        split='train',
+        cache_dir=Path(args.cache_dir),
+        use_paper_parity=use_paper_parity,
     )
 
     eval_dataset = TUEVMNEDataset(
-        root_dir=Path(config['data']['root_dir']), split='eval', cache_dir=Path(args.cache_dir)
+        root_dir=Path(config['data']['root_dir']),
+        split='eval',
+        cache_dir=Path(args.cache_dir),
+        use_paper_parity=use_paper_parity,
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} windows")
@@ -438,7 +482,7 @@ def main():
         'shuffle': False,
         'num_workers': num_workers if num_workers > 0 else 0,
         'pin_memory': config['data'].get('pin_memory', True),
-        'collate_fn': collate_tuev_batch,  # TUEV-specific: strict 20ch enforcement
+        'collate_fn': collate_fn,  # Use selected collate (parity or standard)
     }
 
     # Only add persistent_workers and prefetch_factor if we have workers
@@ -466,12 +510,34 @@ def main():
         dropout=config["model"]["dropout"],
     ).to(device)
 
-    # Setup optimizer
-    optimizer = torch.optim.AdamW(
-        probe.parameters(),
-        lr=config['training']['learning_rate'],  # 5e-4 for TUEV
-        weight_decay=config['training']['weight_decay'],
-    )
+    # Create channel mapper if using paper parity (23→20 mapping)
+    use_channel_mapper = config.get('model', {}).get('use_channel_mapper', False)
+    if use_channel_mapper:
+        logger.info("Initializing 23→20 channel mapper for paper parity")
+        channel_mapper = TUEVChannelMapper(
+            in_channels=23,
+            out_channels=20,
+            dropout=config.get('model', {}).get('mapper_dropout', 0.8),
+        ).to(device)
+    else:
+        channel_mapper = None
+        logger.info("No channel mapper - using preprocessed 20 channels")
+
+    # Setup optimizer (include mapper params if present)
+    if channel_mapper is not None:
+        # Include both probe and mapper parameters
+        optimizer = torch.optim.AdamW(
+            [{'params': probe.parameters()}, {'params': channel_mapper.parameters()}],
+            lr=config['training']['learning_rate'],
+            weight_decay=config['training']['weight_decay'],
+        )
+    else:
+        # Only probe parameters
+        optimizer = torch.optim.AdamW(
+            probe.parameters(),
+            lr=config['training']['learning_rate'],  # 5e-4 for TUEV
+            weight_decay=config['training']['weight_decay'],
+        )
 
     # Setup scheduler using the correct PyTorch API
     scheduler = OneCycleLR(
@@ -483,9 +549,11 @@ def main():
         anneal_strategy='cos',
     )
 
-    # Setup loss with class weighting for imbalanced data
-    if config.get('training', {}).get('weighted_loss', True):
-        # Compute class weights from training dataset efficiently
+    # Setup loss - Match EEGPT reference implementation
+    label_smoothing = config.get('training', {}).get('label_smoothing', 0.0)
+
+    if config.get('training', {}).get('weighted_loss', False):
+        # Only compute weights if explicitly requested (Strategy B)
         logger.info("Computing class weights for balanced loss...")
         # Check if dataset has precomputed class counts (much faster)
         if hasattr(train_dataset, 'class_counts'):
@@ -509,9 +577,11 @@ def main():
             class_weights = torch.FloatTensor(class_weights).to(device)
             logger.info(f"Class counts: {class_counts.tolist()}")
             logger.info(f"Class weights: {class_weights.tolist()}")
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=label_smoothing)
     else:
-        criterion = nn.CrossEntropyLoss()
+        # Strategy A: Match EEGPT exactly - no weights, with smoothing
+        logger.info(f"Using unweighted CrossEntropyLoss with label_smoothing={label_smoothing}")
+        criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
     # Resume from checkpoint if specified
     start_epoch = 0
@@ -596,7 +666,7 @@ def main():
                 pin_memory=config['data'].get('pin_memory', True),
                 persistent_workers=config['data'].get('persistent_workers', True),
                 prefetch_factor=config['data'].get('prefetch_factor', 2),
-                collate_fn=collate_tuev_batch,
+                collate_fn=collate_fn,
                 epoch_indices=epoch_indices,
             )
             resume_batch = 0  # Already sliced dataloader
@@ -612,7 +682,7 @@ def main():
                 pin_memory=config['data'].get('pin_memory', True),
                 persistent_workers=config['data'].get('persistent_workers', True),
                 prefetch_factor=config['data'].get('prefetch_factor', 2),
-                collate_fn=collate_tuev_batch,
+                collate_fn=collate_fn,
                 epoch_indices=None,
             )
             resume_batch = 0
@@ -632,6 +702,7 @@ def main():
             config=config,
             epoch_indices=current_epoch_indices,
             start_batch=resume_batch,
+            channel_mapper=channel_mapper,
         )
 
         # Reset for next epoch
@@ -640,7 +711,7 @@ def main():
 
         # Evaluate
         eval_loss, eval_acc, eval_f1, eval_kappa, _, _, per_class = evaluate(
-            model, probe, eval_loader, criterion, device
+            model, probe, eval_loader, criterion, device, channel_mapper
         )
 
         # Log metrics

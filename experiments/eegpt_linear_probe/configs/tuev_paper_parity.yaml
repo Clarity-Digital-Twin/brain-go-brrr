@@ -1,0 +1,70 @@
+# TUEV Paper Parity Configuration
+# Matches EEGPT paper implementation: 23 channels + learnable mapper
+# Target: 62.32% BAC (vs current 22% with 20-channel preprocessing)
+
+data:
+  dataset: "tuev"
+  root_dir: "${BGB_DATA_ROOT}/datasets/tuev"
+  cache_dir: "${BGB_CACHE_DIR}/tuev_23ch_paper_parity"  # NEW 23-channel cache
+  
+  # Paper parity settings
+  use_paper_parity: true  # Enable 23-channel mode
+  window_samples: 1024    # 4 seconds at 256Hz
+  sampling_rate: 256
+  n_channels: 23          # Keep ALL channels (including A1, A2, T1, T2)
+  n_classes: 6
+  
+  # Batching (paper says 500 but code uses 64)
+  batch_size: 64
+  num_workers: 4
+  pin_memory: true
+
+model:
+  eegpt_checkpoint: "${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt"
+  freeze_backbone: true
+  
+  # Channel mapper settings (CRITICAL)
+  use_channel_mapper: true   # Enable 23→20 learnable mapping
+  mapper_dropout: 0.8        # From EEGPT reference implementation
+  
+  # Probe settings
+  hidden_dim: 256
+  dropout: 0.5
+
+training:
+  n_epochs: 100
+  
+  # EXACT paper hyperparameters
+  learning_rate: 5.0e-4      # Paper value
+  weight_decay: 0.05         # Paper value (not 0.01!)
+  label_smoothing: 0.1       # Paper value
+  weighted_loss: false       # NO class weights per paper
+  
+  # Training settings
+  gradient_clip: 1.0
+  patience: 20
+  min_delta: 0.001
+  
+  # Checkpoint settings
+  save_every_n_epochs: 5
+  metric_for_best: "val_balanced_accuracy"
+  mode: "max"
+
+validation:
+  # Multi-seed evaluation
+  n_runs: 3
+  seeds: [42, 123, 456]
+  
+  # Paper target metrics
+  targets:
+    balanced_accuracy: 0.6232  # Table 3 from EEGPT paper
+    weighted_f1: 0.8187        # Misleading due to 99.5% imbalance
+    cohen_kappa: 0.6351
+
+logging:
+  level: "INFO"
+  log_every_n_steps: 50
+  
+# Environment variables to set:
+# export BGB_DATA_ROOT=/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data
+# export BGB_CACHE_DIR=$BGB_DATA_ROOT/cache

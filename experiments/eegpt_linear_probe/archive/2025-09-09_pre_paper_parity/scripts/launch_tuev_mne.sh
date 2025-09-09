@@ -47,8 +47,8 @@ export PYTHONPATH="$PROJECT_ROOT:$PYTHONPATH"
 export PYTHONUNBUFFERED=1
 export CUDA_VISIBLE_DEVICES=0
 
-# Check cache exists
-CACHE_DIR="$DATA_ROOT/cache/tuev_mne_v2"
+# Check cache exists - CRITICAL: Use fixed cache with Fpz interpolation
+CACHE_DIR="$DATA_ROOT/cache/tuev_mne_fixed"
 if [ ! -d "$CACHE_DIR" ]; then
     echo "ERROR: MNE cache not found at $CACHE_DIR"
     echo "Please run: ./scripts/launch_tuev_cache.sh first"

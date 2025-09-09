@@ -1,10 +1,15 @@
 """TUEV dataset with MNE+Autoreject preprocessing.
 
-Multi-class event detection (6 classes) with 20 channels (Fz and Fpz included, Oz excluded).
+Multi-class event detection (6 classes).
+
+Modes:
+- Paper parity (recommended): Keep 23 raw channels (incl. A1/A2/T1/T2), cached as Volts; use a learnable 23→20 mapper before EEGPT.
+- Legacy: Preprocess/mask to a canonical 20-channel interface (Fz & Fpz included, Oz excluded). Not paper-parity.
 """
 
 import json
 import logging
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +49,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         split: str = 'train',
         cache_dir: Path | None = None,
         force_rebuild: bool = False,
+        use_paper_parity: bool = False,
     ):
         """Initialize MNE-preprocessed TUEV dataset.
 
@@ -52,17 +58,25 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             split: 'train' or 'eval' split
             cache_dir: Directory for cached preprocessed data
             force_rebuild: Force rebuilding cache even if it exists
+            use_paper_parity: If True, use 23 channels for paper parity.
+                            If False, use existing 20-channel approach.
         """
         self.root_dir = Path(root_dir)
         self.split = split
         self.split_dir = self.root_dir / 'edf' / split
+        self.use_paper_parity = use_paper_parity
+        self.n_channels = 23 if use_paper_parity else 20
 
         if not self.split_dir.exists():
             raise ValueError(f"Dataset not found at {self.split_dir}")
 
-        self.cache_dir = (
-            Path(cache_dir) if cache_dir else self.root_dir / 'cache' / 'tuev_mne_preprocessed'
-        )
+        # Modify cache directory based on mode
+        base_cache = Path(cache_dir) if cache_dir else self.root_dir / 'cache'
+
+        if use_paper_parity:
+            self.cache_dir = base_cache / 'tuev_23ch_paper_parity' / split
+        else:
+            self.cache_dir = base_cache / 'tuev_mne_preprocessed'
 
         # Load or build cache
         if force_rebuild or not self._cache_exists():
@@ -95,16 +109,23 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
             # Assert critical cache properties
             assert meta['sr'] == 256, f"Cache sample rate mismatch: {meta['sr']} != 256"
-            assert meta['unit'] == 'mV', f"Cache unit mismatch: {meta['unit']} != mV"
+            assert meta['unit'] == 'V', f"Cache unit mismatch: {meta['unit']} != V"
             assert meta['window'] == 1024, f"Cache window mismatch: {meta['window']} != 1024"
             assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
 
             # Validate channels - support both old and new key
+            from brain_go_brrr.infra.preprocessing.tuev_preprocessor import (
+                CHANNELS_TUEV_23_CANONICAL,
+            )
+
+            expected_channels = (
+                CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
+            )
             if 'channels' in meta:
-                assert meta['channels'] == CHANNELS_TUEV_20, (
-                    "Cache channels mismatch! Expected TUEV 20 channels (with FPZ, no OZ)"
+                assert meta['channels'] == expected_channels, (
+                    f"Cache channels mismatch! Expected {self.n_channels} channels"
                 )
-            elif 'channels20' in meta:  # Backward compat
+            elif 'channels20' in meta and not self.use_paper_parity:  # Backward compat
                 logger.warning("META.json uses deprecated 'channels20' key, should use 'channels'")
                 assert meta['channels20'] == CHANNELS_TUEV_20, (
                     "Cache channels mismatch! Expected TUEV 20 channels (with FPZ, no OZ)"
@@ -133,15 +154,16 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
     def _build_cache(self) -> None:
         """Build preprocessed cache with MNE+Autoreject."""
-        import subprocess
-
         from tqdm import tqdm  # type: ignore[import-untyped]
 
         from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
-        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import TUEVPreprocessor
+        from brain_go_brrr.infra.preprocessing.tuev_preprocessor import (
+            CHANNELS_TUEV_23_CANONICAL,
+            TUEVPreprocessor,
+        )
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        preprocessor = TUEVPreprocessor()
+        preprocessor = TUEVPreprocessor(use_paper_parity=self.use_paper_parity)
 
         # Track all windows globally
         global_window_id = 0
@@ -164,22 +186,25 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
                 )
 
                 # Extract data from MNE Epochs object
-                epoch_data = epochs_clean.get_data()  # Shape: (n_epochs, 20, 1024)
+                epoch_data = epochs_clean.get_data()  # Shape: (n_epochs, n_channels, 1024)
 
                 # Process each clean epoch
                 for epoch_idx in range(len(epochs_clean)):
-                    # Get single epoch data (20, 1024)
+                    # Get single epoch data (n_channels, 1024)
                     x_volts = epoch_data[epoch_idx]  # In Volts from MNE
 
-                    # CRITICAL: Convert Volts to millivolts
-                    x_mv = x_volts * 1e3
+                    # CRITICAL: Keep in Volts (SI units) for SSOT compliance
+                    # Wrapper expects Volts for normalization
+                    # x_volts is already in Volts from MNE
 
                     # Get label for this window
                     label_str = window_labels[epoch_idx]
                     label_int = CLASS_MAPPING[label_str]
 
-                    # Ensure correct tensor types
-                    x_tensor = torch.tensor(x_mv, dtype=torch.float32)  # (20, 1024) in mV
+                    # Ensure correct tensor types (channels x time)
+                    x_tensor = torch.tensor(
+                        x_volts, dtype=torch.float32
+                    )  # (n_channels, 1024) in Volts
                     y_tensor = torch.tensor(
                         label_int, dtype=torch.long
                     )  # Long for CrossEntropyLoss
@@ -222,13 +247,15 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             json.dump(index_data, f, indent=2)
 
         # Write META JSON
+        channels_list = CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
         meta_data = {
             'sr': 256,
-            'unit': 'mV',
+            'unit': 'V',  # SI units (Volts) per SSOT
             'window': 1024,
-            'channels': CHANNELS_TUEV_20,
-            'n_channels': 20,
+            'channels': channels_list,
+            'n_channels': self.n_channels,
             'norm': 'wrapper',
+            'paper_parity': self.use_paper_parity,
             'commit': subprocess.check_output(
                 ['git', 'rev-parse', '--short', 'HEAD'], cwd=Path(__file__).parent
             )
