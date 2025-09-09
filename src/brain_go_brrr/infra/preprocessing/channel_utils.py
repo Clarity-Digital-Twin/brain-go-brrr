@@ -44,7 +44,7 @@ def canonicalize_channel_types(raw: mne.io.Raw) -> mne.io.Raw:
         # EMG/Muscle channels
         elif "EMG" in ch_upper:
             mapping[ch_name] = "emg"
-            
+
         # Reference electrodes (true reference leads only)
         elif ch_upper in {"A1", "A2", "M1", "M2"}:
             mapping[ch_name] = "misc"
