@@ -1,16 +1,18 @@
-# 🎯 TUSZ ARCHITECTURE DECISION - FINAL SSOT
+# 🎯 TUSZ ARCHITECTURE DECISION - REVISED STRATEGY
 
 **Created**: September 9, 2025  
-**Status**: 🔴 CRITICAL DECISION POINT  
-**Purpose**: Definitive architecture choice for TUSZ temporal seizure detection
+**Revised**: September 9, 2025  
+**Status**: ✅ STRATEGIC PIVOT APPROVED  
+**Purpose**: Wrapper-first approach with reusable infrastructure
 
 ---
 
-## 🏆 THE DECISION: EEGPT + BiLSTM
+## 🏆 THE REVISED DECISION: SeizureTransformer Wrapper → EEGPT + BiLSTM
 
-After extensive research, literature review, and critical analysis, the **SINGLE SOURCE OF TRUTH** is:
+After discovering Picone's evaluation gap and recognizing the infrastructure opportunity:
 
-### **Build EEGPT + BiLSTM, NOT SeizureTransformer**
+### **Phase 1: Wrap SeizureTransformer FIRST (Days 1-3)**
+### **Phase 2: Build EEGPT + BiLSTM using same infrastructure (Week 2+)**
 
 ---
 
@@ -140,44 +142,68 @@ EEGPT(4s windows) → [N, 2048] → BiLSTM(256 hidden) → Linear(1) → Sigmoid
 
 ---
 
-## 🎯 FINAL VERDICT
+## 🎯 REVISED STRATEGY: Build Once, Use Twice
 
-**GO WITH EEGPT + BiLSTM**
+### The Infrastructure Insight:
+**The wrapper we build for SeizureTransformer becomes the foundation for ALL temporal models**
 
-### Rationale:
-1. **Faster to market**: 1 week vs 3+ weeks
-2. **Lower risk**: Proven components vs novel architecture
-3. **Better integration**: Builds on existing work
-4. **Proper evaluation**: Focus on correct metrics
-5. **Comparable performance**: Post-processing matters more than architecture
+```python
+# The reusable infrastructure:
+class TemporalSeizureWrapper:
+    def __init__(self, backend='seizure_transformer'):
+        self.backend = backend  # Hot-swappable!
+        self.nedc_eval = NEDCEvaluator()
+        self.post_processor = AdvancedPostProcessor()
+    
+    def evaluate(self, model, data):
+        predictions = model.predict(data)
+        processed = self.post_processor.apply(predictions)
+        metrics = self.nedc_eval.compute_all_metrics(processed)
+        return metrics  # FA/24h, TAES, ATWV - proper clinical metrics!
+```
 
-### The Truth About SeizureTransformer:
-- It's impressive engineering but wrong for our problem
-- Time-step classification ≠ event detection
-- F1 = 0.43 isn't revolutionary (matches CNN+LSTM with good post-processing)
-- Missing critical metrics makes it impossible to verify claims
+### Phase 1: SeizureTransformer Wrapper (Days 1-3)
+- **Why**: Immediate baseline with existing weights
+- **Deliverable**: First-ever clinical validation of April 2025 SOTA
+- **Publication**: "Clinical Evaluation of SeizureTransformer: The Missing Metrics"
+
+### Phase 2: EEGPT + BiLSTM (Week 2+)
+- **Why**: Leverage our EEGPT infrastructure
+- **Deliverable**: Direct comparison using SAME evaluation pipeline
+- **Publication**: "Comparative Analysis of Temporal Seizure Detection Architectures"
 
 ---
 
-## 📝 ACTION ITEMS
+## 📝 ACTION ITEMS (REVISED)
 
-1. ✅ Proceed with EEGPT + BiLSTM implementation
-2. ✅ Focus on proper post-processing pipeline
-3. ✅ Use NEDC Eval for correct metrics
-4. ✅ Set realistic expectations (F1 ~0.4-0.45)
-5. ❌ Do NOT implement SeizureTransformer (unless comparison needed later)
+1. ✅ **Day 1**: Get Picone's NEDC eval software
+2. ✅ **Days 2-3**: Build SeizureTransformer wrapper with clinical metrics
+3. ✅ **Day 4**: Publish initial results (likely terrible FA/24h)
+4. ✅ **Days 5-7**: Tune post-processing to improve metrics
+5. ✅ **Week 2+**: Add EEGPT + BiLSTM backend to same wrapper
+6. ✅ **Week 3**: Comparative analysis and publication
+
+---
+
+## 🚀 WHY THIS IS REVOLUTIONARY
+
+1. **First to properly evaluate 2025 SOTA** with clinical metrics
+2. **Reusable infrastructure** for any temporal model
+3. **Apples-to-apples comparison** framework
+4. **Bridges gap** between competition and clinical needs
+5. **Sets standard** for future TUSZ evaluations
 
 ---
 
 ## 🔗 REFERENCES
 
-- Picone 2021: Defines proper TUSZ evaluation
-- Wu 2025: SeizureTransformer (interesting but wrong problem)
-- NEDC Eval: Official TUSZ scoring tools
-- Our TUAB/TUEV: EEGPT proven to work
+- Picone 2021: NEDC evaluation metrics (what SeizureTransformer didn't use)
+- Wu 2025: SeizureTransformer (great model, wrong metrics)
+- NEDC Eval: https://github.com/TUH-NEDC/nedc_eval_eeg
+- Our infrastructure: Becomes the standard for temporal evaluation
 
 ---
 
-**THIS IS THE SINGLE SOURCE OF TRUTH - NO MORE FLIP-FLOPPING**
+**NEW SSOT: Build the infrastructure once, evaluate everything properly**
 
-The path forward is clear: EEGPT + BiLSTM with proper post-processing and evaluation.
+The wrapper isn't a detour - it's the foundation for everything.

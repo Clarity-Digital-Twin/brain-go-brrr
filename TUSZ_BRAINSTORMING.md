@@ -186,14 +186,14 @@ class LightweightTUSZ(nn.Module):
 
 ---
 
-## 🎯 RECOMMENDATION (AFTER DEEP RESEARCH)
+## 🎯 RECOMMENDATION (STRATEGIC PIVOT - Sept 9, 2025)
 
-Based on comprehensive analysis:
+Based on discovering the Picone evaluation gap:
 
-1. **CONFIRMED: Use Option 3 - Parallel Pipelines**
-   - Keep EEGPT for TUAB/TUEV (proven 86.9% AUROC)
-   - Build specialized temporal model for TUSZ
-   - Different problems require different architectures
+1. **NEW STRATEGY: Wrapper-First with Reusable Infrastructure**
+   - Phase 1: Wrap SeizureTransformer (Days 1-3)
+   - Phase 2: Add EEGPT + BiLSTM to same wrapper (Week 2+)
+   - Infrastructure becomes foundation for ALL temporal models
 
 2. **For TUSZ specifically**:
    ```python
@@ -251,13 +251,17 @@ Based on comprehensive analysis:
 - No need for LSTM hidden state management
 - Direct seizure probability per sample
 
-## 🚀 UPDATED NEXT STEPS
+## 🚀 UPDATED NEXT STEPS (REVISED Sept 9)
 
-1. [ ] Study SeizureTransformer architecture in detail
-2. [ ] Compare with our EEGPT + BiLSTM approach
-3. [ ] Implement SeizureTransformer variant for TUSZ
-4. [ ] Test against CNN-BiLSTM baseline
-5. [ ] Make final architecture decision
+1. [x] Download SeizureTransformer weights (DONE - 169MB)
+2. [ ] Get Picone's NEDC eval software
+3. [ ] Build wrapper infrastructure (reusable for all models)
+4. [ ] Evaluate SeizureTransformer with proper metrics
+5. [ ] Add EEGPT + BiLSTM backend to same wrapper
+6. [ ] Publish comparative analysis
+
+### The Key Insight:
+**SeizureTransformer didn't report FA/24h, TAES, or ATWV - we'll be FIRST to properly evaluate April 2025 SOTA!**
 
 ---
 
