@@ -350,6 +350,7 @@ This release adds complete EEGPT linear probe training for TUAB abnormality dete
 - **TUAB Dataset Improvements**:
   - Fixed channel mapping: T3→T7, T4→T8, T5→P7, T6→P8
   - Reduced from 23 to 20 channels (removed A1/A2 references)
+    - **UPDATE (Sept 9, 2025)**: This is current baseline approach; paper parity requires keeping all 23 channels with learned Conv2d(23→20) mapper - see REMAINING_DEBT.md Sprint 4
   - Added file caching for 100x faster loading
   - Window size: 4 seconds (1024 samples at 256Hz)
   - Zero-padding for missing channels
