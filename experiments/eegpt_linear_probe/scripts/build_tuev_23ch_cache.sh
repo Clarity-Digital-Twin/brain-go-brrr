@@ -28,7 +28,7 @@ for SPLIT in train eval; do
     echo "Building $SPLIT split with 23 channels..."
     echo "=============================================="
     
-    python -c "
+    uv run python -c "
 import sys
 import os
 os.environ['BGB_DATA_ROOT'] = '$BGB_DATA_ROOT'
