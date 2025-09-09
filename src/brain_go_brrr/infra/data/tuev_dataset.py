@@ -364,6 +364,7 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
         try:
             # Check torch version for better error messaging
             import torch
+
             torch_version = tuple(int(x) for x in torch.__version__.split('.')[:2])
             if torch_version >= (2, 4):
                 data = torch.load(cache_file, map_location='cpu', weights_only=True)  # nosec:weights_only

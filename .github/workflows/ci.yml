@@ -118,6 +118,11 @@ jobs:
           uv run lint-imports
           echo "Import-linter completed"
 
+      - name: Check script argument consistency
+        run: |
+          echo "Checking launch script arguments match training script expectations..."
+          .ci/check_script_arguments.sh
+
       - name: Import smoke test
         run: |
           uv run python -c "from brain_go_brrr.domain.exceptions import BrainGoBrrrError; print('✅ All imports work')"
