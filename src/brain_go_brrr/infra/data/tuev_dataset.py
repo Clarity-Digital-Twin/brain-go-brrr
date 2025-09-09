@@ -66,11 +66,8 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             raise ValueError(f"Dataset not found at {self.split_dir}")
 
         # Modify cache directory based on mode
-        if cache_dir:
-            base_cache = Path(cache_dir)
-        else:
-            base_cache = self.root_dir / 'cache'
-        
+        base_cache = Path(cache_dir) if cache_dir else self.root_dir / 'cache'
+
         if use_paper_parity:
             self.cache_dir = base_cache / 'tuev_23ch_paper_parity' / split
         else:
@@ -112,7 +109,12 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
             assert meta['norm'] == 'wrapper', f"Cache norm mismatch: {meta['norm']} != wrapper"
 
             # Validate channels - support both old and new key
-            expected_channels = CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
+            from brain_go_brrr.infra.preprocessing.tuev_preprocessor import (
+                CHANNELS_TUEV_23_CANONICAL,
+            )
+            expected_channels = (
+                CHANNELS_TUEV_23_CANONICAL if self.use_paper_parity else CHANNELS_TUEV_20
+            )
             if 'channels' in meta:
                 assert meta['channels'] == expected_channels, (
                     f"Cache channels mismatch! Expected {self.n_channels} channels"
@@ -152,7 +154,8 @@ class TUEVMNEDataset(Dataset[tuple[torch.Tensor, int]]):
 
         from brain_go_brrr.infra.data.channels import CHANNELS_TUEV_20
         from brain_go_brrr.infra.preprocessing.tuev_preprocessor import (
-            TUEVPreprocessor, CHANNELS_TUEV_23_CANONICAL
+            CHANNELS_TUEV_23_CANONICAL,
+            TUEVPreprocessor,
         )
 
         self.cache_dir.mkdir(parents=True, exist_ok=True)

@@ -67,10 +67,10 @@ class Conv1dWithConstraint(nn.Conv1d):
 
 class Conv2dWithConstraint(nn.Conv2d):
     """2D Convolution with weight norm constraint.
-    
+
     Matches EEGPT reference implementation for channel mapping.
     """
-    
+
     def __init__(
         self, *args: Any, do_weight_norm: bool = True, max_norm: float = 1.0, **kwargs: Any
     ) -> None:
@@ -78,7 +78,7 @@ class Conv2dWithConstraint(nn.Conv2d):
         self.max_norm = max_norm
         self.do_weight_norm = do_weight_norm
         super().__init__(*args, **kwargs)
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with weight constraint."""
         if self.do_weight_norm:
