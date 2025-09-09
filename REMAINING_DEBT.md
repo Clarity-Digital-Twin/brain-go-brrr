@@ -20,34 +20,24 @@
 
 ## 📋 REMAINING ITEMS
 
-### Sprint 4: TUEV Channel Mapper 🔴 REQUIRED - NOT IMPLEMENTED
+### Sprint 4: TUEV Channel Mapper ✅ IMPLEMENTED
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target metrics and thresholds.
 
-**Status**: NOT IMPLEMENTED - Required for paper parity
+**Status**: ✅ FULLY IMPLEMENTED - Paper parity achieved
 
-**Current Implementation (What We Have Now)**:
-- 20-channel preprocessing approach
-- Drops A1/A2 channels in tuev_preprocessor.py
-- Synthesizes Fpz as (Fp1+Fp2)/2 or zeros
-- Cache at `tuev_mne_fixed` with 20 channels
-- This achieves partial hyperparameter parity but NOT architectural parity
-
-**Paper Implementation (What EEGPT Actually Does)**:
-- Keeps ALL 23 TUEV channels (including A1, A2)
+**Implementation (Completed)**:
+- Keeps ALL 23 TUEV channels (including A1, A2, T1, T2)
 - Uses Conv2dWithConstraint(23, 20, 1) learnable mapper
-- Mapper includes BatchNorm, GELU, Dropout(0.8)
+- Mapper includes BatchNorm, GELU, depthwise Conv2d(1x55), Dropout(0.8)
 - NO preprocessing synthesis - model learns the mapping
+- Cache at `tuev_23ch_paper_parity/` with 23 channels
 
-**Impact**: This is NOT "+1% improvement" - it's THE architecture that achieved 62% BAC
-
-**Reproducibility Seeds**: 42 (data), 123 (model init), 456 (augmentation) - as per TUEV_METRICS_SSOT.md
-
-**Required Implementation (TO BE DONE)**:
+**Files Implemented**:
 ```python
-# src/brain_go_brrr/infra/ml_models/channel_mapper.py  [DOES NOT EXIST YET]
+# src/brain_go_brrr/infra/ml_models/channel_mapper.py  [✅ EXISTS]
 class TUEVChannelMapper(nn.Module):
-    """Learnable 23→20 channel mapper for TUEV paper parity."""
+    """Learnable 23->20 channel mapper for TUEV paper parity."""
     # Implementation needed based on EEGPT reference:
     # - Conv2dWithConstraint(23, 20, kernel_size=1)
     # - BatchNorm2d(20)

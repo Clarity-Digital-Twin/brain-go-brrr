@@ -74,8 +74,8 @@ metrics = {
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md) for exact target values and thresholds.
 
 **⚠️ Architecture Note**:
-- **Paper parity (IMPLEMENTED)**: 23‑channel raw input + learned Conv2d(23→20) mapper (BN/GELU + depthwise 1×55 + BN/Dropout 0.8). No channel synthesis.
-- Legacy (archived): 20‑channel preprocessing with Fpz interpolation; not paper‑parity and not used for current experiments.
+- **Paper parity (IMPLEMENTED)**: 23-channel raw input + learned Conv2d(23->20) mapper (BN/GELU + depthwise 1x55 + BN/Dropout 0.8). No channel synthesis.
+- Legacy (archived): 20-channel preprocessing with Fpz interpolation; not paper-parity and not used for current experiments.
 
 ### Task Definition
 - **Type**: 6-class classification per event window
@@ -106,8 +106,8 @@ metrics = {
 ```
 
 ### Channel Note
-- TUEV parity keeps all 23 raw channels, including A1/A2/T1/T2, with mixed‑case canonical names.
-- A learnable mapper converts 23→20 before EEGPT; we do not synthesize channels in parity mode.
+- TUEV parity keeps all 23 raw channels, including A1/A2/T1/T2, with mixed-case canonical names.
+- A learnable mapper converts 23->20 before EEGPT; we do not synthesize channels in parity mode.
 
 ---
 

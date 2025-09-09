@@ -56,8 +56,8 @@ class TUEVPreprocessor(TUABPreprocessor):
     """MNE+Autoreject preprocessing for TUEV dataset.
 
     Modes:
-    - Paper parity (use_paper_parity=True): Keep all 23 raw channels (incl. A1/A2/T1/T2), no synthesis; mapper handles 23→20 before EEGPT.
-    - Legacy (use_paper_parity=False): Map to a canonical 20‑channel interface (drops A1/A2; may synthesize Fpz). Not paper‑parity.
+    - Paper parity (use_paper_parity=True): Keep all 23 raw channels (incl. A1/A2/T1/T2), no synthesis; mapper handles 23->20 before EEGPT.
+    - Legacy (use_paper_parity=False): Map to a canonical 20-channel interface (drops A1/A2; may synthesize Fpz). Not paper-parity.
 
     Key differences from TUAB:
     1. 23 input channels (parity mode) vs 20 (legacy interface)

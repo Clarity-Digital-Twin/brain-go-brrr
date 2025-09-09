@@ -10,13 +10,13 @@ Training scripts for EEGPT linear probing on TUAB and TUEV datasets.
 ## Channel Specifications
 
 ### TUAB (19 channels - no Fz)
-Expected channels (mixed‑case): Fp1, Fp2, F7, F3, F4, F8, T7, C3, Cz, C4, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
+Expected channels (mixed-case): Fp1, Fp2, F7, F3, F4, F8, T7, C3, Cz, C4, T8, P7, P3, Pz, P4, P8, O1, Oz, O2
 
-### TUEV (paper parity: 23 raw channels + learned 23→20 mapper)
-Raw channels kept (mixed‑case, no synthesis):
+### TUEV (paper parity: 23 raw channels + learned 23->20 mapper)
+Raw channels kept (mixed-case, no synthesis):
 Fp1, Fp2, F3, F4, C3, C4, P3, P4, O1, O2, F7, F8, T7, T8, P7, P8, A1, A2, Fz, Cz, Pz, T1, T2
 
-These 23 raw channels are mapped by a learnable Conv2d 23→20 mapper (BN/GELU + depthwise 1×55 + BN/Dropout 0.8) before EEGPT, matching the paper.
+These 23 raw channels are mapped by a learnable Conv2d 23->20 mapper (BN/GELU + depthwise 1x55 + BN/Dropout 0.8) before EEGPT, matching the paper.
 
 ## Usage
 
@@ -50,5 +50,5 @@ See `configs/` directory for YAML configuration files with hyperparameters.
 
 - Normalization happens in the EEGPT wrapper (SSOT)
 - Datasets provide Volts (SI units), not millivolts
-- TUEV 20‑channel preprocessing is legacy; use paper parity (23‑ch + mapper)
+- TUEV 20-channel preprocessing is legacy; use paper parity (23-ch + mapper)
 - No sys.path hacks - proper imports only

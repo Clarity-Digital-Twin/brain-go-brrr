@@ -449,7 +449,7 @@ def main():
     )
     if not use_paper_parity:
         logger.warning(
-            "Using legacy 20‑channel TUEV mode (NOT paper parity). Prefer configs/tuev_paper_parity.yaml."
+            "Using legacy 20-channel TUEV mode (NOT paper parity). Prefer configs/tuev_paper_parity.yaml."
         )
 
     train_dataset = TUEVMNEDataset(
