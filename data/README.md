@@ -43,17 +43,31 @@ data/
 
 ## Model Weights
 
-### EEGPT Pretrained Model
+### EEGPT Pretrained Model (Primary)
 1. Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
 2. Navigate to: `Files/EEGPT/checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt`
 3. Place in: `data/models/pretrained/`
-4. Size: ~40MB
+4. Size: 974MB
+5. **Purpose**: Feature extraction for TUAB/TUEV/TUSZ
+
+### SeizureTransformer Weights (Research/Comparison)
+1. Download from [Google Drive](https://drive.google.com/drive/folders/17pKhwFc4x1_2zwXTndKawoNKlaXIW-VE)
+2. File: `seizure_transformer_wu2025.pth`
+3. Place in: `data/models/pretrained/`
+4. Size: 169MB
+5. **Note**: For comparison only - we use EEGPT + BiLSTM for TUSZ
 
 ## Cache Information
 
 ### Active Caches
 - `tuab_4s_final/`: 2,998 preprocessed TUAB windows (4s @ 256Hz)
 - `tuev_table13/`: TUEV train/eval caches with padding
+- `tuev_23ch_paper_parity/`: TUEV 23-channel cache (building in tmux)
+
+### Cache Status
+- ✅ TUAB: Ready for training
+- 🔄 TUEV: 23-channel cache building (`tmux attach -t tuev_cache`)
+- ⏳ TUSZ: To be built when implementing temporal detection
 
 These caches are used by the training scripts in `experiments/eegpt_linear_probe/`.
 

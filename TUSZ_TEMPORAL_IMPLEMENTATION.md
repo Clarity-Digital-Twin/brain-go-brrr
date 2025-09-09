@@ -174,18 +174,26 @@ artifacts/tusz_embeddings/
 
 ### Feature Extraction (Per Literature)
 
-#### Traditional Approach (Picone 2021)
+#### Traditional Approach (Picone 2021 - PROVEN TO WORK)
 - **LFCC Features**: Linear Frequency Cepstral Coefficients
-- **Frame**: 0.1 sec duration
+- **Frame**: 0.1 sec duration (critical for temporal resolution)
 - **Window**: 0.2 sec analysis window
-- **Features**: 7 cepstral coefficients + derivatives = 26 dims/channel
-- **Context**: 7-41 frame temporal window
+- **Features**: 7 cepstral coefficients + 1st/2nd derivatives = 26 dims/channel
+- **Context**: 7-41 frame temporal window (0.7-4.1 seconds context)
+- **Result**: This simple approach powers ALL their systems
 
-#### Our EEGPT Approach
+#### Our EEGPT Approach (PROBABLY WRONG FOR TUSZ)
 - **Window**: 4 seconds @ 256Hz = 1024 samples
 - **Hop**: 1-2 seconds (75-50% overlap)
-- **Features**: EEGPT encoder → 2048 dims (4×512 summary tokens)
-- **Advantage**: Pre-trained representations vs hand-crafted features
+- **Features**: EEGPT encoder → 2048 dims (overkill)
+- **Problem**: No temporal continuity between windows
+
+#### RECOMMENDED Approach (Based on Evidence)
+- **Features**: Simple CNN or LFCC (26-64 dims)
+- **Frame**: 0.1-0.25 sec (fine temporal resolution)
+- **Context**: Sliding window with heavy overlap
+- **Temporal**: BiLSTM with hidden state continuity
+- **Post-process**: 3-stage (threshold, merge, smooth)
 
 ### Window Generation
 ```python
@@ -240,15 +248,20 @@ post_processing:
 - Mentions seizure detection but no TUSZ results
 - References CHB-MIT dataset improvements
 
-### State-of-the-Art Performance (Picone 2021)
+### State-of-the-Art Performance (Picone 2021 - ACTUAL NUMBERS)
 
-| System | Sensitivity | FA/24h | ATWV | Best For |
-|--------|------------|--------|------|----------|
-| CNN/LSTM | ~70% | Lowest | ~0.45 | Production |
-| HMM/LSTM | ~75% | Higher | ~0.35 | Sensitivity |
-| CNN/MLP | ~72% | Medium | ~0.40 | Balance |
+| System | TAES Sens | OVLP Sens | FA/24h | ATWV | Key Insight |
+|--------|-----------|-----------|--------|------|-------------|
+| CNN/LSTM | 16.66% | 100% | Lowest | 0.45 | Best overall, low FA |
+| HMM/LSTM | Variable | High | Higher | 0.35 | Detects longer events |
+| IPCA/LSTM | Higher on EPOCH | Variable | Medium | ~0.35 | Good for long seizures |
+| CNN/MLP | Medium | High | Medium | 0.40 | Simple but effective |
+| HMM/SdA | Lowest | High | Highest | <0.35 | Baseline system |
 
-**Note**: All systems achieve ATWV < 0.5, indicating significant room for improvement
+**CRITICAL**: The sensitivity numbers vary WILDLY by metric:
+- **OVLP**: Gives ~100% sensitivity (misleading!)
+- **TAES**: Gives ~17% sensitivity (realistic)
+- **Clinical reality**: Need <10 FA/24h, none achieve this
 
 ### Temporal Head Architectures
 
