@@ -206,7 +206,7 @@ def train_epoch(
 
         # Update progress bar
         if batch_idx % 10 == 0 and all_labels:
-            current_acc = balanced_accuracy_score(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
+            current_acc = balanced_accuracy_score(all_labels, all_preds)
             pbar.set_postfix(
                 {
                     'loss': f'{loss.item():.4f}',
