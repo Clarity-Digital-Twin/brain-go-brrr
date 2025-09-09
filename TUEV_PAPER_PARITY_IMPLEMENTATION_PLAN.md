@@ -47,6 +47,17 @@
 
 ---
 
+## 🔴 SENIOR AUDITOR VERIFICATION - ALL ISSUES FIXED
+
+### Issues Found and Fixed:
+1. ✅ **Conv2dWithConstraint**: Correctly identified as missing, needs to be added
+2. ✅ **MNE API**: Fixed to use `raw.pick()` not `raw.copy().pick_channels()`
+3. ✅ **Channel aliasing**: Added warning about T3→T7 mapping, using canonical names
+4. ✅ **Cache paths**: Fixed to use `$BGB_DATA_ROOT/cache/tuev_mne_fixed` not hardcoded
+5. ✅ **Missing imports**: Added `import os` to test files
+6. ✅ **23-channel list**: Using T7/T8/P7/P8 (canonical) not T3/T4/T5/T6 (legacy)
+7. ✅ **Training integration**: Properly pass channel_mapper to train_epoch function
+
 ## ⚠️ INTEGRATION NOTES - AVOID REDUNDANCY
 
 ### What We Already Have (DO NOT RECREATE):
@@ -76,8 +87,9 @@ tmux list-sessions
 tmux attach -t tuev_cache
 # Press Ctrl+C to stop
 
-# 2. Clean up partial cache
-rm -rf data/cache/tuev_mne_fixed/
+# 2. Clean up partial cache (use actual cache path)
+export BGB_DATA_ROOT="${BGB_DATA_ROOT:-/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data}"
+rm -rf "$BGB_DATA_ROOT/cache/tuev_mne_fixed/"
 ```
 
 ### Phase 1: Create Channel Mapper Module (30 min)
@@ -213,9 +225,18 @@ def test_deterministic_init():
 from typing import List, Optional
 
 # Add these constants after existing imports:
-CHANNELS_TUEV_23 = [
+# CRITICAL: Use CANONICALIZED names (T7/T8/P7/P8) not legacy (T3/T4/T5/T6)
+# Or bypass canonicalization in paper parity mode
+CHANNELS_TUEV_23_CANONICAL = [
     'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 
-    'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 
+    'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8',  # Modern names
+    'A1', 'A2', 'FZ', 'CZ', 'PZ', 'T1', 'T2'
+]
+
+# If keeping legacy names, bypass canonicalization:
+CHANNELS_TUEV_23_LEGACY = [
+    'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 
+    'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6',  # Legacy names
     'A1', 'A2', 'FZ', 'CZ', 'PZ', 'T1', 'T2'
 ]
 
@@ -232,13 +253,16 @@ class TUEVPreprocessor(TUABPreprocessor):
         
         if use_paper_parity:
             # Override parent settings for 23-channel mode
-            self.STANDARD_CHANNELS = CHANNELS_TUEV_23
+            # DECISION: Use canonical names after aliasing, or bypass aliasing
+            self.STANDARD_CHANNELS = CHANNELS_TUEV_23_CANONICAL  # Use modern T7/T8/P7/P8
             self.n_channels = 23
+            self.bypass_canonicalization = False  # Keep canonicalization
             logger.info("TUEVPreprocessor: Paper parity mode - keeping 23 channels")
         else:
             # Use existing 20-channel mapping
             self.STANDARD_CHANNELS = CHANNELS_TUEV_20
             self.n_channels = 20
+            self.bypass_canonicalization = False
             logger.info("TUEVPreprocessor: Standard mode - mapping to 20 channels")
     
     def _apply_channel_mapping(self, raw):
@@ -252,10 +276,26 @@ class TUEVPreprocessor(TUABPreprocessor):
     
     def _apply_23_channel_mapping(self, raw):
         """Keep all 23 TUEV channels without synthesis."""
-        # Implementation: select and reorder to 23 channels
-        # No Fpz synthesis, no channel dropping
-        raw_reordered = raw.copy().pick_channels(self.STANDARD_CHANNELS, ordered=True)
-        return raw_reordered
+        # Check which channels are available
+        available = [ch for ch in self.STANDARD_CHANNELS if ch in raw.ch_names]
+        missing = [ch for ch in self.STANDARD_CHANNELS if ch not in raw.ch_names]
+        
+        if missing:
+            logger.warning(f"Missing channels for 23-ch parity: {missing}")
+            # For paper parity, we should have all 23 channels
+            # If not, the dataset may be incomplete
+        
+        # Use raw.pick() (modern MNE API) not pick_channels
+        raw_copy = raw.copy()
+        raw_copy.pick(available, ordered=True)
+        
+        # Ensure we have exactly 23 channels for mapper
+        if len(raw_copy.ch_names) != 23:
+            raise ValueError(
+                f"Paper parity requires exactly 23 channels, got {len(raw_copy.ch_names)}"
+            )
+        
+        return raw_copy
 ```
 
 #### 2.2 Update `src/brain_go_brrr/infra/data/tuev_dataset.py`
@@ -334,12 +374,7 @@ else:
         weight_decay=config['training']['weight_decay']
     )
 
-# In train_epoch function (around line 151), add mapper before feature extraction:
-# Add this BEFORE the feature extraction with torch.no_grad():
-if hasattr(train_epoch, 'channel_mapper') and train_epoch.channel_mapper is not None:
-    x = train_epoch.channel_mapper(x)  # (B, 23, T) -> (B, 20, T)
-
-# Better approach: pass channel_mapper as parameter to train_epoch
+# Pass channel_mapper as parameter to train_epoch
 def train_epoch(
     model,
     probe,
@@ -364,6 +399,27 @@ def train_epoch(
     # Then continue with existing feature extraction:
     with torch.no_grad():
         features = model.extract_features(x, summary=False)
+
+# UPDATE THE TRAINING LOOP CALL (around line 600+):
+# When calling train_epoch, pass the channel_mapper:
+global_step = train_epoch(
+    model=model,
+    probe=probe,
+    train_loader=train_loader,
+    optimizer=optimizer,
+    scheduler=scheduler,
+    criterion=criterion,
+    device=device,
+    epoch=epoch,
+    output_dir=output_dir,
+    global_step=global_step,
+    config=config,
+    epoch_indices=epoch_indices,
+    start_batch=start_batch,
+    channel_mapper=channel_mapper  # ADD THIS
+)
+
+# Similarly update evaluate() function signature if needed
 ```
 
 #### 3.2 Update config `experiments/eegpt_linear_probe/configs/tuev_paper_parity.yaml`
@@ -503,6 +559,8 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import create_normalized_eegpt
 @pytest.mark.integration
 def test_paper_parity_pipeline():
     """Test complete pipeline with 23ch input + mapper."""
+    import os  # Add missing import
+    from pathlib import Path
     
     # Load one sample with 23 channels
     dataset = TUEVMNEDataset(
@@ -527,6 +585,9 @@ def test_paper_parity_pipeline():
 
 def test_cache_has_23_channels():
     """Verify cache was built with 23 channels."""
+    import os  # Add missing import
+    from pathlib import Path
+    
     cache_dir = Path(os.environ['BGB_CACHE_DIR']) / 'tuev_23ch_paper_parity'
     meta_file = cache_dir / 'train' / 'META.json'
     
