@@ -85,9 +85,6 @@ nav:
           - Paper Parity Status: docs/tuev/PAPER_PARITY_STATUS.md
           - Metrics SSOT: docs/tuev/TUEV_METRICS_SSOT.md
           - Training Guide: experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md
-      - TUSZ Documentation:
-          - Specification: docs/tusz/TUSZ_SPEC.md
-          - Implementation Guide: docs/tusz/TUSZ_IMPLEMENTATION.md
       - Archived Debt (P0–P2): docs/archive/technical-debt/
 
 # Plugins

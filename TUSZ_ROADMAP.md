@@ -69,7 +69,7 @@ class NEDCClinicalEvaluator:
 - [ ] Port NEDC Eval v6.0.0 scoring functions
 - [ ] Validate against reference implementation
 - [ ] Generate clinical reports at multiple sensitivities
-- [ ] Achieve baseline: ≤10 FA/24h at 85% sensitivity
+- [ ] Interim baseline: ≤10 FA/24h at 85% sensitivity (final target ≤5 at 90%)
 
 ## Phase 2: TUSZ Dataset Pipeline (Week 3)
 

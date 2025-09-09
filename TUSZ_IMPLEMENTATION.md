@@ -19,7 +19,7 @@ uv sync
 
 # Get SeizureTransformer weights
 wget https://github.com/wu-2025/seizure-transformer/releases/download/v1.0/model.pth \
-  -O data/models/pretrained/seizure_transformer.pth
+  -O data/models/pretrained/seizure_transformer_wu2025.pth
 
 # Run first experiment
 uv run python experiments/tusz/evaluate_seizure_transformer.py
@@ -72,7 +72,7 @@ from typing import Tuple, List, Dict
 
 class TUSZDataset:
     """
-    TUSZ v1.1.1 dataset loader with annotation parsing.
+    TUSZ v2.0.1 dataset loader with annotation parsing.
     Handles both EDF files and TSE/CSV annotations.
     """
     
@@ -126,11 +126,11 @@ class TUSZDataset:
         return eeg_data, seizure_events
     
     def _standardize_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Ensure standard 10-20 montage with 22 channels."""
+        """Ensure standard 10-20 montage (19 channels; see SPEC Channel Policy)."""
         standard_channels = [
-            'FP1', 'FP2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 
-            'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6',
-            'FZ', 'CZ', 'PZ', 'A1', 'A2', 'T1'
+            'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
+            'T3', 'C3', 'CZ', 'C4', 'T4',
+            'T5', 'P3', 'PZ', 'P4', 'T6', 'O1', 'O2'
         ]
         
         # Select available channels
@@ -217,7 +217,7 @@ class SeizureTransformerWrapper:
     def _load_model(self, weights_path: Path) -> nn.Module:
         """Load pretrained SeizureTransformer."""
         model = SeizureTransformerModel(
-            n_channels=22,
+            n_channels=19,
             n_filters=[32, 64, 128, 256, 512],
             n_transformer_layers=8,
             n_heads=4,
@@ -621,13 +621,13 @@ def main():
     
     # Load model
     model = SeizureTransformerWrapper(
-        weights_path=Path('data/models/pretrained/seizure_transformer.pth')
+        weights_path=Path('data/models/pretrained/seizure_transformer_wu2025.pth')
     )
     
     # Load data
     dataset = TUSZDataset(
-        root_dir=Path('data/datasets/tusz/v1.1.1'),
-        split='eval'
+        root_dir=Path('data/datasets/tusz/v2.0.1'),
+        split='dev'
     )
     
     # Initialize components
@@ -810,7 +810,7 @@ def test_seizure_transformer_pipeline():
 
 model:
   name: seizure_transformer
-  weights: data/models/pretrained/seizure_transformer.pth
+  weights: data/models/pretrained/seizure_transformer_wu2025.pth
   window_sec: 60
   stride_sec: 30
 
@@ -829,7 +829,7 @@ postprocessing:
 evaluation:
   sensitivity_levels: [0.80, 0.85, 0.90, 0.95]
   taes_jaccard_thresh: 0.5
-  atwv_beta: 999.9
+  atwv_beta: 0.1
   epoch_sec: 0.25
 ```
 
@@ -971,6 +971,20 @@ with mlflow.start_run():
 ---
 
 ## 🔧 Troubleshooting
+
+## ⚖️ Clinical Threshold Policy & Freezing
+
+- Select a single operating threshold θ on the validation (dev) set to meet the target sensitivity (e.g., 0.90).
+- Freeze θ for all test-set evaluations; do not retune on test.
+- Report FA/24h at Sens ∈ {0.80, 0.85, 0.90, 0.95} and provide full TAES curves.
+- Document θ, post-processing params (`max_gap`, `min_event_dur`, hysteresis) with metrics for reproducibility.
+
+## 🧪 Reproducibility & Checkpointing
+
+- Seeds: Set and log Python/Numpy/Torch/CUDA seeds; enable deterministic flags where feasible.
+- Checkpoints: Save model, optimizer, scheduler states, and RNG seeds per epoch; support resume-safe schedulers.
+- Paths: Default `SEIZURE_TRANSFORMER_CKPT=data/models/pretrained/seizure_transformer_wu2025.pth` (override via env var).
+- Schema tests: Validate hypothesis CSV/XML schema against the NEDC evaluator before large runs.
 
 ### Common Issues
 

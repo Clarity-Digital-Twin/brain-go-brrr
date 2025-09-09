@@ -53,6 +53,11 @@ Seizures: ~3,000 seizure events
 Classes: Focal (FNSZ), Generalized (GNSZ), Combined (CNSZ), Unknown (UNSZ)
 ```
 
+### Channel Policy (Standard 10–20, 19 channels)
+- Channel set (order): `FP1, FP2, F7, F3, FZ, F4, F8, T3, C3, CZ, C4, T4, T5, P3, PZ, P4, T6, O1, O2`.
+- Mapping: if a recording has extras (e.g., A1/A2) drop them; if a listed channel is missing, either map via nearest equivalent or zero‑fill and flag in metadata.
+- Sampling: resample all recordings to 256 Hz after channel selection; store original `fs` in metadata for precise time alignment when exporting hypotheses.
+
 ### Data Split Strategy
 ```python
 # Official NEDC splits (must use for comparison)
@@ -122,6 +127,11 @@ atwv = sensitivity - beta * fa_rate
 # ATWV > 0.4 indicates practical utility
 ```
 
+### Operating Threshold Policy
+- Choose a single operating threshold θ on the dev set to meet target sensitivity (e.g., 0.90); freeze θ for test.
+- Report FA/24h at Sens ∈ {0.80, 0.85, 0.90, 0.95} and provide the TAES curve.
+- Use `nedc_eeg_eval_v6.0.0` TAES implementation with default matching settings; record the evaluator config in `metrics.json` for reproducibility.
+
 ## Post-Processing Pipeline
 
 ### 1. Hysteresis Thresholding
@@ -138,6 +148,21 @@ low_threshold = 0.3   # Continue seizure
 min_gap_seconds = 10
 # Handles brief prediction dropouts
 ```
+
+### 3. Minimum Duration Filter
+```python
+# Remove events shorter than 1.0–2.0 seconds to reduce spurious detections
+min_event_seconds = 1.0
+```
+
+### 4. Export Schema
+- Export hypotheses per‑recording in CSV and/or XML in the exact format expected by `nedc_eeg_eval_v6.0.0`.
+- Include a per‑file unique identifier consistent with the evaluator’s mapping.
+
+## Reproducibility & Checkpointing
+- Seeds: fix Python/NumPy/Torch/CUDA seeds and log them; enable deterministic flags where feasible.
+- Checkpoints: save model, optimizer, scheduler states, and RNG seeds per epoch; support resume‑safe schedulers.
+- Thresholds and post‑proc: log θ, `max_gap`, `min_event_dur`, and hysteresis values with every evaluation.
 
 ### 3. Duration Filtering
 ```python
