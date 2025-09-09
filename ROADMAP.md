@@ -130,7 +130,7 @@ pip wheel . --wheel-dir=wheelhouse
 tar -czf bgb-offline.tar.gz wheelhouse/ models/
 ```
 
-## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT
+## Phase 2: Clinical Metrics (Week 3-4) ✅ TUEV COMPLETE, 🚧 TUSZ IN PROGRESS
 
 ### 📊 Metrics by Dataset (See `docs/EVALUATION_METRICS.md` for full details)
 
@@ -166,11 +166,13 @@ metrics = {
 }
 ```
 
-#### For TUEV (6-Class Event Classification)
+#### For TUEV (6-Class Event Classification) ✅ COMPLETE
 **Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
 **Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)
 **Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
 **Targets (paper)**: Weighted F1 ≈ 81.87%, BAC ≈ 62.32%, Kappa ≈ 0.6351
+**Status**: Training running with paper parity mode (23-channel + learnable mapper)
+**Documentation**: See `docs/tuev/` for implementation details and metrics
 **Note**: Paper parity requires 23-ch input + learned Conv2d(23→20) mapper; current approach uses 20-ch preprocessing with Fpz interpolation
 
 †*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
