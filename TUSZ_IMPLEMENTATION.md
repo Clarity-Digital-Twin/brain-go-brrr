@@ -2,8 +2,8 @@
 
 **Created**: September 9, 2025  
 **Status**: 🔥 READY TO CODE  
-**Type**: Execution Guide with Code Examples  
-**Companion**: See TUSZ_SPEC.md for requirements
+**Type**: Execution Guide with Code Examples for SeizureTransformer Integration  
+**Companion**: See TUSZ_SPEC.md for requirements, TUSZ_ROADMAP.md for execution plan
 
 ---
 
