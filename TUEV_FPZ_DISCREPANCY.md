@@ -147,11 +147,11 @@ if "Fpz" not in raw.ch_names:
     logger.info("Synthesized missing channel as zeros: Fpz")
 ```
 
-### Why This Works:
+### Why Current Approach Functions (But Isn't Optimal):
 - **Model expects exactly 20 channels** in the specified order
-- **Zero-filled Fpz doesn't hurt** - it's like a dead microphone
+- **Interpolated Fpz** provides some signal (better than zeros)
 - **Real information is in the other 19 channels**
-- **Training proceeding successfully** - 99% complete without errors
+- **BUT**: Missing the learned mapper that achieves 62% BAC
 
 ## 🔴 THE CORRECT SOLUTION (Paper Parity)
 
@@ -361,12 +361,12 @@ But honestly, our zero-fill is working fine and we're almost done training!
 - **What to check**: Search for "Fpz" or "FPZ" - you won't find it!
 - **What you'll find**: References to Fz, Cz, Pz but never Fpz
 
-### Why This Document is 100% Accurate:
-- Every code reference is verifiable with the exact commands above
-- The discrepancy is REAL and PROVEN
-- Our solution (zero-fill) is WORKING (99% training complete)
-- Authors' solution (learnable mapping) is MORE COMPLEX but we found it
+### Key Takeaways:
+- The channel mismatch is REAL (paper expects Fpz, TUEV doesn't have it)
+- **Our solution**: Preprocessing synthesis (Fpz interpolation)
+- **Paper's solution**: Learned mapper (Conv2d 23→20)
+- **Performance difference**: Significant (~50-55% vs 62% BAC)
 
 ---
 
-**Bottom Line**: The paper defines a canonical 20-channel interface (including Fpz) but doesn't document how to bridge the gap when TUEV lacks Fpz. We correctly synthesize it as zeros, while the authors use a learnable mapping. Both approaches work! 🎉
+**Bottom Line**: Both approaches handle the missing Fpz, but the paper's learned mapper achieves better performance by learning optimal channel relationships rather than using fixed preprocessing rules.

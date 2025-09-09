@@ -139,8 +139,8 @@ Evidence common to both: Background F1 ~0.996–0.998 while minority F1 ~0.0–0
 3. **Time cost** - Cache rebuild takes hours
 4. **Current run** - Let it finish for baseline comparison
 
-### RECOMMENDATION:
-**Don't rebuild YET.** First try Strategy A (match EEGPT hyperparams) with current cache. If that fails, THEN rebuild cache.
+### ⚠️ OUTDATED RECOMMENDATION (Before We Knew About Mapper):
+[This recommendation was made before discovering the mapper requirement]
 
 ## A/B Plan (order, stop rules)
 
@@ -179,9 +179,9 @@ Per-class F1 (examples over many epochs):
 
 ---
 
-## 🎯 BULLETPROOF STATUS (2025-09-08) - ALL FIXES APPLIED
+## 🎯 CURRENT STATUS (2025-09-09)
 
-### ✅ Code Deltas Applied for Strategy A (COMPLETED):
+### ✅ IMPLEMENTED (Hyperparameter Parity):
 1. **Config Fixed** (`experiments/eegpt_linear_probe/configs/tuev.yaml`):
    - `weighted_loss: false` ✅ (was defaulting to True)
    - `weight_decay: 0.05` ✅ (already correct)
@@ -206,6 +206,11 @@ Per-class F1 (examples over many epochs):
    - BAC metrics: Added `labels=[0,1,2,3,4,5]` to all 3 calls ✅
    - Smoke test config: Aligned with Strategy A settings ✅
    - All CI/CD checks passing ✅
+
+### ❌ NOT IMPLEMENTED (Architectural Parity):
+1. **Channel Mapper**: Conv2d(23→20) module doesn't exist
+2. **23-Channel Input**: Still dropping A1/A2 
+3. **Cache**: Using 20-ch with Fpz synthesis (not 23-ch)
 
 ### 🚀 Ready to Execute:
 ```bash
@@ -232,16 +237,19 @@ cd experiments/eegpt_linear_probe/scripts
 
 ---
 
-**🔴 CRITICAL DECISION REQUIRED NOW:**
+**🔴 DECISION POINT (Cache 80% Complete):**
 
-**Option 1: Continue Current Cache (NOT Paper Parity)**
-- Finish 20-ch cache with Fpz interpolation (~2 hrs left)
-- Test if hyperparams alone help (unlikely to reach 62%)
-- This is NOT what the paper did
+**Option A: Test Partial Parity First**
+- Let current cache finish (~40 min)
+- Train with hyperparameter parity only
+- Expected: ~50-55% BAC
+- Then decide if full parity needed
 
-**Option 2: KILL NOW & Do Paper Parity**
-- Stop current cache immediately
-- Implement 23-ch cache + Conv2d(23,20) mapper
-- This IS what achieved 62% BAC
+**Option B: Full Paper Parity Now**
+- Kill cache immediately
+- Implement 23-ch + Conv2d(23→20) mapper
+- Rebuild correctly
+- Expected: ~62% BAC (paper target)
 
-**RECOMMENDATION: Option 2 - The mapper is NOT optional!**
+**Current Status**: Cache at 289/359 files (80%)
+**Architecture Gap**: Missing the mapper that's CORE to their approach

@@ -127,7 +127,9 @@ tail -f experiments/eegpt_linear_probe/logs/tuev_mne_*.log | grep -i "balanced"
 
 1. **Primary Metric**: ALWAYS use Balanced Accuracy (BAC) for TUEV
 2. **Secondary Metrics**: Weighted F1 and Kappa for additional context
-3. **Class Weights**: Essential due to 99.5% class imbalance
+3. **Class Weights**: 
+   - **Paper Parity**: NO class weights (EEGPT uses unweighted CE + label smoothing)
+   - **Alternative**: Class weights only as experimental ablation
 4. **Realistic Target**: 60-63% BAC, NOT 80%
 5. **Sprint 4 Decision**: Based on 60% BAC threshold, not 80%
 
