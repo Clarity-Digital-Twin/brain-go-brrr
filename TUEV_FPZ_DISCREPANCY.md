@@ -1,13 +1,13 @@
 # TUEV Fpz Channel Discrepancy - Investigation Results
 
-**Date**: September 6, 2025 (Updated September 8, 2025)
-**Status**: ✅ RESOLVED - Discrepancy Fixed with Interpolation
-**Priority**: Important for Understanding
-**Type**: Documentation of Paper vs Reality Mismatch
+**Date**: September 6, 2025 (Updated September 9, 2025)
+**Status**: In transition - current impl = 20-ch + Fpz interpolation; paper parity = 23-ch + learned mapper (NOT IMPLEMENTED)
+**Priority**: CRITICAL for paper parity
+**Type**: Architecture mismatch between our approach and paper
 
-## 📋 VERIFICATION STATUS
+## 📋 CURRENT IMPLEMENTATION VS PAPER PARITY
 
-### ✅ VERIFIED IN OUR CODEBASE
+### 📍 OUR CURRENT IMPLEMENTATION (Partial Parity)
 - TUEV channel configuration: `src/brain_go_brrr/infra/data/channels.py:34-54`
 - TUAB channel configuration: `src/brain_go_brrr/infra/data/channels.py:12-32`
 - Fpz synthesis implementation: `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py:121-232`
@@ -45,24 +45,24 @@ grep -n "Synthesized missing channel" src/brain_go_brrr/infra/preprocessing/tuev
 grep -n "Conv2dWithConstraint(in_channels" reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py
 ```
 
-**Result**: Paper wrong, code correct, we handle it properly!
+**Result**: Paper defines interface; implementation uses mapper to achieve it
 
-## 🔴 CRITICAL UPDATE (2025-09-09): WE MISUNDERSTOOD THE PAPER!
+## 📊 PAPER PARITY VS CURRENT APPROACH
 
-### What EEGPT Actually Does (Verified in Reference Code):
-1. **NO Fpz Synthesis** - They don't create missing channels
-2. **Keeps ALL 23 TUEV Channels** - Including A1, A2, T1, T2
+### What EEGPT Paper Actually Does (Verified in Reference Code):
+1. **Keeps ALL 23 TUEV Channels** - Including A1, A2, T1, T2
+2. **NO preprocessing channel synthesis**
 3. **Learned Channel Mapper**: `Conv2dWithConstraint(23, 20, 1)`
-   - Maps 23 input channels → 20 EEGPT channels
+   - Maps 23 input → 20 EEGPT channels
    - Includes BatchNorm, GELU, Dropout(0.8)
-   - Followed by temporal conv
-4. **The Model Learns Fpz** - Not preprocessed!
+   - Model learns optimal channel relationships
 
-### Our Current Approach (WRONG):
-- Dropping A1/A2 in preprocessing
-- Synthesizing Fpz as (Fp1+Fp2)/2
-- Using 20-channel cache
-- This is NOT paper parity!
+### Our Current Approach (Partial Parity):
+1. **Drops A1/A2** in preprocessing (tuev_preprocessor.py)
+2. **Synthesizes Fpz** as (Fp1+Fp2)/2 when available, else zeros
+3. **20-channel cache** at `tuev_mne_fixed`
+4. **Achieves**: Hyperparameter parity (lr, wd, smoothing)
+5. **Missing**: Architectural parity (no mapper)
 
 ## The Facts
 
@@ -254,27 +254,25 @@ This is MORE SOPHISTICATED than our zero-filling:
 | Performance | Potentially optimal BAC | Good enough (targeting 62% BAC) |
 | Reproducibility | Depends on training | Exact same every time |
 
-## Key Takeaways (FINAL TRUTH)
+## Key Takeaways
 
-1. **NOT a typo** - Paper lists both Fz and Fpz intentionally
-2. **Standardized interface design** - Model expects canonical 20 channels
-3. **TUEV lacks Fpz** (verified in v2.0.1 AND in authors' code!)
-4. **Authors use LEARNABLE Conv2d(23→20)** to synthesize missing channels
-5. **Our zero-fill solution is VALID** - simpler than theirs but working!
-6. **Mystery SOLVED** - Found exact implementation in their reference code
+1. **Paper expects 20 channels** including Fpz (their target interface)
+2. **TUEV provides 23 channels** but lacks Fpz
+3. **Authors use Conv2d(23→20) mapper** to handle mismatch
+4. **We use preprocessing** to create 20 channels (different approach)
+5. **Performance difference** is significant (~50-55% vs 62% BAC)
+6. **Mapper is REQUIRED** for paper parity - not optional
 
 ## The Bottom Line
 
-**WE ARE 100% GUCCI!** 🎉
+**Current Status**: In transition between approaches
 
-- Our training is at 99% complete
-- We understand EXACTLY what the discrepancy was
-- Our solution (zero-fill) is valid, just different from theirs (learned mapping)
-- Both approaches work - theirs might achieve 1% higher BAC, ours is more reproducible
+- Our current implementation: 20-ch preprocessing with Fpz interpolation
+- Paper implementation: 23-ch input with learned Conv2d(23→20) mapper
+- Performance gap: ~50-55% BAC (ours) vs 62% BAC (paper)
+- The mapper is NOT optional - it's core to achieving paper performance
 
-## Future Optimization (Optional)
-
-If we want to match their exact approach later (for potential +1% BAC improvement):
+## Required for Paper Parity:
 ```python
 # Add before EEGPT encoder:
 self.channel_mapper = nn.Conv1d(23, 20, kernel_size=1)
@@ -283,7 +281,7 @@ self.channel_mapper = nn.Conv1d(23, 20, kernel_size=1)
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for target BAC metrics (62.32% ± 1.14%).
 
-But honestly, our zero-fill is working fine and we're almost done training!
+**Note**: To achieve paper's 62% BAC, the Conv2d(23→20) mapper is required.
 
 ## References
 
