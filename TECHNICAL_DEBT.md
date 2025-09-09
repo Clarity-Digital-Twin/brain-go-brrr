@@ -1,5 +1,6 @@
-# Technical Debt Tracker
+# Technical Debt Tracker (Single Source of Truth)
 *Last Updated: September 9, 2025*
+*Status: Active tracking document for all remaining technical debt*
 
 ## 🔴 Critical Issues (Block Production)
 
@@ -9,9 +10,16 @@
 - **Fix**: Wait for Lightning fix or migrate all training to pure PyTorch
 - **Affected**: All experiments if someone tries to use Lightning
 
-## 🟡 High Priority (Next Sprint)
+## 🟡 High Priority (Active Work)
 
-### 1. TUSZ Temporal Detection Implementation
+### 1. TUEV Paper Parity Training (IN PROGRESS)
+- **Status**: Training running, Epoch 5/100, BAC ~16.67% (target: 62.32%)
+- **Implementation**: ✅ 23-channel mode with learnable mapper complete
+- **Location**: `experiments/eegpt_linear_probe/train_tuev_mne.py`
+- **Monitor**: `tmux attach -t tuev_paper_parity`
+- **Remaining**: Wait for convergence to 62.32% BAC
+
+### 2. TUSZ Temporal Detection (Next Focus)
 - **Status**: Architecture decided, SeizureTransformer wrapper planned
 - **Next Steps**: 
   - Implement wrapper infrastructure for SeizureTransformer
@@ -19,33 +27,29 @@
   - Create EEGPT+BiLSTM alternative
 - **Docs**: See TUSZ_*.md files in root
 
-### 2. Mixed Precision Training
+## 🟢 Medium Priority (Technical Improvements)
+
+### 1. Mixed Precision Training
 - **Impact**: Could reduce memory usage by 50%, speed up training
 - **Status**: Not implemented, would help with GPU memory constraints
 - **Complexity**: Medium - need to add autocast and scaler
+- **Location**: Training scripts in `experiments/`
 
-### 3. Multi-GPU Support
+### 2. Multi-GPU Support
 - **Impact**: Would dramatically speed up training
 - **Status**: Not implemented
 - **Complexity**: High - need DistributedDataParallel
 
-## 🟢 Medium Priority (Technical Improvements)
-
-### 1. Normalization Stats Computation
+### 3. Normalization Stats Computation
 - **Current**: Using hardcoded 50μV std assumption
 - **Need**: Compute actual stats from training data
 - **Impact**: May improve model performance
 - **Location**: `brain_go_brrr/infra/ml_models/eegpt_wrapper.py`
 
-### 2. Event Detection Module
-- **Status**: Architecture docs only, no implementation
-- **Components**: GPED/PLED detection, epileptiform discharge identification
-- **Priority**: Lower than TUSZ
-
-### 3. Authentication/Authorization
-- **Status**: No OAuth2/JWT implementation
-- **Impact**: Required for production deployment
-- **Complexity**: Medium - FastAPI has good support
+### 4. CI Script Validation Gap
+- **Issue**: `.ci/check_script_arguments.sh` only checks TUEV launcher
+- **Need**: Also validate `experiments/eegpt_linear_probe/scripts/launch_tuab_mne.sh`
+- **Impact**: Could miss argument mismatches in TUAB training
 
 ## 📚 Documentation Debt
 
@@ -55,26 +59,35 @@
 - **Tool**: Consider auto-generating from FastAPI schemas
 
 ### 2. Training Documentation
-- **Current**: TUEV guide created, but scattered across experiments
-- **Need**: Centralized training documentation in `/docs/TRAINING.md`
+- **Current**: TUEV guide created in `experiments/eegpt_linear_probe/`
+- **Need**: Link from main docs or move to `/docs/TRAINING.md`
 
 ### 3. Deployment Guide
 - **Status**: No production deployment documentation
 - **Need**: Kubernetes manifests, PostgreSQL setup, monitoring
 
+### 4. MkDocs Navigation
+- **Issue**: Still references old TUEV doc locations
+- **Need**: Update paths to `docs/tuev/` structure
+
 ## 🔧 Code Quality Debt
 
 ### 1. Test Coverage
-- **Current**: ~70% coverage
+- **Current**: Estimated ~70% coverage
 - **Target**: 90%+ for critical paths
 - **Missing**: Integration tests for full pipeline
 
-### 2. Deprecated Imports
+### 2. Event Detection Module
+- **Status**: Architecture docs only, no implementation
+- **Components**: GPED/PLED detection, epileptiform discharge identification
+- **Priority**: Lower than TUSZ
+
+### 3. Deprecated Imports
 - **Issue**: Some deprecation warnings in ML models
 - **Fix**: Update to newer APIs
 - **Location**: Check CI deprecation warnings
 
-### 3. Error Handling
+### 4. Error Handling
 - **Issue**: Some paths don't handle edge cases
 - **Example**: Missing channel handling could be more graceful
 
@@ -92,6 +105,11 @@
 - **Status**: Architecture planned but not implemented
 - **Need**: Background job processing for long-running analyses
 
+### 4. Authentication/Authorization
+- **Status**: No OAuth2/JWT implementation
+- **Impact**: Required for production deployment
+- **Complexity**: Medium - FastAPI has good support
+
 ## 🚨 Security Debt
 
 ### 1. Secrets Management
@@ -106,39 +124,42 @@
 - **Status**: Basic Pydantic models
 - **Need**: Comprehensive validation for all endpoints
 
-## ✅ Recently Resolved (Archived)
+## ✅ Recently Resolved (Last Sprint)
 
-- ✅ TUEV paper parity (62.32% target) - Training running successfully
 - ✅ Channel mapping issues (T3→T7, etc.) - Fixed in preprocessing
 - ✅ Balanced accuracy scoring - Removed invalid `labels` parameter
 - ✅ Gradient clipping - Implemented for both probe and mapper
 - ✅ Config key inconsistencies - Supports both naming conventions
 - ✅ torch.load compatibility - Version detection with fallback
-- ✅ Script argument mismatches - CI validation added
+- ✅ Script argument mismatches - CI validation added for TUEV
+- ✅ TUEV 23-channel implementation - Complete with learnable mapper
+- ✅ Training infrastructure - Auto-recovery, checkpoint resumption
 
-## 📊 Debt Metrics
+## 📊 Debt Metrics Summary
 
-- **Critical Issues**: 1
-- **High Priority**: 3
-- **Medium Priority**: 3
-- **Documentation**: 3
-- **Code Quality**: 3
-- **Infrastructure**: 3
-- **Security**: 3
+| Category | Count | Notes |
+|----------|-------|-------|
+| Critical Issues | 1 | PyTorch Lightning bug |
+| Active Work | 2 | TUEV training, TUSZ planning |
+| Medium Priority | 4 | Performance/quality improvements |
+| Documentation | 4 | Accuracy and organization |
+| Code Quality | 4 | Coverage and modules |
+| Infrastructure | 4 | Production readiness |
+| Security | 3 | Compliance and validation |
 
-**Total Open Items**: 19
+**Total Open Items**: 22
 
 ## 🎯 Recommended Priority Order
 
-1. **Complete TUSZ implementation** (current focus after TUEV)
-2. **Add mixed precision training** (quick win for performance)
-3. **Compute normalization stats** (improve model accuracy)
-4. **Update API documentation** (reflect reality)
-5. **Increase test coverage** (prevent regressions)
+1. **Monitor TUEV training to completion** (currently running)
+2. **Start TUSZ implementation** (wrapper infrastructure ready)
+3. **Fix CI script checker** (quick fix for TUAB launcher)
+4. **Add mixed precision** (performance boost)
+5. **Update documentation** (reflect current state)
 
 ## 📝 Notes
 
-- This document tracks ACTUAL technical debt, not completed work
-- Items marked ✅ have been moved to the "Recently Resolved" section
-- For TUEV-specific resolved issues, see `docs/tuev/archive/`
+- REMAINING_DEBT.md has been deprecated - this document is the SSOT
+- For TUEV implementation details, see `docs/tuev/`
 - For active TUSZ work, see `TUSZ_*.md` files in root
+- Training logs in `experiments/eegpt_linear_probe/logs/`
