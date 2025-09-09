@@ -34,9 +34,9 @@ from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_dataset import TUEVMNEDataset
+from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
-from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.utils import collate_tuev_batch, collate_tuev_parity_batch
 
 # Configure logging

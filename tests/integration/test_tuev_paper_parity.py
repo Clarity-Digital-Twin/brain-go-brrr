@@ -59,10 +59,10 @@ def test_paper_parity_pipeline():
     assert features.shape == (1, 16, 4, 512), f"Unexpected feature shape: {features.shape}"
 
     print("✅ Paper parity pipeline test passed!")
-    print(f"  - Dataset: 23 channels")
-    print(f"  - Collate: Accepts 23 channels")
-    print(f"  - Mapper: 23→20 channels")
-    print(f"  - EEGPT: Features extracted successfully")
+    print("  - Dataset: 23 channels")
+    print("  - Collate: Accepts 23 channels")
+    print("  - Mapper: 23→20 channels")
+    print("  - EEGPT: Features extracted successfully")
 
 
 @pytest.mark.integration
@@ -112,7 +112,7 @@ def test_cache_has_correct_units():
     if not meta_file.exists():
         pytest.skip("Cache not built yet - run build_tuev_23ch_cache.sh first")
 
-    with open(meta_file) as f:
+    with meta_file.open() as f:
         meta = json.load(f)
 
     # Check units are Volts (SI units) per SSOT
@@ -127,7 +127,7 @@ def test_cache_has_correct_units():
     print("✅ Cache validation passed!")
     print(f"  - Units: {meta['unit']} (correct)")
     print(f"  - Channels: {meta['n_channels']}")
-    print(f"  - Naming: Mixed-case (Fp1, Fz, etc.)")
+    print("  - Naming: Mixed-case (Fp1, Fz, etc.)")
 
 
 if __name__ == "__main__":
