@@ -31,7 +31,7 @@ import numpy as np
 from pathlib import Path
 
 # Add NEDC eval to path
-sys.path.append('reference_repos/nedc_eeg_eval_v6.0.0/nedc_eeg_eval/v6.0.0/lib')
+sys.path.append('reference_repos/nedc_eeg_eval_v6.0.0/lib')
 import nedc_eeg_eval_taes as taes
 import nedc_eeg_eval_ovlp as ovlp
 import nedc_eeg_eval_common as nec
