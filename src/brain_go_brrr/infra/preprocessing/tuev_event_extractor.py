@@ -111,38 +111,44 @@ class TUEVEventExtractor:
         else:
             data = data.astype(np.float32)
 
-        # Extract segments around events
+        # Extract segments around events using authors' offset-concatenation trick
         segments = []
+        fs = int(self.target_fs)
         samples_per_segment = int(self.segment_duration * self.target_fs)  # 1000 samples
+        times = np.arange(data.shape[1]) / float(self.target_fs)
+
+        # Precompute extended signal to avoid boundary drops
+        offset = data.shape[1]
+        extended = np.concatenate([data, data, data], axis=1)
 
         for annot in annotations:
-            # Calculate event center and window
-            event_center = (annot['start'] + annot['end']) / 2.0
-            start_time = event_center + self.tmin  # -2s before center
-            end_time = event_center + self.tmax  # +3s after center
+            # Use annotation start/end directly, as in reference
+            start_sec = float(annot['start'])
+            end_sec = float(annot['end'])
 
-            # Convert to samples
-            start_sample = int(start_time * self.target_fs)
-            end_sample = int(end_time * self.target_fs)
+            # Map to sample indices similar to np.where(times >= t)[0][0]
+            start_idx = int(np.searchsorted(times, start_sec, side='left'))
+            end_idx = int(np.searchsorted(times, end_sec, side='left'))
 
-            # Ensure exactly 1000 samples
-            if end_sample - start_sample != samples_per_segment:
-                end_sample = start_sample + samples_per_segment
+            # Authors' code assumes end-start == fs (1s). Enforce 1s if needed.
+            if (end_idx - start_idx) != fs:
+                end_idx = start_idx + fs
 
-            # Skip if segment would be out of bounds
-            if start_sample < 0 or end_sample > data.shape[1]:
-                continue
+            # Slice from extended buffer: [offset + start - 2s : offset + end + 2s]
+            cut_start = offset + start_idx - 2 * fs
+            cut_end = offset + end_idx + 2 * fs
 
-            # Extract segment
-            segment = data[:, start_sample:end_sample]  # (23, 1000)
+            # Ensure exact length of 5 seconds
+            if (cut_end - cut_start) != samples_per_segment:
+                # Adjust end to maintain exact segment length
+                cut_end = cut_start + samples_per_segment
 
-            # Ensure correct shape
-            assert segment.shape == (23, samples_per_segment), (
-                f"Segment shape {segment.shape} != (23, {samples_per_segment})"
+            segment = extended[:, cut_start:cut_end]
+            assert segment.shape[1] == samples_per_segment, (
+                f"Segment length {segment.shape[1]} != {samples_per_segment}"
             )
 
-            # annot['label'] is already an int from the parser
-            label = annot['label'] if isinstance(annot['label'], int) else int(annot['label'])
+            label = int(annot['label']) if not isinstance(annot['label'], int) else annot['label']
             segments.append((segment.astype(np.float32), label))
 
         return segments

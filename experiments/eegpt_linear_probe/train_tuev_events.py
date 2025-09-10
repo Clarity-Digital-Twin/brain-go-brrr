@@ -30,14 +30,17 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 class TUEVClassifierHead(nn.Module):
     """EEGPT-based classifier head for TUEV event classification.
 
-    ALWAYS uses EEGPT - no MLP fallback!
+    Paper-parity implementation:
+    - Enforce parity mode (1000 samples native; patch_stride=64)
+    - Use all temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8) → Linear(6)
+    - No mean pooling; no flatten-to-2048 path
     """
 
     def __init__(
         self,
         eegpt_checkpoint: str,  # REQUIRED - no default
         num_classes: int = 6,
-        use_parity: bool = False,  # TRUE paper parity (1000 samples native)
+        use_parity: bool = True,  # ENFORCE: TRUE paper parity (1000 samples native)
     ):
         super().__init__()
         self.use_parity = use_parity
@@ -57,11 +60,10 @@ class TUEVClassifierHead(nn.Module):
             # Configure model with 20 channels and correct time steps
             model_kwargs = {
                 "n_channels": use_channels_names,
-                "drop_path_rate": 0.2,  # CRITICAL: Add DropPath=0.2 for paper parity!
+                "drop_path_rate": 0.2,  # CRITICAL: DropPath=0.2 for paper parity
+                "time_steps": 1000,      # Enforce native 1000 samples
+                "patch_stride": 64,      # Stride 64 at 200 Hz
             }
-            if use_parity:
-                # Configure EEGPT for native 1000 time steps with stride 64
-                model_kwargs.update({"time_steps": 1000, "patch_stride": 64})
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
             print("DropPath=0.2 enabled for stochastic depth regularization")
             
@@ -81,28 +83,18 @@ class TUEVClassifierHead(nn.Module):
             # Store as tensor for use in forward pass
             self.register_buffer('chan_ids', torch.tensor(chan_ids).long())
 
-            # EEGPT outputs 4×512 features
-            # Reference uses mean pooling (512 features), but we can try both
-            self.use_mean_pooling = True  # Match reference!
-            
-            if self.use_mean_pooling:
-                print("Using MEAN POOLING (512 features) - matches reference")
-                # Mean pool across 4 tokens: (B, 4, 512) -> (B, 512)
-                self.classifier = nn.Sequential(
-                    nn.Linear(512, 256),
-                    nn.ReLU(),
-                    nn.Dropout(0.5),
-                    nn.Linear(256, num_classes),
-                )
-            else:
-                print("Using FLATTEN (2048 features) - our original")
-                self.classifier = nn.Sequential(
-                    nn.Flatten(),  # (B, 4, 512) -> (B, 2048)
-                    nn.Linear(2048, 512),
-                    nn.ReLU(),
-                    nn.Dropout(0.5),
-                    nn.Linear(512, num_classes),
-                )
+            # Build classifier head to consume ALL temporal summary tokens
+            # Compute temporal patch count from the EEGPT model
+            temporal_patches = int(getattr(self.eegpt.model.patch_embed, 'num_patches')[1])
+            embed_num = int(self.eegpt.model.embed_num)       # 4
+            embed_dim = int(self.eegpt.model.embed_dim)       # 512
+            in_features = temporal_patches * embed_num * embed_dim  # 15*4*512 = 30720
+            print(f"Using TEMPORAL TOKEN FLATTENING: {temporal_patches}×{embed_num}×{embed_dim} = {in_features}")
+
+            self.classifier = nn.Sequential(
+                nn.Dropout(0.8),
+                nn.Linear(in_features, num_classes),
+            )
         else:
             raise ValueError("EEGPT checkpoint is required for paper parity!")
 
@@ -115,26 +107,13 @@ class TUEVClassifierHead(nn.Module):
         Returns:
             Logits of shape (batch, 6)
         """
-        # Handle padding based on parity mode
-        if self.use_parity:
-            # TRUE PARITY: Use 1000 samples natively (requires modified EEGPT)
-            # No padding needed if EEGPT is configured for time_steps=1000
-            pass
-        else:
-            # FALLBACK: Pad to 1024 for standard EEGPT
-            if x.shape[-1] == 1000:
-                x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
+        # Enforce native 1000 samples (parity); no padding needed
 
-        # Extract EEGPT features WITH PROPER CHANNEL IDs
-        # Note: chan_ids should be 1D tensor, not batched
-        features = self.eegpt.extract_features(x, chan_ids=self.chan_ids, summary=False)  # (B, 4, 512)
-
-        # Apply pooling strategy
-        if self.use_mean_pooling:
-            # Mean pool across 4 tokens: (B, 4, 512) -> (B, 512)
-            features = features.mean(dim=1)
-        
-        # Classify
+        # Extract ALL temporal EEGPT features using proper channel IDs
+        # Returns shape: (B, N_temporal, 4, 512)
+        features_all = self.eegpt(x, chan_ids=self.chan_ids, return_all_temporal=True)
+        # Flatten temporal + summary tokens: (B, N_temporal*4*512)
+        features = features_all.reshape(features_all.shape[0], -1)
         logits = self.classifier(features)
         return logits
 
@@ -463,10 +442,7 @@ def main(args):
         raise ValueError("--eegpt_checkpoint is REQUIRED for paper parity!")
 
     print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
-    if args.use_parity:
-        print("TRUE PARITY MODE: Using native 1000 samples (no padding)")
-    else:
-        print("FALLBACK MODE: Padding to 1024 samples")
+    print("TRUE PARITY MODE: Using native 1000 samples (no padding)")
 
     channel_mapper = TUEVChannelMapper(dropout=0.8)
 
