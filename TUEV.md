@@ -102,12 +102,13 @@ weight_decay = 0.05
 layer_decay = 0.65
 warmup_epochs = 5
 epochs = 30
-batch_size = 32  # Effective 400 via accumulation
+batch_size = 32  # Effective batch ≈ 400 via accumulation (e.g., batch_size=32 → 12 steps → 384)
 label_smoothing = 0.1
 ```
+Rule of thumb: choose gradient accumulation steps so `batch_size × steps ≈ 400`.
 
 ### Balanced Sampler Specification
-Train labels are read from the split index file at `data/datasets/tuev/cache/tuev_event_segments/train/index.json` (not by loading all .pt files). We compute `class_counts` with `torch.bincount(..., minlength=6)`, guard zeros (replace 0 with 1) to avoid division by zero, set sample weights to `(1/class_count)`, use `dtype=double`, and seed the WeightedRandomSampler via `generator.manual_seed(42)`.
+Train labels are read from the split index file at `data/datasets/tuev/cache/tuev_event_segments/train/index.json` (not by loading all .pt files). We compute `class_counts` with `torch.bincount(..., minlength=6)`, guard zeros (replace 0 with 1) to avoid division by zero, set sample weights to `(1/class_count)` as a floating-point tensor (float or double), and seed the `WeightedRandomSampler` via `generator.manual_seed(42)`.
 
 Note: If eval split is skewed, even balanced training can yield low BAC; inspect eval `class_counts` too.
 
@@ -140,7 +141,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 ### What's Still Wrong ❌
 1. **Class imbalance handling**: WeightedRandomSampler insufficient
 2. **Learning rate**: May need adjustment (try 1e-4 or 3e-4)
-3. **Unknown**: Possible data normalization differences
+3. **Normalization**: We normalize to mean=0, std=50μV by default; for production, compute corpus stats. Normalization alone is unlikely to explain current BAC gap
 
 ## Training Commands
 
@@ -175,7 +176,7 @@ tmux attach -t tuev
 - `CUDA_LAUNCH_BLOCKING=1`: Synchronous CUDA execution for better error messages
 - `PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64`: Prevents GPU memory fragmentation
 
-**WSL Note**: The CLI default for `--pin_memory` is False. Do not pass `--pin_memory` flag on WSL.
+**WSL Note**: Our CLI default is `--pin_memory False`; do not pass `--pin_memory` on WSL.
 
 ### Monitor Training
 ```bash
@@ -200,14 +201,18 @@ tmux kill-server
 # Check GPU
 nvidia-smi
 
-# Clear GPU memory
-nvidia-smi --gpu-reset
-```
+# Clear GPU memory (if supported)
+nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
 
 ### Expected Progress (Acceptance Gates)
 By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.
 
 **Current Issue**: Stuck at BAC ~0.19-0.24 due to class imbalance
+
+### Guardrails
+- **No PyTorch Lightning** (CI guard in place)
+- **torch.load safety**: Cache files loaded with `weights_only=True`; EEGPT checkpoint loaded via safe loader with explicit `# nosec:weights_only` justification
+- **chan_ids shape**: Do not batch `chan_ids`. EEGPT expects a 1D tensor of length 20; input to EEGPT must be shaped `(B, 20, 1000)` after the mapper. Ensure the mapper squeezes the spatial dimension so it outputs `(B, 20, 1000)` before EEGPT.
 
 ### Debug Class Distribution
 ```bash
@@ -222,6 +227,9 @@ uv run python -c "import json; print(json.load(open('data/datasets/tuev/cache/tu
 # Class 0 (spsw): 0.7%, Class 5 (bckg): 43.3%
 ```
 
+### Evaluation Output
+- Each evaluation prints a confusion matrix and per-class `classification_report`. Use per-class recall to detect systematic misses on rare classes (e.g., spsw/gped/pled).
+
 ### Cache Management
 ```bash
 # Check if cache exists
@@ -230,6 +238,9 @@ ls -la data/datasets/tuev/cache/tuev_event_segments/
 # Rebuild cache if needed (takes ~5-30 minutes depending on disk speed and I/O)
 rm -rf data/datasets/tuev/cache/
 uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset; TUEVEventDataset('data/datasets/tuev', 'train')"
+
+# Training will also build eval cache on first use. To pre-build both:
+# TUEVEventDataset('data/datasets/tuev', 'train') and TUEVEventDataset('data/datasets/tuev', 'eval')
 
 # Cache is NOT affected by training script changes
 # Only rebuild if you change preprocessing/extraction logic
