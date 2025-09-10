@@ -11,7 +11,6 @@ Expected performance: 62.32% ± 1.14% balanced accuracy
 """
 
 import argparse
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -21,9 +20,6 @@ import torch.nn.functional as F
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
@@ -107,6 +103,8 @@ def create_optimizer_with_layer_decay(
     """
     # For simplicity, use single learning rate
     # Full implementation would decay LR by depth
+    # TODO: Implement layer-wise decay when needed
+    _ = layer_decay  # Will be used in full implementation
     return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
 
@@ -123,6 +121,8 @@ def warmup_scheduler(
     Returns:
         LambdaLR scheduler with warmup
     """
+    # TODO: Add cosine decay after warmup using total_epochs
+    _ = total_epochs  # Will be used for cosine decay
 
     def lr_lambda(epoch: int) -> float:
         if epoch < warmup_epochs:
