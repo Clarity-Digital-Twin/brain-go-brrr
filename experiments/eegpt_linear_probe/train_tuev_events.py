@@ -393,33 +393,45 @@ def main(args):
     print(f"Train samples: {len(train_dataset)}")
     print(f"Eval samples: {len(eval_dataset)}")
 
-    # Create balanced sampler for training
+    # Create balanced sampler for training - READ FROM INDEX TO AVOID I/O THRASH
     print("Setting up balanced sampling for training...")
-    train_labels = []
-    for i in range(len(train_dataset)):
-        _, label = train_dataset[i]
-        train_labels.append(label)
+    import json
+    with open(train_dataset.cache_dir / "index.json", "r") as f:
+        index_data = json.load(f)
     
-    # Calculate class weights for balanced sampling
-    class_counts = torch.bincount(torch.tensor(train_labels))
+    # Get labels from index without loading .pt files
+    train_labels = [seg["label"] for seg in index_data["segments"]]
+    
+    # Calculate class weights with minlength to avoid missing classes
+    class_counts = torch.bincount(torch.tensor(train_labels), minlength=6)
     print(f"Class distribution: {class_counts.tolist()}")
-    class_weights = 1.0 / class_counts.float()
-    sample_weights = torch.tensor([class_weights[label] for label in train_labels])
     
-    # Create weighted sampler
+    # Avoid division by zero for missing classes
+    class_counts = torch.where(class_counts == 0, torch.ones_like(class_counts), class_counts)
+    class_weights = 1.0 / class_counts.float()
+    sample_weights = torch.tensor([class_weights[label] for label in train_labels], dtype=torch.float)
+    
+    # Create weighted sampler with deterministic seed
+    generator = torch.Generator()
+    generator.manual_seed(args.seed)
     train_sampler = WeightedRandomSampler(
         weights=sample_weights,
         num_samples=len(sample_weights),
-        replacement=True
+        replacement=True,
+        generator=generator
     )
     
-    # Create dataloaders
+    # Create dataloaders with WSL-safe defaults
+    pin_memory = args.pin_memory  # Default False for WSL
+    persistent_workers = (args.num_workers > 0) and args.persistent_workers
+    
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         sampler=train_sampler,  # Use sampler instead of shuffle
         num_workers=args.num_workers,
-        pin_memory=True,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
     )
 
     eval_loader = DataLoader(
@@ -427,7 +439,8 @@ def main(args):
         batch_size=args.batch_size,
         shuffle=False,
         num_workers=args.num_workers,
-        pin_memory=True,
+        pin_memory=pin_memory,
+        persistent_workers=persistent_workers,
     )
 
     # Create model
@@ -587,6 +600,14 @@ if __name__ == "__main__":
     parser.add_argument('--num_workers', type=int, default=4, help='Number of data workers')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--save_dir', type=str, default=None, help='Directory to save checkpoints')
+    parser.add_argument(
+        '--pin_memory', action='store_true', default=False, 
+        help='Pin memory for DataLoader (avoid on WSL)'
+    )
+    parser.add_argument(
+        '--persistent_workers', action='store_true', default=False,
+        help='Keep workers alive between epochs'
+    )
 
     args = parser.parse_args()
     main(args)
