@@ -6,12 +6,12 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore[import-untyped]
 
 from brain_go_brrr.infra.preprocessing.tuev_event_extractor import TUEVEventExtractor
 
 
-class TUEVEventDataset(Dataset):
+class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
     """TUEV event segment dataset for paper parity.
 
     This is DIFFERENT from our sliding window TUEVMNEDataset.
@@ -65,7 +65,7 @@ class TUEVEventDataset(Dataset):
         index_file = self.cache_dir / self.split / 'index.json'
         return index_file.exists()
 
-    def _parse_annotations(self, edf_path: Path) -> list[dict]:
+    def _parse_annotations(self, edf_path: Path) -> list[dict[str, float | int]]:
         """Parse annotations from .rec.lab file.
 
         Args:
@@ -82,7 +82,7 @@ class TUEVEventDataset(Dataset):
             return []
 
         annotations = []
-        with open(lab_path) as f:
+        with lab_path.open() as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -108,7 +108,7 @@ class TUEVEventDataset(Dataset):
 
         return annotations
 
-    def _build_cache(self):
+    def _build_cache(self) -> None:
         """Build cache using our event extractor."""
         print(f"Building {self.split} cache for TUEV event segments...")
 
@@ -122,7 +122,7 @@ class TUEVEventDataset(Dataset):
             cache_dir = self.cache_dir / self.split
             cache_dir.mkdir(parents=True, exist_ok=True)
             index_file = cache_dir / 'index.json'
-            with open(index_file, 'w') as f:
+            with index_file.open('w') as f:
                 json.dump(
                     {
                         'segments': [],
@@ -185,11 +185,11 @@ class TUEVEventDataset(Dataset):
 
         # Calculate statistics
         class_counts = Counter([s['label'] for s in all_segments])
-        n_subjects = len(set([s['subject'] for s in all_segments]))
+        n_subjects = len({s['subject'] for s in all_segments})
 
         # Save index with metadata
         index_file = self.cache_dir / self.split / 'index.json'
-        with open(index_file, 'w') as f:
+        with index_file.open('w') as f:
             json.dump(
                 {
                     'segments': all_segments,
@@ -208,7 +208,7 @@ class TUEVEventDataset(Dataset):
         print(f"Built cache with {len(all_segments)} segments from {n_subjects} subjects")
         print(f"Class distribution: {dict(class_counts)}")
 
-    def _load_cache(self):
+    def _load_cache(self) -> None:
         """Load cached segments index."""
         index_file = self.cache_dir / self.split / 'index.json'
 
@@ -218,7 +218,7 @@ class TUEVEventDataset(Dataset):
             self.metadata = {'fs': 200, 'duration': 5.0, 'channels': 23, 'samples': 1000}
             return
 
-        with open(index_file) as f:
+        with index_file.open() as f:
             index_data = json.load(f)
 
         self.segments = index_data['segments']

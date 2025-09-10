@@ -78,7 +78,7 @@ class TestTUEVEventDataset:
                 {'start': 3.0, 'end': 4.0, 'label': 1},
             ]
 
-            dataset = TUEVEventDataset(
+            TUEVEventDataset(
                 root_dir=self.root_dir, split='train', cache_dir=self.cache_dir, force_rebuild=True
             )
 
@@ -144,7 +144,7 @@ class TestTUEVEventDataset:
             'channels': 23,
             'samples': 1000,
         }
-        with open(index_file, 'w') as f:
+        with index_file.open('w') as f:
             json.dump(index_data, f)
 
         dataset = TUEVEventDataset(
@@ -178,8 +178,8 @@ class TestTUEVEventDataset:
             lab_file = split_dir / fname.replace('.edf', '.rec.lab')
             lab_file.write_text("1000000 2000000 spsw")
 
-        with patch.object(TUEVEventDataset, '_build_cache') as mock_build:
-            dataset = TUEVEventDataset(
+        with patch.object(TUEVEventDataset, '_build_cache'):
+            TUEVEventDataset(
                 root_dir=self.root_dir, split='train', cache_dir=self.cache_dir, force_rebuild=True
             )
 
@@ -218,7 +218,7 @@ class TestTUEVEventDataset:
             'samples': 1000,  # Must be 1000 samples
         }
 
-        with open(index_file, 'w') as f:
+        with index_file.open('w') as f:
             json.dump(index_data, f)
 
         dataset = TUEVEventDataset(
@@ -254,14 +254,14 @@ class TestTUEVEventDataset:
             'segments': segments,
             'n_segments': n_segments,
             'class_counts': {str(i): segments.count({'label': i}) for i in range(6)},
-            'n_subjects': len(set(s['subject'] for s in segments)),
+            'n_subjects': len({s['subject'] for s in segments}),
             'fs': 200,
             'duration': 5.0,
             'channels': 23,
             'samples': 1000,
         }
 
-        with open(index_file, 'w') as f:
+        with index_file.open('w') as f:
             json.dump(index_data, f)
 
         dataset = TUEVEventDataset(
@@ -303,7 +303,7 @@ class TestTUEVEventDataset:
                     {'start': 5.0, 'end': 6.0, 'label': 1},
                 ]
 
-                dataset = TUEVEventDataset(
+                TUEVEventDataset(
                     root_dir=self.root_dir,
                     split='train',
                     cache_dir=self.cache_dir,

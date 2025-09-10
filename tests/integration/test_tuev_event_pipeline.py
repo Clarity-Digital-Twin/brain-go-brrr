@@ -96,7 +96,7 @@ class TestTUEVEventPipeline:
 
             # Create index
             index_file = cache_dir / "index.json"
-            with open(index_file, 'w') as f:
+            with index_file.open('w') as f:
                 json.dump(
                     {
                         'segments': [{'file': 'test_segment.pt', 'label': 0, 'subject': 'test'}],
@@ -178,7 +178,7 @@ class TestTUEVEventPipeline:
             class_counts = {str(i): 10 for i in range(6)}
 
             index_file = cache_dir / "index.json"
-            with open(index_file, 'w') as f:
+            with index_file.open('w') as f:
                 json.dump(
                     {
                         'segments': segments,
