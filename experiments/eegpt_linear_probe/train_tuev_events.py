@@ -442,7 +442,8 @@ def main(args):
         def forward(self, x):
             # x: (batch, 23, 1000)
             x = x.unsqueeze(2)  # Add spatial dim: (batch, 23, 1, 1000)
-            x = self.mapper(x)  # Map to 20 channels: (batch, 20, 1000)
+            x = self.mapper(x)  # Map to 20 channels: (batch, 20, 1, 1000) - keeps 4D!
+            x = x.squeeze(2)  # Remove spatial dim: (batch, 20, 1000)
             x = self.classifier(x)  # Classify: (batch, 6)
             return x
 
