@@ -90,6 +90,15 @@ model = EEGPTClassifier(
 )
 ```
 
+Classifier head behavior (from authors' code):
+```python
+# forward():
+x = target_encoder(...)
+x = x.flatten(1)                  # Flatten ALL temporal summary tokens
+x = Dropout(0.8)
+x = Linear(30720, num_classes)    # 15 patches × 4 tokens × 512 dims
+```
+
 ### Data Loading (`utils.py`)
 ```python
 class TUEVLoader(torch.utils.data.Dataset):
@@ -153,6 +162,9 @@ train_sub = list(set(train_sub) - set(val_sub))
 - No WeightedRandomSampler
 - No class weights in loss function
 - Standard cross-entropy with label smoothing
+
+### 4. Classifier Tokens
+- Consumes ALL temporal summary tokens (flattened). No mean pooling on TUEV.
 
 ### 4. Distributed Training
 ```bash
