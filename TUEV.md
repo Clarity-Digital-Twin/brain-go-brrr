@@ -61,6 +61,26 @@
 - Cache: 2695 train, 1048 eval segments
 ```
 
+### Channel Configuration (Single Source of Truth)
+
+**23 Referential Input Channels (Extractor Order)**:
+```python
+['EEG FP1-REF','EEG FP2-REF','EEG F3-REF','EEG F4-REF','EEG C3-REF','EEG C4-REF',
+ 'EEG P3-REF','EEG P4-REF','EEG O1-REF','EEG O2-REF','EEG F7-REF','EEG F8-REF',
+ 'EEG T3-REF','EEG T4-REF','EEG T5-REF','EEG T6-REF','EEG A1-REF','EEG A2-REF',
+ 'EEG FZ-REF','EEG CZ-REF','EEG PZ-REF','EEG T1-REF','EEG T2-REF']
+```
+
+**20 Target Channels for EEGPT**:
+```python
+['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
+ 'T7','C3','CZ','C4','T8','P7','P3','PZ','P4','P8','O1','O2']
+```
+Note: `chan_ids` is a 1D tensor built from these names via `CHANNEL_DICT`.
+
+### Normalization Behavior
+EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats file is provided. Datasets emit Volts (SI units). For production, compute corpus-level stats and pass them to the wrapper.
+
 ### Model Architecture
 ```python
 # 23→20 channel mapping + EEGPT
@@ -86,6 +106,11 @@ batch_size = 32  # Effective 400 via accumulation
 label_smoothing = 0.1
 ```
 
+### Balanced Sampler Specification
+Train labels are read from the split index file at `data/datasets/tuev/cache/tuev_event_segments/train/index.json` (not by loading all .pt files). We compute `class_counts` with `torch.bincount(..., minlength=6)`, guard zeros (replace 0 with 1) to avoid division by zero, set sample weights to `(1/class_count)`, use `dtype=double`, and seed the WeightedRandomSampler via `generator.manual_seed(42)`.
+
+Note: If eval split is skewed, even balanced training can yield low BAC; inspect eval `class_counts` too.
+
 ## Reference Implementation
 
 From `reference_repos/EEGPT/downstream_tueg/`:
@@ -101,7 +126,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 2. **23→20 mapping** via learned Conv2d
 3. **Event-only segments** - no sliding windows
 4. **Unweighted loss** with label smoothing=0.1
-5. **Class labels**: Subtract 1 from original labels (1-6 → 0-5)
+5. **Class labels**: Reference subtracts 1 (labels 1-6 → 0-5); we use explicit map {spsw:0, gped:1, pled:2, eyem:3, artf:4, bckg:5}, consistent with ref semantics
 
 ## Key Divergences
 
@@ -120,6 +145,13 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 ## Training Commands
 
 ### Stable WSL Command (RECOMMENDED)
+
+**Use the provided launch script**:
+```bash
+./experiments/eegpt_linear_probe/scripts/launch_tuev_safe.sh
+```
+
+Or manually:
 ```bash
 tmux new -d -s tuev "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr && \
   CUDA_LAUNCH_BLOCKING=1 PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64 \
@@ -170,13 +202,10 @@ nvidia-smi
 nvidia-smi --gpu-reset
 ```
 
-### Expected Progress
-- Epoch 1: BAC ~0.17 (random baseline)
-- Epoch 3: BAC >0.25 (learning signal)
-- Epoch 10: BAC >0.40 (convergence starting)
-- Epoch 30: BAC ~0.62 (target)
+### Expected Progress (Acceptance Gates)
+By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.
 
-**Current Issue**: Stuck at BAC ~0.19 due to class imbalance
+**Current Issue**: Stuck at BAC ~0.19-0.24 due to class imbalance
 
 ### Debug Class Distribution
 ```bash
@@ -212,8 +241,13 @@ uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEv
 - `src/brain_go_brrr/infra/ml_models/channel_mapper.py` - 23→20 mapping
 - `src/brain_go_brrr/infra/ml_models/eegpt_wrapper.py` - EEGPT interface
 
-### Training Script (experiments/)
+### Training Scripts (experiments/)
 - `experiments/eegpt_linear_probe/train_tuev_events.py` - Main trainer
+- `experiments/eegpt_linear_probe/scripts/launch_tuev_safe.sh` - Safe launch script
+
+### Utility Scripts
+- `scripts/data/verify_tuev_dataset.py` - Verify dataset integrity
+- `scripts/testing/debug_tuev_training.py` - Debug training issues
 
 ### Cache Location
 - `data/datasets/tuev/cache/tuev_event_segments/` - Preprocessed segments
