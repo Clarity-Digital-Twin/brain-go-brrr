@@ -183,6 +183,12 @@ def create_optimizer_with_layer_decay(
     param_groups = [g for g in grouped.values() if g["params"]]
     if not param_groups:
         return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    
+    # Print layer-wise LR decay info for verification
+    print("\nLayer-wise learning rate decay applied:")
+    for group in param_groups:
+        print(f"  {group['name']}: lr={group['lr']:.2e}, wd={group['weight_decay']:.3f}")
+    
     return torch.optim.AdamW(param_groups)
 
 
@@ -472,6 +478,27 @@ def main(args):
 
     model = TUEVModel(channel_mapper, classifier).to(device)
 
+    # Calculate gradient accumulation steps to match reference batch=400
+    effective_batch_size = 400  # Reference uses exactly 400
+    
+    # Calculate accumulation steps to get as close to 400 as possible
+    # Option 1: batch=32, accum=13 -> 416 (4% over)
+    # Option 2: batch=40, accum=10 -> 400 (exact)
+    # Option 3: batch=50, accum=8 -> 400 (exact)
+    
+    # Use exact 400 if possible, otherwise get close
+    if effective_batch_size % args.batch_size == 0:
+        accumulate_steps = effective_batch_size // args.batch_size
+    else:
+        # Round to nearest for closest match
+        accumulate_steps = round(effective_batch_size / args.batch_size)
+        accumulate_steps = max(1, accumulate_steps)  # At least 1
+    
+    actual_effective_batch = args.batch_size * accumulate_steps
+    print(f"Effective batch size: {actual_effective_batch} (batch={args.batch_size}, accum={accumulate_steps})")
+    if abs(actual_effective_batch - effective_batch_size) > 20:
+        print(f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%")
+
     # Create optimizer with layer-wise decay
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
@@ -503,36 +530,16 @@ def main(args):
     # Create loss function - use timm's implementation to match reference exactly
     criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
 
-    # Calculate gradient accumulation steps to match reference batch=400
-    effective_batch_size = 400  # Reference uses exactly 400
-    
-    # Calculate accumulation steps to get as close to 400 as possible
-    # Option 1: batch=32, accum=13 -> 416 (4% over)
-    # Option 2: batch=40, accum=10 -> 400 (exact)
-    # Option 3: batch=50, accum=8 -> 400 (exact)
-    
-    # Use exact 400 if possible, otherwise get close
-    if effective_batch_size % args.batch_size == 0:
-        accumulate_steps = effective_batch_size // args.batch_size
-    else:
-        # Round to nearest for closest match
-        accumulate_steps = round(effective_batch_size / args.batch_size)
-        accumulate_steps = max(1, accumulate_steps)  # At least 1
-    
-    actual_effective_batch = args.batch_size * accumulate_steps
-    print(f"Effective batch size: {actual_effective_batch} (batch={args.batch_size}, accum={accumulate_steps})")
-    if abs(actual_effective_batch - effective_batch_size) > 20:
-        print(f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%")
-
     # Training loop
     best_bac = 0.0
 
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
 
-        # Train
+        # Train with per-iteration scheduling
         train_metrics = train_epoch(
-            model, train_loader, criterion, optimizer, device, accumulate_steps
+            model, train_loader, criterion, optimizer, device, accumulate_steps,
+            lr_schedule=lr_schedule, wd_schedule=wd_schedule, epoch=epoch
         )
         print(
             f"Train - Loss: {train_metrics['loss']:.4f}, BAC: {train_metrics['balanced_accuracy']:.4f}"
@@ -547,8 +554,7 @@ def main(args):
             f"       F1: {eval_metrics['weighted_f1']:.4f}, Kappa: {eval_metrics['cohen_kappa']:.4f}"
         )
 
-        # Update scheduler
-        scheduler.step()
+        # No scheduler.step() needed - using per-iteration scheduling
 
         # Save best model
         if eval_metrics['balanced_accuracy'] > best_bac:
