@@ -233,85 +233,43 @@ class TUEVChannelMapper(nn.Module):
         return x  # (batch, 20, 1000)
 ```
 
-### Phase 4: Training Script (THIN wrapper in experiments/)
+### Phase 4: Training (THIN wrappers in experiments/)
 
-**Location**: `experiments/eegpt_linear_probe/train_tuev_events.py`
+Two supported modes:
 
-```python
-#!/usr/bin/env python3
-"""
-TUEV event segment training for paper parity.
-Target: 62.32% BAC per EEGPT paper.
-"""
+- Option A — Strict Parity (target for replication): 5 s @ 200 Hz, 23→20 mapper, classifier head on 20×1000.
+- Option B — EEGPT‑Feature (fallback): center‑crop to 4.0 s and resample to 256 Hz → 20×1024, EEGPT features + probe.
 
-import torch
-import torch.nn as nn
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+Key note: EEGPTWrapper expects 4 s @ 256 Hz windows (20×1024). Use Option B only if we accept a non‑paper‑exact path while building Option A.
 
-# Import from src/ - NO DUPLICATION!
-from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
-from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
-from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
-from brain_go_brrr.infra.ml_models.linear_probe import TwoLayerProbe
+Option A — Strict Parity (paper‑exact)
 
-def main():
-    # Load datasets using our new event dataset
-    train_dataset = TUEVEventDataset(root_dir=Path(DATA_ROOT), split='train')
-    eval_dataset = TUEVEventDataset(root_dir=Path(DATA_ROOT), split='eval')
-    
-    # Create dataloaders (NO class weighting needed!)
-    train_loader = DataLoader(train_dataset, batch_size=100, shuffle=True)
-    eval_loader = DataLoader(eval_dataset, batch_size=100, shuffle=False)
-    
-    # Build model using our existing components
-    eegpt = EEGPTWrapper(checkpoint_path=EEGPT_CHECKPOINT)
-    channel_mapper = TUEVChannelMapper(dropout=0.8)
-    probe = TwoLayerProbe(input_dim=2048, hidden_dim=256, num_classes=6)
-    
-    # Loss - unweighted with smoothing per paper
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    
-    # Optimizer with layer decay (critical!)
-    optimizer = AdamW([
-        {'params': channel_mapper.parameters(), 'lr': 5e-4},
-        {'params': probe.parameters(), 'lr': 5e-4, 'weight_decay': 0.05}
-    ])
-    
-    # Scheduler with warmup (critical!)
-    scheduler = OneCycleLR(
-        optimizer,
-        max_lr=5e-4,
-        epochs=50,
-        steps_per_epoch=len(train_loader),
-        pct_start=0.1,  # 10% warmup = 5 epochs
-        anneal_strategy='linear'
-    )
-    
-    # Training loop (standard PyTorch)
-    for epoch in range(50):
-        # Train
-        for x, y in train_loader:
-            # x: (batch, 23, 1000)
-            x = channel_mapper(x)  # → (batch, 20, 1000)
-            features = eegpt.extract_features(x)  # → (batch, 2048)
-            logits = probe(features)  # → (batch, 6)
-            
-            loss = criterion(logits, y)
-            loss.backward()
-            optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
-            
-        # Eval (compute BAC, F1, Kappa)
-        # ... standard evaluation code
+```
+experiments/eegpt_linear_probe/train_tuev_events_parity.py
+  - Load TUEVEventDataset (23×1000)
+  - Apply TUEVChannelMapper (23→20)
+  - Feed 20×1000 into TUEVClassifierHead (thin head in src)
+  - Loss: CrossEntropy(label_smoothing=0.1), unweighted
+  - Scheduler: warmup_epochs≈5, layer_decay≈0.9, lr=5e-4, wd=0.05, bs≈64–100
+```
+
+Option B — EEGPT‑Feature (fallback)
+
+```
+experiments/eegpt_linear_probe/train_tuev_events_probe.py
+  - Load TUEVEventDataset (23×1000)
+  - Apply TUEVChannelMapper (23→20)
+  - Center‑crop 4.0 s (−2.0..+2.0) and resample to 256 Hz → 20×1024
+  - EEGPTWrapper.extract_features() → (B, 4, 512) or flattened
+  - TwoLayerProbe → logits (B, 6)
+  - Loss: CrossEntropy(label_smoothing=0.1), unweighted; OneCycleLR with warmup
 ```
 
 ## Key Integration Points with Our Codebase
 
 ### What We REUSE:
 1. **MNE preprocessing** - Just different parameters (200Hz, 0.1-75Hz filter)
-2. **EEGPTWrapper** - Unchanged, works perfectly
+2. **EEGPTWrapper** - Reused only in Option B (4s@256Hz path)
 3. **TUEVChannelMapper** - Already built for 23→20 mapping
 4. **TwoLayerProbe** - Our existing probe architecture
 5. **Cache infrastructure** - Same .pt format with metadata
@@ -319,7 +277,7 @@ def main():
 ### What's NEW:
 1. **TUEVEventExtractor** - Extracts 5s segments around events
 2. **TUEVEventDataset** - Loads event segments (not sliding windows)
-3. **train_tuev_events.py** - Thin training script with proper hyperparams
+3. **train_tuev_events_parity.py / train_tuev_events_probe.py** - Thin training wrappers
 
 ### What We DON'T Need:
 - Bipolar montage conversion
@@ -351,6 +309,12 @@ assert y in range(6)  # Valid class label
 - Warmup working (loss should be stable first 5 epochs)
 - No class collapse (all 6 classes predicted)
 - BAC improving steadily (not stuck at 16.67%)
+
+### Test Suite Alignment (required additions)
+- Unit: event extractor (filters, notch, sr=200, shape 23×1000)
+- Unit: event dataset META/index and label ranges
+- Integration: parity path — dataset → mapper → head forward pass
+- Integration: probe path — dataset → mapper → crop+resample → EEGPT → probe
 
 ## Timeline
 

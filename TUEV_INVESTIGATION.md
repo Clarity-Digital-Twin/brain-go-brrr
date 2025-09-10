@@ -243,10 +243,10 @@ We're **NOT** replicating EEGPT's training correctly. Key issues:
 
 ## Complete Data Pipeline Comparison
 
-### EEGPT's Actual Pipeline (from `make_TUEV.py`):
-1. **Montage**: BIPOLAR (differential between adjacent electrodes)
-2. **Segment Extraction**: 5-second windows around annotated events only
-3. **Storage**: Pre-processed pickle files with:
+### EEGPT's Actual Pipeline (from `make_TUEV.py` and `downstream_tueg`):
+1. **Channels**: TUH referential “-REF” channels reordered to a fixed 23‑ch list (bipolar conversion helper exists but is commented out)
+2. **Segment Extraction**: 5‑second windows around annotated events only (−2 s to +3 s)
+3. **Storage**: Pre‑processed pickle files with:
    - Shape: `[23_channels, 1000_samples]` (5 seconds at 200Hz)
    - Single label per file (1-6 for event types)
    - No continuous background - only event segments
