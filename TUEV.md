@@ -16,11 +16,17 @@
 
 ## Critical Issues & Status
 
-### 🔴 Issue #1: Class Imbalance (CURRENT BLOCKER)
+### 🔴 Issue #0: WRONG DATA SPLITS (CRITICAL BUG)
+- **Problem**: Our code IGNORES TUEV's official train/eval directories
+- **Impact**: Using 4 eval subjects instead of 80 (95% of eval missing!)
+- **Details**: We re-split all data with seed=42 instead of using provided splits
+- **Status**: MUST fix before any other changes - invalidates all previous results
+
+### 🔴 Issue #1: Class Imbalance (SECONDARY)
 - **Problem**: Class 0 (spsw) has 19/2695 samples (0.7%), Class 5 (bckg) has 1168/2695 (43%)
 - **Impact**: Model collapses to predicting majority classes, BAC stuck at ~0.19
-- **Attempted Fix**: WeightedRandomSampler added but insufficient
-- **Status**: Need more aggressive balancing or different approach
+- **Attempted Fix**: WeightedRandomSampler added but likely harmful (reference doesn't balance)
+- **Status**: Remove sampler after fixing splits
 
 ### ✅ Issue #2: Channel Mismatch (FIXED)
 - **Problem**: EEGPT configured for wrong channel count

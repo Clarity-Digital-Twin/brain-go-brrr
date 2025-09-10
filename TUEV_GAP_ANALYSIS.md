@@ -6,12 +6,16 @@
 
 ## Pre‑Flight Critical Issues (Fix FIRST)
 
-### 0. Data Split Mismatch ⚠️ CRITICAL
+### 0. Data Split Mismatch ⚠️ CRITICAL BUG FOUND
 | Aspect        | Reference                      | Ours                                   | Impact                         |
 |---------------|--------------------------------|----------------------------------------|--------------------------------|
-| Split method  | Subject‑based                  | Pre‑split dirs or fallback split       | Different subjects in eval     |
-| Random seed   | 4523                           | 42 (fallback) or undefined             | Non‑reproducible splits        |
-| Leakage check | No subject overlap train/eval  | Unknown                                 | Invalid comparison if leaked   |
+| Split source  | Uses TUEV's pre-split dirs     | Ignores pre-split, re-splits all data | COMPLETELY WRONG SPLITS        |
+| Split method  | train/ and eval/ directories   | 80/20 random split with seed=42       | Different subjects in eval     |
+| Eval size     | ~50 subjects (proper eval set) | 4 subjects (1.9% - WRONG!)            | Eval unrepresentative          |
+| Random seed   | N/A (uses provided splits)     | 42 (creates own splits)               | Non‑reproducible comparison    |
+| Leakage check | No overlap (separate dirs)     | No overlap but WRONG eval set         | Invalid comparison to paper    |
+
+**BUG**: Our code ignores TUEV's official train/eval directories and creates its own split!
 
 Action:
 - Verify our splits are subject‑based and reproducible. No subject must appear in both splits.
