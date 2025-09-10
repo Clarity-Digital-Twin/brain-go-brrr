@@ -257,12 +257,19 @@ nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
 ### Expected Progress (Acceptance Gates)
 By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.
 
-**Current Issue**: Stuck at BAC ~0.19-0.24 due to class imbalance
+**Current Observation (latest run)**: Eval BAC ≈ 0.24 at ~epoch 20; strong bckg/gped, weak spsw/pled/eyem/artf. This suggests under-learning of rare classes despite parity settings.
 
 ### Guardrails
 - **No PyTorch Lightning** (CI guard in place)
 - **torch.load safety**: Cache files loaded with `weights_only=True`; EEGPT checkpoint loaded via safe loader with explicit `# nosec:weights_only` justification
 - **chan_ids shape**: Do not batch `chan_ids`. EEGPT expects a 1D tensor of length 20; input to EEGPT must be shaped `(B, 20, 1000)` after the mapper. Ensure the mapper squeezes the spatial dimension so it outputs `(B, 20, 1000)` before EEGPT.
+
+### If BAC Stalls (<0.30 by epoch 10–12)
+- Confirm logs include: natural sampling, normalization disabled, DropPath enabled, effective batch, parity mode.
+- Exact effective batch 400: try `--batch_size 40` (accum=10) for remaining epochs or in a short follow-up run.
+- Diagnostic scale A/B (debug-only): keep μV scaling, then toggle wrapper normalization on for 5 epochs to test sensitivity to scale; pick the better setting for the next full run.
+- Input sanity log: print min/median/max of `x*1e6` just before mapper on a batch to verify μV magnitudes.
+- Optional diagnostic: Consider `patch_size=50, patch_stride=50` at 200 Hz (restores ~0.25 s per patch). This deviates from the checkpoint kernel (1×64), so treat strictly as a diagnostic ablation, not the final parity run.
 
 ### Debug Class Distribution
 ```bash

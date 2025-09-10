@@ -4,6 +4,32 @@
 **Purpose**: Identify concrete differences between our implementation and the EEGPT reference  
 **Impact**: Our BAC=0.19–0.24 vs Reference BAC≈0.62
 
+## Current Run Snapshot (post‑fix)
+
+- Epoch ~20 metrics (eval):
+  - Balanced accuracy ≈ 0.242
+  - Weighted F1 ≈ 0.545; Kappa ≈ 0.30
+  - Pattern: Strong bckg recall (~0.95), partial gped (~0.51), near‑zero for spsw/pled/eyem/artf.
+- Interpretation: Model still under‑learning rare classes despite correct splits/sampling/scale.
+
+Hypothesis set (ordered by likelihood):
+- H1: Input scale mismatch subtlety — raw μV without z‑score may still be off relative to the checkpoint’s pretraining statistics; early layers may need more adaptation.
+- H2: Window alignment difference — our event centering (midpoint) vs. reference’s start/end‑bounded slicing (plus per‑recording offset) might dilute event salience for brief classes (spsw/pled).
+- H3: Patch granularity — using patch_size=64 at 200 Hz (≈0.32 s) may differ from the reference’s effective temporal granularity; a 50‑sample patch (≈0.25 s) could better match pretraining semantics.
+- H4: Optimization nuance — effective batch not exactly 400 and layer‑wise LR decay might slow adaptation of early layers needed for minority classes.
+
+Immediate validations (low cost):
+- V1: Confirm logs contain: natural sampling message; normalization disabled; DropPath enabled message; effective batch print; parity mode on.
+- V2: Log input stats right before the mapper on a batch: min/median/max of `x*1e6`; expect ~[−100, +100] μV typical ranges.
+
+Fast follow‑ups (1–2 short runs):
+- F1: Exact 400 effective batch (e.g., `--batch_size 40`, accum=10) and reduce LR decay to 0.75→0.65 baseline check. Monitor epochs 1–5.
+- F2: Diagnostic scale A/B (debug‑only): keep μV scaling, toggle wrapper normalization on vs. off for 5 epochs; choose setting that lifts minority recalls early. Final setting should still match reference if possible.
+- F3: Patch granularity ablation: set `patch_size=50, patch_stride=50` (with `time_steps=1000`) to restore ≈0.25 s receptive field at 200 Hz. Validate checkpoint compatibility (weights load for conv kernel 1×64 vs 1×50 may require re‑init of `patch_embed` which deviates from reference weights; consider as diagnostic, not final).
+
+If no improvement by epoch 10 in any fast follow‑up:
+- Revisit event extraction alignment: implement the reference’s start/end‑bounded slicing with enforced 1000 samples and any per‑recording offset logic; compare a 200‑sample visual overlay for a handful of spsw/pled cases.
+
 ## Pre‑Flight Critical Issues (Fix FIRST)
 
 ### 0. Data Split Mismatch ✅ FIXED
@@ -143,6 +169,7 @@ Test mean pooling vs flatten(4×512) → head; choose the better head behavior.
 2) Align normalization → +0.10–0.15 BAC (choose μV or corpus stats based on eval).
 3) Match batch/accum → +0.02–0.05 BAC.
 4) DropPath/Pooling → Stabilization and incremental gains.
+5) Window alignment and/or patch granularity → May unlock minority‑class recall if above steps stall.
 
 ## Smoking Guns 🔫
 1) Split mismatch: If subjects overlap or splits differ from reference, comparisons are invalid.
