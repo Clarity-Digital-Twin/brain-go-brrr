@@ -99,15 +99,15 @@ EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats
 
 ### Model Architecture
 ```python
-# 23→20 channel mapping + EEGPT
+# 23→20 channel mapping + EEGPT (paper parity)
 # Location: experiments/eegpt_linear_probe/train_tuev_events.py
 
-Input (23, 1000) → ChannelMapper → (20, 1000) → EEGPT → (4, 512) → Classifier → (6,)
+Input (23, 1000) → ChannelMapper → (20, 1000) → EEGPT → (N_temporal×4×512) → Dropout(0.8) → Linear(30720→6)
 
-# Key configurations:
+# Key configurations (enforced):
 - 20 TUEV channels for EEGPT
-- Parity mode: time_steps=1000, patch_stride=64
-- Fallback mode: pad to 1024
+- Parity mode only: time_steps=1000, patch_stride=64 (no pad-to-1024 fallback)
+- Classifier consumes ALL temporal summary tokens (15 patches × 4 tokens × 512 = 30,720)
 ```
 
 ### Training Configuration
@@ -136,9 +136,14 @@ The training script:
 - Data splits: Official `edf/train` and `edf/eval` only; stale cache removed and rebuilt
 - Sampling: No `WeightedRandomSampler`; `shuffle=True` with natural class distribution
 - Input scale: Wrapper normalization disabled; inputs scaled to μV before the mapper
-- Pooling: Mean pooling to 512-dim head (matches reference)
+- Temporal tokens: Flatten ALL temporal summary tokens (30720) with Dropout(0.8) → Linear(6) (matches reference)
 - Batch: Effective batch ≈ 400 via gradient accumulation (logged)
 - Regularization: DropPath implemented at rate 0.2 with per-layer decay (logged by model)
+
+### Event Extraction Specifics (Parity Alignment)
+- Bandpass 0.1–75 Hz; notch at 50 Hz; resample to 200 Hz.
+- Referential channels only; reorder to the 23-channel standard order.
+- Segmenting: use annotation start/end; slice [start−2s : end+2s] on a threefold-extended signal buffer to avoid boundary drops; segments are exactly 5 s (1000 samples).
 
 ## Reference Implementation
 
