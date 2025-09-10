@@ -110,19 +110,19 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
 
     def _get_split_files_with_subject_split(self) -> list[Path]:
         """Get files for this split using 80/20 subject-level split.
-        
+
         Matches EEGPT reference: np.random.choice with seed for reproducibility.
         """
         import numpy as np
-        
+
         # Get all EDF files from the dataset
         all_edf_dir = self.root_dir / 'edf'
         if not all_edf_dir.exists():
             print(f"Warning: EDF directory {all_edf_dir} does not exist")
             return []
-            
+
         all_edf_files = list(all_edf_dir.rglob('*.edf'))
-        
+
         # Extract unique subjects
         subjects = {}
         for edf_path in all_edf_files:
@@ -131,28 +131,30 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
             if subject_id not in subjects:
                 subjects[subject_id] = []
             subjects[subject_id].append(edf_path)
-        
+
         # Perform 80/20 split with fixed seed for reproducibility
         np.random.seed(42)  # Fixed seed for reproducibility
         subject_list = list(subjects.keys())
         np.random.shuffle(subject_list)
-        
+
         # 80% train, 20% eval (no test split in TUEV paper)
         n_train = int(len(subject_list) * 0.8)
-        
+
         if self.split == 'train':
             selected_subjects = subject_list[:n_train]
         elif self.split in ['eval', 'val', 'test']:
             selected_subjects = subject_list[n_train:]
         else:
             raise ValueError(f"Unknown split: {self.split}")
-        
+
         # Collect all files for selected subjects
         selected_files = []
         for subject_id in selected_subjects:
             selected_files.extend(subjects[subject_id])
-        
-        print(f"Selected {len(selected_subjects)} subjects with {len(selected_files)} files for {self.split}")
+
+        print(
+            f"Selected {len(selected_subjects)} subjects with {len(selected_files)} files for {self.split}"
+        )
         return selected_files
 
     def _build_cache(self) -> None:
@@ -163,7 +165,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Check if we have pre-split directories or need to do subject splitting
         split_dir = self.root_dir / 'edf' / self.split
-        
+
         # If split directories exist, use them (backward compatibility)
         if split_dir.exists():
             edf_files = list(split_dir.rglob('*.edf'))
@@ -172,7 +174,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
             # Otherwise, do 80/20 subject split from full dataset
             print(f"Split directory {split_dir} not found, performing 80/20 subject split")
             edf_files = self._get_split_files_with_subject_split()
-            
+
         if not edf_files:
             # No files found, create empty cache
             cache_dir = self.cache_dir / self.split

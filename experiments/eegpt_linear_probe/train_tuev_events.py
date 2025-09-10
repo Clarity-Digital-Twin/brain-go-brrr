@@ -35,10 +35,8 @@ class TUEVClassifierHead(nn.Module):
 
     def __init__(
         self,
-        input_channels: int = 20,
-        input_samples: int = 1000,
+        eegpt_checkpoint: str,  # REQUIRED - no default
         num_classes: int = 6,
-        eegpt_checkpoint: str,  # REQUIRED
         use_parity: bool = False,  # TRUE paper parity (1000 samples native)
     ):
         super().__init__()
@@ -418,24 +416,22 @@ def main(args):
 
     # Create model
     print("Creating model...")
-    
+
     # EEGPT checkpoint is REQUIRED
     if not args.eegpt_checkpoint:
         raise ValueError("--eegpt_checkpoint is REQUIRED for paper parity!")
-    
+
     print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
     if args.use_parity:
         print("TRUE PARITY MODE: Using native 1000 samples (no padding)")
     else:
         print("FALLBACK MODE: Padding to 1024 samples")
-    
+
     channel_mapper = TUEVChannelMapper(dropout=0.8)
-    
+
     classifier = TUEVClassifierHead(
-        input_channels=20,
-        input_samples=1000,
-        num_classes=6,
         eegpt_checkpoint=args.eegpt_checkpoint,
+        num_classes=6,
         use_parity=args.use_parity,
     )
 
@@ -561,8 +557,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '--eegpt_checkpoint',
         type=str,
-        default=None,
-        help='Path to EEGPT checkpoint (e.g., data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt)',
+        required=True,
+        help='Path to EEGPT checkpoint (REQUIRED for paper parity)',
     )
     parser.add_argument(
         '--use_parity',
