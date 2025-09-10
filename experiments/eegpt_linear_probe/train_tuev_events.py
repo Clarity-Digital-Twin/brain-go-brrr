@@ -477,10 +477,14 @@ def main(args):
     # Create loss function
     criterion = LabelSmoothingCrossEntropy(smoothing=args.label_smoothing)
 
-    # Calculate gradient accumulation steps
-    effective_batch_size = 400  # Paper uses this
+    # Calculate gradient accumulation steps to match reference batch=400
+    effective_batch_size = 400  # Reference uses exactly 400
+    # Adjust batch size if needed to get exact 400
+    if args.batch_size * 12 == 384:  # Our default 32*12=384
+        print("Adjusting batch size from 32 to 34 for exact 400 effective (34*12=408≈400)")
+        args.batch_size = 34  # 34*12 = 408 ≈ 400
     accumulate_steps = max(1, effective_batch_size // args.batch_size)
-    print(f"Gradient accumulation steps: {accumulate_steps}")
+    print(f"Effective batch size: {args.batch_size * accumulate_steps} (batch={args.batch_size}, accum={accumulate_steps})")
 
     # Training loop
     best_bac = 0.0
