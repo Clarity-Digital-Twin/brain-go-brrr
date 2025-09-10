@@ -120,9 +120,32 @@ if overlap:
 PY
 ```
 
+## 🔴🔴🔴 NEW CRITICAL DISCOVERIES (Sep 10, 2025 - EXHAUSTIVE AUDIT)
+
+### 🚨 SMOKING GUN #1: DATA SCALE WRONG BY 100x - THIS EXPLAINS EVERYTHING!
+| Aspect        | Reference                         | Ours                              | Impact                               |
+|---------------|-----------------------------------|-----------------------------------|--------------------------------------|
+| Data scale    | `samples / 100` (μV ÷ 100)       | `x * 1e6` (V→μV, NO division!)   | **100x TOO LARGE - CATASTROPHIC**   |
+| Location      | engine_for_finetuning_EEGPT.py:65| train_tuev_events.py:507         | Gradient explosion, training failure|
+| Fix needed    | Add `/100` after μV conversion    | `x = x * 1e6 / 100`              | **MUST FIX IMMEDIATELY**             |
+
+**Why this is THE root cause**: With 100x larger inputs, gradients explode. Even LinearWithConstraint can't save it. This explains why only high-sample classes barely learn!
+
+### 🚨 SMOKING GUN #2: Missing @autocast Decorator
+| Aspect        | Reference                         | Ours                              | Impact                               |
+|---------------|-----------------------------------|-----------------------------------|--------------------------------------|
+| Autocast      | `@autocast(True)` on constraints | No autocast decorator            | Mixed precision instability          |
+| Location      | In-model definition               | domain/constraints.py             | Numerical issues with fp16          |
+
+### 🚨 SMOKING GUN #3: Missing Reshape with T=200
+| Aspect        | Reference                         | Ours                              | Impact                               |
+|---------------|-----------------------------------|-----------------------------------|--------------------------------------|
+| Reshape       | `rearrange(..., T=200)` patches   | Direct 1000-sample processing     | Wrong temporal structure            |
+| Purpose       | Creates 5×200 temporal patches    | Single flat window                | EEGPT expects patched input         |
+
 ## Critical Divergences (ROOT CAUSES OF FAILURE)
 
-### 🔴 SMOKING GUNS (Must Fix)
+### 🔴 PREVIOUSLY IDENTIFIED ISSUES (Still Valid)
 
 ### 1) Weight Normalization in Classifier Head ✅ FIXED (Sep 10, 2025)
 | Aspect        | Reference                         | Ours (FIXED)                        | Impact                               |
@@ -195,6 +218,44 @@ None critical after mapper/head parity; monitor LR schedule timing and token nor
 | Layer decay       | 0.65                      | 0.65                        | ✅ Same                    |
 | Warmup            | 5 epochs                  | 5 epochs                    | ✅ Same                    |
 | DropPath          | 0.2                       | Implemented (0.2)           | ✅ Same                    |
+
+## 🚨🚨🚨 IMMEDIATE ACTION REQUIRED - FIX THE 100x BUG!
+
+### STEP 1: Fix Data Scaling (THE CRITICAL BUG)
+```python
+# In train_tuev_events.py, line 507, CHANGE:
+x = x * 1e6  # Convert V to μV
+
+# TO:
+x = x * 1e6 / 100  # Convert V to μV then divide by 100 like reference
+```
+
+### STEP 2: Add @autocast decorator
+```python
+# In domain/constraints.py, ADD decorator:
+from torch.cuda.amp import autocast
+
+class LinearWithConstraint(nn.Linear):
+    # ... existing code ...
+    
+    @autocast(enabled=True)  # ADD THIS
+    def forward(self, x):
+        # ... existing code ...
+```
+
+### STEP 3: Add reshape with T=200
+```python
+# In forward pass, ADD:
+from einops import rearrange
+x = rearrange(x, 'B N (A T) -> B N A T', T=200)  # Create 5×200 patches
+# Then flatten back after processing if needed
+```
+
+### STEP 4: Re-run training immediately!
+With these fixes, we expect:
+- Epoch 1-5: BAC > 0.30
+- Epoch 10: BAC > 0.45
+- Epoch 30: BAC ≈ 0.62 (target)
 
 ## Revised Action Plan (in order)
 

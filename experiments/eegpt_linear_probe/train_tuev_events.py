@@ -503,8 +503,8 @@ def main(args):
 
         def forward(self, x):
             # x: (batch, 23, 1000) in Volts from dataset
-            # Scale to microvolts to match reference (they use raw μV, no normalization)
-            x = x * 1e6  # Convert V to μV
+            # CRITICAL: Reference divides μV by 100! (engine_for_finetuning_EEGPT.py:65)
+            x = x * 1e6 / 100  # Convert V to μV then divide by 100 like reference
             x = x.unsqueeze(2)  # Add spatial dim: (batch, 23, 1, 1000)
             x = self.mapper(x)  # Map to 20 channels: (batch, 20, 1, 1000) - keeps 4D!
             x = x.squeeze(2)  # Remove spatial dim: (batch, 20, 1000)
