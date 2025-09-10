@@ -168,20 +168,50 @@ criterion = CrossEntropyLoss(label_smoothing=0.1)
 - If the paper says 23×1000, use exactly that
 - Don't assume you can change dimensions without consequences
 
-## The Fix: Two Options
+## The Fix: Paper Parity ONLY (NO FALLBACK NEEDED)
 
-### Option 1: Match EEGPT Exactly (Recommended)
-1. Extract 5 s event-centered segments at 200 Hz (−2 s to +3 s around events).
-2. Use TUH referential “-REF” channels in reference order; do not convert to bipolar (maker’s bipolar conversion is commented out).
-3. Keep unweighted CrossEntropy with `label_smoothing=0.1`; splits at subject-level; no per-class reweighting.
-4. Store segments as safe `.pt` tensors with a META/index; parity is about shape/content, not the exact pickle format.
-5. Train with the reference hyperparameters as set in their script: `lr=5e-4`, `weight_decay=0.05`, `warmup_epochs=5`, `epochs=30`, `layer_decay=0.65`, effective `batch_size≈400` (distributed). Model input is `20×1000`, reached via a 23→20 learned channel conv.
+### DEFINITIVE ANSWERS TO ALL QUESTIONS:
 
-### Option 2: Redefine the Problem
-1. Acknowledge we're doing temporal event detection (harder)
-2. Use appropriate metrics (not classification metrics)
-3. Expect much lower performance
-4. Consider this research, not replication
+#### Q1: .rec/.lab Parser - EXISTS AND WORKS ✅
+**Answer**: We ALREADY have a working `.lab` parser in `tuev_dataset.py:_load_annotations()`
+```python
+# Lines 316-323 in tuev_dataset.py - WORKS PERFECTLY
+start_us = float(parts[0])  # microseconds from .lab
+end_us = float(parts[1])
+label = parts[2].lower()
+start_sec = start_us / 1e6  # Convert to seconds
+end_sec = end_us / 1e6
+```
+**Action**: Modify to extract 5s segments instead of sliding windows. Parser itself is fine.
+
+#### Q2: Subject-Level Splits - 80/20 RANDOM ✅
+**Answer**: Reference uses simple 80/20 random split at subject level:
+```python
+# Lines 224-226 in make_TUEV.py
+val_sub = np.random.choice(train_sub, size=int(len(train_sub) * 0.2), replace=False)
+train_sub = list(set(train_sub) - set(val_sub))
+```
+**Action**: Extract subject ID from filename, do 80/20 split with fixed seed.
+
+#### Q3: Single GPU Training - ADJUST BATCH SIZE ✅
+**Answer**: Reference uses 2 GPUs with batch_size=400 total (200 per GPU):
+```bash
+# Line 11: GPUS_PER_NODE=${GPUS_PER_NODE:-2}
+# Line 24: --batch_size 400
+```
+**Action**: For single GPU, use batch_size=64-100 to fit memory. Accumulate gradients if needed.
+
+#### Q4: Fallback Path - NOT NEEDED ❌
+**Answer**: NO FALLBACK. Focus ONLY on paper parity. Temporal detection is a different problem.
+**Rationale**: We want BAC=62%, not research into harder problems.
+
+### THE ONLY PATH: Match EEGPT Exactly
+1. Extract 5s event-centered segments at 200Hz (−2s to +3s around events)
+2. Use TUH referential "-REF" channels; NO bipolar conversion
+3. Unweighted CrossEntropy with label_smoothing=0.1
+4. 80/20 subject split with fixed seed
+5. Single GPU: batch_size=64-100 (vs 400 distributed)
+6. All other hyperparams exact: lr=5e-4, weight_decay=0.05, warmup=5, epochs=30, layer_decay=0.65
 
 ## Conclusion
 
