@@ -18,9 +18,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
+from timm.loss import LabelSmoothingCrossEntropy as TimmLabelSmoothingCE
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from brain_go_brrr.domain.constraints import LinearWithConstraint
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.infra.ml_models.eegpt_architecture import CHANNEL_DICT
@@ -91,9 +93,11 @@ class TUEVClassifierHead(nn.Module):
             in_features = temporal_patches * embed_num * embed_dim  # 15*4*512 = 30720
             print(f"Using TEMPORAL TOKEN FLATTENING: {temporal_patches}×{embed_num}×{embed_dim} = {in_features}")
 
+            # CRITICAL: Use LinearWithConstraint to match reference implementation
+            # This prevents weight explosion with 30,720 features
             self.classifier = nn.Sequential(
                 nn.Dropout(0.8),
-                nn.Linear(in_features, num_classes),
+                LinearWithConstraint(in_features, num_classes, max_norm=1.0),
             )
         else:
             raise ValueError("EEGPT checkpoint is required for paper parity!")
@@ -118,34 +122,8 @@ class TUEVClassifierHead(nn.Module):
         return logits
 
 
-class LabelSmoothingCrossEntropy(nn.Module):
-    """Cross entropy loss with label smoothing."""
-
-    def __init__(self, smoothing: float = 0.1):
-        super().__init__()
-        self.smoothing = smoothing
-
-    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Compute label smoothing cross entropy.
-
-        Args:
-            pred: Predictions of shape (batch, num_classes)
-            target: Target labels of shape (batch,)
-
-        Returns:
-            Scalar loss
-        """
-        n_classes = pred.size(-1)
-        log_probs = F.log_softmax(pred, dim=-1)
-
-        # Create smoothed target distribution
-        smooth_target = torch.zeros_like(log_probs)
-        smooth_target.fill_(self.smoothing / (n_classes - 1))
-        smooth_target.scatter_(1, target.unsqueeze(1), 1.0 - self.smoothing)
-
-        # Compute loss
-        loss = -(smooth_target * log_probs).sum(dim=-1).mean()
-        return loss
+# Using timm's LabelSmoothingCrossEntropy for exact reference match
+# Our custom implementation above is kept for reference but not used
 
 
 def create_optimizer_with_layer_decay(
@@ -208,35 +186,38 @@ def create_optimizer_with_layer_decay(
     return torch.optim.AdamW(param_groups)
 
 
-def warmup_scheduler(
-    optimizer: torch.optim.Optimizer, warmup_epochs: int, total_epochs: int
-) -> torch.optim.lr_scheduler.LambdaLR:
-    """Create warmup scheduler with cosine annealing.
-
+def cosine_scheduler(
+    base_value: float, final_value: float, epochs: int, niter_per_ep: int, 
+    warmup_epochs: int = 0, start_warmup_value: float = 0
+) -> np.ndarray:
+    """Create per-iteration cosine scheduler matching reference implementation.
+    
     Args:
-        optimizer: Optimizer to schedule
+        base_value: Initial learning rate
+        final_value: Final learning rate
+        epochs: Total number of epochs
+        niter_per_ep: Number of iterations per epoch
         warmup_epochs: Number of warmup epochs
-        total_epochs: Total number of epochs
-
+        start_warmup_value: Starting value for warmup
+    
     Returns:
-        LambdaLR scheduler with warmup + cosine decay
+        Array of learning rates for each iteration
     """
-
-    def lr_lambda(epoch: int) -> float:
-        """Calculate learning rate multiplier.
-
-        - Linear warmup from 0 to 1 over warmup_epochs
-        - Cosine annealing from 1 to 0 over remaining epochs
-        """
-        if epoch < warmup_epochs:
-            # Linear warmup
-            return (epoch + 1) / warmup_epochs
-        else:
-            # Cosine annealing after warmup
-            progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
-            return 0.5 * (1.0 + np.cos(np.pi * progress))
-
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
+    warmup_schedule = np.array([])
+    warmup_iters = warmup_epochs * niter_per_ep
+    
+    if warmup_epochs > 0:
+        warmup_schedule = np.linspace(start_warmup_value, base_value, warmup_iters)
+    
+    iters = np.arange(epochs * niter_per_ep - warmup_iters)
+    schedule = np.array([
+        final_value + 0.5 * (base_value - final_value) * (1 + np.cos(np.pi * i / len(iters))) 
+        for i in iters
+    ])
+    
+    schedule = np.concatenate((warmup_schedule, schedule))
+    assert len(schedule) == epochs * niter_per_ep
+    return schedule
 
 
 def evaluate(
@@ -311,8 +292,11 @@ def train_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     accumulate_steps: int = 1,
+    lr_schedule: np.ndarray = None,
+    wd_schedule: np.ndarray = None,
+    epoch: int = 0,
 ) -> dict[str, float]:
-    """Train for one epoch.
+    """Train for one epoch with per-iteration scheduling.
 
     Args:
         model: Model to train
@@ -321,6 +305,9 @@ def train_epoch(
         optimizer: Optimizer
         device: Device to run on
         accumulate_steps: Gradient accumulation steps
+        lr_schedule: Per-iteration learning rates
+        wd_schedule: Per-iteration weight decay values
+        epoch: Current epoch number
 
     Returns:
         Dictionary of training metrics
@@ -330,11 +317,25 @@ def train_epoch(
     total_loss = 0.0
     all_preds = []
     all_labels = []
+    
+    # Calculate starting iteration for this epoch
+    num_steps = len(dataloader) // accumulate_steps
+    start_iter = epoch * num_steps
 
     optimizer.zero_grad()
 
     for i, (x, y) in enumerate(tqdm(dataloader, desc="Training")):
         x, y = x.to(device), y.to(device)
+        
+        # Update learning rate and weight decay per iteration (before optimizer step)
+        it = start_iter + i // accumulate_steps
+        if lr_schedule is not None and it < len(lr_schedule):
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = lr_schedule[it] * param_group.get("lr_scale", 1.0)
+        if wd_schedule is not None and it < len(wd_schedule):
+            for param_group in optimizer.param_groups:
+                if param_group.get("weight_decay", 0) > 0:  # Only update groups with weight decay
+                    param_group["weight_decay"] = wd_schedule[it]
 
         # Forward pass
         logits = model(x)
@@ -480,8 +481,8 @@ def main(args):
         optimizer, warmup_epochs=args.warmup_epochs, total_epochs=args.epochs
     )
 
-    # Create loss function
-    criterion = LabelSmoothingCrossEntropy(smoothing=args.label_smoothing)
+    # Create loss function - use timm's implementation to match reference exactly
+    criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
 
     # Calculate gradient accumulation steps to match reference batch=400
     effective_batch_size = 400  # Reference uses exactly 400
