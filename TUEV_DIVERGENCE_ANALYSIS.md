@@ -174,7 +174,7 @@ criterion = CrossEntropyLoss(label_smoothing=0.1)
 2. Use the TUH referential “-REF” channel set with the reference ordering; do not convert to bipolar (reference conversion is present but commented out).
 3. Keep unweighted CrossEntropy with label_smoothing=0.1; no explicit class balancing required when using event-only segments and subject-level splits.
 4. Store segments in a safe cache format (prefer `.pt` tensors with torch.save) alongside a META/index; exact pickles are not required for parity.
-5. Train with warmup and layer decay as in the reference (e.g., warmup_epochs≈5, layer_decay≈0.9, batch_size 64–100), targeting 20×1000 model input (with a 23→20 learned channel conv if needed).
+5. Train with warmup and layer decay as in the reference (warmup_epochs=5, layer_decay=0.65, lr=5e-4, wd=0.05, batch_size=400 distributed across 2 GPUs ≈200/GPU), targeting 20×1000 model input (with a 23→20 learned channel conv if needed).
 
 ### Option 2: Redefine the Problem
 1. Acknowledge we're doing temporal event detection (harder)
@@ -218,7 +218,7 @@ Paper‑Parity Implementation Plan (within our architecture):
   - `experiments/eegpt_linear_probe/train_tuev_segments.py` that:
     - Uses unweighted CrossEntropy with label_smoothing=0.1.
     - Adds warmup (≈5 epochs) and layer decay (≈0.9) as in reference.
-    - Uses batch_size 64–100; eval metrics: BAC (primary), weighted F1, Cohen’s kappa.
+    - Uses batch_size≈400 total (distributed; ~200/GPU with 2 GPUs); eval metrics: BAC (primary), weighted F1, Cohen’s kappa.
     - Targets model input 20×1000 via learned channel conv from 23 inputs.
 - Splits
   - Create subject‑level splits analogous to `processed_{train,eval,test}` in the reference (train subjects → split 80/20 into train/eval; test from eval folder).
