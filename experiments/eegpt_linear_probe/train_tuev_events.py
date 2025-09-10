@@ -23,23 +23,43 @@ from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
+from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 
 class TUEVClassifierHead(nn.Module):
-    """Simple classifier head for TUEV event classification."""
+    """EEGPT-based classifier head for TUEV event classification.
+    
+    TWO OPTIONS:
+    1. Use EEGPT features (recommended for paper parity)
+    2. Use simple MLP (faster but won't achieve 62% BAC)
+    """
 
-    def __init__(self, input_channels: int = 20, input_samples: int = 1000, num_classes: int = 6):
+    def __init__(self, input_channels: int = 20, input_samples: int = 1000, num_classes: int = 6,
+                 use_eegpt: bool = False, eegpt_checkpoint: str | None = None):
         super().__init__()
-
-        # Flatten and classify
-        input_dim = input_channels * input_samples  # 20 * 1000 = 20,000
-        hidden_dim = 512
-
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.bn1 = nn.BatchNorm1d(hidden_dim)
-        self.dropout1 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(hidden_dim, num_classes)
+        self.use_eegpt = use_eegpt
+        
+        if use_eegpt and eegpt_checkpoint:
+            # Option 1: Use EEGPT backbone (PAPER PARITY)
+            self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
+            # EEGPT outputs 4×512 features, we need to classify
+            self.classifier = nn.Sequential(
+                nn.Flatten(),  # (B, 4, 512) -> (B, 2048)
+                nn.Linear(2048, 512),
+                nn.ReLU(),
+                nn.Dropout(0.5),
+                nn.Linear(512, num_classes)
+            )
+        else:
+            # Option 2: Simple MLP (current implementation)
+            input_dim = input_channels * input_samples  # 20 * 1000 = 20,000
+            hidden_dim = 512
+            
+            self.flatten = nn.Flatten()
+            self.fc1 = nn.Linear(input_dim, hidden_dim)
+            self.bn1 = nn.BatchNorm1d(hidden_dim)
+            self.dropout1 = nn.Dropout(0.5)
+            self.fc2 = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -50,11 +70,28 @@ class TUEVClassifierHead(nn.Module):
         Returns:
             Logits of shape (batch, 6)
         """
-        x = self.flatten(x)
-        x = F.gelu(self.bn1(self.fc1(x)))
-        x = self.dropout1(x)
-        x = self.fc2(x)
-        return x
+        if self.use_eegpt:
+            # EEGPT expects (B, 20, 1024) but we have (B, 20, 1000)
+            # We need to either:
+            # 1. Pad to 1024 samples
+            # 2. Resample from 200Hz to 256Hz (5s -> 4s)
+            # For now, let's pad with zeros
+            if x.shape[-1] == 1000:
+                x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
+            
+            # Extract EEGPT features
+            features = self.eegpt.extract_features(x, summary=False)  # (B, 4, 512)
+            
+            # Classify
+            logits = self.classifier(features)
+            return logits
+        else:
+            # Simple MLP path
+            x = self.flatten(x)
+            x = F.gelu(self.bn1(self.fc1(x)))
+            x = self.dropout1(x)
+            x = self.fc2(x)
+            return x
 
 
 class LabelSmoothingCrossEntropy(nn.Module):
@@ -297,7 +334,21 @@ def main(args):
     # Create model
     print("Creating model...")
     channel_mapper = TUEVChannelMapper(dropout=0.8)
-    classifier = TUEVClassifierHead(input_channels=20, input_samples=1000, num_classes=6)
+    
+    # Use EEGPT if checkpoint provided
+    use_eegpt = args.eegpt_checkpoint is not None
+    if use_eegpt:
+        print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
+    else:
+        print("WARNING: Using simple MLP (won't achieve 62% BAC). Add --eegpt_checkpoint for paper parity!")
+    
+    classifier = TUEVClassifierHead(
+        input_channels=20, 
+        input_samples=1000, 
+        num_classes=6,
+        use_eegpt=use_eegpt,
+        eegpt_checkpoint=args.eegpt_checkpoint
+    )
 
     # Combine into single model
     class TUEVModel(nn.Module):
@@ -417,6 +468,14 @@ if __name__ == "__main__":
         '--label_smoothing', type=float, default=0.1, help='Label smoothing (default: 0.1)'
     )
 
+    # Model arguments
+    parser.add_argument(
+        '--eegpt_checkpoint', 
+        type=str, 
+        default=None,
+        help='Path to EEGPT checkpoint (e.g., data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt)'
+    )
+    
     # Other arguments
     parser.add_argument('--num_workers', type=int, default=4, help='Number of data workers')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
