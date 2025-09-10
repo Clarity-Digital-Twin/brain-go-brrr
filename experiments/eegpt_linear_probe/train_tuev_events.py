@@ -44,11 +44,21 @@ class TUEVClassifierHead(nn.Module):
 
         # ALWAYS use EEGPT (no MLP option)
         if eegpt_checkpoint:
-            # Use EEGPT backbone
-            model_kwargs = None
+            # CRITICAL: Configure EEGPT for TUEV's 20 channels
+            # This is the EXACT order from the EEGPT reference
+            use_channels_names = [
+                'FP1', 'FPZ', 'FP2',
+                'F7', 'F3', 'FZ', 'F4', 'F8',
+                'T7', 'C3', 'CZ', 'C4', 'T8',
+                'P7', 'P3', 'PZ', 'P4', 'P8',
+                'O1', 'O2'
+            ]  # 20 channels!
+            
+            # Configure model with 20 channels and correct time steps
+            model_kwargs = {"n_channels": use_channels_names}
             if use_parity:
                 # Configure EEGPT for native 1000 time steps with stride 64
-                model_kwargs = {"time_steps": 1000, "patch_stride": 64}
+                model_kwargs.update({"time_steps": 1000, "patch_stride": 64})
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
 
             # CRITICAL: Compute channel IDs for the 20 TUEV channels
