@@ -415,7 +415,7 @@ def main(args):
     with open(train_dataset.cache_dir / train_dataset.split / "index.json", "r") as f:
         index_data = json.load(f)
     train_labels = [seg["label"] for seg in index_data["segments"]]
-    class_counts = torch.bincount(torch.tensor(train_labels), minlength=6)
+    class_counts = torch.bincount(torch.tensor(train_labels, dtype=torch.long), minlength=6)
     print(f"Class distribution (natural): {class_counts.tolist()}")
     print("Using natural distribution - NO rebalancing")
     
