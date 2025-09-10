@@ -203,6 +203,7 @@ nvidia-smi
 
 # Clear GPU memory (if supported)
 nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
+```
 
 ### Expected Progress (Acceptance Gates)
 By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.

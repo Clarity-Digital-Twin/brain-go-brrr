@@ -50,6 +50,7 @@ def BuildEvents(signals, times, EventData):
     
     return features, labels
 ```
+Note: the reference code also applies an 'offset' when slicing per recording; omitted here for brevity. The window length is enforced to 1000 samples.
 
 **Key Points**:
 - Extract fixed 5-second segments (exactly 1000 samples) around annotated events
