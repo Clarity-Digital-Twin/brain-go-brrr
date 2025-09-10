@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
@@ -276,6 +276,23 @@ def evaluate(
         'weighted_f1': f1_score(all_labels, all_preds, average='weighted'),
         'cohen_kappa': cohen_kappa_score(all_labels, all_preds),
     }
+    
+    # Add per-class metrics
+    from sklearn.metrics import confusion_matrix, classification_report
+    cm = confusion_matrix(all_labels, all_preds, labels=[0,1,2,3,4,5])
+    print("\nConfusion Matrix:")
+    print(cm)
+    
+    # Print per-class report
+    class_names = ['spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg']
+    report = classification_report(
+        all_labels, all_preds,
+        labels=[0,1,2,3,4,5],
+        target_names=class_names,
+        zero_division=0
+    )
+    print("\nPer-class metrics:")
+    print(report)
 
     return metrics
 
@@ -376,11 +393,31 @@ def main(args):
     print(f"Train samples: {len(train_dataset)}")
     print(f"Eval samples: {len(eval_dataset)}")
 
+    # Create balanced sampler for training
+    print("Setting up balanced sampling for training...")
+    train_labels = []
+    for i in range(len(train_dataset)):
+        _, label = train_dataset[i]
+        train_labels.append(label)
+    
+    # Calculate class weights for balanced sampling
+    class_counts = torch.bincount(torch.tensor(train_labels))
+    print(f"Class distribution: {class_counts.tolist()}")
+    class_weights = 1.0 / class_counts.float()
+    sample_weights = torch.tensor([class_weights[label] for label in train_labels])
+    
+    # Create weighted sampler
+    train_sampler = WeightedRandomSampler(
+        weights=sample_weights,
+        num_samples=len(sample_weights),
+        replacement=True
+    )
+    
     # Create dataloaders
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=True,
+        sampler=train_sampler,  # Use sampler instead of shuffle
         num_workers=args.num_workers,
         pin_memory=True,
     )
