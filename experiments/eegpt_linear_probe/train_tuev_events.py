@@ -272,9 +272,10 @@ def evaluate(
         for x, y in tqdm(dataloader, desc="Evaluating"):
             x, y = x.to(device), y.to(device)
 
-            # Forward pass
-            logits = model(x)
-            loss = criterion(logits, y)
+            # Forward pass with mixed precision (matches reference)
+            with torch.cuda.amp.autocast():
+                logits = model(x)
+                loss = criterion(logits, y)
 
             # Store predictions
             preds = logits.argmax(dim=-1)
