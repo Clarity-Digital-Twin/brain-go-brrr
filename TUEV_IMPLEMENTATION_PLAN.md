@@ -355,17 +355,44 @@ assert y in range(6)  # Valid class label
 - Safe load: prefer `torch.load(..., weights_only=True)` (PyTorch ≥ 2.4) or our safe loader; never unpickle arbitrary code
 - No duplication: experiments import from `src/` only
 
+## CRITICAL QUESTIONS ANSWERED DEFINITIVELY
+
+### Q1: .rec/.lab Parser Status
+**ANSWER: Parser EXISTS and WORKS** ✅
+- Location: `src/brain_go_brrr/infra/data/tuev_dataset.py:_load_annotations()`
+- Lines 316-323 correctly parse microseconds → seconds
+- Action: Reuse parser, just change from sliding windows to event extraction
+
+### Q2: Subject-Level Splits Implementation  
+**ANSWER: 80/20 Random Split** ✅
+- Reference: `make_TUEV.py` lines 224-226
+- Method: `np.random.choice(train_sub, size=int(len(train_sub) * 0.2))`
+- Action: Extract subject ID from filename, apply 80/20 split with seed=42
+
+### Q3: Single GPU vs Distributed Training
+**ANSWER: Single GPU with Smaller Batch** ✅
+- Reference: 2 GPUs, batch_size=400 total (200 per GPU)
+- Single GPU: Use batch_size=64-100, accumulate gradients if needed
+- Effective batch via: `accumulate_grad_batches = 400 // actual_batch_size`
+
+### Q4: Fallback Path Necessity
+**ANSWER: NO FALLBACK - PAPER PARITY ONLY** ❌
+- Focus: Event classification BAC=62%, NOT temporal detection
+- Reason: Different problems, different metrics, different architectures
+- Decision: Implement ONLY Option A (5s@200Hz event segments)
+
 ## Timeline
 
 ### Day 1: Build Event Extractor
-- [ ] Implement TUEVEventExtractor
-- [ ] Test on sample files
-- [ ] Validate segment shapes
+- [ ] Modify existing `_load_annotations()` parser for event extraction
+- [ ] Add 200Hz resampling and filtering (0.1-75Hz, notch 50Hz)
+- [ ] Extract 5s segments (−2s to +3s around events)
+- [ ] Validate segment shapes (23, 1000)
 
 ### Day 2: Build Event Dataset  
-- [ ] Implement TUEVEventDataset
-- [ ] Build cache for train/eval
-- [ ] Verify class distribution
+- [ ] Implement TUEVEventDataset with 80/20 subject splits
+- [ ] Build cache for train/eval with META.json
+- [ ] Verify balanced class distribution (~equal per class)
 
 ### Day 3: Training & Validation
 - [ ] Run training with paper hyperparams
