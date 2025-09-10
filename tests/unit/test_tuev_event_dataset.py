@@ -42,8 +42,8 @@ class TestTUEVEventDataset:
             root_dir=self.root_dir, split='train', cache_dir=self.cache_dir, force_rebuild=False
         )
 
-        expected_cache_path = self.cache_dir / 'tuev_event_segments'
-        assert dataset.cache_dir == expected_cache_path
+        # When cache_dir is provided, it's used as-is
+        assert dataset.cache_dir == self.cache_dir
 
     @patch('brain_go_brrr.infra.data.tuev_event_dataset.TUEVEventExtractor')
     def test_build_cache_creates_segments(self, mock_extractor_class):
