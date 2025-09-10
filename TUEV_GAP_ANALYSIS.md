@@ -156,8 +156,8 @@ examples: 32×13=416  |  34×12=408
 No action needed; wired end-to-end. Trainer passes `drop_path_rate=0.2`; model prints enablement on init.
 Add drop‑path in the encoder blocks (stabilization). Expect regularization more than a direct BAC jump.
 
-### 5) 🟢 Mean Pooling Toggle
-Test mean pooling vs flatten(4×512) → head; choose the better head behavior.
+### 5) 🟢 Temporal Tokens — Implemented
+Use ALL temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8) → Linear(6), matching the authors’ classifier.
 
 ## Validation & Monitoring
 - Confusion matrix and per‑class classification_report on every eval (watch rare class recall: spsw/gped/pled).
