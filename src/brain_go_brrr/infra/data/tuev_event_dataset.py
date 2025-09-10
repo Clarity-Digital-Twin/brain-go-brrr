@@ -133,6 +133,8 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                         'duration': 5.0,
                         'channels': 23,
                         'samples': 1000,
+                        'unit': 'V',
+                        'segment_type': 'event',
                     },
                     f,
                     indent=2,
@@ -201,6 +203,8 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                     'duration': 5.0,  # Paper-specified duration
                     'channels': 23,  # Paper-specified channels
                     'samples': 1000,  # 5s * 200Hz
+                    'unit': 'V',  # Data stored in Volts (SI units)
+                    'segment_type': 'event',  # Event-centered segments
                 },
                 f,
                 indent=2,
