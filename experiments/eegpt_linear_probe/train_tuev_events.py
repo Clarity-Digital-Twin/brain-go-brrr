@@ -60,6 +60,11 @@ class TUEVClassifierHead(nn.Module):
                 # Configure EEGPT for native 1000 time steps with stride 64
                 model_kwargs.update({"time_steps": 1000, "patch_stride": 64})
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
+            
+            # CRITICAL: Disable normalization to match reference (they use raw μV)
+            # Our dataset outputs Volts, we'll scale to μV in forward pass
+            self.eegpt.normalize = False
+            print("Normalization DISABLED - using raw values like reference")
 
             # Convert channel names to IDs using EEGPT's channel dictionary
             chan_ids = []
@@ -456,7 +461,9 @@ def main(args):
             self.classifier = classifier
 
         def forward(self, x):
-            # x: (batch, 23, 1000)
+            # x: (batch, 23, 1000) in Volts from dataset
+            # Scale to microvolts to match reference (they use raw μV, no normalization)
+            x = x * 1e6  # Convert V to μV
             x = x.unsqueeze(2)  # Add spatial dim: (batch, 23, 1, 1000)
             x = self.mapper(x)  # Map to 20 channels: (batch, 20, 1, 1000) - keeps 4D!
             x = x.squeeze(2)  # Remove spatial dim: (batch, 20, 1000)
