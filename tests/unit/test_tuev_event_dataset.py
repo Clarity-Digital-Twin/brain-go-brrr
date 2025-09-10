@@ -124,7 +124,7 @@ class TestTUEVEventDataset:
     def test_getitem_returns_correct_shape_and_type(self):
         """Test __getitem__ returns (x, y) with correct shapes."""
         # Create mock cache
-        cache_file = self.cache_dir / 'tuev_event_segments' / 'train' / 'segment_0.pt'
+        cache_file = self.cache_dir / 'train' / 'segment_0.pt'
         cache_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Save test segment
