@@ -196,8 +196,8 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 ### Recent Fixes Applied ✅
 1. **Data splits**: Now using official train/eval directories (359/159 files)
 2. **Sampling**: Removed WeightedRandomSampler, using natural distribution
-3. **Normalization**: Disabled normalization, using raw μV like reference
-4. **Mean pooling**: Enabled to match reference (512 features instead of 2048)
+3. **Normalization**: Disabled wrapper normalization, using raw μV like reference
+4. **Temporal tokens**: Using ALL temporal tokens (30720) instead of 4‑token pooling
 5. **Batch size**: Fixed to target 400 effective batch size
 6. **DropPath**: Implemented stochastic depth with `drop_path_rate=0.2` (logs on model init)
 
@@ -211,6 +211,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
   - `Normalization DISABLED - using raw values like reference`
   - `DropPath=0.2 enabled ...` (trainer) and `DropPath enabled: rate=0.2 ...` (model)
   - `Effective batch size: ... (batch=X, accum=Y)`
+  - `Using TEMPORAL TOKEN FLATTENING: 15×4×512 = 30720`
   - Per-epoch confusion matrix and per-class report
 
 ## Training Commands

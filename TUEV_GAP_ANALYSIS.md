@@ -101,28 +101,26 @@ PY
 | Range       | ~[−100, +100] μV    | ~[−100, +100] μV           | Same scale                     |
 | Normalizing | Raw μV values       | Normalization disabled     | Matches reference              |
 
-### 2) Channel Mapper Architecture 🔴 CRITICAL  
-| Aspect        | Reference                                      | Ours                    | Impact                               |
-|---------------|------------------------------------------------|-------------------------|--------------------------------------|
-| Conv layer    | Conv2dWithConstraint(23→20, max_norm=1)       | nn.Conv2d(23→20)        | Weights unbounded                    |
-| Full pipeline | Conv→BatchNorm→GELU→DepthwiseConv→BN→Dropout  | Just Conv2d             | Missing ALL regularization           |
-| Depthwise     | kernel=(1,55), groups=20, padding='same'      | None                    | No temporal processing               |
-| Dropout       | 0.8 in mapper itself                          | None                    | No regularization                    |
+### 2) Channel Mapper Architecture ✅ IMPLEMENTED (PARITY)
+Our `TUEVChannelMapper` matches the authors’ design:
+- Conv2dWithConstraint(23→20) → BatchNorm2d → GELU → depthwise Conv2d(kernel=(1,55), groups=20, padding=27)
+  → BatchNorm2d → Dropout(0.8).
+Impact: Mapper parity achieved; not a current source of the BAC gap.
 
 ### 🟡 MAJOR DIVERGENCES (Significant Impact)
 
-### 3) Learning Rate Schedule
+### 3) Learning Rate Schedule (Minor)
 | Aspect        | Reference                     | Ours                    | Impact                               |
 |---------------|-------------------------------|-------------------------|--------------------------------------|
-| LR schedule   | Cosine annealing             | None/constant           | Poor convergence                     |
-| WD schedule   | Cosine annealing for WD too!  | Constant WD             | Suboptimal regularization            |
-| Implementation| Per-iteration scheduling      | Per-epoch (if any)      | Less smooth optimization             |
+| LR schedule   | Cosine (step-level)           | Cosine (epoch-level)    | Minor difference in timing           |
+| WD schedule   | Typically constant (0.05)     | Constant (0.05)         | No material difference               |
+| Implementation| Per-iteration scheduling      | Per-epoch scheduler     | Minor                                |
 
-### 4) Loss Function Source
+### 4) Loss Function Source (Minor)
 | Aspect        | Reference                     | Ours                         | Impact                          |
 |---------------|-------------------------------|------------------------------|----------------------------------|
-| Label smooth  | timm.loss.LabelSmoothingCE   | Custom implementation        | Potential numerical differences  |
-| Implementation| Well-tested timm version      | Our custom version           | Unknown edge cases              |
+| Label smooth  | timm.loss.LabelSmoothingCE   | Custom implementation        | Likely equivalent                |
+| Implementation| Well-tested timm version      | Our simple version           | Minor differences possible       |
 
 ### 5) Batch Size & Accumulation ✅ FIXED
 | Aspect        | Reference        | Ours (FIXED)            | Impact                                 |
@@ -130,12 +128,7 @@ PY
 | Total batch   | 400              | 400 (40×10)             | Now matches                            |
 
 ## Moderate Divergences (5–10% each)
-
-### 4) Mean Pooling Strategy
-| Aspect            | Reference                 | Ours                        | Impact                     |
-|-------------------|---------------------------|-----------------------------|----------------------------|
-| Feature reduction | `use_mean_pooling` option (often enabled) | Flatten 4 tokens (→ 2048)   | Different head behavior    |
-| Classifier input  | 512 (if pooled)           | 2048                        | Head capacity difference   |
+None critical after mapper/head parity; monitor LR schedule timing and token normalization effects if needed.
 
 ### 5) Training Infrastructure
 | Aspect | Reference                | Ours                        | Impact                         |
