@@ -38,6 +38,22 @@
 - **Solution**: Added DropPath class, stochastic depth decay, drop_path_rate=0.2
 - **Impact**: Better regularization, prevents overfitting
 
+### 7. MNE pick_channels() legacy warnings - ACCEPTABLE DEBT 📎
+- **Symptom**: During cache rebuild, repeated: `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)`.
+- **Cause**: Some preprocessors still call `raw.pick_channels(...)` or `mne.pick_channels(...)` directly.
+- **Impact**: Cosmetic warnings only; no effect on extracted segments or training.
+- **Where** (non-exhaustive):
+  - `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py`
+  - `src/brain_go_brrr/infra/preprocessing/flexible_preprocessor.py`
+  - `src/brain_go_brrr/domain/preprocessing/eegpt_preprocessing.py`
+  - `src/brain_go_brrr/infra/preprocessing/eeg_preprocessor.py`
+  - `src/brain_go_brrr/infra/preprocessing/snippets/maker.py`
+  - Note: `src/brain_go_brrr/mne_compat.py` already provides a wrapper preferring `inst.pick(...)`.
+- **Plan** (post‑parity cleanup):
+  - Replace direct calls with `raw.pick(picks=<names_in_target_order>)`, or route via `mne_compat.pick_channels(raw, picks)` for cross‑version safety.
+  - Preserve channel order by passing `picks` in the exact desired order (no `ordered=True` needed).
+  - Log missing channels, do not raise.
+
 ## Code Changes
 
 ### train_tuev_events.py

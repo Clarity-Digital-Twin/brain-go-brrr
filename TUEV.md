@@ -229,6 +229,12 @@ nvidia-smi
 nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
 ```
 
+### Legacy MNE Warning During Cache Build
+- Message: `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)`
+- Cause: Some preprocessors still call `raw.pick_channels(...)`.
+- Impact: Benign; does not affect extracted segments or training.
+- Planned fix: Migrate to `inst.pick(...)` or route through our `mne_compat.pick_channels` helper post‑parity.
+
 ### Expected Progress (Acceptance Gates)
 By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.
 

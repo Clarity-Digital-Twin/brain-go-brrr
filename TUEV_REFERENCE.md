@@ -215,3 +215,8 @@ Data structure expected:
 ---
 
 **Note**: This document represents the EXACT implementation from the EEGPT reference repository, not our interpretation or modifications.
+
+## Compatibility Notes (Our Environment)
+
+- When rebuilding our cache with MNE, you may see: `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)`.
+- This warning pertains to our preprocessing code paths that still call `raw.pick_channels(...)`; it is not part of the authors’ reference code and does not affect alignment with their results.

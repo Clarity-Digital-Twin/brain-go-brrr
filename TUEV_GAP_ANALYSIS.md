@@ -154,3 +154,19 @@ Test mean pooling vs flatten(4×512) → head; choose the better head behavior.
 3) Test normalization A/B (μV vs corpus stats).  
 4) Match batch/accum; consider drop‑path and pooling toggle.  
 5) Reassess BAC trajectory and per‑class recall; iterate only on the smallest change needed.
+
+## Non‑Blocking Tech Debt: MNE pick_channels() Warnings
+
+- Symptom: During cache rebuild, messages like `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)`.
+- Cause: Some code paths still call `raw.pick_channels(...)` or `mne.pick_channels(...)`.
+- Impact: Cosmetic only; no change to extracted data or results.
+- Locations (key):
+  - `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py`
+  - `src/brain_go_brrr/infra/preprocessing/flexible_preprocessor.py`
+  - `src/brain_go_brrr/domain/preprocessing/eegpt_preprocessing.py`
+  - `src/brain_go_brrr/infra/preprocessing/eeg_preprocessor.py`
+  - `src/brain_go_brrr/infra/preprocessing/snippets/maker.py`
+- Migration plan (post‑parity):
+  - Route selections through `mne_compat.pick_channels(raw, picks)` or call `raw.pick(picks=names_in_target_order)` directly.
+  - Preserve channel order by passing `picks` in final desired order (no `ordered=True` needed).
+  - Log missing channels; do not raise.

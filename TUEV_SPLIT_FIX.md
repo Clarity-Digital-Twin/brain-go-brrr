@@ -122,3 +122,8 @@ eval_ds = TUEVEventDataset('data/datasets/tuev', 'eval')
 ```
 
 ## THIS BUG ALONE COULD EXPLAIN 20-30% OF OUR BAC GAP!
+
+---
+
+### Unrelated Warning During Rebuild
+If you see `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)` while rebuilding cache, this is benign. It comes from a few preprocessing paths still using `raw.pick_channels(...)`. It does not affect splits or extracted data. We will migrate to `inst.pick(...)` post‑parity.
