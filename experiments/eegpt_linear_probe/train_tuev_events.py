@@ -472,13 +472,32 @@ def main(args):
 
     model = TUEVModel(channel_mapper, classifier).to(device)
 
-    # Create optimizer and scheduler
+    # Create optimizer with layer-wise decay
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
     )
 
-    scheduler = warmup_scheduler(
-        optimizer, warmup_epochs=args.warmup_epochs, total_epochs=args.epochs
+    # Create per-iteration schedulers matching reference implementation
+    num_training_steps_per_epoch = len(train_loader) // accumulate_steps
+    print(f"Steps per epoch: {num_training_steps_per_epoch}")
+    
+    # Learning rate schedule with cosine decay
+    lr_schedule = cosine_scheduler(
+        base_value=args.lr,
+        final_value=1e-6,  # min_lr from reference
+        epochs=args.epochs,
+        niter_per_ep=num_training_steps_per_epoch,
+        warmup_epochs=args.warmup_epochs,
+        start_warmup_value=0
+    )
+    
+    # Weight decay schedule (typically constant in TUEV)
+    wd_schedule = cosine_scheduler(
+        base_value=args.weight_decay,
+        final_value=args.weight_decay,  # Same as base (constant)
+        epochs=args.epochs,
+        niter_per_ep=num_training_steps_per_epoch,
+        warmup_epochs=0  # No warmup for weight decay
     )
 
     # Create loss function - use timm's implementation to match reference exactly
