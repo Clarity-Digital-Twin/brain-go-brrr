@@ -189,6 +189,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
 
         # Save index with metadata
         index_file = self.cache_dir / self.split / 'index.json'
+        index_file.parent.mkdir(parents=True, exist_ok=True)
         with index_file.open('w') as f:
             json.dump(
                 {

@@ -141,6 +141,8 @@ class TUEVEventExtractor:
                 f"Segment shape {segment.shape} != (23, {samples_per_segment})"
             )
 
-            segments.append((segment.astype(np.float32), int(annot['label'])))
+            # annot['label'] is already an int from the parser
+            label = annot['label'] if isinstance(annot['label'], int) else int(annot['label'])
+            segments.append((segment.astype(np.float32), label))
 
         return segments

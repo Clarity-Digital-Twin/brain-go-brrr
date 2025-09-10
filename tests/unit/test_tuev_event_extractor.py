@@ -62,8 +62,8 @@ class TestTUEVEventExtractor:
         mock_raw.info = mock_info
         mock_raw.ch_names = TUEVEventExtractor.TUEV_CHANNELS_REF.copy()
 
-        # Mock data: 23 channels, 10 seconds of data at 200Hz
-        mock_data = np.random.randn(23, 2000).astype(np.float32)
+        # Mock data: 23 channels, 15 seconds of data at 200Hz (enough for both events)
+        mock_data = np.random.randn(23, 3000).astype(np.float32)
         mock_raw.get_data.return_value = mock_data
 
         # Configure mock methods
@@ -185,8 +185,8 @@ class TestTUEVEventExtractor:
             mock_raw.info = {'sfreq': 200.0}
             mock_raw.ch_names = TUEVEventExtractor.TUEV_CHANNELS_REF.copy()
 
-            # Only 5 seconds of data
-            mock_data = np.random.randn(23, 1000).astype(np.float32)
+            # 8 seconds of data (enough for the middle event but not the boundary ones)
+            mock_data = np.random.randn(23, 1600).astype(np.float32)
             mock_raw.get_data.return_value = mock_data
 
             mock_read_raw.return_value = mock_raw
@@ -201,9 +201,10 @@ class TestTUEVEventExtractor:
             extractor = TUEVEventExtractor()
             segments = extractor.extract_segments(Path('/fake/path.edf'), annotations)
 
-            # Only the middle event should be extracted
-            assert len(segments) == 1
-            assert segments[0][1] == 2  # Label should be 2
+            # Both the second and third events should be extracted (first is out of bounds)
+            assert len(segments) == 2
+            assert segments[0][1] == 1  # Second annotation (label 1) is extracted first
+            assert segments[1][1] == 2  # Third annotation (label 2) is extracted second
 
     def test_output_dtype_and_units(self):
         """Test output is float32 in Volts (SI units)."""
