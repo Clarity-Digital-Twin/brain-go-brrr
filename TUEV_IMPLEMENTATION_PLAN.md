@@ -1,10 +1,10 @@
 # TUEV Paper-Parity Implementation Plan
 
-## 🚨 CRITICAL UPDATE (Dec 10, 2024): CLASS IMBALANCE FOUND 🚨
+## 🚨 CRITICAL UPDATE (Sep 10, 2025): CLASS IMBALANCE FOUND 🚨
 
 **Current Status**: Implementation complete but BAC=0.18 due to severe class imbalance
 **Root Cause**: Class 0 (spsw) has only 19/2695 samples (0.7%), Class 5 (bckg) has 1168/2695 (43%)
-**Required Fix**: Add WeightedRandomSampler to training script
+**Required Fix**: Add WeightedRandomSampler to training script NOW
 
 ## Executive Summary
 
