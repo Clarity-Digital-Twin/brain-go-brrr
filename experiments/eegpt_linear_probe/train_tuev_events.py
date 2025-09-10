@@ -102,12 +102,9 @@ class TUEVClassifierHead(nn.Module):
             if x.shape[-1] == 1000:
                 x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
 
-        # Prepare channel IDs for this batch
-        batch_size = x.shape[0]
-        chan_ids = self.chan_ids.unsqueeze(0).expand(batch_size, -1)
-
-        # Extract EEGPT features WITH PROPER CHANNEL IDS
-        features = self.eegpt.extract_features(x, chan_ids=chan_ids, summary=False)  # (B, 4, 512)
+        # Extract EEGPT features WITH PROPER CHANNEL IDs
+        # Note: chan_ids should be 1D tensor, not batched
+        features = self.eegpt.extract_features(x, chan_ids=self.chan_ids, summary=False)  # (B, 4, 512)
 
         # Classify
         logits = self.classifier(features)
