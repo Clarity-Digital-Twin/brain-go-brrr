@@ -45,7 +45,15 @@ n_train = int(len(subject_list) * 0.8)  # Creates own 80/20 split
 
 ## The Fix
 
-### Option 1: Use Official Splits (CORRECT)
+### THE CODE ALREADY SUPPORTS OFFICIAL SPLITS!
+
+The bug was that we built the cache with the wrong method. The code at line 174 checks:
+```python
+if split_dir.exists():  # Checks for edf/train/ or edf/eval/
+    edf_files = list(split_dir.rglob('*.edf'))  # Uses official splits!
+```
+
+### Solution: DELETE THE WRONG CACHE
 ```python
 class TUEVEventDataset:
     def _get_split_files(self) -> list[Path]:

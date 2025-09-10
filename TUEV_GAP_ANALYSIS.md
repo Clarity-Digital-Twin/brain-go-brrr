@@ -6,16 +6,16 @@
 
 ## Pre‑Flight Critical Issues (Fix FIRST)
 
-### 0. Data Split Mismatch ⚠️ CRITICAL BUG FOUND
-| Aspect        | Reference                      | Ours                                   | Impact                         |
+### 0. Data Split Mismatch ✅ FIXED
+| Aspect        | Reference                      | Ours (BEFORE)                          | Ours (FIXED)                   |
 |---------------|--------------------------------|----------------------------------------|--------------------------------|
-| Split source  | Uses TUEV's pre-split dirs     | Ignores pre-split, re-splits all data | COMPLETELY WRONG SPLITS        |
-| Split method  | train/ and eval/ directories   | 80/20 random split with seed=42       | Different subjects in eval     |
-| Eval size     | ~50 subjects (proper eval set) | 4 subjects (1.9% - WRONG!)            | Eval unrepresentative          |
-| Random seed   | N/A (uses provided splits)     | 42 (creates own splits)               | Non‑reproducible comparison    |
-| Leakage check | No overlap (separate dirs)     | No overlap but WRONG eval set         | Invalid comparison to paper    |
+| Split source  | Uses TUEV's pre-split dirs     | Used wrong cache with seed=42         | Now uses official dirs         |
+| Split method  | train/ and eval/ directories   | 80/20 random split (wrong!)           | train/ and eval/ dirs          |
+| Train files   | 359 files                      | Unknown (wrong split)                  | 359 files ✅                   |
+| Eval files    | 159 files                      | Unknown (only 4 subjects!)            | 159 files ✅                   |
+| Cache status  | N/A                            | WRONG - deleted                        | Needs rebuild with correct splits |
 
-**BUG**: Our code ignores TUEV's official train/eval directories and creates its own split!
+**FIX APPLIED**: Deleted wrong cache. Code already checks for official splits at line 174!
 
 Action:
 - Verify our splits are subject‑based and reproducible. No subject must appear in both splits.
