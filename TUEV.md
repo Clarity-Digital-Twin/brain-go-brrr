@@ -175,6 +175,8 @@ tmux attach -t tuev
 - `CUDA_LAUNCH_BLOCKING=1`: Synchronous CUDA execution for better error messages
 - `PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64`: Prevents GPU memory fragmentation
 
+**WSL Note**: The CLI default for `--pin_memory` is False. Do not pass `--pin_memory` flag on WSL.
+
 ### Monitor Training
 ```bash
 # Watch live
