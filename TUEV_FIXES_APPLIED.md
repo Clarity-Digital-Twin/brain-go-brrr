@@ -106,6 +106,6 @@ ls -la data/datasets/tuev/cache/tuev_event_segments/*/index.json
 ```
 
 ## Status
-- Cache rebuilding: ~90% complete
-- All major divergences fixed except DropPath
+- Cache rebuilding: in progress (tmux)
+- All major divergences fixed, including DropPath
 - Ready to train once cache completes
