@@ -26,11 +26,8 @@
 - **Impact**: Without weight renorm, training collapses to majority classes
 - **Status**: NOT FIXED - THIS IS THE SMOKING GUN
 
-### 🔴 Issue #-2: CHANNEL MAPPER ARCHITECTURE WRONG
-- **Problem**: Simple Conv2d(23, 20, 1) vs complex pipeline with constraints
-- **Solution**: Conv2dWithConstraint + BatchNorm + GELU + DepthwiseConv + BatchNorm + Dropout(0.8)
-- **Impact**: Missing regularization and normalization in channel mapping
-- **Status**: NOT FIXED - Another critical divergence
+### ✅ Issue #-2: CHANNEL MAPPER ARCHITECTURE (FIXED)
+- Our `TUEVChannelMapper` matches the authors: Conv2dWithConstraint(23→20) → BatchNorm2d → GELU → depthwise Conv2d(1×55, groups=20, padding) → BatchNorm2d → Dropout(0.8)
 
 ### ✅ Issue #0: WRONG DATA SPLITS (FIXED)
 - **Problem**: Code was using wrong cache with seed=42 split
@@ -111,22 +108,26 @@ EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats
 
 ### Model Architecture
 
-**IMPLEMENTED (CORRECT) ✅**:
+**TARGET (REFERENCE)**:
 ```python
-# Full parity with reference implementation
+# Full parity design per authors
 Input (23, 1000) → [Conv2dWithConstraint(23→20) → BatchNorm → GELU → 
                     DepthwiseConv(1,55) → BatchNorm → Dropout(0.8)] →
                    EEGPT → Flatten(30720) → Dropout(0.8) → LinearWithConstraint(30720→6, max_norm=1)
 ```
 
-**Key Components (ALL IMPLEMENTED)**:
-1. **LinearWithConstraint**: Weight renormalization (max_norm=1) prevents gradient explosion ✅
-2. **Conv2dWithConstraint**: Channel mapper with weight constraints ✅
-3. **BatchNorm layers**: Stabilize channel mapping ✅
-4. **DepthwiseConv(1,55)**: Additional temporal processing in mapper ✅
-5. **Dropout(0.8) in mapper**: Extra regularization before EEGPT ✅
-6. **Per-iteration LR scheduling**: Cosine annealing every step, not epoch ✅
-7. **timm.loss.LabelSmoothingCrossEntropy**: Exact reference loss function ✅
+**CURRENT (OURS)**:
+```python
+Input (23, 1000) → [Conv2dWithConstraint → BN → GELU → Depthwise(1,55) → BN → Dropout(0.8)] →
+                   EEGPT → Flatten(30720) → Dropout(0.8) → Linear(30720→6)
+# Outstanding parity item: replace Linear with LinearWithConstraint(max_norm=1)
+```
+
+**Status of components**:
+- Conv2dWithConstraint mapper + BN/GELU/depthwise/BN/dropout: ✅ Implemented
+- LinearWithConstraint head on 30,720-dim features: ❌ Not yet (currently plain Linear)
+- LR schedule: ✅ Cosine (epoch-level); reference uses step-level — minor
+- Loss: ✅ Label smoothing 0.1; we use a simple LSCE — close enough
 
 ### Training Configuration
 ```python
@@ -154,7 +155,7 @@ The training script:
 - Data splits: Official `edf/train` and `edf/eval` only; stale cache removed and rebuilt
 - Sampling: No `WeightedRandomSampler`; `shuffle=True` with natural class distribution
 - Input scale: Wrapper normalization disabled; inputs scaled to μV before the mapper
-- Temporal tokens: Flatten ALL temporal summary tokens (30720) with Dropout(0.8) → Linear(6) (matches reference)
+ - Temporal tokens: Flatten ALL temporal summary tokens (30720) with Dropout(0.8) → Linear(6) (temporary; will switch to LinearWithConstraint)
 - Batch: Effective batch ≈ 400 via gradient accumulation (logged)
 - Regularization: DropPath implemented at rate 0.2 with per-layer decay (logged by model)
 
@@ -243,10 +244,10 @@ data/datasets/tuev/
 │   └── tuev_event_segments/
 │       ├── train/
 │       │   ├── index.json    # Must show 4213 segments
-│       │   └── *.pkl         # 4213 pickle files
+│       │   └── *.pt          # 4213 torch files
 │       └── eval/
 │           ├── index.json    # Must show 1471 segments
-│           └── *.pkl         # 1471 pickle files
+│           └── *.pt          # 1471 torch files
 ```
 
 ### Common Path Issues and Fixes:
@@ -257,9 +258,9 @@ data/datasets/tuev/
 ### Verify Cache Before Training:
 ```bash
 # Check train cache
-ls data/datasets/tuev/cache/tuev_event_segments/train/*.pkl | wc -l  # Should be 4213
+ls data/datasets/tuev/cache/tuev_event_segments/train/*.pt | wc -l   # Should be ~4213
 # Check eval cache  
-ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pkl | wc -l   # Should be 1471
+ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pt | wc -l    # Should be ~1471
 
 # If eval cache is 0, rebuild it:
 uv run python -c "
@@ -321,7 +322,7 @@ tail -f experiments/eegpt_linear_probe/logs/tuev_*.log
 **Root Cause**: Eval pickle files missing or wrong data path
 ```bash
 # Check if pickle files exist
-ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pkl | wc -l
+ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pt | wc -l
 
 # If 0, rebuild eval cache with CORRECT path:
 uv run python -c "

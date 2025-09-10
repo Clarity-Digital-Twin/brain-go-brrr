@@ -40,7 +40,7 @@ If no improvement by epoch 10 in any fast follow‑up:
 
 ## 🔴 CRITICAL DATA PATH REQUIREMENTS
 
-### CORRECT Path Structure (Sep 10, 2025):
+  ### CORRECT Path Structure (Sep 10, 2025):
 ```
 data/datasets/tuev/          # ← CORRECT data_dir
 ├── edf/
@@ -49,11 +49,11 @@ data/datasets/tuev/          # ← CORRECT data_dir
 └── cache/                   # ← CORRECT cache_dir  
     └── tuev_event_segments/
         ├── train/
-        │   ├── index.json   # 4213 segments
-        │   └── *.pkl        # 4213 pickle files REQUIRED
+          │   ├── index.json   # ~4213 segments
+          │   └── *.pt         # ~4213 torch files REQUIRED
         └── eval/
-            ├── index.json   # 1471 segments
-            └── *.pkl        # 1471 pickle files REQUIRED
+              ├── index.json   # ~1471 segments
+              └── *.pt         # ~1471 torch files REQUIRED
 ```
 
 ### Common Path Failures:
