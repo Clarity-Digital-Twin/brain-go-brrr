@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
@@ -393,33 +393,17 @@ def main(args):
     print(f"Train samples: {len(train_dataset)}")
     print(f"Eval samples: {len(eval_dataset)}")
 
-    # Create balanced sampler for training - READ FROM INDEX TO AVOID I/O THRASH
-    print("Setting up balanced sampling for training...")
+    # NO BALANCED SAMPLING - Reference doesn't use it and achieves 62% BAC!
+    print("Setting up training WITHOUT balanced sampling (matches reference)...")
+    
+    # Print class distribution for monitoring
     import json
     with open(train_dataset.cache_dir / train_dataset.split / "index.json", "r") as f:
         index_data = json.load(f)
-    
-    # Get labels from index without loading .pt files
     train_labels = [seg["label"] for seg in index_data["segments"]]
-    
-    # Calculate class weights with minlength to avoid missing classes
     class_counts = torch.bincount(torch.tensor(train_labels), minlength=6)
-    print(f"Class distribution: {class_counts.tolist()}")
-    
-    # Avoid division by zero for missing classes
-    class_counts = torch.where(class_counts == 0, torch.ones_like(class_counts), class_counts)
-    class_weights = 1.0 / class_counts.float()
-    sample_weights = torch.tensor([class_weights[label] for label in train_labels], dtype=torch.double)
-    
-    # Create weighted sampler with deterministic seed
-    generator = torch.Generator()
-    generator.manual_seed(args.seed)
-    train_sampler = WeightedRandomSampler(
-        weights=sample_weights,
-        num_samples=len(sample_weights),
-        replacement=True,
-        generator=generator
-    )
+    print(f"Class distribution (natural): {class_counts.tolist()}")
+    print("Using natural distribution - NO rebalancing")
     
     # Create dataloaders with WSL-safe defaults
     pin_memory = args.pin_memory  # Default False for WSL
@@ -428,7 +412,7 @@ def main(args):
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        sampler=train_sampler,  # Use sampler instead of shuffle
+        shuffle=True,  # Simple shuffle, NO sampler
         num_workers=args.num_workers,
         pin_memory=pin_memory,
         persistent_workers=persistent_workers,
