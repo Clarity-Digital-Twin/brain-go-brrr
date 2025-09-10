@@ -20,14 +20,16 @@ Root cause: task mismatch. The EEGPT reference trains a multi-class event-segmen
   - Unweighted LabelSmoothingCrossEntropy(smoothing=0.1).
   - downstream_tueg/finetune_TUEV_EEGPT.sh: lr=5e-4, weight_decay=0.05, warmup_epochs=5, epochs=30, layer_decay=0.65, batch_size=400 (distributed).
 
-## What Our Repo Currently Does (Measured)
+## What Our Repo Does Now (Implemented)
 
-- Sliding 4 s @ 256 Hz windows (not event-only):
-  - src/brain_go_brrr/infra/data/tuev_dataset.py + src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py build fixed-grid windows.
-- Extreme imbalance in train cache:
-  - data/cache/tuev_23ch_paper_parity/train/index_train_mne-ar-v4.json → class_counts: background = 179,444 of 180,205 (99.58%).
-- Experiments use OneCycle warmup and sliding windows (fallback path):
-  - experiments/eegpt_linear_probe/train_tuev_mne.py (OneCycleLR pct_start=0.3, unweighted CE with smoothing; optional 23→20 mapper).
+- Event-only pipeline (no sliding windows):
+  - Extractor: `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py` (0.1–75 Hz + 50 Hz notch; 200 Hz; REF channels; −2..+3 s to (23,1000)).
+  - Dataset: `src/brain_go_brrr/infra/data/tuev_event_dataset.py` (parses TUEV `_ch000.lab`, falls back to `.rec.lab`; caches .pt + index with fs=200, duration=5s, channels=23, samples=1000, unit='V', segment_type='event'). Subject 80/20 split fallback when pre‑split dirs absent.
+- Mapper + training (SSOT):
+  - Mapper (23→20): `src/brain_go_brrr/infra/ml_models/channel_mapper.py`.
+  - EEGPT parity support (native 1000 via patch_stride): `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py` (+ wrapper `model_kwargs`).
+  - Trainer (single): `experiments/eegpt_linear_probe/train_tuev_events.py` with `--use_parity` (native 1000) or default padding 1000→1024.
+  - Loss/schedule/optimizer: label_smoothing=0.1; warmup=5 + cosine; layer_decay=0.65; lr=5e-4; wd=0.05; effective batch≈400 via accumulation.
 
 ## Why We’re At 0.1667 BAC
 
@@ -35,22 +37,21 @@ Root cause: task mismatch. The EEGPT reference trains a multi-class event-segmen
 - Balanced accuracy on a 6-class task = 1/6 when predicting a single class.
 - Loss converges without improving BAC (observed), consistent with collapsed predictions.
 
-## Key Divergences (Actionable)
+## Key Divergences (Resolved)
 
-- Task mismatch: sliding-window detection vs event-segment classification (root cause).
-- Data distribution: 99.58% background vs event-only segments.
-- Input dimensions: our path 4 s @ 256 Hz vs reference 5 s @ 200 Hz (20×1000).
-- Hyperparameters: our fallback trainer lacks epoch-based warmup + layer decay; reference uses warmup=5 + layer_decay=0.65.
+- Task mismatch → Fixed: event-only segments implemented.
+- Data distribution → Fixed: only event segments cached; metadata enforced.
+- Input dimensions → Fixed: 5 s @ 200 Hz (23×1000) end-to-end; EEGPT supports native 1000 via stride (or padding fallback).
+- Hyperparameters → Fixed: label_smoothing=0.1; warmup=5; layer_decay=0.65; cosine schedule; effective batch≈400 via accumulation.
 
-## Fix Direction (Strict Parity)
+## Remediation Summary (Strict Parity)
 
-Implement the parity path in src/ (SSOT), keep experiments/ thin:
-- Event extractor: (23,1000) @ 200 Hz from EDF + .rec/.lab with 0.1–75 Hz + 50 Hz notch, referential order; subject-level splits.
-- Event dataset: cached .pt segments + META/index (sr=200, unit=V, samples=1000, channels=23, segment_type=event).
-- Channel mapper: reuse TUEVChannelMapper (23→20), then classifier head on 20×1000.
-- Trainer: unweighted CE with smoothing=0.1; lr=5e-4, weight_decay=0.05, warmup_epochs=5, layer_decay=0.65, epochs≈30, effective batch≈400 (distributed).
+- SSOT in `src/`; single thin trainer in `experiments/`.
+- Event extractor + dataset implemented; parser supports TUEV `_ch000.lab`.
+- Mapper (23→20) + EEGPT parity stride; trainer wires `--use_parity` to `time_steps=1000`, `patch_stride=64`.
+- Loss/schedule/optimizer as paper; subject split fallback.
 
-Acceptance gates:
+Acceptance gates (unchanged):
 - By epoch 2: BAC > 0.20; by epoch 5: BAC > 0.40; final: 0.62 ± 0.02 on eval.
 - Enforce cache invariants and shape checks at extraction/dataset layers.
 - Gradient flow verified through mapper + head.
@@ -68,5 +69,4 @@ Acceptance gates:
 
 ## Bottom Line
 
-We’re solving the wrong task. Switching to event-only 5 s @ 200 Hz segments with the 23→20 mapper and the verified reference hyperparameters is necessary and sufficient to reach paper parity. See TUEV_IMPLEMENTATION_PLAN.md for the ironclad plan and acceptance criteria.
-
+We’ve implemented the event-only 5 s @ 200 Hz pipeline, mapper, and a parity‑ready EEGPT path (native 1000 via stride). The remaining step is to build the cache on real data and run training to confirm ≈62% BAC. See TUEV_IMPLEMENTATION_PLAN.md for acceptance criteria and run commands.

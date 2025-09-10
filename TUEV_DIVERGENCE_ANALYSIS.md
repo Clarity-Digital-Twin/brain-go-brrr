@@ -4,7 +4,7 @@
 
 We fundamentally misunderstood the TUEV task. We implemented **continuous event detection** (sliding windows over full recordings) while EEGPT implemented **event segment classification** (pre-extracted segments around known events). This is a completely different problem.
 
-Status check: the core conclusion above is correct. Our current pipeline optimizes a harder temporal detection problem; the EEGPT reference optimizes classification of event-centered segments.
+Status check (current): the core conclusion above is correct and the divergence has been remediated in code. We now implement event‑only extraction and a parity‑ready training path in `src/`, with a single thin trainer in `experiments/`.
 
 ## The Critical Misunderstanding
 
@@ -168,7 +168,7 @@ criterion = CrossEntropyLoss(label_smoothing=0.1)
 - If the paper says 23×1000, use exactly that
 - Don't assume you can change dimensions without consequences
 
-## The Fix: Paper Parity ONLY (NO FALLBACK NEEDED)
+## The Fix: Paper Parity (Implemented)
 
 ### DEFINITIVE ANSWERS TO ALL QUESTIONS:
 
@@ -202,16 +202,25 @@ train_sub = list(set(train_sub) - set(val_sub))
 **Action**: For single GPU, use batch_size=64-100 to fit memory. Accumulate gradients if needed.
 
 #### Q4: Fallback Path - NOT NEEDED ❌
-**Answer**: NO FALLBACK. Focus ONLY on paper parity. Temporal detection is a different problem.
-**Rationale**: We want BAC=62%, not research into harder problems.
+**Answer**: Default trainer supports both strict parity and a compatibility fallback:
+- Strict parity (native 1000) via `--use_parity` (EEGPT configured with `time_steps=1000`, `patch_stride=64`).
+- Compatibility fallback pads 1000→1024 for standard EEGPT checkpoints (kept for continuity while parity is validated).
 
-### THE ONLY PATH: Match EEGPT Exactly
-1. Extract 5s event-centered segments at 200Hz (−2s to +3s around events)
-2. Use TUH referential "-REF" channels; NO bipolar conversion
-3. Unweighted CrossEntropy with label_smoothing=0.1
-4. 80/20 subject split with fixed seed
-5. Single GPU: batch_size=64-100 (vs 400 distributed)
-6. All other hyperparams exact: lr=5e-4, weight_decay=0.05, warmup=5, epochs=30, layer_decay=0.65
+### Parity Path: Match EEGPT Exactly (Implemented)
+1. Extract 5s event‑centered segments at 200Hz (−2..+3s) → (23,1000) float32 V.
+2. Use "-REF" channels; no bipolar conversion.
+3. Learned 23→20 channel mapper (spatial conv + depthwise temporal conv).
+4. Unweighted CrossEntropy with label_smoothing=0.1.
+5. Warmup=5 epochs + cosine anneal; layer_decay=0.65; lr=5e-4; wd=0.05; epochs≈30; effective batch≈400 via grad accumulation.
+6. Subject‑level 80/20 split (seeded) fallback when pre‑split dirs not present.
+7. EEGPT encoder supports native 1000 via patch stride (or 1000→1024 padding for compatibility).
+
+Key locations:
+- Extractor: `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py`
+- Dataset (+annotation parser for `_ch000.lab`): `src/brain_go_brrr/infra/data/tuev_event_dataset.py`
+- Mapper (23→20): `src/brain_go_brrr/infra/ml_models/channel_mapper.py`
+- EEGPT parity support (time_steps/patch_stride): `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py`
+- Trainer (single): `experiments/eegpt_linear_probe/train_tuev_events.py` (`--use_parity` flag)
 
 ## Conclusion
 
@@ -253,9 +262,19 @@ Paper‑Parity Implementation Plan (within our architecture):
 - Splits
   - Subject‑level: mirror `processed_{train,eval,test}` in the reference.
 
-Acceptance criteria for paper parity:
-- Segment cache validated: `(23, 1000)`, sr=200, filters 0.1–75 Hz, notch 50 Hz, REF channels ordered as in reference.
+Acceptance criteria for paper parity (unchanged):
+- Segment cache validated: `(23,1000)`, sr=200, filters 0.1–75 Hz, notch 50 Hz, REF channels in reference order.
 - Training reaches BAC ≈ 0.62 ± 0.02 on eval with smoothing=0.1, unweighted loss, warmup + layer_decay.
+
+Verification commands:
+- Inspect parser for TUEV annotations:
+  - `sed -n '77,86p' src/brain_go_brrr/infra/data/tuev_event_dataset.py`
+- Check parity stride support:
+  - `rg -n "patch_stride|time_steps" src/brain_go_brrr/infra/ml_models/eegpt_architecture.py`
+- Train (compatibility fallback):
+  - `python experiments/eegpt_linear_probe/train_tuev_events.py --data_dir data/datasets/tuev --eegpt_checkpoint <ckpt> --epochs 1 --batch_size 32`
+- Train (strict parity, native 1000):
+  - `python experiments/eegpt_linear_probe/train_tuev_events.py --data_dir data/datasets/tuev --eegpt_checkpoint <ckpt> --use_parity --epochs 1 --batch_size 32`
 
 If instead we keep temporal detection (current pipeline):
 - Switch to detection‑appropriate training: WeightedRandomSampler and/or focal loss; consider hard‑negative mining and event‑centric sampling; evaluate with detection metrics and event matching, not only per‑window BAC.

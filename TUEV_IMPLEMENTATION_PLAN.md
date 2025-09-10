@@ -37,18 +37,14 @@ criterion = LabelSmoothingCrossEntropy(smoothing=0.1)
 
 ## Implementation Architecture (Using Our Existing Code)
 
-Integration map (current vs to add):
-- Exists (data): `src/brain_go_brrr/infra/data/tuev_dataset.py` → sliding 4 s @ 256 Hz windows (non-parity)
-- Exists (preproc): `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py` → canonical 23-ch, sliding windows, optional AR
-- Exists (models): `src/brain_go_brrr/infra/ml_models/channel_mapper.py` → 23→20 mapper matches reference
-- Exists (utils): `src/brain_go_brrr/utils/collate_tuev_parity.py` → strict `(23,1024)`
-- Exists (experiments): `experiments/eegpt_linear_probe/train_tuev_mne.py` → sliding-window trainer (fallback only)
-- Exists (tests): `tests/integration/test_tuev_paper_parity.py` → mapping/grad/units checks
-- To add (src): `tuev_event_extractor.py` (23×1000 @ 200 Hz), `tuev_event_dataset.py` (event-only)
-- To add (experiments): `train_tuev_events.py` (thin parity trainer)
-- To add (tests): event extraction + dataset + parity E2E tests
+Integration map (implemented):
+- Data (event-only): `src/brain_go_brrr/infra/data/tuev_event_dataset.py` (23×1000 @ 200 Hz, `_ch000.lab` parser, subject split fallback).
+- Preproc (extractor): `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py` (filters/notch/resample; REF channels; −2..+3 s).
+- Models: `src/brain_go_brrr/infra/ml_models/channel_mapper.py` (23→20 mapper), `src/brain_go_brrr/infra/ml_models/eegpt_architecture.py` (parity stride support).
+- Experiments (single trainer): `experiments/eegpt_linear_probe/train_tuev_events.py` with `--use_parity` (native 1000) or fallback (pad 1000→1024).
+- Tests: unit/integration updated to validate extractor/dataset/mapper and dataset cache shape/metadata.
 
-### Phase 1: Event Segment Extractor (NEW in src/)
+### Phase 1: Event Segment Extractor (DONE)
 
 **Location**: `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py`
 
@@ -134,7 +130,7 @@ class TUEVEventExtractor:
         return segments
 ```
 
-### Phase 2: Event Segment Dataset (NEW in src/)
+### Phase 2: Event Segment Dataset (DONE)
 
 **Location**: `src/brain_go_brrr/infra/data/tuev_event_dataset.py`
 
@@ -225,7 +221,7 @@ class TUEVEventDataset(Dataset):
         return data['x'], data['y']
 ```
 
-### Phase 3: Channel Mapper Integration (REUSE existing)
+### Phase 3: Channel Mapper Integration (DONE)
 
 **Location**: Already exists at `src/brain_go_brrr/infra/ml_models/channel_mapper.py`
 
@@ -259,14 +255,16 @@ class TUEVChannelMapper(nn.Module):
         return x.squeeze(2)  # → (batch, 20, 1000)
 ```
 
-### Phase 4: Training (THIN wrappers in experiments/)
+### Phase 4: Training (Single thin wrapper) — DONE
 
-Two supported modes:
-
-- Option A — Strict Parity (target for replication): 5 s @ 200 Hz, 23→20 mapper, classifier head on 20×1000.
-- Option B — EEGPT‑Feature (fallback): center‑crop to 4.0 s and resample to 256 Hz → 20×1024, EEGPT features + probe.
-
-Key note: EEGPTWrapper expects 4 s @ 256 Hz windows (20×1024). Use Option B only if we accept a non‑paper‑exact path while building Option A.
+- Trainer: `experiments/eegpt_linear_probe/train_tuev_events.py`.
+- Modes:
+  - Strict parity: `--use_parity` → EEGPT configured with `time_steps=1000`, `patch_stride=64` (no padding).
+  - Compatibility fallback (default): pad 1000→1024 for standard EEGPT checkpoints.
+- Loss: CrossEntropy(label_smoothing=0.1), unweighted.
+- Schedule: warmup_epochs=5 + cosine anneal.
+- Optimizer: AdamW with layer_decay=0.65 (block‑aware); lr=5e-4; weight_decay=0.05.
+- Effective batch≈400 via gradient accumulation; epochs≈30.
 
 Option A — Strict Parity (paper‑exact)
 
@@ -313,7 +311,7 @@ experiments/eegpt_linear_probe/train_tuev_events_probe.py
 
 ## Validation Criteria
 
-### Paper Parity Success Metrics:
+### Paper Parity Success Metrics (Acceptance):
 ```python
 # From EEGPT Table 3:
 target_metrics = {
@@ -323,7 +321,7 @@ target_metrics = {
 }
 ```
 
-### Cache Validation:
+### Cache Validation (must hold):
 ```python
 # Each segment must be:
 assert x.shape == (23, 1000)  # 23 channels, 5 seconds @ 200Hz
@@ -333,17 +331,16 @@ assert y in range(6)  # Valid class label
 # sr==200, unit=='V', segment_type=='event', channels==23, samples==1000
 ```
 
-### Training Validation:
+### Training Validation (must hold):
 - Warmup working (loss should be stable first 5 epochs)
 - No class collapse (all 6 classes predicted)
 - BAC improving steadily (not stuck at 16.67%)
 - Layer decay active (per-parameter group scales present)
 
-### Test Suite Alignment (required additions)
+### Test Suite Alignment
 - Unit: event extractor (filters, notch, sr=200, shape 23×1000)
 - Unit: event dataset META/index and label ranges
-- Integration: parity path — dataset → mapper → head forward pass
-- Integration: probe path — dataset → mapper → crop+resample → EEGPT → probe
+- Integration: dataset → mapper → EEGPT features; shape + grad flow
 
 ## Monitoring and Rollback
 - Checkpoints: pre-extraction cache snapshot; post-extraction event counts vs `.rec`; training checkpoints every N epochs
@@ -379,23 +376,23 @@ assert y in range(6)  # Valid class label
 - Use Strict Parity for replication (paper numbers).
 - Keep existing sliding-window script as a non-parity fallback for research; do not use it to claim paper parity.
 
-## Timeline
+## Current Status & Next Steps
 
-### Day 1: Build Event Extractor
-- [ ] Modify existing `_load_annotations()` parser for event extraction
-- [ ] Add 200Hz resampling and filtering (0.1-75Hz, notch 50Hz)
-- [ ] Extract 5s segments (−2s to +3s around events)
-- [ ] Validate segment shapes (23, 1000)
+- Code: COMPLETE per plan (see files above).
+- Data: Build event cache for train/eval using `TUEVEventDataset`.
+- Verify metrics:
+  - Fallback (pads to 1024): smoke test training for pipeline sanity.
+  - Strict parity (`--use_parity`): run full training; acceptance if BAC ≈ 0.62 ± 0.02 on eval.
 
-### Day 2: Build Event Dataset  
-- [ ] Implement TUEVEventDataset with 80/20 subject splits
-- [ ] Build cache for train/eval with META.json
-- [ ] Verify event-only distribution (no background dominance)
-
-### Day 3: Training & Validation
-- [ ] Run training with paper hyperparams
-- [ ] Monitor metrics
-- [ ] Achieve target BAC
+Verification commands:
+- Parser for TUEV annotations:
+  - `sed -n '77,86p' src/brain_go_brrr/infra/data/tuev_event_dataset.py`
+- Parity stride support:
+  - `rg -n "patch_stride|time_steps" src/brain_go_brrr/infra/ml_models/eegpt_architecture.py`
+- Train (fallback):
+  - `python experiments/eegpt_linear_probe/train_tuev_events.py --data_dir data/datasets/tuev --eegpt_checkpoint <ckpt> --epochs 1 --batch_size 32`
+- Train (strict parity):
+  - `python experiments/eegpt_linear_probe/train_tuev_events.py --data_dir data/datasets/tuev --eegpt_checkpoint <ckpt> --use_parity --epochs 1 --batch_size 32`
 
 ## Risk Mitigation
 
