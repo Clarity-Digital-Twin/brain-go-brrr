@@ -122,6 +122,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 ### Stable WSL Command (RECOMMENDED)
 ```bash
 tmux new -d -s tuev "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr && \
+  CUDA_LAUNCH_BLOCKING=1 PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64 \
   uv run python experiments/eegpt_linear_probe/train_tuev_events.py \
   --data_dir data/datasets/tuev \
   --eegpt_checkpoint data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt \
@@ -137,6 +138,10 @@ tmux new -d -s tuev "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-br
 # Watch progress:
 tmux attach -t tuev
 ```
+
+**Environment Variables Explained**:
+- `CUDA_LAUNCH_BLOCKING=1`: Synchronous CUDA execution for better error messages
+- `PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64`: Prevents GPU memory fragmentation
 
 ### Monitor Training
 ```bash
