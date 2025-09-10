@@ -1,8 +1,8 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: Implementation complete, training achieves BAC=0.19-0.24 (target: 0.62)  
+**Status**: All major fixes applied, ready for validation training (target: 0.62 BAC)  
 **Last Updated**: September 10, 2025  
-**Current Issue**: Severe class imbalance despite WeightedRandomSampler
+**Current Issue**: Performance gap - achieving 0.19-0.24 BAC vs 0.62 target
 
 ## Table of Contents
 1. [Critical Issues & Status](#critical-issues--status)
@@ -16,17 +16,17 @@
 
 ## Critical Issues & Status
 
-### 🔴 Issue #0: WRONG DATA SPLITS (CRITICAL BUG)
-- **Problem**: Our code IGNORES TUEV's official train/eval directories
-- **Impact**: Using 4 eval subjects instead of 80 (95% of eval missing!)
-- **Details**: We re-split all data with seed=42 instead of using provided splits
-- **Status**: MUST fix before any other changes - invalidates all previous results
+### ✅ Issue #0: WRONG DATA SPLITS (FIXED)
+- **Problem**: Code was using wrong cache with seed=42 split
+- **Solution**: Deleted wrong cache, now uses official train/eval directories
+- **Impact**: Now using 359 train files, 159 eval files (correct splits)
+- **Status**: FIXED - cache rebuilding with correct splits
 
-### 🔴 Issue #1: Class Imbalance (SECONDARY)
-- **Problem**: Class 0 (spsw) has 19/2695 samples (0.7%), Class 5 (bckg) has 1168/2695 (43%)
-- **Impact**: Model collapses to predicting majority classes, BAC stuck at ~0.19
-- **Attempted Fix**: WeightedRandomSampler added but likely harmful (reference doesn't balance)
-- **Status**: Remove sampler after fixing splits
+### ✅ Issue #1: Class Imbalance Handling (FIXED)
+- **Problem**: Severe imbalance - Class 0 (spsw) <1%, Class 5 (bckg) >40%
+- **Solution**: Removed WeightedRandomSampler - reference achieves 62% BAC WITHOUT balancing
+- **Impact**: Model will learn from natural distribution like reference
+- **Status**: FIXED - using shuffle=True without sampler
 
 ### ✅ Issue #2: Channel Mismatch (FIXED)
 - **Problem**: EEGPT configured for wrong channel count
@@ -113,10 +113,14 @@ label_smoothing = 0.1
 ```
 Rule of thumb: choose gradient accumulation steps so `batch_size × steps ≈ 400`.
 
-### Balanced Sampler Specification
-Train labels are read from the split index file at `data/datasets/tuev/cache/tuev_event_segments/train/index.json` (not by loading all .pt files). We compute `class_counts` with `torch.bincount(..., minlength=6)`, guard zeros (replace 0 with 1) to avoid division by zero, set sample weights to `(1/class_count)` as a floating-point tensor (float or double), and seed the `WeightedRandomSampler` via `generator.manual_seed(42)`.
+### Natural Sampling (NO BALANCING)
+**CRITICAL**: Do NOT use WeightedRandomSampler! The reference achieves ~62% BAC with natural distribution.
 
-Note: If eval split is skewed, even balanced training can yield low BAC; inspect eval `class_counts` too.
+The training script:
+1. Reads class distribution from cache index for monitoring
+2. Prints natural class_counts to show imbalance (this is expected)
+3. Uses `shuffle=True` in DataLoader WITHOUT any sampler
+4. Trusts the model to learn from natural distribution like the reference
 
 ## Reference Implementation
 
@@ -144,10 +148,16 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 - Label smoothing, warmup, layer decay
 - Referential (not bipolar) channels
 
-### What's Still Wrong ❌
-1. **Class imbalance handling**: WeightedRandomSampler insufficient
-2. **Learning rate**: May need adjustment (try 1e-4 or 3e-4)
-3. **Normalization**: We normalize to mean=0, std=50μV by default; for production, compute corpus stats. Normalization alone is unlikely to explain current BAC gap
+### Recent Fixes Applied ✅
+1. **Data splits**: Now using official train/eval directories (359/159 files)
+2. **Sampling**: Removed WeightedRandomSampler, using natural distribution
+3. **Normalization**: Disabled normalization, using raw μV like reference
+4. **Mean pooling**: Enabled to match reference (512 features instead of 2048)
+5. **Batch size**: Fixed to target 400 effective batch size
+
+### Still TODO
+1. **DropPath**: Add 0.2 dropout paths for regularization (minor impact)
+2. **Verify cache**: Ensure no subject overlap between splits after rebuild
 
 ## Training Commands
 

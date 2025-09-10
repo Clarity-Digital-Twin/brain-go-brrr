@@ -15,6 +15,25 @@ from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
+
+class DropPath(nn.Module):
+    """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
+    From timm/models/layers/drop.py
+    """
+    def __init__(self, drop_prob: float = 0.):
+        super(DropPath, self).__init__()
+        self.drop_prob = drop_prob
+
+    def forward(self, x: Tensor) -> Tensor:
+        if self.drop_prob == 0. or not self.training:
+            return x
+        keep_prob = 1 - self.drop_prob
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors
+        random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
+        random_tensor.floor_()  # binarize
+        output = x.div(keep_prob) * random_tensor
+        return output
+
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
     "FP1": 0,
@@ -285,6 +304,7 @@ class Block(nn.Module):
         qkv_bias: bool = False,
         drop: float = 0.0,
         attn_drop: float = 0.0,
+        drop_path: float = 0.0,  # ADD drop_path parameter
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
@@ -304,16 +324,18 @@ class Block(nn.Module):
         self.mlp = MLP(
             in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop
         )
+        # Add DropPath for stochastic depth
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass through Transformer block with self-attention and MLP."""
-        # Self-attention with residual connection
+        # Self-attention with residual connection and drop_path
         x_norm = self.norm1(x)
         attn_out = self.attn(x_norm)
-        x = x + attn_out
+        x = x + self.drop_path(attn_out)
 
-        # MLP with residual connection
-        x = x + self.mlp(self.norm2(x))
+        # MLP with residual connection and drop_path
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
 
 
@@ -386,6 +408,7 @@ class EEGTransformer(nn.Module):
         qkv_bias: bool = True,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
+        drop_path_rate: float = 0.0,  # Stochastic depth rate
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
         time_steps: int = 1024,  # Make configurable for paper parity (1000 for TUEV)
         patch_stride: int | None = None,
@@ -424,6 +447,11 @@ class EEGTransformer(nn.Module):
         self.summary_token = nn.Parameter(torch.zeros(1, embed_num, embed_dim))
         nn.init.normal_(self.summary_token, std=0.02)
 
+        # Stochastic depth decay rule
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay
+        if drop_path_rate > 0:
+            print(f"DropPath enabled: rate={drop_path_rate}, per-layer decay from 0 to {drop_path_rate}")
+        
         # Transformer blocks
         self.blocks = nn.ModuleList(
             [
@@ -434,9 +462,10 @@ class EEGTransformer(nn.Module):
                     qkv_bias=qkv_bias,
                     drop=drop_rate,
                     attn_drop=attn_drop_rate,
+                    drop_path=dpr[i],  # Add stochastic depth
                     norm_layer=norm_layer,
                 )
-                for _ in range(depth)
+                for i in range(depth)
             ]
         )
 
@@ -629,6 +658,7 @@ def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
         "qkv_bias": kwargs.get("qkv_bias", True),
         "drop_rate": kwargs.get("drop_rate", 0.0),
         "attn_drop_rate": kwargs.get("attn_drop_rate", 0.0),
+        "drop_path_rate": kwargs.get("drop_path_rate", 0.0),  # CRITICAL: Wire DropPath through!
         "norm_layer": kwargs.get("norm_layer", nn.LayerNorm),
         "time_steps": kwargs.get("time_steps", 1024),
         "patch_stride": kwargs.get("patch_stride"),

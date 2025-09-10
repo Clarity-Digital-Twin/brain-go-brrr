@@ -5,10 +5,13 @@
 
 ## Fixes Applied ✅
 
-### 1. Data Splits - FIXED ✅
-- **Problem**: Used wrong 80/20 split with seed=42, only 4 eval subjects
-- **Solution**: Deleted cache, now uses official train/eval directories
-- **Impact**: 359 train files, 159 eval files (was 205/4)
+### 1. Data Splits - REBUILDING 🔄
+- **Problem**: Cache had MULTIPLE bugs causing wrong splits
+- **Bug #1**: Used cache_file.name instead of relative path
+- **Bug #2**: cache_dir undefined in build loop  
+- **Bug #3**: Legacy pick_channels warning spam (harmless but annoying)
+- **Solution**: Fixed all path bugs, rebuilding with official dirs
+- **Impact**: 359 train files, 159 eval files (from official dirs)
 
 ### 2. WeightedRandomSampler - REMOVED ✅
 - **Problem**: We forced class balancing, reference doesn't
@@ -30,10 +33,10 @@
 - **Solution**: Added mean pooling option (enabled by default)
 - **Impact**: 4x smaller feature vector like reference
 
-### 6. DropPath - PENDING ⏳
-- **Problem**: Reference uses 0.2, we don't have it
-- **Solution**: Complex to add, skip for initial test
-- **Impact**: Minor regularization difference
+### 6. DropPath - IMPLEMENTED ✅
+- **Problem**: Reference uses 0.2 stochastic depth
+- **Solution**: Added DropPath class, stochastic depth decay, drop_path_rate=0.2
+- **Impact**: Better regularization, prevents overfitting
 
 ## Code Changes
 

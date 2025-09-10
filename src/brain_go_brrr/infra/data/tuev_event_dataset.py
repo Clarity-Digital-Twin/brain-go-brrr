@@ -203,6 +203,10 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                 )
             return
 
+        # Create cache directory
+        cache_dir = self.cache_dir / self.split
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
         # Process each file
         all_segments = []
         for edf_path in tqdm(edf_files, desc=f"Building {self.split} cache"):
@@ -241,8 +245,10 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                     cache_file,
                 )
 
+                # Store relative path from cache_dir for portability
+                relative_path = cache_file.relative_to(cache_dir)
                 all_segments.append(
-                    {'file': cache_file.name, 'label': label, 'subject': subject_id}
+                    {'file': str(relative_path), 'label': label, 'subject': subject_id}
                 )
 
         # Calculate statistics

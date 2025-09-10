@@ -55,11 +55,15 @@ class TUEVClassifierHead(nn.Module):
             ]  # 20 channels!
             
             # Configure model with 20 channels and correct time steps
-            model_kwargs = {"n_channels": use_channels_names}
+            model_kwargs = {
+                "n_channels": use_channels_names,
+                "drop_path_rate": 0.2,  # CRITICAL: Add DropPath=0.2 for paper parity!
+            }
             if use_parity:
                 # Configure EEGPT for native 1000 time steps with stride 64
                 model_kwargs.update({"time_steps": 1000, "patch_stride": 64})
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
+            print("DropPath=0.2 enabled for stochastic depth regularization")
             
             # CRITICAL: Disable normalization to match reference (they use raw μV)
             # Our dataset outputs Volts, we'll scale to μV in forward pass
@@ -505,12 +509,24 @@ def main(args):
 
     # Calculate gradient accumulation steps to match reference batch=400
     effective_batch_size = 400  # Reference uses exactly 400
-    # Adjust batch size if needed to get exact 400
-    if args.batch_size * 12 == 384:  # Our default 32*12=384
-        print("Adjusting batch size from 32 to 34 for exact 400 effective (34*12=408≈400)")
-        args.batch_size = 34  # 34*12 = 408 ≈ 400
-    accumulate_steps = max(1, effective_batch_size // args.batch_size)
-    print(f"Effective batch size: {args.batch_size * accumulate_steps} (batch={args.batch_size}, accum={accumulate_steps})")
+    
+    # Calculate accumulation steps to get as close to 400 as possible
+    # Option 1: batch=32, accum=13 -> 416 (4% over)
+    # Option 2: batch=40, accum=10 -> 400 (exact)
+    # Option 3: batch=50, accum=8 -> 400 (exact)
+    
+    # Use exact 400 if possible, otherwise get close
+    if effective_batch_size % args.batch_size == 0:
+        accumulate_steps = effective_batch_size // args.batch_size
+    else:
+        # Round to nearest for closest match
+        accumulate_steps = round(effective_batch_size / args.batch_size)
+        accumulate_steps = max(1, accumulate_steps)  # At least 1
+    
+    actual_effective_batch = args.batch_size * accumulate_steps
+    print(f"Effective batch size: {actual_effective_batch} (batch={args.batch_size}, accum={accumulate_steps})")
+    if abs(actual_effective_batch - effective_batch_size) > 20:
+        print(f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%")
 
     # Training loop
     best_bac = 0.0

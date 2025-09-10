@@ -11,11 +11,14 @@
 |---------------|--------------------------------|----------------------------------------|--------------------------------|
 | Split source  | Uses TUEV's pre-split dirs     | Used wrong cache with seed=42         | Now uses official dirs         |
 | Split method  | train/ and eval/ directories   | 80/20 random split (wrong!)           | train/ and eval/ dirs          |
-| Train files   | 359 files                      | Unknown (wrong split)                  | 359 files ✅                   |
-| Eval files    | 159 files                      | Unknown (only 4 subjects!)            | 159 files ✅                   |
-| Cache status  | N/A                            | WRONG - deleted                        | Needs rebuild with correct splits |
+| Train files   | 359 files                      | Unknown (wrong split)                  | 359 files (REBUILDING)         |
+| Eval files    | 159 files                      | Unknown (only 4 subjects!)            | 159 files (REBUILDING)         |
+| Cache status  | N/A                            | WRONG - had path bug                  | Fixed & rebuilding now         |
 
-**FIX APPLIED**: Deleted wrong cache. Code already checks for official splits at line 174!
+**BUGS FIXED**: 
+1. Cache had wrong file paths (only basename, not full path)
+2. cache_dir undefined in build loop - FIXED
+3. Now rebuilding with correct splits & paths
 
 Action:
 - Verify our splits are subject‑based and reproducible. No subject must appear in both splits.
