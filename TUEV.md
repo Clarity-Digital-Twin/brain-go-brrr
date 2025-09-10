@@ -3,6 +3,11 @@
 **Status**: All major fixes applied; ready for parity run (target: ~0.62 BAC)  
 **Last Updated**: September 10, 2025
 
+## Document Map
+- This file (`TUEV.md`) is the Single Source of Truth for our implementation: how it works, how to run it, and how to validate it.
+- Reference spec from the authors: `TUEV_REFERENCE.md` (read-only facts about their pipeline and hyperparameters).
+- Differences and remediation plan: `TUEV_GAP_ANALYSIS.md` (tracks alignment vs. reference and any open deltas).
+
 ## Table of Contents
 1. [Critical Issues & Status](#critical-issues--status)
 2. [What TUEV Is](#what-tuev-is)
@@ -41,6 +46,12 @@
 - **Problem**: Training hangs with num_workers>0 and pin_memory=True
 - **Solution**: Use num_workers=0, pin_memory=False
 - **Status**: Fixed with proper flags
+
+### ✅ Split Fix Summary (Consolidated)
+- We now use the official TUEV directory splits: `edf/train` and `edf/eval`.
+- The cache builder scans those trees directly; no custom re-splitting is performed.
+- Eval subject grouping uses the parent directory (`000–079`) to avoid label-derived subject names.
+- Validation: run `scripts/validate_tuev_cache.py --data_dir data/datasets/tuev` and expect zero overlap.
 
 ## What TUEV Is
 
@@ -120,6 +131,14 @@ The training script:
 2. Prints natural class_counts to show imbalance (this is expected)
 3. Uses `shuffle=True` in DataLoader WITHOUT any sampler
 4. Trusts the model to learn from natural distribution like the reference
+
+### Key Fixes Summary (Consolidated)
+- Data splits: Official `edf/train` and `edf/eval` only; stale cache removed and rebuilt
+- Sampling: No `WeightedRandomSampler`; `shuffle=True` with natural class distribution
+- Input scale: Wrapper normalization disabled; inputs scaled to μV before the mapper
+- Pooling: Mean pooling to 512-dim head (matches reference)
+- Batch: Effective batch ≈ 400 via gradient accumulation (logged)
+- Regularization: DropPath implemented at rate 0.2 with per-layer decay (logged by model)
 
 ## Reference Implementation
 
