@@ -2,6 +2,7 @@
 **Paper Target**: 62.32% ± 1.14% balanced accuracy  
 **Our Result**: 24% BAC (38% BELOW TARGET)  
 **Purpose**: SINGLE SOURCE OF TRUTH - Send this to other repos/agents
+**Results provenance**: `logs/tuev_final_20250910_152007.log` (30 epochs completed)
 
 ## 📊 IMPLEMENTATION STATUS SUMMARY
 
@@ -70,6 +71,10 @@ def readEDF(fileName):
     
     # NO NORMALIZATION (commented out in reference)
 ```
+
+Note on labels (ours vs. reference): our loader maps string labels directly to 0–5
+(`{'spsw':0,'gped':1,'pled':2,'eyem':3,'artf':4,'bckg':5}`), which is equivalent to
+the reference’s subtraction mapping (labels 1–6 → 0–5).
 
 ### Event Extraction with Triple Signal
 ```python
@@ -204,7 +209,7 @@ Given that we've achieved parity on all major components, why the 38% gap?
 - [x] Per-iteration LR scheduling
 - [x] Mixed precision (loop-level AMP)
 - [x] Load from checkpoint['state_dict']
-- [x] Labels: 1-6 → 0-5 mapping
+- [x] Labels: 1–6 → 0–5 mapping (ours maps strings to 0–5: spsw=0, gped=1, pled=2, eyem=3, artf=4, bckg=5)
 - [x] Effective batch: 400 (via accumulation)
 - [x] Natural sampling (no class weights)
 
