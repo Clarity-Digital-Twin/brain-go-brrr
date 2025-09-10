@@ -93,3 +93,40 @@ After fixing, we should see:
 - Model loads without errors
 - Training starts with correct shapes
 - Balanced accuracy approaching 62.32% as per paper
+
+## CRITICAL: WSL/tmux Training Stability Issues (Sep 10, 2025)
+
+### The Crash Pattern
+Training intermittently hangs or crashes in WSL2 environment, especially with tmux sessions.
+
+### Root Causes Identified
+1. **DataLoader Worker Deadlock**: `num_workers>0` with `pin_memory=True` causes hangs in WSL2
+2. **GPU Memory Fragmentation**: Fallback mode (1024 samples) uses more memory than parity (1000)
+3. **tmux Session Instability**: Sessions die without error messages
+
+### The Stable Configuration
+```bash
+# WORKING COMMAND - Use this for stable training!
+tmux new -d -s tuev_parity "CUDA_LAUNCH_BLOCKING=1 PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64 \
+  uv run python experiments/eegpt_linear_probe/train_tuev_events.py \
+  --data_dir data/datasets/tuev \
+  --eegpt_checkpoint data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt \
+  --use_parity \  # Native 1000 samples, no padding
+  --epochs 30 \
+  --batch_size 32 \
+  --num_workers 0 \  # CRITICAL: Avoid worker hangs
+  --save_dir experiments/eegpt_linear_probe/output/tuev_parity_$(date +%Y%m%d_%H%M%S) \
+  2>&1 | tee experiments/eegpt_linear_probe/logs/tuev_parity_$(date +%Y%m%d_%H%M%S).log"
+```
+
+### Key Fixes
+- **--use_parity**: Reduces memory (1000 vs 1024 samples)
+- **--num_workers 0**: Prevents DataLoader deadlocks
+- **CUDA_LAUNCH_BLOCKING=1**: Better error visibility
+- **Log to file**: Preserves output if tmux dies
+
+### If Training Still Crashes
+1. Check GPU memory: `nvidia-smi | grep MiB`
+2. Kill hung processes: `pkill -9 -f train_tuev_events`
+3. Reduce batch_size to 16
+4. Consider modifying code to set `pin_memory=False`

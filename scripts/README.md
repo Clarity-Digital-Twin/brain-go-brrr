@@ -1,26 +1,46 @@
-# Scripts Directory - CLEANED
+# Scripts Directory
 
-## Essential Scripts (KEPT)
+This directory contains **generic utility scripts** for the Brain-Go-Brrr project.
 
-### Performance Testing
-- `benchmark_end_to_end.py` - End-to-end performance benchmark on Sleep-EDF data
-- `run_benchmarks.py` - EEGPT performance benchmarks
+## Directory Structure (FIXED Sep 10, 2025)
 
-### API/Integration Testing
-- `quick_api_test.py` - Quick API test with mock data
-- `test_sleep_analysis.py` - Sleep analysis pipeline test (referenced in CLAUDE.md)
+```
+scripts/
+├── data/               # Dataset management
+│   ├── download_*.py   # Download various datasets
+│   └── verify_*.py     # Verify dataset integrity
+├── testing/            # Testing and debugging utilities
+│   ├── test_*.py       # Component tests
+│   ├── benchmark_*.py  # Performance benchmarks
+│   └── debug_*.py      # Debugging tools
+├── tools/              # Development tools
+│   ├── coverage_*.py   # Test coverage tools
+│   └── mypy_*.sh       # Type checking tools
+├── validate_before_push.sh  # Run all checks before git push
+└── guard_no_oz.sh           # Check for forbidden Oz channel
+```
 
-## Archived Scripts
+## IMPORTANT: CI Scripts are in `/.ci/` NOT here!
+The `.ci/` directory contains GitHub Actions scripts. This `/scripts/` directory is for developer utilities only!
 
-All old/debugging/experimental scripts have been moved to `/archive/` subdirectories:
+## Important Notes
 
-- `/archive/debugging/` - Old debugging and monitoring scripts
-- `/archive/testing/` - Old test scripts (replaced by proper tests in /tests)
-- `/archive/setup/` - Setup and fixture creation scripts
-- `/archive/old_fixes/` - Scripts used to fix past issues
-- `/archive/training/` - Old training launch scripts (now use experiments/eegpt_linear_probe)
+### What Goes Here
+- Generic utilities used across the project
+- Dataset download/verification scripts
+- Testing utilities that aren't experiment-specific
+- Development tools
 
-## Note
+### What DOESN'T Go Here  
+- **Training scripts** → Use `/experiments/`
+- **Model implementations** → Use `/src/brain_go_brrr/`
+- **Experiment-specific scripts** → Use `/experiments/*/scripts/`
+- **Temporary debug scripts** → Delete after use
 
-The main training pipeline is now in `/experiments/eegpt_linear_probe/` directory.
-Use `train_tuab.py` there for EEGPT linear probe training.
+### Training is in `/experiments/`
+- TUAB training: `/experiments/eegpt_linear_probe/train_tuab_mne.py`
+- TUEV training: `/experiments/eegpt_linear_probe/train_tuev_events.py`
+- Launch scripts: `/experiments/eegpt_linear_probe/scripts/`
+
+## Archive Note
+Old scripts have been moved to archive subdirectories for reference but should not be used.
