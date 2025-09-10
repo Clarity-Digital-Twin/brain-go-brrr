@@ -396,7 +396,7 @@ def main(args):
     # Create balanced sampler for training - READ FROM INDEX TO AVOID I/O THRASH
     print("Setting up balanced sampling for training...")
     import json
-    with open(train_dataset.cache_dir / "index.json", "r") as f:
+    with open(train_dataset.cache_dir / train_dataset.split / "index.json", "r") as f:
         index_data = json.load(f)
     
     # Get labels from index without loading .pt files
@@ -409,7 +409,7 @@ def main(args):
     # Avoid division by zero for missing classes
     class_counts = torch.where(class_counts == 0, torch.ones_like(class_counts), class_counts)
     class_weights = 1.0 / class_counts.float()
-    sample_weights = torch.tensor([class_weights[label] for label in train_labels], dtype=torch.float)
+    sample_weights = torch.tensor([class_weights[label] for label in train_labels], dtype=torch.double)
     
     # Create weighted sampler with deterministic seed
     generator = torch.Generator()
