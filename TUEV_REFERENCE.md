@@ -3,6 +3,31 @@
 **Source**: `reference_repos/EEGPT/downstream_tueg/`  
 **Paper Target**: 62.32% ± 1.14% balanced accuracy  
 **Created**: September 10, 2025
+**Last Updated**: September 10, 2025 - Added critical missing components
+
+## 🔴 CRITICAL COMPONENTS FOR ANOTHER AI TO VERIFY
+
+**ATTENTION**: If you're analyzing the reference repo independently, focus on these critical aspects that caused our training to fail:
+
+1. **LinearWithConstraint in classifier head** (file: `Modules/models/EEGPT_mcae_finetune_change_tuev.py`)
+   - Look for `LinearWithConstraint(30720, num_classes, max_norm=1)`
+   - Without this, training collapses to majority classes
+
+2. **Conv2dWithConstraint in channel mapper** (same file)
+   - Full pipeline: Conv2dWithConstraint → BatchNorm → GELU → DepthwiseConv → BatchNorm → Dropout
+   - Not just a simple Conv2d!
+
+3. **Per-iteration LR scheduling** (file: `utils.py`)
+   - Function: `cosine_scheduler` - creates iteration-level schedule
+   - Applied in training loop before each optimizer.step()
+
+4. **Loss function source** (file: `run_class_finetuning_EEGPT_change_tuev.py`)
+   - Uses `timm.loss.LabelSmoothingCrossEntropy`
+   - Not a custom implementation
+
+5. **Layer-wise LR decay** (file: `optim_factory.py`)
+   - Function: `get_parameter_groups` with `LayerDecayValueAssigner`
+   - Deeper layers get exponentially lower learning rates
 
 ## Table of Contents
 1. [Data Pipeline](#data-pipeline)
@@ -188,9 +213,55 @@ lr_scales = [layer_decay ** (num_layers + 1 - i) for i in range(num_layers + 2)]
 # Deeper layers get smaller LR multipliers
 ```
 
-## Critical Implementation Details
+## Critical Implementation Details (EXPANDED Sep 10, 2025)
 
-### 1. Label Mapping
+### 1. LinearWithConstraint - THE MOST CRITICAL COMPONENT
+```python
+class LinearWithConstraint(nn.Linear):
+    """CRITICAL: Without this, training collapses to majority classes!"""
+    def __init__(self, *args, doWeightNorm=True, max_norm=1, **kwargs):
+        self.max_norm = max_norm
+        self.doWeightNorm = doWeightNorm
+        super().__init__(*args, **kwargs)
+    
+    def forward(self, x):
+        if self.doWeightNorm:
+            # Renormalize weights EVERY forward pass - prevents explosion
+            self.weight.data = torch.renorm(
+                self.weight.data, p=2, dim=0, maxnorm=self.max_norm
+            )
+        return super().forward(x)
+```
+
+### 2. Per-Iteration Scheduling (NOT Per-Epoch!)
+```python
+# From utils.py - cosine_scheduler function
+def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epochs=0):
+    """Creates per-iteration schedule, not per-epoch!"""
+    warmup_iters = warmup_epochs * niter_per_ep
+    warmup_schedule = np.linspace(0, base_value, warmup_iters) if warmup_epochs > 0 else []
+    
+    iters = np.arange(epochs * niter_per_ep - warmup_iters)
+    schedule = [final_value + 0.5 * (base_value - final_value) * 
+                (1 + math.cos(math.pi * i / len(iters))) for i in iters]
+    
+    return np.concatenate((warmup_schedule, schedule))
+
+# Applied in training loop BEFORE optimizer.step():
+for i, batch in enumerate(dataloader):
+    it = epoch * steps_per_epoch + i
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = lr_schedule[it]  # Update EVERY iteration
+```
+
+### 3. Loss Function - Use timm's Implementation
+```python
+from timm.loss import LabelSmoothingCrossEntropy
+criterion = LabelSmoothingCrossEntropy(smoothing=0.1)
+# NOT a custom implementation - use timm for exact parity
+```
+
+### 4. Label Mapping
 **CRITICAL**: Labels are subtracted by 1 in the dataloader:
 ```python
 Y = int(sample["label"][0] - 1)  # Original 1-6 → Model expects 0-5

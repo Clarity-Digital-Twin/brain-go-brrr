@@ -111,26 +111,22 @@ EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats
 
 ### Model Architecture
 
-**CURRENT (WRONG)**:
+**IMPLEMENTED (CORRECT) ✅**:
 ```python
-# Simple channel mapping + standard linear head
-Input (23, 1000) → Conv2d(23→20) → EEGPT → Flatten(30720) → Dropout(0.8) → Linear(30720→6)
-```
-
-**REFERENCE (CORRECT)**:
-```python
-# Complex channel mapper with constraints + weight-normalized head
+# Full parity with reference implementation
 Input (23, 1000) → [Conv2dWithConstraint(23→20) → BatchNorm → GELU → 
                     DepthwiseConv(1,55) → BatchNorm → Dropout(0.8)] →
                    EEGPT → Flatten(30720) → Dropout(0.8) → LinearWithConstraint(30720→6, max_norm=1)
 ```
 
-**Critical Missing Components**:
-1. **LinearWithConstraint**: Weight renormalization (max_norm=1) prevents gradient explosion
-2. **Conv2dWithConstraint**: Channel mapper also needs weight constraints
-3. **BatchNorm layers**: Stabilize channel mapping
-4. **DepthwiseConv(1,55)**: Additional temporal processing in mapper
-5. **Dropout(0.8) in mapper**: Extra regularization before EEGPT
+**Key Components (ALL IMPLEMENTED)**:
+1. **LinearWithConstraint**: Weight renormalization (max_norm=1) prevents gradient explosion ✅
+2. **Conv2dWithConstraint**: Channel mapper with weight constraints ✅
+3. **BatchNorm layers**: Stabilize channel mapping ✅
+4. **DepthwiseConv(1,55)**: Additional temporal processing in mapper ✅
+5. **Dropout(0.8) in mapper**: Extra regularization before EEGPT ✅
+6. **Per-iteration LR scheduling**: Cosine annealing every step, not epoch ✅
+7. **timm.loss.LabelSmoothingCrossEntropy**: Exact reference loss function ✅
 
 ### Training Configuration
 ```python
@@ -193,13 +189,34 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 - Label smoothing, warmup, layer decay
 - Referential (not bipolar) channels
 
-### Recent Fixes Applied ✅
-1. **Data splits**: Now using official train/eval directories (359/159 files)
-2. **Sampling**: Removed WeightedRandomSampler, using natural distribution
-3. **Normalization**: Disabled wrapper normalization, using raw μV like reference
-4. **Temporal tokens**: Using ALL temporal tokens (30720) instead of 4‑token pooling
-5. **Batch size**: Fixed to target 400 effective batch size
-6. **DropPath**: Implemented stochastic depth with `drop_path_rate=0.2` (logs on model init)
+### Recent Fixes Applied ✅ (Sep 10, 2025)
+
+#### Critical Fixes (Resolved Training Collapse)
+1. **LinearWithConstraint in classifier head** 🔴 CRITICAL
+   - Added weight renormalization with max_norm=1.0
+   - Prevents gradient explosion with 30,720 input features
+   - This was THE smoking gun causing collapse to majority classes
+
+2. **timm.loss.LabelSmoothingCrossEntropy** 
+   - Switched from custom implementation to timm's version
+   - Exact match with reference implementation
+
+3. **Per-iteration LR scheduling**
+   - Implemented cosine scheduler updating every iteration
+   - Replaced per-epoch scheduling for smoother optimization
+
+4. **Layer-wise LR decay verification**
+   - Confirmed proper application with logging
+   - Deeper layers receive lower learning rates as expected
+
+#### Previously Fixed Issues
+5. **Data splits**: Now using official train/eval directories (4213/1471 segments)
+6. **Sampling**: Removed WeightedRandomSampler, using natural distribution
+7. **Normalization**: Disabled wrapper normalization, using raw μV like reference
+8. **Temporal tokens**: Using ALL temporal tokens (30720) instead of 4‑token pooling
+9. **Batch size**: Fixed to target 400 effective batch size (40×10 accumulation)
+10. **DropPath**: Implemented stochastic depth with `drop_path_rate=0.2`
+11. **Channel mapper**: Full parity with Conv2dWithConstraint + depthwise conv pipeline
 
 ### Validation Checklist
 - Cache rebuilt with official splits: `edf/train` and `edf/eval`
