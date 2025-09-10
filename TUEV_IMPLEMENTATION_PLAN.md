@@ -213,24 +213,31 @@ class TUEVEventDataset(Dataset):
 ```python
 # We already have this! Just need to use it properly
 class TUEVChannelMapper(nn.Module):
-    """Learnable 23→20 channel mapping."""
+    """Learnable 23→20 channel mapping (matches EEGPT reference)."""
     
     def __init__(self, dropout: float = 0.8):
         super().__init__()
-        # Conv1d to map 23 input channels to 20 EEGPT channels
-        self.channel_conv = nn.Conv1d(
+        # Conv2d to map 23 input channels to 20 EEGPT channels
+        # Note: EEGPT uses Conv2d(23, 20, kernel_size=1) for channel mapping
+        self.channel_conv = nn.Conv2d(
             in_channels=23,
             out_channels=20,
             kernel_size=1,
-            bias=False
+            bias=True  # EEGPT uses bias in their Conv2dWithConstraint
         )
+        self.bn = nn.BatchNorm2d(20)
+        self.gelu = nn.GELU()
         self.dropout = nn.Dropout(dropout)
         
     def forward(self, x):
-        # x: (batch, 23, 1000)
-        x = self.channel_conv(x)  # → (batch, 20, 1000)
+        # x: (batch, 23, 1, 1000) - add spatial dim for Conv2d
+        if x.dim() == 3:
+            x = x.unsqueeze(2)  # Add height dimension
+        x = self.channel_conv(x)  # → (batch, 20, 1, 1000)
+        x = self.bn(x)
+        x = self.gelu(x)
         x = self.dropout(x)
-        return x  # (batch, 20, 1000)
+        return x.squeeze(2)  # → (batch, 20, 1000)
 ```
 
 ### Phase 4: Training (THIN wrappers in experiments/)
@@ -250,7 +257,7 @@ experiments/eegpt_linear_probe/train_tuev_events_parity.py
   - Apply TUEVChannelMapper (23→20)
   - Feed 20×1000 into TUEVClassifierHead (thin head in src)
   - Loss: CrossEntropy(label_smoothing=0.1), unweighted
-  - Scheduler: warmup_epochs≈5, layer_decay≈0.9, lr=5e-4, wd=0.05, bs≈64–100
+  - Scheduler: warmup_epochs=5, layer_decay=0.65, lr=5e-4, wd=0.05, bs=400 (distributed)
 ```
 
 Option B — EEGPT‑Feature (fallback)
