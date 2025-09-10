@@ -1,5 +1,11 @@
 # TUEV Paper-Parity Implementation Plan
 
+## 🚨 CRITICAL UPDATE (Dec 10, 2024): CLASS IMBALANCE FOUND 🚨
+
+**Current Status**: Implementation complete but BAC=0.18 due to severe class imbalance
+**Root Cause**: Class 0 (spsw) has only 19/2695 samples (0.7%), Class 5 (bckg) has 1168/2695 (43%)
+**Required Fix**: Add WeightedRandomSampler to training script
+
 ## Executive Summary
 
 This document provides the **exact** implementation plan to achieve EEGPT paper parity for TUEV (62.32% BAC) using our existing Brain-Go-Brrr infrastructure. We will NOT create a parallel universe - everything integrates with our current `src/` components.
