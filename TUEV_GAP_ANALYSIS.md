@@ -73,7 +73,9 @@ if overlap:
 PY
 ```
 
-## Critical Divergences (Likely Driving the Gap)
+## Critical Divergences (ROOT CAUSES OF FAILURE)
+
+### 🔴 SMOKING GUNS (Must Fix)
 
 ### 1) Weight Normalization in Classifier Head 🔴 CRITICAL MISSING PIECE
 | Aspect        | Reference                         | Ours                    | Impact                               |
@@ -99,11 +101,33 @@ PY
 | Range       | ~[−100, +100] μV    | ~[−100, +100] μV           | Same scale                     |
 | Normalizing | Raw μV values       | Normalization disabled     | Matches reference              |
 
-### 3) Batch Size & Accumulation
-| Aspect        | Reference        | Ours                    | Impact                                 |
+### 2) Channel Mapper Architecture 🔴 CRITICAL  
+| Aspect        | Reference                                      | Ours                    | Impact                               |
+|---------------|------------------------------------------------|-------------------------|--------------------------------------|
+| Conv layer    | Conv2dWithConstraint(23→20, max_norm=1)       | nn.Conv2d(23→20)        | Weights unbounded                    |
+| Full pipeline | Conv→BatchNorm→GELU→DepthwiseConv→BN→Dropout  | Just Conv2d             | Missing ALL regularization           |
+| Depthwise     | kernel=(1,55), groups=20, padding='same'      | None                    | No temporal processing               |
+| Dropout       | 0.8 in mapper itself                          | None                    | No regularization                    |
+
+### 🟡 MAJOR DIVERGENCES (Significant Impact)
+
+### 3) Learning Rate Schedule
+| Aspect        | Reference                     | Ours                    | Impact                               |
+|---------------|-------------------------------|-------------------------|--------------------------------------|
+| LR schedule   | Cosine annealing             | None/constant           | Poor convergence                     |
+| WD schedule   | Cosine annealing for WD too!  | Constant WD             | Suboptimal regularization            |
+| Implementation| Per-iteration scheduling      | Per-epoch (if any)      | Less smooth optimization             |
+
+### 4) Loss Function Source
+| Aspect        | Reference                     | Ours                         | Impact                          |
+|---------------|-------------------------------|------------------------------|----------------------------------|
+| Label smooth  | timm.loss.LabelSmoothingCE   | Custom implementation        | Potential numerical differences  |
+| Implementation| Well-tested timm version      | Our custom version           | Unknown edge cases              |
+
+### 5) Batch Size & Accumulation ✅ FIXED
+| Aspect        | Reference        | Ours (FIXED)            | Impact                                 |
 |---------------|------------------|-------------------------|----------------------------------------|
-| Total batch   | 400 (DDP, 2 GPUs)| 32×12 steps ≈ 384       | Slightly different gradient statistics |
-| Update cadence| Every step (DDP) | After N micro‑batches   | Different update cadence (not stale)   |
+| Total batch   | 400              | 400 (40×10)             | Now matches                            |
 
 ## Moderate Divergences (5–10% each)
 

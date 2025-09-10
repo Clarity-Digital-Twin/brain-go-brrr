@@ -78,16 +78,22 @@ use_channels_names = ['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
 
 ## Model Architecture
 
-### Channel Mapping (`run_class_finetuning_EEGPT_change_tuev.py`)
+### Channel Mapping Architecture (CRITICAL DETAILS)
 ```python
-model = EEGPTClassifier(
-    num_classes=6,                           # 6 event types
-    in_channels=23,                          # Input channels
-    img_size=[20, 1000],                     # Target size after mapping
-    use_channels_names=use_channels_names,   # 20 channel names
-    use_chan_conv=True,                      # Enable 23→20 Conv2d mapping
-    use_mean_pooling=args.use_mean_pooling
+# The channel mapper is NOT just a simple Conv2d!
+self.chan_conv = nn.Sequential(
+    Conv2dWithConstraint(in_channels=23, out_channels=20, kernel_size=1, max_norm=1),
+    nn.BatchNorm2d(20),
+    nn.GELU(),
+    nn.Conv2d(20, 20, kernel_size=(1,55), groups=20, padding='same'),  # Depthwise temporal conv
+    nn.BatchNorm2d(20),
+    nn.Dropout(0.8),  # Heavy dropout IN the mapper itself!
 )
+
+# Usage in forward():
+if self.use_chan_conv:
+    x = x[:,:,None]  # Add spatial dimension: (B,23,1000) → (B,23,1,1000)
+    x = self.chan_conv(x)[:,:,0]  # Apply mapping and remove spatial: → (B,20,1000)
 ```
 
 Classifier head behavior (from authors' code):
@@ -155,8 +161,31 @@ criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)  # smoothing=0.
 # AdamW with layer-wise learning rate decay
 opt = 'adamw'
 opt_eps = 1e-8
-opt_betas = None  # Use default
+opt_betas = None  # Use default (0.9, 0.999)
 clip_grad = None  # No gradient clipping
+
+# CRITICAL: Uses COSINE scheduler for BOTH LR and weight decay!
+lr_schedule = cosine_scheduler(
+    base_value=5e-4,
+    final_value=1e-6,  # min_lr
+    epochs=30,
+    niter_per_ep=num_training_steps_per_epoch,
+    warmup_epochs=5
+)
+
+wd_schedule = cosine_scheduler(
+    base_value=0.05,
+    final_value=0.05,  # Same as base (constant in practice)
+    epochs=30,
+    niter_per_ep=num_training_steps_per_epoch,
+    warmup_epochs=0  # No warmup for WD
+)
+
+# Layer-wise LR decay implementation
+layer_decay = 0.65
+num_layers = model.get_num_layers()  # ~12 for EEGPT
+lr_scales = [layer_decay ** (num_layers + 1 - i) for i in range(num_layers + 2)]
+# Deeper layers get smaller LR multipliers
 ```
 
 ## Critical Implementation Details
