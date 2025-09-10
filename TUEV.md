@@ -1,6 +1,6 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: Implementation complete, training achieves BAC=0.19 (target: 0.62)  
+**Status**: Implementation complete, training achieves BAC=0.19-0.24 (target: 0.62)  
 **Last Updated**: September 10, 2025  
 **Current Issue**: Severe class imbalance despite WeightedRandomSampler
 
@@ -180,11 +180,28 @@ nvidia-smi --gpu-reset
 
 ### Debug Class Distribution
 ```bash
-# Check train distribution
-python -c "import json; print(json.load(open('data/datasets/tuev/cache/tuev_event_segments/train/index.json'))['class_counts'])"
+# Check train distribution (if cache exists)
+uv run python -c "import json; print(json.load(open('data/datasets/tuev/cache/tuev_event_segments/train/index.json'))['class_counts'])"
 
-# Check eval distribution  
-python -c "import json; print(json.load(open('data/datasets/tuev/cache/tuev_event_segments/eval/index.json'))['class_counts'])"
+# Check eval distribution (if cache exists)
+uv run python -c "import json; print(json.load(open('data/datasets/tuev/cache/tuev_event_segments/eval/index.json'))['class_counts'])"
+
+# Actual distribution from our training:
+# Train: {0: 19, 1: 715, 2: 282, 3: 185, 4: 326, 5: 1168} = 2695 total
+# Class 0 (spsw): 0.7%, Class 5 (bckg): 43.3%
+```
+
+### Cache Management
+```bash
+# Check if cache exists
+ls -la data/datasets/tuev/cache/tuev_event_segments/
+
+# Rebuild cache if needed (takes ~30 minutes)
+rm -rf data/datasets/tuev/cache/
+uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset; TUEVEventDataset('data/datasets/tuev', 'train')"
+
+# Cache is NOT affected by training script changes
+# Only rebuild if you change preprocessing/extraction logic
 ```
 
 ## Implementation Files
