@@ -379,6 +379,7 @@ class EEGTransformer(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
+        time_steps: int = 1024,  # Make configurable for paper parity (1000 for TUEV)
     ) -> None:
         """Initialize EEG Transformer model."""
         super().__init__()
@@ -391,13 +392,14 @@ class EEGTransformer(nn.Module):
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.embed_num = embed_num
+        self.time_steps = time_steps  # Store for validation
 
         # Build channel index map once
         self.channel_index: dict[str, int] = {name: i for i, name in enumerate(self.n_channels)}
 
         # Patch embedding using PatchEmbed module to match checkpoint
         self.patch_embed = PatchEmbed(
-            img_size=[len(self.n_channels), 1024],  # channels x time_steps
+            img_size=[len(self.n_channels), time_steps],  # channels x time_steps (configurable)
             patch_size=patch_size,
             in_chans=1,
             embed_dim=embed_dim,

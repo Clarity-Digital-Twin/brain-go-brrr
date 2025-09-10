@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 """Train TUEV event classifier for EEGPT paper parity.
 
-This implements the EXACT training from EEGPT reference:
-- 5-second event segments at 200Hz (NOT sliding windows)
-- 23→20 channel mapping via learned conv
-- Unweighted CrossEntropy with label_smoothing=0.1
-- Paper hyperparameters: lr=5e-4, weight_decay=0.05, warmup=5, layer_decay=0.65
+This implements TWO paths based on --use_parity flag:
 
-Expected performance: 62.32% ± 1.14% balanced accuracy
+Option A (--use_parity): TRUE paper parity
+- 5-second segments at 200Hz (1000 samples)
+- EEGPT configured for native 1000 samples (no padding!)
+- Expected: 62.32% ± 1.14% balanced accuracy
+
+Option B (default): Fallback with padding
+- 5-second segments at 200Hz padded to 1024
+- Uses standard EEGPT expecting 1024 samples
+- Slightly different from paper but compatible with existing checkpoints
 """
 
 import argparse
@@ -42,9 +46,11 @@ class TUEVClassifierHead(nn.Module):
         num_classes: int = 6,
         use_eegpt: bool = False,
         eegpt_checkpoint: str | None = None,
+        use_parity: bool = False,  # TRUE paper parity (1000 samples native)
     ):
         super().__init__()
         self.use_eegpt = use_eegpt
+        self.use_parity = use_parity
 
         if use_eegpt and eegpt_checkpoint:
             # Option 1: Use EEGPT backbone (PAPER PARITY)
@@ -115,13 +121,15 @@ class TUEVClassifierHead(nn.Module):
             Logits of shape (batch, 6)
         """
         if self.use_eegpt:
-            # EEGPT expects (B, 20, 1024) but we have (B, 20, 1000)
-            # We need to either:
-            # 1. Pad to 1024 samples
-            # 2. Resample from 200Hz to 256Hz (5s -> 4s)
-            # For now, let's pad with zeros
-            if x.shape[-1] == 1000:
-                x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
+            # Handle padding based on parity mode
+            if self.use_parity:
+                # TRUE PARITY: Use 1000 samples natively (requires modified EEGPT)
+                # No padding needed if EEGPT is configured for time_steps=1000
+                pass
+            else:
+                # FALLBACK: Pad to 1024 for standard EEGPT
+                if x.shape[-1] == 1000:
+                    x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
 
             # Prepare channel IDs for this batch
             batch_size = x.shape[0]
@@ -450,6 +458,7 @@ def main(args):
         num_classes=6,
         use_eegpt=use_eegpt,
         eegpt_checkpoint=args.eegpt_checkpoint,
+        use_parity=args.use_parity,
     )
 
     # Combine into single model
@@ -576,6 +585,11 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help='Path to EEGPT checkpoint (e.g., data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt)',
+    )
+    parser.add_argument(
+        '--use_parity',
+        action='store_true',
+        help='Use TRUE paper parity with 1000 samples natively (requires modified EEGPT)',
     )
 
     # Other arguments
