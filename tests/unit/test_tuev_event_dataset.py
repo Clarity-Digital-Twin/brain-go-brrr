@@ -234,7 +234,7 @@ class TestTUEVEventDataset:
     def test_dataset_length_matches_segments(self):
         """Test len(dataset) returns correct number of segments."""
         # Create multiple segments
-        cache_dir = self.cache_dir / 'tuev_event_segments' / 'train'
+        cache_dir = self.cache_dir / 'train'
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         n_segments = 10
