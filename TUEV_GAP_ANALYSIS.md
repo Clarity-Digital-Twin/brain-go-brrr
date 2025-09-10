@@ -69,7 +69,7 @@ Hypothesis: Oversampling rare classes harms generalization on the natural eval d
 ### 4) Mean Pooling Strategy
 | Aspect            | Reference                 | Ours                        | Impact                     |
 |-------------------|---------------------------|-----------------------------|----------------------------|
-| Feature reduction | `use_mean_pooling` option | Flatten 4 tokens (→ 2048)   | Different head behavior    |
+| Feature reduction | `use_mean_pooling` option (often enabled) | Flatten 4 tokens (→ 2048)   | Different head behavior    |
 | Classifier input  | 512 (if pooled)           | 2048                        | Head capacity difference   |
 
 ### 5) Training Infrastructure
@@ -82,6 +82,7 @@ Hypothesis: Oversampling rare classes harms generalization on the natural eval d
 | Aspect            | Reference                 | Ours                        | Status/Impact              |
 |-------------------|---------------------------|-----------------------------|----------------------------|
 | Window extraction | Fixed 1000 samples        | Fixed 1000 samples          | ✅ Same                    |
+| Window alignment  | Slice via start/end ±2 s (plus per‑recording offset); enforces 1000 samples | Centered window (tmin=−2, tmax=+3), enforces 1000 samples | ⚠️ Minor alignment difference |
 | Channel mapping   | 23→20 Conv2d              | 23→20 mapper (equivalent)   | ✅ Equivalent              |
 | Label mapping     | 1–6 → 0–5 (−1)            | Explicit dict {spsw:0…}     | ✅ Same semantics          |
 | Label smoothing   | 0.1                       | 0.1                         | ✅ Same                    |
@@ -146,4 +147,3 @@ Test mean pooling vs flatten(4×512) → head; choose the better head behavior.
 3) Test normalization A/B (μV vs corpus stats).  
 4) Match batch/accum; consider drop‑path and pooling toggle.  
 5) Reassess BAC trajectory and per‑class recall; iterate only on the smallest change needed.
-
