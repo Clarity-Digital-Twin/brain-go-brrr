@@ -349,13 +349,53 @@ uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEv
 ### Cache Location
 - `data/datasets/tuev/cache/tuev_event_segments/` - Preprocessed segments
 
-## Next Steps
+## COMPLETE FINDINGS SUMMARY - AWAITING SENIOR AUDIT
 
-### Immediate Actions Required
-1. **Verify sampler is working**: Add batch label distribution logging
-2. **Try more aggressive balancing**: Square the class weights
-3. **Reduce learning rate**: Test 1e-4 instead of 5e-4
-4. **Check reference exactly**: Any normalization we're missing?
+### 🔴 CRITICAL ISSUES (Training Collapse Root Causes)
+1. **LinearWithConstraint Missing**: 30,720→6 head needs weight renorm (max_norm=1)
+2. **Channel Mapper Wrong**: Missing Conv2dWithConstraint, BatchNorm, GELU, DepthwiseConv, Dropout(0.8)
+
+### 🟡 MAJOR ISSUES (Performance Impact)
+3. **No Cosine LR Schedule**: Reference uses cosine annealing for LR (5e-4→1e-6)
+4. **No Cosine WD Schedule**: Reference also anneals weight decay!
+5. **Wrong Loss Function**: Using custom instead of timm.loss.LabelSmoothingCrossEntropy
+
+### ✅ ALREADY FIXED
+- Temporal tokens (30,720 features) ✅
+- Boundary handling (triple concat) ✅
+- Natural sampling ✅
+- μV scale ✅
+- Exact batch 400 ✅
+- DropPath 0.2 ✅
+
+### 🚨 IMPLEMENTATION REQUIRED (DO NOT START YET - AWAIT AUDIT)
+```python
+# 1. LinearWithConstraint for head
+class LinearWithConstraint(nn.Linear):
+    def forward(self, x):
+        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=1)
+        return super().forward(x)
+
+# 2. Conv2dWithConstraint for mapper  
+class Conv2dWithConstraint(nn.Conv2d):
+    def forward(self, x):
+        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=1)
+        return super().forward(x)
+
+# 3. Complete channel mapper
+self.chan_conv = nn.Sequential(
+    Conv2dWithConstraint(23, 20, 1, max_norm=1),
+    nn.BatchNorm2d(20),
+    nn.GELU(),
+    nn.Conv2d(20, 20, kernel_size=(1,55), groups=20, padding='same'),
+    nn.BatchNorm2d(20),
+    nn.Dropout(0.8)
+)
+
+# 4. Cosine schedulers
+lr_schedule = cosine_scheduler(5e-4, 1e-6, epochs=30, warmup=5)
+wd_schedule = cosine_scheduler(0.05, 0.05, epochs=30)
+```
 
 ### Diagnostic Code to Add
 ```python
