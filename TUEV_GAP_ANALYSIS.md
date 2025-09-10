@@ -20,6 +20,22 @@ All critical issues have been resolved:
 - **Layer-wise LR decay** properly verified
 - Training restarted with all fixes applied
 
+### 🔴 FINAL TRAINING RESULTS (30 epochs completed)
+- **Best BAC: 0.2711** (Target: 0.6232)
+- **Final BAC: 0.2511** 
+- **Result: ❌ FAILED TO ACHIEVE PAPER PARITY**
+
+### 🔴 CRITICAL DISCOVERY: Extreme Class Imbalance
+Training revealed catastrophic class imbalance (33:1 ratio):
+- `spsw`: 24 samples → 0% recall
+- `gped`: 374 samples → 64% recall ✅
+- `pled`: 74 samples → 3% recall
+- `eyem`: 75 samples → 0% recall
+- `artf`: 124 samples → 0% recall
+- `bckg`: 800 samples → 83% recall ✅
+
+**Pattern**: Model ONLY learns classes with >300 samples. All rare events completely ignored despite LinearWithConstraint.
+
 Hypothesis set (ordered by likelihood):
 - H1: Input scale mismatch subtlety — raw μV without z‑score may still be off relative to the checkpoint’s pretraining statistics; early layers may need more adaptation.
 - H2: Window alignment difference — our event centering (midpoint) vs. reference’s start/end‑bounded slicing (plus per‑recording offset) might dilute event salience for brief classes (spsw/pled).
