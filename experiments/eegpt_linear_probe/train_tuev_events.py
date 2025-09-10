@@ -29,7 +29,7 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 class TUEVClassifierHead(nn.Module):
     """EEGPT-based classifier head for TUEV event classification.
-    
+
     ALWAYS uses EEGPT - no MLP fallback!
     """
 
@@ -118,9 +118,7 @@ class TUEVClassifierHead(nn.Module):
         chan_ids = self.chan_ids.unsqueeze(0).expand(batch_size, -1)
 
         # Extract EEGPT features WITH PROPER CHANNEL IDS
-        features = self.eegpt.extract_features(
-            x, chan_ids=chan_ids, summary=False
-        )  # (B, 4, 512)
+        features = self.eegpt.extract_features(x, chan_ids=chan_ids, summary=False)  # (B, 4, 512)
 
         # Classify
         logits = self.classifier(features)
