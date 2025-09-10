@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> type:
     """Lazy import to avoid forcing MNE when importing preprocessing package."""
     if name == "AutorejectAdapter":
         from brain_go_brrr.infra.preprocessing.autoreject_adapter import AutorejectAdapter
