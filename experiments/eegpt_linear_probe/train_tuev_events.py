@@ -28,17 +28,23 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 class TUEVClassifierHead(nn.Module):
     """EEGPT-based classifier head for TUEV event classification.
-    
+
     TWO OPTIONS:
     1. Use EEGPT features (recommended for paper parity)
     2. Use simple MLP (faster but won't achieve 62% BAC)
     """
 
-    def __init__(self, input_channels: int = 20, input_samples: int = 1000, num_classes: int = 6,
-                 use_eegpt: bool = False, eegpt_checkpoint: str | None = None):
+    def __init__(
+        self,
+        input_channels: int = 20,
+        input_samples: int = 1000,
+        num_classes: int = 6,
+        use_eegpt: bool = False,
+        eegpt_checkpoint: str | None = None,
+    ):
         super().__init__()
         self.use_eegpt = use_eegpt
-        
+
         if use_eegpt and eegpt_checkpoint:
             # Option 1: Use EEGPT backbone (PAPER PARITY)
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
@@ -48,13 +54,13 @@ class TUEVClassifierHead(nn.Module):
                 nn.Linear(2048, 512),
                 nn.ReLU(),
                 nn.Dropout(0.5),
-                nn.Linear(512, num_classes)
+                nn.Linear(512, num_classes),
             )
         else:
             # Option 2: Simple MLP (current implementation)
             input_dim = input_channels * input_samples  # 20 * 1000 = 20,000
             hidden_dim = 512
-            
+
             self.flatten = nn.Flatten()
             self.fc1 = nn.Linear(input_dim, hidden_dim)
             self.bn1 = nn.BatchNorm1d(hidden_dim)
@@ -78,10 +84,10 @@ class TUEVClassifierHead(nn.Module):
             # For now, let's pad with zeros
             if x.shape[-1] == 1000:
                 x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
-            
+
             # Extract EEGPT features
             features = self.eegpt.extract_features(x, summary=False)  # (B, 4, 512)
-            
+
             # Classify
             logits = self.classifier(features)
             return logits
@@ -334,20 +340,22 @@ def main(args):
     # Create model
     print("Creating model...")
     channel_mapper = TUEVChannelMapper(dropout=0.8)
-    
+
     # Use EEGPT if checkpoint provided
     use_eegpt = args.eegpt_checkpoint is not None
     if use_eegpt:
         print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
     else:
-        print("WARNING: Using simple MLP (won't achieve 62% BAC). Add --eegpt_checkpoint for paper parity!")
-    
+        print(
+            "WARNING: Using simple MLP (won't achieve 62% BAC). Add --eegpt_checkpoint for paper parity!"
+        )
+
     classifier = TUEVClassifierHead(
-        input_channels=20, 
-        input_samples=1000, 
+        input_channels=20,
+        input_samples=1000,
         num_classes=6,
         use_eegpt=use_eegpt,
-        eegpt_checkpoint=args.eegpt_checkpoint
+        eegpt_checkpoint=args.eegpt_checkpoint,
     )
 
     # Combine into single model
@@ -470,12 +478,12 @@ if __name__ == "__main__":
 
     # Model arguments
     parser.add_argument(
-        '--eegpt_checkpoint', 
-        type=str, 
+        '--eegpt_checkpoint',
+        type=str,
         default=None,
-        help='Path to EEGPT checkpoint (e.g., data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt)'
+        help='Path to EEGPT checkpoint (e.g., data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt)',
     )
-    
+
     # Other arguments
     parser.add_argument('--num_workers', type=int, default=4, help='Number of data workers')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
