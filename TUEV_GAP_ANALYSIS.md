@@ -219,43 +219,53 @@ None critical after mapper/head parity; monitor LR schedule timing and token nor
 | Warmup            | 5 epochs                  | 5 epochs                    | ✅ Same                    |
 | DropPath          | 0.2                       | Implemented (0.2)           | ✅ Same                    |
 
-## 🚨🚨🚨 IMMEDIATE ACTION REQUIRED - FIX THE 100x BUG!
+## 🚨🚨🚨 COMPREHENSIVE FIX LIST - ALL ISSUES MUST BE FIXED BEFORE TRAINING!
 
-### STEP 1: Fix Data Scaling (THE CRITICAL BUG)
+### ✅ FIXES ALREADY APPLIED:
+1. **LinearWithConstraint** - DONE (in train_tuev_events.py)
+2. **timm.loss.LabelSmoothingCrossEntropy** - DONE
+3. **Per-iteration LR scheduling** - DONE
+4. **Layer-wise LR decay** - DONE
+
+### 🔴 CRITICAL FIXES STILL NEEDED:
+
+### FIX 1: Data Scaling (CRITICAL - 100x ERROR) ✅ PARTIALLY DONE
 ```python
-# In train_tuev_events.py, line 507, CHANGE:
-x = x * 1e6  # Convert V to μV
-
-# TO:
-x = x * 1e6 / 100  # Convert V to μV then divide by 100 like reference
+# In train_tuev_events.py, line 507:
+# STATUS: Changed to x * 1e6 / 100
+# VERIFIED: This matches reference engine_for_finetuning_EEGPT.py:65
 ```
 
-### STEP 2: Add @autocast decorator
+### FIX 2: Remove @autocast decorator (CAUSES DTYPE ERRORS) ✅ DONE
 ```python
-# In domain/constraints.py, ADD decorator:
-from torch.cuda.amp import autocast
-
-class LinearWithConstraint(nn.Linear):
-    # ... existing code ...
-    
-    @autocast(enabled=True)  # ADD THIS
-    def forward(self, x):
-        # ... existing code ...
+# In domain/constraints.py:
+# STATUS: Removed @autocast - it was causing Half/Float mismatch
+# NOTE: Reference uses @autocast but in a different context
 ```
 
-### STEP 3: Add reshape with T=200
+### FIX 3: Reshape with T=200 (OPTIONAL - Gets flattened anyway)
 ```python
-# In forward pass, ADD:
-from einops import rearrange
-x = rearrange(x, 'B N (A T) -> B N A T', T=200)  # Create 5×200 patches
-# Then flatten back after processing if needed
+# Investigation result: Reference does reshape but then flattens it immediately
+# Line 833 in EEGPT_mcae_finetune_change_tuev.py: if len(x.shape)==4: x = x.flatten(2)
+# CONCLUSION: NOT CRITICAL - can skip this
 ```
 
-### STEP 4: Re-run training immediately!
-With these fixes, we expect:
-- Epoch 1-5: BAC > 0.30
-- Epoch 10: BAC > 0.45
-- Epoch 30: BAC ≈ 0.62 (target)
+### FIX 4: Verify seed alignment
+```python
+# Reference uses seed=4523 for data splits, seed=0 for training
+# Check our seeds match
+```
+
+### FIX 5: Verify checkpoint loading
+```python
+# Reference loads from checkpoint['state_dict'] not checkpoint['model']
+# Verify we're loading correctly
+```
+
+### EXPECTED RESULTS AFTER ALL FIXES:
+- Epoch 1-5: BAC > 0.30 (minority classes should show non-zero recall)
+- Epoch 10: BAC > 0.45 (steady improvement)
+- Epoch 30: BAC ≈ 0.62 ± 0.01 (paper target)
 
 ## Revised Action Plan (in order)
 
