@@ -377,9 +377,10 @@ def train_epoch(
                 if param_group.get("weight_decay", 0) > 0:  # Only update groups with weight decay
                     param_group["weight_decay"] = wd_schedule[it]
 
-        # Forward pass
-        logits = model(x)
-        loss = criterion(logits, y)
+        # Forward pass with mixed precision (matches reference)
+        with torch.cuda.amp.autocast():
+            logits = model(x)
+            loss = criterion(logits, y)
 
         # Scale loss for gradient accumulation
         loss = loss / accumulate_steps
