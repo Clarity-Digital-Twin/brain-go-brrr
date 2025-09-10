@@ -61,31 +61,6 @@ class TUEVClassifierHead(nn.Module):
                 model_kwargs.update({"time_steps": 1000, "patch_stride": 64})
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
 
-            # CRITICAL: Compute channel IDs for the 20 TUEV channels
-            # This is the EXACT order from the EEGPT reference
-            use_channels_names = [
-                'FP1',
-                'FPZ',
-                'FP2',
-                'F7',
-                'F3',
-                'FZ',
-                'F4',
-                'F8',
-                'T7',
-                'C3',
-                'CZ',
-                'C4',
-                'T8',
-                'P7',
-                'P3',
-                'PZ',
-                'P4',
-                'P8',
-                'O1',
-                'O2',
-            ]
-
             # Convert channel names to IDs using EEGPT's channel dictionary
             chan_ids = []
             for ch in use_channels_names:
