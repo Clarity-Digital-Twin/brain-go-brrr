@@ -44,8 +44,12 @@ class TUEVClassifierHead(nn.Module):
 
         # ALWAYS use EEGPT (no MLP option)
         if eegpt_checkpoint:
-            # Option 1: Use EEGPT backbone (PAPER PARITY)
-            self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
+            # Use EEGPT backbone
+            model_kwargs = None
+            if use_parity:
+                # Configure EEGPT for native 1000 time steps with stride 64
+                model_kwargs = {"time_steps": 1000, "patch_stride": 64}
+            self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
 
             # CRITICAL: Compute channel IDs for the 20 TUEV channels
             # This is the EXACT order from the EEGPT reference
@@ -160,63 +164,58 @@ def create_optimizer_with_layer_decay(
 ) -> torch.optim.AdamW:
     """Create AdamW optimizer with layer-wise learning rate decay.
 
-    Args:
-        model: Model to optimize
-        lr: Base learning rate
-        weight_decay: Weight decay
-        layer_decay: Layer decay factor (deeper layers get smaller LR)
-
-    Returns:
-        AdamW optimizer with parameter groups
+    Applies higher LR to shallower layers and heads, decays deeper transformer blocks.
     """
-    # Collect all parameters with their depths
-    param_groups = []
-    no_decay = ["bias", "norm", "LayerNorm", "layernorm", "bn", "BatchNorm"]
+    import re
 
-    # Get max depth by analyzing parameter names
-    max_depth = 0
+    param_groups: list[dict] = []
+    no_decay_tokens = ("bias", "norm", "LayerNorm", "layernorm", "bn", "BatchNorm")
+
+    # Determine maximum transformer block depth from parameter names like '...blocks.12...'
+    block_idx_pattern = re.compile(r"\.blocks\.(\d+)\.")
+    max_block = -1
     for name, _ in model.named_parameters():
-        # Count depth based on "layer" or "block" keywords
-        depth = name.count('.layer') + name.count('.block') + name.count('.encoder')
-        max_depth = max(max_depth, depth)
+        m = block_idx_pattern.search(name)
+        if m:
+            idx = int(m.group(1))
+            if idx > max_block:
+                max_block = idx
 
-    # Group parameters by depth
-    depth_params = {}
-    for name, param in model.named_parameters():
-        if not param.requires_grad:
+    # Group params by depth and decay
+    grouped: dict[tuple[int, bool], dict] = {}
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
             continue
 
-        # Calculate depth for this parameter
-        depth = name.count('.layer') + name.count('.block') + name.count('.encoder')
+        # Assign depth: transformer blocks use their index; classifier and mapper act as heads; others as shallow
+        m = block_idx_pattern.search(name)
+        if m:
+            depth = int(m.group(1))
+        elif name.startswith("classifier"):
+            depth = max_block + 2  # highest LR
+        elif name.startswith("mapper"):
+            depth = max_block + 1
+        else:
+            depth = 0  # patch_embed, chan_embed, summary_token, norms
 
-        # Apply layer decay based on depth
-        layer_lr = lr * (layer_decay ** (max_depth - depth))
+        # Compute decayed LR relative to deepest block (blocks get decayed; heads use base LR)
+        decay_depth = min(depth, max_block if max_block >= 0 else 0)
+        layer_lr = lr * (layer_decay ** (max_block - decay_depth)) if max_block >= 0 else lr
 
-        # Check if weight decay should be applied
-        apply_wd = not any(nd in name for nd in no_decay)
-
-        # Create key for grouping
-        group_key = (depth, apply_wd)
-
-        if group_key not in depth_params:
-            depth_params[group_key] = {
-                'params': [],
-                'lr': layer_lr,
-                'weight_decay': weight_decay if apply_wd else 0.0,
-                'name': f"depth_{depth}_{'decay' if apply_wd else 'no_decay'}",
+        apply_wd = not any(tok in name for tok in no_decay_tokens)
+        key = (depth, apply_wd)
+        if key not in grouped:
+            grouped[key] = {
+                "params": [],
+                "lr": layer_lr,
+                "weight_decay": weight_decay if apply_wd else 0.0,
+                "name": f"depth_{depth}_{'decay' if apply_wd else 'no_decay'}",
             }
+        grouped[key]["params"].append(p)
 
-        depth_params[group_key]['params'].append(param)
-
-    # Convert to list of parameter groups
-    for group in depth_params.values():
-        if group['params']:  # Only add non-empty groups
-            param_groups.append(group)
-
-    # If no groups created (simple model), fall back to basic optimizer
+    param_groups = [g for g in grouped.values() if g["params"]]
     if not param_groups:
         return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-
     return torch.optim.AdamW(param_groups)
 
 

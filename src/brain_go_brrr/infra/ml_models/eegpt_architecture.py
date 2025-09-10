@@ -318,7 +318,7 @@ class Block(nn.Module):
 
 
 class PatchEmbed(nn.Module):
-    """Patch embedding for EEG signals."""
+    """Patch embedding for EEG signals with optional stride."""
 
     def __init__(
         self,
@@ -326,6 +326,7 @@ class PatchEmbed(nn.Module):
         patch_size: int = 64,
         in_chans: int = 1,
         embed_dim: int = 512,
+        patch_stride: int | None = None,
     ):
         """Initialize patch embedding.
 
@@ -334,16 +335,23 @@ class PatchEmbed(nn.Module):
             patch_size: Size of each patch in samples.
             in_chans: Number of input channels.
             embed_dim: Embedding dimension.
+            patch_stride: Stride for patch extraction (defaults to patch_size).
         """
         super().__init__()
         if img_size is None:
             img_size = [58, 1024]
         self.img_size = img_size
         self.patch_size = patch_size
-        self.num_patches = (img_size[0], img_size[1] // patch_size)
+        self.patch_stride = patch_stride if patch_stride is not None else patch_size
+        # Compute temporal patches allowing non-divisible lengths
+        temporal = (img_size[1] - patch_size) // self.patch_stride + 1
+        self.num_patches = (img_size[0], temporal)
 
         self.proj = nn.Conv2d(
-            in_chans, embed_dim, kernel_size=(1, patch_size), stride=(1, patch_size)
+            in_chans,
+            embed_dim,
+            kernel_size=(1, patch_size),
+            stride=(1, self.patch_stride),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -380,6 +388,7 @@ class EEGTransformer(nn.Module):
         attn_drop_rate: float = 0.0,
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
         time_steps: int = 1024,  # Make configurable for paper parity (1000 for TUEV)
+        patch_stride: int | None = None,
     ) -> None:
         """Initialize EEG Transformer model."""
         super().__init__()
@@ -403,6 +412,7 @@ class EEGTransformer(nn.Module):
             patch_size=patch_size,
             in_chans=1,
             embed_dim=embed_dim,
+            patch_stride=patch_stride,
         )
 
         # Channel embedding - size based on checkpoint (62 channels, 0-61)
@@ -460,11 +470,10 @@ class EEGTransformer(nn.Module):
         # Input shape: (B, C, T)
         batch_size, n_channels, time_steps = x.shape
 
-        # Validate input dimensions
-        if time_steps % self.patch_size != 0:
+        # Validate basic input length
+        if time_steps < self.patch_size:
             raise ValueError(
-                f"Time dimension {time_steps} must be divisible by patch_size {self.patch_size}. "
-                f"Expected multiple of {self.patch_size} samples."
+                f"Time dimension {time_steps} must be >= patch_size {self.patch_size}."
             )
 
         # Patch embedding: (B, C, T) -> (B, N, C, D)
@@ -550,13 +559,14 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
     """
     # Default configuration for large model
     default_config = {
-        "img_size": [58, 1024],
         "patch_size": 64,
         "embed_dim": 512,
         "embed_num": 4,
         "depth": 8,
         "num_heads": 8,
         "mlp_ratio": 4.0,
+        "time_steps": 1024,
+        # "patch_stride": None  # Optional override
     }
     default_config.update(kwargs)
 
@@ -620,6 +630,8 @@ def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
         "drop_rate": kwargs.get("drop_rate", 0.0),
         "attn_drop_rate": kwargs.get("attn_drop_rate", 0.0),
         "norm_layer": kwargs.get("norm_layer", nn.LayerNorm),
+        "time_steps": kwargs.get("time_steps", 1024),
+        "patch_stride": kwargs.get("patch_stride"),
     }
 
     # Filter out None values

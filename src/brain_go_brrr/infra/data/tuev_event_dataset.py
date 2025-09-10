@@ -66,7 +66,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
         return index_file.exists()
 
     def _parse_annotations(self, edf_path: Path) -> list[dict[str, float | int]]:
-        """Parse annotations from .rec.lab file.
+        """Parse annotations from .lab file.
 
         Args:
             edf_path: Path to EDF file
@@ -74,9 +74,13 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
         Returns:
             List of annotation dicts with 'start', 'end', 'label' keys
         """
-        # Find corresponding .rec.lab file
-        # Pattern: if EDF is xxx.edf, lab file is xxx.rec.lab
-        lab_path = edf_path.parent / f"{edf_path.stem}.rec.lab"
+        # TUEV format: annotations are in _ch000.lab (first channel)
+        # Try both formats for compatibility
+        lab_path = edf_path.parent / f"{edf_path.stem}_ch000.lab"
+
+        if not lab_path.exists():
+            # Fallback to .rec.lab format for other datasets
+            lab_path = edf_path.parent / f"{edf_path.stem}.rec.lab"
 
         if not lab_path.exists():
             return []
