@@ -307,6 +307,9 @@ def pick_channels(raw: MNERaw, picks: str | list[str] | list[int]) -> None:
         raw.pick(picks_idx)
     elif isinstance(picks, list):
         if picks and isinstance(picks[0], str):
-            raw.pick_channels(picks)
+            # Prefer inst.pick with explicit reordering to avoid legacy pick_channels
+            raw.pick(picks=picks)
+            if raw.ch_names != picks:
+                raw.reorder_channels(picks)
         else:
             raw.pick(picks)

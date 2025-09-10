@@ -107,7 +107,7 @@ class EEGSnippetMaker:
 
         # Select channels
         if channel_selection:
-            picks = mne.pick_channels(raw.ch_names, channel_selection)
+            picks = [raw.ch_names.index(ch) for ch in channel_selection if ch in raw.ch_names]
         else:
             picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
 
@@ -185,7 +185,7 @@ class EEGSnippetMaker:
 
         # Select channels
         if channel_selection:
-            epochs.pick_channels(channel_selection)
+            epochs.pick(picks=channel_selection)
 
         snippets: list[dict[str, Any]] = []
         for i, epoch in enumerate(epochs):
