@@ -1,185 +1,149 @@
 # TUEV Gap Analysis: Our Implementation vs Reference
 
 **Created**: September 10, 2025  
-**Purpose**: Identify concrete differences between our implementation and EEGPT reference  
-**Impact**: Our BAC=0.19-0.24 vs Reference BAC=0.62
+**Purpose**: Identify concrete differences between our implementation and the EEGPT reference  
+**Impact**: Our BAC=0.19–0.24 vs Reference BAC≈0.62
 
-## Pre-Flight Critical Issues (Fix FIRST)
+## Pre‑Flight Critical Issues (Fix FIRST)
 
-### 0. Data Split Mismatch ⚠️ **CRITICAL - Could explain 20-30% BAC gap**
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| Split method | Subject-based | Pre-split dirs or fallback | Different subjects in eval |
-| Random seed | 4523 | 42 or undefined | Non-reproducible splits |
-| Result | Consistent eval set | Potentially leaked/shifted eval | **Invalid comparison** |
+### 0. Data Split Mismatch ⚠️ CRITICAL
+| Aspect        | Reference                      | Ours                                   | Impact                         |
+|---------------|--------------------------------|----------------------------------------|--------------------------------|
+| Split method  | Subject‑based                  | Pre‑split dirs or fallback split       | Different subjects in eval     |
+| Random seed   | 4523                           | 42 (fallback) or undefined             | Non‑reproducible splits        |
+| Leakage check | No subject overlap train/eval  | Unknown                                 | Invalid comparison if leaked   |
 
-**Action**: Verify our splits are subject-based with NO leakage between train/eval.
+Action:
+- Verify our splits are subject‑based and reproducible. No subject must appear in both splits.
+- Align fallback split seed to 4523 if using programmatic splits.
 
-## Critical Divergences (Likely Causing Performance Gap)
-
-### 1. Class Balancing ⚠️ **MAJOR DIFFERENCE**
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| Sampling | **NO balancing** | WeightedRandomSampler | Model sees different distribution |
-| Class weights | None | 1/class_count weights | Changes gradient magnitudes |
-| Result | 62% BAC with imbalance | 19-24% BAC with balancing | **OPPOSITE of expected** |
-
-**Hypothesis**: WeightedRandomSampler may be **hurting** performance by oversampling rare classes too aggressively.
-
-### 2. Data Scale/Normalization ⚠️ **MAJOR DIFFERENCE**
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| Data scale | Raw microvolts (μV) | Volts → normalized to N(0, 50μV) | Different input distributions |
-| Range | ~[-100, +100] μV typical | [-2, +2] after normalization | Model sees different magnitudes |
-| Normalization | None mentioned | mean=0, std=50μV default | May affect learned features |
-
-### 3. Batch Size & Accumulation
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| Total batch | 400 | 32 × 12 steps = 384 | Slightly smaller effective batch |
-| Distribution | 2 GPUs, DDP | Single GPU | Different gradient statistics |
-
-## Moderate Divergences (Could Contribute 5-10% Each)
-
-### 4. Mean Pooling Strategy
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| Feature reduction | use_mean_pooling flag | Flatten 4 tokens | Different feature dims |
-| Output size | 512 (if pooled) | 2048 (flattened) | 4x larger feature vector |
-| Classifier input | Variable | Always 2048 | May need different head |
-
-### 5. Training Infrastructure
-| Aspect | Reference | Ours | Impact |
-|--------|-----------|------|--------|
-| GPUs | 2 with DDP/DeepSpeed | 1 with accumulation | Different gradient stats |
-| Batch sync | Every step | Every N steps | Stale gradients |
-
-## Minor Divergences (Less Impact)
-
-### 4. Implementation Details
-| Aspect | Reference | Ours | Status |
-|--------|-----------|------|--------|
-| Window extraction | Fixed 1000 samples | Fixed 1000 samples | ✅ Same |
-| Channel mapping | 23→20 Conv2d | 23→20 TUEVChannelMapper | ✅ Equivalent |
-| Label mapping | Subtract 1 (1-6→0-5) | Explicit dict {spsw:0...} | ✅ Same semantics |
-| Label smoothing | 0.1 | 0.1 | ✅ Same |
-| Learning rate | 5e-4 | 5e-4 | ✅ Same |
-| Layer decay | 0.65 | 0.65 | ✅ Same |
-| Warmup | 5 epochs | 5 epochs | ✅ Same |
-| DropPath | 0.2 | Not implemented | ⚠️ Missing regularization |
-
-### 5. Data Pipeline
-| Aspect | Reference | Ours | Status |
-|--------|-----------|------|--------|
-| Filtering | 0.1-75Hz + 50Hz notch | 0.1-75Hz + 50Hz notch | ✅ Same |
-| Sampling rate | 200 Hz | 200 Hz | ✅ Same |
-| Segment length | 5s (1000 samples) | 5s (1000 samples) | ✅ Same |
-| Channels | 23 referential | 23 referential | ✅ Same |
-
-## Revised Action Plan (Pre-Flight Checks FIRST)
-
-### 0. 🔴 PRE-FLIGHT: Verify Data Splits
+Quick check:
 ```bash
-# Check if we're using subject-based splits
-uv run python -c "
-from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
+uv run python - << 'PY'
 import json
-# Check train subjects
-train_idx = json.load(open('data/datasets/tuev/cache/tuev_event_segments/train/index.json'))
-train_subjects = set([seg['file_path'].split('/')[-1].split('_')[0] for seg in train_idx['segments'][:100]])
-# Check eval subjects  
-eval_idx = json.load(open('data/datasets/tuev/cache/tuev_event_segments/eval/index.json'))
-eval_subjects = set([seg['file_path'].split('/')[-1].split('_')[0] for seg in eval_idx['segments'][:100]])
-print(f'Train subjects sample: {list(train_subjects)[:5]}')
-print(f'Eval subjects sample: {list(eval_subjects)[:5]}')
-print(f'Overlap: {train_subjects & eval_subjects}')  # Should be empty set!
-"
-```
-**If overlap exists**: Data leakage! Must rebuild cache with proper subject splits.
+from pathlib import Path
 
-### 1. 🔴 THEN: Disable WeightedRandomSampler
+def subjects_from(index_path: Path):
+    data = json.loads(Path(index_path).read_text())
+    # Our index stores 'subject' explicitly; fallback: derive from file stem
+    subs = [s.get('subject') or s['file'].split('_')[0] for s in data['segments']]
+    return set(subs)
+
+train_idx = Path('data/datasets/tuev/cache/tuev_event_segments/train/index.json')
+eval_idx  = Path('data/datasets/tuev/cache/tuev_event_segments/eval/index.json')
+train_subs = subjects_from(train_idx)
+eval_subs = subjects_from(eval_idx)
+overlap = train_subs & eval_subs
+print(f"Train subjects: {len(train_subs)}  Eval subjects: {len(eval_subs)}  Overlap: {len(overlap)}")
+if overlap:
+    print("OVERLAP SUBJECTS:", sorted(list(overlap))[:10])
+PY
+```
+
+## Critical Divergences (Likely Driving the Gap)
+
+### 1) Class Balancing ⚠️ MAJOR
+| Aspect        | Reference      | Ours                    | Impact                               |
+|---------------|----------------|-------------------------|--------------------------------------|
+| Sampling      | No balancing   | WeightedRandomSampler   | Model sees artificial distribution   |
+| Class weights | None           | 1 / class_count        | Alters gradient magnitudes           |
+| Result        | ~62% BAC       | 19–24% BAC              | Likely overcorrected rare classes    |
+
+Hypothesis: Oversampling rare classes harms generalization on the natural eval distribution.
+
+### 2) Data Scale / Normalization ⚠️ MAJOR
+| Aspect      | Reference           | Ours                               | Impact                         |
+|-------------|---------------------|------------------------------------|--------------------------------|
+| Units       | Microvolts (μV)     | Volts → normalized to N(0, 50 μV)  | Different input distributions  |
+| Range       | ~[−100, +100] μV    | ~[−2, +2] after z‑scoring          | Feature magnitude mismatch     |
+| Normalizing | Not emphasized      | Default mean=0, std=50 μV          | May miscalibrate features      |
+
+### 3) Batch Size & Accumulation
+| Aspect        | Reference        | Ours                    | Impact                                 |
+|---------------|------------------|-------------------------|----------------------------------------|
+| Total batch   | 400 (DDP, 2 GPUs)| 32×12 steps ≈ 384       | Slightly different gradient statistics |
+| Update cadence| Every step (DDP) | After N micro‑batches   | Different update cadence (not stale)   |
+
+## Moderate Divergences (5–10% each)
+
+### 4) Mean Pooling Strategy
+| Aspect            | Reference                 | Ours                        | Impact                     |
+|-------------------|---------------------------|-----------------------------|----------------------------|
+| Feature reduction | `use_mean_pooling` option | Flatten 4 tokens (→ 2048)   | Different head behavior    |
+| Classifier input  | 512 (if pooled)           | 2048                        | Head capacity difference   |
+
+### 5) Training Infrastructure
+| Aspect | Reference                | Ours                        | Impact                         |
+|--------|--------------------------|-----------------------------|--------------------------------|
+| GPUs   | 2 GPUs (DDP/Deepspeed)   | 1 GPU (accumulation)        | Different gradient statistics  |
+
+## Minor Divergences
+
+| Aspect            | Reference                 | Ours                        | Status/Impact              |
+|-------------------|---------------------------|-----------------------------|----------------------------|
+| Window extraction | Fixed 1000 samples        | Fixed 1000 samples          | ✅ Same                    |
+| Channel mapping   | 23→20 Conv2d              | 23→20 mapper (equivalent)   | ✅ Equivalent              |
+| Label mapping     | 1–6 → 0–5 (−1)            | Explicit dict {spsw:0…}     | ✅ Same semantics          |
+| Label smoothing   | 0.1                       | 0.1                         | ✅ Same                    |
+| Learning rate     | 5e‑4                      | 5e‑4                        | ✅ Same                    |
+| Layer decay       | 0.65                      | 0.65                        | ✅ Same                    |
+| Warmup            | 5 epochs                  | 5 epochs                    | ✅ Same                    |
+| DropPath          | 0.2                       | Not implemented             | ⚠️ Add for stability       |
+
+## Revised Action Plan (in order)
+
+### 0) 🔴 Pre‑Flight: Verify Splits (no leakage)
+- Run the overlap check above. If any overlap, rebuild cache with subject‑level 80/20 and seed=4523.
+
+### 1) 🔴 Remove Class Balancing
 ```python
-# REMOVE THIS:
-train_sampler = WeightedRandomSampler(...)
-train_loader = DataLoader(..., sampler=train_sampler)
+# REMOVE
+# train_sampler = WeightedRandomSampler(...)
+# train_loader = DataLoader(dataset, sampler=train_sampler, ...)
 
-# REPLACE WITH:
-train_loader = DataLoader(..., shuffle=True)  # Standard random sampling
+# REPLACE
+train_loader = DataLoader(dataset, shuffle=True, ...)
 ```
-**Rationale**: Reference achieves 62% WITHOUT balancing. Our balancing may be overcorrecting.
+Rationale: Reference reaches ≈62% without balancing. Expect earlier and higher eval BAC progression.
 
-### 2. 🟡 Test Different Normalization
-```python
-# Option A: Match reference (no normalization)
-wrapper = EEGPTWrapper(..., normalize=False)  # If supported
+### 2) 🟡 Align Normalization
+Run A/B:
+- A: μV inputs, no normalization (set wrapper.normalize=False after creation, or use create_normalized_eegpt(normalize=False)).
+- B: Corpus stats (compute mean/std on train split; apply uniformly).
+Monitor per‑class recall; choose better.
 
-# Option B: Use corpus statistics
-# Compute mean/std from entire TUEV dataset
-stats = compute_corpus_stats()
-wrapper = EEGPTWrapper(..., stats_file=stats)
-```
-
-### 3. 🟡 Match Exact Batch Size
-```python
-# Increase to exactly 400 effective batch
-batch_size = 34  # 34 × 12 = 408 ≈ 400
-# OR
-accumulate_steps = 13  # 32 × 13 = 416 ≈ 400
+### 3) 🟡 Match Effective Batch ≈ 400
+```text
+batch_size × accumulation_steps ≈ 400
+examples: 32×13=416  |  34×12=408
 ```
 
-### 4. 🟢 Add DropPath Regularization
-```python
-# In model definition
-self.drop_path = DropPath(drop_prob=0.2) if training else nn.Identity()
-```
+### 4) 🟢 Add DropPath (0.2)
+Add drop‑path in the encoder blocks (stabilization). Expect regularization more than a direct BAC jump.
 
-## Validation Metrics
+### 5) 🟢 Mean Pooling Toggle
+Test mean pooling vs flatten(4×512) → head; choose the better head behavior.
 
-After each change, monitor:
-1. **Per-class recall** in confusion matrix (especially Class 0 spsw)
-2. **Training distribution** (print batch class counts)
-3. **BAC progression** by epoch
+## Validation & Monitoring
+- Confusion matrix and per‑class classification_report on every eval (watch rare class recall: spsw/gped/pled).
+- Print batch label distributions (first few batches) to confirm natural prevalence after removing balancing.
+- Track BAC by epoch; acceptance gates: ≥0.25 by epoch 2–3, ≥0.40 by epoch 5, final ≈0.62±0.02 by ~30.
 
 ## Expected Outcomes
+1) Remove sampler → BAC likely jumps from 0.24 → 0.35–0.45.
+2) Align normalization → +0.10–0.15 BAC (choose μV or corpus stats based on eval).
+3) Match batch/accum → +0.02–0.05 BAC.
+4) DropPath/Pooling → Stabilization and incremental gains.
 
-1. **Remove sampler** → Expect BAC to jump from 0.24 → 0.35-0.45
-2. **Fix normalization** → Additional +0.10-0.15 BAC
-3. **Match batch size** → Minor improvement +0.02-0.05
-4. **Add DropPath** → Stabilization, not necessarily higher BAC
+## Smoking Guns 🔫
+1) Split mismatch: If subjects overlap or splits differ from reference, comparisons are invalid.
+2) Class balancing paradox: Reference tolerates severe imbalance; forced balancing may harm generalization.
+3) Normalization mismatch: Reference μV vs our z‑scaling can shift feature magnitudes.
 
-## The Smoking Guns 🔫
+## Next Steps (strict order)
+1) Verify subject splits (no overlap; seed=4523 if programmatic).  
+2) Remove sampler; re‑run parity mode with workers=0, no pin_memory on WSL.  
+3) Test normalization A/B (μV vs corpus stats).  
+4) Match batch/accum; consider drop‑path and pooling toggle.  
+5) Reassess BAC trajectory and per‑class recall; iterate only on the smallest change needed.
 
-### 1. Wrong Data Splits
-**If train/eval subjects overlap or use different seeds, we're not even testing the same problem!**
-
-### 2. Class Balancing Paradox  
-**The reference achieves 62% BAC with severe imbalance WITHOUT any balancing.**
-- They let the model see natural distribution
-- We force equal representation  
-- Result: We're teaching a false reality
-
-### 3. Normalization Mismatch
-**Reference uses raw μV, we normalize to N(0,50μV)**
-- Changes feature magnitudes by orders of magnitude
-- EEGPT was pretrained on specific scales
-
-## Refined Hypothesis
-
-It's NOT just the sampler. Multiple issues compound:
-1. **Wrong splits** → Testing on wrong data (20-30% impact)
-2. **Wrong sampler** → False distribution (10-20% impact)  
-3. **Wrong normalization** → Miscalibrated features (5-15% impact)
-4. **Wrong pooling** → Different feature dims (5-10% impact)
-5. **Missing DropPath** → Less regularization (2-5% impact)
-
-**Total**: These could explain the full 40% BAC gap!
-
-## Next Steps (In Order)
-
-1. **Verify splits** - Ensure NO subject leakage
-2. **Remove sampler** - Test natural distribution
-3. **Fix normalization** - Try raw μV
-4. **Match pooling** - Test mean vs flatten
-5. **Add DropPath** - Stabilize training
-
-**Only by fixing ALL of these will we reach 62% BAC.**
