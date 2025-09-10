@@ -124,7 +124,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
         all_edf_files = list(all_edf_dir.rglob('*.edf'))
 
         # Extract unique subjects
-        subjects = {}
+        subjects: dict[str, list[Path]] = {}
         for edf_path in all_edf_files:
             # Subject ID is first part before underscore (e.g., 'sub001_01.edf' -> 'sub001')
             subject_id = edf_path.stem.split('_')[0]
