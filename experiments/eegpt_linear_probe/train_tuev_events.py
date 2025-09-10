@@ -77,14 +77,28 @@ class TUEVClassifierHead(nn.Module):
             # Store as tensor for use in forward pass
             self.register_buffer('chan_ids', torch.tensor(chan_ids).long())
 
-            # EEGPT outputs 4×512 features, we need to classify
-            self.classifier = nn.Sequential(
-                nn.Flatten(),  # (B, 4, 512) -> (B, 2048)
-                nn.Linear(2048, 512),
-                nn.ReLU(),
-                nn.Dropout(0.5),
-                nn.Linear(512, num_classes),
-            )
+            # EEGPT outputs 4×512 features
+            # Reference uses mean pooling (512 features), but we can try both
+            self.use_mean_pooling = True  # Match reference!
+            
+            if self.use_mean_pooling:
+                print("Using MEAN POOLING (512 features) - matches reference")
+                # Mean pool across 4 tokens: (B, 4, 512) -> (B, 512)
+                self.classifier = nn.Sequential(
+                    nn.Linear(512, 256),
+                    nn.ReLU(),
+                    nn.Dropout(0.5),
+                    nn.Linear(256, num_classes),
+                )
+            else:
+                print("Using FLATTEN (2048 features) - our original")
+                self.classifier = nn.Sequential(
+                    nn.Flatten(),  # (B, 4, 512) -> (B, 2048)
+                    nn.Linear(2048, 512),
+                    nn.ReLU(),
+                    nn.Dropout(0.5),
+                    nn.Linear(512, num_classes),
+                )
         else:
             raise ValueError("EEGPT checkpoint is required for paper parity!")
 
@@ -111,6 +125,11 @@ class TUEVClassifierHead(nn.Module):
         # Note: chan_ids should be 1D tensor, not batched
         features = self.eegpt.extract_features(x, chan_ids=self.chan_ids, summary=False)  # (B, 4, 512)
 
+        # Apply pooling strategy
+        if self.use_mean_pooling:
+            # Mean pool across 4 tokens: (B, 4, 512) -> (B, 512)
+            features = features.mean(dim=1)
+        
         # Classify
         logits = self.classifier(features)
         return logits
