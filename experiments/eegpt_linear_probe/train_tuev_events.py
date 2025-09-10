@@ -418,22 +418,23 @@ def main(args):
 
     # Create model
     print("Creating model...")
-    channel_mapper = TUEVChannelMapper(dropout=0.8)
-
-    # Use EEGPT if checkpoint provided
-    use_eegpt = args.eegpt_checkpoint is not None
-    if use_eegpt:
-        print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
+    
+    # EEGPT checkpoint is REQUIRED
+    if not args.eegpt_checkpoint:
+        raise ValueError("--eegpt_checkpoint is REQUIRED for paper parity!")
+    
+    print(f"Using EEGPT backbone from {args.eegpt_checkpoint}")
+    if args.use_parity:
+        print("TRUE PARITY MODE: Using native 1000 samples (no padding)")
     else:
-        print(
-            "WARNING: Using simple MLP (won't achieve 62% BAC). Add --eegpt_checkpoint for paper parity!"
-        )
-
+        print("FALLBACK MODE: Padding to 1024 samples")
+    
+    channel_mapper = TUEVChannelMapper(dropout=0.8)
+    
     classifier = TUEVClassifierHead(
         input_channels=20,
         input_samples=1000,
         num_classes=6,
-        use_eegpt=use_eegpt,
         eegpt_checkpoint=args.eegpt_checkpoint,
         use_parity=args.use_parity,
     )
