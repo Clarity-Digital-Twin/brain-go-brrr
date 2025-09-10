@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
+from brain_go_brrr.infra.ml_models.eegpt_architecture import CHANNEL_DICT
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 
@@ -48,6 +49,43 @@ class TUEVClassifierHead(nn.Module):
         if use_eegpt and eegpt_checkpoint:
             # Option 1: Use EEGPT backbone (PAPER PARITY)
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
+
+            # CRITICAL: Compute channel IDs for the 20 TUEV channels
+            # This is the EXACT order from the EEGPT reference
+            use_channels_names = [
+                'FP1',
+                'FPZ',
+                'FP2',
+                'F7',
+                'F3',
+                'FZ',
+                'F4',
+                'F8',
+                'T7',
+                'C3',
+                'CZ',
+                'C4',
+                'T8',
+                'P7',
+                'P3',
+                'PZ',
+                'P4',
+                'P8',
+                'O1',
+                'O2',
+            ]
+
+            # Convert channel names to IDs using EEGPT's channel dictionary
+            chan_ids = []
+            for ch in use_channels_names:
+                if ch in CHANNEL_DICT:
+                    chan_ids.append(CHANNEL_DICT[ch])
+                else:
+                    raise ValueError(f"Channel {ch} not found in CHANNEL_DICT")
+
+            # Store as tensor for use in forward pass
+            self.register_buffer('chan_ids', torch.tensor(chan_ids).long())
+
             # EEGPT outputs 4×512 features, we need to classify
             self.classifier = nn.Sequential(
                 nn.Flatten(),  # (B, 4, 512) -> (B, 2048)
@@ -85,8 +123,14 @@ class TUEVClassifierHead(nn.Module):
             if x.shape[-1] == 1000:
                 x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
 
-            # Extract EEGPT features
-            features = self.eegpt.extract_features(x, summary=False)  # (B, 4, 512)
+            # Prepare channel IDs for this batch
+            batch_size = x.shape[0]
+            chan_ids = self.chan_ids.unsqueeze(0).expand(batch_size, -1)
+
+            # Extract EEGPT features WITH PROPER CHANNEL IDS
+            features = self.eegpt.extract_features(
+                x, chan_ids=chan_ids, summary=False
+            )  # (B, 4, 512)
 
             # Classify
             logits = self.classifier(features)
