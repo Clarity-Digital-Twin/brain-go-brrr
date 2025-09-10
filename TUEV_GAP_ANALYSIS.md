@@ -96,7 +96,7 @@ Hypothesis: Oversampling rare classes harms generalization on the natural eval d
 | Learning rate     | 5e‑4                      | 5e‑4                        | ✅ Same                    |
 | Layer decay       | 0.65                      | 0.65                        | ✅ Same                    |
 | Warmup            | 5 epochs                  | 5 epochs                    | ✅ Same                    |
-| DropPath          | 0.2                       | Not implemented             | ⚠️ Add for stability       |
+| DropPath          | 0.2                       | Implemented (0.2)           | ✅ Same                    |
 
 ## Revised Action Plan (in order)
 
@@ -126,7 +126,8 @@ batch_size × accumulation_steps ≈ 400
 examples: 32×13=416  |  34×12=408
 ```
 
-### 4) 🟢 Add DropPath (0.2)
+### 4) 🟢 DropPath (0.2) — Implemented
+No action needed; wired end-to-end. Trainer passes `drop_path_rate=0.2`; model prints enablement on init.
 Add drop‑path in the encoder blocks (stabilization). Expect regularization more than a direct BAC jump.
 
 ### 5) 🟢 Mean Pooling Toggle
