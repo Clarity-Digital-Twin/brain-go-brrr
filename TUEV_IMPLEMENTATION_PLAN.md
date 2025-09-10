@@ -12,6 +12,25 @@ Verified reference behavior (paths):
 - Unweighted loss with smoothing=0.1: `run_class_finetuning_EEGPT_change_tuev.py` uses `LabelSmoothingCrossEntropy(smoothing=0.1)`.
 - Warmup/layer decay used: `downstream_tueg/finetune_TUEV_EEGPT.sh` sets `warmup_epochs=5`, `layer_decay=0.65`, `lr=5e-4`, `weight_decay=0.05`, `batch_size=400`, `epochs=30`.
 
+## CRITICAL CHANNEL MISMATCH DISCOVERED (Sep 10, 2025)
+
+### THE BUG THAT BROKE TRAINING
+We were passing 20 channels to EEGPT but the model was configured for 19 or 58 channels!
+- **Input**: 23 TUEV channels → mapper → 20 channels
+- **EEGPT Config**: Was using default channel count (not 20!)
+- **Result**: Patch embedding dimension mismatch crash
+
+### THE FIX
+Configure EEGPT with exactly 20 channel names for TUEV:
+```python
+# TUEV-specific channel config
+TUEV_20_CHANNELS = ['FP1','FPZ','FP2','F7','F3','FZ','F4','F8',
+                    'T7','C3','CZ','C4','T8','P7','P3','PZ','P4','P8','O1','O2']
+
+# Pass to EEGPT
+model = EEGPTModel(n_channels=TUEV_20_CHANNELS, time_steps=1000)
+```
+
 ## Critical Corrections from Senior Review
 
 ### ✅ VERIFIED: No Bipolar Montage
