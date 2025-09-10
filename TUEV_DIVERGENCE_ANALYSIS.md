@@ -4,6 +4,8 @@
 
 We fundamentally misunderstood the TUEV task. We implemented **continuous event detection** (sliding windows over full recordings) while EEGPT implemented **event segment classification** (pre-extracted segments around known events). This is a completely different problem.
 
+Status check: the core conclusion above is correct. Our current pipeline optimizes a harder temporal detection problem; the EEGPT reference optimizes classification of event-centered segments.
+
 ## The Critical Misunderstanding
 
 ### What EEGPT Actually Does (from their code):
@@ -17,6 +19,10 @@ def BuildEvents(signals, times, EventData):
         features[i, :] = signals[:, offset + start - 2*int(fs) : offset + end + 2*int(fs)]
         labels[i, :] = int(EventData[i, 3])  # Single label per segment
 ```
+
+Notes from the reference repo:
+- Filtering: 0.1–75 Hz, notch at 50 Hz, resample to 200 Hz.
+- Channels: uses TUH “-REF” channel names; a later model stage maps from 23 REF inputs to 20 classifier channels via a small channel conv (not bipolar).
 
 ### What We Implemented:
 ```python
@@ -73,14 +79,14 @@ Table 13: Model design for TUEV dataset
 
 ### Missing Critical Details:
 1. Paper never mentions they only extract event segments
-2. Paper never mentions bipolar montage conversion
+2. Paper never mentions bipolar montage conversion (and the reference code does not apply it)
 3. Paper never explains "288" (subjects? segments? files?)
 4. Paper shows high F1 (81.87%) with moderate BAC (62.32%) but doesn't explain why
 
 ## Why Our Training Failed Catastrophically
 
 ### The Numbers Tell the Story:
-- **Our dataset**: ~10,000 windows, 99.5% background
+- **Our dataset (measured)**: 180,205 windows in train cache, with 179,444 labeled as background (99.58%). File: `data/cache/tuev_23ch_paper_parity/train/index_train_mne-ar-v4.json`.
 - **Their dataset**: ~1,000 segments, balanced across 6 classes
 - **Our result**: Model learns to predict only background (16.67% BAC)
 - **Their result**: Model learns all classes (62.32% BAC)
@@ -164,11 +170,11 @@ criterion = CrossEntropyLoss(label_smoothing=0.1)
 ## The Fix: Two Options
 
 ### Option 1: Match EEGPT Exactly (Recommended)
-1. Pre-extract 5-second segments around events at 200Hz
-2. Convert to bipolar montage
-3. Balance classes during extraction
-4. Save as pickle files
-5. Use their exact training code
+1. Pre-extract 5-second segments around annotated events at 200 Hz (tmin=-2s, tmax=+3s around event).
+2. Use the TUH referential “-REF” channel set with the reference ordering; do not convert to bipolar (reference conversion is present but commented out).
+3. Keep unweighted CrossEntropy with label_smoothing=0.1; no explicit class balancing required when using event-only segments and subject-level splits.
+4. Store segments in a safe cache format (prefer `.pt` tensors with torch.save) alongside a META/index; exact pickles are not required for parity.
+5. Train with warmup and layer decay as in the reference (e.g., warmup_epochs≈5, layer_decay≈0.9, batch_size 64–100), targeting 20×1000 model input (with a 23→20 learned channel conv if needed).
 
 ### Option 2: Redefine the Problem
 1. Acknowledge we're doing temporal event detection (harder)
@@ -187,3 +193,39 @@ We built a **temporal event detection system** when we needed an **event segment
 **Fix Required**: Complete reimplementation of data pipeline
 **Time Wasted**: ~2 weeks
 **Time to Fix**: ~2-3 days with correct approach
+
+---
+
+Corrections and Paper‑Parity Checklist (Actionable)
+
+What was inaccurate or needed refinement above (corrected here):
+- Bipolar montage: not required for paper parity. The reference `make_TUEV.py` includes a `convert_signals` (bipolar) function but it is commented out; training is performed on referential “-REF” channels reordered to a standard list.
+- Class balancing: the reference does not perform explicit per-class balancing. They construct event-only datasets and split by subject; loss is unweighted CrossEntropy with smoothing=0.1.
+- Input shape: the classifier head operates on 20×1000 (20 channels × 1000 samples at 200 Hz). The pipeline ingests 23 REF channels and uses a learned channel conv to reach 20 (see `run_class_finetuning_EEGPT_change_tuev.py`, `use_channels_names` = 20, and `use_chan_conv=True`).
+- File format: pickles are not essential. Our repo standards encourage safe `.pt` with metadata. Paper fidelity is about content/shape, not serialization format.
+- Our imbalance measurement: precisely 179,444/180,205 (99.58%) windows labeled background in train cache.
+
+Paper‑Parity Implementation Plan (within our architecture):
+- Preprocessing (src)
+  - Add an event‑segment builder that:
+    - Reads EDF + `.rec`/`.lab`, filters (0.1–75 Hz), notches 50 Hz, resamples to 200 Hz.
+    - Reorders to the TUH “-REF” channels expected by the reference (23 inputs).
+    - Extracts 5 s segments centered on events (−2 s to +3 s).
+    - Saves tensors as `(C=23, T=1000)` float32 in Volts (SI units) with META/index.
+- Dataset (src)
+  - `TUEVEventSegmentDataset` returning `(x: (23, 1000), y: Long)`; optional mode to apply a 23→20 learned channel conv consistent with reference.
+- Training (experiments, thin)
+  - `experiments/eegpt_linear_probe/train_tuev_segments.py` that:
+    - Uses unweighted CrossEntropy with label_smoothing=0.1.
+    - Adds warmup (≈5 epochs) and layer decay (≈0.9) as in reference.
+    - Uses batch_size 64–100; eval metrics: BAC (primary), weighted F1, Cohen’s kappa.
+    - Targets model input 20×1000 via learned channel conv from 23 inputs.
+- Splits
+  - Create subject‑level splits analogous to `processed_{train,eval,test}` in the reference (train subjects → split 80/20 into train/eval; test from eval folder).
+
+Acceptance criteria for paper parity:
+- Segment cache validated: `(23, 1000)`, sr=200, filters 0.1–75 Hz, notch 50 Hz, REF channels ordered as in reference.
+- Training reaches BAC ≈ 0.62 ± 0.02 on eval with smoothing=0.1, unweighted loss, warmup + layer_decay.
+
+If instead we keep temporal detection (current pipeline):
+- Switch to detection‑appropriate training: WeightedRandomSampler and/or focal loss; consider hard‑negative mining and event‑centric sampling; evaluate with detection metrics and event matching, not only per‑window BAC.
