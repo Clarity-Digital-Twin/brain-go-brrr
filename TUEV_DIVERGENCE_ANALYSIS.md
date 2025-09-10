@@ -20,11 +20,12 @@ def BuildEvents(signals, times, EventData):
         labels[i, :] = int(EventData[i, 3])  # Single label per segment
 ```
 
-Notes from the reference repo:
-- Filtering: 0.1–75 Hz, notch at 50 Hz, resample to 200 Hz.
-- Channels: uses TUH “-REF” channel names; a later model stage maps from 23 REF inputs to 20 classifier channels via a small channel conv (not bipolar).
+Notes verified in the reference repo (paths below):
+- Filtering: 0.1–75 Hz, notch 50 Hz, resample 200 Hz (readEDF).
+- Channels: TUH “-REF” names; training uses referential channels; optional bipolar conversion is present but commented out in the maker.
+- Model input: a learned channel conv maps 23 referential inputs to 20 classifier channels. The classifier operates on 20×1000 (channels×samples).
 
-### What We Implemented:
+### What We Implemented (current repo):
 ```python
 # From tuev_dataset.py
 # Create 4-second windows from annotation
@@ -77,19 +78,19 @@ Table 13: Model design for TUEV dataset
 - TUEV uses 5-second windows at 200Hz (see Table 13)
 - The preprocessing description is generic, not TUEV-specific
 
-### Missing Critical Details:
+### Missing Critical Details (now verified in reference code):
 1. Paper never mentions they only extract event segments
-2. Paper never mentions bipolar montage conversion (and the reference code does not apply it)
+2. Paper never requires bipolar montage conversion (reference code ships a conversion function but does not use it in dataset maker)
 3. Paper never explains "288" (subjects? segments? files?)
-4. Paper shows high F1 (81.87%) with moderate BAC (62.32%) but doesn't explain why
+4. Paper shows high F1 (81.87%) with moderate BAC (62.32%); reference training confirms event-only classification, not temporal detection
 
 ## Why Our Training Failed Catastrophically
 
 ### The Numbers Tell the Story:
-- **Our dataset (measured)**: 180,205 windows in train cache, with 179,444 labeled as background (99.58%). File: `data/cache/tuev_23ch_paper_parity/train/index_train_mne-ar-v4.json`.
-- **Their dataset**: ~1,000 segments, balanced across 6 classes
-- **Our result**: Model learns to predict only background (16.67% BAC)
-- **Their result**: Model learns all classes (62.32% BAC)
+- Our dataset (measured): 180,205 windows in train cache, with 179,444 labeled as background (99.58%). Source: `data/cache/tuev_23ch_paper_parity/train/index_train_mne-ar-v4.json` → `class_counts`.
+- Reference dataset: event-only pickled segments, each `(23, 1000)` at 200 Hz, stored under `processed_{train,eval,test}`; they do not generate sliding windows.
+- Our result: Model learns to predict only background (16.67% BAC) due to extreme imbalance.
+- Reference result: Model learns all classes (≈62.32% BAC) on event-only data.
 
 ### The Loss Function Disaster:
 ```python
@@ -170,11 +171,11 @@ criterion = CrossEntropyLoss(label_smoothing=0.1)
 ## The Fix: Two Options
 
 ### Option 1: Match EEGPT Exactly (Recommended)
-1. Pre-extract 5-second segments around annotated events at 200 Hz (tmin=-2s, tmax=+3s around event).
-2. Use the TUH referential “-REF” channel set with the reference ordering; do not convert to bipolar (reference conversion is present but commented out).
-3. Keep unweighted CrossEntropy with label_smoothing=0.1; no explicit class balancing required when using event-only segments and subject-level splits.
-4. Store segments in a safe cache format (prefer `.pt` tensors with torch.save) alongside a META/index; exact pickles are not required for parity.
-5. Train with warmup and layer decay as in the reference (warmup_epochs=5, layer_decay=0.65, lr=5e-4, wd=0.05, batch_size=400 distributed across 2 GPUs ≈200/GPU), targeting 20×1000 model input (with a 23→20 learned channel conv if needed).
+1. Extract 5 s event-centered segments at 200 Hz (−2 s to +3 s around events).
+2. Use TUH referential “-REF” channels in reference order; do not convert to bipolar (maker’s bipolar conversion is commented out).
+3. Keep unweighted CrossEntropy with `label_smoothing=0.1`; splits at subject-level; no per-class reweighting.
+4. Store segments as safe `.pt` tensors with a META/index; parity is about shape/content, not the exact pickle format.
+5. Train with the reference hyperparameters as set in their script: `lr=5e-4`, `weight_decay=0.05`, `warmup_epochs=5`, `epochs=30`, `layer_decay=0.65`, effective `batch_size≈400` (distributed). Model input is `20×1000`, reached via a 23→20 learned channel conv.
 
 ### Option 2: Redefine the Problem
 1. Acknowledge we're doing temporal event detection (harder)
@@ -199,29 +200,28 @@ We built a **temporal event detection system** when we needed an **event segment
 Corrections and Paper‑Parity Checklist (Actionable)
 
 What was inaccurate or needed refinement above (corrected here):
-- Bipolar montage: not required for paper parity. The reference `make_TUEV.py` includes a `convert_signals` (bipolar) function but it is commented out; training is performed on referential “-REF” channels reordered to a standard list.
-- Class balancing: the reference does not perform explicit per-class balancing. They construct event-only datasets and split by subject; loss is unweighted CrossEntropy with smoothing=0.1.
-- Input shape: the classifier head operates on 20×1000 (20 channels × 1000 samples at 200 Hz). The pipeline ingests 23 REF channels and uses a learned channel conv to reach 20 (see `run_class_finetuning_EEGPT_change_tuev.py`, `use_channels_names` = 20, and `use_chan_conv=True`).
-- File format: pickles are not essential. Our repo standards encourage safe `.pt` with metadata. Paper fidelity is about content/shape, not serialization format.
-- Our imbalance measurement: precisely 179,444/180,205 (99.58%) windows labeled background in train cache.
+- Bipolar montage: not required. The reference `make_TUEV.py` ships a `convert_signals` (bipolar) helper but it is commented out; training uses referential “-REF” channels.
+- 23→20 mapping: learned conv present in `EEGPT_mcae_finetune_change_tuev.py` and enabled in `run_class_finetuning_EEGPT_change_tuev.py` with `use_chan_conv=True` and `img_size=[20, 1000]`.
+- Segments and rate: event-only `(23, 1000)` segments at 200 Hz (5 s) built by `make_TUEV.py` (`BuildEvents`, `readEDF`).
+- Loss: unweighted, `LabelSmoothingCrossEntropy(smoothing=0.1)`.
+- Warmup/layer decay: `warmup_epochs=5`, `layer_decay=0.65` per `finetune_TUEV_EEGPT.sh` (defaults in args are 0.9 layer_decay but training script sets 0.65).
+- Batch/Epochs: `batch_size=400` (distributed), `epochs=30` per `finetune_TUEV_EEGPT.sh`.
+- File format: reference uses pickle; we will store `.pt` tensors with META/index, maintaining shapes/semantics.
+- Our imbalance: precisely 179,444/180,205 (99.58%) background windows in train cache.
 
 Paper‑Parity Implementation Plan (within our architecture):
 - Preprocessing (src)
   - Add an event‑segment builder that:
-    - Reads EDF + `.rec`/`.lab`, filters (0.1–75 Hz), notches 50 Hz, resamples to 200 Hz.
-    - Reorders to the TUH “-REF” channels expected by the reference (23 inputs).
+    - Reads EDF + `.rec`/`.lab`, filters (0.1–75 Hz), notch 50 Hz, resample 200 Hz.
+    - Reorders to reference “-REF” channels (23 inputs).
     - Extracts 5 s segments centered on events (−2 s to +3 s).
-    - Saves tensors as `(C=23, T=1000)` float32 in Volts (SI units) with META/index.
+    - Saves `(23, 1000)` float32 Volts with META/index.
 - Dataset (src)
-  - `TUEVEventSegmentDataset` returning `(x: (23, 1000), y: Long)`; optional mode to apply a 23→20 learned channel conv consistent with reference.
+  - `TUEVEventSegmentDataset` returning `(x: (23, 1000), y: Long)`; no sliding windows.
 - Training (experiments, thin)
-  - `experiments/eegpt_linear_probe/train_tuev_segments.py` that:
-    - Uses unweighted CrossEntropy with label_smoothing=0.1.
-    - Adds warmup (≈5 epochs) and layer decay (≈0.9) as in reference.
-    - Uses batch_size≈400 total (distributed; ~200/GPU with 2 GPUs); eval metrics: BAC (primary), weighted F1, Cohen’s kappa.
-    - Targets model input 20×1000 via learned channel conv from 23 inputs.
+  - `experiments/eegpt_linear_probe/train_tuev_events.py` wrapping src components; loss `LabelSmoothingCrossEntropy(0.1)`; warmup 5, layer_decay 0.65; batch≈400 effective; metrics: BAC (primary), weighted F1, kappa; input `20×1000` via 23→20 mapper.
 - Splits
-  - Create subject‑level splits analogous to `processed_{train,eval,test}` in the reference (train subjects → split 80/20 into train/eval; test from eval folder).
+  - Subject‑level: mirror `processed_{train,eval,test}` in the reference.
 
 Acceptance criteria for paper parity:
 - Segment cache validated: `(23, 1000)`, sr=200, filters 0.1–75 Hz, notch 50 Hz, REF channels ordered as in reference.

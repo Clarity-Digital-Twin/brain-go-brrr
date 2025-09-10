@@ -4,6 +4,14 @@
 
 This document provides the **exact** implementation plan to achieve EEGPT paper parity for TUEV (62.32% BAC) using our existing Brain-Go-Brrr infrastructure. We will NOT create a parallel universe - everything integrates with our current `src/` components.
 
+Verified reference behavior (paths):
+- No bipolar montage: `reference_repos/EEGPT/downstream_tueg/dataset_maker/make_TUEV.py` → `convert_signals` exists but is commented out.
+- 23→20 channel mapping via conv: `reference_repos/EEGPT/downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py` (chan conv stack) and `run_class_finetuning_EEGPT_change_tuev.py` (`use_chan_conv=True`, `img_size=[20,1000]`).
+- 5 s @ 200 Hz segments: `make_TUEV.py` (`readEDF` filters+notch+resample to 200; `BuildEvents` features length `int(fs)*5`).
+- Event-only extraction: maker writes event pickles in `processed_{train,eval,test}`, loaded by `TUEVLoader` in `downstream_tueg/utils.py`.
+- Unweighted loss with smoothing=0.1: `run_class_finetuning_EEGPT_change_tuev.py` uses `LabelSmoothingCrossEntropy(smoothing=0.1)`.
+- Warmup/layer decay used: `downstream_tueg/finetune_TUEV_EEGPT.sh` sets `warmup_epochs=5`, `layer_decay=0.65`, `lr=5e-4`, `weight_decay=0.05`, `batch_size=400`, `epochs=30`.
+
 ## Critical Corrections from Senior Review
 
 ### ✅ VERIFIED: No Bipolar Montage
@@ -28,6 +36,17 @@ criterion = LabelSmoothingCrossEntropy(smoothing=0.1)
 ```
 
 ## Implementation Architecture (Using Our Existing Code)
+
+Integration map (current vs to add):
+- Exists (data): `src/brain_go_brrr/infra/data/tuev_dataset.py` → sliding 4 s @ 256 Hz windows (non-parity)
+- Exists (preproc): `src/brain_go_brrr/infra/preprocessing/tuev_preprocessor.py` → canonical 23-ch, sliding windows, optional AR
+- Exists (models): `src/brain_go_brrr/infra/ml_models/channel_mapper.py` → 23→20 mapper matches reference
+- Exists (utils): `src/brain_go_brrr/utils/collate_tuev_parity.py` → strict `(23,1024)`
+- Exists (experiments): `experiments/eegpt_linear_probe/train_tuev_mne.py` → sliding-window trainer (fallback only)
+- Exists (tests): `tests/integration/test_tuev_paper_parity.py` → mapping/grad/units checks
+- To add (src): `tuev_event_extractor.py` (23×1000 @ 200 Hz), `tuev_event_dataset.py` (event-only)
+- To add (experiments): `train_tuev_events.py` (thin parity trainer)
+- To add (tests): event extraction + dataset + parity E2E tests
 
 ### Phase 1: Event Segment Extractor (NEW in src/)
 
@@ -256,8 +275,8 @@ experiments/eegpt_linear_probe/train_tuev_events_parity.py
   - Load TUEVEventDataset (23×1000)
   - Apply TUEVChannelMapper (23→20)
   - Feed 20×1000 into TUEVClassifierHead (thin head in src)
-  - Loss: CrossEntropy(label_smoothing=0.1), unweighted
-  - Scheduler: warmup_epochs=5, layer_decay=0.65, lr=5e-4, wd=0.05, bs=400 (distributed)
+- Loss: CrossEntropy(label_smoothing=0.1), unweighted
+- Scheduler/optim: warmup_epochs=5, layer_decay=0.65, lr=5e-4, wd=0.05, epochs≈30; effective batch≈400 (distributed)
 ```
 
 Option B — EEGPT‑Feature (fallback)
@@ -310,18 +329,31 @@ target_metrics = {
 assert x.shape == (23, 1000)  # 23 channels, 5 seconds @ 200Hz
 assert x.dtype == torch.float32
 assert y in range(6)  # Valid class label
+# Enforce META:
+# sr==200, unit=='V', segment_type=='event', channels==23, samples==1000
 ```
 
 ### Training Validation:
 - Warmup working (loss should be stable first 5 epochs)
 - No class collapse (all 6 classes predicted)
 - BAC improving steadily (not stuck at 16.67%)
+- Layer decay active (per-parameter group scales present)
 
 ### Test Suite Alignment (required additions)
 - Unit: event extractor (filters, notch, sr=200, shape 23×1000)
 - Unit: event dataset META/index and label ranges
 - Integration: parity path — dataset → mapper → head forward pass
 - Integration: probe path — dataset → mapper → crop+resample → EEGPT → probe
+
+## Monitoring and Rollback
+- Checkpoints: pre-extraction cache snapshot; post-extraction event counts vs `.rec`; training checkpoints every N epochs
+- Alerts: if epoch > 5 and max(BAC) < 0.30, raise for investigation (likely extraction/splits)
+- Targets: BAC > 0.20 by epoch 2; > 0.40 by epoch 5; final 0.62 ± 0.02
+
+## Guardrails
+- SSOT: all logic in `src/`; experiments stay thin; no Lightning
+- Safe load: prefer `torch.load(..., weights_only=True)` (PyTorch ≥ 2.4) or our safe loader; never unpickle arbitrary code
+- No duplication: experiments import from `src/` only
 
 ## Timeline
 
