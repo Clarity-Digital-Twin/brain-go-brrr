@@ -1,8 +1,7 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: All major fixes applied, ready for validation training (target: 0.62 BAC)  
-**Last Updated**: September 10, 2025  
-**Current Issue**: Performance gap - achieving 0.19-0.24 BAC vs 0.62 target
+**Status**: All major fixes applied; ready for parity run (target: ~0.62 BAC)  
+**Last Updated**: September 10, 2025
 
 ## Table of Contents
 1. [Critical Issues & Status](#critical-issues--status)
@@ -85,7 +84,7 @@
 Note: `chan_ids` is a 1D tensor built from these names via `CHANNEL_DICT`.
 
 ### Normalization Behavior
-EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats file is provided. Datasets emit Volts (SI units). For production, compute corpus-level stats and pass them to the wrapper.
+EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats file is provided. Datasets emit Volts (SI units). For TUEV paper parity, we DISABLE wrapper normalization and instead scale inputs to microvolts in the model (`x = x * 1e6`) so the backbone sees raw μV values like the reference. For production, compute corpus-level stats and pass them to the wrapper.
 
 ### Model Architecture
 ```python
@@ -154,10 +153,19 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 3. **Normalization**: Disabled normalization, using raw μV like reference
 4. **Mean pooling**: Enabled to match reference (512 features instead of 2048)
 5. **Batch size**: Fixed to target 400 effective batch size
+6. **DropPath**: Implemented stochastic depth with `drop_path_rate=0.2` (logs on model init)
 
-### Still TODO
-1. **DropPath**: Add 0.2 dropout paths for regularization (minor impact)
-2. **Verify cache**: Ensure no subject overlap between splits after rebuild
+### Validation Checklist
+- Cache rebuilt with official splits: `edf/train` and `edf/eval`
+- `cache/tuev_event_segments/train/index.json` exists; `n_segments > 0`
+- `cache/tuev_event_segments/eval/index.json` exists; `n_segments > 0`
+- Eval subject grouping uses parent directory (000–079); no overlap with train subjects
+- Training logs include:
+  - `Setting up training WITHOUT balanced sampling...`
+  - `Normalization DISABLED - using raw values like reference`
+  - `DropPath=0.2 enabled ...` (trainer) and `DropPath enabled: rate=0.2 ...` (model)
+  - `Effective batch size: ... (batch=X, accum=Y)`
+  - Per-epoch confusion matrix and per-class report
 
 ## Training Commands
 

@@ -170,8 +170,9 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
         # Check if we have pre-split directories or need to do subject splitting
         split_dir = self.root_dir / 'edf' / self.split
 
-        # If split directories exist, use them (backward compatibility)
-        if split_dir.exists():
+        # If split directories exist, use them (official TUEV splits)
+        use_official_splits = split_dir.exists()
+        if use_official_splits:
             edf_files = list(split_dir.rglob('*.edf'))
             print(f"Using pre-split directory with {len(edf_files)} files")
         else:
@@ -225,8 +226,27 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
 
             # Save each segment
             for i, (segment, label) in enumerate(segments):
-                # Extract subject ID (first part before underscore)
-                subject_id = edf_path.stem.split('_')[0]
+                # Determine subject grouping key
+                # Official eval filenames are label-prefixed (e.g., bckg_*.edf) under directories 000–079.
+                # Using filename prefix would incorrectly set subject to the label string.
+                # For official splits:
+                #  - eval: use top-level directory under edf/eval (e.g., '000')
+                #  - train: if files are nested under subject directories, use that directory name
+                # Fallback: use first token before '_' from filename.
+                if use_official_splits:
+                    try:
+                        rel_parts = edf_path.relative_to(split_dir).parts
+                    except ValueError:
+                        rel_parts = ()
+
+                    if self.split == 'eval' and len(rel_parts) >= 2:
+                        subject_id = rel_parts[0]
+                    elif self.split == 'train' and len(rel_parts) >= 2:
+                        subject_id = rel_parts[0]
+                    else:
+                        subject_id = edf_path.stem.split('_')[0]
+                else:
+                    subject_id = edf_path.stem.split('_')[0]
                 segment_id = f"{edf_path.stem}_{i}"
 
                 cache_file = self.cache_dir / self.split / f"{segment_id}.pt"
