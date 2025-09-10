@@ -85,8 +85,8 @@ class TestTUEVEventPipeline:
     def test_data_shape_consistency(self):
         """Test that data shapes are consistent throughout pipeline."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create minimal cache
-            cache_dir = Path(temp_dir) / "cache" / "tuev_event_segments" / "train"
+            # Create minimal cache (dataset uses cache_dir directly, no subfolders)
+            cache_dir = Path(temp_dir) / "cache" / "train"
             cache_dir.mkdir(parents=True, exist_ok=True)
 
             # Save test segment
@@ -157,7 +157,7 @@ class TestTUEVEventPipeline:
     def test_class_distribution_balanced(self):
         """Test that class distribution is balanced (not 99.5% background)."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            cache_dir = Path(temp_dir) / "cache" / "tuev_event_segments" / "train"
+            cache_dir = Path(temp_dir) / "cache" / "train"
             cache_dir.mkdir(parents=True, exist_ok=True)
 
             # Create balanced segments (unlike our 99.5% background problem)
