@@ -1,17 +1,13 @@
 #!/usr/bin/env python
 """Train TUEV event classifier for EEGPT paper parity.
 
-This implements TWO paths based on --use_parity flag:
+REQUIRES EEGPT checkpoint - no MLP fallback!
 
-Option A (--use_parity): TRUE paper parity
-- 5-second segments at 200Hz (1000 samples)
-- EEGPT configured for native 1000 samples (no padding!)
-- Expected: 62.32% ± 1.14% balanced accuracy
+Two modes:
+- --use_parity: TRUE paper (1000 samples native, requires modified EEGPT)
+- Default: Pad to 1024 (compatible with standard EEGPT checkpoints)
 
-Option B (default): Fallback with padding
-- 5-second segments at 200Hz padded to 1024
-- Uses standard EEGPT expecting 1024 samples
-- Slightly different from paper but compatible with existing checkpoints
+Expected: 62.32% ± 1.14% balanced accuracy
 """
 
 import argparse
@@ -33,10 +29,8 @@ from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
 
 class TUEVClassifierHead(nn.Module):
     """EEGPT-based classifier head for TUEV event classification.
-
-    TWO OPTIONS:
-    1. Use EEGPT features (recommended for paper parity)
-    2. Use simple MLP (faster but won't achieve 62% BAC)
+    
+    ALWAYS uses EEGPT - no MLP fallback!
     """
 
     def __init__(
@@ -44,15 +38,14 @@ class TUEVClassifierHead(nn.Module):
         input_channels: int = 20,
         input_samples: int = 1000,
         num_classes: int = 6,
-        use_eegpt: bool = False,
-        eegpt_checkpoint: str | None = None,
+        eegpt_checkpoint: str,  # REQUIRED
         use_parity: bool = False,  # TRUE paper parity (1000 samples native)
     ):
         super().__init__()
-        self.use_eegpt = use_eegpt
         self.use_parity = use_parity
 
-        if use_eegpt and eegpt_checkpoint:
+        # ALWAYS use EEGPT (no MLP option)
+        if eegpt_checkpoint:
             # Option 1: Use EEGPT backbone (PAPER PARITY)
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint)
 
@@ -101,15 +94,7 @@ class TUEVClassifierHead(nn.Module):
                 nn.Linear(512, num_classes),
             )
         else:
-            # Option 2: Simple MLP (current implementation)
-            input_dim = input_channels * input_samples  # 20 * 1000 = 20,000
-            hidden_dim = 512
-
-            self.flatten = nn.Flatten()
-            self.fc1 = nn.Linear(input_dim, hidden_dim)
-            self.bn1 = nn.BatchNorm1d(hidden_dim)
-            self.dropout1 = nn.Dropout(0.5)
-            self.fc2 = nn.Linear(hidden_dim, num_classes)
+            raise ValueError("EEGPT checkpoint is required for paper parity!")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
@@ -120,36 +105,28 @@ class TUEVClassifierHead(nn.Module):
         Returns:
             Logits of shape (batch, 6)
         """
-        if self.use_eegpt:
-            # Handle padding based on parity mode
-            if self.use_parity:
-                # TRUE PARITY: Use 1000 samples natively (requires modified EEGPT)
-                # No padding needed if EEGPT is configured for time_steps=1000
-                pass
-            else:
-                # FALLBACK: Pad to 1024 for standard EEGPT
-                if x.shape[-1] == 1000:
-                    x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
-
-            # Prepare channel IDs for this batch
-            batch_size = x.shape[0]
-            chan_ids = self.chan_ids.unsqueeze(0).expand(batch_size, -1)
-
-            # Extract EEGPT features WITH PROPER CHANNEL IDS
-            features = self.eegpt.extract_features(
-                x, chan_ids=chan_ids, summary=False
-            )  # (B, 4, 512)
-
-            # Classify
-            logits = self.classifier(features)
-            return logits
+        # Handle padding based on parity mode
+        if self.use_parity:
+            # TRUE PARITY: Use 1000 samples natively (requires modified EEGPT)
+            # No padding needed if EEGPT is configured for time_steps=1000
+            pass
         else:
-            # Simple MLP path
-            x = self.flatten(x)
-            x = F.gelu(self.bn1(self.fc1(x)))
-            x = self.dropout1(x)
-            x = self.fc2(x)
-            return x
+            # FALLBACK: Pad to 1024 for standard EEGPT
+            if x.shape[-1] == 1000:
+                x = F.pad(x, (0, 24), mode='constant', value=0)  # Pad to 1024
+
+        # Prepare channel IDs for this batch
+        batch_size = x.shape[0]
+        chan_ids = self.chan_ids.unsqueeze(0).expand(batch_size, -1)
+
+        # Extract EEGPT features WITH PROPER CHANNEL IDS
+        features = self.eegpt.extract_features(
+            x, chan_ids=chan_ids, summary=False
+        )  # (B, 4, 512)
+
+        # Classify
+        logits = self.classifier(features)
+        return logits
 
 
 class LabelSmoothingCrossEntropy(nn.Module):
