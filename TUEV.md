@@ -231,29 +231,64 @@ From `reference_repos/EEGPT/downstream_tueg/`:
   - `Using TEMPORAL TOKEN FLATTENING: 15×4×512 = 30720`
   - Per-epoch confusion matrix and per-class report
 
-## Training Commands
+## 🔴 CRITICAL: Data Structure Requirements
 
-### Stable WSL Command (RECOMMENDED)
-
-**Use the provided launch script**:
-```bash
-./experiments/eegpt_linear_probe/scripts/launch_tuev_safe.sh
+### CORRECT Directory Structure (MUST MATCH EXACTLY):
+```
+data/datasets/tuev/
+├── edf/
+│   ├── train/     # 359 .edf files
+│   └── eval/      # 159 .edf files  
+├── cache/
+│   └── tuev_event_segments/
+│       ├── train/
+│       │   ├── index.json    # Must show 4213 segments
+│       │   └── *.pkl         # 4213 pickle files
+│       └── eval/
+│           ├── index.json    # Must show 1471 segments
+│           └── *.pkl         # 1471 pickle files
 ```
 
-Or manually:
+### Common Path Issues and Fixes:
+1. **WRONG**: `--data_dir data/datasets/tuev/raw` ❌ (no /raw subdirectory!)
+2. **CORRECT**: `--data_dir data/datasets/tuev` ✅
+3. **Cache dir**: `--cache_dir data/datasets/tuev/cache` ✅
+
+### Verify Cache Before Training:
+```bash
+# Check train cache
+ls data/datasets/tuev/cache/tuev_event_segments/train/*.pkl | wc -l  # Should be 4213
+# Check eval cache  
+ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pkl | wc -l   # Should be 1471
+
+# If eval cache is 0, rebuild it:
+uv run python -c "
+from pathlib import Path
+from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
+eval_dataset = TUEVEventDataset(
+    root_dir=Path('data/datasets/tuev'),
+    split='eval',
+    cache_dir=Path('data/datasets/tuev/cache'),
+    force_rebuild=True
+)
+print(f'Rebuilt eval cache: {len(eval_dataset)} segments')
+"
+```
+
+## Training Commands
+
+### CORRECT Training Command:
 ```bash
 tmux new -d -s tuev "cd /mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr && \
-  CUDA_LAUNCH_BLOCKING=1 PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:64 \
   uv run python experiments/eegpt_linear_probe/train_tuev_events.py \
   --data_dir data/datasets/tuev \
+  --cache_dir data/datasets/tuev/cache \
   --eegpt_checkpoint data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt \
   --save_dir experiments/eegpt_linear_probe/output/tuev_$(date +%Y%m%d_%H%M%S) \
   --use_parity \
   --epochs 30 \
-  --lr 5e-4 \
-  --batch_size 32 \
-  --num_workers 0 \
-  --seed 42 \
+  --batch_size 40 \
+  --num_workers 0"
   2>&1 | tee experiments/eegpt_linear_probe/logs/tuev_$(date +%Y%m%d_%H%M%S).log"
 
 # Watch progress:
@@ -278,7 +313,33 @@ tmux capture-pane -t tuev -p | grep BAC
 tail -f experiments/eegpt_linear_probe/logs/tuev_*.log
 ```
 
-## Troubleshooting
+## 🚨 Troubleshooting
+
+### CRITICAL PATH ISSUES (MOST COMMON FAILURES)
+
+#### Issue: "Loaded eval cache: 0 segments" or ZeroDivisionError
+**Root Cause**: Eval pickle files missing or wrong data path
+```bash
+# Check if pickle files exist
+ls data/datasets/tuev/cache/tuev_event_segments/eval/*.pkl | wc -l
+
+# If 0, rebuild eval cache with CORRECT path:
+uv run python -c "
+from pathlib import Path
+from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
+eval_dataset = TUEVEventDataset(
+    root_dir=Path('data/datasets/tuev'),  # NO /raw!
+    split='eval',
+    cache_dir=Path('data/datasets/tuev/cache'),
+    force_rebuild=True
+)
+print(f'Rebuilt: {len(eval_dataset)} segments')
+"
+```
+
+#### Issue: Wrong data_dir causes empty cache
+**WRONG**: `--data_dir data/datasets/tuev/raw` ❌
+**CORRECT**: `--data_dir data/datasets/tuev` ✅
 
 ### If Training Hangs
 ```bash

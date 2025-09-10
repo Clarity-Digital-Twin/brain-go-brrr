@@ -264,11 +264,21 @@ def evaluate(
     all_preds = np.array(all_preds)
     all_labels = np.array(all_labels)
 
+    # Handle empty dataloader case
+    if len(dataloader) == 0:
+        print("WARNING: Empty dataloader in evaluation!")
+        return {
+            'loss': 0.0,
+            'balanced_accuracy': 0.0,
+            'weighted_f1': 0.0,
+            'cohen_kappa': 0.0,
+        }
+
     metrics = {
         'loss': total_loss / len(dataloader),
-        'balanced_accuracy': balanced_accuracy_score(all_labels, all_preds),
-        'weighted_f1': f1_score(all_labels, all_preds, average='weighted'),
-        'cohen_kappa': cohen_kappa_score(all_labels, all_preds),
+        'balanced_accuracy': balanced_accuracy_score(all_labels, all_preds) if len(all_labels) > 0 else 0.0,
+        'weighted_f1': f1_score(all_labels, all_preds, average='weighted') if len(all_labels) > 0 else 0.0,
+        'cohen_kappa': cohen_kappa_score(all_labels, all_preds) if len(all_labels) > 0 else 0.0,
     }
     
     # Add per-class metrics

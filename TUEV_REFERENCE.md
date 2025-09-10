@@ -29,6 +29,22 @@
    - Function: `get_parameter_groups` with `LayerDecayValueAssigner`
    - Deeper layers get exponentially lower learning rates
 
+## ⚠️ DATA PATH WARNING FOR IMPLEMENTATION
+
+**CRITICAL**: When implementing, the data structure MUST be:
+```
+data/datasets/tuev/       # NO /raw subdirectory!
+├── edf/
+│   ├── train/           # Official split directory
+│   └── eval/            # Official split directory
+└── cache/
+    └── tuev_event_segments/
+        ├── train/*.pkl  # MUST have actual pickle files
+        └── eval/*.pkl   # MUST have actual pickle files
+```
+
+Common implementation error: Using `data/datasets/tuev/raw` which doesn't exist!
+
 ## Table of Contents
 1. [Data Pipeline](#data-pipeline)
 2. [Model Architecture](#model-architecture)

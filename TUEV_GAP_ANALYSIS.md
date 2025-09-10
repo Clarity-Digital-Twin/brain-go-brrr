@@ -38,7 +38,30 @@ Fast follow‑ups (1–2 short runs):
 If no improvement by epoch 10 in any fast follow‑up:
 - Revisit event extraction alignment: implement the reference’s start/end‑bounded slicing with enforced 1000 samples and any per‑recording offset logic; compare a 200‑sample visual overlay for a handful of spsw/pled cases.
 
-## Pre‑Flight Critical Issues (Fix FIRST)
+## 🔴 CRITICAL DATA PATH REQUIREMENTS
+
+### CORRECT Path Structure (Sep 10, 2025):
+```
+data/datasets/tuev/          # ← CORRECT data_dir
+├── edf/
+│   ├── train/               # 359 .edf files
+│   └── eval/                # 159 .edf files
+└── cache/                   # ← CORRECT cache_dir  
+    └── tuev_event_segments/
+        ├── train/
+        │   ├── index.json   # 4213 segments
+        │   └── *.pkl        # 4213 pickle files REQUIRED
+        └── eval/
+            ├── index.json   # 1471 segments
+            └── *.pkl        # 1471 pickle files REQUIRED
+```
+
+### Common Path Failures:
+- ❌ `--data_dir data/datasets/tuev/raw` → WRONG! No /raw subdirectory exists
+- ✅ `--data_dir data/datasets/tuev` → CORRECT
+- ❌ Empty eval pickle files despite index.json → Rebuild cache required
+
+## Pre‑Flight Critical Issues (ALL FIXED)
 
 ### 0. Data Split Mismatch ✅ FIXED
 | Aspect        | Reference                      | Ours (BEFORE)                          | Ours (FIXED)                   |
