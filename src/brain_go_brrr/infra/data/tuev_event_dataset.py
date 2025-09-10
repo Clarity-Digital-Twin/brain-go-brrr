@@ -207,7 +207,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
         # Create cache directory
         cache_dir = self.cache_dir / self.split
         cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Process each file
         all_segments = []
         for edf_path in tqdm(edf_files, desc=f"Building {self.split} cache"):
@@ -239,9 +239,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                     except ValueError:
                         rel_parts = ()
 
-                    if self.split == 'eval' and len(rel_parts) >= 2:
-                        subject_id = rel_parts[0]
-                    elif self.split == 'train' and len(rel_parts) >= 2:
+                    if (self.split == 'eval' and len(rel_parts) >= 2) or (self.split == 'train' and len(rel_parts) >= 2):
                         subject_id = rel_parts[0]
                     else:
                         subject_id = edf_path.stem.split('_')[0]

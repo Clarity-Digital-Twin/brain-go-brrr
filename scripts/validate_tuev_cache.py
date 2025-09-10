@@ -53,8 +53,8 @@ def main() -> None:
     n_train = train_index.get("n_segments", 0)
     n_eval = eval_index.get("n_segments", 0)
 
-    print(f"Train index: {cache_dir/'train'/'index.json'}")
-    print(f"Eval  index: {cache_dir/'eval'/'index.json'}")
+    print(f"Train index: {cache_dir / 'train' / 'index.json'}")
+    print(f"Eval  index: {cache_dir / 'eval' / 'index.json'}")
     print(f"Train n_segments: {n_train}")
     print(f"Eval  n_segments: {n_eval}")
 
@@ -78,4 +78,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

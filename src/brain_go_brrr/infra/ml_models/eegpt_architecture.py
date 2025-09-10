@@ -20,12 +20,13 @@ class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
     From timm/models/layers/drop.py
     """
-    def __init__(self, drop_prob: float = 0.):
+
+    def __init__(self, drop_prob: float = 0.0):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
 
     def forward(self, x: Tensor) -> Tensor:
-        if self.drop_prob == 0. or not self.training:
+        if self.drop_prob == 0.0 or not self.training:
             return x
         keep_prob = 1 - self.drop_prob
         shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors
@@ -33,6 +34,7 @@ class DropPath(nn.Module):
         random_tensor.floor_()  # binarize
         output = x.div(keep_prob) * random_tensor
         return output
+
 
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
@@ -325,7 +327,7 @@ class Block(nn.Module):
             in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop
         )
         # Add DropPath for stochastic depth
-        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass through Transformer block with self-attention and MLP."""
@@ -450,8 +452,10 @@ class EEGTransformer(nn.Module):
         # Stochastic depth decay rule
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay
         if drop_path_rate > 0:
-            print(f"DropPath enabled: rate={drop_path_rate}, per-layer decay from 0 to {drop_path_rate}")
-        
+            print(
+                f"DropPath enabled: rate={drop_path_rate}, per-layer decay from 0 to {drop_path_rate}"
+            )
+
         # Transformer blocks
         self.blocks = nn.ModuleList(
             [

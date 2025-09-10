@@ -16,7 +16,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from timm.loss import LabelSmoothingCrossEntropy as TimmLabelSmoothingCE
 from torch.utils.data import DataLoader
@@ -52,23 +51,38 @@ class TUEVClassifierHead(nn.Module):
             # CRITICAL: Configure EEGPT for TUEV's 20 channels
             # This is the EXACT order from the EEGPT reference
             use_channels_names = [
-                'FP1', 'FPZ', 'FP2',
-                'F7', 'F3', 'FZ', 'F4', 'F8',
-                'T7', 'C3', 'CZ', 'C4', 'T8',
-                'P7', 'P3', 'PZ', 'P4', 'P8',
-                'O1', 'O2'
+                'FP1',
+                'FPZ',
+                'FP2',
+                'F7',
+                'F3',
+                'FZ',
+                'F4',
+                'F8',
+                'T7',
+                'C3',
+                'CZ',
+                'C4',
+                'T8',
+                'P7',
+                'P3',
+                'PZ',
+                'P4',
+                'P8',
+                'O1',
+                'O2',
             ]  # 20 channels!
-            
+
             # Configure model with 20 channels and correct time steps
             model_kwargs = {
                 "n_channels": use_channels_names,
                 "drop_path_rate": 0.2,  # CRITICAL: DropPath=0.2 for paper parity
-                "time_steps": 1000,      # Enforce native 1000 samples
-                "patch_stride": 64,      # Stride 64 at 200 Hz
+                "time_steps": 1000,  # Enforce native 1000 samples
+                "patch_stride": 64,  # Stride 64 at 200 Hz
             }
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
             print("DropPath=0.2 enabled for stochastic depth regularization")
-            
+
             # CRITICAL: Disable normalization to match reference (they use raw μV)
             # Our dataset outputs Volts, we'll scale to μV in forward pass
             self.eegpt.normalize = False
@@ -87,11 +101,13 @@ class TUEVClassifierHead(nn.Module):
 
             # Build classifier head to consume ALL temporal summary tokens
             # Compute temporal patch count from the EEGPT model
-            temporal_patches = int(getattr(self.eegpt.model.patch_embed, 'num_patches')[1])
-            embed_num = int(self.eegpt.model.embed_num)       # 4
-            embed_dim = int(self.eegpt.model.embed_dim)       # 512
+            temporal_patches = int(self.eegpt.model.patch_embed.num_patches[1])
+            embed_num = int(self.eegpt.model.embed_num)  # 4
+            embed_dim = int(self.eegpt.model.embed_dim)  # 512
             in_features = temporal_patches * embed_num * embed_dim  # 15*4*512 = 30720
-            print(f"Using TEMPORAL TOKEN FLATTENING: {temporal_patches}×{embed_num}×{embed_dim} = {in_features}")
+            print(
+                f"Using TEMPORAL TOKEN FLATTENING: {temporal_patches}×{embed_num}×{embed_dim} = {in_features}"
+            )
 
             # CRITICAL: Use LinearWithConstraint to match reference implementation
             # This prevents weight explosion with 30,720 features
@@ -183,21 +199,25 @@ def create_optimizer_with_layer_decay(
     param_groups = [g for g in grouped.values() if g["params"]]
     if not param_groups:
         return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    
+
     # Print layer-wise LR decay info for verification
     print("\nLayer-wise learning rate decay applied:")
     for group in param_groups:
         print(f"  {group['name']}: lr={group['lr']:.2e}, wd={group['weight_decay']:.3f}")
-    
+
     return torch.optim.AdamW(param_groups)
 
 
 def cosine_scheduler(
-    base_value: float, final_value: float, epochs: int, niter_per_ep: int, 
-    warmup_epochs: int = 0, start_warmup_value: float = 0
+    base_value: float,
+    final_value: float,
+    epochs: int,
+    niter_per_ep: int,
+    warmup_epochs: int = 0,
+    start_warmup_value: float = 0,
 ) -> np.ndarray:
     """Create per-iteration cosine scheduler matching reference implementation.
-    
+
     Args:
         base_value: Initial learning rate
         final_value: Final learning rate
@@ -205,22 +225,24 @@ def cosine_scheduler(
         niter_per_ep: Number of iterations per epoch
         warmup_epochs: Number of warmup epochs
         start_warmup_value: Starting value for warmup
-    
+
     Returns:
         Array of learning rates for each iteration
     """
     warmup_schedule = np.array([])
     warmup_iters = warmup_epochs * niter_per_ep
-    
+
     if warmup_epochs > 0:
         warmup_schedule = np.linspace(start_warmup_value, base_value, warmup_iters)
-    
+
     iters = np.arange(epochs * niter_per_ep - warmup_iters)
-    schedule = np.array([
-        final_value + 0.5 * (base_value - final_value) * (1 + np.cos(np.pi * i / len(iters))) 
-        for i in iters
-    ])
-    
+    schedule = np.array(
+        [
+            final_value + 0.5 * (base_value - final_value) * (1 + np.cos(np.pi * i / len(iters)))
+            for i in iters
+        ]
+    )
+
     schedule = np.concatenate((warmup_schedule, schedule))
     assert len(schedule) == epochs * niter_per_ep
     return schedule
@@ -276,24 +298,26 @@ def evaluate(
 
     metrics = {
         'loss': total_loss / len(dataloader),
-        'balanced_accuracy': balanced_accuracy_score(all_labels, all_preds) if len(all_labels) > 0 else 0.0,
-        'weighted_f1': f1_score(all_labels, all_preds, average='weighted') if len(all_labels) > 0 else 0.0,
+        'balanced_accuracy': balanced_accuracy_score(all_labels, all_preds)
+        if len(all_labels) > 0
+        else 0.0,
+        'weighted_f1': f1_score(all_labels, all_preds, average='weighted')
+        if len(all_labels) > 0
+        else 0.0,
         'cohen_kappa': cohen_kappa_score(all_labels, all_preds) if len(all_labels) > 0 else 0.0,
     }
-    
+
     # Add per-class metrics
-    from sklearn.metrics import confusion_matrix, classification_report
-    cm = confusion_matrix(all_labels, all_preds, labels=[0,1,2,3,4,5])
+    from sklearn.metrics import classification_report, confusion_matrix
+
+    cm = confusion_matrix(all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5])
     print("\nConfusion Matrix:")
     print(cm)
-    
+
     # Print per-class report
     class_names = ['spsw', 'gped', 'pled', 'eyem', 'artf', 'bckg']
     report = classification_report(
-        all_labels, all_preds,
-        labels=[0,1,2,3,4,5],
-        target_names=class_names,
-        zero_division=0
+        all_labels, all_preds, labels=[0, 1, 2, 3, 4, 5], target_names=class_names, zero_division=0
     )
     print("\nPer-class metrics:")
     print(report)
@@ -333,7 +357,7 @@ def train_epoch(
     total_loss = 0.0
     all_preds = []
     all_labels = []
-    
+
     # Calculate starting iteration for this epoch
     num_steps = len(dataloader) // accumulate_steps
     start_iter = epoch * num_steps
@@ -342,7 +366,7 @@ def train_epoch(
 
     for i, (x, y) in enumerate(tqdm(dataloader, desc="Training")):
         x, y = x.to(device), y.to(device)
-        
+
         # Update learning rate and weight decay per iteration (before optimizer step)
         it = start_iter + i // accumulate_steps
         if lr_schedule is not None and it < len(lr_schedule):
@@ -419,20 +443,21 @@ def main(args):
 
     # NO BALANCED SAMPLING - Reference doesn't use it and achieves 62% BAC!
     print("Setting up training WITHOUT balanced sampling (matches reference)...")
-    
+
     # Print class distribution for monitoring
     import json
-    with open(train_dataset.cache_dir / train_dataset.split / "index.json", "r") as f:
+
+    with open(train_dataset.cache_dir / train_dataset.split / "index.json") as f:
         index_data = json.load(f)
     train_labels = [seg["label"] for seg in index_data["segments"]]
     class_counts = torch.bincount(torch.tensor(train_labels, dtype=torch.long), minlength=6)
     print(f"Class distribution (natural): {class_counts.tolist()}")
     print("Using natural distribution - NO rebalancing")
-    
+
     # Create dataloaders with WSL-safe defaults
     pin_memory = args.pin_memory  # Default False for WSL
     persistent_workers = (args.num_workers > 0) and args.persistent_workers
-    
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -490,12 +515,12 @@ def main(args):
 
     # Calculate gradient accumulation steps to match reference batch=400
     effective_batch_size = 400  # Reference uses exactly 400
-    
+
     # Calculate accumulation steps to get as close to 400 as possible
     # Option 1: batch=32, accum=13 -> 416 (4% over)
     # Option 2: batch=40, accum=10 -> 400 (exact)
     # Option 3: batch=50, accum=8 -> 400 (exact)
-    
+
     # Use exact 400 if possible, otherwise get close
     if effective_batch_size % args.batch_size == 0:
         accumulate_steps = effective_batch_size // args.batch_size
@@ -503,11 +528,15 @@ def main(args):
         # Round to nearest for closest match
         accumulate_steps = round(effective_batch_size / args.batch_size)
         accumulate_steps = max(1, accumulate_steps)  # At least 1
-    
+
     actual_effective_batch = args.batch_size * accumulate_steps
-    print(f"Effective batch size: {actual_effective_batch} (batch={args.batch_size}, accum={accumulate_steps})")
+    print(
+        f"Effective batch size: {actual_effective_batch} (batch={args.batch_size}, accum={accumulate_steps})"
+    )
     if abs(actual_effective_batch - effective_batch_size) > 20:
-        print(f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%")
+        print(
+            f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%"
+        )
 
     # Create optimizer with layer-wise decay
     optimizer = create_optimizer_with_layer_decay(
@@ -517,7 +546,7 @@ def main(args):
     # Create per-iteration schedulers matching reference implementation
     num_training_steps_per_epoch = len(train_loader) // accumulate_steps
     print(f"Steps per epoch: {num_training_steps_per_epoch}")
-    
+
     # Learning rate schedule with cosine decay
     lr_schedule = cosine_scheduler(
         base_value=args.lr,
@@ -525,16 +554,16 @@ def main(args):
         epochs=args.epochs,
         niter_per_ep=num_training_steps_per_epoch,
         warmup_epochs=args.warmup_epochs,
-        start_warmup_value=0
+        start_warmup_value=0,
     )
-    
+
     # Weight decay schedule (typically constant in TUEV)
     wd_schedule = cosine_scheduler(
         base_value=args.weight_decay,
         final_value=args.weight_decay,  # Same as base (constant)
         epochs=args.epochs,
         niter_per_ep=num_training_steps_per_epoch,
-        warmup_epochs=0  # No warmup for weight decay
+        warmup_epochs=0,  # No warmup for weight decay
     )
 
     # Create loss function - use timm's implementation to match reference exactly
@@ -548,8 +577,15 @@ def main(args):
 
         # Train with per-iteration scheduling
         train_metrics = train_epoch(
-            model, train_loader, criterion, optimizer, device, accumulate_steps,
-            lr_schedule=lr_schedule, wd_schedule=wd_schedule, epoch=epoch
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            accumulate_steps,
+            lr_schedule=lr_schedule,
+            wd_schedule=wd_schedule,
+            epoch=epoch,
         )
         print(
             f"Train - Loss: {train_metrics['loss']:.4f}, BAC: {train_metrics['balanced_accuracy']:.4f}"
@@ -643,12 +679,16 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--save_dir', type=str, default=None, help='Directory to save checkpoints')
     parser.add_argument(
-        '--pin_memory', action='store_true', default=False, 
-        help='Pin memory for DataLoader (avoid on WSL)'
+        '--pin_memory',
+        action='store_true',
+        default=False,
+        help='Pin memory for DataLoader (avoid on WSL)',
     )
     parser.add_argument(
-        '--persistent_workers', action='store_true', default=False,
-        help='Keep workers alive between epochs'
+        '--persistent_workers',
+        action='store_true',
+        default=False,
+        help='Keep workers alive between epochs',
     )
 
     args = parser.parse_args()
