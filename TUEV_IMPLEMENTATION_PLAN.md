@@ -372,14 +372,12 @@ assert y in range(6)  # Valid class label
 ### Q3: Single GPU vs Distributed Training
 **ANSWER: Single GPU with Smaller Batch** ✅
 - Reference: 2 GPUs, batch_size=400 total (200 per GPU)
-- Single GPU: Use batch_size=64-100, accumulate gradients if needed
-- Effective batch via: `accumulate_grad_batches = 400 // actual_batch_size`
+- Single GPU: Use batch_size=64–100; if memory-bound, implement manual gradient accumulation in PyTorch to match effective batch size. Do not use Lightning.
 
-### Q4: Fallback Path Necessity
-**ANSWER: NO FALLBACK - PAPER PARITY ONLY** ❌
-- Focus: Event classification BAC=62%, NOT temporal detection
-- Reason: Different problems, different metrics, different architectures
-- Decision: Implement ONLY Option A (5s@200Hz event segments)
+### Q4: Fallback Path
+**ANSWER: Parity is the default; sliding-window is research-only**
+- Use Strict Parity for replication (paper numbers).
+- Keep existing sliding-window script as a non-parity fallback for research; do not use it to claim paper parity.
 
 ## Timeline
 
@@ -392,7 +390,7 @@ assert y in range(6)  # Valid class label
 ### Day 2: Build Event Dataset  
 - [ ] Implement TUEVEventDataset with 80/20 subject splits
 - [ ] Build cache for train/eval with META.json
-- [ ] Verify balanced class distribution (~equal per class)
+- [ ] Verify event-only distribution (no background dominance)
 
 ### Day 3: Training & Validation
 - [ ] Run training with paper hyperparams
