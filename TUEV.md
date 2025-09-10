@@ -225,7 +225,7 @@ uv run python -c "import json; print(json.load(open('data/datasets/tuev/cache/tu
 # Check if cache exists
 ls -la data/datasets/tuev/cache/tuev_event_segments/
 
-# Rebuild cache if needed (takes ~30 minutes)
+# Rebuild cache if needed (takes ~5-30 minutes depending on disk speed and I/O)
 rm -rf data/datasets/tuev/cache/
 uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset; TUEVEventDataset('data/datasets/tuev', 'train')"
 
