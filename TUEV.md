@@ -20,6 +20,18 @@
 
 ## Critical Issues & Status
 
+### 🔴 Issue #-1: MISSING WEIGHT NORMALIZATION (CRITICAL)
+- **Problem**: Using nn.Linear(30720, 6) instead of LinearWithConstraint
+- **Solution**: Must use LinearWithConstraint with max_norm=1 
+- **Impact**: Without weight renorm, training collapses to majority classes
+- **Status**: NOT FIXED - THIS IS THE SMOKING GUN
+
+### 🔴 Issue #-2: CHANNEL MAPPER ARCHITECTURE WRONG
+- **Problem**: Simple Conv2d(23, 20, 1) vs complex pipeline with constraints
+- **Solution**: Conv2dWithConstraint + BatchNorm + GELU + DepthwiseConv + BatchNorm + Dropout(0.8)
+- **Impact**: Missing regularization and normalization in channel mapping
+- **Status**: NOT FIXED - Another critical divergence
+
 ### ✅ Issue #0: WRONG DATA SPLITS (FIXED)
 - **Problem**: Code was using wrong cache with seed=42 split
 - **Solution**: Deleted wrong cache, now uses official train/eval directories
@@ -98,17 +110,27 @@ Note: `chan_ids` is a 1D tensor built from these names via `CHANNEL_DICT`.
 EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats file is provided. Datasets emit Volts (SI units). For TUEV paper parity, we DISABLE wrapper normalization and instead scale inputs to microvolts in the model (`x = x * 1e6`) so the backbone sees raw μV values like the reference. For production, compute corpus-level stats and pass them to the wrapper.
 
 ### Model Architecture
+
+**CURRENT (WRONG)**:
 ```python
-# 23→20 channel mapping + EEGPT (paper parity)
-# Location: experiments/eegpt_linear_probe/train_tuev_events.py
-
-Input (23, 1000) → ChannelMapper → (20, 1000) → EEGPT → (N_temporal×4×512) → Dropout(0.8) → Linear(30720→6)
-
-# Key configurations (enforced):
-- 20 TUEV channels for EEGPT
-- Parity mode only: time_steps=1000, patch_stride=64 (no pad-to-1024 fallback)
-- Classifier consumes ALL temporal summary tokens (15 patches × 4 tokens × 512 = 30,720)
+# Simple channel mapping + standard linear head
+Input (23, 1000) → Conv2d(23→20) → EEGPT → Flatten(30720) → Dropout(0.8) → Linear(30720→6)
 ```
+
+**REFERENCE (CORRECT)**:
+```python
+# Complex channel mapper with constraints + weight-normalized head
+Input (23, 1000) → [Conv2dWithConstraint(23→20) → BatchNorm → GELU → 
+                    DepthwiseConv(1,55) → BatchNorm → Dropout(0.8)] →
+                   EEGPT → Flatten(30720) → Dropout(0.8) → LinearWithConstraint(30720→6, max_norm=1)
+```
+
+**Critical Missing Components**:
+1. **LinearWithConstraint**: Weight renormalization (max_norm=1) prevents gradient explosion
+2. **Conv2dWithConstraint**: Channel mapper also needs weight constraints
+3. **BatchNorm layers**: Stabilize channel mapping
+4. **DepthwiseConv(1,55)**: Additional temporal processing in mapper
+5. **Dropout(0.8) in mapper**: Extra regularization before EEGPT
 
 ### Training Configuration
 ```python

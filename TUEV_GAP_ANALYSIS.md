@@ -75,21 +75,29 @@ PY
 
 ## Critical Divergences (Likely Driving the Gap)
 
-### 1) Class Balancing ⚠️ MAJOR
-| Aspect        | Reference      | Ours                    | Impact                               |
+### 1) Weight Normalization in Classifier Head 🔴 CRITICAL MISSING PIECE
+| Aspect        | Reference                         | Ours                    | Impact                               |
+|---------------|-----------------------------------|-------------------------|--------------------------------------|
+| Head layer    | LinearWithConstraint(30720, 6)   | nn.Linear(30720, 6)     | **TRAINING COLLAPSE**                |
+| Weight norm   | max_norm=1 every forward pass     | None                    | Weights explode with 30k features    |
+| Implementation| torch.renorm(weights, p=2, dim=0) | Standard Linear         | Gradients unstable, minority classes die |
+| Result        | Stable training, all classes learn| Only 2/6 classes work   | **THIS IS THE SMOKING GUN**          |
+
+**Why this is critical**: With 30,720 input features and Dropout(0.8), weight magnitudes can explode without constraints. The renormalization keeps each output neuron's incoming weights bounded, preventing the collapse to majority classes we're seeing.
+
+### 2) Class Balancing ✅ FIXED
+| Aspect        | Reference      | Ours (FIXED)            | Impact                               |
 |---------------|----------------|-------------------------|--------------------------------------|
-| Sampling      | No balancing   | WeightedRandomSampler   | Model sees artificial distribution   |
-| Class weights | None           | 1 / class_count        | Alters gradient magnitudes           |
-| Result        | ~62% BAC       | 19–24% BAC              | Likely overcorrected rare classes    |
+| Sampling      | No balancing   | No balancing            | Natural distribution                 |
+| Class weights | None           | None                    | Matches reference                    |
+| Result        | ~62% BAC       | 24% BAC (other issues)  | Not the cause anymore                |
 
-Hypothesis: Oversampling rare classes harms generalization on the natural eval distribution.
-
-### 2) Data Scale / Normalization ⚠️ MAJOR
-| Aspect      | Reference           | Ours                               | Impact                         |
-|-------------|---------------------|------------------------------------|--------------------------------|
-| Units       | Microvolts (μV)     | Volts → normalized to N(0, 50 μV)  | Different input distributions  |
-| Range       | ~[−100, +100] μV    | ~[−2, +2] after z‑scoring          | Feature magnitude mismatch     |
-| Normalizing | Not emphasized      | Default mean=0, std=50 μV          | May miscalibrate features      |
+### 3) Data Scale / Normalization ✅ FIXED
+| Aspect      | Reference           | Ours (FIXED)               | Impact                         |
+|-------------|---------------------|----------------------------|--------------------------------|
+| Units       | Microvolts (μV)     | Microvolts (μV)            | Matches reference              |
+| Range       | ~[−100, +100] μV    | ~[−100, +100] μV           | Same scale                     |
+| Normalizing | Raw μV values       | Normalization disabled     | Matches reference              |
 
 ### 3) Batch Size & Accumulation
 | Aspect        | Reference        | Ours                    | Impact                                 |
@@ -164,12 +172,17 @@ Use ALL temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8
 - Print batch label distributions (first few batches) to confirm natural prevalence after removing balancing.
 - Track BAC by epoch; acceptance gates: ≥0.25 by epoch 2–3, ≥0.40 by epoch 5, final ≈0.62±0.02 by ~30.
 
-## Expected Outcomes
-1) Remove sampler → BAC likely jumps from 0.24 → 0.35–0.45.
-2) Align normalization → +0.10–0.15 BAC (choose μV or corpus stats based on eval).
-3) Match batch/accum → +0.02–0.05 BAC.
-4) DropPath/Pooling → Stabilization and incremental gains.
-5) Window alignment and/or patch granularity → May unlock minority‑class recall if above steps stall.
+## Expected Outcomes (UPDATED WITH CRITICAL FINDINGS)
+1) **LinearWithConstraint in head** → MASSIVE IMPACT, expect BAC jump 0.24 → 0.45-0.55
+2) **Conv2dWithConstraint + full mapper** → Additional +0.05-0.10 BAC from stable channel mapping
+3) **Both fixes combined** → Should reach 0.55-0.62 BAC (paper target)
+
+Previous fixes already applied:
+- Natural sampling ✅
+- μV scale ✅ 
+- Temporal tokens ✅
+- Boundary handling ✅
+- Exact batch 400 ✅
 
 ## Smoking Guns 🔫
 1) Split mismatch: If subjects overlap or splits differ from reference, comparisons are invalid.

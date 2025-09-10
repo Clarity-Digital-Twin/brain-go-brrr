@@ -92,11 +92,31 @@ model = EEGPTClassifier(
 
 Classifier head behavior (from authors' code):
 ```python
+# CRITICAL: Uses LinearWithConstraint, not standard Linear!
+class LinearWithConstraint(nn.Linear):
+    def __init__(self, *args, doWeightNorm=True, max_norm=1, **kwargs):
+        self.max_norm = max_norm
+        self.doWeightNorm = doWeightNorm
+        super().__init__(*args, **kwargs)
+    
+    def forward(self, x):
+        if self.doWeightNorm:
+            # Renormalize weights EVERY forward pass
+            self.weight.data = torch.renorm(
+                self.weight.data, p=2, dim=0, maxnorm=self.max_norm
+            )
+        return super().forward(x)
+
+# Actual classifier:
+self.head = nn.Sequential(
+    nn.Dropout(0.8),
+    LinearWithConstraint(30720, num_classes, max_norm=1),  # NOT nn.Linear!
+)
+
 # forward():
 x = target_encoder(...)
 x = x.flatten(1)                  # Flatten ALL temporal summary tokens
-x = Dropout(0.8)
-x = Linear(30720, num_classes)    # 15 patches × 4 tokens × 512 dims
+x = self.head(x)                  # Dropout + LinearWithConstraint
 ```
 
 ### Data Loading (`utils.py`)
