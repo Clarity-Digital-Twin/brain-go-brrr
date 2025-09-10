@@ -183,22 +183,66 @@ def create_optimizer_with_layer_decay(
         model: Model to optimize
         lr: Base learning rate
         weight_decay: Weight decay
-        layer_decay: Layer decay factor
+        layer_decay: Layer decay factor (deeper layers get smaller LR)
 
     Returns:
         AdamW optimizer with parameter groups
     """
-    # For simplicity, use single learning rate
-    # Full implementation would decay LR by depth
-    # TODO: Implement layer-wise decay when needed
-    _ = layer_decay  # Will be used in full implementation
-    return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    # Collect all parameters with their depths
+    param_groups = []
+    no_decay = ["bias", "norm", "LayerNorm", "layernorm", "bn", "BatchNorm"]
+
+    # Get max depth by analyzing parameter names
+    max_depth = 0
+    for name, _ in model.named_parameters():
+        # Count depth based on "layer" or "block" keywords
+        depth = name.count('.layer') + name.count('.block') + name.count('.encoder')
+        max_depth = max(max_depth, depth)
+
+    # Group parameters by depth
+    depth_params = {}
+    for name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+
+        # Calculate depth for this parameter
+        depth = name.count('.layer') + name.count('.block') + name.count('.encoder')
+
+        # Apply layer decay based on depth
+        layer_lr = lr * (layer_decay ** (max_depth - depth))
+
+        # Check if weight decay should be applied
+        apply_wd = not any(nd in name for nd in no_decay)
+
+        # Create key for grouping
+        group_key = (depth, apply_wd)
+
+        if group_key not in depth_params:
+            depth_params[group_key] = {
+                'params': [],
+                'lr': layer_lr,
+                'weight_decay': weight_decay if apply_wd else 0.0,
+                'name': f"depth_{depth}_{'decay' if apply_wd else 'no_decay'}",
+            }
+
+        depth_params[group_key]['params'].append(param)
+
+    # Convert to list of parameter groups
+    for group in depth_params.values():
+        if group['params']:  # Only add non-empty groups
+            param_groups.append(group)
+
+    # If no groups created (simple model), fall back to basic optimizer
+    if not param_groups:
+        return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+
+    return torch.optim.AdamW(param_groups)
 
 
 def warmup_scheduler(
     optimizer: torch.optim.Optimizer, warmup_epochs: int, total_epochs: int
 ) -> torch.optim.lr_scheduler.LambdaLR:
-    """Create warmup scheduler.
+    """Create warmup scheduler with cosine annealing.
 
     Args:
         optimizer: Optimizer to schedule
@@ -206,16 +250,22 @@ def warmup_scheduler(
         total_epochs: Total number of epochs
 
     Returns:
-        LambdaLR scheduler with warmup
+        LambdaLR scheduler with warmup + cosine decay
     """
-    # TODO: Add cosine decay after warmup using total_epochs
-    _ = total_epochs  # Will be used for cosine decay
 
     def lr_lambda(epoch: int) -> float:
+        """Calculate learning rate multiplier.
+
+        - Linear warmup from 0 to 1 over warmup_epochs
+        - Cosine annealing from 1 to 0 over remaining epochs
+        """
         if epoch < warmup_epochs:
+            # Linear warmup
             return (epoch + 1) / warmup_epochs
         else:
-            return 1.0
+            # Cosine annealing after warmup
+            progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
+            return 0.5 * (1.0 + np.cos(np.pi * progress))
 
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
