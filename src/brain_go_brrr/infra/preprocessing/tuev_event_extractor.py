@@ -69,7 +69,7 @@ class TUEVEventExtractor:
         assert self.target_fs == 200, "EEGPT TUEV uses 200Hz, not 256Hz"
 
     def extract_segments(
-        self, edf_path: Path, annotations: list[dict]
+        self, edf_path: Path, annotations: list[dict[str, float | int]]
     ) -> list[tuple[npt.NDArray[np.float32], int]]:
         """Extract event-centered segments from EDF file.
 
