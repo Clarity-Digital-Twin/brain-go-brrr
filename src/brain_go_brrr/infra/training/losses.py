@@ -69,9 +69,9 @@ class FocalLoss(nn.Module):
 
         # Apply reduction
         if self.reduction == 'mean':
-            return loss.mean()
+            return torch.mean(loss)
         elif self.reduction == 'sum':
-            return loss.sum()
+            return torch.sum(loss)
         else:
             return loss
 
@@ -128,8 +128,8 @@ class WeightedLabelSmoothingCrossEntropy(nn.Module):
 
         # Apply reduction
         if self.reduction == 'mean':
-            return loss.mean()
+            return torch.mean(loss)
         elif self.reduction == 'sum':
-            return loss.sum()
+            return torch.sum(loss)
         else:
             return loss

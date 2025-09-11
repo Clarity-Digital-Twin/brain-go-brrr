@@ -2,15 +2,16 @@
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from torch.utils.data import WeightedRandomSampler
 
 
 def compute_class_weights(
-    labels: np.ndarray, method: Literal["counts", "cb"] = "counts", beta: float = 0.9999
+    labels: npt.NDArray[np.int_], method: Literal["counts", "cb"] = "counts", beta: float = 0.9999
 ) -> torch.Tensor:
     """Compute class weights for imbalanced datasets.
 
@@ -46,7 +47,7 @@ def compute_class_weights(
     return weight_tensor
 
 
-def load_cache_labels(cache_dir: Path, split: str = "train") -> np.ndarray:
+def load_cache_labels(cache_dir: Path, split: str = "train") -> npt.NDArray[np.int_]:
     """Load labels from TUEV cache index.
 
     Args:
@@ -66,7 +67,7 @@ def load_cache_labels(cache_dir: Path, split: str = "train") -> np.ndarray:
 
 
 def create_weighted_sampler(
-    labels: np.ndarray, class_weights: torch.Tensor, replacement: bool = True
+    labels: npt.NDArray[np.int_], class_weights: torch.Tensor, replacement: bool = True
 ) -> WeightedRandomSampler:
     """Create a weighted sampler for balanced batch sampling.
 
@@ -79,20 +80,20 @@ def create_weighted_sampler(
         WeightedRandomSampler configured for the dataset
     """
     # Create per-sample weights based on class weights
-    sample_weights = np.array([class_weights[label].item() for label in labels])
+    sample_weights_np = np.array([class_weights[label].item() for label in labels])
 
     # Convert to tensor
-    sample_weights = torch.tensor(sample_weights, dtype=torch.float32)
+    sample_weights_tensor = torch.tensor(sample_weights_np, dtype=torch.float32)
 
     # Create sampler
     sampler = WeightedRandomSampler(
-        weights=sample_weights, num_samples=len(labels), replacement=replacement
+        weights=sample_weights_tensor, num_samples=len(labels), replacement=replacement
     )
 
     return sampler
 
 
-def get_minority_classes(labels: np.ndarray, threshold: float = 0.1) -> list[int]:
+def get_minority_classes(labels: npt.NDArray[np.int_], threshold: float = 0.1) -> list[int]:
     """Identify minority classes based on frequency threshold.
 
     Args:
@@ -106,12 +107,13 @@ def get_minority_classes(labels: np.ndarray, threshold: float = 0.1) -> list[int
     total = len(labels)
     frequencies = counts / total
 
-    minority_classes = unique_labels[frequencies < threshold].tolist()
+    minority_classes_array = unique_labels[frequencies < threshold]
+    minority_classes: list[int] = minority_classes_array.tolist()
 
     return minority_classes
 
 
-def print_class_distribution(labels: np.ndarray, class_names: dict | None = None) -> None:
+def print_class_distribution(labels: npt.NDArray[np.int_], class_names: dict[int, str] | None = None) -> None:
     """Print class distribution statistics.
 
     Args:
