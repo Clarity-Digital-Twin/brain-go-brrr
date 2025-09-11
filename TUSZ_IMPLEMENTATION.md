@@ -35,12 +35,12 @@ brain-go-brrr/
 │   ├── infra/
 │   │   ├── data/
 │   │   │   └── tusz_dataset.py          # Dataset loader
-│   │   ├── models/
-│   │   │   ├── seizure_transformer.py   # Model wrapper
-│   │   │   └── temporal_heads.py        # BiLSTM, GRU heads
-│   │   └── evaluation/
-│   │       ├── nedc_wrapper.py          # NEDC Eval integration
-│   │       └── post_processing.py       # 3-stage pipeline
+│   │   ├── ml_models/
+│   │   │   ├── seizure_transformer_wrapper.py   # Model wrapper (no sys.path hacks)
+│   │   │   └── temporal_heads.py                # BiLSTM, GRU heads
+│   │   └── eval/
+│   │       ├── nedc_wrapper.py                  # NEDC adapter surface
+│   │       └── post_processing.py               # Hysteresis + merge + min-dur
 │   └── domain/
 │       └── temporal/
 │           └── tusz_controller.py       # Orchestration
@@ -62,7 +62,7 @@ brain-go-brrr/
 
 ### Dataset Loader
 ```python
-# src/brain_go_brrr/infra/data/tusz_dataset.py
+# src/brain_go_brrr/infra/data/tusz_detection_dataset.py
 
 import numpy as np
 import pandas as pd
@@ -70,16 +70,22 @@ from pathlib import Path
 import mne
 from typing import Tuple, List, Dict
 
-class TUSZDataset:
+class TUSZDetectionDataset:
     """
     TUSZ v2.0.1 dataset loader with annotation parsing.
     Handles both EDF files and TSE/CSV annotations.
     """
     
-    def __init__(self, root_dir: Path, split: str = 'train'):
+    def __init__(self, root_dir: Path, split: str = 'train', fs: int = 256,
+                 window_sec: float = 12.0, stride_sec: float = 1.0,
+                 positive_fraction: float = 0.2):
         self.root_dir = Path(root_dir)
         self.split = split
         self.data_dir = self.root_dir / split
+        self.fs = fs
+        self.window_sec = window_sec
+        self.stride_sec = stride_sec
+        self.positive_fraction = positive_fraction
         self.annotations = self._load_annotations()
         
     def _load_annotations(self) -> Dict[str, List[Tuple[float, float]]]:
@@ -137,16 +143,16 @@ class TUSZDataset:
         available = [ch for ch in standard_channels if ch in raw.ch_names]
         raw.pick_channels(available, ordered=True)
         
-        # Resample to 256 Hz if needed
-        if raw.info['sfreq'] != 256:
-            raw.resample(256)
+        # Resample to SSOT sampling rate if needed
+        if int(raw.info['sfreq']) != self.fs:
+            raw.resample(self.fs)
         
         return raw
 ```
 
 ### Annotation Parser
 ```python
-# src/brain_go_brrr/infra/data/tusz_annotations.py
+# src/brain_go_brrr/infra/data/tusz_annotations.py (optional utility)
 
 class TUSZAnnotationParser:
     """
@@ -190,49 +196,33 @@ class TUSZAnnotationParser:
 
 ## 🧠 Model Implementations
 
-### SeizureTransformer Wrapper
+### SeizureTransformer Wrapper (no sys.path hacks)
 ```python
-# src/brain_go_brrr/infra/models/seizure_transformer.py
+# src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py
 
 import torch
 import torch.nn as nn
 from pathlib import Path
-import sys
 
-# Add reference repo to path
-sys.path.append('reference_repos/SeizureTransformer')
-from wu_2025.architecture import SeizureTransformerModel
+# Preferred: pass a `build_fn` or installed package provides `build_seizure_transformer(n_channels)`
+from typing import Optional, Callable
 
 class SeizureTransformerWrapper:
-    """
-    Wrapper for Wu 2025 SeizureTransformer with clinical evaluation.
-    """
-    
-    def __init__(self, weights_path: Path = None):
+    def __init__(self, weights_path: Optional[Path] = None,
+                 build_fn: Optional[Callable[[int], nn.Module]] = None,
+                 n_channels: int = 19, fs: int = 256):
+        self.fs = fs
+        self.window_sec = 60
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = self._load_model(weights_path)
-        self.window_sec = 60  # Model expects 60-second windows
-        self.fs = 256
-        
-    def _load_model(self, weights_path: Path) -> nn.Module:
-        """Load pretrained SeizureTransformer."""
-        model = SeizureTransformerModel(
-            n_channels=19,
-            n_filters=[32, 64, 128, 256, 512],
-            n_transformer_layers=8,
-            n_heads=4,
-            dropout=0.1
-        )
-        
-        if weights_path and weights_path.exists():
-            checkpoint = torch.load(weights_path, map_location=self.device)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            print(f"Loaded weights from {weights_path}")
-        
-        model.to(self.device)
-        model.eval()
-        
-        return model
+        if build_fn is None:
+            from seizure_transformer import build_seizure_transformer  # installed package
+            build_fn = build_seizure_transformer
+        self.model = build_fn(n_channels)
+        if weights_path is not None and Path(weights_path).exists():
+            ckpt = torch.load(weights_path, map_location='cpu', weights_only=True)
+            state_dict = ckpt.get('model', ckpt)
+            self.model.load_state_dict(state_dict, strict=False)
+        self.model.to(self.device).eval()
     
     def predict(self, eeg_data: np.ndarray) -> np.ndarray:
         """
@@ -248,9 +238,11 @@ class SeizureTransformerWrapper:
         window_samples = self.window_sec * self.fs
         
         # Process in sliding windows
-        probabilities = np.zeros(n_samples)
-        
-        for start in range(0, n_samples - window_samples, window_samples // 2):
+        probabilities = np.zeros(n_samples, dtype=np.float32)
+        counts = np.zeros(n_samples, dtype=np.int32)
+        stride = window_samples // 2
+
+        for start in range(0, n_samples - window_samples + 1, stride):
             end = start + window_samples
             window = eeg_data[:, start:end]
             
@@ -259,20 +251,18 @@ class SeizureTransformerWrapper:
             
             # Get predictions
             with torch.no_grad():
-                window_probs = torch.sigmoid(self.model(x)).squeeze().cpu().numpy()
-            
-            # Average overlapping predictions
-            probabilities[start:end] += window_probs
-        
-        # Normalize overlapping regions
-        probabilities /= 2  # Max 2 overlaps with 50% stride
-        
+                p = torch.sigmoid(self.model(x)).squeeze().detach().cpu().float().mean().item()
+            probabilities[start:end] += np.float32(p)
+            counts[start:end] += 1
+
+        counts = np.maximum(counts, 1)
+        probabilities = probabilities / counts
         return probabilities
 ```
 
 ### EEGPT + BiLSTM Implementation
 ```python
-# src/brain_go_brrr/infra/models/temporal_heads.py
+# src/brain_go_brrr/infra/ml_models/temporal_heads.py
 
 import torch
 import torch.nn as nn
@@ -286,7 +276,7 @@ class EEGPTBiLSTM(nn.Module):
     def __init__(self, hidden_size: int = 256, num_layers: int = 2):
         super().__init__()
         
-        # Frozen EEGPT encoder
+        # EEGPT encoder (reuse existing wrapper; normalization already handled)
         self.eegpt = create_normalized_eegpt()
         self.eegpt.eval()
         for param in self.eegpt.parameters():
@@ -294,7 +284,7 @@ class EEGPTBiLSTM(nn.Module):
         
         # BiLSTM temporal model
         self.lstm = nn.LSTM(
-            input_size=2048,  # EEGPT feature dimension
+            input_size=2048,  # 4 summary tokens * 512 dim (flattened)
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
@@ -609,10 +599,10 @@ class NEDCClinicalEvaluator:
 
 import numpy as np
 from pathlib import Path
-from brain_go_brrr.infra.data.tusz_dataset import TUSZDataset
-from brain_go_brrr.infra.models.seizure_transformer import SeizureTransformerWrapper
-from brain_go_brrr.infra.evaluation.post_processing import AdvancedPostProcessor
-from brain_go_brrr.infra.evaluation.nedc_wrapper import NEDCClinicalEvaluator
+from brain_go_brrr.infra.data.tusz_detection_dataset import TUSZDetectionDataset
+from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import SeizureTransformerWrapper
+from brain_go_brrr.infra.eval.post_processing import AdvancedPostProcessor
+from brain_go_brrr.infra.eval.nedc_wrapper import NEDCClinicalEvaluator
 
 def main():
     """
@@ -625,7 +615,7 @@ def main():
     )
     
     # Load data
-    dataset = TUSZDataset(
+    dataset = TUSZDetectionDataset(
         root_dir=Path('data/datasets/tusz/v2.0.1'),
         split='dev'
     )
@@ -641,14 +631,10 @@ def main():
     # Process all recordings
     all_metrics = []
     
-    for patient_id in dataset.get_patient_ids():
-        print(f"Processing {patient_id}...")
-        
-        # Load data
-        eeg_data, ground_truth = dataset.load_recording(patient_id)
-        
-        # Get predictions
-        probabilities = model.predict(eeg_data)
+    # Example: single-recording flow (replace with proper DataLoader/patient loop)
+    patient_id = 'xxxx'  # placeholder
+    eeg_data, ground_truth = dataset.load_recording(patient_id)
+    probabilities = model.predict(eeg_data)
         
         # Post-process
         predictions = post_processor.apply(probabilities)
@@ -664,18 +650,10 @@ def main():
         print(f"  TAES F1: {metrics['taes_f1']:.3f}")
         print(f"  ATWV: {metrics['atwv']:.3f}")
     
-    # Aggregate results
-    avg_metrics = {}
-    for key in all_metrics[0].keys():
-        values = [m[key] for m in all_metrics]
-        avg_metrics[key] = np.mean(values)
-        avg_metrics[f'{key}_std'] = np.std(values)
-    
-    # Report
-    print("\n=== OVERALL RESULTS ===")
-    print(f"FA/24h @ 95% sensitivity: {avg_metrics['fa_24h_at_95']:.2f} ± {avg_metrics['fa_24h_at_95_std']:.2f}")
-    print(f"TAES F1: {avg_metrics['taes_f1']:.3f} ± {avg_metrics['taes_f1_std']:.3f}")
-    print(f"ATWV: {avg_metrics['atwv']:.3f} ± {avg_metrics['atwv_std']:.3f}")
+    # Report (single recording)
+    print("\n=== RECORDING RESULTS ===")
+    print(f"FA/24h@95: {metrics['fa_24h_at_95']:.2f}")
+    print(f"TAES F1: {metrics['taes_f1']:.3f}")
     
     # Save results
     import json
@@ -683,7 +661,7 @@ def main():
         json.dump(avg_metrics, f, indent=2)
     
     print("\nResults saved to results/seizure_transformer_clinical_metrics.json")
-    print("We are the FIRST to report these metrics for SeizureTransformer!")
+    print("Note: For official reporting, integrate NEDC evaluator outputs.")
 
 if __name__ == '__main__':
     main()
