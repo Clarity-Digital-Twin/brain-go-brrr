@@ -337,6 +337,7 @@ def train_epoch(
     lr_schedule: np.ndarray = None,
     wd_schedule: np.ndarray = None,
     epoch: int = 0,
+    scaler: "GradScaler | None" = None,
 ) -> dict[str, float]:
     """Train for one epoch with per-iteration scheduling.
 
@@ -596,6 +597,7 @@ def main(args):
             lr_schedule=lr_schedule,
             wd_schedule=wd_schedule,
             epoch=epoch,
+            scaler=scaler,
         )
         print(
             f"Train - Loss: {train_metrics['loss']:.4f}, BAC: {train_metrics['balanced_accuracy']:.4f}"
@@ -686,7 +688,7 @@ if __name__ == "__main__":
 
     # Other arguments
     parser.add_argument('--num_workers', type=int, default=4, help='Number of data workers')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--seed', type=int, default=0, help='Random seed (0 for paper parity)')
     parser.add_argument('--save_dir', type=str, default=None, help='Directory to save checkpoints')
     parser.add_argument(
         '--pin_memory',
