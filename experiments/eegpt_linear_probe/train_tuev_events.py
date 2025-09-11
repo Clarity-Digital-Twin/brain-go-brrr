@@ -27,6 +27,15 @@ from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.infra.ml_models.eegpt_architecture import CHANNEL_DICT
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
+from brain_go_brrr.utils.sampling import (
+    compute_class_weights,
+    load_cache_labels,
+    create_weighted_sampler,
+    get_minority_classes,
+    print_class_distribution,
+    augment_minority_sample
+)
+from brain_go_brrr.infra.training.losses import FocalLoss, WeightedLabelSmoothingCrossEntropy
 
 
 class TUEVClassifierHead(nn.Module):
@@ -745,6 +754,79 @@ if __name__ == "__main__":
         action='store_true',
         default=False,
         help='Keep workers alive between epochs',
+    )
+    
+    # Imbalance mitigation arguments
+    parser.add_argument(
+        '--class_weights',
+        type=str,
+        default='none',
+        choices=['none', 'counts', 'cb:0.99', 'cb:0.999', 'cb:0.9999'],
+        help='Class weighting method: none, counts (1/n), or cb:beta (class-balanced)'
+    )
+    parser.add_argument(
+        '--sampler',
+        type=str,
+        default='none',
+        choices=['none', 'weighted'],
+        help='Sampling strategy: none (shuffle) or weighted (balanced sampling)'
+    )
+    parser.add_argument(
+        '--augment',
+        action='store_true',
+        help='Enable minority class augmentation'
+    )
+    parser.add_argument(
+        '--minority_shift_ms',
+        type=int,
+        default=200,
+        help='Max time shift for minority augmentation (ms)'
+    )
+    parser.add_argument(
+        '--jitter_uv',
+        type=float,
+        default=5.0,
+        help='Amplitude jitter for minority augmentation (microvolts)'
+    )
+    parser.add_argument(
+        '--noise_uv',
+        type=float,
+        default=5.0,
+        help='Noise std for minority augmentation (microvolts)'
+    )
+    parser.add_argument(
+        '--augment_prob',
+        type=float,
+        default=0.3,
+        help='Probability of applying augmentation to minority samples'
+    )
+    parser.add_argument(
+        '--freeze_eegpt_epochs',
+        type=int,
+        default=0,
+        help='Number of epochs to freeze EEGPT backbone (0 = never freeze)'
+    )
+    parser.add_argument(
+        '--normalize_eegpt',
+        action='store_true',
+        help='Enable EEGPT normalization (default: False for parity)'
+    )
+    parser.add_argument(
+        '--focal_loss',
+        action='store_true',
+        help='Use focal loss instead of cross entropy'
+    )
+    parser.add_argument(
+        '--focal_alpha',
+        type=float,
+        default=0.25,
+        help='Focal loss alpha parameter'
+    )
+    parser.add_argument(
+        '--focal_gamma',
+        type=float,
+        default=2.0,
+        help='Focal loss gamma parameter'
     )
 
     args = parser.parse_args()
