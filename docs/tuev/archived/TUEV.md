@@ -1,4 +1,4 @@
-# TUEV Implementation: Master Documentation
+# TUEV Implementation: Master Documentation (ARCHIVED)
 
 **Status**: ABANDONED - Paper claims unreproducible (22% BAC vs claimed 62%). Fundamental data issues.
 **Last Updated**: September 11, 2025  
