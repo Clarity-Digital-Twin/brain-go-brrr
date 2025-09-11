@@ -597,6 +597,14 @@ def main(args):
             f"WARNING: Effective batch {actual_effective_batch} differs from target {effective_batch_size} by >5%"
         )
 
+    # Handle freeze/unfreeze schedule
+    if args.freeze_eegpt_epochs > 0:
+        print(f"Freezing EEGPT backbone for first {args.freeze_eegpt_epochs} epochs")
+        # Freeze EEGPT parameters initially
+        for name, param in model.named_parameters():
+            if 'eegpt' in name and 'classifier' not in name:
+                param.requires_grad = False
+    
     # Create optimizer with layer-wise decay
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
@@ -628,16 +636,56 @@ def main(args):
         warmup_epochs=0,  # No warmup for weight decay
     )
 
-    # Create loss function - use timm's implementation to match reference exactly
-    # Training uses label smoothing, eval uses regular CrossEntropy (reference behavior)
-    train_criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
-    eval_criterion = nn.CrossEntropyLoss()  # Reference uses no smoothing for eval
+    # Create loss function
+    if args.focal_loss:
+        # Use focal loss for extreme imbalance
+        focal_alpha = class_weights if class_weights is not None else None
+        train_criterion = FocalLoss(
+            alpha=focal_alpha,
+            gamma=args.focal_gamma,
+            label_smoothing=args.label_smoothing if args.label_smoothing > 0 else 0.0
+        )
+        eval_criterion = FocalLoss(alpha=focal_alpha, gamma=args.focal_gamma, label_smoothing=0.0)
+        print(f"Using Focal Loss with gamma={args.focal_gamma}, smoothing={args.label_smoothing}")
+    elif class_weights is not None:
+        # Use weighted cross entropy with label smoothing
+        train_criterion = WeightedLabelSmoothingCrossEntropy(
+            smoothing=args.label_smoothing,
+            weight=class_weights
+        )
+        eval_criterion = nn.CrossEntropyLoss(weight=class_weights)
+        print(f"Using Weighted LabelSmoothingCE with smoothing={args.label_smoothing}")
+    else:
+        # Standard label smoothing (reference behavior)
+        train_criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
+        eval_criterion = nn.CrossEntropyLoss()  # Reference uses no smoothing for eval
+        print(f"Using LabelSmoothingCrossEntropy with smoothing={args.label_smoothing}")
 
     # Training loop
     best_bac = 0.0
 
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
+        
+        # Unfreeze EEGPT after specified epochs
+        if args.freeze_eegpt_epochs > 0 and epoch == args.freeze_eegpt_epochs:
+            print(f"\nUnfreezing EEGPT backbone at epoch {epoch + 1}")
+            for name, param in model.named_parameters():
+                if 'eegpt' in name:
+                    param.requires_grad = True
+            # Recreate optimizer to include newly unfrozen parameters
+            optimizer = create_optimizer_with_layer_decay(
+                model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
+            )
+            # Recreate scheduler for remaining epochs
+            remaining_epochs = args.epochs - epoch
+            lr_schedule = cosine_scheduler(
+                args.lr * 0.1,  # Lower LR after unfreeze
+                1e-6,
+                remaining_epochs,
+                num_training_steps_per_epoch,
+                warmup_epochs=0,  # No warmup after unfreeze
+            )
 
         # Train with per-iteration scheduling
         train_metrics = train_epoch(
