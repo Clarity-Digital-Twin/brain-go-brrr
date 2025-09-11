@@ -702,7 +702,7 @@ def main(args):
     # Create loss function
     if args.focal_loss:
         # Use focal loss for extreme imbalance
-        focal_alpha = class_weights if class_weights is not None else None
+        focal_alpha = class_weights.to(device) if class_weights is not None else None
         train_criterion = FocalLoss(
             alpha=focal_alpha,
             gamma=args.focal_gamma,
@@ -712,11 +712,13 @@ def main(args):
         print(f"Using Focal Loss with gamma={args.focal_gamma}, smoothing={args.label_smoothing}")
     elif class_weights is not None:
         # Use weighted cross entropy with label smoothing
+        # Move class_weights to device
+        class_weights_device = class_weights.to(device)
         train_criterion = WeightedLabelSmoothingCrossEntropy(
             smoothing=args.label_smoothing,
-            weight=class_weights
+            weight=class_weights_device
         )
-        eval_criterion = nn.CrossEntropyLoss(weight=class_weights)
+        eval_criterion = nn.CrossEntropyLoss(weight=class_weights_device)
         print(f"Using Weighted LabelSmoothingCE with smoothing={args.label_smoothing}")
     else:
         # Standard label smoothing (reference behavior)
