@@ -69,7 +69,7 @@ metrics = {
 
 ---
 
-## TUEV: Event Classification (6-Class)
+## TUEV: Event Classification (6-Class) — ARCHIVED
 
 **📊 Reference**: See [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md) for exact target values and thresholds.
 

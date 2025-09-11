@@ -1,8 +1,8 @@
-# TUEV Gap Analysis: Our Implementation vs Reference
+# TUEV Gap Analysis: Our Implementation vs Reference (ARCHIVED)
 
 **Created**: September 10, 2025  
 **Purpose**: Identify concrete differences between our implementation and the EEGPT reference  
-**Impact**: Our BAC=0.22 vs Reference BAC≈0.62
+**Impact**: Our BAC=0.22 vs Reference BAC≈0.62 — Project ARCHIVED
 
 ## Current Status (Sep 10, 2025 - ALL FIXES IMPLEMENTED)
 
@@ -35,6 +35,12 @@ Training revealed catastrophic class imbalance in EVAL set:
 - `bckg`: 800 samples (54.4%) → ~80% recall
 
 **Pattern**: Model ONLY learns classes with >300 samples. All rare events completely ignored despite LinearWithConstraint.
+
+### Balanced Training Outcome (Mitigations Enabled)
+- Degenerate behavior observed: model predicted SPSW for all eval samples.
+- Confusion matrix first column fully populated; other columns zero.
+- Balanced BAC ≈ 0.167 (16.7%).
+- Conclusion: With only 22 SPSW training samples, mitigation tips the model into minority-only prediction without learning discriminative patterns.
 
 Hypothesis set (ordered by likelihood):
 - H1: Input scale mismatch subtlety — raw μV without z‑score may still be off relative to the checkpoint’s pretraining statistics; early layers may need more adaptation.

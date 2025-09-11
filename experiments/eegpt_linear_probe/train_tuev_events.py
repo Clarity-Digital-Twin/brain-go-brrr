@@ -27,15 +27,13 @@ from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEventDataset
 from brain_go_brrr.infra.ml_models.channel_mapper import TUEVChannelMapper
 from brain_go_brrr.infra.ml_models.eegpt_architecture import CHANNEL_DICT
 from brain_go_brrr.infra.ml_models.eegpt_wrapper import EEGPTWrapper
+from brain_go_brrr.infra.training.losses import FocalLoss, WeightedLabelSmoothingCrossEntropy
 from brain_go_brrr.utils.sampling import (
+    augment_minority_sample,
     compute_class_weights,
-    load_cache_labels,
     create_weighted_sampler,
     get_minority_classes,
-    print_class_distribution,
-    augment_minority_sample
 )
-from brain_go_brrr.infra.training.losses import FocalLoss, WeightedLabelSmoothingCrossEntropy
 
 
 class TUEVClassifierHead(nn.Module):
@@ -412,7 +410,7 @@ def train_epoch(
         if augment_cfg is not None and minority_classes is not None:
             # Apply per-sample augmentation for minority classes
             batch_list = []
-            for xi, yi in zip(x, y):
+            for xi, yi in zip(x, y, strict=False):
                 xi_aug = augment_minority_sample(
                     xi,
                     int(yi.item()),
@@ -554,7 +552,9 @@ def main(args):
         print("Using WeightedRandomSampler for balanced sampling")
         sampler = create_weighted_sampler(np.array(train_labels), class_weights)
     elif args.sampler == 'weighted' and class_weights is None:
-        print("Requested weighted sampler but no class weights configured; falling back to shuffle=True")
+        print(
+            "Requested weighted sampler but no class weights configured; falling back to shuffle=True"
+        )
 
     # Create dataloaders with WSL-safe defaults
     pin_memory = args.pin_memory  # Default False for WSL
@@ -667,7 +667,7 @@ def main(args):
         for name, param in model.named_parameters():
             if 'eegpt' in name and 'classifier' not in name:
                 param.requires_grad = False
-    
+
     # Create optimizer with layer-wise decay
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
@@ -706,7 +706,7 @@ def main(args):
         train_criterion = FocalLoss(
             alpha=focal_alpha,
             gamma=args.focal_gamma,
-            label_smoothing=args.label_smoothing if args.label_smoothing > 0 else 0.0
+            label_smoothing=args.label_smoothing if args.label_smoothing > 0 else 0.0,
         )
         eval_criterion = FocalLoss(alpha=focal_alpha, gamma=args.focal_gamma, label_smoothing=0.0)
         print(f"Using Focal Loss with gamma={args.focal_gamma}, smoothing={args.label_smoothing}")
@@ -715,8 +715,7 @@ def main(args):
         # Move class_weights to device
         class_weights_device = class_weights.to(device)
         train_criterion = WeightedLabelSmoothingCrossEntropy(
-            smoothing=args.label_smoothing,
-            weight=class_weights_device
+            smoothing=args.label_smoothing, weight=class_weights_device
         )
         eval_criterion = nn.CrossEntropyLoss(weight=class_weights_device)
         print(f"Using Weighted LabelSmoothingCE with smoothing={args.label_smoothing}")
@@ -731,7 +730,7 @@ def main(args):
 
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
-        
+
         # Unfreeze EEGPT after specified epochs
         if args.freeze_eegpt_epochs > 0 and epoch == args.freeze_eegpt_epochs:
             print(f"\nUnfreezing EEGPT backbone at epoch {epoch + 1}")
@@ -883,79 +882,65 @@ if __name__ == "__main__":
         default=False,
         help='Keep workers alive between epochs',
     )
-    
+
     # Imbalance mitigation arguments
     parser.add_argument(
         '--class_weights',
         type=str,
         default='none',
         choices=['none', 'counts', 'cb:0.99', 'cb:0.999', 'cb:0.9999'],
-        help='Class weighting method: none, counts (1/n), or cb:beta (class-balanced)'
+        help='Class weighting method: none, counts (1/n), or cb:beta (class-balanced)',
     )
     parser.add_argument(
         '--sampler',
         type=str,
         default='none',
         choices=['none', 'weighted'],
-        help='Sampling strategy: none (shuffle) or weighted (balanced sampling)'
+        help='Sampling strategy: none (shuffle) or weighted (balanced sampling)',
     )
-    parser.add_argument(
-        '--augment',
-        action='store_true',
-        help='Enable minority class augmentation'
-    )
+    parser.add_argument('--augment', action='store_true', help='Enable minority class augmentation')
     parser.add_argument(
         '--minority_shift_ms',
         type=int,
         default=200,
-        help='Max time shift for minority augmentation (ms)'
+        help='Max time shift for minority augmentation (ms)',
     )
     parser.add_argument(
         '--jitter_uv',
         type=float,
         default=5.0,
-        help='Amplitude jitter for minority augmentation (microvolts)'
+        help='Amplitude jitter for minority augmentation (microvolts)',
     )
     parser.add_argument(
         '--noise_uv',
         type=float,
         default=5.0,
-        help='Noise std for minority augmentation (microvolts)'
+        help='Noise std for minority augmentation (microvolts)',
     )
     parser.add_argument(
         '--augment_prob',
         type=float,
         default=0.3,
-        help='Probability of applying augmentation to minority samples'
+        help='Probability of applying augmentation to minority samples',
     )
     parser.add_argument(
         '--freeze_eegpt_epochs',
         type=int,
         default=0,
-        help='Number of epochs to freeze EEGPT backbone (0 = never freeze)'
+        help='Number of epochs to freeze EEGPT backbone (0 = never freeze)',
     )
     parser.add_argument(
         '--normalize_eegpt',
         action='store_true',
-        help='Enable EEGPT normalization (default: False for parity)'
+        help='Enable EEGPT normalization (default: False for parity)',
     )
     parser.add_argument(
-        '--focal_loss',
-        action='store_true',
-        help='Use focal loss instead of cross entropy'
+        '--focal_loss', action='store_true', help='Use focal loss instead of cross entropy'
     )
     parser.add_argument(
-        '--focal_alpha',
-        type=float,
-        default=0.25,
-        help='Focal loss alpha parameter'
+        '--focal_alpha', type=float, default=0.25, help='Focal loss alpha parameter'
     )
-    parser.add_argument(
-        '--focal_gamma',
-        type=float,
-        default=2.0,
-        help='Focal loss gamma parameter'
-    )
+    parser.add_argument('--focal_gamma', type=float, default=2.0, help='Focal loss gamma parameter')
 
     args = parser.parse_args()
     main(args)

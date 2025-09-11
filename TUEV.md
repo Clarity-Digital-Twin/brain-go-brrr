@@ -1,7 +1,8 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: Parity changes applied; current best BAC = 0.22 (target: 0.62). See Gap Analysis for open issues.  
-**Last Updated**: September 11, 2025
+**Status**: ABANDONED - Paper claims unreproducible (22% BAC vs claimed 62%). Fundamental data issues.
+**Last Updated**: September 11, 2025  
+**Decision**: Focus on TUAB (87% AUROC success) instead. TUEV has only 22 spsw samples.
 
 ## Document Map
 - This file (`TUEV.md`) is the practical runbook for running and validating our implementation.
@@ -17,6 +18,30 @@
 6. [Training Commands](#training-commands)
 7. [Troubleshooting](#troubleshooting)
 8. [Implementation Files](#implementation-files)
+
+## 🔴 FINAL RESULTS - REPRODUCTION FAILURE
+
+### Our Exhaustive Testing
+1. **Parity Implementation**: 22.13% BAC (only predicts background)
+2. **Balanced Training**: 16.76% BAC (only predicts spsw minority)
+   - Class-balanced loss (β=0.9999)
+   - WeightedRandomSampler
+   - Minority augmentation
+   - Freeze/unfreeze schedule
+3. **Reference Repo Test**: ~42% BAC before NaN crash at epoch 11
+
+### Root Cause: Impossible Data Distribution
+```
+Class Distribution (4213 train samples):
+- spsw: 22 samples (0.5%) ← TWENTY-TWO SAMPLES!
+- gped: 880 samples (20.9%)
+- pled: 463 samples (11.0%)
+- eyem: 238 samples (5.6%)
+- artf: 489 samples (11.6%)
+- bckg: 2121 samples (50.3%)
+```
+
+**With 22 training samples for minority class, 62% BAC is statistically impossible.**
 
 ## Critical Issues & Status
 

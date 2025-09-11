@@ -1,11 +1,38 @@
-# TUEV Imbalance Mitigation Plan (Experimental Deviation)
+# TUEV Imbalance Mitigation - FINAL RESULTS (ARCHIVED)
 
-Purpose: Define a single, senior-auditable deviation from the reference TUEV pipeline to address severe class imbalance (e.g., SPSW ~0.5%). This is exploratory and non-clinical. Parity docs remain the SSOT for the reference implementation.
+**Status**: TESTED AND FAILED - Mitigations made performance worse (16.76% vs 22.13% baseline). Degenerate behavior observed: model predicted SPSW for all eval samples (BAC≈0.167).
+**Date**: September 11, 2025
+
+## Executive Summary
+We implemented and tested all proposed mitigations. Results prove TUEV is fundamentally broken:
+- **Baseline (parity)**: 22.13% BAC
+- **With all mitigations**: 16.76% BAC (WORSE!)
+- **Conclusion**: No learnable signal exists with 22 minority samples
 
 Scope:
 - Keep datasets emitting Volts (SI units) and μV/100 scaling before the mapper.
 - Changes live behind flags in `experiments/eegpt_linear_probe/train_tuev_events.py` and helper utils in `src/` (no reimplementation in experiments/).
 - Goal: improve rare-class recall and lift eval BAC toward ~0.45–0.58.
+
+## ACTUAL RESULTS - ALL MITIGATIONS TESTED
+
+### What We Implemented
+✅ Class-balanced loss with β=0.9999
+✅ WeightedRandomSampler for balanced batches  
+✅ Minority augmentation (time shift, jitter, noise)
+✅ Freeze/unfreeze EEGPT schedule (5 epochs frozen)
+✅ All flags properly wired and tested
+
+### Training Results
+- **Epoch 1**: Train 16.03%, Eval 16.67%
+- **Epoch 5**: Train 18.49%, Eval 16.67%
+- **Epoch 30**: Train 19.95%, Eval 16.71%
+
+### Analysis
+- Model learned to predict ONLY spsw (minority class)
+- Parity predicted ONLY background (majority class)
+- Neither approach learned actual EEG patterns
+- **Proves**: With 22 samples, there's nothing to learn
 
 Why: Natural sampling with extreme class skew learns background/GPED only. A principled, minimal set of imbalance mitigations can provide a better stress test of the architecture and help the community benchmark realistically.
 

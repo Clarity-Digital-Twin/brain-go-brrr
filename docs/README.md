@@ -66,8 +66,8 @@
       [IF ABNORMAL]
           │
           ▼
-    Event Detection
-    (TUEV: SPSW/GPED/PLED/etc)
+    Event Detection (Archived)
+    (TUEV: SPSW/GPED/PLED/etc — see TUEV_FINAL_VERDICT.md)
 ```
 
 **Key Insights**:

@@ -1,7 +1,7 @@
-# TUEV Reference Implementation - COMPLETE AUDIT REPORT
+# TUEV Reference Implementation - COMPLETE AUDIT REPORT (ARCHIVED)
 **Last Audit**: September 10, 2025
 **Paper Target**: 62.32% ± 1.14% balanced accuracy  
-**Our Result**: 22% BAC (40% BELOW TARGET)  
+**Our Result**: 22% BAC (≈40% below target) — Project ARCHIVED  
 **Purpose**: SINGLE SOURCE OF TRUTH - Send this to other repos/agents
 **Results provenance**: `logs/tuev_final_20250910_152007.log` (30 epochs completed)
 

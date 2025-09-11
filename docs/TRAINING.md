@@ -115,51 +115,9 @@ model:
 - **Classes**: Binary (0=normal, 1=abnormal)
 - **Features**: 2,048 dimensions (4 summary tokens × 512, flattened)
 
-## TUEV Training (Event Detection)
+## TUEV Training (Event Detection) — ARCHIVED
 
-### Quick Start
-
-```bash
-cd experiments/eegpt_linear_probe
-./scripts/launch_tuev.sh
-```
-
-### Configuration
-
-**File**: `configs/tuev.yaml`
-
-```yaml
-data:
-  batch_size: 500      # Paper-aligned
-  window_duration: 10  # 10-second windows
-  sampling_rate: 250   # Hz
-
-training:
-  max_epochs: 100
-  learning_rate: 5e-4  # Constant LR
-
-model:
-  channel_adapter:
-    in_channels: 23    # TUEV has 23 channels
-    out_channels: 20   # EEGPT expects 20
-    kernel_size: 55    # Table 13 architecture
-    dropout: 0.5       # Higher dropout for TUEV
-```
-
-### Classes
-
-1. SPSW - Spike-and-slow-wave
-2. GPED - Generalized periodic epileptiform discharge
-3. PLED - Periodic lateralized epileptiform discharge
-4. EYEM - Eye movement
-5. ARTF - Artifact
-6. BCKG - Background
-
-### Expected Performance
-
-- **Target Balanced Accuracy**: 0.62
-- **Weighted F1**: 0.82
-- **Cohen's Kappa**: 0.64
+TUEV event classification has been archived. Our best reproducible BAC is ~0.22 under paper-parity settings; mitigation attempts led to degenerate predictions (all SPSW). See `TUEV_FINAL_VERDICT.md`, `TUEV_REPRODUCTION_REPORT.md`, and `EEGPT_TUEV_ACTUAL_DATA_FLOW.md` for details.
 
 ## Training Scripts
 

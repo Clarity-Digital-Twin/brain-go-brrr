@@ -1,8 +1,8 @@
-# EEGPT TUEV ACTUAL Data Flow - VERIFIED Current Implementation
+# EEGPT TUEV ACTUAL Data Flow - VERIFIED Current Implementation (ARCHIVED)
 
 **Created**: September 11, 2025  
 **Purpose**: Document the EXACT data flow in our CURRENT TUEV implementation  
-**Status**: VERIFIED against actual running code
+**Status**: VERIFIED against actual running code — Project ARCHIVED (non-clinical performance; see TUEV_FINAL_VERDICT.md)
 
 ## 📊 Complete Data Flow Pipeline
 
