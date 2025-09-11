@@ -191,9 +191,8 @@ class FlexibleEEGPreprocessor:
             ch_types = mne_compat.get_channel_types(raw)
             eeg_channels = [ch for i, ch in enumerate(ch_names) if ch_types[i] == "eeg"]
             if eeg_channels:
-                raw.pick(picks=ch_names)
-                if raw.ch_names != ch_names:
-                    raw.reorder_channels(ch_names)
+                # Use pick_channels with ordered=True to ensure correct order
+                raw.pick_channels(ch_names, ordered=True)
                 logger.info(f"Selected {len(ch_names)} channels for sleep (EEG+EOG+EMG)")
             else:
                 # If no EEG channels, just keep what we have
@@ -207,9 +206,8 @@ class FlexibleEEGPreprocessor:
             if self.mode in TASK_CHANNELS and ch_names:
                 selected = self._select_channels_for_task(ch_names, self.mode)
                 if selected:
-                    raw.pick(picks=selected)
-                    if raw.ch_names != selected:
-                        raw.reorder_channels(selected)
+                    # Use pick_channels with ordered=True to ensure correct order
+                    raw.pick_channels(selected, ordered=True)
                     logger.info(f"Selected {len(selected)} channels for {self.mode}")
             elif ch_names:
                 # Just pick EEG channels

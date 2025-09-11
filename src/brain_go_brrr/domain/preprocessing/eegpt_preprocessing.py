@@ -86,9 +86,8 @@ def preprocess_for_eegpt(
         logger.warning(f"Only {len(channels)} channels available (minimum 19 recommended)")
 
     # Use inst.pick with explicit order
-    raw.pick(picks=channels)
-    if raw.ch_names != channels:
-        raw.reorder_channels(channels)
+    # Use pick_channels with ordered=True to ensure correct order
+    raw.pick_channels(channels, ordered=True)
 
     # Apply filters
     raw.filter(l_freq=highpass, h_freq=lowpass, fir_design='firwin')

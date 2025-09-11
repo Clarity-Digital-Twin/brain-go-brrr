@@ -433,9 +433,8 @@ class EEGPreprocessor:
             channels_to_keep = raw.ch_names[: self.channel_subset_size]
 
         # Pick the selected channels (avoid legacy pick_channels)
-        raw.pick(picks=channels_to_keep)
-        if raw.ch_names != channels_to_keep:
-            raw.reorder_channels(channels_to_keep)
+        # Use pick_channels with ordered=True to ensure correct order
+        raw.pick_channels(channels_to_keep, ordered=True)
         return raw
 
     def extract_windows(
