@@ -67,7 +67,7 @@
           │
           ▼
     Event Detection (Archived)
-    (TUEV: SPSW/GPED/PLED/etc — see TUEV_FINAL_VERDICT.md)
+    (TUEV: SPSW/GPED/PLED/etc — see [TUEV_FINAL_VERDICT.md](tuev/archived/TUEV_FINAL_VERDICT.md))
 ```
 
 **Key Insights**:

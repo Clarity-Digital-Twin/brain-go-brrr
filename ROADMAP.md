@@ -167,7 +167,7 @@ metrics = {
 ```
 
 #### For TUEV (6-Class Event Classification) — ARCHIVED
-TUEV event classification is archived due to unreproducible results in our environment (best BAC ≈ 0.22) and degenerate behavior with imbalance mitigations. See `TUEV_FINAL_VERDICT.md` for details.
+TUEV event classification is archived due to unreproducible results in our environment (best BAC ≈ 0.22) and degenerate behavior with imbalance mitigations. See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md) for details.
 
 ```python
 # Multi-class classification - no threshold needed

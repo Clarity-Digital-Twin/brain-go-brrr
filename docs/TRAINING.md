@@ -117,7 +117,7 @@ model:
 
 ## TUEV Training (Event Detection) — ARCHIVED
 
-TUEV event classification has been archived. Our best reproducible BAC is ~0.22 under paper-parity settings; mitigation attempts led to degenerate predictions (all SPSW). See `TUEV_FINAL_VERDICT.md`, `TUEV_REPRODUCTION_REPORT.md`, and `EEGPT_TUEV_ACTUAL_DATA_FLOW.md` for details.
+TUEV event classification has been archived. Our best reproducible BAC is ~0.22 under paper-parity settings; mitigation attempts led to degenerate predictions (all SPSW). See [TUEV_FINAL_VERDICT.md](tuev/archived/TUEV_FINAL_VERDICT.md), [TUEV_REPRODUCTION_REPORT.md](tuev/archived/TUEV_REPRODUCTION_REPORT.md), and [EEGPT_TUEV_ACTUAL_DATA_FLOW.md](../EEGPT_TUEV_ACTUAL_DATA_FLOW.md) for details.
 
 ## Training Scripts
 
@@ -154,7 +154,7 @@ from brain_go_brrr.infra.data.tuev_dataset import TUEVDataset
 
 1. **Loss**: Should decrease steadily
 2. **AUROC**: Main metric for TUAB (target: 0.87)
-3. **Balanced Accuracy (BAC)**: Main metric for TUEV (target: 0.6232 per [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md))
+3. **Balanced Accuracy (BAC)**: Main metric for TUEV (target: 0.6232 per [TUEV_METRICS_SSOT.md](tuev/archived/TUEV_METRICS_SSOT.md))
 4. **Learning Rate**: OneCycle schedule
 
 ### Tensorboard (Not Configured)

@@ -18,7 +18,7 @@
 
 ## 🎯 Current Focus
 
-- **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See `TUEV_FINAL_VERDICT.md`.
+- **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
 - **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
 - **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
 
@@ -299,12 +299,12 @@ uv run pytest tests/unit/domain/sleep -v
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | Archived | ⛔ See TUEV_FINAL_VERDICT.md |
+| Event Detection (TUEV) | Archived | ⛔ See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 
-¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for details.
+¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](docs/tuev/archived/TUEV_METRICS_SSOT.md) for details.
 
 ## 🤝 Contributing
 
