@@ -387,7 +387,7 @@ def train_epoch(
 
         # Scale loss for gradient accumulation
         loss = loss / accumulate_steps
-        
+
         # Use GradScaler for mixed precision
         scaler.scale(loss).backward()
 
@@ -550,7 +550,7 @@ def main(args):
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
     )
-    
+
     # Initialize GradScaler for mixed precision (like reference's NativeScaler)
     scaler = GradScaler()
 

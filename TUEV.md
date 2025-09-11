@@ -1,12 +1,12 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: All major fixes applied; ready for parity run (target: ~0.62 BAC)  
-**Last Updated**: September 10, 2025
+**Status**: Parity changes applied; current best BAC ≈ 0.25–0.27 (target: 0.62). See Gap Analysis for open issues.  
+**Last Updated**: September 11, 2025
 
 ## Document Map
-- This file (`TUEV.md`) is the Single Source of Truth for our implementation: how it works, how to run it, and how to validate it.
-- Reference spec from the authors: `TUEV_REFERENCE.md` (read-only facts about their pipeline and hyperparameters).
-- Differences and remediation plan: `TUEV_GAP_ANALYSIS.md` (tracks alignment vs. reference and any open deltas).
+- This file (`TUEV.md`) is the practical runbook for running and validating our implementation.
+- Authoritative parity reference: `TUEV_REFERENCE.md` (SSOT for exact settings/behavior shared across repos).
+- Differences and findings: `TUEV_GAP_ANALYSIS.md` (tracks alignment vs. reference and remaining gaps).
 
 ## Table of Contents
 1. [Critical Issues & Status](#critical-issues--status)
@@ -20,13 +20,16 @@
 
 ## Critical Issues & Status
 
-### ✅ ALL CRITICAL COMPONENTS FIXED
-- LinearWithConstraint with max_norm=1 ✅
-- Conv2dWithConstraint for channel mapper ✅
-- μV/100 scaling ✅
-- No normalization ✅
-- Signal tripling for boundaries ✅
-- All other reference components ✅
+### ✅ Parity Components Implemented
+- LinearWithConstraint head (max_norm=1) ✅
+- Conv2dWithConstraint mapper (23→20) ✅
+- μV/100 input scaling; wrapper normalize=False ✅
+- Signal tripling + offset slicing ✅
+- All temporal tokens flattened (30720) ✅
+- Per‑iteration cosine LR + LSCE=0.1 + layer‑decay=0.65 ✅
+- Mixed precision (autocast + GradScaler) ✅
+- Natural sampling; effective batch≈400 via accumulation ✅
+- DropPath parity: 0.0 (reference model ignores CLI flag) ✅
 
 ### 🚨 INTENTIONAL VERSION DIVERGENCE
 - **Reference BUG**: Uses v2.0.0 for preprocessing but v2.0.1 for training (mismatch!)
@@ -89,9 +92,9 @@
 # Event-centered extraction (NOT sliding windows)
 # Location: src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py
 - Extract 5s @ 200Hz segments around annotated events
-- Filter: 0.1-75 Hz bandpass + 50 Hz notch
-- Output: (23 channels, 1000 samples) per segment
-- Cache: 2695 train, 1048 eval segments
+- Filter: 0.1–75 Hz bandpass + 50 Hz notch
+- Output: (23, 1000) per segment (Volts on disk)
+- Cache: ~4213 train, ~1471 eval segments
 ```
 
 ### Channel Configuration (Single Source of Truth)
@@ -111,8 +114,10 @@
 ```
 Note: `chan_ids` is a 1D tensor built from these names via `CHANNEL_DICT`.
 
-### Normalization Behavior
-EEGPTWrapper normalizes inputs using mean=0 and std=50μV by default if no stats file is provided. Datasets emit Volts (SI units). For TUEV paper parity, we DISABLE wrapper normalization and instead scale inputs to microvolts in the model (`x = x * 1e6`) so the backbone sees raw μV values like the reference. For production, compute corpus-level stats and pass them to the wrapper.
+### Normalization & Scaling Behavior
+- Dataset emits Volts; extractor writes (23, 1000) in SI units.
+- We scale to microvolts and match reference magnitude with μV/100 inside the model: `x = x * 1e6 / 100`.
+- Wrapper normalization is disabled: `self.eegpt.normalize = False`.
 
 ### Model Architecture
 
@@ -162,10 +167,10 @@ The training script:
 ### Key Fixes Summary (Consolidated)
 - Data splits: Official `edf/train` and `edf/eval` only; stale cache removed and rebuilt
 - Sampling: No `WeightedRandomSampler`; `shuffle=True` with natural class distribution
-- Input scale: Wrapper normalization disabled; inputs scaled to μV before the mapper
- - Temporal tokens: Flatten ALL temporal summary tokens (30720) with Dropout(0.8) → Linear(6) (temporary; will switch to LinearWithConstraint)
+- Input scale: Wrapper normalization disabled; inputs scaled to μV/100 before the mapper
+- Temporal tokens: Flatten ALL temporal summary tokens (30720) with Dropout(0.8) → LinearWithConstraint(6)
 - Batch: Effective batch ≈ 400 via gradient accumulation (logged)
-- Regularization: DropPath implemented at rate 0.2 with per-layer decay (logged by model)
+- Regularization: DropPath parity is 0.0 (reference model ignores CLI flag)
 
 ### Event Extraction Specifics (Parity Alignment)
 - Bandpass 0.1–75 Hz; notch at 50 Hz; resample to 200 Hz.
@@ -235,7 +240,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 - Training logs include:
   - `Setting up training WITHOUT balanced sampling...`
   - `Normalization DISABLED - using raw values like reference`
-  - `DropPath=0.2 enabled ...` (trainer) and `DropPath enabled: rate=0.2 ...` (model)
+  - `WARNING: DropPath=0.0 (model ignores CLI flag and hardcodes 0.0!)`
   - `Effective batch size: ... (batch=X, accum=Y)`
   - `Using TEMPORAL TOKEN FLATTENING: 15×4×512 = 30720`
   - Per-epoch confusion matrix and per-class report
@@ -370,9 +375,7 @@ nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
 - Planned fix: Migrate to `inst.pick(...)` or route through our `mne_compat.pick_channels` helper post‑parity.
 
 ### Expected Progress (Acceptance Gates)
-By epoch 2-3: BAC ≥ 0.25; by epoch 5: BAC ≥ 0.40; by epoch 10-12: if BAC < 0.30, collect confusion matrix and per-split class distributions, then revise sampling/LR; final target: 0.62 ± 0.02 by epoch ~30.
-
-**Current Observation (latest run)**: Eval BAC ≈ 0.24 at ~epoch 20; strong bckg/gped, weak spsw/pled/eyem/artf. This suggests under-learning of rare classes despite parity settings.
+With full parity, we expect BAC ≥ 0.30 by epoch 3–5, ≥ 0.45 by ~epoch 10, and ≈ 0.60–0.62 by ~epoch 30. Current runs show ≈ 0.24–0.27; see `TUEV_GAP_ANALYSIS.md` for hypotheses and diagnostics.
 
 ### Guardrails
 - **No PyTorch Lightning** (CI guard in place)
@@ -437,77 +440,6 @@ uv run python -c "from brain_go_brrr.infra.data.tuev_event_dataset import TUEVEv
 ### Cache Location
 - `data/datasets/tuev/cache/tuev_event_segments/` - Preprocessed segments
 
-## COMPLETE FINDINGS SUMMARY - AWAITING SENIOR AUDIT
-
-### 🔴 CRITICAL ISSUES (Training Collapse Root Causes)
-1. **LinearWithConstraint Missing**: 30,720→6 head needs weight renorm (max_norm=1)
-2. **Channel Mapper Wrong**: Missing Conv2dWithConstraint, BatchNorm, GELU, DepthwiseConv, Dropout(0.8)
-
-### 🟡 MAJOR ISSUES (Performance Impact)
-3. **No Cosine LR Schedule**: Reference uses cosine annealing for LR (5e-4→1e-6)
-4. **No Cosine WD Schedule**: Reference also anneals weight decay!
-5. **Wrong Loss Function**: Using custom instead of timm.loss.LabelSmoothingCrossEntropy
-
-### ✅ ALREADY FIXED
-- Temporal tokens (30,720 features) ✅
-- Boundary handling (triple concat) ✅
-- Natural sampling ✅
-- μV scale ✅
-- Exact batch 400 ✅
-- DropPath 0.2 ✅
-
-### 🚨 IMPLEMENTATION REQUIRED (DO NOT START YET - AWAIT AUDIT)
-```python
-# 1. LinearWithConstraint for head
-class LinearWithConstraint(nn.Linear):
-    def forward(self, x):
-        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=1)
-        return super().forward(x)
-
-# 2. Conv2dWithConstraint for mapper  
-class Conv2dWithConstraint(nn.Conv2d):
-    def forward(self, x):
-        self.weight.data = torch.renorm(self.weight.data, p=2, dim=0, maxnorm=1)
-        return super().forward(x)
-
-# 3. Complete channel mapper
-self.chan_conv = nn.Sequential(
-    Conv2dWithConstraint(23, 20, 1, max_norm=1),
-    nn.BatchNorm2d(20),
-    nn.GELU(),
-    nn.Conv2d(20, 20, kernel_size=(1,55), groups=20, padding='same'),
-    nn.BatchNorm2d(20),
-    nn.Dropout(0.8)
-)
-
-# 4. Cosine schedulers
-lr_schedule = cosine_scheduler(5e-4, 1e-6, epochs=30, warmup=5)
-wd_schedule = cosine_scheduler(0.05, 0.05, epochs=30)
-```
-
-### Diagnostic Code to Add
-```python
-# In training loop, log batch class distribution
-batch_labels = y.cpu().numpy()
-unique, counts = np.unique(batch_labels, return_counts=True)
-print(f"Batch distribution: {dict(zip(unique, counts))}")
-```
-
-### If Still Stuck
-1. Compare exact preprocessing with reference
-2. Check if reference uses any data augmentation
-3. Verify our label mapping (0-5 vs 1-6)
-4. Consider focal loss instead of cross-entropy
-
----
-
-## Archived Documentation
-
-The following documents have been consolidated into this master file:
-- TUEV_IMPLEMENTATION_PLAN.md
-- TUEV_DIVERGENCE_ANALYSIS.md  
-- TUEV_INVESTIGATION.md
-- TUEV_CHANNEL_MISMATCH_ANALYSIS.md
-- TUEV_TROUBLESHOOTING_GUIDE.md
-
-Keep for historical reference but **THIS DOCUMENT IS THE SINGLE SOURCE OF TRUTH**.
+## Notes
+- For exact parity details and cross‑repo sharing, use `TUEV_REFERENCE.md`.
+- For known gaps, hypotheses, and diagnostics, use `TUEV_GAP_ANALYSIS.md`.

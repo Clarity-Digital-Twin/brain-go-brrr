@@ -239,7 +239,9 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
                     except ValueError:
                         rel_parts = ()
 
-                    if (self.split == 'eval' and len(rel_parts) >= 2) or (self.split == 'train' and len(rel_parts) >= 2):
+                    if (self.split == 'eval' and len(rel_parts) >= 2) or (
+                        self.split == 'train' and len(rel_parts) >= 2
+                    ):
                         subject_id = rel_parts[0]
                     else:
                         subject_id = edf_path.stem.split('_')[0]
