@@ -1,5 +1,5 @@
-# Ensure consistent line endings across platforms
-* text=auto
+# Ensure consistent line endings across platforms (force LF for all text)
+* text=auto eol=lf
 
 # Python files should always have LF line endings
 *.py text eol=lf

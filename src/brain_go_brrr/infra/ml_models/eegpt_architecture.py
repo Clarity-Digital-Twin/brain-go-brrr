@@ -15,6 +15,29 @@ from brain_go_brrr.utils import mask_path_for_log
 
 logger = logging.getLogger(__name__)
 
+
+class DropPath(nn.Module):
+    """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
+
+    From timm/models/layers/drop.py
+    """
+
+    def __init__(self, drop_prob: float = 0.0):
+        """Initialize DropPath module."""
+        super().__init__()
+        self.drop_prob = drop_prob
+
+    def forward(self, x: Tensor) -> Tensor:
+        if self.drop_prob == 0.0 or not self.training:
+            return x
+        keep_prob = 1 - self.drop_prob
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors
+        random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
+        random_tensor.floor_()  # binarize
+        output = x.div(keep_prob) * random_tensor
+        return output
+
+
 # Standard 10-20 EEG channel mapping
 CHANNEL_DICT = {
     "FP1": 0,
@@ -285,6 +308,7 @@ class Block(nn.Module):
         qkv_bias: bool = False,
         drop: float = 0.0,
         attn_drop: float = 0.0,
+        drop_path: float = 0.0,  # ADD drop_path parameter
         act_layer: type[nn.Module] = nn.GELU,  # Fixed type annotation
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
     ) -> None:
@@ -304,21 +328,23 @@ class Block(nn.Module):
         self.mlp = MLP(
             in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop
         )
+        # Add DropPath for stochastic depth
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         """Forward pass through Transformer block with self-attention and MLP."""
-        # Self-attention with residual connection
+        # Self-attention with residual connection and drop_path
         x_norm = self.norm1(x)
         attn_out = self.attn(x_norm)
-        x = x + attn_out
+        x = x + self.drop_path(attn_out)
 
-        # MLP with residual connection
-        x = x + self.mlp(self.norm2(x))
+        # MLP with residual connection and drop_path
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
 
 
 class PatchEmbed(nn.Module):
-    """Patch embedding for EEG signals."""
+    """Patch embedding for EEG signals with optional stride."""
 
     def __init__(
         self,
@@ -326,6 +352,7 @@ class PatchEmbed(nn.Module):
         patch_size: int = 64,
         in_chans: int = 1,
         embed_dim: int = 512,
+        patch_stride: int | None = None,
     ):
         """Initialize patch embedding.
 
@@ -334,16 +361,23 @@ class PatchEmbed(nn.Module):
             patch_size: Size of each patch in samples.
             in_chans: Number of input channels.
             embed_dim: Embedding dimension.
+            patch_stride: Stride for patch extraction (defaults to patch_size).
         """
         super().__init__()
         if img_size is None:
             img_size = [58, 1024]
         self.img_size = img_size
         self.patch_size = patch_size
-        self.num_patches = (img_size[0], img_size[1] // patch_size)
+        self.patch_stride = patch_stride if patch_stride is not None else patch_size
+        # Compute temporal patches allowing non-divisible lengths
+        temporal = (img_size[1] - patch_size) // self.patch_stride + 1
+        self.num_patches = (img_size[0], temporal)
 
         self.proj = nn.Conv2d(
-            in_chans, embed_dim, kernel_size=(1, patch_size), stride=(1, patch_size)
+            in_chans,
+            embed_dim,
+            kernel_size=(1, patch_size),
+            stride=(1, self.patch_stride),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -378,7 +412,10 @@ class EEGTransformer(nn.Module):
         qkv_bias: bool = True,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
+        drop_path_rate: float = 0.0,  # Stochastic depth rate
         norm_layer: type[nn.Module] = nn.LayerNorm,  # Fixed type annotation
+        time_steps: int = 1024,  # Make configurable for paper parity (1000 for TUEV)
+        patch_stride: int | None = None,
     ) -> None:
         """Initialize EEG Transformer model."""
         super().__init__()
@@ -391,16 +428,18 @@ class EEGTransformer(nn.Module):
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.embed_num = embed_num
+        self.time_steps = time_steps  # Store for validation
 
         # Build channel index map once
         self.channel_index: dict[str, int] = {name: i for i, name in enumerate(self.n_channels)}
 
         # Patch embedding using PatchEmbed module to match checkpoint
         self.patch_embed = PatchEmbed(
-            img_size=[len(self.n_channels), 1024],  # channels x time_steps
+            img_size=[len(self.n_channels), time_steps],  # channels x time_steps (configurable)
             patch_size=patch_size,
             in_chans=1,
             embed_dim=embed_dim,
+            patch_stride=patch_stride,
         )
 
         # Channel embedding - size based on checkpoint (62 channels, 0-61)
@@ -412,6 +451,13 @@ class EEGTransformer(nn.Module):
         self.summary_token = nn.Parameter(torch.zeros(1, embed_num, embed_dim))
         nn.init.normal_(self.summary_token, std=0.02)
 
+        # Stochastic depth decay rule
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay
+        if drop_path_rate > 0:
+            print(
+                f"DropPath enabled: rate={drop_path_rate}, per-layer decay from 0 to {drop_path_rate}"
+            )
+
         # Transformer blocks
         self.blocks = nn.ModuleList(
             [
@@ -422,9 +468,10 @@ class EEGTransformer(nn.Module):
                     qkv_bias=qkv_bias,
                     drop=drop_rate,
                     attn_drop=attn_drop_rate,
+                    drop_path=dpr[i],  # Add stochastic depth
                     norm_layer=norm_layer,
                 )
-                for _ in range(depth)
+                for i in range(depth)
             ]
         )
 
@@ -458,11 +505,10 @@ class EEGTransformer(nn.Module):
         # Input shape: (B, C, T)
         batch_size, n_channels, time_steps = x.shape
 
-        # Validate input dimensions
-        if time_steps % self.patch_size != 0:
+        # Validate basic input length
+        if time_steps < self.patch_size:
             raise ValueError(
-                f"Time dimension {time_steps} must be divisible by patch_size {self.patch_size}. "
-                f"Expected multiple of {self.patch_size} samples."
+                f"Time dimension {time_steps} must be >= patch_size {self.patch_size}."
             )
 
         # Patch embedding: (B, C, T) -> (B, N, C, D)
@@ -548,13 +594,14 @@ def create_eegpt_model(checkpoint_path: str | None = None, **kwargs: Any) -> EEG
     """
     # Default configuration for large model
     default_config = {
-        "img_size": [58, 1024],
         "patch_size": 64,
         "embed_dim": 512,
         "embed_num": 4,
         "depth": 8,
         "num_heads": 8,
         "mlp_ratio": 4.0,
+        "time_steps": 1024,
+        # "patch_stride": None  # Optional override
     }
     default_config.update(kwargs)
 
@@ -617,7 +664,10 @@ def _init_eeg_transformer(**kwargs: Any) -> EEGTransformer:
         "qkv_bias": kwargs.get("qkv_bias", True),
         "drop_rate": kwargs.get("drop_rate", 0.0),
         "attn_drop_rate": kwargs.get("attn_drop_rate", 0.0),
+        "drop_path_rate": kwargs.get("drop_path_rate", 0.0),  # CRITICAL: Wire DropPath through!
         "norm_layer": kwargs.get("norm_layer", nn.LayerNorm),
+        "time_steps": kwargs.get("time_steps", 1024),
+        "patch_stride": kwargs.get("patch_stride"),
     }
 
     # Filter out None values

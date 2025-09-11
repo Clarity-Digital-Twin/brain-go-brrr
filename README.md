@@ -18,9 +18,7 @@
 
 ## 🎯 Current Focus
 
-- **🚧 TUEV Event Classification**: Training in progress (Epoch 5/100, target: 62.32% BAC)
-  - Documentation: [`docs/tuev/`](docs/tuev/)
-  - Training Guide: [`experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md`](experiments/eegpt_linear_probe/TUEV_TRAINING_GUIDE.md)
+- **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
 - **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
 - **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
 
@@ -120,8 +118,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
       [IF ABNORMAL]                       ▼
           │                        Sleep Metrics
           ▼                        (Efficiency, TST, etc.)
-    Event Detection
-    (TUEV: SPSW/GPED/PLED/etc)
+    Event Detection (Archived)
+    (TUEV: SPSW/GPED/PLED/etc — see Final Verdict)
 ```
 
 **Key Design Principles:**
@@ -141,7 +139,7 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 
 ### Training Custom Models
 
-We provide training scripts for TUAB (abnormality) and TUEV (events) datasets:
+We provide training scripts for TUAB (abnormality). TUEV (events) has been archived:
 
 ```bash
 # Train abnormality detection
@@ -152,11 +150,11 @@ cd experiments/eegpt_linear_probe
 
 # Train with MNE preprocessing
 ./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
-./scripts/launch_tuev_mne.sh  # For TUEV event detection
+# (Archived) ./scripts/launch_tuev_mne.sh  # TUEV event detection — not recommended
 
 # Monitor training
 tmux attach -t tuab_training  # TUAB complete (83% AUROC)
-tmux attach -t tuev_training  # TUEV actively training
+# (Archived) tmux attach -t tuev_training
 ```
 
 See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
@@ -249,7 +247,7 @@ uv run pytest tests/unit/domain/sleep -v
 |-------|------------|
 | [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
 | [API.md](docs/API.md) | REST endpoint reference |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB/TUEV |
+| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB (TUEV archived) |
 
 ### 🏗️ Architecture & Design
 | Guide | Description |
@@ -287,7 +285,6 @@ uv run pytest tests/unit/domain/sleep -v
 - **TUAB abnormality detection**: 83% AUROC achieved ✅
 
 ### 🚧 In Progress
-- **TUEV event detection** (6-class: SPSW, GPED, PLED, etc.) - **actively training in tmux**
 - MNE preprocessing pipeline optimization
 
 ### 📋 Planned
@@ -302,12 +299,12 @@ uv run pytest tests/unit/domain/sleep -v
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | Target: 62% BAC¹ | 🚧 Actively training |
+| Event Detection (TUEV) | Archived | ⛔ See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
 
-¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](TUEV_METRICS_SSOT.md) for details.
+¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](docs/tuev/archived/TUEV_METRICS_SSOT.md) for details.
 
 ## 🤝 Contributing
 
@@ -365,7 +362,7 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 </details>
 
 <details>
-<summary>TUH EEG Events Corpus (TUEV) (click to expand)</summary>
+<summary>TUH EEG Events Corpus (TUEV) — Archived (click to expand)</summary>
 
 ```bibtex
 @inproceedings{harati2015improved,

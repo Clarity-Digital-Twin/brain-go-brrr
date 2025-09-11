@@ -69,9 +69,9 @@ metrics = {
 
 ---
 
-## TUEV: Event Classification (6-Class)
+## TUEV: Event Classification (6-Class) — ARCHIVED
 
-**📊 Reference**: See [TUEV_METRICS_SSOT.md](../TUEV_METRICS_SSOT.md) for exact target values and thresholds.
+**📊 Reference**: See [TUEV_METRICS_SSOT.md](tuev/archived/TUEV_METRICS_SSOT.md) for exact target values and thresholds.
 
 **⚠️ Architecture Note**:
 - **Paper parity (IMPLEMENTED)**: 23-channel raw input + learned Conv2d(23->20) mapper (BN/GELU + depthwise 1x55 + BN/Dropout 0.8). No channel synthesis.
@@ -83,7 +83,7 @@ metrics = {
 - **NOT a temporal detection task** - just classify each window
 
 ### Metrics (What EEGPT Paper Reports)
-Paper-aligned multi-class metrics (targets from TUEV_METRICS_SSOT.md):
+Paper-aligned multi-class metrics (targets from [TUEV_METRICS_SSOT.md](tuev/archived/TUEV_METRICS_SSOT.md)):
 - **Weighted F1**: 81.87% ± 0.63% (misleading due to 99.5% class imbalance)
 - **Balanced Accuracy (BAC)**: 62.32% ± 1.14% (true performance metric)
 - **Cohen's Kappa**: 0.635 ± 0.013 (paper's monitor metric)

@@ -29,6 +29,7 @@ class EEGPTWrapper(nn.Module):
         checkpoint_path: str | None = None,
         normalization_path: str | None = None,
         model: nn.Module | None = None,
+        model_kwargs: dict[str, Any] | None = None,
     ):
         """Initialize EEGPT with preprocessing.
 
@@ -36,10 +37,15 @@ class EEGPTWrapper(nn.Module):
             checkpoint_path: Path to pretrained checkpoint
             normalization_path: Path to normalization stats JSON
             model: Optional pre-initialized model (for testing/DI)
+            model_kwargs: Additional kwargs to pass to model creation
         """
         super().__init__()
         # Allow dependency injection for better testability
-        self.model = model if model is not None else create_eegpt_model(checkpoint_path)
+        if model is not None:
+            self.model = model
+        else:
+            model_kwargs = model_kwargs or {}
+            self.model = create_eegpt_model(checkpoint_path, **model_kwargs)
 
         # Load normalization parameters from file if available
         if normalization_path and Path(normalization_path).exists():

@@ -85,6 +85,8 @@ def preprocess_for_eegpt(
     if len(channels) < 19:
         logger.warning(f"Only {len(channels)} channels available (minimum 19 recommended)")
 
+    # Use inst.pick with explicit order
+    # Use pick_channels with ordered=True to ensure correct order
     raw.pick_channels(channels, ordered=True)
 
     # Apply filters

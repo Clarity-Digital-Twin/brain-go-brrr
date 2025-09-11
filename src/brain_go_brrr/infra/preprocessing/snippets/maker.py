@@ -105,11 +105,12 @@ class EEGSnippetMaker:
         # Calculate step size
         step_size = snippet_length * (1 - overlap)
 
-        # Select channels
+        # Select channels - get_data expects channel names (strings), not indices
         if channel_selection:
-            picks = mne.pick_channels(raw.ch_names, channel_selection)
+            channel_names = [ch for ch in channel_selection if ch in raw.ch_names]
         else:
-            picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
+            picks_indices = mne.pick_types(raw.info, eeg=True, exclude="bads")
+            channel_names = [raw.ch_names[i] for i in picks_indices]
 
         snippets: list[dict[str, Any]] = []
         current_time = start_time
@@ -122,7 +123,7 @@ class EEGSnippetMaker:
             start_sample = int(current_time * raw.info["sfreq"])
             end_sample = int((current_time + snippet_length) * raw.info["sfreq"])
 
-            snippet_data = raw.get_data(picks=picks, start=start_sample, stop=end_sample)
+            snippet_data = raw.get_data(picks=channel_names, start=start_sample, stop=end_sample)
 
             # Create snippet dictionary
             snippet = {
@@ -131,7 +132,7 @@ class EEGSnippetMaker:
                 "end_time": current_time + snippet_length,
                 "duration": snippet_length,
                 "data": snippet_data,
-                "channels": [raw.ch_names[i] for i in picks],
+                "channels": channel_names,
                 "sampling_rate": raw.info["sfreq"],
                 "n_samples": snippet_data.shape[1],
                 "n_channels": snippet_data.shape[0],
@@ -185,7 +186,7 @@ class EEGSnippetMaker:
 
         # Select channels
         if channel_selection:
-            epochs.pick_channels(channel_selection)
+            epochs.pick(picks=channel_selection)
 
         snippets: list[dict[str, Any]] = []
         for i, epoch in enumerate(epochs):
@@ -253,11 +254,12 @@ class EEGSnippetMaker:
             logger.info("No anomalies detected above threshold")
             return []
 
-        # Select channels
+        # Select channels - get_data expects channel names (strings), not indices
         if channel_selection:
-            picks = mne.pick_channels(raw.ch_names, channel_selection)
+            channel_names = [ch for ch in channel_selection if ch in raw.ch_names]
         else:
-            picks = mne.pick_types(raw.info, eeg=True, exclude="bads")
+            picks_indices = mne.pick_types(raw.info, eeg=True, exclude="bads")
+            channel_names = [raw.ch_names[i] for i in picks_indices]
 
         snippets: list[dict[str, Any]] = []
         snippet_id = 0
@@ -275,7 +277,7 @@ class EEGSnippetMaker:
             start_sample = int(start_time * raw.info["sfreq"])
             end_sample = int(end_time * raw.info["sfreq"])
 
-            snippet_data = raw.get_data(picks=picks, start=start_sample, stop=end_sample)
+            snippet_data = raw.get_data(picks=channel_names, start=start_sample, stop=end_sample)
 
             snippet = {
                 "id": snippet_id,
@@ -285,7 +287,7 @@ class EEGSnippetMaker:
                 "end_time": end_time,
                 "duration": end_time - start_time,
                 "data": snippet_data,
-                "channels": [raw.ch_names[i] for i in picks],
+                "channels": channel_names,
                 "sampling_rate": raw.info["sfreq"],
                 "n_samples": snippet_data.shape[1],
                 "n_channels": snippet_data.shape[0],

@@ -432,7 +432,8 @@ class EEGPreprocessor:
             # Fallback: Use first N channels
             channels_to_keep = raw.ch_names[: self.channel_subset_size]
 
-        # Pick the selected channels
+        # Pick the selected channels (avoid legacy pick_channels)
+        # Use pick_channels with ordered=True to ensure correct order
         raw.pick_channels(channels_to_keep, ordered=True)
         return raw
 

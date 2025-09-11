@@ -1,0 +1,78 @@
+No normalization file found - using typical EEG scale (std=50μV). For production, compute stats from your training data!
+/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py:677: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Using device: cuda
+cuDNN benchmark enabled (faster but not fully deterministic)
+Using seed: 0 (reference uses 0 for training, 4523 for data splits)
+Loading datasets...
+Loaded train cache: 4213 segments
+Loaded eval cache: 1471 segments
+Train samples: 4213
+Eval samples: 1471
+Class distribution (natural): [22, 880, 463, 238, 489, 2121]
+Using class-balanced weights with beta=0.9999
+Using WeightedRandomSampler for balanced sampling
+DataLoader: using weighted sampler (balanced batches)
+Creating model...
+Using EEGPT backbone from data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt
+TRUE PARITY MODE: Using native 1000 samples (no padding)
+WARNING: DropPath=0.0 (model ignores CLI flag and hardcodes 0.0!)
+Normalization DISABLED - using raw values like reference
+Using TEMPORAL TOKEN FLATTENING: 15×4×512 = 30720
+Effective batch size: 400 (batch=40, accum=10)
+Freezing EEGPT backbone for first 5 epochs
+
+Layer-wise learning rate decay applied:
+  depth_8_decay: lr=5.00e-04, wd=0.050
+  depth_8_no_decay: lr=5.00e-04, wd=0.000
+  depth_9_no_decay: lr=5.00e-04, wd=0.000
+  depth_9_decay: lr=5.00e-04, wd=0.050
+  depth_0_no_decay: lr=2.45e-05, wd=0.000
+  depth_0_decay: lr=2.45e-05, wd=0.050
+  depth_1_no_decay: lr=3.77e-05, wd=0.000
+  depth_1_decay: lr=3.77e-05, wd=0.050
+  depth_2_no_decay: lr=5.80e-05, wd=0.000
+  depth_2_decay: lr=5.80e-05, wd=0.050
+  depth_3_no_decay: lr=8.93e-05, wd=0.000
+  depth_3_decay: lr=8.93e-05, wd=0.050
+  depth_4_no_decay: lr=1.37e-04, wd=0.000
+  depth_4_decay: lr=1.37e-04, wd=0.050
+  depth_5_no_decay: lr=2.11e-04, wd=0.000
+  depth_5_decay: lr=2.11e-04, wd=0.050
+  depth_6_no_decay: lr=3.25e-04, wd=0.000
+  depth_6_decay: lr=3.25e-04, wd=0.050
+  depth_7_no_decay: lr=5.00e-04, wd=0.000
+  depth_7_decay: lr=5.00e-04, wd=0.050
+Steps per epoch: 10
+Using Weighted LabelSmoothingCE with smoothing=0.1
+
+Epoch 1/30
+Training:   0%|          | 0/106 [00:00<?, ?it/s]/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py:440: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast():
+Training:   1%|          | 1/106 [00:02<03:50,  2.19s/it]Training:   2%|▏         | 2/106 [00:02<01:41,  1.02it/s]Training:   4%|▍         | 4/106 [00:02<00:40,  2.51it/s]Training:   6%|▌         | 6/106 [00:02<00:23,  4.27it/s]Training:   8%|▊         | 8/106 [00:02<00:15,  6.24it/s]Training:   9%|▉         | 10/106 [00:02<00:12,  7.62it/s]Training:  11%|█▏        | 12/106 [00:02<00:09,  9.61it/s]Training:  13%|█▎        | 14/106 [00:03<00:07, 11.50it/s]Training:  16%|█▌        | 17/106 [00:03<00:06, 13.95it/s]Training:  18%|█▊        | 19/106 [00:03<00:05, 15.21it/s]Training:  20%|█▉        | 21/106 [00:03<00:05, 16.28it/s]Training:  22%|██▏       | 23/106 [00:03<00:04, 17.16it/s]Training:  24%|██▎       | 25/106 [00:03<00:04, 17.88it/s]Training:  25%|██▌       | 27/106 [00:03<00:04, 18.45it/s]Training:  27%|██▋       | 29/106 [00:03<00:04, 18.79it/s]Training:  29%|██▉       | 31/106 [00:03<00:03, 19.08it/s]Training:  32%|███▏      | 34/106 [00:04<00:03, 19.45it/s]Training:  34%|███▍      | 36/106 [00:04<00:03, 19.58it/s]Training:  36%|███▌      | 38/106 [00:04<00:03, 18.97it/s]Training:  38%|███▊      | 40/106 [00:04<00:04, 13.32it/s]Training:  40%|███▉      | 42/106 [00:04<00:04, 14.63it/s]Training:  42%|████▏     | 44/106 [00:04<00:03, 15.77it/s]Training:  43%|████▎     | 46/106 [00:04<00:03, 16.78it/s]Training:  45%|████▌     | 48/106 [00:04<00:03, 17.57it/s]Training:  47%|████▋     | 50/106 [00:04<00:03, 18.07it/s]Training:  50%|█████     | 53/106 [00:05<00:02, 18.79it/s]Training:  52%|█████▏    | 55/106 [00:05<00:02, 18.80it/s]Training:  54%|█████▍    | 57/106 [00:05<00:02, 19.05it/s]Training:  56%|█████▌    | 59/106 [00:05<00:02, 19.26it/s]Training:  58%|█████▊    | 61/106 [00:05<00:02, 19.31it/s]Training:  59%|█████▉    | 63/106 [00:05<00:02, 19.46it/s]Training:  62%|██████▏   | 66/106 [00:05<00:02, 19.65it/s]Training:  65%|██████▌   | 69/106 [00:05<00:01, 19.79it/s]Training:  67%|██████▋   | 71/106 [00:06<00:01, 19.69it/s]Training:  69%|██████▉   | 73/106 [00:06<00:01, 19.68it/s]Training:  71%|███████   | 75/106 [00:06<00:01, 19.73it/s]Training:  74%|███████▎  | 78/106 [00:06<00:01, 19.87it/s]Training:  75%|███████▌  | 80/106 [00:06<00:01, 19.74it/s]Training:  77%|███████▋  | 82/106 [00:06<00:01, 19.39it/s]Training:  79%|███████▉  | 84/106 [00:06<00:01, 19.52it/s]Training:  81%|████████  | 86/106 [00:06<00:01, 19.65it/s]Training:  83%|████████▎ | 88/106 [00:06<00:00, 19.70it/s]Training:  85%|████████▍ | 90/106 [00:07<00:00, 19.51it/s]Training:  87%|████████▋ | 92/106 [00:07<00:00, 19.58it/s]Training:  89%|████████▊ | 94/106 [00:07<00:00, 19.70it/s]Training:  91%|█████████ | 96/106 [00:07<00:00, 19.71it/s]Training:  92%|█████████▏| 98/106 [00:07<00:00, 19.72it/s]Training:  94%|█████████▍| 100/106 [00:07<00:00, 19.52it/s]Training:  97%|█████████▋| 103/106 [00:07<00:00, 19.62it/s]Training:  99%|█████████▉| 105/106 [00:07<00:00, 19.51it/s]Training: 100%|██████████| 106/106 [00:07<00:00, 13.26it/s]
+Train - Loss: 3.5737, BAC: 0.1603
+Evaluating:   0%|          | 0/37 [00:00<?, ?it/s]/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py:313: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with torch.cuda.amp.autocast():
+Evaluating:   0%|          | 0/37 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py", line 959, in <module>
+    main(args)
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py", line 786, in main
+    eval_metrics = evaluate(model, eval_loader, eval_criterion, device)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/experiments/eegpt_linear_probe/train_tuev_events.py", line 315, in evaluate
+    loss = criterion(logits, y)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/lib/python3.12/site-packages/torch/nn/modules/loss.py", line 1297, in forward
+    return F.cross_entropy(
+           ^^^^^^^^^^^^^^^^
+  File "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/.venv/lib/python3.12/site-packages/torch/nn/functional.py", line 3494, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument weight in method wrapper_CUDA_nll_loss_forward)

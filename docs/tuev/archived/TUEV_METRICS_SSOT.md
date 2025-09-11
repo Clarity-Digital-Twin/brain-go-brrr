@@ -1,4 +1,4 @@
-# 📊 TUEV METRICS - SINGLE SOURCE OF TRUTH
+# 📊 TUEV METRICS - SINGLE SOURCE OF TRUTH (ARCHIVED)
 
 **Created**: September 8, 2025
 **Source**: EEGPT Paper Table 3 (Page 7)
