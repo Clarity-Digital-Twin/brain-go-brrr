@@ -697,11 +697,11 @@ def train_eegpt_bilstm():
         
         # Validation
         val_metrics = validate(model, val_loader)
-        print(f"Epoch {epoch}: Val FA/24h@95%: {val_metrics['fa_24h_at_95']:.2f}")
+        print(f"Epoch {epoch}: Val FA/24h: {val_metrics['fa_24h']:.2f}")
         
         # Early stopping based on FA/24h
-        if val_metrics['fa_24h_at_95'] < best_fa:
-            best_fa = val_metrics['fa_24h_at_95']
+        if val_metrics['fa_24h'] < best_fa:
+            best_fa = val_metrics['fa_24h']
             torch.save(model.state_dict(), 'best_eegpt_bilstm.pth')
 ```
 
