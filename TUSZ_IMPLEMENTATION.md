@@ -664,7 +664,7 @@ if __name__ == '__main__':
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from brain_go_brrr.infra.models.temporal_heads import EEGPTBiLSTM
+from brain_go_brrr.infra.ml_models.temporal_heads import EEGPTBiLSTM
 
 def train_eegpt_bilstm():
     """
