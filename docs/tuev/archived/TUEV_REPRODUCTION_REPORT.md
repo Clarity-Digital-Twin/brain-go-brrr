@@ -1,4 +1,4 @@
-# TUEV Reproduction Report - EEGPT Paper
+# TUEV Reproduction Report - EEGPT Paper (ARCHIVED)
 
 **Date**: September 11, 2025  
 **Status**: REPRODUCTION FAILURE - Paper claims not reproducible in our environment
