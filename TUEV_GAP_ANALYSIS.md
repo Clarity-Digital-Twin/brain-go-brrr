@@ -257,11 +257,11 @@ None critical after mapper/head parity; monitor LR schedule timing and token nor
 
 ### 🔴 CRITICAL FIXES STILL NEEDED:
 
-### FIX 1: Data Scaling (CRITICAL - 100x ERROR) ✅ PARTIALLY DONE
+### FIX 1: Data Scaling (CRITICAL - 100x ERROR) ✅ DONE
 ```python
-# In train_tuev_events.py, line 507:
-# STATUS: Changed to x * 1e6 / 100
-# VERIFIED: This matches reference engine_for_finetuning_EEGPT.py:65
+# In train_tuev_events.py, line ~509:
+# IMPLEMENTED: x = x * 1e6 / 100
+# VERIFIED: Matches reference engine_for_finetuning_EEGPT.py:65
 ```
 
 ### FIX 2: Remove @autocast decorator (CAUSES DTYPE ERRORS) ✅ DONE
