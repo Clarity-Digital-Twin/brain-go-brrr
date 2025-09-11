@@ -387,10 +387,11 @@ The 38% performance gap (24% vs 62.32% BAC) despite correct implementation sugge
 3. The paper results may not be reproducible as claimed
 
 ## ✅ Cross-Checks Against Paper
-- TUEV dataset: 288 subjects, 6 classes (Table 1).
-- Reported TUEV metrics: BAC 62.32% ± 1.14%, Weighted F1 81.87% ± 0.63%, Cohen’s κ 63.51% ± 1.34% (Table 3).
-- TUEV-specific conv kernel: (1, 55) depthwise in channel mapper (Appendix C.2.6).
-- Batch size note: paper mentions ~500; reference script uses 400 per GPU × 2 GPUs total batch 800 (DeepSpeed micro-batch 400 per GPU).
+ - TUEV dataset: 288 subjects, 6 classes (Table 1).
+ - Reported TUEV metrics: BAC 62.32% ± 1.14%, Weighted F1 81.87% ± 0.63%, Cohen’s κ 63.51% ± 1.34% (Table 3).
+ - TUEV-specific conv kernel: (1, 55) depthwise in channel mapper (Appendix C.2.6).
+ - Batch size note: paper mentions ~500; reference script uses 400 per GPU × 2 GPUs total batch 800 (DeepSpeed micro-batch 400 per GPU).
+ - Repetitions: paper states experiments are repeated three times; reported results are mean ± std over runs.
 
 ## 📌 Additional Notes Worth Knowing
 - LR/WD schedules are per-iteration; with `update_freq=1` this equals per-step updates.

@@ -31,17 +31,16 @@
 - Natural sampling; effective batch≈400 via accumulation ✅
 - DropPath parity: 0.0 (reference model ignores CLI flag) ✅
 
-### 🚨 INTENTIONAL VERSION DIVERGENCE
-- **Reference BUG**: Uses v2.0.0 for preprocessing but v2.0.1 for training (mismatch!)
-- **Our FIX**: Use v2.0.1 consistently throughout
-- **Impact**: Better generalization, avoids overfitting to specific version quirks
-- **Note**: This is NOT the cause of performance gap - if model was robust, it would work across versions
+### 🔎 Dataset Paths (Version Notes)
+- The reference repo shows a mismatch (preprocess under `v2.0.0`, train reads `v2.0.1`).
+- Our practice: prefer official `edf/{train,eval}` splits. If using a preprocessed directory (e.g., `v2.0.0`/`v2.0.1`), use whichever exists locally and verify no subject leakage.
+- This path version detail is not expected to explain the performance gap by itself.
 
 ### ✅ Issue #-2: CHANNEL MAPPER ARCHITECTURE (FIXED)
 - Our `TUEVChannelMapper` matches the authors: Conv2dWithConstraint(23→20) → BatchNorm2d → GELU → depthwise Conv2d(1×55, groups=20, padding) → BatchNorm2d → Dropout(0.8)
 
 ### ✅ Issue #0: WRONG DATA SPLITS (FIXED)
-- **Problem**: Code was using wrong cache with seed=42 split
+- **Problem**: Code was using a wrong cache from a programmatic subject split
 - **Solution**: Deleted wrong cache, now uses official train/eval directories
 - **Impact**: Now using 359 train files, 159 eval files (correct splits)
 - **Status**: FIXED - cache rebuilding with correct splits
@@ -71,6 +70,7 @@
 - We now use the official TUEV directory splits: `edf/train` and `edf/eval`.
 - The cache builder scans those trees directly; no custom re-splitting is performed.
 - Eval subject grouping uses the parent directory (`000–079`) to avoid label-derived subject names.
+- If official split directories are absent, a subject-level 80/20 split is created with seed=4523 (fallback only); verify no subject leakage.
 - Validation: run `scripts/validate_tuev_cache.py --data_dir data/datasets/tuev` and expect zero overlap.
 
 ## What TUEV Is
@@ -153,6 +153,9 @@ batch_size = 32  # Effective batch ≈ 400 via accumulation (e.g., batch_size=32
 label_smoothing = 0.1
 ```
 Rule of thumb: choose gradient accumulation steps so `batch_size × steps ≈ 400`.
+
+Evaluation loss
+- Training uses LabelSmoothingCrossEntropy (0.1), evaluation uses plain CrossEntropyLoss (no smoothing), matching the reference behavior.
 
 ### Natural Sampling (NO BALANCING)
 **CRITICAL**: Do NOT use WeightedRandomSampler! The reference achieves ~62% BAC with natural distribution.
@@ -367,11 +370,9 @@ nvidia-smi
 nvidia-smi --gpu-reset  # Note: GPU reset availability depends on driver/runtime
 ```
 
-### Legacy MNE Warning During Cache Build
-- Message: `NOTE: pick_channels() is a legacy function. New code should use inst.pick(...)`
-- Cause: Some preprocessors still call `raw.pick_channels(...)`.
-- Impact: Benign; does not affect extracted segments or training.
-- Planned fix: Migrate to `inst.pick(...)` or route through our `mne_compat.pick_channels` helper post‑parity.
+### MNE API Updates
+- We replaced legacy picking with `raw.pick_channels(..., ordered=True)` across preprocessors.
+- Impact: Removes deprecation warnings; preserves exact channel order; no change to extracted data or results.
 
 ### Expected Progress (Acceptance Gates)
 With full parity, we expect BAC ≥ 0.30 by epoch 3–5, ≥ 0.45 by ~epoch 10, and ≈ 0.60–0.62 by ~epoch 30. Current runs show ≈ 0.24–0.27; see `TUEV_GAP_ANALYSIS.md` for hypotheses and diagnostics.
