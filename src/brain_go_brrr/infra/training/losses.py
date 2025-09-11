@@ -1,7 +1,5 @@
 """Custom loss functions for training."""
 
-from typing import cast
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F  # noqa: N812
@@ -75,7 +73,7 @@ class FocalLoss(nn.Module):
         elif self.reduction == 'sum':
             return torch.sum(loss)
         else:
-            return cast('torch.Tensor', loss)
+            return loss
 
 
 class WeightedLabelSmoothingCrossEntropy(nn.Module):

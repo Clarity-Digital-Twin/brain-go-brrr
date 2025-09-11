@@ -22,13 +22,14 @@ repos:
   - repo: local
     hooks:
       - id: mypy
-        name: mypy
-        entry: bash -c 'if [ "$#" -gt 0 ]; then timeout 30 uv run mypy --config-file=mypy-fast.ini "$@"; else echo "No files to check"; fi'
+        name: mypy (fast)
         language: system
+        entry: uv run mypy --config-file=mypy-fast.ini
         files: ^(src/brain_go_brrr)/.*\.py$
         exclude: ^(tests|archive|reference_repos|experiments)/
         pass_filenames: true
-        require_serial: true
+        require_serial: false
+        timeout: 30
 
   # Architecture enforcement
   - repo: local

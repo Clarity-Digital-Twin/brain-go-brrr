@@ -307,8 +307,14 @@ def evaluate(
         for x, y in tqdm(dataloader, desc="Evaluating"):
             x, y = x.to(device), y.to(device)
 
-            # Forward pass with mixed precision (matches reference)
-            with torch.amp.autocast(device_type='cuda', dtype=torch.float16):
+            # Forward pass with mixed precision
+            if torch.cuda.is_available():
+                amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.float16)
+            else:
+                import contextlib
+
+                amp_ctx = contextlib.nullcontext()
+            with amp_ctx:
                 logits = model(x)
                 loss = criterion(logits, y)
 
@@ -434,8 +440,14 @@ def train_epoch(
                 if param_group.get("weight_decay", 0) > 0:  # Only update groups with weight decay
                     param_group["weight_decay"] = wd_schedule[it]
 
-        # Forward pass with mixed precision (matches reference)
-        with torch.cuda.amp.autocast():
+        # Forward pass with mixed precision
+        if torch.cuda.is_available():
+            amp_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.float16)
+        else:
+            import contextlib
+
+            amp_ctx = contextlib.nullcontext()
+        with amp_ctx:
             logits = model(x)
             loss = criterion(logits, y)
 
