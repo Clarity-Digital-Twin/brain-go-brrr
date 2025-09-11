@@ -308,7 +308,7 @@ def evaluate(
             x, y = x.to(device), y.to(device)
 
             # Forward pass with mixed precision (matches reference)
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast(device_type='cuda', dtype=torch.float16):
                 logits = model(x)
                 loss = criterion(logits, y)
 
@@ -830,7 +830,9 @@ if __name__ == "__main__":
 
     # Data arguments
     parser.add_argument('--data_dir', type=str, required=True, help='Path to TUEV data directory')
-    parser.add_argument('--cache_dir', type=str, default=None, help='Path to cache directory')
+    parser.add_argument(
+        '--cache-dir', type=str, default=None, help='Path to cache directory', dest='cache_dir'
+    )
     parser.add_argument('--force_rebuild', action='store_true', help='Force rebuild cache')
 
     # Training arguments
