@@ -337,7 +337,7 @@ class EEGPTBiLSTM(nn.Module):
 
 ### Advanced Post-Processor
 ```python
-# src/brain_go_brrr/infra/evaluation/post_processing.py
+# src/brain_go_brrr/infra/eval/post_processing.py
 
 import numpy as np
 from scipy.ndimage import binary_closing, binary_opening
