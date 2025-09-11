@@ -71,7 +71,7 @@ def main() -> None:
     overlap = train_subjects & eval_subjects
     print(f"Subject overlap count: {len(overlap)}")
     if overlap:
-        print(f"Overlapping subjects (first 20): {sorted(list(overlap))[:20]}")
+        print(f"Overlapping subjects (first 20): {sorted(overlap)[:20]}")
     else:
         print("OK: No subject overlap between train and eval.")
 
