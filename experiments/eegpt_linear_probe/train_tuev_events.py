@@ -374,6 +374,8 @@ def train_epoch(
     wd_schedule: np.ndarray | None = None,
     epoch: int = 0,
     scaler: GradScaler | None = None,
+    augment_cfg: dict | None = None,
+    minority_classes: list[int] | None = None,
 ) -> dict[str, float]:
     """Train for one epoch with per-iteration scheduling.
 
@@ -405,6 +407,24 @@ def train_epoch(
 
     for i, (x, y) in enumerate(tqdm(dataloader, desc="Training")):
         x, y = x.to(device), y.to(device)
+
+        # Optional minority-only augmentation (in Volts)
+        if augment_cfg is not None and minority_classes is not None:
+            # Apply per-sample augmentation for minority classes
+            batch_list = []
+            for xi, yi in zip(x, y):
+                xi_aug = augment_minority_sample(
+                    xi,
+                    int(yi.item()),
+                    minority_classes,
+                    shift_ms=int(augment_cfg.get('shift_ms', 200)),
+                    jitter_uv=float(augment_cfg.get('jitter_uv', 5.0)),
+                    noise_uv=float(augment_cfg.get('noise_uv', 5.0)),
+                    augment_prob=float(augment_cfg.get('augment_prob', 0.3)),
+                    sampling_rate=int(augment_cfg.get('sampling_rate', 200)),
+                )
+                batch_list.append(xi_aug)
+            x = torch.stack(batch_list, dim=0)
 
         # Update learning rate and weight decay per iteration (before optimizer step)
         it = start_iter + i // accumulate_steps
@@ -501,9 +521,7 @@ def main(args):
     print(f"Eval samples: {len(eval_dataset)}")
 
     # NO BALANCED SAMPLING - Reference doesn't use it and achieves 62% BAC!
-    print("Setting up training WITHOUT balanced sampling (matches reference)...")
-
-    # Print class distribution for monitoring
+    # Print class distribution and optionally configure imbalance mitigation
     import json
 
     with open(train_dataset.cache_dir / train_dataset.split / "index.json") as f:
@@ -511,20 +529,57 @@ def main(args):
     train_labels = [seg["label"] for seg in index_data["segments"]]
     class_counts = torch.bincount(torch.tensor(train_labels, dtype=torch.long), minlength=6)
     print(f"Class distribution (natural): {class_counts.tolist()}")
-    print("Using natural distribution - NO rebalancing")
+
+    # Configure class weights (if requested)
+    class_weights = None
+    if args.class_weights != 'none':
+        labels_np = np.array(train_labels)
+        if args.class_weights.startswith('cb:'):
+            beta_str = args.class_weights.split(':', 1)[1]
+            try:
+                beta = float(beta_str)
+            except ValueError:
+                beta = 0.9999
+            class_weights = compute_class_weights(labels_np, method='cb', beta=beta)
+            print(f"Using class-balanced weights with beta={beta}")
+        elif args.class_weights == 'counts':
+            class_weights = compute_class_weights(labels_np, method='counts')
+            print("Using inverse-frequency class weights")
+        else:
+            print(f"Unknown class_weights option: {args.class_weights}")
+
+    # Optionally create weighted sampler
+    sampler = None
+    if args.sampler == 'weighted' and class_weights is not None:
+        print("Using WeightedRandomSampler for balanced sampling")
+        sampler = create_weighted_sampler(np.array(train_labels), class_weights)
+    elif args.sampler == 'weighted' and class_weights is None:
+        print("Requested weighted sampler but no class weights configured; falling back to shuffle=True")
 
     # Create dataloaders with WSL-safe defaults
     pin_memory = args.pin_memory  # Default False for WSL
     persistent_workers = (args.num_workers > 0) and args.persistent_workers
 
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        shuffle=True,  # Simple shuffle, NO sampler
-        num_workers=args.num_workers,
-        pin_memory=pin_memory,
-        persistent_workers=persistent_workers,
-    )
+    if sampler is None:
+        print("DataLoader: shuffle=True (natural distribution)")
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=args.num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+        )
+    else:
+        print("DataLoader: using weighted sampler (balanced batches)")
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            sampler=sampler,
+            num_workers=args.num_workers,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+        )
 
     eval_loader = DataLoader(
         eval_dataset,
@@ -571,6 +626,14 @@ def main(args):
             return x
 
     model = TUEVModel(channel_mapper, classifier).to(device)
+
+    # Optionally enable EEGPT normalization (diagnostic)
+    if args.normalize_eegpt:
+        try:
+            model.classifier.eegpt.normalize = True
+            print("EEGPT normalization ENABLED (diagnostic mode)")
+        except Exception:
+            print("WARNING: Could not enable EEGPT normalization flag")
 
     # Calculate gradient accumulation steps to match reference batch=400
     effective_batch_size = 400  # Reference uses exactly 400
@@ -688,6 +751,19 @@ def main(args):
             )
 
         # Train with per-iteration scheduling
+        # Prepare augmentation config and minority classes
+        augment_cfg = None
+        minority_classes = None
+        if args.augment:
+            augment_cfg = {
+                'shift_ms': args.minority_shift_ms,
+                'jitter_uv': args.jitter_uv,
+                'noise_uv': args.noise_uv,
+                'augment_prob': args.augment_prob,
+                'sampling_rate': 200,
+            }
+            minority_classes = get_minority_classes(np.array(train_labels), threshold=0.1)
+
         train_metrics = train_epoch(
             model,
             train_loader,
@@ -699,6 +775,8 @@ def main(args):
             wd_schedule=wd_schedule,
             epoch=epoch,
             scaler=scaler,
+            augment_cfg=augment_cfg,
+            minority_classes=minority_classes,
         )
         print(
             f"Train - Loss: {train_metrics['loss']:.4f}, BAC: {train_metrics['balanced_accuracy']:.4f}"
