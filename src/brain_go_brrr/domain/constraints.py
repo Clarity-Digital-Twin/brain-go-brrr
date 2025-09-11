@@ -8,6 +8,7 @@ from typing import Any
 
 import torch
 import torch.nn as nn
+from torch.nn.init import trunc_normal_
 
 
 class LinearWithConstraint(nn.Linear):
@@ -39,6 +40,10 @@ class LinearWithConstraint(nn.Linear):
         self.max_norm = max_norm
         self.do_weight_norm = do_weight_norm
         super().__init__(in_features, out_features, bias, **kwargs)
+        # Initialize weights with truncated normal (std=0.02) as in reference
+        trunc_normal_(self.weight, std=0.02)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with weight constraint."""
@@ -57,6 +62,10 @@ class Conv1dWithConstraint(nn.Conv1d):
         self.max_norm = max_norm
         self.do_weight_norm = do_weight_norm
         super().__init__(*args, **kwargs)
+        # Initialize weights with truncated normal (std=0.02) as in reference
+        trunc_normal_(self.weight, std=0.02)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with weight constraint."""
@@ -78,6 +87,10 @@ class Conv2dWithConstraint(nn.Conv2d):
         self.max_norm = max_norm
         self.do_weight_norm = do_weight_norm
         super().__init__(*args, **kwargs)
+        # Initialize weights with truncated normal (std=0.02) as in reference
+        trunc_normal_(self.weight, std=0.02)
+        if self.bias is not None:
+            nn.init.zeros_(self.bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass with weight constraint."""

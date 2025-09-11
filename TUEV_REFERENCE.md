@@ -67,6 +67,7 @@
 
 ### Training Details
 - Training seed: 0 (`finetune_TUEV_EEGPT.sh`); data split seed: 4523 (`utils.py`).
+- Effective per-rank seed: `seed + distributed_rank` (see `main()`), with `cudnn.benchmark=True` (fast but not fully deterministic).
 - DeepSpeed: enabled by default; world size 2 (per `finetune_TUEV_EEGPT.sh`).
 - Effective batch sizing: total batch = `batch_size × update_freq × world_size` = 800; micro-batch per GPU = 400; no gradient accumulation (`update_freq=1`).
 - Label mapping: 1–6 → 0–5 (`utils.TUEVLoader`).
@@ -76,16 +77,17 @@
 - Gradient clipping: Available via `--clip_grad` but NOT used (default=None).
 - Evaluation: Runs every epoch (default; `--disable_eval_during_finetuning` not set).
 - cuDNN: `cudnn.benchmark=True` (faster but not fully deterministic; seeds reduce, but do not eliminate, variance).
+- Samplers: training uses `DistributedSampler(shuffle=True)`; validation/test use `DistributedSampler(shuffle=False)` or sequential sampler when not dist-eval.
 
 ### Data Processing
 - Filtering: 0.1–75 Hz bandpass; notch: 50 Hz; resample: 200 Hz; units: μV (`make_TUEV.py`).
 - No input normalization; no bipolar montage (the `convert_signals` bipolar path is present but commented out).
 - Input windows: 5 s per event (200 Hz × 5 = 1000 samples). Engine reshapes to `B×N×5×200`, model flattens back to `B×N×1000` before patching.
 
-### Critical Path Mismatch
-- **Preprocessing path**: `v2.0.0` (`make_TUEV.py:184`)
-- **Training path**: `v2.0.1` (`run_class_finetuning_EEGPT_change_tuev.py:242`)
-- **Impact**: Training tries to load data from wrong directory (v2.0.1 instead of v2.0.0 where data was preprocessed)
+### Dataset Path Note (Non-Blocking)
+- The repo shows preprocessing under `v2.0.0` and training default under `v2.0.1`.
+- In practice, point training to the processed directory that exists on your system (many setups use `v2.0.1`).
+- This mismatch is not considered a root cause for the performance gap.
 
 ### What’s NOT Present (Confirmed Absent)
 - Mixup augmentation (imported but never instantiated).
@@ -318,7 +320,7 @@ To reproduce the reference implementation exactly:
 cd downstream_tueg/dataset_maker
 python make_TUEV.py  # Uses v2.0.0 path
 
-# Training (WARNING: loads from v2.0.1 path - mismatch!)
+# Training (default path uses v2.0.1; update to your processed dir)
 cd downstream_tueg
 CUDA_VISIBLE_DEVICES=4,5 OMP_NUM_THREADS=1 python -m torch.distributed.run \
     --nproc_per_node=2 --master_port=12345 --nnodes=1 --node_rank=0 \
@@ -346,6 +348,15 @@ CUDA_VISIBLE_DEVICES=4,5 OMP_NUM_THREADS=1 python -m torch.distributed.run \
 ```
 
 Checkpoint saving note: periodic checkpoints only save if `--save_ckpt` is provided. The script sets `--save_ckpt_freq 5` but not `--save_ckpt`, so enable it to persist epoch checkpoints.
+Best-on-val checkpoint: when validation accuracy improves, the code saves `epoch="best"` (path `checkpoint-best.pth`) — this also requires `--save_ckpt`.
+
+## ✅ Paper Repro Notes
+- Reported metrics (e.g., 62.32% ± 1.14% BAC) are mean ± std over repeated runs (paper states results are averaged across 3 trials).
+- Balanced accuracy is computed via PyHealth’s `multiclass_metrics_fn`, matching macro recall (unweighted mean of per-class recall).
+- Exact pretrain checkpoint hash used in the paper is not specified in this repo; ensure the same file is used for strict parity.
+
+## 🧩 Reconstructor Presence vs. Training
+- The reconstructor transformer module is instantiated but not used in the finetuning forward path; its parameters are included in optimizer groups but receive no gradients (no update) since they’re not involved in the forward/backward graph.
 
 ## BOTTOM LINE
 
@@ -365,16 +376,15 @@ Checkpoint saving note: periodic checkpoints only save if `--save_ckpt` is provi
 - Model architecture ✅
 
 ### 🔴 Critical Issues Found
-1. **Version path mismatch**: Preprocessing uses v2.0.0, training loads from v2.0.1
-2. **Extreme class imbalance**: 33:1 ratio (24 vs 800 samples) with NO mitigation
-3. **No data augmentation**: Mixup imported but never used
+1. **Extreme class imbalance**: 33:1 ratio (24 vs 800 samples) with NO mitigation
+2. **No data augmentation**: Mixup imported but never used
+3. **DropPath not applied**: Stochastic depth disabled (drop_path_rate=0.0) despite flag
 
 ### 📊 Performance Gap Analysis
 The 38% performance gap (24% vs 62.32% BAC) despite correct implementation suggests:
-1. The version mismatch may cause data loading issues
-2. The extreme class imbalance (24 samples for rarest class) may be insurmountable without augmentation
-3. Possible differences in the pretrained checkpoint weights
-4. The paper results may not be reproducible as claimed
+1. The extreme class imbalance (24 samples for rarest class) may be insurmountable without augmentation
+2. Possible differences in the pretrained checkpoint weights
+3. The paper results may not be reproducible as claimed
 
 ## ✅ Cross-Checks Against Paper
 - TUEV dataset: 288 subjects, 6 classes (Table 1).
