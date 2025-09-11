@@ -37,7 +37,9 @@ class SeizureTransformerWrapper:
     
     def predict_timestep(self, eeg: np.ndarray) -> np.ndarray:
         """Direct time-step level predictions"""
-        # 1. Preprocess to 256Hz, 19 channels
+        # 1. Ensure UNIPOLAR montage, map to 19 channels
+        # 2. Resample to 256 Hz
+        # 3. Run inference and return per-timestep probabilities
         # 2. Run inference 
         # 3. Return per-timestep probabilities
 ```

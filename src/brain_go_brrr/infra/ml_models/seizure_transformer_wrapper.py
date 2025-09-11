@@ -4,8 +4,9 @@ This wrapper expects either:
 - An externally provided model instance (dependency injection), or
 - A pip-installable package exposing `build_seizure_transformer(n_channels: int)`.
 
-Weights loading is optional and performed via `torch.load` with `weights_only=True`
-when possible. Inputs are Volts in `(C, T)` at 256 Hz by default.
+Weights loading is optional. Inputs are Volts in `(C, T)` at 256 Hz by default.
+IMPORTANT: The reference implementation requires UNIPOLAR montage. Ensure your inputs
+are referential/unipolar (not bipolar channel pairs) before calling `predict`.
 """
 
 from __future__ import annotations

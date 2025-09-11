@@ -60,7 +60,7 @@ brain-go-brrr/
 
 ## 📊 Data Pipeline Implementation
 
-### Dataset Loader
+### Dataset Loader (ensure unipolar montage)
 ```python
 # src/brain_go_brrr/infra/data/tusz_detection_dataset.py
 
@@ -132,7 +132,15 @@ class TUSZDetectionDataset:
         return eeg_data, seizure_events
     
     def _standardize_channels(self, raw: mne.io.Raw) -> mne.io.Raw:
-        """Ensure standard 10-20 montage (19 channels; see SPEC Channel Policy)."""
+        """Ensure standard 10-20 montage (19 channels; see SPEC Channel Policy).
+
+        Note: SeizureTransformer requires UNIPOLAR montage. If your recording is bipolar
+        (channels with names like "Fp1-F7"), convert to a referential montage first, e.g.:
+
+            raw.set_eeg_reference('average')
+
+        or to a specific reference electrode per your policy. Then resample to 256 Hz.
+        """
         standard_channels = [
             'FP1', 'FP2', 'F7', 'F3', 'FZ', 'F4', 'F8',
             'T3', 'C3', 'CZ', 'C4', 'T4',

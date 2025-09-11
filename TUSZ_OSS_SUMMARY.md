@@ -22,11 +22,16 @@ Key open-source references included in this repo
     - Note: utils assume unipolar montage and 19 channels; confirm montage mapping for TUSZ records.
 
 Model I/O and preprocessing (from OSS)
-- Channels: 19-channel TCP montage (10–20 system). Exact channel selection not strictly enumerated in README; ensure consistent mapping (we use `CHANNELS_TUAB_19`).
+- Montage: UNIPOLAR ONLY (reference asserts unipolar montage; convert if needed).
+- Channels: 19-channel TCP montage (10–20 system); we use `CHANNELS_TUAB_19` with aliasing (T3→T7, etc.).
 - Sampling rate: 256 Hz SSOT (resample as needed).
-- Windowing: 60 s windows (15360 samples). For temporal outputs, model emits per-sample logits over the window.
-- Normalization: per-channel z-score over the window prior to inference.
-- Filtering (their utils): 0.5–120 Hz bandpass + notch at 1 Hz and 60 Hz; we may keep pure z-score initially and add filters if needed during parity.
+- Windowing: 60 s windows (15360 samples). Model emits per-sample logits over the window.
+- Exact preprocessing order (matches OSS):
+  1) Per-channel z-score
+  2) Resample to 256 Hz (if needed)
+  3) Bandpass 0.5–120 Hz (3rd‑order Butterworth)
+  4) Notch 1 Hz (Q=30)
+  5) Notch 60 Hz (Q=30)
 
 Evaluation (clinical metrics)
 - NEDC evaluator (v6.0.0) is the community baseline for temporal detection:
@@ -44,13 +49,13 @@ Implementation guidance adopted here
 - Post-processing: dual-threshold hysteresis (low/high), gap merge (seconds), min event duration (seconds). Start with (0.3, 0.7), 2.0 s gap, 1.0–2.0 s min duration; tune per dev set.
 
 What we won’t do from OSS (by default)
-- `sys.path` hacks to import the model; we expose `SeizureTransformerWrapper` that accepts a `build_fn` or an installed package exposing `build_seizure_transformer(n_channels)`.
+- `sys.path` hacks to import the model; we expose `SeizureTransformerWrapper` that accepts a `build_fn` or uses `wu_2025.SeizureTransformer` if importable.
 - Hard-coded threshold at 0.8; we’ll determine operating points from dev set to meet clinical sensitivity targets.
 - Morphological ops as the only post-processing; we provide a configurable, auditable post-processing pipeline.
 
 Quick pointers in this repo
 - Dataset: `src/brain_go_brrr/infra/data/tusz_detection_dataset.py` (sliding windows, 256 Hz, binary labels).
-- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe; returns probabilities by default).
+- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe; returns probabilities by default; unipolar montage required).
 - Post: `src/brain_go_brrr/infra/eval/post_processing.py` (hysteresis + merge + min-duration).
 - Eval adapter: `src/brain_go_brrr/infra/eval/nedc_wrapper.py` (proxy metrics; swap internals for official NEDC).
 - Docs: `TUSZ_IMPLEMENTATION.md`, `TUSZ_ROADMAP.md`, `TUSZ_SPEC.md`.
