@@ -364,6 +364,30 @@ Use ALL temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8
 2) Class balancing paradox: Reference tolerates severe imbalance; forced balancing may harm generalization.
 3) Normalization mismatch: Reference μV vs our z‑scaling can shift feature magnitudes.
 
+## 🔴 EXTERNAL AUDIT FINDINGS (Sep 11, 2025)
+
+### Critical Implementation Gaps Found by External Agent:
+1. **DropPath NOT APPLIED** ✅ FIXED
+   - Reference sets --drop_path 0.2 but model hardcodes 0.0
+   - We now match this (set to 0.0)
+   
+2. **Mixed Precision Handling** ✅ FIXED
+   - Reference uses GradScaler/NativeScaler
+   - We now use GradScaler properly
+   
+3. **Unused Parameters** ✅ VERIFIED
+   - ch_names parameter ignored in train_class_batch
+   - abs_pos_emb and disable_rel_pos_bias parsed but never used
+   - We don't use these either (correct)
+
+4. **Constraint Layers** ✅ VERIFIED
+   - Reference uses version with @autocast decorators
+   - We removed decorators to fix dtype errors
+   
+5. **No Bipolar Montage** ✅ CONFIRMED
+   - convert_signals function exists but commented out (line 151)
+   - We don't use bipolar either (correct)
+
 ## 🔴 ROOT CAUSE ANALYSIS (FINAL)
 
 ### The 96.4:1 Class Imbalance is INSURMOUNTABLE
