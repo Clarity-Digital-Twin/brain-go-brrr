@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -80,14 +80,11 @@ def create_weighted_sampler(
         WeightedRandomSampler configured for the dataset
     """
     # Create per-sample weights based on class weights
-    sample_weights_np = np.array([class_weights[label].item() for label in labels])
+    sample_weights_list = [class_weights[label].item() for label in labels]
 
-    # Convert to tensor
-    sample_weights_tensor = torch.tensor(sample_weights_np, dtype=torch.float32)
-
-    # Create sampler
+    # Create sampler (WeightedRandomSampler expects Sequence[float], not Tensor)
     sampler = WeightedRandomSampler(
-        weights=sample_weights_tensor, num_samples=len(labels), replacement=replacement
+        weights=sample_weights_list, num_samples=len(labels), replacement=replacement
     )
 
     return sampler
@@ -113,7 +110,9 @@ def get_minority_classes(labels: npt.NDArray[np.int_], threshold: float = 0.1) -
     return minority_classes
 
 
-def print_class_distribution(labels: npt.NDArray[np.int_], class_names: dict[int, str] | None = None) -> None:
+def print_class_distribution(
+    labels: npt.NDArray[np.int_], class_names: dict[int, str] | None = None
+) -> None:
     """Print class distribution statistics.
 
     Args:
