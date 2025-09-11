@@ -230,9 +230,8 @@ class TUABPreprocessor:
             f"Must have 18-19 channels, got {len(available_standard)}"
         )
 
-        # Use raw.pick() for better compatibility across MNE versions
-        # The order is preserved based on the input list
-        raw.pick(available_standard)
+        # Use pick_channels with ordered=True to ensure correct order (MNE 1.6+ API)
+        raw.pick_channels(available_standard, ordered=True)
         logger.info(f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 19)")
 
         return raw

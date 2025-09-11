@@ -244,7 +244,8 @@ class TUEVPreprocessor(TUABPreprocessor):
             f"TUEV must have exactly 20 channels, got {len(available_standard)}"
         )
 
-        raw.pick(available_standard)
+        # Use pick_channels with ordered=True to ensure correct order (MNE 1.6+ API)
+        raw.pick_channels(available_standard, ordered=True)
         logger.info(
             f"Selected {len(raw.ch_names)} standard channels (enforced to exactly 20 for TUEV)"
         )
@@ -266,8 +267,8 @@ class TUEVPreprocessor(TUABPreprocessor):
             # If not, the dataset may be incomplete
             raise ValueError(f"Paper parity requires all 23 channels. Missing: {missing}")
 
-        # Use raw.pick() to select channels
-        raw.pick(available)
+        # Use pick_channels with ordered=True to ensure correct order (MNE 1.6+ API)
+        raw.pick_channels(available, ordered=True)
 
         # Ensure we have exactly 23 channels for mapper
         if len(raw.ch_names) != 23:

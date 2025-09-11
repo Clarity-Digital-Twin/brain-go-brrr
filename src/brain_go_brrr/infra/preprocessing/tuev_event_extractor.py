@@ -95,10 +95,8 @@ class TUEVEventExtractor:
 
         # Select and reorder channels to match reference
         available_channels = [ch for ch in self.TUEV_CHANNELS_REF if ch in raw.ch_names]
-        # Use inst.pick to avoid legacy pick_channels and preserve order explicitly
-        raw.pick(picks=available_channels)
-        if raw.ch_names != available_channels:
-            raw.reorder_channels(available_channels)
+        # Use pick_channels with ordered=True to ensure correct order (MNE 1.6+ API)
+        raw.pick_channels(available_channels, ordered=True)
 
         # Get data and handle missing channels
         data = raw.get_data()  # Shape: (n_available_channels, n_samples)

@@ -304,12 +304,14 @@ def pick_channels(raw: MNERaw, picks: str | list[str] | list[int]) -> None:
     """
     if picks == "eeg":
         picks_idx = get_eeg_picks(raw)
-        raw.pick(picks_idx)
+        # Convert indices to channel names for pick_channels
+        channel_names = [raw.ch_names[i] for i in picks_idx]
+        raw.pick_channels(channel_names, ordered=True)
     elif isinstance(picks, list):
         if picks and isinstance(picks[0], str):
-            # Prefer inst.pick with explicit reordering to avoid legacy pick_channels
-            raw.pick(picks=picks)
-            if raw.ch_names != picks:
-                raw.reorder_channels(picks)
+            # Use pick_channels with ordered=True to ensure correct order (MNE 1.6+ API)
+            raw.pick_channels(picks, ordered=True)
         else:
-            raw.pick(picks)
+            # Convert indices to channel names
+            channel_names = [raw.ch_names[i] for i in picks]
+            raw.pick_channels(channel_names, ordered=True)

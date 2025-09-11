@@ -210,9 +210,10 @@ class FlexibleEEGPreprocessor:
                     raw.pick_channels(selected, ordered=True)
                     logger.info(f"Selected {len(selected)} channels for {self.mode}")
             elif ch_names:
-                # Just pick EEG channels
+                # Just pick EEG channels - get channel names from indices
                 picks = mne_compat.get_eeg_picks(raw)
-                raw.pick(picks)
+                eeg_channel_names = [raw.ch_names[i] for i in picks]
+                raw.pick_channels(eeg_channel_names, ordered=True)
 
         return raw
 
