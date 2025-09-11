@@ -228,7 +228,7 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
             # Save each segment
             for i, (segment, label) in enumerate(segments):
                 # Determine subject grouping key
-                # Official eval filenames are label-prefixed (e.g., bckg_*.edf) under directories 000–079.
+                # Official eval filenames are label-prefixed (e.g., bckg_*.edf) under directories 000-079.
                 # Using filename prefix would incorrectly set subject to the label string.
                 # For official splits:
                 #  - eval: use top-level directory under edf/eval (e.g., '000')
