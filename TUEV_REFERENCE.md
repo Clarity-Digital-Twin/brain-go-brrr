@@ -56,11 +56,14 @@
 - DeepSpeed: Adam with `adam_w_mode=True` (functionally AdamW), betas=[0.9,0.999], eps=1e-8 (see `utils.create_ds_config`).
 - Weight decay: 0.05 (`finetune_TUEV_EEGPT.sh`)
 - Learning rate: 5e-4; cosine LR schedule to 1e-6 with 5 warmup epochs.
+- Weight decay schedule: computed per-iteration but constant by default (`weight_decay_end` defaults to `weight_decay`).
 
 ### Model Architecture Details
 - Patch size: 64; patch stride: 64 (temporal patches = 15 for 1000-sample input).
 - Embed dim: 512; embed num: 4; depth: 8; heads: 8; MLP ratio: 4.0; QKV bias: True.
 - Classifier dimension: 30720 = 512 × 4 × 15.
+- Summary tokens: encoder appends 4 summary tokens per time patch and discards patch tokens before the norm; classification uses only the summary tokens (not raw patch tokens).
+- Transformer block dropouts: `drop_rate=0.0`, `attn_drop_rate=0.0` (dropout is only used in channel mapper and classifier head).
 
 ### Training Details
 - Training seed: 0 (`finetune_TUEV_EEGPT.sh`); data split seed: 4523 (`utils.py`).
@@ -68,10 +71,16 @@
 - Effective batch sizing: total batch = `batch_size × update_freq × world_size` = 800; micro-batch per GPU = 400; no gradient accumulation (`update_freq=1`).
 - Label mapping: 1–6 → 0–5 (`utils.TUEVLoader`).
 - Checkpoint loading: from `checkpoint['state_dict']` with `utils.load_state_dict`.
+- Loss: train uses LabelSmoothingCrossEntropy (smoothing=0.1); eval loss uses CrossEntropyLoss (no smoothing). Metrics computed via PyHealth.
+- Model EMA: available via `--model_ema` but disabled in the provided launch script.
+- Gradient clipping: Available via `--clip_grad` but NOT used (default=None).
+- Evaluation: Runs every epoch (default; `--disable_eval_during_finetuning` not set).
+- cuDNN: `cudnn.benchmark=True` (faster but not fully deterministic; seeds reduce, but do not eliminate, variance).
 
 ### Data Processing
 - Filtering: 0.1–75 Hz bandpass; notch: 50 Hz; resample: 200 Hz; units: μV (`make_TUEV.py`).
 - No input normalization; no bipolar montage (the `convert_signals` bipolar path is present but commented out).
+- Input windows: 5 s per event (200 Hz × 5 = 1000 samples). Engine reshapes to `B×N×5×200`, model flattens back to `B×N×1000` before patching.
 
 ### Critical Path Mismatch
 - **Preprocessing path**: `v2.0.0` (`make_TUEV.py:184`)
@@ -83,6 +92,20 @@
 - Class weights or balanced sampling.
 - Input normalization beyond μV/100 scaling.
 - Use of CLI flags `--abs_pos_emb` or `--disable_rel_pos_bias` in the custom model path.
+- Random Erase (`reprob`) is parsed but unused.
+
+### Weights, Schedules, and WD Skips
+- Initialization: truncated normal with `init_std=0.02` for Linear/Conv, LayerNorm weight=1, bias=0.
+- LR warmup starts at 0 (arg `warmup_lr` is not used); cosine decay from 5e-4 to 1e-6.
+- Per-iteration WD schedule applied only to groups with `weight_decay > 0`.
+- No-weight-decay parameters include embeddings and tokens: `{chan_embed, summary_token}` in encoder; `{pos_embed, cls_token, time_embed, chan_embed}` in reconstructor.
+
+### Components Defined but Unused in Finetuning
+- The reconstructor transformer (with rotary time embedding) is instantiated but not used in the forward path during finetuning (`self.reconstructor` calls are commented out).
+
+### Exact Channel Sets
+- Preprocessed 23-channel order (TUEV EDF): `['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 'EEG T1-REF', 'EEG T2-REF']` (mapped to short names without suffix).
+- Model target channel list (20 used): `['FP1','FPZ','FP2','F7','F3','FZ','F4','F8','T7','C3','CZ','C4','T8','P7','P3','PZ','P4','P8','O1','O2']`.
 
 ## 🔴 THE REMAINING MYSTERY: Why Only 24% BAC?
 
@@ -321,6 +344,8 @@ CUDA_VISIBLE_DEVICES=4,5 OMP_NUM_THREADS=1 python -m torch.distributed.run \
     --enable_deepspeed \
     --seed 0
 ```
+
+Checkpoint saving note: periodic checkpoints only save if `--save_ckpt` is provided. The script sets `--save_ckpt_freq 5` but not `--save_ckpt`, so enable it to persist epoch checkpoints.
 
 ## BOTTOM LINE
 

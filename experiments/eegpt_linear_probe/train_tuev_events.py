@@ -159,7 +159,20 @@ def create_optimizer_with_layer_decay(
     import re
 
     param_groups: list[dict] = []
-    no_decay_tokens = ("bias", "norm", "LayerNorm", "layernorm", "bn", "BatchNorm")
+    no_decay_tokens = (
+        "bias",
+        "norm",
+        "LayerNorm",
+        "layernorm",
+        "bn",
+        "BatchNorm",
+        # Embeddings/tokens (no weight decay in reference finetuning)
+        "summary_token",
+        "chan_embed",
+        "pos_embed",
+        "cls_token",
+        "time_embed",
+    )
 
     # Determine maximum transformer block depth from parameter names like '...blocks.12...'
     block_idx_pattern = re.compile(r"\.blocks\.(\d+)\.")
@@ -205,14 +218,22 @@ def create_optimizer_with_layer_decay(
 
     param_groups = [g for g in grouped.values() if g["params"]]
     if not param_groups:
-        return torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        # Match reference: eps=1e-8, betas=(0.9, 0.999) are AdamW defaults
+        return torch.optim.AdamW(
+            model.parameters(),
+            lr=lr,
+            weight_decay=weight_decay,
+            eps=1e-8,  # Reference uses eps=1e-8
+            betas=(0.9, 0.999),  # Reference uses default betas
+        )
 
     # Print layer-wise LR decay info for verification
     print("\nLayer-wise learning rate decay applied:")
     for group in param_groups:
         print(f"  {group['name']}: lr={group['lr']:.2e}, wd={group['weight_decay']:.3f}")
 
-    return torch.optim.AdamW(param_groups)
+    # Match reference: eps=1e-8, betas=(0.9, 0.999)
+    return torch.optim.AdamW(param_groups, eps=1e-8, betas=(0.9, 0.999))
 
 
 def cosine_scheduler(
@@ -340,10 +361,10 @@ def train_epoch(
     optimizer: torch.optim.Optimizer,
     device: torch.device,
     accumulate_steps: int = 1,
-    lr_schedule: np.ndarray = None,
-    wd_schedule: np.ndarray = None,
+    lr_schedule: np.ndarray | None = None,
+    wd_schedule: np.ndarray | None = None,
     epoch: int = 0,
-    scaler: "GradScaler | None" = None,
+    scaler: GradScaler | None = None,
 ) -> dict[str, float]:
     """Train for one epoch with per-iteration scheduling.
 
@@ -394,13 +415,19 @@ def train_epoch(
         # Scale loss for gradient accumulation
         loss = loss / accumulate_steps
 
-        # Use GradScaler for mixed precision
-        scaler.scale(loss).backward()
+        # Use GradScaler for mixed precision if provided
+        if scaler is not None:
+            scaler.scale(loss).backward()
+        else:
+            loss.backward()
 
         # Update weights
         if (i + 1) % accumulate_steps == 0:
-            scaler.step(optimizer)
-            scaler.update()
+            if scaler is not None:
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                optimizer.step()
             optimizer.zero_grad()
 
         # Store metrics
@@ -411,8 +438,11 @@ def train_epoch(
 
     # Final optimizer step if needed
     if len(dataloader) % accumulate_steps != 0:
-        scaler.step(optimizer)
-        scaler.update()
+        if scaler is not None:
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            optimizer.step()
 
     # Calculate metrics
     all_preds = np.array(all_preds)
@@ -435,6 +465,12 @@ def main(args):
     # Set seed for reproducibility
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+        # Match reference: cudnn.benchmark=True for performance (not fully deterministic)
+        torch.backends.cudnn.benchmark = True
+        print("cuDNN benchmark enabled (faster but not fully deterministic)")
+    print(f"Using seed: {args.seed} (reference uses 0 for training, 4523 for data splits)")
 
     # Create datasets
     print("Loading datasets...")
@@ -584,7 +620,9 @@ def main(args):
     )
 
     # Create loss function - use timm's implementation to match reference exactly
-    criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
+    # Training uses label smoothing, eval uses regular CrossEntropy (reference behavior)
+    train_criterion = TimmLabelSmoothingCE(smoothing=args.label_smoothing)
+    eval_criterion = nn.CrossEntropyLoss()  # Reference uses no smoothing for eval
 
     # Training loop
     best_bac = 0.0
@@ -596,7 +634,7 @@ def main(args):
         train_metrics = train_epoch(
             model,
             train_loader,
-            criterion,
+            train_criterion,  # Use label smoothing for training
             optimizer,
             device,
             accumulate_steps,
@@ -609,8 +647,8 @@ def main(args):
             f"Train - Loss: {train_metrics['loss']:.4f}, BAC: {train_metrics['balanced_accuracy']:.4f}"
         )
 
-        # Evaluate
-        eval_metrics = evaluate(model, eval_loader, criterion, device)
+        # Evaluate (reference uses CrossEntropyLoss without smoothing)
+        eval_metrics = evaluate(model, eval_loader, eval_criterion, device)
         print(
             f"Eval - Loss: {eval_metrics['loss']:.4f}, BAC: {eval_metrics['balanced_accuracy']:.4f}"
         )

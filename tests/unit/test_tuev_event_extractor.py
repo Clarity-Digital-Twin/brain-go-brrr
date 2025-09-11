@@ -133,11 +133,11 @@ class TestTUEVEventExtractor:
         assert len(segments) == 1
         segment, label = segments[0]
 
-        # Event center is at 10s
-        # Window should be 8s to 13s (10 - 2 to 10 + 3)
-        # At 200Hz: samples 1600 to 2600
-        expected_start = 1600
-        expected_end = 2600
+        # Event from 9.5s to 10.5s
+        # Window should be start-2s to end+2s = 7.5s to 12.5s
+        # At 200Hz: samples 1500 to 2500
+        expected_start = 1500
+        expected_end = 2500
 
         # Check that we got the right slice of data
         expected_segment = mock_data[:, expected_start:expected_end]
@@ -193,18 +193,19 @@ class TestTUEVEventExtractor:
 
             # Events at boundaries
             annotations = [
-                {'start': 0.5, 'end': 1.0, 'label': 0},  # Too early (needs -2s)
-                {'start': 4.0, 'end': 4.5, 'label': 1},  # Too late (needs +3s)
-                {'start': 2.0, 'end': 2.5, 'label': 2},  # This one should work
+                {'start': 0.5, 'end': 1.0, 'label': 0},  # Near start (handled by triple concat)
+                {'start': 4.0, 'end': 4.5, 'label': 1},  # Near end (handled by triple concat)
+                {'start': 2.0, 'end': 2.5, 'label': 2},  # Middle event
             ]
 
             extractor = TUEVEventExtractor()
             segments = extractor.extract_segments(Path('/fake/path.edf'), annotations)
 
-            # Both the second and third events should be extracted (first is out of bounds)
-            assert len(segments) == 2
-            assert segments[0][1] == 1  # Second annotation (label 1) is extracted first
-            assert segments[1][1] == 2  # Third annotation (label 2) is extracted second
+            # All three events should be extracted due to triple concatenation trick
+            assert len(segments) == 3
+            assert segments[0][1] == 0  # First annotation
+            assert segments[1][1] == 1  # Second annotation
+            assert segments[2][1] == 2  # Third annotation
 
     def test_output_dtype_and_units(self):
         """Test output is float32 in Volts (SI units)."""
