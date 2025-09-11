@@ -111,7 +111,14 @@
 
 ## 🔴 THE REMAINING MYSTERY: Why Only 22% BAC?
 
-Despite implementing ALL critical components correctly, we still get 38% below target. The key question is WHY?
+Despite implementing ALL critical components correctly, we still get 40% below target. The key question is WHY?
+
+### REPRODUCTION STATUS (Sep 11, 2025):
+- **Our Implementation**: 22% BAC
+- **Other Researchers** (@hs11015): 58% BAC  
+- **Paper Claim**: 62% BAC
+- **GitHub Issues Created**: #15 (comment), #24 (new issue)
+- **Conclusion**: Paper results NOT reproducible at claimed performance
 
 ### Current Performance Pattern:
 | Class | Samples | Expected Recall | Our Recall |
@@ -381,7 +388,7 @@ Best-on-val checkpoint: when validation accuracy improves, the code saves `epoch
 3. **DropPath not applied**: Stochastic depth disabled (drop_path_rate=0.0) despite flag
 
 ### 📊 Performance Gap Analysis
-The 38% performance gap (24% vs 62.32% BAC) despite correct implementation suggests:
+The ~40% performance gap (22% vs 62.32% BAC) despite correct implementation suggests:
 1. The extreme class imbalance (24 samples for rarest class) may be insurmountable without augmentation
 2. Possible differences in the pretrained checkpoint weights
 3. The paper results may not be reproducible as claimed

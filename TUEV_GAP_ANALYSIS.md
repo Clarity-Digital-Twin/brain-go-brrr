@@ -26,13 +26,13 @@ All critical issues have been resolved:
 - **Result: ❌ FAILED TO ACHIEVE PAPER PARITY**
 
 ### 🔴 CRITICAL DISCOVERY: Extreme Class Imbalance
-Training revealed catastrophic class imbalance (33:1 ratio):
-- `spsw`: 24 samples → 0% recall
-- `gped`: 374 samples → 64% recall ✅
-- `pled`: 74 samples → 3% recall
-- `eyem`: 75 samples → 0% recall
-- `artf`: 124 samples → 0% recall
-- `bckg`: 800 samples → 83% recall ✅
+Training revealed catastrophic class imbalance in EVAL set:
+- `spsw`: 24 samples (1.6%) → 0% recall
+- `gped`: 374 samples (25.4%) → ~40% recall
+- `pled`: 74 samples (5.0%) → ~3% recall
+- `eyem`: 75 samples (5.1%) → 0% recall
+- `artf`: 124 samples (8.4%) → 0% recall
+- `bckg`: 800 samples (54.4%) → ~80% recall
 
 **Pattern**: Model ONLY learns classes with >300 samples. All rare events completely ignored despite LinearWithConstraint.
 

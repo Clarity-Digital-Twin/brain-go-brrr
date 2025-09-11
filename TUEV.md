@@ -1,6 +1,6 @@
 # TUEV Implementation: Master Documentation
 
-**Status**: Parity changes applied; current best BAC ≈ 0.25–0.27 (target: 0.62). See Gap Analysis for open issues.  
+**Status**: Parity changes applied; current best BAC = 0.22 (target: 0.62). See Gap Analysis for open issues.  
 **Last Updated**: September 11, 2025
 
 ## Document Map
