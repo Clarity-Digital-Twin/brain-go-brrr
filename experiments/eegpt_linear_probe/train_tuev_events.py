@@ -129,6 +129,12 @@ class TUEVClassifierHead(nn.Module):
             Logits of shape (batch, 6)
         """
         # Enforce native 1000 samples (parity); no padding needed
+        
+        # Reference reshapes to (B, 20, 5, 200) before EEGPT but then flattens immediately
+        # This is purely for compatibility - functionally equivalent to our approach
+        batch_size = x.shape[0]
+        x_reshaped = x.reshape(batch_size, 20, 5, 200)  # Match reference reshape
+        x = x_reshaped.reshape(batch_size, 20, 1000)  # Flatten back immediately like reference
 
         # Extract ALL temporal EEGPT features using proper channel IDs
         # Returns shape: (B, N_temporal, 4, 512)
