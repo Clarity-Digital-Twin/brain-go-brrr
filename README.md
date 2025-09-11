@@ -247,7 +247,7 @@ uv run pytest tests/unit/domain/sleep -v
 |-------|------------|
 | [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
 | [API.md](docs/API.md) | REST endpoint reference |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB/TUEV |
+| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB (TUEV archived) |
 
 ### 🏗️ Architecture & Design
 | Guide | Description |
@@ -362,7 +362,7 @@ We welcome contributions! Whether you're fixing bugs, adding features, or improv
 </details>
 
 <details>
-<summary>TUH EEG Events Corpus (TUEV) (click to expand)</summary>
+<summary>TUH EEG Events Corpus (TUEV) — Archived (click to expand)</summary>
 
 ```bibtex
 @inproceedings{harati2015improved,

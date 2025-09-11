@@ -12,14 +12,7 @@
 
 ## 🟡 High Priority (Active Work)
 
-### 1. TUEV Paper Parity Training (IN PROGRESS)
-- **Status**: Training running, Epoch 5/100, BAC ~16.67% (target: 62.32%)
-- **Implementation**: ✅ 23-channel mode with learnable mapper complete
-- **Location**: `experiments/eegpt_linear_probe/train_tuev_mne.py`
-- **Monitor**: `tmux attach -t tuev_paper_parity`
-- **Remaining**: Wait for convergence to 62.32% BAC
-
-### 2. TUSZ Temporal Detection (Next Focus)
+### 1. TUSZ Temporal Detection (Next Focus)
 - **Status**: Architecture decided, SeizureTransformer wrapper planned
 - **Next Steps**: 
   - Implement wrapper infrastructure for SeizureTransformer
@@ -59,16 +52,14 @@
 - **Tool**: Consider auto-generating from FastAPI schemas
 
 ### 2. Training Documentation
-- **Current**: TUEV guide created in `experiments/eegpt_linear_probe/`
-- **Need**: Link from main docs or move to `/docs/TRAINING.md`
+- **Update**: TUEV archived; training section in `/docs/TRAINING.md` now points to final verdict.
 
 ### 3. Deployment Guide
 - **Status**: No production deployment documentation
 - **Need**: Kubernetes manifests, PostgreSQL setup, monitoring
 
 ### 4. MkDocs Navigation
-- **Issue**: Still references old TUEV doc locations
-- **Need**: Update paths to `docs/tuev/` structure
+- **Update**: TUEV docs to be archived under `docs/tuev/archived/` after senior audit; update links accordingly.
 
 ## 🔧 Code Quality Debt
 
@@ -140,7 +131,7 @@
 | Category | Count | Notes |
 |----------|-------|-------|
 | Critical Issues | 1 | PyTorch Lightning bug |
-| Active Work | 2 | TUEV training, TUSZ planning |
+| Active Work | 1 | TUSZ planning |
 | Medium Priority | 4 | Performance/quality improvements |
 | Documentation | 4 | Accuracy and organization |
 | Code Quality | 4 | Coverage and modules |
@@ -151,7 +142,7 @@
 
 ## 🎯 Recommended Priority Order
 
-1. **Monitor TUEV training to completion** (currently running)
+1. **Finalize TUEV archival and links** (docs updated; move files post‑audit)
 2. **Start TUSZ implementation** (wrapper infrastructure ready)
 3. **Fix CI script checker** (quick fix for TUAB launcher)
 4. **Add mixed precision** (performance boost)

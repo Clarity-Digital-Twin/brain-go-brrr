@@ -130,7 +130,7 @@ pip wheel . --wheel-dir=wheelhouse
 tar -czf bgb-offline.tar.gz wheelhouse/ models/
 ```
 
-## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT - TUEV TRAINING, TUSZ NEXT
+## Phase 2: Clinical Metrics (Week 3-4) 🚧 CURRENT — TUSZ NEXT (TUEV archived)
 
 ### 📊 Metrics by Dataset (See `docs/EVALUATION_METRICS.md` for full details)
 
@@ -166,17 +166,8 @@ metrics = {
 }
 ```
 
-#### For TUEV (6-Class Event Classification) 🚧 TRAINING IN PROGRESS
-**Task**: Classify events as SPSW/GPED/PLED/EYEM/ARTF/BCKG
-**Metrics**: Weighted F1, Balanced Accuracy, Cohen's Kappa; confusion matrix (secondary)
-**Monitor**: Paper suggests Kappa; our trainer currently saves best by BAC†
-**Targets (paper)**: Weighted F1 ≈ 81.87%, BAC ≈ 62.32%, Kappa ≈ 0.6351
-**Current Status**: Training at Epoch 5/100, BAC ~16.67% (improving)
-**Implementation**: ✅ 23-channel paper parity mode with learnable mapper
-**Documentation**: See `docs/tuev/` for implementation details
-**Note**: Paper parity requires 23-ch input + learned Conv2d(23→20) mapper; current approach uses 20-ch preprocessing with Fpz interpolation
-
-†*Implementation note: train_tuev_mne.py saves best model by BAC, not Kappa*
+#### For TUEV (6-Class Event Classification) — ARCHIVED
+TUEV event classification is archived due to unreproducible results in our environment (best BAC ≈ 0.22) and degenerate behavior with imbalance mitigations. See `TUEV_FINAL_VERDICT.md` for details.
 
 ```python
 # Multi-class classification - no threshold needed
@@ -467,7 +458,7 @@ test_results = evaluate(test_data, probe, threshold=best_threshold)
 | BIOT | 52.81% | 74.92% | 0.527 | Baseline |
 | EEGPT (paper) | 62.32% | 81.87% | 0.635 | Their Table 3 |
 | LaBraM (paper) | 64.09% | 83.12% | 0.664 | Best competitor |
-| **EEGPT (ours)** | **Target: 62%+** | **Target: 82%+** | **Target: 0.63+** | **🚧 Training** |
+| **EEGPT (ours)** | Archived | — | — | ⛔ See Final Verdict |
 
 #### TUSZ (Seizure Detection - Temporal) [Future Work]
 | Method | Sensitivity | FA/24h | TAES | Status |
