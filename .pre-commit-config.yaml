@@ -18,22 +18,17 @@ repos:
         files: ^(src|tests|scripts|experiments)/
         exclude: ^(archive/|scripts/archive/|tests/archive/|reference_repos/|notebooks/|research/|literature/)
 
-  # Type checking with mypy - RE-ENABLED with proper deps
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.0
+  # Type checking with mypy - Using fast config for pre-commit
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies:
-          - types-requests
-          - types-redis
-          - types-psutil
-          - numpy
-          - pydantic>=2.0  # Fix the pydantic issue
-          - torch  # For nn.Module type resolution
-          - rich  # For rich.console
-        args: [--config-file=mypy.ini]
-        files: ^(src/brain_go_brrr)/
+        name: mypy
+        entry: bash -c 'if [ "$#" -gt 0 ]; then timeout 30 uv run mypy --config-file=mypy-fast.ini "$@"; else echo "No files to check"; fi'
+        language: system
+        files: ^(src/brain_go_brrr)/.*\.py$
         exclude: ^(tests|archive|reference_repos|experiments)/
+        pass_filenames: true
+        require_serial: true
 
   # Architecture enforcement
   - repo: local
