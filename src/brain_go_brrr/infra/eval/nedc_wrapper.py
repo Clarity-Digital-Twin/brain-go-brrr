@@ -62,10 +62,9 @@ class NEDCClinicalEvaluator:
 
         return {
             "sensitivity": sensitivity,
-            "fa_24h_at_95": fa_per_24h,  # keyed to match doc examples
+            "fa_24h": fa_per_24h,
             "taes_f1": f1,
         }
 
 
 __all__ = ["NEDCClinicalEvaluator"]
-

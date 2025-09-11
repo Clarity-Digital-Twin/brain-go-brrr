@@ -50,7 +50,7 @@ class SeizureTransformerWrapper:
 
 ### Week 2: NEDC Evaluation Integration
 ```python
-# Location: src/brain_go_brrr/infra/evaluation/nedc_evaluator.py
+# Location: src/brain_go_brrr/infra/eval/nedc_wrapper.py
 
 class NEDCClinicalEvaluator:
     """NEDC Eval v6.0.0 compliant metrics"""
@@ -75,7 +75,7 @@ class NEDCClinicalEvaluator:
 
 ### Dataset Integration
 ```python
-# Location: src/brain_go_brrr/infra/data/tusz_dataset.py
+# Location: src/brain_go_brrr/infra/data/tusz_detection_dataset.py
 
 class TUSZDataset(EEGDataset):
     """TUSZ v2.0.1 dataset with official splits"""

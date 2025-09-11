@@ -628,37 +628,29 @@ def main():
     )
     evaluator = NEDCClinicalEvaluator()
     
-    # Process all recordings
-    all_metrics = []
-    
     # Example: single-recording flow (replace with proper DataLoader/patient loop)
     patient_id = 'xxxx'  # placeholder
     eeg_data, ground_truth = dataset.load_recording(patient_id)
-    probabilities = model.predict(eeg_data)
-        
-        # Post-process
-        predictions = post_processor.apply(probabilities)
-        
-        # Evaluate
-        duration_hours = len(eeg_data[0]) / (256 * 3600)
-        metrics = evaluator.compute_all_metrics(
-            predictions, ground_truth, duration_hours
-        )
-        
-        all_metrics.append(metrics)
-        print(f"  FA/24h@95%: {metrics['fa_24h_at_95']:.2f}")
-        print(f"  TAES F1: {metrics['taes_f1']:.3f}")
-        print(f"  ATWV: {metrics['atwv']:.3f}")
+    probabilities = model.predict(eeg_data, apply_postprocessing=False)
+    
+    # Post-process
+    predictions = post_processor.apply(probabilities)
+    
+    # Evaluate
+    duration_hours = len(eeg_data[0]) / (256 * 3600)
+    metrics = evaluator.compute_all_metrics(
+        predictions, ground_truth, duration_hours
+    )
     
     # Report (single recording)
     print("\n=== RECORDING RESULTS ===")
-    print(f"FA/24h@95: {metrics['fa_24h_at_95']:.2f}")
+    print(f"FA/24h: {metrics['fa_24h']:.2f}")
     print(f"TAES F1: {metrics['taes_f1']:.3f}")
     
     # Save results
     import json
     with open('results/seizure_transformer_clinical_metrics.json', 'w') as f:
-        json.dump(avg_metrics, f, indent=2)
+        json.dump(metrics, f, indent=2)
     
     print("\nResults saved to results/seizure_transformer_clinical_metrics.json")
     print("Note: For official reporting, integrate NEDC evaluator outputs.")
@@ -723,7 +715,7 @@ def train_eegpt_bilstm():
 
 import pytest
 import numpy as np
-from brain_go_brrr.infra.evaluation.post_processing import AdvancedPostProcessor
+from brain_go_brrr.infra.eval.post_processing import AdvancedPostProcessor
 
 def test_hysteresis_thresholding():
     """Test dual-threshold stability."""

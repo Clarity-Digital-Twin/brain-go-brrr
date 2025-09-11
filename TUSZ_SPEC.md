@@ -15,9 +15,11 @@ TUSZ (Temple University Seizure) corpus temporal detection is the next critical 
 - **Inference Speed**: Real-time (≥4x faster than recording duration)
 
 ### Technical Requirements
-- **Sampling Rate**: 256 Hz (EEGPT native rate)
-- **Window Size**: 4 seconds with 2-second overlap
-- **Channel Support**: 19-21 channels (TCP montage)
+- **Sampling Rate**: 256 Hz (SSOT across models)
+- **Window Size**: per model
+  - SeizureTransformer: 60 s windows (15360 samples @ 256 Hz), no overlap by default
+  - EEGPT+BiLSTM: 12 s windows with 1 s stride (tunable)
+- **Channel Support**: 19-channel TCP montage (SSOT, see Channel Policy)
 - **Model Architecture**: Dual approach (SeizureTransformer + EEGPT+BiLSTM)
 - **Evaluation Framework**: NEDC Eval v6.0.0 compliance
 
@@ -53,9 +55,10 @@ Seizures: ~3,000 seizure events
 Classes: Focal (FNSZ), Generalized (GNSZ), Combined (CNSZ), Unknown (UNSZ)
 ```
 
-### Channel Policy (Standard 10–20, 19 channels)
-- Channel set (order): `FP1, FP2, F7, F3, FZ, F4, F8, T3, C3, CZ, C4, T4, T5, P3, PZ, P4, T6, O1, O2`.
-- Mapping: if a recording has extras (e.g., A1/A2) drop them; if a listed channel is missing, either map via nearest equivalent or zero‑fill and flag in metadata.
+### Channel Policy (Standard 10–20, 19 channels; mixed case)
+- Channel set (order): `Fp1, Fp2, F7, F3, F4, F8, T7, C3, Cz, C4, T8, P7, P3, Pz, P4, P8, O1, Oz, O2`.
+- Aliases: legacy names mapped (T3→T7, T4→T8, T5→P7, T6→P8; upper case normalized to mixed case).
+- Mapping: drop extras (e.g., A1/A2); if a listed channel is missing, zero‑fill and flag in metadata.
 - Sampling: resample all recordings to 256 Hz after channel selection; store original `fs` in metadata for precise time alignment when exporting hypotheses.
 
 ### Data Split Strategy

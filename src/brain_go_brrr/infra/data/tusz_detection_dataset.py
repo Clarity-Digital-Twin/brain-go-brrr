@@ -129,7 +129,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         stride = int(round(self.cfg.stride_sec * fs))
         for ridx, rec in enumerate(self._records):
             raw = mne.io.read_raw_edf(str(rec["edf"]), preload=False, verbose="ERROR")
-            duration_sec = float(raw.n_samples) / float(raw.info["sfreq"])  # type: ignore[index]
+            duration_sec = float(raw.n_times) / float(raw.info["sfreq"])  # type: ignore[index]
             n_target = int(round(duration_sec * fs))
             if n_target < win:
                 continue
@@ -153,7 +153,8 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Channel selection (alias normalization)
         raw.rename_channels(_standardize_channel_name)  # type: ignore[attr-defined]
         available = [ch for ch in self.target_channels if ch in raw.ch_names]
-        raw.pick(available, ordered=True)  # type: ignore[attr-defined]
+        # Use explicit channel picking with ordering
+        raw.pick_channels(available, ordered=True)  # type: ignore[attr-defined]
         if self.cfg.fs and int(round(src_fs)) != self.cfg.fs:
             raw.resample(self.cfg.fs)  # type: ignore[attr-defined]
 
@@ -174,4 +175,3 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
 
 __all__ = ["TUSZDetectionDataset", "WindowConfig"]
-
