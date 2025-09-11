@@ -458,16 +458,14 @@ class AdvancedPostProcessor:
 
 ### NEDC Wrapper
 ```python
-# src/brain_go_brrr/infra/evaluation/nedc_wrapper.py
+# src/brain_go_brrr/infra/eval/nedc_wrapper.py
 
-import sys
 import numpy as np
-from pathlib import Path
 from typing import List, Tuple, Dict
 
-# Add NEDC eval to path
-sys.path.append('reference_repos/nedc_eeg_eval_v6.0.0/lib')
-import nedc_eval_eeg as nedc
+# Note: For official reporting, add NEDC to PYTHONPATH externally, e.g.:
+#   export PYTHONPATH=$PYTHONPATH:reference_repos/nedc_eeg_eval_v6.0.0/lib
+# Then import and call the toolkit within this adapter.
 
 class NEDCClinicalEvaluator:
     """
