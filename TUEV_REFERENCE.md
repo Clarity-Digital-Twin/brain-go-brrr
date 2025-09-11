@@ -1,4 +1,5 @@
-# TUEV Reference Implementation - FINAL CONSOLIDATED DOCUMENT
+# TUEV Reference Implementation - COMPLETE AUDIT REPORT
+**Last Audit**: September 10, 2025
 **Paper Target**: 62.32% ± 1.14% balanced accuracy  
 **Our Result**: 24% BAC (38% BELOW TARGET)  
 **Purpose**: SINGLE SOURCE OF TRUTH - Send this to other repos/agents
@@ -6,28 +7,82 @@
 
 ## 📊 IMPLEMENTATION STATUS SUMMARY
 
-### ✅ IMPLEMENTED (PARITY ACHIEVED):
-1. **Signal tripling** - YES (src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py uses `extended = np.concatenate([data, data, data], axis=1)`)
-2. **μV/100 scaling** - YES (experiments/eegpt_linear_probe/train_tuev_events.py:509)
-3. **NO normalization** - YES (self.eegpt.normalize=False, inputs scaled to μV/100 at model entry)
-4. **LinearWithConstraint head** - YES (max_norm=1.0)
-5. **Channel mapper (23→20)** - YES (Conv2dWithConstraint with max_norm=1.0)
-6. **Mixed precision** - YES (loop-level torch.cuda.amp.autocast())
+### ✅ VERIFIED IN THIS REFERENCE (EXACT LINES)
+1. **Signal tripling** - YES 
+   - `downstream_tueg/dataset_maker/make_TUEV.py:29`: `signals = np.concatenate([signals, signals, signals], axis=1)`
+2. **μV/100 scaling** - YES 
+   - `downstream_tueg/engine_for_finetuning_EEGPT.py:65,174`: `samples.float().to(device) / 100`
+3. **NO normalization** - CONFIRMED (no normalization code found, raw μV/100 used)
+4. **LinearWithConstraint head** - YES 
+   - `downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py:769`: `LinearWithConstraint(30720, num_classes)`
+   - With max_norm=1 and @autocast decorator (line 584)
+5. **Channel mapper (23→20)** - YES 
+   - `downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py:698`: `Conv2dWithConstraint(in_channels, img_size[0], 1)`
+   - With max_norm=1 and @autocast decorator (line 602)
+6. **Mixed precision** - YES
+   - Training (with `--enable_deepspeed`): FP16 via DeepSpeed config; engine casts inputs to half (`samples = samples.half()`), no `torch.amp` context.
+   - Training (without DeepSpeed): loop-level `torch.cuda.amp.autocast()` + NativeScaler.
+   - Evaluation: loop-level `torch.cuda.amp.autocast()`.
 7. **Per-iteration LR scheduling** - YES
-8. **Label smoothing (0.1)** - YES (timm.loss.LabelSmoothingCrossEntropy)
+   - `downstream_tueg/engine_for_finetuning_EEGPT.py:61`: Updates lr per iteration, not epoch
+8. **Label smoothing (0.1)** - YES 
+   - `downstream_tueg/run_class_finetuning_EEGPT_change_tuev.py:478`: `LabelSmoothingCrossEntropy(smoothing=args.smoothing)`
+   - Default smoothing=0.1 (line 97)
 9. **Layer decay (0.65)** - YES
-10. **DropPath (0.2)** - YES
+   - `downstream_tueg/finetune_TUEV_EEGPT.sh:29`: `--layer_decay 0.65`
+10. **DropPath flag** - NOT APPLIED
+    - Launch sets `--drop_path 0.2`, but the custom model path hard-codes `drop_path_rate=0.0` for both encoder and reconstructor (no stochastic depth used).
 11. **Token flattening (30720)** - YES
-12. **Natural sampling** - YES (no class balancing)
-13. **Effective batch ≈400** - YES (via gradient accumulation)
-14. **Window extraction** - YES (start/end with triple buffer and [start-2s:end+2s])
+    - Dimensions: 512 (embed_dim) × 4 (embed_num) × 15 (temporal patches)
+    - `downstream_tueg/Modules/models/EEGPT_mcae_finetune_change_tuev.py:843`: `x = x.flatten(1)`
+12. **Natural sampling** - YES (no class weights or balanced sampling found)
+13. **Effective batch 400** - YES 
+    - `downstream_tueg/finetune_TUEV_EEGPT.sh:24`: `--batch_size 400` with 2 GPUs
+14. **Window extraction** - YES 
+    - `downstream_tueg/dataset_maker/make_TUEV.py:35-36`: `signals[:, offset + start - 2*int(fs) : offset + end + 2*int(fs)]`
+15. **Heavy dropout (0.8)** - YES
+    - Channel mapper dropout: line 709
+    - Classifier head dropout: line 767
 
-### ⚠️ MINOR DIFFERENCES (NON-BLOCKING):
-1. **Reshape to B×23×5×200** - OPTIONAL (reference reshapes then immediately flattens; our path is functionally equivalent)
-2. **Method-level @autocast** - We use loop-level AMP instead (safer, avoids dtype mismatches)
-3. **Seeds** - We use 42 for training (reference uses 0); not performance-critical
-4. **Distributed training** - We use single GPU with accumulation (matches effective batch 400)
-5. **DeepSpeed** - Not required for parity
+### ⚙️ Behavior Notes
+- Reshape to `B×23×5×200`: engine reshapes and the model immediately flattens back to `B×23×1000`; functionally a no-op for the transformer.
+- Method-level `@autocast(True)`: present on constraint layers; in DS FP16 this is fine; in non-DS, loop-level AMP also covers it.
+- Channel names in engine are unused: `train_class_batch` ignores `ch_names`; actual channel selection is fixed via `use_channels_names` at model init (23→20 learned conv).
+
+## 🔍 ADDITIONAL CRITICAL IMPLEMENTATION DETAILS FOUND
+
+### Optimizer Configuration
+- Non-DeepSpeed: AdamW via `create_optimizer` (eps=1e-8 default; betas inherit defaults if unset).
+- DeepSpeed: Adam with `adam_w_mode=True` (functionally AdamW), betas=[0.9,0.999], eps=1e-8 (see `utils.create_ds_config`).
+- Weight decay: 0.05 (`finetune_TUEV_EEGPT.sh`)
+- Learning rate: 5e-4; cosine LR schedule to 1e-6 with 5 warmup epochs.
+
+### Model Architecture Details
+- Patch size: 64; patch stride: 64 (temporal patches = 15 for 1000-sample input).
+- Embed dim: 512; embed num: 4; depth: 8; heads: 8; MLP ratio: 4.0; QKV bias: True.
+- Classifier dimension: 30720 = 512 × 4 × 15.
+
+### Training Details
+- Training seed: 0 (`finetune_TUEV_EEGPT.sh`); data split seed: 4523 (`utils.py`).
+- DeepSpeed: enabled by default; world size 2 (per `finetune_TUEV_EEGPT.sh`).
+- Effective batch sizing: total batch = `batch_size × update_freq × world_size` = 800; micro-batch per GPU = 400; no gradient accumulation (`update_freq=1`).
+- Label mapping: 1–6 → 0–5 (`utils.TUEVLoader`).
+- Checkpoint loading: from `checkpoint['state_dict']` with `utils.load_state_dict`.
+
+### Data Processing
+- Filtering: 0.1–75 Hz bandpass; notch: 50 Hz; resample: 200 Hz; units: μV (`make_TUEV.py`).
+- No input normalization; no bipolar montage (the `convert_signals` bipolar path is present but commented out).
+
+### Critical Path Mismatch
+- **Preprocessing path**: `v2.0.0` (`make_TUEV.py:184`)
+- **Training path**: `v2.0.1` (`run_class_finetuning_EEGPT_change_tuev.py:242`)
+- **Impact**: Training tries to load data from wrong directory (v2.0.1 instead of v2.0.0 where data was preprocessed)
+
+### What’s NOT Present (Confirmed Absent)
+- Mixup augmentation (imported but never instantiated).
+- Class weights or balanced sampling.
+- Input normalization beyond μV/100 scaling.
+- Use of CLI flags `--abs_pos_emb` or `--disable_rel_pos_bias` in the custom model path.
 
 ## 🔴 THE REMAINING MYSTERY: Why Only 24% BAC?
 
@@ -231,18 +286,81 @@ What we see:
 - **Epoch 10**: BAC ≈ 0.25 (plateau)
 - **Epoch 30**: BAC ≈ 0.24 (no improvement)
 
+## 🚀 EXACT REPRODUCTION COMMAND
+
+To reproduce the reference implementation exactly:
+
+```bash
+# Preprocessing (v2.0.0 path)
+cd downstream_tueg/dataset_maker
+python make_TUEV.py  # Uses v2.0.0 path
+
+# Training (WARNING: loads from v2.0.1 path - mismatch!)
+cd downstream_tueg
+CUDA_VISIBLE_DEVICES=4,5 OMP_NUM_THREADS=1 python -m torch.distributed.run \
+    --nproc_per_node=2 --master_port=12345 --nnodes=1 --node_rank=0 \
+    --master_addr="localhost" \
+    run_class_finetuning_EEGPT_change_tuev.py \
+    --output_dir ./checkpoints_TUEV/finetune_tuev_eegpt/ \
+    --log_dir ./log/finetune_tuev_eegpt \
+    --model EEGPT \
+    --finetune ../checkpoint/eegpt_mcae_58chs_4s_large4E.ckpt \
+    --weight_decay 0.05 \
+    --batch_size 400 \
+    --lr 5e-4 \
+    --update_freq 1 \
+    --warmup_epochs 5 \
+    --epochs 30 \
+    --layer_decay 0.65 \
+    --drop_path 0.2 \  # Note: unused by custom model (drop_path_rate=0.0)
+    --dist_eval \
+    --save_ckpt_freq 5 \
+    --disable_rel_pos_bias \
+    --abs_pos_emb \
+    --dataset TUEV \
+    --enable_deepspeed \
+    --seed 0
+```
+
 ## BOTTOM LINE
 
-We have achieved implementation parity on all critical components:
+### ✅ Implementation Parity Achieved (Reference Repo)
 - Signal tripling ✅
 - μV/100 scaling ✅  
 - No normalization ✅
-- All architectural components ✅
-- Training configuration ✅
+- LinearWithConstraint (max_norm=1) ✅
+- Channel mapper (23→20) ✅
+- Mixed precision ✅
+- Per-iteration LR ✅
+- Label smoothing (0.1) ✅
+- Layer decay (0.65) ✅
+- DropPath flag present (not applied)
+- Heavy dropout (0.8) ✅
+- Optimizer config ✅
+- Model architecture ✅
 
-The 38% performance gap despite correct implementation suggests either:
-1. The extreme class imbalance (24 samples for rarest class) is insurmountable
-2. There's undocumented augmentation or preprocessing
-3. The paper results are not reproducible as claimed
+### 🔴 Critical Issues Found
+1. **Version path mismatch**: Preprocessing uses v2.0.0, training loads from v2.0.1
+2. **Extreme class imbalance**: 33:1 ratio (24 vs 800 samples) with NO mitigation
+3. **No data augmentation**: Mixup imported but never used
 
-**THIS DOCUMENT IS READY TO SEND TO OTHER REPOS/AGENTS FOR INVESTIGATION**
+### 📊 Performance Gap Analysis
+The 38% performance gap (24% vs 62.32% BAC) despite correct implementation suggests:
+1. The version mismatch may cause data loading issues
+2. The extreme class imbalance (24 samples for rarest class) may be insurmountable without augmentation
+3. Possible differences in the pretrained checkpoint weights
+4. The paper results may not be reproducible as claimed
+
+## ✅ Cross-Checks Against Paper
+- TUEV dataset: 288 subjects, 6 classes (Table 1).
+- Reported TUEV metrics: BAC 62.32% ± 1.14%, Weighted F1 81.87% ± 0.63%, Cohen’s κ 63.51% ± 1.34% (Table 3).
+- TUEV-specific conv kernel: (1, 55) depthwise in channel mapper (Appendix C.2.6).
+- Batch size note: paper mentions ~500; reference script uses 400 per GPU × 2 GPUs total batch 800 (DeepSpeed micro-batch 400 per GPU).
+
+## 📌 Additional Notes Worth Knowing
+- LR/WD schedules are per-iteration; with `update_freq=1` this equals per-step updates.
+- `train_class_batch`’s `ch_names` argument is unused; channel selection is controlled by `use_channels_names` passed at model init.
+- Ensure the processed dataset directory passed to training matches the preprocessing output (`v2.0.0` vs `v2.0.1`). If not, copy or update the paths accordingly.
+- Constraint layers exist in two places: the model’s in-file `LinearWithConstraint`/`Conv2dWithConstraint` include `@autocast(True)`, while `Modules/Network/utils.py` versions do not. The TUEV model uses the in-file versions.
+
+— End of audit —

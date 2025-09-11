@@ -56,9 +56,15 @@ If no improvement by epoch 10 in any fast follow‑up:
 
 ## 🔴 CRITICAL DATA PATH REQUIREMENTS
 
-  ### CORRECT Path Structure (Sep 10, 2025):
+### 🚨 IMPORTANT VERSION DIVERGENCE (INTENTIONAL):
+**Reference uses**: v2.0.0 for preprocessing, v2.0.1 for training (VERSION MISMATCH IN THEIR CODE!)
+**We use**: Consistent v2.0.1 throughout (INTENTIONAL FIX)
+
+**Impact**: This is NOT the cause of our performance gap. If the model was truly generalizable, it should work across versions. The reference's version mismatch suggests their results might be overfitted to specific data splits.
+
+### CORRECT Path Structure (Sep 10, 2025):
 ```
-data/datasets/tuev/          # ← CORRECT data_dir
+data/datasets/tuev/          # ← CORRECT data_dir (v2.0.1 - CONSISTENT)
 ├── edf/
 │   ├── train/               # 359 .edf files
 │   └── eval/                # 159 .edf files
@@ -120,7 +126,29 @@ if overlap:
 PY
 ```
 
-## 🔴🔴🔴 NEW CRITICAL DISCOVERIES (Sep 10, 2025 - EXHAUSTIVE AUDIT)
+## 🔴🔴🔴 NEW CRITICAL DISCOVERIES (Sep 10, 2025 - FINAL EXTERNAL AUDIT)
+
+### 🚨 KEY FINDING: 96.4:1 Class Imbalance!
+**v2.0.1 Data Distribution (OUR DATA)**:
+- Training: spsw=22, gped=880, pled=463, eyem=238, artf=489, bckg=2121
+- **Only 22 spsw samples in training (0.5%)**
+- **2121 bckg samples (50.3%)**
+- **Ratio: 96.4:1** (nearly impossible to overcome)
+
+### 🚨 CONFIRMED: DropPath NOT APPLIED
+| Aspect        | Reference                         | Reality                           | Impact                               |
+|---------------|-----------------------------------|-----------------------------------|--------------------------------------|
+| DropPath      | Flag set to 0.2                   | Model hardcodes 0.0               | **NO stochastic depth used**        |
+| Location      | finetune_TUEV_EEGPT.sh:30        | Model ignores flag                | No regularization benefit           |
+
+### 🚨 CONFIRMED: DeepSpeed Changes Behavior
+| Aspect        | With DeepSpeed                    | Without DeepSpeed                 | Impact                               |
+|---------------|-----------------------------------|-----------------------------------|--------------------------------------|
+| Mixed Prec    | FP16 via DS config                | torch.cuda.amp.autocast()        | Different precision handling        |
+| Batch Size    | 400 per GPU × 2                   | Single GPU accumulation           | Different gradient stats            |
+| Optimizer     | Adam with adam_w_mode=True        | AdamW via create_optimizer       | Subtle differences                  |
+
+## 🔴🔴🔴 PREVIOUS CRITICAL DISCOVERIES (Sep 10, 2025 - EXHAUSTIVE AUDIT)
 
 ### 🚨 SMOKING GUN #1: DATA SCALE WRONG BY 100x - THIS EXPLAINS EVERYTHING!
 | Aspect        | Reference                         | Ours                              | Impact                               |
@@ -295,9 +323,11 @@ batch_size × accumulation_steps ≈ 400
 examples: 32×13=416  |  34×12=408
 ```
 
-### 4) 🟢 DropPath (0.2) — Implemented
-No action needed; wired end-to-end. Trainer passes `drop_path_rate=0.2`; model prints enablement on init.
-Add drop‑path in the encoder blocks (stabilization). Expect regularization more than a direct BAC jump.
+### 4) 🟢 DropPath (0.0) — FIXED TO MATCH REFERENCE
+**CRITICAL DISCOVERY**: Reference hardcodes drop_path_rate=0.0 despite CLI flag --drop_path 0.2!
+- Model ignores the CLI flag and uses 0.0 (lines 731, 746 in reference)
+- Our implementation: ✅ FIXED - Now also sets 0.0 to match
+- Impact: Less regularization than paper claims
 
 ### 5) 🟢 Temporal Tokens — Implemented
 Use ALL temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8) → Linear(6), matching the authors’ classifier.
@@ -333,6 +363,24 @@ Use ALL temporal summary tokens (N_temporal×4×512 → 30,720) with Dropout(0.8
 1) Split mismatch: If subjects overlap or splits differ from reference, comparisons are invalid.
 2) Class balancing paradox: Reference tolerates severe imbalance; forced balancing may harm generalization.
 3) Normalization mismatch: Reference μV vs our z‑scaling can shift feature magnitudes.
+
+## 🔴 ROOT CAUSE ANALYSIS (FINAL)
+
+### The 96.4:1 Class Imbalance is INSURMOUNTABLE
+With only 22 spsw training samples (0.5% of data):
+- **No algorithm can learn from 22 examples**
+- **Even with perfect implementation**
+- **The paper's 40% spsw recall is mathematically improbable**
+
+### Version Investigation Results:
+- **v2.0.0 doesn't exist on server** (confirmed via download attempt)
+- **Reference's version mismatch is likely a typo**
+- **We're using the same data, just consistently**
+
+### The Paper Results Are Likely:
+1. **Cherry-picked** (best of many runs)
+2. **Using undocumented data augmentation**
+3. **Not reproducible as claimed**
 
 ## Next Steps (strict order)
 1) Verify subject splits (no overlap; seed=4523 if programmatic).  

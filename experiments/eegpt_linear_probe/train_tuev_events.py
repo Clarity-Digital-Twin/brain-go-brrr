@@ -16,6 +16,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.cuda.amp import GradScaler
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from timm.loss import LabelSmoothingCrossEntropy as TimmLabelSmoothingCE
 from torch.utils.data import DataLoader
@@ -76,12 +77,12 @@ class TUEVClassifierHead(nn.Module):
             # Configure model with 20 channels and correct time steps
             model_kwargs = {
                 "n_channels": use_channels_names,
-                "drop_path_rate": 0.2,  # CRITICAL: DropPath=0.2 for paper parity
+                "drop_path_rate": 0.0,  # CRITICAL: Model hardcodes 0.0 despite CLI flag!
                 "time_steps": 1000,  # Enforce native 1000 samples
                 "patch_stride": 64,  # Stride 64 at 200 Hz
             }
             self.eegpt = EEGPTWrapper(checkpoint_path=eegpt_checkpoint, model_kwargs=model_kwargs)
-            print("DropPath=0.2 enabled for stochastic depth regularization")
+            print("WARNING: DropPath=0.0 (model ignores CLI flag and hardcodes 0.0!)")
 
             # CRITICAL: Disable normalization to match reference (they use raw μV)
             # Our dataset outputs Volts, we'll scale to μV in forward pass
@@ -385,11 +386,14 @@ def train_epoch(
 
         # Scale loss for gradient accumulation
         loss = loss / accumulate_steps
-        loss.backward()
+        
+        # Use GradScaler for mixed precision
+        scaler.scale(loss).backward()
 
         # Update weights
         if (i + 1) % accumulate_steps == 0:
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             optimizer.zero_grad()
 
         # Store metrics
@@ -400,7 +404,8 @@ def train_epoch(
 
     # Final optimizer step if needed
     if len(dataloader) % accumulate_steps != 0:
-        optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
 
     # Calculate metrics
     all_preds = np.array(all_preds)
@@ -544,6 +549,9 @@ def main(args):
     optimizer = create_optimizer_with_layer_decay(
         model, lr=args.lr, weight_decay=args.weight_decay, layer_decay=args.layer_decay
     )
+    
+    # Initialize GradScaler for mixed precision (like reference's NativeScaler)
+    scaler = GradScaler()
 
     # Create per-iteration schedulers matching reference implementation
     num_training_steps_per_epoch = len(train_loader) // accumulate_steps
