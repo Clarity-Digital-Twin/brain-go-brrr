@@ -16,9 +16,9 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler
 from sklearn.metrics import balanced_accuracy_score, cohen_kappa_score, f1_score
 from timm.loss import LabelSmoothingCrossEntropy as TimmLabelSmoothingCE
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -129,7 +129,7 @@ class TUEVClassifierHead(nn.Module):
             Logits of shape (batch, 6)
         """
         # Enforce native 1000 samples (parity); no padding needed
-        
+
         # Reference reshapes to (B, 20, 5, 200) before EEGPT but then flattens immediately
         # This is purely for compatibility - functionally equivalent to our approach
         batch_size = x.shape[0]

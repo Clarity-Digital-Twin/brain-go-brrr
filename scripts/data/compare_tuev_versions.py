@@ -8,6 +8,7 @@ and compare class balance between versions.
 import json
 from collections import Counter
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -30,7 +31,7 @@ def count_events_in_rec_files(base_path):
 
     for rec_file in rec_files:
         try:
-            with open(rec_file, 'r') as f:
+            with open(rec_file) as f:
                 lines = f.readlines()
 
             # Parse rec file format (CSV-like)
@@ -97,7 +98,7 @@ def main():
                 print(f"\n{split.upper()} ({total} total):")
                 for event, count in sorted(counter.items()):
                     pct = (count / total) * 100
-                    print(f"  {str(event):6s}: {count:5d} ({pct:5.1f}%)")
+                    print(f"  {event!s:6s}: {count:5d} ({pct:5.1f}%)")
 
             # Calculate imbalance ratio
             if 'train' in cache_results:
