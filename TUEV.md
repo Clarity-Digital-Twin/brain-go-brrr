@@ -132,15 +132,14 @@ Input (23, 1000) → [Conv2dWithConstraint(23→20) → BatchNorm → GELU →
 **CURRENT (OURS)**:
 ```python
 Input (23, 1000) → [Conv2dWithConstraint → BN → GELU → Depthwise(1,55) → BN → Dropout(0.8)] →
-                   EEGPT → Flatten(30720) → Dropout(0.8) → Linear(30720→6)
-# Outstanding parity item: replace Linear with LinearWithConstraint(max_norm=1)
+                   EEGPT → Flatten(30720) → Dropout(0.8) → LinearWithConstraint(30720→6, max_norm=1)
 ```
 
 **Status of components**:
 - Conv2dWithConstraint mapper + BN/GELU/depthwise/BN/dropout: ✅ Implemented
-- LinearWithConstraint head on 30,720-dim features: ❌ Not yet (currently plain Linear)
-- LR schedule: ✅ Cosine (epoch-level); reference uses step-level — minor
-- Loss: ✅ Label smoothing 0.1; we use a simple LSCE — close enough
+- LinearWithConstraint head on 30,720‑dim features: ✅ Implemented
+- LR schedule: ✅ Cosine (step‑level; per‑iteration)
+- Loss: ✅ timm.loss.LabelSmoothingCrossEntropy(smoothing=0.1)
 
 ### Training Configuration
 ```python
@@ -229,7 +228,7 @@ From `reference_repos/EEGPT/downstream_tueg/`:
 7. **Normalization**: Disabled wrapper normalization, using raw μV like reference
 8. **Temporal tokens**: Using ALL temporal tokens (30720) instead of 4‑token pooling
 9. **Batch size**: Fixed to target 400 effective batch size (40×10 accumulation)
-10. **DropPath**: Implemented stochastic depth with `drop_path_rate=0.2`
+10. **DropPath**: Parity 0.0 (reference model ignores CLI `--drop_path` and hardcodes 0.0)
 11. **Channel mapper**: Full parity with Conv2dWithConstraint + depthwise conv pipeline
 
 ### Validation Checklist
@@ -383,7 +382,7 @@ With full parity, we expect BAC ≥ 0.30 by epoch 3–5, ≥ 0.45 by ~epoch 10, 
 - **chan_ids shape**: Do not batch `chan_ids`. EEGPT expects a 1D tensor of length 20; input to EEGPT must be shaped `(B, 20, 1000)` after the mapper. Ensure the mapper squeezes the spatial dimension so it outputs `(B, 20, 1000)` before EEGPT.
 
 ### If BAC Stalls (<0.30 by epoch 10–12)
-- Confirm logs include: natural sampling, normalization disabled, DropPath enabled, effective batch, parity mode.
+- Confirm logs include: natural sampling, normalization disabled, DropPath=0.0 parity, effective batch, parity mode.
 - Exact effective batch 400: try `--batch_size 40` (accum=10) for remaining epochs or in a short follow-up run.
 - Diagnostic scale A/B (debug-only): keep μV scaling, then toggle wrapper normalization on for 5 epochs to test sensitivity to scale; pick the better setting for the next full run.
 - Input sanity log: print min/median/max of `x*1e6` just before mapper on a batch to verify μV magnitudes.

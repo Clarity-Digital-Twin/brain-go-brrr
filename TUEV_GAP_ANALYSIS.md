@@ -207,18 +207,18 @@ Impact: Mapper parity achieved; not a current source of the BAC gap.
 
 ### 🟡 MAJOR DIVERGENCES (Significant Impact)
 
-### 3) Learning Rate Schedule (Minor)
-| Aspect        | Reference                     | Ours                    | Impact                               |
-|---------------|-------------------------------|-------------------------|--------------------------------------|
-| LR schedule   | Cosine (step-level)           | Cosine (epoch-level)    | Minor difference in timing           |
-| WD schedule   | Typically constant (0.05)     | Constant (0.05)         | No material difference               |
-| Implementation| Per-iteration scheduling      | Per-epoch scheduler     | Minor                                |
+### 3) Learning Rate Schedule (Parity)
+| Aspect        | Reference                     | Ours                          | Impact          |
+|---------------|-------------------------------|-------------------------------|-----------------|
+| LR schedule   | Cosine (step-level)           | Cosine (step-level)           | ✅ Same         |
+| WD schedule   | Typically constant (0.05)     | Constant (0.05)               | ✅ Same         |
+| Implementation| Per-iteration scheduling      | Per-iteration scheduling      | ✅ Same         |
 
-### 4) Loss Function Source (Minor)
-| Aspect        | Reference                     | Ours                         | Impact                          |
-|---------------|-------------------------------|------------------------------|----------------------------------|
-| Label smooth  | timm.loss.LabelSmoothingCE   | Custom implementation        | Likely equivalent                |
-| Implementation| Well-tested timm version      | Our simple version           | Minor differences possible       |
+### 4) Loss Function Source (Parity)
+| Aspect        | Reference                      | Ours                             | Impact     |
+|---------------|--------------------------------|----------------------------------|------------|
+| Label smooth  | timm.loss.LabelSmoothingCE    | timm.loss.LabelSmoothingCE       | ✅ Same    |
+| Implementation| Well-tested timm version       | timm version (exact reference)   | ✅ Same    |
 
 ### 5) Batch Size & Accumulation ✅ FIXED
 | Aspect        | Reference        | Ours (FIXED)            | Impact                                 |
@@ -238,14 +238,16 @@ None critical after mapper/head parity; monitor LR schedule timing and token nor
 | Aspect            | Reference                 | Ours                        | Status/Impact              |
 |-------------------|---------------------------|-----------------------------|----------------------------|
 | Window extraction | Fixed 1000 samples        | Fixed 1000 samples          | ✅ Same                    |
-| Window alignment  | Slice via start/end ±2 s (plus per‑recording offset); enforces 1000 samples | Centered window (tmin=−2, tmax=+3), enforces 1000 samples | ⚠️ Minor alignment difference |
+| Window alignment  | Slice via start/end ±2 s (plus per‑recording offset); enforces 1000 samples | Slice via start/end ±2 s (plus per‑recording offset); enforces 1000 samples | ✅ Same |
 | Channel mapping   | 23→20 Conv2d              | 23→20 mapper (equivalent)   | ✅ Equivalent              |
 | Label mapping     | 1–6 → 0–5 (−1)            | Explicit dict {spsw:0…}     | ✅ Same semantics          |
 | Label smoothing   | 0.1                       | 0.1                         | ✅ Same                    |
 | Learning rate     | 5e‑4                      | 5e‑4                        | ✅ Same                    |
 | Layer decay       | 0.65                      | 0.65                        | ✅ Same                    |
 | Warmup            | 5 epochs                  | 5 epochs                    | ✅ Same                    |
-| DropPath          | 0.2                       | Implemented (0.2)           | ✅ Same                    |
+| DropPath          | Flag 0.2 but model hardcodes 0.0 | 0.0 (parity with actual model behavior) | ✅ Parity (0.0)          |
+
+| Seeds             | Train=0; Split=4523        | Train=0; Split=4523 (fallback only; official splits preferred) | ✅ Same |
 
 ## 🚨🚨🚨 COMPREHENSIVE FIX LIST - ALL ISSUES MUST BE FIXED BEFORE TRAINING!
 
@@ -278,10 +280,11 @@ None critical after mapper/head parity; monitor LR schedule timing and token nor
 # CONCLUSION: NOT CRITICAL - can skip this
 ```
 
-### FIX 4: Verify seed alignment
+### FIX 4: Verify seed alignment ✅ DONE
 ```python
-# Reference uses seed=4523 for data splits, seed=0 for training
-# Check our seeds match
+# Training seed: default --seed=0 (matches reference)
+# Data split seed (fallback only): np.random.seed(4523) in subject-level split builder
+# Default path uses official edf/train and edf/eval; no programmatic split needed
 ```
 
 ### FIX 5: Verify checkpoint loading

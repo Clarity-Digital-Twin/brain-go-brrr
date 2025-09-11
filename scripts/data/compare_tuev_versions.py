@@ -31,7 +31,7 @@ def count_events_in_rec_files(base_path):
 
     for rec_file in rec_files:
         try:
-            with open(rec_file) as f:
+            with rec_file.open() as f:
                 lines = f.readlines()
 
             # Parse rec file format (CSV-like)
@@ -65,7 +65,7 @@ def analyze_cache_if_exists(cache_path):
     for split in ['train', 'eval']:
         index_file = cache_dir / split / 'index.json'
         if index_file.exists():
-            with open(index_file) as f:
+            with index_file.open() as f:
                 data = json.load(f)
 
             labels = [seg['label'] for seg in data['segments']]
@@ -180,7 +180,7 @@ def main():
                     print(f"❌ v2.0.0 has {v201_rare - v200_rare} FEWER rare events")
                     print("   Version difference is NOT the explanation")
                 else:
-                    print("➖ Similar rare event counts between versions")
+                    print("- Similar rare event counts between versions")
     else:
         print("❌ v2.0.0 not downloaded yet")
         print("\nTo download v2.0.0 for comparison:")
