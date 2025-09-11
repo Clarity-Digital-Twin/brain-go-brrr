@@ -50,6 +50,7 @@ class SeizureTransformerWrapper:
                 # Try to import the reference model without mutating sys.path
                 try:  # pragma: no cover - optional integration
                     from wu_2025.architecture import SeizureTransformer  # type: ignore
+
                     self.model = SeizureTransformer(
                         in_channels=self.n_channels,
                         in_samples=self.window_samples,
@@ -87,7 +88,7 @@ class SeizureTransformerWrapper:
         high = self.highcut / nyq
         b, a = butter(3, [low, high], btype='band')
         filtered = lfilter(b, a, eeg_clip, axis=1)
-        
+
         # Notch filters (lazy init coefficients)
         if self._notch_coeffs is None:
             notch_1 = iirnotch(1, Q=30, fs=self.fs)
@@ -96,42 +97,45 @@ class SeizureTransformerWrapper:
         (n1_b, n1_a), (n60_b, n60_a) = self._notch_coeffs
         filtered = lfilter(n1_b, n1_a, filtered, axis=1)
         filtered = lfilter(n60_b, n60_a, filtered, axis=1)
-        
+
         return filtered.astype(np.float32)
-    
+
     def _postprocess(self, predictions: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Apply post-processing from reference implementation."""
         from scipy.ndimage import binary_opening, binary_closing  # lazy import
+
         # Threshold at 0.8 (from reference)
         binary = (predictions > 0.8).astype(int)
-        
+
         # Morphological opening to remove short bursts
         structure = np.ones(5, dtype=bool)
         binary = binary_opening(binary, structure=structure).astype(int)
-        
+
         # Morphological closing to fill gaps
         binary = binary_closing(binary, structure=structure).astype(int)
-        
+
         # Remove events shorter than 2 seconds
         min_samples = int(2.0 * self.fs)
         is_seizure = False
         start_idx = 0
-        
+
         for i in range(len(binary)):
             if not is_seizure and binary[i] == 1:
                 is_seizure = True
                 start_idx = i
-            elif is_seizure and (binary[i] == 0 or i == len(binary)-1):
-                end_idx = i if binary[i] == 0 else i+1
+            elif is_seizure and (binary[i] == 0 or i == len(binary) - 1):
+                end_idx = i if binary[i] == 0 else i + 1
                 length = end_idx - start_idx
                 if length < min_samples:
                     binary[start_idx:end_idx] = 0
                 is_seizure = False
-        
+
         return binary.astype(np.float32)
 
     @torch.no_grad()
-    def predict(self, eeg: npt.NDArray[np.float32], apply_postprocessing: bool = False) -> npt.NDArray[np.float32]:
+    def predict(
+        self, eeg: npt.NDArray[np.float32], apply_postprocessing: bool = False
+    ) -> npt.NDArray[np.float32]:
         """Return per-sample seizure predictions for a single recording.
 
         Args:
@@ -144,26 +148,29 @@ class SeizureTransformerWrapper:
         c, t = int(eeg.shape[0]), int(eeg.shape[1])
         if c != self.n_channels:
             raise ValueError(f"expected {self.n_channels} channels, got {c}")
-        
+
         # Z-score normalization per channel (from reference)
-        eeg = (eeg - np.mean(eeg, axis=1, keepdims=True)) / (np.std(eeg, axis=1, keepdims=True) + 1e-8)
-        
+        eeg = (eeg - np.mean(eeg, axis=1, keepdims=True)) / (
+            np.std(eeg, axis=1, keepdims=True) + 1e-8
+        )
+
         # Resample if needed
         if self.fs != 256:
             from scipy.signal import resample  # lazy import
+
             new_n_samples = int(t * 256.0 / self.fs)
             eeg = resample(eeg, new_n_samples, axis=1)
             t = new_n_samples
-            
+
         # Apply preprocessing
         eeg = self._preprocess_clip(eeg)
-        
+
         # Calculate stride
         stride = int(self.window_samples * (1 - self.overlap_ratio))
-        
+
         # Collect all predictions
         all_outputs = []
-        
+
         # Process windows
         for start_idx in range(0, t, stride):
             if start_idx + self.window_samples > t:
@@ -173,29 +180,29 @@ class SeizureTransformerWrapper:
                 if pad_length > 0:
                     clip = np.pad(clip, ((0, 0), (0, pad_length)), mode='constant')
             else:
-                clip = eeg[:, start_idx:start_idx + self.window_samples]
-            
+                clip = eeg[:, start_idx : start_idx + self.window_samples]
+
             # Convert to tensor and predict
             x = torch.from_numpy(clip).unsqueeze(0).float().to(self.device)
-            
+
             # Model returns per-timestep predictions for the window
             output = self.model(x)  # Shape: [1, window_samples]
             all_outputs.append(output.cpu().numpy())
-            
+
             # Break if we've covered the whole recording
             if start_idx + self.window_samples >= t:
                 break
-        
+
         # Concatenate and flatten predictions
         if all_outputs:
             predictions = np.concatenate([o.flatten() for o in all_outputs])[:t]
         else:
             predictions = np.zeros(t, dtype=np.float32)
-        
+
         # Apply post-processing if requested
         if apply_postprocessing:
             predictions = self._postprocess(predictions)
-        
+
         return predictions
 
 

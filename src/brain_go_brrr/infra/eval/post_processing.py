@@ -55,7 +55,9 @@ class AdvancedPostProcessor:
         merged.append((s0, e0, c0))
         return merged
 
-    def _filter_min_dur(self, events: Sequence[tuple[int, int, float]]) -> list[tuple[int, int, float]]:
+    def _filter_min_dur(
+        self, events: Sequence[tuple[int, int, float]]
+    ) -> list[tuple[int, int, float]]:
         min_len = int(round(self.min_duration_sec * self.fs))
         return [(s, e, c) for s, e, c in events if (e - s) >= min_len]
 
@@ -68,4 +70,3 @@ class AdvancedPostProcessor:
 
 
 __all__ = ["AdvancedPostProcessor"]
-

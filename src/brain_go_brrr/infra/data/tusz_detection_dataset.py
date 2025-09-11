@@ -95,9 +95,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         target_channels: list[str] | None = None,
     ) -> None:
         if mne is None:  # pragma: no cover
-            raise RuntimeError(
-                "mne is required to load TUSZ EDF files. Install with `uv add mne`."
-            )
+            raise RuntimeError("mne is required to load TUSZ EDF files. Install with `uv add mne`.")
 
         self.root_dir = Path(root_dir)
         self.split = split
@@ -118,10 +116,12 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             tse = edf.with_suffix(".tse")
             csv = edf.with_suffix(".csv")
             events = _parse_tse(tse) if tse.exists() else _parse_tse(csv)
-            self._records.append({
-                "edf": edf,
-                "events": events,
-            })
+            self._records.append(
+                {
+                    "edf": edf,
+                    "events": events,
+                }
+            )
 
     def _build_index(self) -> None:
         fs = self.cfg.fs

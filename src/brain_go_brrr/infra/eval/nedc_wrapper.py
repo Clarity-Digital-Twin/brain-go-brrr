@@ -11,7 +11,9 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
 
 
-def _events_overlap(e1: Tuple[float, float], e2: Tuple[float, float], min_jaccard: float = 0.5) -> bool:
+def _events_overlap(
+    e1: Tuple[float, float], e2: Tuple[float, float], min_jaccard: float = 0.5
+) -> bool:
     s1, e1_ = e1
     s2, e2_ = e2
     inter = max(0.0, min(e1_, e2_) - max(s1, s2))
