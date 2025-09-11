@@ -134,4 +134,4 @@ class WeightedLabelSmoothingCrossEntropy(nn.Module):
         elif self.reduction == 'sum':
             return torch.sum(loss)
         else:
-            return cast('torch.Tensor', loss)
+            return loss
