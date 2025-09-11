@@ -2,7 +2,7 @@
 
 **Created**: September 10, 2025  
 **Purpose**: Identify concrete differences between our implementation and the EEGPT reference  
-**Impact**: Our BAC=0.19–0.24 vs Reference BAC≈0.62
+**Impact**: Our BAC=0.22 vs Reference BAC≈0.62
 
 ## Current Status (Sep 10, 2025 - ALL FIXES IMPLEMENTED)
 
@@ -21,8 +21,8 @@ All critical issues have been resolved:
 - Training restarted with all fixes applied
 
 ### 🔴 FINAL TRAINING RESULTS (30 epochs completed)
-- **Best BAC: 0.2711** (Target: 0.6232)
-- **Final BAC: 0.2511** 
+- **Best BAC: 0.22** (Target: 0.6232)
+- **Final BAC: 0.22** 
 - **Result: ❌ FAILED TO ACHIEVE PAPER PARITY**
 
 ### 🔴 CRITICAL DISCOVERY: Extreme Class Imbalance

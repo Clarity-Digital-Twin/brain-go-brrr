@@ -1,7 +1,7 @@
 # TUEV Reference Implementation - COMPLETE AUDIT REPORT
 **Last Audit**: September 10, 2025
 **Paper Target**: 62.32% ± 1.14% balanced accuracy  
-**Our Result**: 24% BAC (38% BELOW TARGET)  
+**Our Result**: 22% BAC (40% BELOW TARGET)  
 **Purpose**: SINGLE SOURCE OF TRUTH - Send this to other repos/agents
 **Results provenance**: `logs/tuev_final_20250910_152007.log` (30 epochs completed)
 
@@ -109,7 +109,7 @@
 - Preprocessed 23-channel order (TUEV EDF): `['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 'EEG T1-REF', 'EEG T2-REF']` (mapped to short names without suffix).
 - Model target channel list (20 used): `['FP1','FPZ','FP2','F7','F3','FZ','F4','F8','T7','C3','CZ','C4','T8','P7','P3','PZ','P4','P8','O1','O2']`.
 
-## 🔴 THE REMAINING MYSTERY: Why Only 24% BAC?
+## 🔴 THE REMAINING MYSTERY: Why Only 22% BAC?
 
 Despite implementing ALL critical components correctly, we still get 38% below target. The key question is WHY?
 
