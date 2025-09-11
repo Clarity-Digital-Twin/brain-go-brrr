@@ -50,7 +50,7 @@ What we won’t do from OSS (by default)
 
 Quick pointers in this repo
 - Dataset: `src/brain_go_brrr/infra/data/tusz_detection_dataset.py` (sliding windows, 256 Hz, binary labels).
-- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe).
+- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe; returns probabilities by default).
 - Post: `src/brain_go_brrr/infra/eval/post_processing.py` (hysteresis + merge + min-duration).
 - Eval adapter: `src/brain_go_brrr/infra/eval/nedc_wrapper.py` (proxy metrics; swap internals for official NEDC).
 - Docs: `TUSZ_IMPLEMENTATION.md`, `TUSZ_ROADMAP.md`, `TUSZ_SPEC.md`.
@@ -63,4 +63,3 @@ Open decisions to confirm during integration
 Licensing & attribution
 - SeizureTransformer repo includes a LICENSE; respect its terms for any redistributed weights/code.
 - Cite Wu et al. (2025) per their README when reporting results using their model/architecture.
-
