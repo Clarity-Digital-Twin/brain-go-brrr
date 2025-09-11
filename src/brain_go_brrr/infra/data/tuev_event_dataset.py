@@ -137,7 +137,8 @@ class TUEVEventDataset(Dataset[tuple[torch.Tensor, int]]):
             subjects[subject_id].append(edf_path)
 
         # Perform 80/20 split with fixed seed for reproducibility
-        np.random.seed(42)  # Fixed seed for reproducibility
+        # Reference uses 4523 for subject-level splits
+        np.random.seed(4523)
         subject_list = list(subjects.keys())
         np.random.shuffle(subject_list)
 
