@@ -765,7 +765,7 @@ def test_seizure_transformer_pipeline():
     metrics = evaluator.compute_all_metrics(events, test_annotations, 0.1)
     
     # Check metrics are computed
-    assert 'fa_24h_at_95' in metrics
+    assert 'fa_24h' in metrics
     assert 'taes_f1' in metrics
     assert 'atwv' in metrics
 ```
@@ -904,9 +904,8 @@ with mlflow.start_run():
     
     # Log metrics
     mlflow.log_metrics({
-        "fa_24h_at_95": metrics['fa_24h_at_95'],
-        "taes_f1": metrics['taes_f1'],
-        "atwv": metrics['atwv']
+        "fa_24h": metrics['fa_24h'],
+        "taes_f1": metrics['taes_f1']
     })
     
     # Log model
