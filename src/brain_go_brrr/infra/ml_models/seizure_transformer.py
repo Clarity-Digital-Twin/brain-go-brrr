@@ -15,6 +15,8 @@ This implementation follows the SOLID principles and DRY pattern.
 
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 import torch.nn as nn
 
@@ -219,7 +221,7 @@ class SeizureTransformerWithPretraining(SeizureTransformer):
 
     @classmethod
     def from_pretrained(
-        cls, checkpoint_path: str, device: torch.device | None = None, **kwargs: any
+        cls, checkpoint_path: str, device: torch.device | None = None, **kwargs: Any
     ) -> SeizureTransformerWithPretraining:
         """Load model with pretrained weights.
 

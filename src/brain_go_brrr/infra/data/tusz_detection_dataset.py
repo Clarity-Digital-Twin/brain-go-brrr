@@ -30,6 +30,7 @@ except Exception:  # pragma: no cover - optional dependency
     mne = None
 
 from brain_go_brrr.infra.data.channels import CHANNEL_ALIASES, CHANNELS_TUAB_19
+from brain_go_brrr.infra.ml_models.seizure_transformer_utils import prepare_channels
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -137,6 +138,8 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         cfg: WindowConfig | None = None,
         target_channels: list[str] | None = None,
         max_windows: int | None = None,
+        preprocessor: "SeizurePreprocessor" | None = None,  # applied to full recording before windowing
+        ensure_unipolar: bool = False,
     ) -> None:
         """Initialize the TUSZ detection dataset.
 
@@ -156,6 +159,8 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Default to TUAB 19-channel set as our SSOT; adjust if needed
         self.target_channels = target_channels or CHANNELS_TUAB_19
         self.max_windows = max_windows
+        self.preprocessor = preprocessor
+        self.ensure_unipolar = ensure_unipolar
 
         self._records: list[dict[str, Any]] = []
         self._index: list[tuple[int, int]] = []  # (record_idx, window_start_sample@cfg.fs)
@@ -224,9 +229,16 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         edf: Path = rec["edf"]
         events: list[tuple[float, float]] = rec["events"]
 
-        # Load raw (lazy) and resample if needed
+        # Load raw
         raw = mne.io.read_raw_edf(str(edf), preload=True, verbose="ERROR")
-        src_fs = float(raw.info["sfreq"])
+        src_fs_f = float(raw.info["sfreq"])  # original Hz
+        src_fs = int(round(src_fs_f))
+
+        # Montage validation (heuristic)
+        if self.ensure_unipolar:
+            for ch_name in raw.ch_names:
+                if "-" in ch_name and not ch_name.startswith("EEG"):
+                    raise ValueError(f"Non-unipolar montage detected in {edf}")
 
         # Channel selection (alias normalization)
         raw.rename_channels(_standardize_channel_name)
@@ -234,22 +246,40 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
+        
+        # Preprocess entire recording if SSOT preprocessor is provided
+        if self.preprocessor is not None:
+            # Pull available target channels in original order
+            available = [ch for ch in self.target_channels if ch in raw.ch_names]
+            if available:
+                full = raw.get_data(picks=available)  # (C, T_src)
+            else:
+                full = np.zeros((0, raw.n_times), dtype=np.float32)
 
-        # Resample raw to target fs if needed (operate in-place to keep channel names)
-        if self.cfg.fs and round(src_fs) != self.cfg.fs:
-            raw.resample(self.cfg.fs)
+            # Apply SSOT preprocessing (z-score → resample → bandpass → notch)
+            full_proc = self.preprocessor.preprocess(full, fs_original=src_fs)
 
-        # Prepare data in canonical order with zero-fill for missing channels
-        n_expected_channels = len(self.target_channels)
-        data = np.zeros((n_expected_channels, win), dtype=np.float32)
-        for i, ch in enumerate(self.target_channels):
-            if ch in raw.ch_names:
-                ch_idx = raw.ch_names.index(ch)
-                # Use get_data to respect MNE scaling and preload behavior
-                data[i] = raw.get_data(picks=[ch_idx], start=s0_fs, stop=s1_fs)[0]
+            # Map to canonical order with zero-fill for missing
+            prepared, _ = prepare_channels(full_proc, available, self.target_channels)
+
+            # Slice window in target fs
+            data = prepared[:, s0_fs:s1_fs]
+        else:
+            # Fallback: operate with MNE resampling and per-window extraction
+            if self.cfg.fs and round(src_fs_f) != self.cfg.fs:
+                raw.resample(self.cfg.fs)
+
+            # Prepare data in canonical order with zero-fill for missing channels
+            n_expected_channels = len(self.target_channels)
+            data = np.zeros((n_expected_channels, win), dtype=np.float32)
+            for i, ch in enumerate(self.target_channels):
+                if ch in raw.ch_names:
+                    ch_idx = raw.ch_names.index(ch)
+                    # Use get_data to respect MNE scaling and preload behavior
+                    data[i] = raw.get_data(picks=[ch_idx], start=s0_fs, stop=s1_fs)[0]
 
         # Label window: fraction of seizure time >= threshold
-        # Events are in seconds; compute recording duration in seconds using source fs
+        # Events are in seconds; compute recording duration in seconds (always in seconds)
         duration_sec = float(raw.n_times) / float(raw.info["sfreq"])  # seconds
         mask = _events_to_mask(events, duration_sec, self.cfg.fs)
         frac = float(mask[s0_fs:s1_fs].mean()) if s1_fs <= mask.shape[0] else 0.0
