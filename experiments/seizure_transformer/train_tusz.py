@@ -9,6 +9,7 @@ This replicates the training setup from Wu et al. 2025:
 """
 
 import os
+import random
 from pathlib import Path
 
 import numpy as np
@@ -101,7 +102,20 @@ def validate(
     return total_loss / len(dataloader), auroc
 
 
+def set_seeds(seed: int = 42):
+    """Set all random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def main():
+    # Set seeds for reproducibility
+    set_seeds(42)
+
     # Configuration
     data_root = os.environ.get(
         "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
