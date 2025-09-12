@@ -98,7 +98,7 @@ def validate(
 
 def main():
     # Configuration
-    data_root = os.environ.get("BGB_DATA_ROOT")
+    data_root = os.environ.get("BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data")
     if not data_root:
         raise ValueError("BGB_DATA_ROOT environment variable not set")
 
