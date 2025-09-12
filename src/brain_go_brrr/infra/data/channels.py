@@ -1,9 +1,17 @@
+from __future__ import annotations
+
 """Channel definitions and mapping - Single Source of Truth.
 
 CRITICAL: These are the ONLY valid channel configurations.
 - TUAB: 19 channels (no Fz)
 - TUEV: 20 channels (with Fz and Fpz, no Oz)
 """
+
+from typing import List, Tuple
+
+import numpy as np
+import numpy.typing as npt
+
 
 # TUAB standard: 19 channels (NO Fz) per EEGPT paper
 # Using standard 10-20 mixed case naming (Fp not FP, Cz not CZ, etc.)
@@ -164,23 +172,6 @@ def map_channels_to_indices(
     return mapping
 
 
-# Export key constants
-__all__ = [
-    "CHANNELS_10_20_FULL",
-    "CHANNELS_TUAB_19",
-    "CHANNELS_TUEV_20",
-    "CHANNEL_ALIASES",
-    "map_channels_to_indices",
-    "validate_channels",
-]
-from __future__ import annotations
-
-from typing import List, Tuple
-
-import numpy as np
-import numpy.typing as npt
-
-
 def map_to_canonical(
     data: npt.NDArray[np.float32],
     channel_names: List[str],
@@ -211,4 +202,12 @@ def map_to_canonical(
     return prepared, info
 
 
-__all__.append("map_to_canonical")
+__all__ = [
+    "CHANNELS_10_20_FULL",
+    "CHANNELS_TUAB_19",
+    "CHANNELS_TUEV_20",
+    "CHANNEL_ALIASES",
+    "map_channels_to_indices",
+    "validate_channels",
+    "map_to_canonical",
+]

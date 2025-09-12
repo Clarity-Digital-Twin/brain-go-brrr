@@ -131,7 +131,7 @@ def test_parse_tse_edge_cases(tmp_path: Path):
         """
 0.0 10.0 background
 10.0 20.0 artifact
-20.0 30.0 FNSZ
+20.0 30.0 pled
 30.0 40.0 other
     """.strip()
     )
@@ -161,7 +161,9 @@ def test_parse_tse_edge_cases(tmp_path: Path):
     """.strip()
     )
     events = _parse_tse(tse_mixed_case)
-    assert len(events) == 4  # All should be detected
+    # All detected and coalesced (touching intervals merge)
+    assert len(events) == 1
+    assert events[0] == (0.0, 40.0)
 
     # Test 6: Invalid numbers (should skip)
     tse_invalid = tmp_path / "invalid.tse"
@@ -206,8 +208,9 @@ def test_parse_tse_coalesces_duplicate_events(tmp_path: Path):
         """.strip()
     )
     events = _parse_tse(tse)
-    # (10,20) and (19.5,30) should merge to (10,30) with gap=0.0 due to overlap
-    assert events == [(10.0, 30.0), (30.0, 40.0)]
+    # With touching-merge policy, (10,20)+(19.5,30) merge to (10,30),
+    # and (10,30)+(30,40) touch at 30 → merged to (10,40).
+    assert events == [(10.0, 40.0)]
 
 
 @pytest.mark.unit
@@ -229,12 +232,11 @@ T5-O1,60.0,70.0,absz,1.0
     )
 
     events = _parse_csv(csv_file)
-    # Should only get the actual seizure events
-    assert len(events) == 4
+    # Seizure-only, coalesced across channels/labels when touching
+    assert len(events) == 3
     assert events[0] == (10.0, 20.0)  # fnsz
     assert events[1] == (30.0, 40.0)  # gnsz
-    assert events[2] == (50.0, 60.0)  # mysz
-    assert events[3] == (60.0, 70.0)  # absz
+    assert events[2] == (50.0, 70.0)  # mysz + absz touching → merged
 
 
 @pytest.mark.unit
@@ -274,10 +276,9 @@ def test_parse_csv_edge_cases(tmp_path: Path):
     """.strip()
     )
     events = _parse_csv(csv_comma)
-    assert len(events) == 3  # Only seizure lines
+    assert len(events) == 2  # Seizure lines coalesced where touching
     assert events[0] == (10.0, 20.0)  # fnsz
-    assert events[1] == (30.0, 40.0)  # focal_seizure
-    assert events[2] == (40.0, 50.0)  # gnsz
+    assert events[1] == (30.0, 50.0)  # focal_seizure + gnsz touching → merged
 
     # Test 2: Space-delimited CSV (like TSE)
     csv_space = tmp_path / "space.csv"
@@ -343,7 +344,9 @@ def test_parse_csv_edge_cases(tmp_path: Path):
     """.strip()
     )
     events = _parse_csv(csv_case)
-    assert len(events) == 4  # All should be detected
+    # All detected and coalesced (touching intervals merge)
+    assert len(events) == 1
+    assert events[0] == (0.0, 40.0)
 
     # Test 8: Invalid numbers (should skip)
     csv_invalid = tmp_path / "invalid.csv"
