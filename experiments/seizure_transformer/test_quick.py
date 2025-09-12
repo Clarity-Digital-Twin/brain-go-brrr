@@ -19,13 +19,13 @@ print(f"SeizureTransformer parameters: {total_params:,}")
 x = torch.randn(2, 19, 15360)  # Batch of 2
 with torch.no_grad():
     out = model(x)
-    
+
 print(f"Input shape: {x.shape}")
 print(f"Output shape: {out.shape}")
 print(f"Output range: [{out.min():.3f}, {out.max():.3f}]")
 print("\n✅ SeizureTransformer is working!")
 print("Architecture includes:")
 print("- Encoder (5 conv layers)")
-print("- ResCNN stack (7 blocks)")  
+print("- ResCNN stack (7 blocks)")
 print("- Transformer (8 layers, 4 heads)")
 print("- Decoder with skip connections")

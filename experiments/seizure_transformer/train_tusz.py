@@ -22,9 +22,6 @@ from brain_go_brrr.infra.data.tusz_detection_dataset import (
     TUSZDetectionDataset,
     WindowConfig,
 )
-from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import (
-    SeizureTransformerWrapper,
-)
 
 
 def train_epoch(
@@ -162,14 +159,14 @@ def main():
     # Now we can use the REAL SeizureTransformer from wu_2025!
     print("Loading REAL SeizureTransformer from wu_2025 package...")
     from wu_2025.architecture import SeizureTransformer
-    
+
     # Create the actual model
     model = SeizureTransformer(
         in_channels=19,
         in_samples=15360,  # 60s @ 256Hz
         drop_rate=0.1,
     )
-    
+
     # Or use through wrapper for preprocessing/postprocessing
     # wrapper = SeizureTransformerWrapper(
     #     model=model,
