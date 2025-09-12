@@ -9,13 +9,15 @@ from brain_go_brrr.infra.eval.post_processing import AdvancedPostProcessor
 def test_hysteresis_basic_detection():
     # Create longer array with clear events to test hysteresis
     fs = 256
-    p = AdvancedPostProcessor(hysteresis=(0.3, 0.7), min_duration_sec=0.01, merge_gap_sec=0.01, fs=fs)
-    
+    p = AdvancedPostProcessor(
+        hysteresis=(0.3, 0.7), min_duration_sec=0.01, merge_gap_sec=0.01, fs=fs
+    )
+
     # Build array with two clear high-probability regions
     probs = np.zeros(fs * 2, dtype=float)  # 2 seconds
     probs[10:30] = 0.8  # First event
     probs[100:150] = 0.9  # Second event
-    
+
     events = p.apply(probs)
     # Should detect two events
     assert len(events) == 2

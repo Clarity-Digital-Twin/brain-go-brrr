@@ -10,11 +10,13 @@ from brain_go_brrr.infra.data.tusz_detection_dataset import _parse_tse, _events_
 @pytest.mark.synth
 def test_parse_tse_and_events_to_mask(tmp_path: Path):
     tse = tmp_path / "rec.tse"
-    tse.write_text("""
+    tse.write_text(
+        """
 0.0 1.0 seiz
 5.0 7.5 FNSZ
 10.0 10.5 seiz
-""".strip())
+""".strip()
+    )
 
     events = _parse_tse(tse)
     assert len(events) == 3
@@ -27,4 +29,3 @@ def test_parse_tse_and_events_to_mask(tmp_path: Path):
     assert mask.dtype == np.bool_
     # Check approximate number of positive samples: 1.0 + 2.5 + 0.5 = 4.0 s
     assert mask.sum() == pytest.approx(int(4.0 * fs), rel=0.01)
-
