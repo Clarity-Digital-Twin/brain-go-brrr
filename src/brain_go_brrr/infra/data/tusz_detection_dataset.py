@@ -187,15 +187,21 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Channel selection (alias normalization)
         raw.rename_channels(_standardize_channel_name)
         available = [ch for ch in self.target_channels if ch in raw.ch_names]
-        # Use explicit channel picking with ordering
-        raw.pick_channels(available, ordered=True)
-        if self.cfg.fs and round(src_fs) != self.cfg.fs:
-            raw.resample(self.cfg.fs)
-
+        
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
-        data = raw.get_data(start=s0_fs, stop=s1_fs)  # shape (C, T) in Volts
+        
+        # Handle case where no matching channels found
+        if not available:
+            # Create dummy data with zeros for all target channels
+            data = np.zeros((len(self.target_channels), win), dtype=np.float32)
+        else:
+            # Use pick() method to select available channels
+            raw.pick(available)
+            if self.cfg.fs and round(src_fs) != self.cfg.fs:
+                raw.resample(self.cfg.fs)
+            data = raw.get_data(start=s0_fs, stop=s1_fs)  # shape (C, T) in Volts
         
         # CRITICAL: Ensure exactly 19 channels by padding with zeros if needed
         n_expected_channels = len(self.target_channels)

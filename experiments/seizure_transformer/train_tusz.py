@@ -91,7 +91,13 @@ def validate(
 
     all_preds = np.concatenate([p.mean(axis=1) for p in all_preds])  # Average per window
     all_labels = np.concatenate(all_labels)
-    auroc = roc_auc_score(all_labels, all_preds)
+    
+    # Handle case where only one class is present
+    if len(np.unique(all_labels)) == 1:
+        print(f"Warning: Only one class in validation set (all {all_labels[0]}s)")
+        auroc = 0.5  # Default AUROC for single class
+    else:
+        auroc = roc_auc_score(all_labels, all_preds)
 
     return total_loss / len(dataloader), auroc
 
@@ -130,9 +136,10 @@ def main():
         cfg=WindowConfig(
             fs=256,
             window_sec=60.0,
-            stride_sec=60.0,  # No overlap for validation
+            stride_sec=30.0,  # Some overlap to get more windows
+            positive_fraction=0.2,  # Same as training
         ),
-        max_windows=2000,  # Limit validation set too
+        max_windows=5000,  # More windows for better class balance
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
