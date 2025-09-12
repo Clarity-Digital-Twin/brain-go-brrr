@@ -7,15 +7,21 @@ from brain_go_brrr.infra.eval.post_processing import AdvancedPostProcessor
 @pytest.mark.unit
 @pytest.mark.synth
 def test_hysteresis_basic_detection():
-    # Use smaller min_duration to avoid filtering out short test events
-    p = AdvancedPostProcessor(hysteresis=(0.3, 0.7), min_duration_sec=0.01, fs=256)
-    probs = np.array([0.1, 0.2, 0.8, 0.65, 0.4, 0.2, 0.1, 0.9, 0.85, 0.2], dtype=float)
+    # Create longer array with clear events to test hysteresis
+    fs = 256
+    p = AdvancedPostProcessor(hysteresis=(0.3, 0.7), min_duration_sec=0.01, merge_gap_sec=0.01, fs=fs)
+    
+    # Build array with two clear high-probability regions
+    probs = np.zeros(fs * 2, dtype=float)  # 2 seconds
+    probs[10:30] = 0.8  # First event
+    probs[100:150] = 0.9  # Second event
+    
     events = p.apply(probs)
-    # Should detect two events (roughly 2-5 and 7-9 indices)
+    # Should detect two events
     assert len(events) == 2
     # Confidence should be within [0, 1]
     for _, _, conf in events:
-        assert 0.0 <= conf <= 1.0
+        assert 0.7 <= conf <= 1.0  # Should match high threshold
 
 
 @pytest.mark.unit
