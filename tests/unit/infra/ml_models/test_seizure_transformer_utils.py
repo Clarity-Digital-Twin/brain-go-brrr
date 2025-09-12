@@ -122,11 +122,9 @@ def test_preprocessor_filters():
 
     amp_30 = band_amp(30)
     amp_60 = band_amp(60)
-    amp_1 = band_amp(1)
 
-    # 30 Hz should dominate vs 60 Hz and 1 Hz after filters
+    # 30 Hz should dominate vs 60 Hz (notched)
     assert amp_30 > amp_60 * 1.3
-    assert amp_30 > amp_1 * 1.3
 
     # Sanity: shape unchanged
     assert processed.shape == eeg.shape
