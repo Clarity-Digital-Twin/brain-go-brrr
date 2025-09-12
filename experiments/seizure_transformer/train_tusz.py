@@ -36,16 +36,13 @@ def train_epoch(
 
     for batch_idx, (x, y) in enumerate(tqdm(dataloader, desc="Training")):
         x = x.to(device)  # (B, 19, 15360)
-        y = y.to(device).float()  # (B,) binary labels
+        y = y.to(device).float()  # (B, 15360) per-timestep labels
 
         # Forward pass - model expects (B, C, T)
         logits = model(x)  # (B, 15360) per-timestep predictions
 
-        # Create per-timestep labels
-        y_expanded = y.unsqueeze(1).expand(-1, logits.shape[1])  # (B, 15360)
-
-        # Binary cross-entropy loss
-        loss = nn.functional.binary_cross_entropy_with_logits(logits, y_expanded)
+        # Binary cross-entropy loss with per-timestep labels
+        loss = nn.functional.binary_cross_entropy_with_logits(logits, y)
 
         # Backward pass
         optimizer.zero_grad()
@@ -129,6 +126,7 @@ def main():
         split="train",
         cfg=cfg,
         max_windows=10000,  # Start with 10k windows to avoid memory crash
+        return_timestep_labels=True,  # Use per-timestep labels for training
     )
 
     print("Loading TUSZ dev set...")
@@ -142,6 +140,7 @@ def main():
             positive_fraction=0.2,  # Same as training
         ),
         max_windows=5000,  # More windows for better class balance
+        return_timestep_labels=True,  # Use per-timestep labels for validation
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
@@ -169,9 +168,9 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Now we can use the REAL SeizureTransformer from wu_2025!
-    print("Loading REAL SeizureTransformer from wu_2025 package...")
-    from wu_2025.architecture import SeizureTransformer
+    # Use SeizureTransformer from src - NO EXTERNAL DEPENDENCIES
+    print("Loading SeizureTransformer from src...")
+    from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
 
     # Create the actual model
     model = SeizureTransformer(

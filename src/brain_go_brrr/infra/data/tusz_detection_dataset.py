@@ -172,6 +172,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         preprocessor: SeizurePreprocessor
         | None = None,  # applied to full recording before windowing
         ensure_unipolar: bool = False,
+        return_timestep_labels: bool = False,
     ) -> None:
         """Initialize the TUSZ detection dataset.
 
@@ -183,6 +184,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             max_windows: Maximum number of windows to index (for memory efficiency).
             preprocessor: Optional preprocessor applied before windowing.
             ensure_unipolar: If True, enforce unipolar montage (no reference channels).
+            return_timestep_labels: If True, return per-timestep labels for training.
         """
         if mne is None:  # pragma: no cover
             raise RuntimeError("mne is required to load TUSZ EDF files. Install with `uv add mne`.")
@@ -197,6 +199,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         self.max_windows = max_windows
         self.preprocessor = preprocessor
         self.ensure_unipolar = ensure_unipolar
+        self.return_timestep_labels = return_timestep_labels
         self.include_pnes = False
 
         self._records: list[dict[str, Any]] = []
@@ -319,11 +322,22 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Events are in seconds; compute recording duration in seconds (always in seconds)
         duration_sec = float(raw.n_times) / float(raw.info["sfreq"])  # seconds
         mask = _events_to_mask(events, duration_sec, self.cfg.fs)
-        frac = float(mask[s0_fs:s1_fs].mean()) if s1_fs <= mask.shape[0] else 0.0
-        y = 1 if frac >= self.cfg.positive_fraction else 0
 
         x = torch.from_numpy(data.astype(np.float32))
-        label = torch.tensor(y, dtype=torch.int64)
+
+        if self.return_timestep_labels:
+            # Return per-timestep labels for training
+            window_mask = mask[s0_fs:s1_fs] if s1_fs <= mask.shape[0] else np.zeros(s1_fs - s0_fs)
+            # Ensure correct length
+            if len(window_mask) < (s1_fs - s0_fs):
+                window_mask = np.pad(window_mask, (0, (s1_fs - s0_fs) - len(window_mask)))
+            label = torch.from_numpy(window_mask.astype(np.float32))
+        else:
+            # Return scalar label for evaluation
+            frac = float(mask[s0_fs:s1_fs].mean()) if s1_fs <= mask.shape[0] else 0.0
+            y = 1 if frac >= self.cfg.positive_fraction else 0
+            label = torch.tensor(y, dtype=torch.int64)
+
         return x, label
 
 
