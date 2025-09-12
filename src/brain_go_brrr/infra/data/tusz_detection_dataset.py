@@ -144,12 +144,12 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         win = round(self.cfg.window_sec * fs)
         stride = round(self.cfg.stride_sec * fs)
         print(f"Building index for {len(self._records)} recordings...")
-        
+
         for ridx, rec in enumerate(tqdm(self._records, desc="Indexing recordings")):
             if self.max_windows and len(self._index) >= self.max_windows:
-                warnings.warn(f"Reached max_windows={self.max_windows}, stopping indexing")
+                warnings.warn(f"Reached max_windows={self.max_windows}, stopping indexing", stacklevel=2)
                 break
-            
+
             # CRITICAL FIX: Don't preload, just get info
             try:
                 raw = mne.io.read_raw_edf(str(rec["edf"]), preload=False, verbose="ERROR")
@@ -157,9 +157,9 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
                 # Immediately delete raw to free memory
                 del raw
             except Exception as e:
-                warnings.warn(f"Skipping {rec['edf']}: {e}")
+                warnings.warn(f"Skipping {rec['edf']}: {e}", stacklevel=2)
                 continue
-                
+
             n_target = round(duration_sec * fs)
             if n_target < win:
                 continue
@@ -168,7 +168,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
                 if self.max_windows and len(self._index) >= self.max_windows:
                     break
                 self._index.append((ridx, s))
-        
+
         print(f"Indexed {len(self._index)} windows from {len(self._records)} recordings")
 
     def __len__(self) -> int:
