@@ -134,7 +134,7 @@ class SeizureTransformerWrapper:
 
     @torch.no_grad()
     def predict(
-        self, eeg: npt.NDArray[np.float32], apply_postprocessing: bool = False
+        self, eeg: npt.NDArray[np.float32], apply_postprocessing: bool = True
     ) -> npt.NDArray[np.float32]:
         """Return per-sample seizure predictions for a single recording.
 
