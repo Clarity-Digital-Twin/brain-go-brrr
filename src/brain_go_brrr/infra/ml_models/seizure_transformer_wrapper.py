@@ -11,22 +11,37 @@ are referential/unipolar (not bipolar channel pairs) before calling `predict`.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn as nn
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 # SciPy dependencies are imported lazily inside methods to avoid hard dependency
 
 
 class SeizureTransformerWrapper:
+    """Initialize the SeizureTransformer wrapper.
+
+    Args:
+        model: Pre-instantiated SeizureTransformer model (optional).
+        build_fn: Function to build the model given n_channels (optional).
+        weights_path: Path to model weights checkpoint (optional).
+        n_channels: Number of input channels (default: 19).
+        fs: Sampling frequency in Hz (default: 256).
+        window_samples: Window size in samples (default: 15360 for 60s @ 256Hz).
+        overlap_ratio: Overlap ratio for sliding windows (default: 0.0).
+        device: Torch device for computation (default: auto-detect).
+    """
     def __init__(
         self,
         model: nn.Module | None = None,
-        build_fn: Callable[[int], nn.Module] | None = None,
+        build_fn: "Callable[[int], nn.Module] | None" = None,
         weights_path: Path | str | None = None,
         n_channels: int = 19,
         fs: int = 256,
