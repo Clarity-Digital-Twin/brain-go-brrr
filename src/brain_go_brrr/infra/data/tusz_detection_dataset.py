@@ -181,6 +181,8 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             cfg: Window configuration for sliding window extraction.
             target_channels: List of target channel names to use.
             max_windows: Maximum number of windows to index (for memory efficiency).
+            preprocessor: Optional preprocessor applied before windowing.
+            ensure_unipolar: If True, enforce unipolar montage (no reference channels).
         """
         if mne is None:  # pragma: no cover
             raise RuntimeError("mne is required to load TUSZ EDF files. Install with `uv add mne`.")
