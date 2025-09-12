@@ -57,7 +57,9 @@ class SeizureTransformerWrapper:
         # Preprocessing params from reference implementation
         self.lowcut = 0.5
         self.highcut = 120
-        self._notch_coeffs: tuple[tuple[npt.NDArray, npt.NDArray], tuple[npt.NDArray, npt.NDArray]] | None = None  # lazy-init (b,a) tuples for 1 Hz and 60 Hz
+        self._notch_coeffs: (
+            tuple[tuple[npt.NDArray, npt.NDArray], tuple[npt.NDArray, npt.NDArray]] | None
+        ) = None  # lazy-init (b,a) tuples for 1 Hz and 60 Hz
 
         if model is not None:
             self.model = model

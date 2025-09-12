@@ -89,6 +89,7 @@ def test_tusz_detection_dataset_minimal_flow(tmp_path: Path, monkeypatch):
     # Patch the dataset module's mne symbol to a minimal stub
     import types
     from brain_go_brrr.infra.data import tusz_detection_dataset as tdd
+
     fake_mne = types.SimpleNamespace(io=types.SimpleNamespace(read_raw_edf=_fake_read_raw_edf))
     monkeypatch.setattr(tdd, "mne", fake_mne, raising=True)
 

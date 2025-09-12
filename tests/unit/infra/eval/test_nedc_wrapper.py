@@ -17,4 +17,3 @@ def test_nedc_proxy_metrics_simple_case():
     assert metrics["fa_24h"] == pytest.approx(24.0, rel=1e-3)
     # TP=1, FP=1, FN=1 => precision=0.5, recall=0.5 => F1=0.5
     assert metrics["taes_f1"] == pytest.approx(0.5, rel=1e-3)
-

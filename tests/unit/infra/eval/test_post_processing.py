@@ -25,10 +25,11 @@ def test_gap_merge_and_min_duration():
     probs = np.zeros(1024, dtype=float)
     probs[100:200] = 0.9
     probs[201:260] = 0.9  # 1 sample gap (<< merge_gap_sec)
-    p = AdvancedPostProcessor(hysteresis=(0.5, 0.7), merge_gap_sec=0.05, min_duration_sec=0.1, fs=fs)
+    p = AdvancedPostProcessor(
+        hysteresis=(0.5, 0.7), merge_gap_sec=0.05, min_duration_sec=0.1, fs=fs
+    )
     events = p.apply(probs)
     assert len(events) == 1
     start_sec, end_sec, _ = events[0]
     # Duration should be >= min_duration
     assert (end_sec - start_sec) >= 0.1
-
