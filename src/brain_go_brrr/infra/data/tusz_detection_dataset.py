@@ -71,7 +71,7 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
 
 
 def _events_to_mask(
-    events: "Iterable[tuple[float, float]]", duration_sec: float, fs: int
+    events: Iterable[tuple[float, float]], duration_sec: float, fs: int
 ) -> npt.NDArray[np.bool_]:
     n = round(duration_sec * fs)
     mask = np.zeros(n, dtype=bool)
@@ -90,14 +90,6 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     and label is a scalar int64 tensor (`1` for seizure, `0` for background).
     """
 
-    """Initialize the TUSZ detection dataset.
-    
-    Args:
-        root_dir: Root directory containing TUSZ dataset splits.
-        split: Dataset split ('train', 'dev', 'test').
-        cfg: Window configuration for sliding window extraction.
-        target_channels: List of target channel names to use.
-    """
     def __init__(
         self,
         root_dir: Path | str,
@@ -105,6 +97,14 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         cfg: WindowConfig | None = None,
         target_channels: list[str] | None = None,
     ) -> None:
+        """Initialize the TUSZ detection dataset.
+
+        Args:
+            root_dir: Root directory containing TUSZ dataset splits.
+            split: Dataset split ('train', 'dev', 'test').
+            cfg: Window configuration for sliding window extraction.
+            target_channels: List of target channel names to use.
+        """
         if mne is None:  # pragma: no cover
             raise RuntimeError("mne is required to load TUSZ EDF files. Install with `uv add mne`.")
 
