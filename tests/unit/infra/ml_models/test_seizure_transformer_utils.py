@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from scipy.signal import find_peaks
 
 from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
     CANONICAL_CHANNELS,

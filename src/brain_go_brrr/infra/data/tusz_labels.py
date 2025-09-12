@@ -8,9 +8,6 @@ Exports:
 
 from __future__ import annotations
 
-from typing import List, Tuple
-
-
 # Allowed epileptic seizure codes (lowercase) from TUSZ
 TUSZ_EPILEPTIC_CODES: set[str] = {
     "fnsz",  # focal non-specific seizure
@@ -65,7 +62,7 @@ def is_seizure_label(label: str, include_pnes: bool = False) -> bool:
     return "seiz" in lab
 
 
-def merge_intervals(xs: List[Tuple[float, float]], gap: float = 0.0) -> List[Tuple[float, float]]:
+def merge_intervals(xs: list[tuple[float, float]], gap: float = 0.0) -> list[tuple[float, float]]:
     """Merge overlapping or touching intervals.
 
     Args:

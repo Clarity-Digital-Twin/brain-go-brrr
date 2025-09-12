@@ -10,9 +10,11 @@ Different preprocessing = degraded performance.
 import numpy as np
 import numpy.typing as npt
 from scipy.signal import butter, iirnotch, lfilter, resample
+
 from brain_go_brrr.infra.data.channels import (
-    CHANNELS_TUAB_19 as CANONICAL_CHANNELS,
     CHANNEL_ALIASES as _CHANNEL_ALIASES,
+)
+from brain_go_brrr.infra.data.channels import (
     map_to_canonical,
 )
 

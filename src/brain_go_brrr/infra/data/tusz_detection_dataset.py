@@ -164,7 +164,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         cfg: WindowConfig | None = None,
         target_channels: list[str] | None = None,
         max_windows: int | None = None,
-        preprocessor: "SeizurePreprocessor"
+        preprocessor: SeizurePreprocessor
         | None = None,  # applied to full recording before windowing
         ensure_unipolar: bool = False,
     ) -> None:

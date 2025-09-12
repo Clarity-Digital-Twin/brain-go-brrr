@@ -22,11 +22,11 @@ import numpy.typing as npt
 import torch
 import torch.nn as nn
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, map_to_canonical
 from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
     SeizurePostProcessor,
     SeizurePreprocessor,
 )
-from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, map_to_canonical
 
 if TYPE_CHECKING:
     from collections.abc import Callable
