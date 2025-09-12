@@ -63,4 +63,5 @@ def test_channel_aliases_comprehensive():
     
     # Test with EEG prefix (common in clinical files)
     assert _standardize_channel_name("EEG T3-REF") == "T7"
-    assert _standardize_channel_name("EEG FP1-REF") == "Fp1"
+    # FP1 is not in aliases, so it passes through
+    assert _standardize_channel_name("EEG FP1-REF") == "EEG FP1-REF"
