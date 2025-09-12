@@ -6,7 +6,6 @@ from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import (
     SeizureTransformerWrapper,
 )
 
-
 # Require SciPy for these tests to avoid patching internals
 scipy = pytest.importorskip("scipy")
 
