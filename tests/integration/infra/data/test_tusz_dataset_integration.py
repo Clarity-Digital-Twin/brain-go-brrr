@@ -6,7 +6,6 @@ They are marked with @pytest.mark.data and will be skipped unless
 """
 
 import os
-import os
 from pathlib import Path
 
 import numpy as np

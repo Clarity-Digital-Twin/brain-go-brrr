@@ -4,7 +4,6 @@ These tests require both TUSZ data and the wu_2025 package to be available.
 """
 
 import os
-import os
 from pathlib import Path
 
 import numpy as np
