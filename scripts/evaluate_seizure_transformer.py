@@ -4,7 +4,7 @@
 Protocol:
 - Use env vars for paths: BGB_DATA_ROOT (required)
 - Window-level AUROC on mean probabilities per window
-- No post-processing before AUROC
+- No post-processing before AUROC (do not import postprocessor)
 
 Expected AUROC: ~0.876 (±0.02) if weights and preprocessing match reference.
 """

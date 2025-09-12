@@ -4,36 +4,50 @@ import numpy as np
 import pytest
 
 from brain_go_brrr.infra.data.tusz_detection_dataset import (
-    TUSZ_TRUE_SEIZURES,
     _events_to_mask,
-    _is_seizure_label,
     _parse_csv,
     _parse_tse,
+)
+from brain_go_brrr.infra.data.tusz_labels import (
+    TUSZ_EPILEPTIC_CODES,
+    is_seizure_label,
+    merge_intervals,
 )
 
 
 @pytest.mark.unit
 @pytest.mark.synth
 def test_tusz_seizure_codes():
-    """Test that all TUSZ seizure codes are recognized."""
-    # All true seizure codes should be recognized
-    for code in TUSZ_TRUE_SEIZURES:
-        assert _is_seizure_label(code)
-        assert _is_seizure_label(code.upper())
-        assert _is_seizure_label(f"prefix_{code}_suffix")
+    """Test that epileptic TUSZ seizure codes are recognized."""
+    # All epileptic seizure codes should be recognized
+    for code in TUSZ_EPILEPTIC_CODES:
+        assert is_seizure_label(code)
+        assert is_seizure_label(code.upper())
+        assert is_seizure_label(f"prefix_{code}_suffix")
 
     # Non-seizure codes should not be recognized
-    assert not _is_seizure_label("bckg")
-    assert not _is_seizure_label("background")
-    assert not _is_seizure_label("artf")
-    assert not _is_seizure_label("artifact")
-    assert not _is_seizure_label("eyem")
-    assert not _is_seizure_label("eye_movement")
+    assert not is_seizure_label("bckg")
+    assert not is_seizure_label("background")
+    assert not is_seizure_label("artf")
+    assert not is_seizure_label("artifact")
+    assert not is_seizure_label("eyem")
+    assert not is_seizure_label("eye_movement")
 
     # Generic seizure labels should still work
-    assert _is_seizure_label("seizure")
-    assert _is_seizure_label("focal_seizure")
-    assert _is_seizure_label("generalized_seizure")
+    assert is_seizure_label("seizure")
+    assert is_seizure_label("focal_seizure")
+    assert is_seizure_label("generalized_seizure")
+
+
+@pytest.mark.unit
+def test_merge_intervals():
+    xs = [(0.0, 1.0), (0.5, 2.0), (3.0, 3.5), (3.5, 4.0), (5.0, 6.0)]
+    merged = merge_intervals(xs)
+    assert merged == [(0.0, 2.0), (3.0, 4.0), (5.0, 6.0)]
+    # With gap merge of 0.2, (4.0,5.0) gap should merge
+    xs2 = [(0.0, 1.0), (1.1, 2.0)]
+    merged2 = merge_intervals(xs2, gap=0.2)
+    assert merged2 == [(0.0, 2.0)]
 
 
 @pytest.mark.unit

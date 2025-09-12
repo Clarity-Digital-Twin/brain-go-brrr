@@ -10,6 +10,7 @@ Different preprocessing = degraded performance.
 import numpy as np
 import numpy.typing as npt
 from scipy.signal import butter, iirnotch, lfilter, resample
+from brain_go_brrr.infra.data.channels import map_to_canonical
 
 
 class SeizurePreprocessor:
@@ -210,35 +211,5 @@ def prepare_channels(
     channel_names: list[str],
     target_channels: list[str] | None = None,
 ) -> tuple[npt.NDArray[np.float32], list[str]]:
-    """Prepare channels for SeizureTransformer (19 channels, canonical order).
-
-    Args:
-        data: EEG data (n_channels, n_samples)
-        channel_names: Current channel names
-        target_channels: Target channel list (default: CANONICAL_CHANNELS)
-
-    Returns:
-        Tuple of (prepared_data, channel_info)
-        - prepared_data: (19, n_samples) with zero-fill for missing
-        - channel_info: List describing each channel slot
-    """
-    if target_channels is None:
-        target_channels = CANONICAL_CHANNELS
-
-    # Standardize channel names
-    channel_names = standardize_channel_names(channel_names)
-
-    n_samples = data.shape[1]
-    prepared = np.zeros((len(target_channels), n_samples), dtype=np.float32)
-    channel_info = []
-
-    for i, target_ch in enumerate(target_channels):
-        if target_ch in channel_names:
-            idx = channel_names.index(target_ch)
-            prepared[i] = data[idx]
-            channel_info.append(target_ch)
-        else:
-            # Zero-fill missing channel
-            channel_info.append(f"{target_ch}_missing")
-
-    return prepared, channel_info
+    """Delegate to SSOT mapping in infra.data.channels.map_to_canonical."""
+    return map_to_canonical(data, channel_names, target_channels)

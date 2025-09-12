@@ -60,3 +60,12 @@ def test_wrapper_postprocessing_default_binary():
     assert np.all((out == 0) | (out == 1))
     # Most samples should still be 1 since input was all ones
     assert np.mean(out) > 0.9
+
+
+@pytest.mark.unit
+def test_strict_weight_loader_raises_on_mismatch():
+    # Build a tiny model and a mismatched state dict
+    model = _DummyModel(out_len=10)
+    bad_state = {"some.other.key": torch.tensor(1)}
+    with pytest.raises(RuntimeError):
+        SeizureTransformerWrapper._load_weights_strict(model, bad_state)  # type: ignore[arg-type]

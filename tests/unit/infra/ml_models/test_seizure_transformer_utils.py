@@ -115,15 +115,20 @@ def test_preprocessor_filters():
     freqs = rfftfreq(processed.shape[1], 1 / fs)
     fft = np.abs(rfft(processed[0]))
 
-    # Find peaks in spectrum
-    peaks, _ = find_peaks(fft, height=10)
-    peak_freqs = freqs[peaks]
+    # Compare amplitudes around key frequencies
+    def band_amp(f0: float, tol: float = 1.0) -> float:
+        mask = (freqs >= (f0 - tol)) & (freqs <= (f0 + tol))
+        return float(fft[mask].mean())
 
-    # Check that 30Hz is preserved (should be one of the strongest peaks)
-    assert np.any(np.abs(peak_freqs - 30) < 2)
+    amp_30 = band_amp(30)
+    amp_60 = band_amp(60)
+    amp_1 = band_amp(1)
 
-    # The filters attenuate but don't completely remove 1Hz and 60Hz
-    # Just verify the filters were applied (shape is correct)
+    # 30 Hz should dominate vs 60 Hz and 1 Hz after filters
+    assert amp_30 > amp_60 * 1.3
+    assert amp_30 > amp_1 * 1.3
+
+    # Sanity: shape unchanged
     assert processed.shape == eeg.shape
 
 

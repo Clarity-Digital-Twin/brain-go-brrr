@@ -23,11 +23,10 @@ import torch
 import torch.nn as nn
 
 from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
-    CANONICAL_CHANNELS,
     SeizurePostProcessor,
     SeizurePreprocessor,
-    prepare_channels,
 )
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, map_to_canonical
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -85,16 +84,27 @@ class SeizureTransformerWrapper:
         if weights_path is not None:
             p = Path(weights_path)
             if p.exists():
-                # Note: Reference implementation doesn't use weights_only
-                # since model weights contain custom objects
-                ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec:weights_only - model contains architecture
-                if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-                    state_dict = ckpt["model_state_dict"]
-                else:
-                    state_dict = ckpt
-                self.model.load_state_dict(state_dict, strict=False)
+                ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec: Bypass for model weights
+                self._load_weights_strict(self.model, ckpt)
         self.model.to(self.device)
         self.model.eval()
+
+    @staticmethod
+    def _load_weights_strict(model: nn.Module, state: dict) -> None:
+        """Load weights strictly: no missing/unexpected keys allowed.
+
+        Normalizes common prefixes (module., model.) and raises RuntimeError on mismatch.
+        """
+        if isinstance(state, dict) and "state_dict" in state:
+            state = state["state_dict"]
+        state = {
+            k.replace("module.", "").replace("model.", ""): v for k, v in state.items()
+        }
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        if missing or unexpected:
+            raise RuntimeError(
+                f"State dict mismatch:\nmissing={missing}\nunexpected={unexpected}"
+            )
 
     def _ensure_canonical_channels(
         self, eeg: npt.NDArray[np.float32], channel_names: list[str] | None = None
@@ -105,9 +115,9 @@ class SeizureTransformerWrapper:
         Otherwise, assume data is already in correct order and just validate shape.
         """
         if channel_names is not None:
-            # Use the SSOT utility to prepare channels
-            prepared, _ = prepare_channels(
-                eeg, channel_names, CANONICAL_CHANNELS[: self.n_channels]
+            # SSOT: map to canonical using shared mapper
+            prepared, _ = map_to_canonical(
+                eeg, channel_names, CHANNELS_TUAB_19[: self.n_channels]
             )
             return prepared
         else:

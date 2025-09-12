@@ -173,3 +173,42 @@ __all__ = [
     "map_channels_to_indices",
     "validate_channels",
 ]
+from __future__ import annotations
+
+from typing import List, Tuple
+
+import numpy as np
+import numpy.typing as npt
+
+
+def map_to_canonical(
+    data: npt.NDArray[np.float32],
+    channel_names: List[str],
+    target_channels: List[str] | None = None,
+) -> Tuple[npt.NDArray[np.float32], List[str]]:
+    """Map/pad `data` into `target_channels` order with zero-fill for missing.
+
+    Applies alias normalization and returns (prepared_data, channel_info).
+    - prepared_data: (len(target_channels), T)
+    - channel_info: channel name placed at each slot or f"<name>_missing"
+    """
+    if target_channels is None:
+        target_channels = CHANNELS_TUAB_19
+
+    # Normalize source names with aliases
+    normalized = [CHANNEL_ALIASES.get(ch, ch) for ch in channel_names]
+
+    n_samples = data.shape[1]
+    prepared = np.zeros((len(target_channels), n_samples), dtype=np.float32)
+    info: List[str] = []
+    for i, tgt in enumerate(target_channels):
+        if tgt in normalized:
+            src_idx = normalized.index(tgt)
+            prepared[i] = data[src_idx]
+            info.append(tgt)
+        else:
+            info.append(f"{tgt}_missing")
+    return prepared, info
+
+
+__all__.append("map_to_canonical")

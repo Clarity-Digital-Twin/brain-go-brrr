@@ -29,36 +29,18 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     mne = None
 
-from brain_go_brrr.infra.data.channels import CHANNEL_ALIASES, CHANNELS_TUAB_19
-from brain_go_brrr.infra.ml_models.seizure_transformer_utils import prepare_channels
+from brain_go_brrr.infra.data.channels import (
+    CHANNEL_ALIASES,
+    CHANNELS_TUAB_19,
+    map_to_canonical,
+)
+from brain_go_brrr.infra.data.tusz_labels import is_seizure_label, merge_intervals
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-# TUSZ seizure type codes from official documentation
-# https://isip.piconepress.com/projects/tuh_eeg/downloads/tuh_eeg_seizure/v2.0.0/_DOCS/
-TUSZ_SEIZURE_CODES = {
-    "fnsz",  # focal non-specific seizure
-    "gnsz",  # generalized non-specific seizure
-    "spsz",  # simple partial seizure
-    "cpsz",  # complex partial seizure
-    "absz",  # absence seizure
-    "tnsz",  # tonic seizure
-    "tcsz",  # tonic-clonic seizure
-    "gtsz",  # generalized tonic-clonic seizure
-    "mysz",  # myoclonic seizure
-    "nesz",  # non-epileptic seizure
-    "unsz",  # unclassified seizure
-    "spsw",  # spike-and-wave
-    "gped",  # generalized periodic epileptiform discharges
-    "pled",  # periodic lateralized epileptiform discharges
-    "eyem",  # eye movement (but not a seizure)
-    "artf",  # artifact (but not a seizure)
-    "bckg",  # background (but not a seizure)
-}
 
-# Only actual seizure types (exclude eye movement, artifact, background)
-TUSZ_TRUE_SEIZURES = TUSZ_SEIZURE_CODES - {"eyem", "artf", "bckg"}
+# Label policy is centralized in infra.data.tusz_labels.is_seizure_label
 
 
 @dataclass(frozen=True)
@@ -73,23 +55,7 @@ def _standardize_channel_name(name: str) -> str:
     return CHANNEL_ALIASES.get(name, name)
 
 
-def _is_seizure_label(label: str) -> bool:
-    """Check if a label represents a seizure event.
-
-    Handles both TUSZ codes (fnsz, gnsz, etc.) and generic labels containing 'seiz'.
-    """
-    label_lower = label.lower()
-
-    # Check TUSZ-specific codes
-    for code in TUSZ_TRUE_SEIZURES:
-        if code in label_lower:
-            return True
-
-    # Fallback: check for 'seiz' substring (for non-TUSZ datasets)
-    return "seiz" in label_lower
-
-
-def _parse_tse(path: Path) -> list[tuple[float, float]]:
+def _parse_tse(path: Path, include_pnes: bool = False) -> list[tuple[float, float]]:
     """Parse TSE file for seizure annotations ONLY.
 
     TSE format:
@@ -110,7 +76,7 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
                 continue
             # Check if this is a seizure annotation
             label = " ".join(parts[2:]) if len(parts) > 2 else ""
-            if _is_seizure_label(label):
+            if is_seizure_label(label, include_pnes=include_pnes):
                 try:
                     start = float(parts[0])
                     end = float(parts[1])
@@ -118,10 +84,10 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
                         events.append((start, end))
                 except ValueError:
                     continue
-    return events
+    return merge_intervals(events)
 
 
-def _parse_csv(path: Path) -> list[tuple[float, float]]:
+def _parse_csv(path: Path, include_pnes: bool = False) -> list[tuple[float, float]]:
     """Parse CSV sidecar for seizure annotations ONLY.
 
     CSV format can be either:
@@ -164,11 +130,11 @@ def _parse_csv(path: Path) -> list[tuple[float, float]]:
                         label = " ".join(parts[2:]) if len(parts) > 2 else ""
 
                     # Check if this is a seizure annotation
-                    if _is_seizure_label(label) and end > start:
+                    if is_seizure_label(label, include_pnes=include_pnes) and end > start:
                         events.append((start, end))
                 except ValueError:
                     continue
-    return events
+    return merge_intervals(events)
 
 
 def _events_to_mask(
@@ -217,11 +183,14 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         self.root_dir = Path(root_dir)
         self.split = split
         self.cfg = cfg or WindowConfig()
+        if self.cfg.fs != 256:
+            raise ValueError(f"TUSZDetectionDataset expects cfg.fs == 256; got {self.cfg.fs}")
         # Default to TUAB 19-channel set as our SSOT; adjust if needed
         self.target_channels = target_channels or CHANNELS_TUAB_19
         self.max_windows = max_windows
         self.preprocessor = preprocessor
         self.ensure_unipolar = ensure_unipolar
+        self.include_pnes = False
 
         self._records: list[dict[str, Any]] = []
         self._index: list[tuple[int, int]] = []  # (record_idx, window_start_sample@cfg.fs)
@@ -237,9 +206,9 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             csv = edf.with_suffix(".csv")
             events: list[tuple[float, float]] = []
             if tse.exists():
-                events = _parse_tse(tse)
+                events = _parse_tse(tse, include_pnes=self.include_pnes)
             elif csv.exists():
-                events = _parse_csv(csv)
+                events = _parse_csv(csv, include_pnes=self.include_pnes)
             self._records.append(
                 {
                     "edf": edf,
@@ -321,7 +290,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             full_proc = self.preprocessor.preprocess(full, fs_original=src_fs)
 
             # Map to canonical order with zero-fill for missing
-            prepared, _ = prepare_channels(full_proc, available, self.target_channels)
+            prepared, _ = map_to_canonical(full_proc, available, self.target_channels)
 
             # Slice window in target fs
             data = prepared[:, s0_fs:s1_fs]
