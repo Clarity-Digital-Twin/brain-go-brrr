@@ -454,7 +454,7 @@ class EEGTransformer(nn.Module):
         # Stochastic depth decay rule
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]  # stochastic depth decay
         if drop_path_rate > 0:
-            print(
+            logger.info(
                 f"DropPath enabled: rate={drop_path_rate}, per-layer decay from 0 to {drop_path_rate}"
             )
 
