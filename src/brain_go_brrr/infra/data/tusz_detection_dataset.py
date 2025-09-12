@@ -48,20 +48,27 @@ def _standardize_channel_name(name: str) -> str:
 
 
 def _parse_tse(path: Path) -> list[tuple[float, float]]:
+    """Parse TSE file for seizure annotations ONLY.
+    
+    TSE format:
+    - start_time end_time [label]
+    - Only lines with 'seiz' in label are seizures
+    - Background/artifact/other labels are ignored
+    """
     events: list[tuple[float, float]] = []
     if not path.exists():
         return events
     with path.open("r", encoding="utf-8", errors="ignore") as f:
         for line in f:
             s = line.strip()
-            if not s:
+            if not s or s.startswith("#"):
                 continue
             parts = s.split()
             if len(parts) < 2:
                 continue
-            # Heuristic: keep any label with 'seiz' when present
+            # CRITICAL FIX: Only accept seizure annotations
             label = parts[2].lower() if len(parts) > 2 else ""
-            if "seiz" in label or len(parts) >= 2:
+            if "seiz" in label:  # Fixed: removed "or len(parts) >= 2" 
                 try:
                     start = float(parts[0])
                     end = float(parts[1])
