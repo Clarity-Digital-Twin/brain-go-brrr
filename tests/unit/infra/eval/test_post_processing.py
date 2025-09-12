@@ -7,7 +7,8 @@ from brain_go_brrr.infra.eval.post_processing import AdvancedPostProcessor
 @pytest.mark.unit
 @pytest.mark.synth
 def test_hysteresis_basic_detection():
-    p = AdvancedPostProcessor(hysteresis=(0.3, 0.7), fs=256)
+    # Use smaller min_duration to avoid filtering out short test events
+    p = AdvancedPostProcessor(hysteresis=(0.3, 0.7), min_duration_sec=0.01, fs=256)
     probs = np.array([0.1, 0.2, 0.8, 0.65, 0.4, 0.2, 0.1, 0.9, 0.85, 0.2], dtype=float)
     events = p.apply(probs)
     # Should detect two events (roughly 2-5 and 7-9 indices)
