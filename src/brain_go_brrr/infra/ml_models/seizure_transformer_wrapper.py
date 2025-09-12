@@ -73,8 +73,10 @@ class SeizureTransformerWrapper:
             self.model = model
         else:
             if build_fn is None:
-                # Use the local implementation by default
-                from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
+                # Use the Wu 2025 implementation for pretrained weights
+                from brain_go_brrr.infra.ml_models.seizure_transformer_wu2025 import (
+                    SeizureTransformer,
+                )
 
                 self.model = SeizureTransformer(
                     in_channels=self.n_channels,
