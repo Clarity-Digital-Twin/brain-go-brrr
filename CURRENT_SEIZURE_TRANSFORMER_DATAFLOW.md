@@ -25,18 +25,19 @@ Purpose: snapshot the exact behavior of the current codebase; highlight divergen
 
 3) Dataset: `src/brain_go_brrr/infra/data/tusz_detection_dataset.py`
 - Discovers EDF and sidecar `.tse`/`.csv` annotations.
-- Channel policy: standardizes names via aliases (e.g., T3→T7) and picks AVAILABLE target channels in order. It does NOT pad missing channels; channel count may be <19.
+- Channel policy: standardizes names via aliases (e.g., T3→T7), picks AVAILABLE target channels, then PADS WITH ZEROS to ensure exactly 19 channels (lines 206-214).
 - Resampling: uses `mne.Raw.resample(cfg.fs)` when needed.
 - Labels: window‑level binary label by fraction of seizure time in the window (default `positive_fraction=0.2`). Not per‑timestep labels.
-- TSE parsing: permissive — accepts any line with two numeric fields; if a label exists, “seiz” is preferred but not required. This may include non‑seizure spans.
+- TSE parsing: permissive — accepts ANY line with two numeric fields (even without "seiz" label). This WILL include non‑seizure spans and cause false positives.
+- Memory limiting: DOES support `max_windows` parameter to limit dataset size (lines 101, 120, 148-150).
 
 4) Training script: `experiments/seizure_transformer/train_tusz.py`
 - Imports `wu_2025.SeizureTransformer` directly (local editable install required).
 - Feeds dataset windows directly to the model (bypasses wrapper preprocessing); OSS filters (bandpass + notch) are NOT applied here.
-- Supervision: expands each window’s single label to all 15360 time steps and uses BCE per timestep. This diverges from true per‑timestep segmentation labels.
+- Supervision: expands each window's single label to all 15360 time steps and uses BCE per timestep (line 45). This diverges from true per‑timestep segmentation labels.
 - Technical notes:
-  - Passes `max_windows=` to the dataset, which is not supported by `TUSZDetectionDataset` (would raise TypeError as written).
-  - Model expects 19 channels; the dataset may return fewer if channels are missing; no enforcement or padding.
+  - Successfully uses `max_windows=10000` for train and `max_windows=5000` for validation (lines 129, 142).
+  - Model expects 19 channels; dataset DOES pad to guarantee exactly 19 channels.
 
 5) Post‑processing
 - Wrapper: OSS‑matching binary morphology as noted above.
@@ -54,20 +55,20 @@ Inference path (library wrapper)
 
 —
 
-## Key Facts (audited)
+## Key Facts (audited 2025-09-12 with line-by-line verification)
 - Wrapper preprocessing and post‑processing parameters match the OSS reference (threshold 0.8; kernel size 5; min duration 2 s; notch Q=30).
-- Dataset does NOT pad missing channels and does NOT guarantee 19 channels.
-- TSE parsing is permissive and may include non‑seizure spans; labels are window‑level.
+- Dataset DOES pad missing channels with zeros to guarantee exactly 19 channels (lines 206-214 in tusz_detection_dataset.py).
+- TSE parsing is dangerously permissive - accepts ANY 2-field line even without "seiz" label; WILL cause false positives.
 - Experiments import `wu_2025` directly and bypass wrapper preprocessing; training supervision differs from OSS segmentation.
 - Proxy clinical metrics available (`infra/eval/nedc_wrapper.py`), but experiments do not integrate NEDC scoring.
+- max_windows IS implemented and working (not a bug).
 
 —
 
 ## Gaps vs OSS Parity
 - Preprocessing in training: filters not applied (wrapper not used in training path).
 - Supervision: window‑level labels expanded to timesteps instead of true per‑timestep labels.
-- Channel policy: no strict 19‑channel enforcement or padding; potential mismatch with the model’s expected input shape.
-- TSE parsing: includes lines without “seiz” labels; introduces label noise risk.
+- TSE parsing: accepts ANY 2-field line (not just seizures); introduces massive label noise.
 - Architecture sourcing: experiments rely on external `wu_2025` import (local install), not an internal builder.
 - Metrics: experiments compute AUROC only; no FA/24h or official TAES scoring.
 
@@ -76,8 +77,8 @@ Inference path (library wrapper)
 ## Required Fixes (to reach parity)
 - Apply wrapper (or equivalent preprocessing fn) during training so bandpass/notch are applied.
 - Use per‑timestep labels (segmentation) or a dataset that yields timestep masks instead of expanding window labels.
-- Enforce 19‑channel mapping (error on missing critical channels or apply a documented padding policy) and unipolar montage.
-- Tighten `_parse_tse` to require “seiz” labels and add tests.
+- FIX CRITICAL BUG: Tighten `_parse_tse` to ONLY accept lines with "seiz" labels (currently accepts ALL 2-field lines!).
+- Enforce unipolar montage checking (currently just assumes it).
 - Provide an internal model builder (or vendor the architecture with a compatible license) to avoid direct `wu_2025` imports in experiments.
 - Wire event metrics (proxy or official NEDC) into evaluation scripts.
 
