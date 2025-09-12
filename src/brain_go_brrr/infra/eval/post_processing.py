@@ -8,11 +8,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import numpy as np
+import numpy.typing as npt
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    import numpy as np
-    import numpy.typing as npt
 
 
 @dataclass
