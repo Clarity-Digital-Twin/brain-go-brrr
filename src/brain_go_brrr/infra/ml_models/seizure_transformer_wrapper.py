@@ -86,9 +86,10 @@ class SeizureTransformerWrapper:
 
         if weights_path is not None:
             p = Path(weights_path)
-            if p.exists():
-                ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec: Bypass for model weights
-                self._load_weights_strict(self.model, ckpt)
+            if not p.exists():
+                raise FileNotFoundError(f"Weights file not found: {p}")
+            ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec: Bypass for model weights
+            self._load_weights_strict(self.model, ckpt)
         self.model.to(self.device)
         self.model.eval()
 
@@ -182,9 +183,10 @@ class SeizureTransformerWrapper:
             # Convert to tensor and predict
             x = torch.from_numpy(clip).unsqueeze(0).float().to(self.device)
 
-            # Model returns per-timestep predictions for the window
+            # Model returns per-timestep logits for the window
             output = self.model(x)  # Shape: [1, window_samples]
-            all_outputs.append(output.cpu().numpy())
+            probs = torch.sigmoid(output)  # Convert logits to probabilities
+            all_outputs.append(probs.cpu().numpy())
 
             # Break if we've covered the whole recording
             if start_idx + self.window_samples >= t:
