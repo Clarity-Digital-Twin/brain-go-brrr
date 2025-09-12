@@ -3,7 +3,7 @@
 This dataset yields fixed-length windows and binary labels (seizure/background)
 based on per-window seizure duration fraction.
 
-Notes
+Notes:
 - Expects the standard TUSZ directory layout under `root_dir/<split>/**.edf` and
   corresponding annotation files (`.tse` or CSV) alongside recordings.
 - Uses a single sampling-rate SSOT (default 256 Hz) and a fixed channel policy.
@@ -13,9 +13,9 @@ Notes
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Iterator, List, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -24,10 +24,10 @@ from torch.utils.data import Dataset
 
 try:
     import mne  # type: ignore
-except Exception as e:  # pragma: no cover - optional dependency
+except Exception:  # pragma: no cover - optional dependency
     mne = None  # type: ignore[assignment]
 
-from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19, CHANNEL_ALIASES
+from brain_go_brrr.infra.data.channels import CHANNEL_ALIASES, CHANNELS_TUAB_19
 
 
 @dataclass(frozen=True)

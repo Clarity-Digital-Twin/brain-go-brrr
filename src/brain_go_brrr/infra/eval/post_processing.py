@@ -5,8 +5,8 @@ Implements dual-threshold hysteresis, gap merging, and minimum duration filterin
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import List, Sequence, Tuple
 
 import numpy as np
 import numpy.typing as npt

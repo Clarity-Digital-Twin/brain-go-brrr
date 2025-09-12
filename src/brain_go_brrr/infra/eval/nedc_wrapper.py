@@ -7,12 +7,12 @@ replace the internal implementations accordingly.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
 
 
 def _events_overlap(
-    e1: Tuple[float, float], e2: Tuple[float, float], min_jaccard: float = 0.5
+    e1: tuple[float, float], e2: tuple[float, float], min_jaccard: float = 0.5
 ) -> bool:
     s1, e1_ = e1
     s2, e2_ = e2
@@ -28,10 +28,10 @@ class NEDCClinicalEvaluator:
 
     def compute_all_metrics(
         self,
-        predictions: Iterable[Tuple[float, float]],
-        ground_truth: Iterable[Tuple[float, float]],
+        predictions: Iterable[tuple[float, float]],
+        ground_truth: Iterable[tuple[float, float]],
         duration_hours: float,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Compute proxy metrics approximating clinical KPIs.
 
         This is NOT a substitute for `nedc_eeg_eval`. For publication-grade

@@ -11,27 +11,28 @@ are referential/unipolar (not bipolar channel pairs) before calling `predict`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn as nn
+
 # SciPy dependencies are imported lazily inside methods to avoid hard dependency
 
 
 class SeizureTransformerWrapper:
     def __init__(
         self,
-        model: Optional[nn.Module] = None,
-        build_fn: Optional[Callable[[int], nn.Module]] = None,
-        weights_path: Optional[Path | str] = None,
+        model: nn.Module | None = None,
+        build_fn: Callable[[int], nn.Module] | None = None,
+        weights_path: Path | str | None = None,
         n_channels: int = 19,
         fs: int = 256,
         window_samples: int = 15360,  # 60s @ 256Hz
         overlap_ratio: float = 0.0,  # No overlap by default (matches reference)
-        device: Optional[torch.device] = None,
+        device: torch.device | None = None,
     ) -> None:
         self.fs = fs
         self.window_samples = window_samples
@@ -80,7 +81,7 @@ class SeizureTransformerWrapper:
 
     def _preprocess_clip(self, eeg_clip: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Apply preprocessing from reference implementation."""
-        from scipy.signal import butter, lfilter, iirnotch  # lazy import
+        from scipy.signal import butter, iirnotch, lfilter  # lazy import
 
         # Bandpass filter
         nyq = 0.5 * self.fs
@@ -102,7 +103,7 @@ class SeizureTransformerWrapper:
 
     def _postprocess(self, predictions: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Apply post-processing from reference implementation."""
-        from scipy.ndimage import binary_opening, binary_closing  # lazy import
+        from scipy.ndimage import binary_closing, binary_opening  # lazy import
 
         # Threshold at 0.8 (from reference)
         binary = (predictions > 0.8).astype(int)
@@ -141,6 +142,7 @@ class SeizureTransformerWrapper:
         Args:
             eeg: Array of shape (C, T) in Volts at `fs` Hz.
             apply_postprocessing: Whether to apply morphological filtering and thresholding.
+
         Returns:
             predictions: Array of shape (T,) with values in [0, 1] (or binary if postprocessed).
         """
