@@ -196,6 +196,16 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
         data = raw.get_data(start=s0_fs, stop=s1_fs)  # shape (C, T) in Volts
+        
+        # CRITICAL: Ensure exactly 19 channels by padding with zeros if needed
+        n_expected_channels = len(self.target_channels)
+        if data.shape[0] < n_expected_channels:
+            # Pad with zeros for missing channels
+            padding = np.zeros((n_expected_channels - data.shape[0], data.shape[1]), dtype=np.float32)
+            data = np.vstack([data, padding])
+        elif data.shape[0] > n_expected_channels:
+            # Truncate extra channels (shouldn't happen with our logic)
+            data = data[:n_expected_channels, :]
 
         # Label window: fraction of seizure time >= threshold
         duration_sec = float(raw.n_times) / float(self.cfg.fs)
