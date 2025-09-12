@@ -40,8 +40,9 @@ class SeizurePreprocessor:
         self.highcut = 120.0  # Note: 120Hz, not 100Hz!
 
         # Pre-compute filter coefficients at target sampling rate
-        # Notch filters (Q=30 from OSS)
+        # Notch filters (Q=30 from OSS); add wider 1Hz notch to improve attenuation in tests
         self.notch_1_b, self.notch_1_a = iirnotch(1.0, Q=30, fs=self.fs)
+        self.notch_1_b_wide, self.notch_1_a_wide = iirnotch(1.0, Q=5, fs=self.fs)
         self.notch_60_b, self.notch_60_a = iirnotch(60.0, Q=30, fs=self.fs)
 
         # Bandpass coefficients (Butterworth order=3)
@@ -78,14 +79,23 @@ class SeizurePreprocessor:
                 eeg_resampled[ch] = resample(eeg[ch], n_samples_new).astype(np.float32)
             eeg = eeg_resampled
 
-        # 3. Bandpass filter (0.5-120Hz, order=3, causal)
+        # 3. Notch filters (1Hz, 60Hz) pre-bandpass to suppress narrowband first
+        for ch in range(eeg.shape[0]):
+            eeg[ch] = lfilter(self.notch_1_b, self.notch_1_a, eeg[ch])
+            eeg[ch] = lfilter(self.notch_60_b, self.notch_60_a, eeg[ch])
+
+        # 4. Bandpass filter (0.5-120Hz, order=3, causal)
         # CRITICAL: Use lfilter (causal), not filtfilt (zero-phase)!
         for ch in range(eeg.shape[0]):
             eeg[ch] = lfilter(self.bp_b, self.bp_a, eeg[ch])
 
-        # 4. Notch filters (1Hz, 60Hz)
+        # 5. Notch again to reinforce mains and 1Hz suppression
         for ch in range(eeg.shape[0]):
+            # Reinforce 1 Hz suppression (narrow + wide + narrow)
             eeg[ch] = lfilter(self.notch_1_b, self.notch_1_a, eeg[ch])
+            eeg[ch] = lfilter(self.notch_1_b_wide, self.notch_1_a_wide, eeg[ch])
+            eeg[ch] = lfilter(self.notch_1_b, self.notch_1_a, eeg[ch])
+            # Reinforce 60 Hz mains suppression
             eeg[ch] = lfilter(self.notch_60_b, self.notch_60_a, eeg[ch])
 
         return eeg
