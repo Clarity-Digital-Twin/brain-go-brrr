@@ -90,6 +90,17 @@ class SeizureTransformerWrapper:
             p = Path(weights_path)
             if not p.exists():
                 raise FileNotFoundError(f"Weights file not found: {p}")
+
+            # CI GUARD: Ensure Wu 2025 architecture when loading pretrained weights
+            if "wu2025" in str(p).lower() or "seizure_transformer" in str(p).lower():
+                # Verify model has Wu 2025 architecture components
+                if not hasattr(self.model, "encoder") or not hasattr(self.model, "res_cnn_stack"):
+                    raise RuntimeError(
+                        f"Architecture mismatch: Weights from {p.name} require Wu 2025 architecture "
+                        f"but model is {type(self.model).__name__}. "
+                        f"Use SeizureTransformerWrapper(weights_path=...) for automatic architecture selection."
+                    )
+
             ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec: Bypass for model weights
             self._load_weights_strict(self.model, ckpt)
         self.model.to(self.device)

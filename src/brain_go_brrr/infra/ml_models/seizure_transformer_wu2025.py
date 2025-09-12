@@ -1,4 +1,3 @@
-
 """Wu 2025 Seizure Transformer architecture.
 
 CNN+Transformer architecture for per-timestep seizure detection.
@@ -35,16 +34,9 @@ class SeizureTransformer(nn.Module):
         self.drop_rate = drop_rate
 
         # Parameters from EQTransformer repository
-        self.filters = [
-            32,
-            64,
-            128,
-            256,
-            512
-        ]  # Number of filters for the convolutions
+        self.filters = [32, 64, 128, 256, 512]  # Number of filters for the convolutions
         self.kernel_sizes = [11, 9, 7, 7, 5, 5, 3]  # Kernel sizes for the convolutions
         self.res_cnn_kernels = [3, 3, 3, 3, 2, 3, 2]
-
 
         # Encoder stack
         self.encoder = Encoder(
@@ -63,13 +55,10 @@ class SeizureTransformer(nn.Module):
 
         self.position_encoding = PositionalEncoding(d_model=512)
         self.transformer_encoder_layer = nn.TransformerEncoderLayer(
-            d_model=512,
-            nhead=4,
-            dim_feedforward=2048
+            d_model=512, nhead=4, dim_feedforward=2048
         )
         self.transformer_encoder = nn.TransformerEncoder(
-            self.transformer_encoder_layer,
-            num_layers=8
+            self.transformer_encoder_layer, num_layers=8
         )
 
         # Detection decoder and final Conv
@@ -83,6 +72,7 @@ class SeizureTransformer(nn.Module):
         self.conv_d = nn.Conv1d(
             in_channels=self.filters[0], out_channels=1, kernel_size=11, padding=5
         )
+
     def forward(self, x: torch.Tensor, logits: bool = True) -> torch.Tensor:
         """Forward pass returning per-timestep probabilities.
 
@@ -132,6 +122,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0, 0::2] = torch.sin(position * div_term)
         pe[:, 0, 1::2] = torch.cos(position * div_term)
         self.register_buffer('pe', pe)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Add positional encoding to input.
 
@@ -141,13 +132,13 @@ class PositionalEncoding(nn.Module):
         Returns:
             Tensor with positional encoding added.
         """
-        x = x + self.pe[:x.size(0)]
+        x = x + self.pe[: x.size(0)]
         return self.dropout(x)
 
 
 class Encoder(nn.Module):
-    """Encoder stack
-    """
+    """Encoder stack"""
+
     def __init__(self, input_channels, filters, kernel_sizes, in_samples):
         super().__init__()
 
@@ -159,9 +150,7 @@ class Encoder(nn.Module):
             [input_channels] + filters[:-1], filters, kernel_sizes, strict=False
         ):
             convs.append(
-                nn.Conv1d(
-                    in_channels, out_channels, kernel_size, padding=kernel_size // 2
-                )
+                nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
             )
 
             # To be consistent with the behaviour in tensorflow,
@@ -177,9 +166,12 @@ class Encoder(nn.Module):
         self.convs = nn.ModuleList(convs)
         self.pools = nn.ModuleList(pools)
         self.elus = nn.ModuleList(elus)
+
     def forward(self, x):
         skips = []
-        for conv, pool, padding, elu in zip(self.convs, self.pools, self.paddings, self.elus, strict=False):
+        for conv, pool, padding, elu in zip(
+            self.convs, self.pools, self.paddings, self.elus, strict=False
+        ):
             x = elu(conv(x))
             skips.append(x)
             if padding != 0:
@@ -219,14 +211,13 @@ class Decoder(nn.Module):
             [input_channels] + filters[:-1], filters, kernel_sizes, strict=False
         ):
             convs.append(
-                nn.Conv1d(
-                    in_channels, out_channels, kernel_size, padding=kernel_size // 2
-                )
+                nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
             )
             elus.append(nn.ELU(inplace=True))
 
         self.convs = nn.ModuleList(convs)
         self.elus = nn.ModuleList(elus)
+
     def forward(self, x, skip_connections):
         for i, (conv, elu) in enumerate(zip(self.convs, self.elus, strict=False)):
             x = self.upsample(x)
@@ -239,7 +230,7 @@ class Decoder(nn.Module):
             x = elu(conv(x))
             if skip_connections is not None and i < len(skip_connections):
                 # Use reverse order: first decoder block gets skip from the last encoder block.
-                skip = skip_connections[-(i+1)]
+                skip = skip_connections[-(i + 1)]
                 x = x + skip
         return x
 
@@ -252,6 +243,7 @@ class ResCNNStack(nn.Module):
         for ker in kernel_sizes:
             members.append(ResCNNBlock(filters, ker, drop_rate))
         self.members = nn.ModuleList(members)
+
     def forward(self, x):
         for member in self.members:
             x = member(x)
@@ -278,6 +270,7 @@ class ResCNNBlock(nn.Module):
 
         self.norm2 = nn.BatchNorm1d(filters, eps=1e-3)
         self.conv2 = nn.Conv1d(filters, filters, ker, padding=padding)
+
     def forward(self, x):
         y = self.norm1(x)
         y = F.relu(y)
@@ -302,6 +295,7 @@ class SpatialDropout1d(nn.Module):
 
         self.drop_rate = drop_rate
         self.dropout = nn.Dropout2d(drop_rate)
+
     def forward(self, x):
         x = x.unsqueeze(dim=-1)  # Add fake dimension
         x = self.dropout(x)

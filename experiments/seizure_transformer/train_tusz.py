@@ -191,11 +191,11 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Use SeizureTransformer from src - NO EXTERNAL DEPENDENCIES
-    print("Loading SeizureTransformer from src...")
-    from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
+    # Use SeizureTransformerWrapper for correct Wu 2025 architecture
+    print("Loading SeizureTransformer Wu 2025 architecture...")
+    from brain_go_brrr.infra.ml_models.seizure_transformer_wu2025 import SeizureTransformer
 
-    # Create the actual model
+    # Create the actual model (Wu 2025 architecture with CNN+Transformer)
     model = SeizureTransformer(
         in_channels=19,
         in_samples=15360,  # 60s @ 256Hz
