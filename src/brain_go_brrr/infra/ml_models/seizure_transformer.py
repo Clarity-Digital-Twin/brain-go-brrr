@@ -33,7 +33,9 @@ class PatchEmbedding(nn.Module):
         self.proj = nn.Conv1d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Args:
+        """Forward pass through patch embedding.
+
+        Args:
             x: (batch, channels, samples)
 
         Returns:
@@ -156,7 +158,7 @@ class SeizureTransformer(nn.Module):
         # Initialize weights
         self._init_weights()
 
-    def _init_weights(self):
+    def _init_weights(self) -> None:
         """Initialize model weights."""
         for m in self.modules():
             if isinstance(m, nn.Linear):
@@ -180,11 +182,11 @@ class SeizureTransformer(nn.Module):
         Returns:
             Per-sample predictions of shape (batch, samples)
         """
-        B, C, T = x.shape
+        b, c, t = x.shape
 
         # Validate input shape
-        assert self.in_channels == C, f"Expected {self.in_channels} channels, got {C}"
-        assert self.in_samples == T, f"Expected {self.in_samples} samples, got {T}"
+        assert self.in_channels == c, f"Expected {self.in_channels} channels, got {c}"
+        assert self.in_samples == t, f"Expected {self.in_samples} samples, got {t}"
 
         # Patch embedding: (B, C, T) -> (B, N_patches, E)
         x = self.patch_embed(x)
@@ -203,7 +205,7 @@ class SeizureTransformer(nn.Module):
         x = self.head(x)
 
         # Reshape to per-sample predictions: (B, N_patches, patch_size) -> (B, T)
-        x = x.reshape(B, -1)
+        x = x.reshape(b, -1)
 
         return x
 
@@ -217,7 +219,7 @@ class SeizureTransformerWithPretraining(SeizureTransformer):
 
     @classmethod
     def from_pretrained(
-        cls, checkpoint_path: str, device: torch.device | None = None, **kwargs
+        cls, checkpoint_path: str, device: torch.device | None = None, **kwargs: any
     ) -> SeizureTransformerWithPretraining:
         """Load model with pretrained weights.
 
@@ -259,14 +261,14 @@ class SeizureTransformerWithPretraining(SeizureTransformer):
 
         return model
 
-    def freeze_backbone(self):
+    def freeze_backbone(self) -> None:
         """Freeze transformer backbone for fine-tuning."""
         # Freeze all except the prediction head
         for name, param in self.named_parameters():
             if "head" not in name:
                 param.requires_grad = False
 
-    def unfreeze_backbone(self):
+    def unfreeze_backbone(self) -> None:
         """Unfreeze all parameters."""
         for param in self.parameters():
             param.requires_grad = True

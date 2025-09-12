@@ -101,7 +101,7 @@ def evaluate_pretrained_model(
         "seed": 42,
     }
 
-    with open(output_dir / "configs" / "eval_config.json", "w") as f:
+    with (output_dir / "configs" / "eval_config.json").open("w") as f:
         json.dump(config, f, indent=2)
 
     # 1. Load pretrained model
@@ -226,7 +226,7 @@ def evaluate_pretrained_model(
     }
 
     # Save metrics
-    with open(output_dir / "metrics" / "eval_metrics.json", "w") as f:
+    with (output_dir / "metrics" / "eval_metrics.json").open("w") as f:
         json.dump(results, f, indent=2)
 
     # 7. Print results
@@ -279,7 +279,7 @@ Workers: {num_workers}
 Status: {'✅ PASS' if abs(auroc - 0.876) < 0.02 else '⚠️ NEEDS INVESTIGATION'}
 """
 
-    with open(output_dir / "reports" / "summary.txt", "w") as f:
+    with (output_dir / "reports" / "summary.txt").open("w") as f:
         f.write(report)
 
     print(f"\n📊 Results saved to: {output_dir}")
