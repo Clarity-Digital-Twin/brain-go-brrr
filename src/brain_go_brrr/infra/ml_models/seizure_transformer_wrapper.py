@@ -204,5 +204,20 @@ class SeizureTransformerWrapper:
 
         return predictions  # type: ignore[no-any-return]
 
+    def _preprocess_clip(self, eeg: np.ndarray, fs_original: int | None = None) -> np.ndarray:
+        """Helper method for integration tests to preprocess a single EEG clip.
+        
+        Args:
+            eeg: Raw EEG data of shape (C, T)
+            fs_original: Original sampling rate (defaults to self.fs if not provided)
+            
+        Returns:
+            Preprocessed EEG data ready for model input
+        """
+        # Ensure canonical channel ordering
+        eeg = self._ensure_canonical_channels(eeg)
+        # Apply SSOT preprocessing
+        return self.preprocessor.preprocess(eeg, fs_original or self.fs)
+
 
 __all__ = ["SeizureTransformerWrapper"]
