@@ -8,8 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import numpy as np
-import numpy.typing as npt
+import numpy as np  # noqa: TC002
+import numpy.typing as npt  # noqa: TC002
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
