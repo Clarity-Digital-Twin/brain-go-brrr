@@ -37,7 +37,9 @@ class SeizureTransformerWrapper:
     
     def predict_timestep(self, eeg: np.ndarray) -> np.ndarray:
         """Direct time-step level predictions"""
-        # 1. Preprocess to 256Hz, 19 channels
+        # 1. Ensure UNIPOLAR montage, map to 19 channels
+        # 2. Resample to 256 Hz
+        # 3. Run inference and return per-timestep probabilities
         # 2. Run inference 
         # 3. Return per-timestep probabilities
 ```
@@ -50,7 +52,7 @@ class SeizureTransformerWrapper:
 
 ### Week 2: NEDC Evaluation Integration
 ```python
-# Location: src/brain_go_brrr/infra/evaluation/nedc_evaluator.py
+# Location: src/brain_go_brrr/infra/eval/nedc_wrapper.py
 
 class NEDCClinicalEvaluator:
     """NEDC Eval v6.0.0 compliant metrics"""
@@ -75,7 +77,7 @@ class NEDCClinicalEvaluator:
 
 ### Dataset Integration
 ```python
-# Location: src/brain_go_brrr/infra/data/tusz_dataset.py
+# Location: src/brain_go_brrr/infra/data/tusz_detection_dataset.py
 
 class TUSZDataset(EEGDataset):
     """TUSZ v2.0.1 dataset with official splits"""
