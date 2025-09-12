@@ -25,7 +25,7 @@ Purpose: snapshot the exact behavior of the current codebase; highlight divergen
 
 3) Dataset: `src/brain_go_brrr/infra/data/tusz_detection_dataset.py`
 - Discovers EDF and sidecar `.tse`/`.csv` annotations.
-- Channel policy: standardizes names via aliases (e.g., T3→T7), picks AVAILABLE target channels, then PADS WITH ZEROS to ensure exactly 19 channels (`__getitem__` method).
+- Channel policy: standardizes names via aliases (e.g., T3→T7), picks AVAILABLE target channels, then PADS WITH ZEROS to ensure exactly 19 channels (`__getitem__` method). Note: zero rows are appended at the end, not inserted at missing-channel indices; final channel order is “all available in target order” followed by zeros (not a strict SSOT index map).
 - Resampling: uses `mne.Raw.resample(cfg.fs)` when needed.
 - Labels: window‑level binary label by fraction of seizure time in the window (default `positive_fraction=0.2`). Not per‑timestep labels.
 - TSE parsing: permissive — `_parse_tse` accepts ANY line with two numeric fields (even without "seiz" label). This WILL include non‑seizure spans and cause false positives.
