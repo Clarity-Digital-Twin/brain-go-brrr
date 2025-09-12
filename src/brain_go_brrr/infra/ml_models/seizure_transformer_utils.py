@@ -151,7 +151,7 @@ class SeizurePostProcessor:
 
         return binary.astype(np.int32)
 
-    def _remove_short_events(self, binary: npt.NDArray) -> npt.NDArray:
+    def _remove_short_events(self, binary: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         """Remove seizure events shorter than min_duration."""
         from scipy.ndimage import label
 

@@ -15,7 +15,7 @@ seizure_transformer_utils to ensure consistency across the codebase.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -94,7 +94,7 @@ class SeizureTransformerWrapper:
         self.model.eval()
 
     @staticmethod
-    def _load_weights_strict(model: nn.Module, state: dict) -> None:
+    def _load_weights_strict(model: nn.Module, state: dict[str, Any]) -> None:
         """Load weights strictly: no missing/unexpected keys allowed.
 
         Normalizes common prefixes (module., model.) and raises RuntimeError on mismatch.
