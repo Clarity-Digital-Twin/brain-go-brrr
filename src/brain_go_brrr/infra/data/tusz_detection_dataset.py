@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 # https://isip.piconepress.com/projects/tuh_eeg/downloads/tuh_eeg_seizure/v2.0.0/_DOCS/
 TUSZ_SEIZURE_CODES = {
     "fnsz",  # focal non-specific seizure
-    "gnsz",  # generalized non-specific seizure  
+    "gnsz",  # generalized non-specific seizure
     "spsz",  # simple partial seizure
     "cpsz",  # complex partial seizure
     "absz",  # absence seizure
@@ -75,16 +75,16 @@ def _standardize_channel_name(name: str) -> str:
 
 def _is_seizure_label(label: str) -> bool:
     """Check if a label represents a seizure event.
-    
+
     Handles both TUSZ codes (fnsz, gnsz, etc.) and generic labels containing 'seiz'.
     """
     label_lower = label.lower()
-    
+
     # Check TUSZ-specific codes
     for code in TUSZ_TRUE_SEIZURES:
         if code in label_lower:
             return True
-    
+
     # Fallback: check for 'seiz' substring (for non-TUSZ datasets)
     return "seiz" in label_lower
 
@@ -127,7 +127,7 @@ def _parse_csv(path: Path) -> list[tuple[float, float]]:
     CSV format can be either:
     - channel,start_time,stop_time,label,confidence (TUSZ format)
     - start,end,label (simple format)
-    
+
     Recognizes TUSZ seizure codes and generic 'seiz' labels.
     """
     events: list[tuple[float, float]] = []
@@ -138,14 +138,14 @@ def _parse_csv(path: Path) -> list[tuple[float, float]]:
             s = line.strip()
             if not s or s.startswith("#"):
                 continue
-                
+
             # Skip header if present
             if line_num == 1 and ("start" in s.lower() or "channel" in s.lower()):
                 continue
-                
+
             # Split on comma first, then fallback to whitespace
             parts = [p for p in s.replace(",", " ").split() if p]
-            
+
             # TUSZ CSV format: channel,start,stop,label,confidence
             # Simple format: start,end,label
             if len(parts) >= 3:
@@ -162,7 +162,7 @@ def _parse_csv(path: Path) -> list[tuple[float, float]]:
                         start = float(parts[0])
                         end = float(parts[1])
                         label = " ".join(parts[2:]) if len(parts) > 2 else ""
-                    
+
                     # Check if this is a seizure annotation
                     if _is_seizure_label(label) and end > start:
                         events.append((start, end))
@@ -198,7 +198,8 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         cfg: WindowConfig | None = None,
         target_channels: list[str] | None = None,
         max_windows: int | None = None,
-        preprocessor: "SeizurePreprocessor" | None = None,  # applied to full recording before windowing
+        preprocessor: "SeizurePreprocessor"
+        | None = None,  # applied to full recording before windowing
         ensure_unipolar: bool = False,
     ) -> None:
         """Initialize the TUSZ detection dataset.
@@ -306,7 +307,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
-        
+
         # Preprocess entire recording if SSOT preprocessor is provided
         if self.preprocessor is not None:
             # Pull available target channels in original order

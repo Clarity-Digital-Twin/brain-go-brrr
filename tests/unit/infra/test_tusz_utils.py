@@ -21,7 +21,7 @@ def test_tusz_seizure_codes():
         assert _is_seizure_label(code)
         assert _is_seizure_label(code.upper())
         assert _is_seizure_label(f"prefix_{code}_suffix")
-    
+
     # Non-seizure codes should not be recognized
     assert not _is_seizure_label("bckg")
     assert not _is_seizure_label("background")
@@ -29,7 +29,7 @@ def test_tusz_seizure_codes():
     assert not _is_seizure_label("artifact")
     assert not _is_seizure_label("eyem")
     assert not _is_seizure_label("eye_movement")
-    
+
     # Generic seizure labels should still work
     assert _is_seizure_label("seizure")
     assert _is_seizure_label("focal_seizure")
@@ -41,7 +41,8 @@ def test_tusz_seizure_codes():
 def test_parse_tse_with_tusz_codes(tmp_path: Path):
     """Test TSE parsing with actual TUSZ seizure codes."""
     tse_file = tmp_path / "test.tse"
-    tse_file.write_text("""
+    tse_file.write_text(
+        """
 0.0 10.0 bckg
 10.0 20.0 fnsz
 20.0 30.0 artf
@@ -50,8 +51,9 @@ def test_parse_tse_with_tusz_codes(tmp_path: Path):
 50.0 60.0 cpsz
 60.0 70.0 background
 70.0 80.0 tcsz
-    """.strip())
-    
+    """.strip()
+    )
+
     events = _parse_tse(tse_file)
     # Should only get the actual seizure events
     assert len(events) == 4
@@ -193,12 +195,12 @@ T3-T5,50.0,60.0,mysz,1.0
 T5-O1,60.0,70.0,absz,1.0
     """.strip()
     )
-    
+
     events = _parse_csv(csv_file)
     # Should only get the actual seizure events
     assert len(events) == 4
     assert events[0] == (10.0, 20.0)  # fnsz
-    assert events[1] == (30.0, 40.0)  # gnsz  
+    assert events[1] == (30.0, 40.0)  # gnsz
     assert events[2] == (50.0, 60.0)  # mysz
     assert events[3] == (60.0, 70.0)  # absz
 
