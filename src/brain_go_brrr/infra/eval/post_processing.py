@@ -22,7 +22,7 @@ class AdvancedPostProcessor:
     min_duration_sec: float = 1.0
     fs: int = 256
 
-    def _hysteresis_events(self, probs: npt.NDArray[np.floating[any]]) -> list[tuple[int, int, float]]:
+    def _hysteresis_events(self, probs: npt.NDArray[np.float32]) -> list[tuple[int, int, float]]:
         low, high = self.hysteresis
         events: list[tuple[int, int, float]] = []
         n = probs.shape[0]
@@ -64,7 +64,7 @@ class AdvancedPostProcessor:
         min_len = round(self.min_duration_sec * self.fs)
         return [(s, e, c) for s, e, c in events if (e - s) >= min_len]
 
-    def apply(self, probs: npt.NDArray[np.floating[any]]) -> list[tuple[float, float, float]]:
+    def apply(self, probs: npt.NDArray[np.float32]) -> list[tuple[float, float, float]]:
         """Convert probabilities to (start_sec, end_sec, confidence) events."""
         events_idx = self._hysteresis_events(probs)
         events_idx = self._merge(events_idx)

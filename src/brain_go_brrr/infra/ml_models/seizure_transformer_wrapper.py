@@ -58,7 +58,7 @@ class SeizureTransformerWrapper:
         self.lowcut = 0.5
         self.highcut = 120
         self._notch_coeffs: (
-            tuple[tuple[npt.NDArray, npt.NDArray], tuple[npt.NDArray, npt.NDArray]] | None
+            tuple[tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]], tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]] | None
         ) = None  # lazy-init (b,a) tuples for 1 Hz and 60 Hz
 
         if model is not None:
@@ -116,7 +116,7 @@ class SeizureTransformerWrapper:
         filtered = lfilter(n1_b, n1_a, filtered, axis=1)
         filtered = lfilter(n60_b, n60_a, filtered, axis=1)
 
-        return filtered.astype(np.float32)
+        return filtered.astype(np.float32)  # type: ignore[no-any-return]
 
     def _postprocess(self, predictions: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Apply post-processing from reference implementation."""
@@ -148,7 +148,7 @@ class SeizureTransformerWrapper:
                     binary[start_idx:end_idx] = 0
                 is_seizure = False
 
-        return binary.astype(np.float32)
+        return binary.astype(np.float32)  # type: ignore[no-any-return]
 
     @torch.no_grad()
     def predict(
@@ -222,7 +222,7 @@ class SeizureTransformerWrapper:
         if apply_postprocessing:
             predictions = self._postprocess(predictions)
 
-        return predictions
+        return predictions  # type: ignore[no-any-return]
 
 
 __all__ = ["SeizureTransformerWrapper"]

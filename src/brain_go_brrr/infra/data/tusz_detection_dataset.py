@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -23,9 +23,9 @@ import torch
 from torch.utils.data import Dataset
 
 try:
-    import mne  # type: ignore
+    import mne
 except Exception:  # pragma: no cover - optional dependency
-    mne = None  # type: ignore[assignment]
+    mne = None
 
 from brain_go_brrr.infra.data.channels import CHANNEL_ALIASES, CHANNELS_TUAB_19
 
@@ -114,7 +114,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Default to TUAB 19-channel set as our SSOT; adjust if needed
         self.target_channels = target_channels or CHANNELS_TUAB_19
 
-        self._records: list[dict] = []
+        self._records: list[dict[str, Any]] = []
         self._index: list[tuple[int, int]] = []  # (record_idx, window_start_sample@cfg.fs)
 
         self._discover_records()
@@ -140,7 +140,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         stride = round(self.cfg.stride_sec * fs)
         for ridx, rec in enumerate(self._records):
             raw = mne.io.read_raw_edf(str(rec["edf"]), preload=False, verbose="ERROR")
-            duration_sec = float(raw.n_times) / float(raw.info["sfreq"])  # type: ignore[index]
+            duration_sec = float(raw.n_times) / float(raw.info["sfreq"])
             n_target = round(duration_sec * fs)
             if n_target < win:
                 continue
@@ -159,15 +159,15 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
         # Load raw (lazy) and resample if needed
         raw = mne.io.read_raw_edf(str(edf), preload=True, verbose="ERROR")
-        src_fs = float(raw.info["sfreq"])  # type: ignore[index]
+        src_fs = float(raw.info["sfreq"])
 
         # Channel selection (alias normalization)
-        raw.rename_channels(_standardize_channel_name)  # type: ignore[attr-defined]
+        raw.rename_channels(_standardize_channel_name)
         available = [ch for ch in self.target_channels if ch in raw.ch_names]
         # Use explicit channel picking with ordering
-        raw.pick_channels(available, ordered=True)  # type: ignore[attr-defined]
+        raw.pick_channels(available, ordered=True)
         if self.cfg.fs and round(src_fs) != self.cfg.fs:
-            raw.resample(self.cfg.fs)  # type: ignore[attr-defined]
+            raw.resample(self.cfg.fs)
 
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
@@ -175,7 +175,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         data = raw.get_data(start=s0_fs, stop=s1_fs)  # shape (C, T) in Volts
 
         # Label window: fraction of seizure time >= threshold
-        duration_sec = float(raw.n_times) / float(self.cfg.fs)  # type: ignore[attr-defined]
+        duration_sec = float(raw.n_times) / float(self.cfg.fs)
         mask = _events_to_mask(events, duration_sec, self.cfg.fs)
         frac = float(mask[s0_fs:s1_fs].mean()) if s1_fs <= mask.shape[0] else 0.0
         y = 1 if frac >= self.cfg.positive_fraction else 0
