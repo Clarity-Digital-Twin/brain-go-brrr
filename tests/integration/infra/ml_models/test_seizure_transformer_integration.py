@@ -4,12 +4,14 @@ These tests require both TUSZ data and the wu_2025 package to be available.
 """
 
 import os
+import os
 from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 
+pytest.importorskip("mne")
 from brain_go_brrr.infra.data.tusz_detection_dataset import (
     TUSZDetectionDataset,
     WindowConfig,

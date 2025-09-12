@@ -6,12 +6,14 @@ They are marked with @pytest.mark.data and will be skipped unless
 """
 
 import os
+import os
 from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 
+pytest.importorskip("mne")
 from brain_go_brrr.infra.data.tusz_detection_dataset import (
     TUSZDetectionDataset,
     WindowConfig,
