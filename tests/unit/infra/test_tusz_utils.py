@@ -3,7 +3,62 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from brain_go_brrr.infra.data.tusz_detection_dataset import _events_to_mask, _parse_csv, _parse_tse
+from brain_go_brrr.infra.data.tusz_detection_dataset import (
+    TUSZ_TRUE_SEIZURES,
+    _events_to_mask,
+    _is_seizure_label,
+    _parse_csv,
+    _parse_tse,
+)
+
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_tusz_seizure_codes():
+    """Test that all TUSZ seizure codes are recognized."""
+    # All true seizure codes should be recognized
+    for code in TUSZ_TRUE_SEIZURES:
+        assert _is_seizure_label(code)
+        assert _is_seizure_label(code.upper())
+        assert _is_seizure_label(f"prefix_{code}_suffix")
+    
+    # Non-seizure codes should not be recognized
+    assert not _is_seizure_label("bckg")
+    assert not _is_seizure_label("background")
+    assert not _is_seizure_label("artf")
+    assert not _is_seizure_label("artifact")
+    assert not _is_seizure_label("eyem")
+    assert not _is_seizure_label("eye_movement")
+    
+    # Generic seizure labels should still work
+    assert _is_seizure_label("seizure")
+    assert _is_seizure_label("focal_seizure")
+    assert _is_seizure_label("generalized_seizure")
+
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_parse_tse_with_tusz_codes(tmp_path: Path):
+    """Test TSE parsing with actual TUSZ seizure codes."""
+    tse_file = tmp_path / "test.tse"
+    tse_file.write_text("""
+0.0 10.0 bckg
+10.0 20.0 fnsz
+20.0 30.0 artf
+30.0 40.0 gnsz
+40.0 50.0 eyem
+50.0 60.0 cpsz
+60.0 70.0 background
+70.0 80.0 tcsz
+    """.strip())
+    
+    events = _parse_tse(tse_file)
+    # Should only get the actual seizure events
+    assert len(events) == 4
+    assert events[0] == (10.0, 20.0)  # fnsz
+    assert events[1] == (30.0, 40.0)  # gnsz
+    assert events[2] == (50.0, 60.0)  # cpsz
+    assert events[3] == (70.0, 80.0)  # tcsz
 
 
 @pytest.mark.unit
@@ -24,19 +79,20 @@ def test_parse_tse_and_events_to_mask(tmp_path: Path):
     )
 
     events = _parse_tse(tse)
-    # Should only return lines with 'seiz' in label (case-insensitive)
-    assert len(events) == 3  # seiz, seiz, focal_seizure
+    # Should return FNSZ (TUSZ code) and lines with 'seiz' in label
+    assert len(events) == 4  # seiz, FNSZ, seiz, focal_seizure
     assert events[0] == (0.0, 1.0)  # seiz
-    assert events[1] == (10.0, 10.5)  # seiz
-    assert events[2] == (35.0, 40.0)  # focal_seizure
+    assert events[1] == (5.0, 7.5)  # FNSZ (TUSZ seizure code)
+    assert events[2] == (10.0, 10.5)  # seiz
+    assert events[3] == (35.0, 40.0)  # focal_seizure
 
     # Convert to mask at 256 Hz over duration 45 s
     fs = 256
     dur = 45.0
     mask = _events_to_mask(events, dur, fs)
     assert mask.dtype == np.bool_
-    # Check approximate number of positive samples: 1.0 + 0.5 + 5.0 = 6.5 s
-    assert mask.sum() == pytest.approx(int(6.5 * fs), rel=0.01)
+    # Check approximate number of positive samples: 1.0 + 2.5 + 0.5 + 5.0 = 9.0 s
+    assert mask.sum() == pytest.approx(int(9.0 * fs), rel=0.01)
 
 
 @pytest.mark.unit
@@ -122,23 +178,52 @@ not_a_number 20.0 seizure
 
 @pytest.mark.unit
 @pytest.mark.synth
+def test_parse_csv_tusz_format(tmp_path: Path):
+    """Test CSV parsing with actual TUSZ CSV format."""
+    csv_file = tmp_path / "test.csv"
+    csv_file.write_text(
+        """
+channel,start_time,stop_time,label,confidence
+FP1-F7,0.0,10.0,bckg,1.0
+FP1-F7,10.0,20.0,fnsz,1.0
+F7-T3,20.0,30.0,artf,1.0
+F7-T3,30.0,40.0,gnsz,1.0
+T3-T5,40.0,50.0,eyem,1.0
+T3-T5,50.0,60.0,mysz,1.0
+T5-O1,60.0,70.0,absz,1.0
+    """.strip()
+    )
+    
+    events = _parse_csv(csv_file)
+    # Should only get the actual seizure events
+    assert len(events) == 4
+    assert events[0] == (10.0, 20.0)  # fnsz
+    assert events[1] == (30.0, 40.0)  # gnsz  
+    assert events[2] == (50.0, 60.0)  # mysz
+    assert events[3] == (60.0, 70.0)  # absz
+
+
+@pytest.mark.unit
+@pytest.mark.synth
 def test_parse_csv_edge_cases(tmp_path: Path):
     """Test CSV parser handles edge cases correctly with same seizure-only semantics."""
-    # Test 1: Comma-delimited CSV
+    # Test 1: Comma-delimited CSV with TUSZ codes
     csv_comma = tmp_path / "comma.csv"
     csv_comma.write_text(
         """
-0.0,10.0,background
-10.0,20.0,seizure_type_1
-20.0,30.0,artifact
+0.0,10.0,bckg
+10.0,20.0,fnsz
+20.0,30.0,artf
 30.0,40.0,focal_seizure
-40.0,50.0
+40.0,50.0,gnsz
+50.0,60.0
     """.strip()
     )
     events = _parse_csv(csv_comma)
-    assert len(events) == 2  # Only seizure lines
-    assert events[0] == (10.0, 20.0)
-    assert events[1] == (30.0, 40.0)
+    assert len(events) == 3  # Only seizure lines
+    assert events[0] == (10.0, 20.0)  # fnsz
+    assert events[1] == (30.0, 40.0)  # focal_seizure
+    assert events[2] == (40.0, 50.0)  # gnsz
 
     # Test 2: Space-delimited CSV (like TSE)
     csv_space = tmp_path / "space.csv"
