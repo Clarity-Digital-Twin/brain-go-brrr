@@ -144,9 +144,9 @@ def main():
         root_dir=tusz_root,
         split="train",
         cfg=cfg,
-        max_windows=10000,  # Start with 10k windows to avoid memory crash
+        max_windows=1000,  # Start with 1k windows for quick testing
         preprocessor=preprocessor,  # Use SSOT preprocessing
-        ensure_unipolar=True,  # Enforce unipolar montage
+        ensure_unipolar=False,  # TUSZ has mixed montages
         return_timestep_labels=True,  # Use per-timestep labels for training
     )
 
@@ -160,9 +160,9 @@ def main():
             stride_sec=30.0,  # Some overlap to get more windows
             positive_fraction=0.2,  # Same as training
         ),
-        max_windows=5000,  # More windows for better class balance
+        max_windows=500,  # Smaller validation set for quick testing
         preprocessor=preprocessor,  # Use SSOT preprocessing
-        ensure_unipolar=True,  # Enforce unipolar montage
+        ensure_unipolar=False,  # TUSZ has mixed montages
         return_timestep_labels=False,  # Use scalar labels for validation AUROC
     )
 
