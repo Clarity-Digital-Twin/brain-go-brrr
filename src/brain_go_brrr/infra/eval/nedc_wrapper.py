@@ -31,8 +31,8 @@ class NEDCClinicalEvaluator:
 
     def compute_all_metrics(
         self,
-        predictions: "Iterable[tuple[float, float]]",
-        ground_truth: "Iterable[tuple[float, float]]",
+        predictions: Iterable[tuple[float, float]],
+        ground_truth: Iterable[tuple[float, float]],
         duration_hours: float,
     ) -> dict[str, float]:
         """Compute proxy metrics approximating clinical KPIs.

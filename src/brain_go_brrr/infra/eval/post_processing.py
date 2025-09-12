@@ -42,7 +42,7 @@ class AdvancedPostProcessor:
                 i += 1
         return events
 
-    def _merge(self, events: "Sequence[tuple[int, int, float]]") -> list[tuple[int, int, float]]:
+    def _merge(self, events: Sequence[tuple[int, int, float]]) -> list[tuple[int, int, float]]:
         if not events:
             return []
         gap = round(self.merge_gap_sec * self.fs)
@@ -59,7 +59,7 @@ class AdvancedPostProcessor:
         return merged
 
     def _filter_min_dur(
-        self, events: "Sequence[tuple[int, int, float]]"
+        self, events: Sequence[tuple[int, int, float]]
     ) -> list[tuple[int, int, float]]:
         min_len = round(self.min_duration_sec * self.fs)
         return [(s, e, c) for s, e, c in events if (e - s) >= min_len]
