@@ -206,11 +206,11 @@ class SeizureTransformerWrapper:
 
     def _preprocess_clip(self, eeg: np.ndarray, fs_original: int | None = None) -> np.ndarray:
         """Helper method for integration tests to preprocess a single EEG clip.
-        
+
         Args:
             eeg: Raw EEG data of shape (C, T)
             fs_original: Original sampling rate (defaults to self.fs if not provided)
-            
+
         Returns:
             Preprocessed EEG data ready for model input
         """
