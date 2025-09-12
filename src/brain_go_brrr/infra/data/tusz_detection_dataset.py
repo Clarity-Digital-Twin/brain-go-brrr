@@ -79,6 +79,37 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
     return events
 
 
+def _parse_csv(path: Path) -> list[tuple[float, float]]:
+    """Parse CSV sidecar for seizure annotations ONLY.
+
+    Accepts flexible delimiters (comma or whitespace). Expects at least
+    start, end, and an optional label field. Only lines whose label contains
+    the substring 'seiz' (case-insensitive) are treated as seizures.
+    """
+    events: list[tuple[float, float]] = []
+    if not path.exists():
+        return events
+    with path.open("r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            # Split on comma first, then fallback to whitespace
+            parts = [p for p in s.replace(",", " ").split() if p]
+            if len(parts) < 2:
+                continue
+            label = parts[2].lower() if len(parts) > 2 else ""
+            if "seiz" in label:
+                try:
+                    start = float(parts[0])
+                    end = float(parts[1])
+                    if end > start:
+                        events.append((start, end))
+                except ValueError:
+                    continue
+    return events
+
+
 def _events_to_mask(
     events: Iterable[tuple[float, float]], duration_sec: float, fs: int
 ) -> npt.NDArray[np.bool_]:
@@ -138,7 +169,11 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         for edf in edfs:
             tse = edf.with_suffix(".tse")
             csv = edf.with_suffix(".csv")
-            events = _parse_tse(tse) if tse.exists() else _parse_tse(csv)
+            events: list[tuple[float, float]] = []
+            if tse.exists():
+                events = _parse_tse(tse)
+            elif csv.exists():
+                events = _parse_csv(csv)
             self._records.append(
                 {
                     "edf": edf,
@@ -193,35 +228,27 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
         # Channel selection (alias normalization)
         raw.rename_channels(_standardize_channel_name)
-        available = [ch for ch in self.target_channels if ch in raw.ch_names]
-        
+
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
         
-        # Handle case where no matching channels found
-        if not available:
-            # Create dummy data with zeros for all target channels
-            data = np.zeros((len(self.target_channels), win), dtype=np.float32)
-        else:
-            # Use pick() method to select available channels
-            raw.pick(available)
-            if self.cfg.fs and round(src_fs) != self.cfg.fs:
-                raw.resample(self.cfg.fs)
-            data = raw.get_data(start=s0_fs, stop=s1_fs)  # shape (C, T) in Volts
-        
-        # CRITICAL: Ensure exactly 19 channels by padding with zeros if needed
+        # Resample raw to target fs if needed (operate in-place to keep channel names)
+        if self.cfg.fs and round(src_fs) != self.cfg.fs:
+            raw.resample(self.cfg.fs)
+
+        # Prepare data in canonical order with zero-fill for missing channels
         n_expected_channels = len(self.target_channels)
-        if data.shape[0] < n_expected_channels:
-            # Pad with zeros for missing channels
-            padding = np.zeros((n_expected_channels - data.shape[0], data.shape[1]), dtype=np.float32)
-            data = np.vstack([data, padding])
-        elif data.shape[0] > n_expected_channels:
-            # Truncate extra channels (shouldn't happen with our logic)
-            data = data[:n_expected_channels, :]
+        data = np.zeros((n_expected_channels, win), dtype=np.float32)
+        for i, ch in enumerate(self.target_channels):
+            if ch in raw.ch_names:
+                ch_idx = raw.ch_names.index(ch)
+                # Use get_data to respect MNE scaling and preload behavior
+                data[i] = raw.get_data(picks=[ch_idx], start=s0_fs, stop=s1_fs)[0]
 
         # Label window: fraction of seizure time >= threshold
-        duration_sec = float(raw.n_times) / float(self.cfg.fs)
+        # Events are in seconds; compute recording duration in seconds using source fs
+        duration_sec = float(raw.n_times) / float(raw.info["sfreq"])  # seconds
         mask = _events_to_mask(events, duration_sec, self.cfg.fs)
         frac = float(mask[s0_fs:s1_fs].mean()) if s1_fs <= mask.shape[0] else 0.0
         y = 1 if frac >= self.cfg.positive_fraction else 0
