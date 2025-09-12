@@ -5,6 +5,11 @@ CRITICAL: These are the ONLY valid channel configurations.
 - TUEV: 20 channels (with Fz and Fpz, no Oz)
 """
 
+from __future__ import annotations
+
+import numpy as np
+import numpy.typing as npt
+
 # TUAB standard: 19 channels (NO Fz) per EEGPT paper
 # Using standard 10-20 mixed case naming (Fp not FP, Cz not CZ, etc.)
 CHANNELS_TUAB_19 = [
@@ -164,12 +169,42 @@ def map_channels_to_indices(
     return mapping
 
 
-# Export key constants
+def map_to_canonical(
+    data: npt.NDArray[np.float32],
+    channel_names: list[str],
+    target_channels: list[str] | None = None,
+) -> tuple[npt.NDArray[np.float32], list[str]]:
+    """Map/pad `data` into `target_channels` order with zero-fill for missing.
+
+    Applies alias normalization and returns (prepared_data, channel_info).
+    - prepared_data: (len(target_channels), T)
+    - channel_info: channel name placed at each slot or f"<name>_missing"
+    """
+    if target_channels is None:
+        target_channels = CHANNELS_TUAB_19
+
+    # Normalize source names with aliases
+    normalized = [CHANNEL_ALIASES.get(ch, ch) for ch in channel_names]
+
+    n_samples = data.shape[1]
+    prepared = np.zeros((len(target_channels), n_samples), dtype=np.float32)
+    info: list[str] = []
+    for i, tgt in enumerate(target_channels):
+        if tgt in normalized:
+            src_idx = normalized.index(tgt)
+            prepared[i] = data[src_idx]
+            info.append(tgt)
+        else:
+            info.append(f"{tgt}_missing")
+    return prepared, info
+
+
 __all__ = [
     "CHANNELS_10_20_FULL",
     "CHANNELS_TUAB_19",
     "CHANNELS_TUEV_20",
     "CHANNEL_ALIASES",
     "map_channels_to_indices",
+    "map_to_canonical",
     "validate_channels",
 ]
