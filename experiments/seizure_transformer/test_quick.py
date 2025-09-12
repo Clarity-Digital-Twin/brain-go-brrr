@@ -2,7 +2,7 @@
 """Quick test of SeizureTransformer with minimal data."""
 
 import torch
-from wu_2025.architecture import SeizureTransformer
+from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
 
 # Test the model works
 model = SeizureTransformer(
