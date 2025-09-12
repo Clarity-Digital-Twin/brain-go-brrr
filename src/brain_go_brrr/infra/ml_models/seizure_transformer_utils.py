@@ -158,7 +158,7 @@ class SeizurePostProcessor:
         # Check each event's duration
         for i in range(1, num_features + 1):
             event_mask = labeled == i
-            event_length = np.sum(event_mask)
+            event_length: int = int(np.sum(event_mask))
             if event_length < self.min_duration_samples:
                 binary[event_mask] = 0
         
@@ -197,7 +197,7 @@ def standardize_channel_names(channel_names: list[str]) -> list[str]:
 def prepare_channels(
     data: npt.NDArray[np.float32],
     channel_names: list[str],
-    target_channels: list[str] = None
+    target_channels: list[str] | None = None
 ) -> tuple[npt.NDArray[np.float32], list[str]]:
     """Prepare channels for SeizureTransformer (19 channels, canonical order).
     
