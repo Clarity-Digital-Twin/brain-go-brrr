@@ -5,6 +5,7 @@ They are marked with @pytest.mark.data and will be skipped unless
 --run-data is passed and BGB_DATA_ROOT is set.
 """
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -21,11 +22,12 @@ from brain_go_brrr.infra.data.tusz_detection_dataset import (
 @pytest.mark.integration
 def test_tusz_dataset_loads_real_dev_recording():
     """Test loading actual TUSZ dev set recording."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     # Use small window for quick test
     cfg = WindowConfig(
@@ -70,11 +72,12 @@ def test_tusz_dataset_loads_real_dev_recording():
 @pytest.mark.integration
 def test_tusz_dataset_channel_aliasing():
     """Test that old channel names (T3/T4/T5/T6) are properly aliased."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     cfg = WindowConfig(fs=256, window_sec=4.0, stride_sec=4.0)
     ds = TUSZDetectionDataset(root_dir=tusz_root, split="dev", cfg=cfg)
@@ -91,11 +94,12 @@ def test_tusz_dataset_channel_aliasing():
 @pytest.mark.slow
 def test_tusz_dataset_seizure_labeling():
     """Test that seizure events from annotations create positive labels."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     # Use longer windows to increase chance of capturing seizures
     cfg = WindowConfig(
@@ -132,11 +136,12 @@ def test_tusz_dataset_seizure_labeling():
 @pytest.mark.integration
 def test_tusz_dataset_deterministic_indexing():
     """Test that dataset indexing is deterministic."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     cfg = WindowConfig(fs=256, window_sec=4.0, stride_sec=2.0)
 

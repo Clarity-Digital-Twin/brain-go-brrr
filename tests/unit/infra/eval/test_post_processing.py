@@ -42,3 +42,31 @@ def test_gap_merge_and_min_duration():
     start_sec, end_sec, _ = events[0]
     # Duration should be >= min_duration
     assert (end_sec - start_sec) >= 0.1
+
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_merge_boundary_inclusive():
+    fs = 100
+    # Two events separated by exactly merge_gap -> should merge
+    probs = np.zeros(400, dtype=float)
+    probs[10:20] = 0.9
+    probs[30:40] = 0.9
+    gap_sec = (30 - 20) / fs
+    p = AdvancedPostProcessor(hysteresis=(0.5, 0.7), merge_gap_sec=gap_sec, min_duration_sec=0.0, fs=fs)
+    events = p.apply(probs)
+    assert len(events) == 1
+
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_min_duration_boundary_inclusive():
+    fs = 50
+    # One event with length exactly min_duration -> should be kept
+    probs = np.zeros(200, dtype=float)
+    start, end = 10, 20
+    probs[start:end] = 0.9
+    min_dur = (end - start) / fs
+    p = AdvancedPostProcessor(hysteresis=(0.5, 0.7), merge_gap_sec=0.0, min_duration_sec=min_dur, fs=fs)
+    events = p.apply(probs)
+    assert len(events) == 1
