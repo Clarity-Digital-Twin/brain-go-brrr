@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
+from brain_go_brrr.infra.data.channels import CHANNELS_TUAB_19 as CANONICAL_CHANNELS
 from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
-    CANONICAL_CHANNELS,
     SeizurePostProcessor,
     SeizurePreprocessor,
     prepare_channels,
