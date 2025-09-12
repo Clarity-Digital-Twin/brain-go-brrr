@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from brain_go_brrr.infra.data.tusz_detection_dataset import _parse_tse, _events_to_mask
+from brain_go_brrr.infra.data.tusz_detection_dataset import _events_to_mask, _parse_tse
 
 
 @pytest.mark.unit
