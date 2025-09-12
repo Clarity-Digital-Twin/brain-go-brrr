@@ -100,14 +100,10 @@ class SeizureTransformerWrapper:
         """
         if isinstance(state, dict) and "state_dict" in state:
             state = state["state_dict"]
-        state = {
-            k.replace("module.", "").replace("model.", ""): v for k, v in state.items()
-        }
+        state = {k.replace("module.", "").replace("model.", ""): v for k, v in state.items()}
         missing, unexpected = model.load_state_dict(state, strict=False)
         if missing or unexpected:
-            raise RuntimeError(
-                f"State dict mismatch:\nmissing={missing}\nunexpected={unexpected}"
-            )
+            raise RuntimeError(f"State dict mismatch:\nmissing={missing}\nunexpected={unexpected}")
 
     def _ensure_canonical_channels(
         self, eeg: npt.NDArray[np.float32], channel_names: list[str] | None = None
@@ -119,9 +115,7 @@ class SeizureTransformerWrapper:
         """
         if channel_names is not None:
             # SSOT: map to canonical using shared mapper
-            prepared, _ = map_to_canonical(
-                eeg, channel_names, CHANNELS_TUAB_19[: self.n_channels]
-            )
+            prepared, _ = map_to_canonical(eeg, channel_names, CHANNELS_TUAB_19[: self.n_channels])
             return prepared
         else:
             # Just ensure correct number of channels

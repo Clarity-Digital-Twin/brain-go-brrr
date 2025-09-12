@@ -94,4 +94,3 @@ __all__ = [
     "is_seizure_label",
     "merge_intervals",
 ]
-
