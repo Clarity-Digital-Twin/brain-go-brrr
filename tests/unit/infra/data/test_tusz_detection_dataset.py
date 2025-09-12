@@ -86,9 +86,11 @@ def test_tusz_detection_dataset_minimal_flow(tmp_path: Path, monkeypatch):
         ]
         return _FakeRaw(data=data, sfreq=float(fs), ch_names=ch_names)
 
-    import mne  # type: ignore  # noqa: WPS433
-
-    monkeypatch.setattr(mne.io, "read_raw_edf", _fake_read_raw_edf, raising=True)
+    # Patch the dataset module's mne symbol to a minimal stub
+    import types
+    from brain_go_brrr.infra.data import tusz_detection_dataset as tdd
+    fake_mne = types.SimpleNamespace(io=types.SimpleNamespace(read_raw_edf=_fake_read_raw_edf))
+    monkeypatch.setattr(tdd, "mne", fake_mne, raising=True)
 
     cfg = WindowConfig(fs=256, window_sec=1.0, stride_sec=1.0, positive_fraction=0.2)
     ds = TUSZDetectionDataset(root_dir=root, split="train", cfg=cfg)
@@ -100,4 +102,3 @@ def test_tusz_detection_dataset_minimal_flow(tmp_path: Path, monkeypatch):
     assert x.shape[1] == int(cfg.window_sec * cfg.fs)
     # First window overlaps fully with 0-2s seizure => positive label
     assert int(y.item()) == 1
-
