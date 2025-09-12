@@ -35,6 +35,31 @@ from brain_go_brrr.infra.ml_models.seizure_transformer_utils import prepare_chan
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+# TUSZ seizure type codes from official documentation
+# https://isip.piconepress.com/projects/tuh_eeg/downloads/tuh_eeg_seizure/v2.0.0/_DOCS/
+TUSZ_SEIZURE_CODES = {
+    "fnsz",  # focal non-specific seizure
+    "gnsz",  # generalized non-specific seizure  
+    "spsz",  # simple partial seizure
+    "cpsz",  # complex partial seizure
+    "absz",  # absence seizure
+    "tnsz",  # tonic seizure
+    "tcsz",  # tonic-clonic seizure
+    "gtsz",  # generalized tonic-clonic seizure
+    "mysz",  # myoclonic seizure
+    "nesz",  # non-epileptic seizure
+    "unsz",  # unclassified seizure
+    "spsw",  # spike-and-wave
+    "gped",  # generalized periodic epileptiform discharges
+    "pled",  # periodic lateralized epileptiform discharges
+    "eyem",  # eye movement (but not a seizure)
+    "artf",  # artifact (but not a seizure)
+    "bckg",  # background (but not a seizure)
+}
+
+# Only actual seizure types (exclude eye movement, artifact, background)
+TUSZ_TRUE_SEIZURES = TUSZ_SEIZURE_CODES - {"eyem", "artf", "bckg"}
+
 
 @dataclass(frozen=True)
 class WindowConfig:
@@ -48,12 +73,28 @@ def _standardize_channel_name(name: str) -> str:
     return CHANNEL_ALIASES.get(name, name)
 
 
+def _is_seizure_label(label: str) -> bool:
+    """Check if a label represents a seizure event.
+    
+    Handles both TUSZ codes (fnsz, gnsz, etc.) and generic labels containing 'seiz'.
+    """
+    label_lower = label.lower()
+    
+    # Check TUSZ-specific codes
+    for code in TUSZ_TRUE_SEIZURES:
+        if code in label_lower:
+            return True
+    
+    # Fallback: check for 'seiz' substring (for non-TUSZ datasets)
+    return "seiz" in label_lower
+
+
 def _parse_tse(path: Path) -> list[tuple[float, float]]:
     """Parse TSE file for seizure annotations ONLY.
 
     TSE format:
     - start_time end_time [label]
-    - Only lines with 'seiz' in label are seizures
+    - Recognizes TUSZ seizure codes (fnsz, gnsz, etc.) and generic 'seiz' labels
     - Background/artifact/other labels are ignored
     """
     events: list[tuple[float, float]] = []
@@ -67,9 +108,9 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
             parts = s.split()
             if len(parts) < 2:
                 continue
-            # CRITICAL FIX: Only accept seizure annotations
-            label = parts[2].lower() if len(parts) > 2 else ""
-            if "seiz" in label:  # Fixed: removed "or len(parts) >= 2"
+            # Check if this is a seizure annotation
+            label = " ".join(parts[2:]) if len(parts) > 2 else ""
+            if _is_seizure_label(label):
                 try:
                     start = float(parts[0])
                     end = float(parts[1])
@@ -83,28 +124,47 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
 def _parse_csv(path: Path) -> list[tuple[float, float]]:
     """Parse CSV sidecar for seizure annotations ONLY.
 
-    Accepts flexible delimiters (comma or whitespace). Expects at least
-    start, end, and an optional label field. Only lines whose label contains
-    the substring 'seiz' (case-insensitive) are treated as seizures.
+    CSV format can be either:
+    - channel,start_time,stop_time,label,confidence (TUSZ format)
+    - start,end,label (simple format)
+    
+    Recognizes TUSZ seizure codes and generic 'seiz' labels.
     """
     events: list[tuple[float, float]] = []
     if not path.exists():
         return events
     with path.open("r", encoding="utf-8", errors="ignore") as f:
-        for line in f:
+        for line_num, line in enumerate(f, 1):
             s = line.strip()
             if not s or s.startswith("#"):
                 continue
+                
+            # Skip header if present
+            if line_num == 1 and ("start" in s.lower() or "channel" in s.lower()):
+                continue
+                
             # Split on comma first, then fallback to whitespace
             parts = [p for p in s.replace(",", " ").split() if p]
-            if len(parts) < 2:
-                continue
-            label = parts[2].lower() if len(parts) > 2 else ""
-            if "seiz" in label:
+            
+            # TUSZ CSV format: channel,start,stop,label,confidence
+            # Simple format: start,end,label
+            if len(parts) >= 3:
                 try:
-                    start = float(parts[0])
-                    end = float(parts[1])
-                    if end > start:
+                    # Check if first field is a channel name (contains letters)
+                    if any(c.isalpha() for c in parts[0]):
+                        # TUSZ format - skip channel field
+                        if len(parts) >= 4:
+                            start = float(parts[1])
+                            end = float(parts[2])
+                            label = parts[3] if len(parts) > 3 else ""
+                    else:
+                        # Simple format
+                        start = float(parts[0])
+                        end = float(parts[1])
+                        label = " ".join(parts[2:]) if len(parts) > 2 else ""
+                    
+                    # Check if this is a seizure annotation
+                    if _is_seizure_label(label) and end > start:
                         events.append((start, end))
                 except ValueError:
                     continue
