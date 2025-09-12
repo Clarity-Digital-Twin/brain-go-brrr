@@ -13,6 +13,7 @@ Notes:
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -21,6 +22,7 @@ import numpy as np
 import numpy.typing as npt
 import torch
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 try:
     import mne
@@ -96,6 +98,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         split: str = "train",
         cfg: WindowConfig | None = None,
         target_channels: list[str] | None = None,
+        max_windows: int | None = None,
     ) -> None:
         """Initialize the TUSZ detection dataset.
 
@@ -104,6 +107,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             split: Dataset split ('train', 'dev', 'test').
             cfg: Window configuration for sliding window extraction.
             target_channels: List of target channel names to use.
+            max_windows: Maximum number of windows to index (for memory efficiency).
         """
         if mne is None:  # pragma: no cover
             raise RuntimeError("mne is required to load TUSZ EDF files. Install with `uv add mne`.")
@@ -113,6 +117,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         self.cfg = cfg or WindowConfig()
         # Default to TUAB 19-channel set as our SSOT; adjust if needed
         self.target_channels = target_channels or CHANNELS_TUAB_19
+        self.max_windows = max_windows
 
         self._records: list[dict[str, Any]] = []
         self._index: list[tuple[int, int]] = []  # (record_idx, window_start_sample@cfg.fs)
@@ -138,15 +143,33 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         fs = self.cfg.fs
         win = round(self.cfg.window_sec * fs)
         stride = round(self.cfg.stride_sec * fs)
-        for ridx, rec in enumerate(self._records):
-            raw = mne.io.read_raw_edf(str(rec["edf"]), preload=False, verbose="ERROR")
-            duration_sec = float(raw.n_times) / float(raw.info["sfreq"])
+        print(f"Building index for {len(self._records)} recordings...")
+        
+        for ridx, rec in enumerate(tqdm(self._records, desc="Indexing recordings")):
+            if self.max_windows and len(self._index) >= self.max_windows:
+                warnings.warn(f"Reached max_windows={self.max_windows}, stopping indexing")
+                break
+            
+            # CRITICAL FIX: Don't preload, just get info
+            try:
+                raw = mne.io.read_raw_edf(str(rec["edf"]), preload=False, verbose="ERROR")
+                duration_sec = float(raw.n_times) / float(raw.info["sfreq"])
+                # Immediately delete raw to free memory
+                del raw
+            except Exception as e:
+                warnings.warn(f"Skipping {rec['edf']}: {e}")
+                continue
+                
             n_target = round(duration_sec * fs)
             if n_target < win:
                 continue
             starts = range(0, n_target - win + 1, stride)
             for s in starts:
+                if self.max_windows and len(self._index) >= self.max_windows:
+                    break
                 self._index.append((ridx, s))
+        
+        print(f"Indexed {len(self._index)} windows from {len(self._records)} recordings")
 
     def __len__(self) -> int:
         return len(self._index)

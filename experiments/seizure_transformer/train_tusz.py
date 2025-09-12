@@ -114,12 +114,13 @@ def main():
         positive_fraction=0.2,  # Balance positive samples
     )
 
-    # Create datasets
-    print("Loading TUSZ training set...")
+    # Create datasets with memory-efficient loading
+    print("Loading TUSZ training set (memory-efficient mode)...")
     train_ds = TUSZDetectionDataset(
         root_dir=tusz_root,
         split="train",
         cfg=cfg,
+        max_windows=10000,  # Start with 10k windows to avoid memory crash
     )
 
     print("Loading TUSZ dev set...")
@@ -131,25 +132,28 @@ def main():
             window_sec=60.0,
             stride_sec=60.0,  # No overlap for validation
         ),
+        max_windows=2000,  # Limit validation set too
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
 
-    # Create dataloaders
+    # Create dataloaders with optimized settings
     train_loader = DataLoader(
         train_ds,
-        batch_size=16,  # Adjust based on GPU memory
+        batch_size=8,  # Reduced batch size for 41M param model
         shuffle=True,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=2,  # Reduced workers to save memory
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=True,  # Keep workers alive between epochs
     )
 
     val_loader = DataLoader(
         val_ds,
-        batch_size=32,
+        batch_size=16,  # Reduced batch size
         shuffle=False,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=2,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=True,
     )
 
     # Initialize model
