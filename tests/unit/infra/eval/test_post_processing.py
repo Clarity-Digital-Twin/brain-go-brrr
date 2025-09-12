@@ -53,7 +53,9 @@ def test_merge_boundary_inclusive():
     probs[10:20] = 0.9
     probs[30:40] = 0.9
     gap_sec = (30 - 20) / fs
-    p = AdvancedPostProcessor(hysteresis=(0.5, 0.7), merge_gap_sec=gap_sec, min_duration_sec=0.0, fs=fs)
+    p = AdvancedPostProcessor(
+        hysteresis=(0.5, 0.7), merge_gap_sec=gap_sec, min_duration_sec=0.0, fs=fs
+    )
     events = p.apply(probs)
     assert len(events) == 1
 
@@ -67,6 +69,8 @@ def test_min_duration_boundary_inclusive():
     start, end = 10, 20
     probs[start:end] = 0.9
     min_dur = (end - start) / fs
-    p = AdvancedPostProcessor(hysteresis=(0.5, 0.7), merge_gap_sec=0.0, min_duration_sec=min_dur, fs=fs)
+    p = AdvancedPostProcessor(
+        hysteresis=(0.5, 0.7), merge_gap_sec=0.0, min_duration_sec=min_dur, fs=fs
+    )
     events = p.apply(probs)
     assert len(events) == 1
