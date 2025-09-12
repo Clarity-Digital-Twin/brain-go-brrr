@@ -22,6 +22,7 @@ from brain_go_brrr.infra.data.tusz_detection_dataset import (
     TUSZDetectionDataset,
     WindowConfig,
 )
+from brain_go_brrr.infra.ml_models.seizure_transformer_utils import SeizurePreprocessor
 
 
 def train_epoch(
@@ -68,25 +69,26 @@ def validate(
     with torch.no_grad():
         for x, y in tqdm(dataloader, desc="Validating"):
             x = x.to(device)
-            y = y.to(device).float()
+            y = y.to(device).float()  # Now scalar labels (B,)
 
             # Forward pass
-            logits = model(x)
+            logits = model(x)  # (B, 15360)
             probs = torch.sigmoid(logits)
 
-            # Compute loss
+            # Compute loss - expand scalar labels to match timesteps
             y_expanded = y.unsqueeze(1).expand(-1, logits.shape[1])
             loss = nn.functional.binary_cross_entropy_with_logits(logits, y_expanded)
             total_loss += loss.item()
 
-            # Store predictions for AUROC
-            all_preds.append(probs.cpu().numpy())
+            # Store window-level predictions for AUROC
+            window_probs = probs.mean(dim=1)  # Average across timesteps
+            all_preds.append(window_probs.cpu().numpy())
             all_labels.append(y.cpu().numpy())
 
     # Compute AUROC
     from sklearn.metrics import roc_auc_score
 
-    all_preds = np.concatenate([p.mean(axis=1) for p in all_preds])  # Average per window
+    all_preds = np.concatenate(all_preds)  # Already window-level
     all_labels = np.concatenate(all_labels)
 
     # Handle case where only one class is present
@@ -119,6 +121,9 @@ def main():
         positive_fraction=0.2,  # Balance positive samples
     )
 
+    # Create SSOT preprocessor
+    preprocessor = SeizurePreprocessor(target_fs=256)
+
     # Create datasets with memory-efficient loading
     print("Loading TUSZ training set (memory-efficient mode)...")
     train_ds = TUSZDetectionDataset(
@@ -126,6 +131,8 @@ def main():
         split="train",
         cfg=cfg,
         max_windows=10000,  # Start with 10k windows to avoid memory crash
+        preprocessor=preprocessor,  # Use SSOT preprocessing
+        ensure_unipolar=True,  # Enforce unipolar montage
         return_timestep_labels=True,  # Use per-timestep labels for training
     )
 
@@ -140,7 +147,9 @@ def main():
             positive_fraction=0.2,  # Same as training
         ),
         max_windows=5000,  # More windows for better class balance
-        return_timestep_labels=True,  # Use per-timestep labels for validation
+        preprocessor=preprocessor,  # Use SSOT preprocessing
+        ensure_unipolar=True,  # Enforce unipolar montage
+        return_timestep_labels=False,  # Use scalar labels for validation AUROC
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
