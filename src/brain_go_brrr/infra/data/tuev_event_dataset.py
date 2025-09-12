@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
-from tqdm import tqdm  # type: ignore[import-untyped]
+from tqdm import tqdm
 
 from brain_go_brrr.infra.preprocessing.tuev_event_extractor import TUEVEventExtractor
 

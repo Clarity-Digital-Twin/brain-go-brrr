@@ -36,16 +36,13 @@ def train_epoch(
 
     for batch_idx, (x, y) in enumerate(tqdm(dataloader, desc="Training")):
         x = x.to(device)  # (B, 19, 15360)
-        y = y.to(device).float()  # (B,) binary labels
+        y = y.to(device).float()  # (B, 15360) per-timestep labels
 
         # Forward pass - model expects (B, C, T)
         logits = model(x)  # (B, 15360) per-timestep predictions
 
-        # Create per-timestep labels
-        y_expanded = y.unsqueeze(1).expand(-1, logits.shape[1])  # (B, 15360)
-
-        # Binary cross-entropy loss
-        loss = nn.functional.binary_cross_entropy_with_logits(logits, y_expanded)
+        # Binary cross-entropy loss with per-timestep labels
+        loss = nn.functional.binary_cross_entropy_with_logits(logits, y)
 
         # Backward pass
         optimizer.zero_grad()
@@ -91,14 +88,22 @@ def validate(
 
     all_preds = np.concatenate([p.mean(axis=1) for p in all_preds])  # Average per window
     all_labels = np.concatenate(all_labels)
-    auroc = roc_auc_score(all_labels, all_preds)
+
+    # Handle case where only one class is present
+    if len(np.unique(all_labels)) == 1:
+        print(f"Warning: Only one class in validation set (all {all_labels[0]}s)")
+        auroc = 0.5  # Default AUROC for single class
+    else:
+        auroc = roc_auc_score(all_labels, all_preds)
 
     return total_loss / len(dataloader), auroc
 
 
 def main():
     # Configuration
-    data_root = os.environ.get("BGB_DATA_ROOT")
+    data_root = os.environ.get(
+        "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+    )
     if not data_root:
         raise ValueError("BGB_DATA_ROOT environment variable not set")
 
@@ -114,12 +119,14 @@ def main():
         positive_fraction=0.2,  # Balance positive samples
     )
 
-    # Create datasets
-    print("Loading TUSZ training set...")
+    # Create datasets with memory-efficient loading
+    print("Loading TUSZ training set (memory-efficient mode)...")
     train_ds = TUSZDetectionDataset(
         root_dir=tusz_root,
         split="train",
         cfg=cfg,
+        max_windows=10000,  # Start with 10k windows to avoid memory crash
+        return_timestep_labels=True,  # Use per-timestep labels for training
     )
 
     print("Loading TUSZ dev set...")
@@ -129,36 +136,41 @@ def main():
         cfg=WindowConfig(
             fs=256,
             window_sec=60.0,
-            stride_sec=60.0,  # No overlap for validation
+            stride_sec=30.0,  # Some overlap to get more windows
+            positive_fraction=0.2,  # Same as training
         ),
+        max_windows=5000,  # More windows for better class balance
+        return_timestep_labels=True,  # Use per-timestep labels for validation
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
 
-    # Create dataloaders
+    # Create dataloaders with optimized settings
     train_loader = DataLoader(
         train_ds,
-        batch_size=16,  # Adjust based on GPU memory
+        batch_size=8,  # Reduced batch size for 41M param model
         shuffle=True,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=2,  # Reduced workers to save memory
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=True,  # Keep workers alive between epochs
     )
 
     val_loader = DataLoader(
         val_ds,
-        batch_size=32,
+        batch_size=16,  # Reduced batch size
         shuffle=False,
-        num_workers=4,
-        pin_memory=True,
+        num_workers=2,
+        pin_memory=torch.cuda.is_available(),
+        persistent_workers=True,
     )
 
     # Initialize model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Now we can use the REAL SeizureTransformer from wu_2025!
-    print("Loading REAL SeizureTransformer from wu_2025 package...")
-    from wu_2025.architecture import SeizureTransformer
+    # Use SeizureTransformer from src - NO EXTERNAL DEPENDENCIES
+    print("Loading SeizureTransformer from src...")
+    from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
 
     # Create the actual model
     model = SeizureTransformer(

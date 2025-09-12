@@ -35,6 +35,7 @@ dev-dependencies = [
     "pytest-timeout>=2.4.0",
     "pip-audit>=2.9.0",
     "import-linter>=2.4",
+    "types-tqdm>=4.67.0.20250809",
 ]
 
 [project]

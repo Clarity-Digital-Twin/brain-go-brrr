@@ -37,7 +37,9 @@ def test_wrapper_predict_probabilities():
 
     preds = wrapper.predict(eeg, apply_postprocessing=False)
     assert preds.shape == (t,)
-    assert np.allclose(preds, 1.0)
+    # DummyModel returns logits=1.0, after sigmoid ≈ 0.731
+    expected_prob = 1 / (1 + np.exp(-1.0))  # sigmoid(1.0)
+    assert np.allclose(preds, expected_prob, rtol=1e-4)
 
 
 @pytest.mark.unit
@@ -48,8 +50,14 @@ def test_wrapper_postprocessing_default_binary():
     window_samples = 15360
     t = window_samples
 
+    # Create a model that returns high logits (2.0) so sigmoid(2.0) ≈ 0.88 > 0.8 threshold
+    class HighLogitModel(torch.nn.Module):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            b = x.shape[0]
+            return torch.ones((b, window_samples), dtype=torch.float32, device=x.device) * 2.0
+
     eeg = np.zeros((n_channels, t), dtype=np.float32)
-    model = _DummyModel(out_len=window_samples)
+    model = HighLogitModel()
     wrapper = SeizureTransformerWrapper(
         model=model, n_channels=n_channels, fs=fs, window_samples=window_samples
     )
@@ -58,5 +66,14 @@ def test_wrapper_postprocessing_default_binary():
     # Post-processing applies morphological ops which can modify edges
     # Just verify it's binary (0 or 1)
     assert np.all((out == 0) | (out == 1))
-    # Most samples should still be 1 since input was all ones
+    # Since sigmoid(2.0) ≈ 0.88 > 0.8 threshold, most should be 1
     assert np.mean(out) > 0.9
+
+
+@pytest.mark.unit
+def test_strict_weight_loader_raises_on_mismatch():
+    # Build a tiny model and a mismatched state dict
+    model = _DummyModel(out_len=10)
+    bad_state = {"some.other.key": torch.tensor(1)}
+    with pytest.raises(RuntimeError):
+        SeizureTransformerWrapper._load_weights_strict(model, bad_state)  # type: ignore[arg-type]

@@ -228,6 +228,9 @@ mlruns/
 experiments/*/checkpoints/
 experiments/*/logs/
 experiments/*/outputs/
+experiments/*/runs/**
+!experiments/*/runs/**/reports/summary.txt
+!experiments/*/runs/**/metrics/eval_metrics.json
 !experiments/**/*.py
 !experiments/**/*.yaml
 !experiments/**/*.md
@@ -404,3 +407,8 @@ coverage_html_report/
 
 # Pre-commit cache (local only)
 .pre-commit-cache/
+# Experiments and run artifacts
+experiments/*/runs/**
+!experiments/*/runs/**/reports/summary.txt
+!experiments/*/runs/**/metrics/eval_metrics.json
+!experiments/*/runs/**/reports/run.json
