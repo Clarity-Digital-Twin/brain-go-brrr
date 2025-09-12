@@ -5,11 +5,14 @@ Implements dual-threshold hysteresis, gap merging, and minimum duration filterin
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 @dataclass
@@ -39,10 +42,10 @@ class AdvancedPostProcessor:
                 i += 1
         return events
 
-    def _merge(self, events: Sequence[tuple[int, int, float]]) -> list[tuple[int, int, float]]:
+    def _merge(self, events: "Sequence[tuple[int, int, float]]") -> list[tuple[int, int, float]]:
         if not events:
             return []
-        gap = int(round(self.merge_gap_sec * self.fs))
+        gap = round(self.merge_gap_sec * self.fs)
         merged: list[tuple[int, int, float]] = []
         s0, e0, c0 = events[0]
         for s, e, c in events[1:]:
@@ -56,9 +59,9 @@ class AdvancedPostProcessor:
         return merged
 
     def _filter_min_dur(
-        self, events: Sequence[tuple[int, int, float]]
+        self, events: "Sequence[tuple[int, int, float]]"
     ) -> list[tuple[int, int, float]]:
-        min_len = int(round(self.min_duration_sec * self.fs))
+        min_len = round(self.min_duration_sec * self.fs)
         return [(s, e, c) for s, e, c in events if (e - s) >= min_len]
 
     def apply(self, probs: npt.NDArray[np.floating]) -> list[tuple[float, float, float]]:
