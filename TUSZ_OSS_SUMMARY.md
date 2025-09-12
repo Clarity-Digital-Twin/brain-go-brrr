@@ -39,6 +39,9 @@ Evaluation (clinical metrics)
   - Export hypotheses per recording in CSV/XML per NEDC spec; run evaluator to obtain official scores.
 - This repo includes a light adapter `src/brain_go_brrr/infra/eval/nedc_wrapper.py` that returns proxy metrics (sensitivity, FA/24h, TAES-like F1) to enable local experiments without the toolkit; for publication-grade results, integrate `nedc_eeg_eval` and keep the same outward API.
 
+OSS output format
+- The reference project writes TSV annotations using `epilepsy2bids` (`Annotations.saveTsv`). For parity or evaluator compatibility, export our predicted events to NEDC CSV/XML schemas or replicate the TSV and convert.
+
 Implementation guidance adopted here
 - SSOT parameters:
   - Sampling rate: 256 Hz
@@ -55,7 +58,7 @@ What we won’t do from OSS (by default)
 
 Quick pointers in this repo
 - Dataset: `src/brain_go_brrr/infra/data/tusz_detection_dataset.py` (sliding windows, 256 Hz, binary labels).
-- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe; returns probabilities by default; unipolar montage required).
+- Model: `src/brain_go_brrr/infra/ml_models/seizure_transformer_wrapper.py` (safe DI, overlap averaging, AMP-safe; unipolar montage required; applies OSS post-processing by default and returns binary predictions; set `apply_postprocessing=False` for raw probabilities).
 - Post: `src/brain_go_brrr/infra/eval/post_processing.py` (hysteresis + merge + min-duration).
 - Eval adapter: `src/brain_go_brrr/infra/eval/nedc_wrapper.py` (proxy metrics; swap internals for official NEDC).
 - Docs: `TUSZ_IMPLEMENTATION.md`, `TUSZ_ROADMAP.md`, `TUSZ_SPEC.md`.
