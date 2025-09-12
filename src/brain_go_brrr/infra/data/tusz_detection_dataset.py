@@ -286,14 +286,14 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
             else:
                 full = np.zeros((0, raw.n_times), dtype=np.float32)
 
-            # Apply SSOT preprocessing (z-score → resample → bandpass → notch)
-            full_proc = self.preprocessor.preprocess(full, fs_original=src_fs)
+            # Map to canonical order with zero-fill for missing (SSOT mapper BEFORE preprocessing)
+            prepared, _ = map_to_canonical(full, available, self.target_channels)
 
-            # Map to canonical order with zero-fill for missing
-            prepared, _ = map_to_canonical(full_proc, available, self.target_channels)
+            # Apply SSOT preprocessing (z-score → resample → bandpass → notch)
+            full_proc = self.preprocessor.preprocess(prepared, fs_original=src_fs)
 
             # Slice window in target fs
-            data = prepared[:, s0_fs:s1_fs]
+            data = full_proc[:, s0_fs:s1_fs]
         else:
             # Fallback: operate with MNE resampling and per-window extraction
             if self.cfg.fs and round(src_fs_f) != self.cfg.fs:

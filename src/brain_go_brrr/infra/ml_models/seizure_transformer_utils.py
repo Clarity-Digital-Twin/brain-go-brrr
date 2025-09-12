@@ -10,7 +10,11 @@ Different preprocessing = degraded performance.
 import numpy as np
 import numpy.typing as npt
 from scipy.signal import butter, iirnotch, lfilter, resample
-from brain_go_brrr.infra.data.channels import map_to_canonical
+from brain_go_brrr.infra.data.channels import (
+    CHANNELS_TUAB_19 as CANONICAL_CHANNELS,
+    CHANNEL_ALIASES as _CHANNEL_ALIASES,
+    map_to_canonical,
+)
 
 
 class SeizurePreprocessor:
@@ -162,38 +166,6 @@ class SeizurePostProcessor:
         return binary
 
 
-# Canonical 19-channel order for SeizureTransformer
-CANONICAL_CHANNELS = [
-    "Fp1",
-    "Fp2",
-    "F7",
-    "F3",
-    "F4",
-    "F8",
-    "T7",
-    "C3",
-    "Cz",
-    "C4",
-    "T8",
-    "P7",
-    "P3",
-    "Pz",
-    "P4",
-    "P8",
-    "O1",
-    "Oz",
-    "O2",
-]
-
-# Channel aliases for legacy names
-CHANNEL_ALIASES = {
-    "T3": "T7",
-    "T4": "T8",
-    "T5": "P7",
-    "T6": "P8",
-}
-
-
 def standardize_channel_names(channel_names: list[str]) -> list[str]:
     """Apply channel aliases to standardize names.
 
@@ -203,7 +175,7 @@ def standardize_channel_names(channel_names: list[str]) -> list[str]:
     Returns:
         List with legacy names replaced by modern equivalents
     """
-    return [CHANNEL_ALIASES.get(ch, ch) for ch in channel_names]
+    return [_CHANNEL_ALIASES.get(ch, ch) for ch in channel_names]
 
 
 def prepare_channels(

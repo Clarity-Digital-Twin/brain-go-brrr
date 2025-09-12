@@ -56,6 +56,9 @@ class SeizureTransformerWrapper:
             overlap_ratio: Overlap ratio for sliding windows (default: 0.0).
             device: Torch device for computation (default: auto-detect).
         """
+        # Enforce 256 Hz index convention (model + dataset contract)
+        if fs != 256:
+            raise ValueError("SeizureTransformerWrapper requires fs == 256 (indexing contract)")
         self.fs = fs
         self.window_samples = window_samples
         self.overlap_ratio = overlap_ratio

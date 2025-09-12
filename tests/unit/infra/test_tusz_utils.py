@@ -194,6 +194,24 @@ not_a_number 20.0 seizure
 
 @pytest.mark.unit
 @pytest.mark.synth
+def test_parse_tse_coalesces_duplicate_events(tmp_path: Path):
+    """TSE with repeated seizure lines should merge overlaps/touching intervals."""
+    tse = tmp_path / "dupe.tse"
+    tse.write_text(
+        """
+10.0 20.0 fnsz
+10.0 20.0 fnsz
+19.5 30.0 focal_seizure
+30.0 40.0 gnsz
+        """.strip()
+    )
+    events = _parse_tse(tse)
+    # (10,20) and (19.5,30) should merge to (10,30) with gap=0.0 due to overlap
+    assert events == [(10.0, 30.0), (30.0, 40.0)]
+
+
+@pytest.mark.unit
+@pytest.mark.synth
 def test_parse_csv_tusz_format(tmp_path: Path):
     """Test CSV parsing with actual TUSZ CSV format."""
     csv_file = tmp_path / "test.csv"
@@ -217,6 +235,26 @@ T5-O1,60.0,70.0,absz,1.0
     assert events[1] == (30.0, 40.0)  # gnsz
     assert events[2] == (50.0, 60.0)  # mysz
     assert events[3] == (60.0, 70.0)  # absz
+
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_parse_csv_coalesces_duplicate_channel_events(tmp_path: Path):
+    """TUSZ repeats same event per-channel; merged intervals must coalesce."""
+    csv_file = tmp_path / "dupe.csv"
+    # Two channels annotate the same seizure interval; should merge to one
+    csv_file.write_text(
+        """
+channel,start_time,stop_time,label,confidence
+Fp1-F7,10.0,20.0,fnsz,1.0
+F7-T3,10.0,20.0,fnsz,0.9
+Fp1-F7,30.0,40.0,gnsz,1.0
+F7-T3,30.0,40.0,gnsz,1.0
+        """.strip()
+    )
+
+    events = _parse_csv(csv_file)
+    assert events == [(10.0, 20.0), (30.0, 40.0)]
 
 
 @pytest.mark.unit
