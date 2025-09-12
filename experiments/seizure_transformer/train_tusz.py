@@ -91,7 +91,7 @@ def validate(
 
     all_preds = np.concatenate([p.mean(axis=1) for p in all_preds])  # Average per window
     all_labels = np.concatenate(all_labels)
-    
+
     # Handle case where only one class is present
     if len(np.unique(all_labels)) == 1:
         print(f"Warning: Only one class in validation set (all {all_labels[0]}s)")
@@ -104,7 +104,9 @@ def validate(
 
 def main():
     # Configuration
-    data_root = os.environ.get("BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data")
+    data_root = os.environ.get(
+        "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
+    )
     if not data_root:
         raise ValueError("BGB_DATA_ROOT environment variable not set")
 

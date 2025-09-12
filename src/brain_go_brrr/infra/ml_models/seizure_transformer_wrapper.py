@@ -23,10 +23,10 @@ import torch
 import torch.nn as nn
 
 from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
-    SeizurePreprocessor,
-    SeizurePostProcessor,
-    prepare_channels,
     CANONICAL_CHANNELS,
+    SeizurePostProcessor,
+    SeizurePreprocessor,
+    prepare_channels,
 )
 
 if TYPE_CHECKING:
@@ -62,7 +62,7 @@ class SeizureTransformerWrapper:
         self.overlap_ratio = overlap_ratio
         self.n_channels = n_channels
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
         # Use SSOT preprocessing and post-processing utilities
         self.preprocessor = SeizurePreprocessor(target_fs=self.fs)
         self.postprocessor = SeizurePostProcessor(fs=self.fs)
@@ -97,18 +97,18 @@ class SeizureTransformerWrapper:
         self.model.eval()
 
     def _ensure_canonical_channels(
-        self, 
-        eeg: npt.NDArray[np.float32],
-        channel_names: list[str] | None = None
+        self, eeg: npt.NDArray[np.float32], channel_names: list[str] | None = None
     ) -> npt.NDArray[np.float32]:
         """Ensure EEG data is in canonical channel order.
-        
+
         If channel names are provided, reorder/pad to canonical order.
         Otherwise, assume data is already in correct order and just validate shape.
         """
         if channel_names is not None:
             # Use the SSOT utility to prepare channels
-            prepared, _ = prepare_channels(eeg, channel_names, CANONICAL_CHANNELS[:self.n_channels])
+            prepared, _ = prepare_channels(
+                eeg, channel_names, CANONICAL_CHANNELS[: self.n_channels]
+            )
             return prepared
         else:
             # Just ensure correct number of channels
@@ -116,7 +116,7 @@ class SeizureTransformerWrapper:
             if c == self.n_channels:
                 return eeg
             elif c > self.n_channels:
-                return eeg[:self.n_channels, :]
+                return eeg[: self.n_channels, :]
             else:
                 # Pad with zeros
                 padded = np.zeros((self.n_channels, eeg.shape[1]), dtype=np.float32)
@@ -125,11 +125,11 @@ class SeizureTransformerWrapper:
 
     @torch.no_grad()
     def predict(
-        self, 
-        eeg: npt.NDArray[np.float32], 
+        self,
+        eeg: npt.NDArray[np.float32],
         fs_original: int | None = None,
         channel_names: list[str] | None = None,
-        apply_postprocessing: bool = True
+        apply_postprocessing: bool = True,
     ) -> npt.NDArray[np.float32]:
         """Return per-sample seizure predictions for a single recording.
 
@@ -143,14 +143,14 @@ class SeizureTransformerWrapper:
             predictions: Array of shape (T,) with values in [0, 1] (or binary if postprocessed).
         """
         assert eeg.ndim == 2, "expected (C, T)"
-        
+
         # Use provided fs or default
         if fs_original is None:
             fs_original = self.fs
-        
+
         # Ensure canonical channel order if names provided
         eeg = self._ensure_canonical_channels(eeg, channel_names)
-        
+
         # Apply SSOT preprocessing (z-score → resample → bandpass → notch)
         eeg = self.preprocessor.preprocess(eeg, fs_original)
         t = eeg.shape[1]

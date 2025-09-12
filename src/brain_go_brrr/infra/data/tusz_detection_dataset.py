@@ -49,7 +49,7 @@ def _standardize_channel_name(name: str) -> str:
 
 def _parse_tse(path: Path) -> list[tuple[float, float]]:
     """Parse TSE file for seizure annotations ONLY.
-    
+
     TSE format:
     - start_time end_time [label]
     - Only lines with 'seiz' in label are seizures
@@ -68,7 +68,7 @@ def _parse_tse(path: Path) -> list[tuple[float, float]]:
                 continue
             # CRITICAL FIX: Only accept seizure annotations
             label = parts[2].lower() if len(parts) > 2 else ""
-            if "seiz" in label:  # Fixed: removed "or len(parts) >= 2" 
+            if "seiz" in label:  # Fixed: removed "or len(parts) >= 2"
                 try:
                     start = float(parts[0])
                     end = float(parts[1])
@@ -189,7 +189,9 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
 
         for ridx, rec in enumerate(tqdm(self._records, desc="Indexing recordings")):
             if self.max_windows and len(self._index) >= self.max_windows:
-                warnings.warn(f"Reached max_windows={self.max_windows}, stopping indexing", stacklevel=2)
+                warnings.warn(
+                    f"Reached max_windows={self.max_windows}, stopping indexing", stacklevel=2
+                )
                 break
 
             # CRITICAL FIX: Don't preload, just get info
@@ -232,7 +234,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Compute window bounds in target fs
         win = round(self.cfg.window_sec * self.cfg.fs)
         s1_fs = s0_fs + win
-        
+
         # Resample raw to target fs if needed (operate in-place to keep channel names)
         if self.cfg.fs and round(src_fs) != self.cfg.fs:
             raw.resample(self.cfg.fs)
