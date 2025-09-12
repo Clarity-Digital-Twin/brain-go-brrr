@@ -57,8 +57,10 @@ def _parse_tse(self, tse_file: Path) -> List[Tuple[float, float, str]]:
     
     TSE format:
     - start_time end_time [label]
-    - Only lines with 'seiz' in label are seizures
-    - Background/artifact/other labels should be ignored
+    - Accept epileptic TUSZ codes (fnsz, gnsz, spsz, cpsz, absz, tnsz, tcsz, gtsz, mysz, unsz), case‑insensitive.
+    - Exclude non‑seizure codes {spsw, gped, pled, eyem, artf, bckg}. PNES/"nesz" is optional (default off).
+    - Fallback: textual labels containing 'seiz' (case‑insensitive).
+    - After parsing, coalesce overlapping or touching intervals (gap=0.0) across channels.
     """
     annotations = []
     with open(tse_file, 'r') as f:
@@ -74,8 +76,11 @@ def _parse_tse(self, tse_file: Path) -> List[Tuple[float, float, str]]:
                     end = float(parts[1])
                     label = parts[2] if len(parts) > 2 else ""
                     
-                    # ✅ ONLY accept seizure annotations
-                    if "seiz" in label.lower():
+                    # ✅ ONLY accept seizure annotations (TUSZ epileptic codes or generic 'seiz')
+                    allowed = {"fnsz","gnsz","spsz","cpsz","absz","tnsz","tcsz","gtsz","mysz","unsz"}
+                    excluded = {"spsw","gped","pled","eyem","artf","bckg"}
+                    lab = (label or "").lower()
+                    if not any(x in lab for x in excluded) and ("seiz" in lab or any(x in lab for x in allowed)):
                         annotations.append((start, end, label))
                         logger.debug(f"TSE {tse_file.name}:{line_num} - Seizure: {start:.2f}-{end:.2f}s ({label})")
                     else:
@@ -542,12 +547,12 @@ def evaluate_pretrained_model():
     print("=" * 60)
     
     # 1. Load pretrained model
-    model_path = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/pretrained/seizure_transformer_wu2025.pth")
-    if not model_path.exists():
-        raise FileNotFoundError(f"Pretrained weights not found at {model_path}")
+    weights_path = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/models/pretrained/seizure_transformer_wu2025.pth")
+    if not weights_path.exists():
+        raise FileNotFoundError(f"Pretrained weights not found at {weights_path}")
     
-    wrapper = SeizureTransformerWrapper(model_path)
-    print(f"✅ Loaded pretrained weights from {model_path}")
+    wrapper = SeizureTransformerWrapper(weights_path=weights_path)
+    print(f"✅ Loaded pretrained weights from {weights_path}")
     
     # 2. Create test dataset (TUSZ eval split ONLY!)
     tusz_root = Path("/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data/datasets/tusz/edf")
@@ -792,7 +797,7 @@ This addendum makes the plan unambiguous and implementation‑ready. Where detai
 - Units: morphological kernel sizes are in samples (k=5 at 256 Hz ≈ 19.5 ms).
 
 ### TSE/CSV Sidecar Parsing (seizure‑only)
-- TSE lines must contain start/end and a label with substring `seiz` (case‑insensitive). Non‑seizure labels (background/artifact/blank) are ignored.
+- TSE/CSV parsing follows an epileptic‑code allowlist (fnsz, gnsz, spsz, cpsz, absz, tnsz, tcsz, gtsz, mysz, unsz), excludes {spsw, gped, pled, eyem, artf, bckg}, PNES off by default, and uses a generic 'seiz' fallback. Overlapping/touching intervals are coalesced across channels (gap=0.0).
 - CSV sidecars, if present, must follow the same seizure‑only semantics. Keep both parsers consistent and unit‑tested.
 
 ### Seeds and Determinism (for eval/ablations)
@@ -844,7 +849,7 @@ def evaluate_pretrained_model():
     if not weights.exists():
         raise FileNotFoundError(f"Weights not found: {weights}")
 
-    wrapper = SeizureTransformerWrapper(model_path=weights)
+    wrapper = SeizureTransformerWrapper(weights_path=weights)
 
     ds = TUSZDetectionDataset(
         root_dir=tusz_root,

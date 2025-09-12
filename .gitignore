@@ -228,6 +228,9 @@ mlruns/
 experiments/*/checkpoints/
 experiments/*/logs/
 experiments/*/outputs/
+experiments/*/runs/**
+!experiments/*/runs/**/reports/summary.txt
+!experiments/*/runs/**/metrics/eval_metrics.json
 !experiments/**/*.py
 !experiments/**/*.yaml
 !experiments/**/*.md
