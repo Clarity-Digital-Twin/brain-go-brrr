@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Channel definitions and mapping - Single Source of Truth.
 
 CRITICAL: These are the ONLY valid channel configurations.
@@ -7,6 +5,7 @@ CRITICAL: These are the ONLY valid channel configurations.
 - TUEV: 20 channels (with Fz and Fpz, no Oz)
 """
 
+from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
