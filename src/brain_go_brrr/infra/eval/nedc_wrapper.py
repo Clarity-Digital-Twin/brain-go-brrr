@@ -7,8 +7,11 @@ replace the internal implementations accordingly.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def _events_overlap(
@@ -28,8 +31,8 @@ class NEDCClinicalEvaluator:
 
     def compute_all_metrics(
         self,
-        predictions: Iterable[tuple[float, float]],
-        ground_truth: Iterable[tuple[float, float]],
+        predictions: "Iterable[tuple[float, float]]",
+        ground_truth: "Iterable[tuple[float, float]]",
         duration_hours: float,
     ) -> dict[str, float]:
         """Compute proxy metrics approximating clinical KPIs.
@@ -57,7 +60,6 @@ class NEDCClinicalEvaluator:
 
         # Simple TAES-like F1 (proxy): precision/recall from event overlap
         fp = fa
-        fn = len(refs) - tp
         prec = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         rec = sensitivity
         f1 = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
