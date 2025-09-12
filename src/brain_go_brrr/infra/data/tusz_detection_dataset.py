@@ -29,6 +29,11 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     mne = None
 
+if TYPE_CHECKING:
+    from brain_go_brrr.infra.ml_models.seizure_transformer_utils import (
+        SeizurePreprocessor,
+    )
+
 from brain_go_brrr.infra.data.channels import (
     CHANNEL_ALIASES,
     CHANNELS_TUAB_19,
@@ -262,7 +267,7 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         # Load raw
         raw = mne.io.read_raw_edf(str(edf), preload=True, verbose="ERROR")
         src_fs_f = float(raw.info["sfreq"])  # original Hz
-        src_fs = int(round(src_fs_f))
+        src_fs = round(src_fs_f)
 
         # Montage validation (heuristic)
         if self.ensure_unipolar:
