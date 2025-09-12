@@ -42,3 +42,31 @@ def test_wrapper_predict_probabilities_without_scipy(monkeypatch):
     # All ones from dummy model after concatenation and slice
     assert np.allclose(preds, 1.0)
 
+
+@pytest.mark.unit
+@pytest.mark.synth
+def test_wrapper_calls_postprocess_when_true(monkeypatch):
+    n_channels = 19
+    fs = 256
+    window_samples = 15360
+    t = window_samples
+
+    eeg = np.zeros((n_channels, t), dtype=np.float32)
+    model = _DummyModel(out_len=window_samples)
+    wrapper = SeizureTransformerWrapper(
+        model=model, n_channels=n_channels, fs=fs, window_samples=window_samples
+    )
+    # Bypass SciPy
+    monkeypatch.setattr(wrapper, "_preprocess_clip", lambda x: x)
+
+    called = {"n": 0}
+
+    def _fake_post(arr: np.ndarray) -> np.ndarray:  # type: ignore[name-defined]
+        called["n"] += 1
+        return np.zeros_like(arr, dtype=np.float32)
+
+    monkeypatch.setattr(wrapper, "_postprocess", _fake_post, raising=True)
+    out = wrapper.predict(eeg, apply_postprocessing=True)
+    assert called["n"] == 1
+    assert out.shape == (t,)
+    assert np.allclose(out, 0.0)
