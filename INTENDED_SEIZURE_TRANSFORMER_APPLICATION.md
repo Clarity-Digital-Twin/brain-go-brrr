@@ -721,9 +721,12 @@ split="eval"  # NOT "train" or "dev"
 ## 📝 NOTES FOR SENIOR REVIEW
 
 ### ✅ CONFIRMED ASSETS IN PLACE:
-1. **Pretrained weights**: ✅ AVAILABLE at `/data/models/pretrained/seizure_transformer_wu2025.pth` (169MB)
-2. **TUSZ eval dataset**: ✅ AVAILABLE at `/data/datasets/tusz/edf/eval/` (865 EDF files)
-3. **EEGPT weights**: ✅ AVAILABLE at `/data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+1. **Pretrained weights**: ✅ AVAILABLE (169MB)
+   - Path via env: `${BGB_DATA_ROOT}/models/pretrained/seizure_transformer_wu2025.pth`
+2. **TUSZ eval dataset**: ✅ AVAILABLE (865 EDF files)
+   - Root via env: `${BGB_DATA_ROOT}/datasets/tusz/edf`
+3. **EEGPT weights**: ✅ AVAILABLE
+   - Path via env: `${BGB_DATA_ROOT}/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 
 ### Questions Requiring Decisions:
 1. **Channel ordering**: Not specified in paper - may need experimentation
@@ -757,3 +760,134 @@ Expected timeline:
 
 *Document prepared for senior technical review*  
 *Questions? Contact the implementation team*
+
+---
+
+## 🔒 Final Ironclad Updates (Supersede earlier snippets)
+
+This addendum makes the plan unambiguous and implementation‑ready. Where details below differ from earlier examples, this section is the single source of truth.
+
+### Environment and Paths (required)
+- Define env vars once and reference everywhere:
+  - `export BGB_DATA_ROOT="/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"`
+  - `export BGB_OUTPUT_ROOT="${PWD}/experiments/seizure_transformer/runs"`
+- Key paths derived from env:
+  - Weights: `${BGB_DATA_ROOT}/models/pretrained/seizure_transformer_wu2025.pth`
+  - TUSZ root: `${BGB_DATA_ROOT}/datasets/tusz/edf`
+  - Siena (optional): `${BGB_DATA_ROOT}/datasets/siena`
+
+### Canonical 19‑Channel Order (BLOCKER resolved)
+- Required channel set and order (10–20, mixed‑case):
+  - `Fp1, Fp2, F7, F3, F4, F8, T7, C3, Cz, C4, T8, P7, P3, Pz, P4, P8, O1, Oz, O2`
+- Aliases to normalize legacy names: `T3→T7, T4→T8, T5→P7, T6→P8`.
+- Policy for missing channels: zero‑fill at the end after placing all available channels in the canonical order. Document in metadata which were missing.
+
+### Preprocessing SSOT
+- Single Source of Truth: `SeizurePreprocessor` utility (z‑score → resample 256 Hz → 0.5–120 Hz Butterworth order=3 via causal `lfilter` → notch 1 Hz and 60 Hz with Q=30).
+- Wrapper uses SSOT for inference; dataset uses the same for training/eval window creation. Do not duplicate logic elsewhere.
+
+### Post‑Processing Scope
+- Use morphological post‑processing (threshold=0.8 → opening k=5 → closing k=5 → drop events <2.0 s) only for event‑level clinical metrics (FA/24h, sensitivity at fixed operating points).
+- Do not apply post‑processing before AUROC; AUROC must be computed on raw probabilities.
+- Units: morphological kernel sizes are in samples (k=5 at 256 Hz ≈ 19.5 ms).
+
+### TSE/CSV Sidecar Parsing (seizure‑only)
+- TSE lines must contain start/end and a label with substring `seiz` (case‑insensitive). Non‑seizure labels (background/artifact/blank) are ignored.
+- CSV sidecars, if present, must follow the same seizure‑only semantics. Keep both parsers consistent and unit‑tested.
+
+### Seeds and Determinism (for eval/ablations)
+```python
+import os, random, numpy as np, torch
+
+def set_seeds(seed: int = 42) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+```
+
+### Run Artifacts, Paths, and Logging
+- Output layout rooted at `BGB_OUTPUT_ROOT` (default: `experiments/seizure_transformer/runs`).
+- Each run writes to `${BGB_OUTPUT_ROOT}/%Y%m%d_%H%M%S/` with subfolders:
+  - `checkpoints/` (`model_best_auroc.pth`, `epoch_XX.pth` as needed)
+  - `logs/` (`training.log`, `eval.log` – console tee to file)
+  - `metrics/` (`train_metrics.jsonl`, `eval_metrics.json`)
+  - `configs/` (`config.yaml` frozen config)
+  - `reports/` (`summary.txt`, optional figures)
+  - `samples/` (optional clips/plots)
+- Never write artifacts to the repo root.
+
+### Evaluation Script (window‑level AUROC; env paths)
+```python
+# scripts/evaluate_seizure_transformer.py
+import os
+from pathlib import Path
+import numpy as np
+from sklearn.metrics import roc_auc_score
+import torch
+from torch.utils.data import DataLoader
+
+from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import SeizureTransformerWrapper
+from brain_go_brrr.infra.data.tusz_detection_dataset import TUSZDetectionDataset, WindowConfig
+
+from set_seeds import set_seeds  # or inline the function above
+
+def evaluate_pretrained_model():
+    set_seeds(42)
+
+    data_root = Path(os.getenv("BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"))
+    weights = data_root / "models/pretrained/seizure_transformer_wu2025.pth"
+    tusz_root = data_root / "datasets/tusz/edf"
+
+    if not weights.exists():
+        raise FileNotFoundError(f"Weights not found: {weights}")
+
+    wrapper = SeizureTransformerWrapper(model_path=weights)
+
+    ds = TUSZDetectionDataset(
+        root_dir=tusz_root,
+        split="eval",  # use eval set only
+        cfg=WindowConfig(fs=256, window_sec=60.0, stride_sec=60.0),  # no overlap for inference
+        preprocessor=wrapper.preprocessor,
+        ensure_unipolar=True,
+    )
+
+    # Expect scalar window labels on eval
+    loader = DataLoader(ds, batch_size=16, shuffle=False, num_workers=4)
+
+    all_probs, all_labels = [], []
+    wrapper.model.eval()
+    with torch.no_grad():
+        for x, y in loader:
+            # x: (B, 19, 15360); y: (B,) or (B, 1)
+            x = x.to(wrapper.device)
+            logits = wrapper.model(x)                 # (B, 15360)
+            probs = torch.sigmoid(logits).mean(1)     # per-window mean probability
+            all_probs.extend(probs.cpu().numpy())
+            all_labels.extend(np.array(y).reshape(-1))
+
+    all_probs = np.asarray(all_probs)
+    all_labels = np.asarray(all_labels, dtype=np.int32)
+    auroc = roc_auc_score(all_labels, all_probs)
+
+    print(f"AUROC: {auroc:.3f} (expected ≈ 0.876)")
+    return auroc
+
+if __name__ == "__main__":
+    evaluate_pretrained_model()
+```
+
+### .gitignore guidance (optional)
+- Ignore bulky run artifacts but allow small summaries to be committed:
+  - `experiments/*/runs/**`
+  - `!experiments/*/runs/**/reports/summary.txt`
+  - `!experiments/*/runs/**/metrics/eval_metrics.json`
+
+### Root cleanup (one‑time)
+- Move legacy logs/checkpoints from repo root into a dated run directory under `experiments/seizure_transformer/runs/legacy_YYYYMMDD_HHMMSS/` to keep the root clean.
+
+---
+
+With these updates, INTENDED is implementation‑ready: paths are env‑driven, AUROC is computed correctly at window level, post‑processing is scoped to event metrics, canonical channel order is pinned, preprocessing has a single source of truth, and run artifacts are standardized.
