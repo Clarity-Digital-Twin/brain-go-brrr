@@ -3,6 +3,7 @@
 These tests require both TUSZ data and the wu_2025 package to be available.
 """
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -24,11 +25,12 @@ from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import (
 @pytest.mark.slow
 def test_wrapper_on_real_tusz_recording():
     """Test SeizureTransformer wrapper on actual TUSZ data."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     # Try to import wu_2025 (skip if not available)
     try:
@@ -77,11 +79,12 @@ def test_wrapper_on_real_tusz_recording():
 @pytest.mark.integration
 def test_wrapper_preprocessing_on_tusz():
     """Test that preprocessing pipeline handles TUSZ data correctly."""
-    data_root = Path.home() / "Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
-    tusz_root = data_root / "datasets/tusz/edf"
-
+    data_root_env = os.environ.get("BGB_DATA_ROOT")
+    if not data_root_env:
+        pytest.skip("BGB_DATA_ROOT not set")
+    tusz_root = Path(data_root_env) / "datasets/tusz/edf"
     if not tusz_root.exists():
-        pytest.skip(f"TUSZ data not found at {tusz_root}")
+        pytest.skip("TUSZ data dir not found under BGB_DATA_ROOT")
 
     # Load a short window
     cfg = WindowConfig(fs=256, window_sec=4.0, stride_sec=4.0)
