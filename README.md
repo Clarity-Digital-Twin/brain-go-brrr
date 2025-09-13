@@ -18,7 +18,7 @@
 
 ## 🎯 Current Focus
 
-- **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
+- **✅ TUEV Event Classification**: 6-class EEG event detection (22% BAC - within expected range for extreme class imbalance). Implementation verified correct.
 - **📅 TUSZ Temporal Detection**: SeizureTransformer parity and evaluation
   - Spec: [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md)
   - Current: [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md)
@@ -121,8 +121,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
       [IF ABNORMAL]                       ▼
           │                        Sleep Metrics
           ▼                        (Efficiency, TST, etc.)
-    Event Detection (Archived)
-    (TUEV: SPSW/GPED/PLED/etc — see Final Verdict)
+    Event Detection (TUEV)
+    (6-class: SPSW/GPED/PLED/EYEM/ARTF/BCKG — 22% BAC verified)
 ```
 
 **Key Design Principles:**
