@@ -19,6 +19,13 @@ A Python wrapper around the EEGPT foundation model (10M parameters) for EEG anal
 
 ## Quick Start
 
+### Requirements
+- Python 3.11-3.12 (3.13 not supported - scipy issues)
+- 8GB RAM minimum
+- GPU optional (speeds up training)
+- Ubuntu/WSL2 recommended
+
+### Install
 ```bash
 # Clone and install
 git clone https://github.com/Clarity-Digital-Twin/brain-go-brrr.git
@@ -93,26 +100,50 @@ brain-go-brrr/
 
 ### Configuration
 ```bash
+# Required
 export BGB_DATA_ROOT=/path/to/data
-export BGB_TUAB_VERSION=""  # For versionless layout (tuab/edf not tuab/v3.0.1/edf)
+
+# Optional
+export BGB_TUAB_VERSION=""         # Versionless layout
+export BGB_CACHE_DIR=$BGB_DATA_ROOT/cache  # Cache location
+export BGB_SLEEP_EDF_FILE=/path/to/file.edf  # Specific test file
 ```
 
 ## Development
 
+### Core Commands
 ```bash
 # Run tests
 make test
 
-# Check code quality
-make lint typecheck
+# Watch tests (TDD mode)
+make test-watch
 
-# Full CI check
+# Code quality
+make lint        # Ruff linting
+make typecheck   # Mypy checking
+make format      # Auto-format code
+
+# Full CI check (MUST PASS before push)
 make check-all
+```
 
-# Train models (if you have data)
+### Training Models
+```bash
+# Build cache and train TUAB
 cd experiments/eegpt_linear_probe
 ./scripts/build_mne_cache.sh
 ./scripts/launch_tuab_mne.sh
+```
+
+### Integration Tests
+```bash
+# With real data
+uv run pytest -m "integration and data" --run-integration --run-data
+
+# Specific dataset
+export BGB_SLEEP_EDF_FILE=/path/to/file.edf
+uv run pytest tests/unit/domain/sleep -v
 ```
 
 ## Key Technical Details
@@ -136,6 +167,8 @@ cd experiments/eegpt_linear_probe
 | [API.md](docs/API.md) | REST endpoint reference |
 | [TRAINING.md](docs/TRAINING.md) | Model training guide |
 | [QUICK_START.md](docs/QUICK_START.md) | Detailed setup |
+| [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions pipeline |
+| [ROADMAP.md](ROADMAP.md) | Future plans |
 
 ## Limitations
 
