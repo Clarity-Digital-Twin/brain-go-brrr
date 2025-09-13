@@ -11,7 +11,7 @@ Raw EDF → TUEVEventExtractor → Cache → TUEVEventDataset →
 DataLoader → TUEVModel → EEGPT → Predictions
 ```
 
-## Stage 1: Data Extraction & Caching
+## Stage 1: Data Extraction & Caching 
 **File**: `src/brain_go_brrr/infra/preprocessing/tuev_event_extractor.py`
 
 ### Raw Data Loading
