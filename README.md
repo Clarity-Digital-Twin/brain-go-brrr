@@ -125,6 +125,10 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
     (Implementation correct but 22% BAC too poor for use)
 ```
 
+Notes for clarity (no behavior change):
+- QC/Autoreject runs in the API and example analysis flows. Training/eval scripts and the archived TUEV classifier do not use the QC controller.
+- EEGPT sampling/windows: TUAB abnormality uses 256 Hz with 4 s windows. TUEV (archived) used 200 Hz with 5 s windows per the EEGPT reference; no Autoreject or normalization there.
+
 **Key Design Principles:**
 - **Parallel, not sequential** - EEGPT and YASA run independently
 - **Flexible channel support** - YASA works with 1-256 channels
@@ -135,8 +139,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 
 - **EEGPT features**: 2048 dims for probes (4×512 flattened, not 512 summary)
 - **Channel names**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
-- **Sampling**: 256 Hz for EEGPT pipeline (resampled if needed)
-- **Window size**: 4 seconds (1024 samples at 256 Hz)
+- **Sampling**: 256 Hz for EEGPT TUAB pipeline (resampled if needed). TUEV (archived) used 200 Hz per reference.
+- **Window size**: 4 s for TUAB. TUEV (archived) used 5 s event-centered windows.
 
 ## 🔬 For Researchers
 
