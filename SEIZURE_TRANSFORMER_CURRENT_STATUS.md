@@ -65,15 +65,14 @@
 
 ## ❌ WHAT'S STILL BROKEN
 
-### 1. NEDC Integration ❌
-**Location**: Not integrated in evaluation scripts
-**Issue**: Clinical metrics not computed during evaluation
-- FA/24h not calculated in `scripts/evaluate_seizure_transformer.py`
-- TAES scoring not integrated in standard evaluation
-- Only AUROC is computed for model assessment
-**Fix Needed**: Wire NEDC clinical evaluation into standard model evaluation
+### 1. Montage enforcement (policy) ⚠️
+**Location**: `experiments/seizure_transformer/train_tusz.py`, `scripts/evaluate_seizure_transformer.py`
+**Status**: `ensure_unipolar=False` in scripts (configurable)
+- Reference notes prefer unipolar inputs; TUSZ contains mixed montages
+- Decision: keep configurable; document and test both settings
+**Action**: Decide default policy (enable/disable) and document expected behavior
 
-### 2. Performance Gap ❌
+### 2. Performance Gap ❗
 **Location**: Model performance on TUSZ eval
 **Issue**: AUROC gap vs paper claims
 - Current: ~0.844 AUROC
@@ -131,14 +130,9 @@ scripts/
 
 ## 🔧 Required Fixes Priority
 
-### Priority 1: Add NEDC Clinical Metrics
-```python
-# In scripts/evaluate_seizure_transformer.py, add:
-from brain_go_brrr.infra.eval.nedc_wrapper import NEDCClinicalEvaluator
-
-evaluator = NEDCClinicalEvaluator()
-fa_per_24h, sensitivity = evaluator.evaluate_predictions(pred_events, ref_events)
-```
+### Deferred: Clinical event metrics (NEDC)
+- NEDC integration exists as a wrapper (`infra/eval/nedc_wrapper.py`), but is intentionally not wired into the standard eval script yet.
+- Will be implemented in Phase 2 after core parity is locked.
 
 ### Priority 2: Investigate Performance Gap
 ```python
@@ -168,10 +162,10 @@ fa_per_24h, sensitivity = evaluator.evaluate_predictions(pred_events, ref_events
 
 ## 🎯 Next Steps
 
-1. **Add clinical metrics** - FA/24h, TAES, ATWV evaluation
-2. **Investigate performance gap** - Compare exact parameters with OSS
-3. **Validate TUSZ splits** - Ensure eval split matches reference
-4. **Consider retraining** - If significant parameter differences found
+  1. **Investigate performance gap** - Compare exact parameters with OSS
+  2. **Validate TUSZ splits** - Ensure eval split matches reference
+  3. **Decide montage policy** - Choose default for `ensure_unipolar`
+  4. (Deferred) **Add clinical metrics** - FA/24h, TAES, ATWV evaluation in Phase 2
 
 ---
 
