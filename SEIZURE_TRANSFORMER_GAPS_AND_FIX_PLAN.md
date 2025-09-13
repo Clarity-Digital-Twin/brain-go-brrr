@@ -9,12 +9,12 @@ Canonical docs
 
 Current status (snapshot)
 - Discrimination: window‑level AUROC computed (see README usage). Last observed ≈ 0.84 on eval.
-- Clinical metric: NEDC TAES wired; observed FA/24h was high (≈ 100+ on eval) at default operating point.
+- Clinical metrics: NEDC wrapper available, not yet integrated into the standard eval script; FA/24h not reported yet.
 - Implementation shape: Architecture vendored; SSOT preprocessing present; canonical channels enforced; evaluation path stable.
 
 Gaps vs spec (what to verify/tighten)
 - Dataset splits: Ensure exact TUSZ v2.0.3 split parity (train/dev/eval file lists).
-- SSOT preprocessing parity: z‑score → resample 256 Hz → causal 0.5–120 Hz band‑pass → 1/60 Hz notch (Q=30). Confirm identical ordering/coefficients in both train and eval.
+- SSOT preprocessing parity: z‑score → resample 256 Hz → causal 0.5–120 Hz band‑pass → notches at 1 Hz and 60 Hz (Q=30). Confirm identical ordering/coefficients in both train and eval.
 - Montage/channels: enforce unipolar montage and canonical TUAB‑19 ordering everywhere (train/dev/eval).
 - Labels: training uses per‑timestep masks; validation/eval use scalar window labels; event scoring uses references from TUSZ annotations only.
 - Evaluation windows: 60 s windows, stride 60 s for eval AUROC; no post‑processing applied to AUROC.
@@ -34,13 +34,21 @@ Plan to reduce FA/24h (dev tuning only)
 4) Keep AUROC pipeline unchanged (no post‑processing) and report alongside TAES.
 
 Concrete tasks (code locations)
-- Post‑processing params: `evaluation/nedc_scoring/convert_predictions.py`
-- Scorer runner: `evaluation/nedc_scoring/run_nedc.py`
-- Eval runner: `evaluation/tusz/run_tusz_eval.py`
-- Add a dev sweep script: `evaluation/tusz/sweep_dev.py` (new)
+- Post‑processing utils: `src/brain_go_brrr/infra/eval/post_processing.py`
+- Clinical scorer: `src/brain_go_brrr/infra/eval/nedc_wrapper.py` (class `NEDCClinicalEvaluator`)
+- Eval runner: `scripts/evaluate_seizure_transformer.py`
+- Add a dev sweep script: `scripts/tusz_sweep_dev.py` (new)
   - Inputs: paths to dev EDF root, predictions or model, and sweep ranges.
   - Outputs: CSV of (threshold, kernel, min_dur, merge_gap, smooth_win, sensitivity, FA/24h).
   - Plot: optional Sensitivity vs FA/24h curve to select operating point.
+
+Example integration (clinical metrics in eval):
+```python
+from brain_go_brrr.infra.eval.nedc_wrapper import NEDCClinicalEvaluator
+
+evaluator = NEDCClinicalEvaluator()
+fa_per_24h, sensitivity = evaluator.evaluate_predictions(pred_events, ref_events)
+```
 
 Acceptance criteria
 - Parity: SSOT preprocessing and channel policy identical across train/dev/eval.
@@ -49,7 +57,6 @@ Acceptance criteria
 - Repro: single command per stage (dev sweep, freeze, eval) with seeds set and paths documented.
 
 Next actions
-- Implement `evaluation/tusz/sweep_dev.py` and parameterize `convert_predictions.py` if needed.
+- Implement `scripts/tusz_sweep_dev.py` (dev sweep) and extend `scripts/evaluate_seizure_transformer.py` to emit/refine event lists for NEDC.
 - Run the sweep on dev, select operating point, and re‑run eval once.
 - Update `SEIZURE_TRANSFORMER_CURRENT_STATUS.md` with the finalized operating point and results.
-

@@ -134,9 +134,10 @@ scripts/
 ### Priority 1: Add NEDC Clinical Metrics
 ```python
 # In scripts/evaluate_seizure_transformer.py, add:
-# from brain_go_brrr.infra.eval.nedc_clinical_evaluator import NEDCClinicalEvaluator
-# evaluator = NEDCClinicalEvaluator()
-# fa_per_24h, sensitivity = evaluator.evaluate_predictions(predictions, annotations)
+from brain_go_brrr.infra.eval.nedc_wrapper import NEDCClinicalEvaluator
+
+evaluator = NEDCClinicalEvaluator()
+fa_per_24h, sensitivity = evaluator.evaluate_predictions(pred_events, ref_events)
 ```
 
 ### Priority 2: Investigate Performance Gap
