@@ -2,6 +2,8 @@
 
 **Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
 
+> 📢 **Repository Update**: Active seizure detection development has moved to [SeizureTransformer](https://github.com/Clarity-Digital-Twin/SeizureTransformer) for clinical evaluation and NEDC scoring. This repository continues to maintain core EEG processing capabilities.
+
 > 🚧 **Work in Progress** - This repository is under active development for research purposes.
 > Not a medical device. Not for clinical use. External validation pending.
 

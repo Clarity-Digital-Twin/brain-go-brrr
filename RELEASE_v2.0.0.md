@@ -4,7 +4,7 @@
 
 We are transitioning our active development to specialized repositories for better modularity:
 
-- **Clinical Evaluation & NEDC Scoring**: Active development has moved to [SeizureTransformer](https://github.com/The-Obstacle-Is-The-Way/SeizureTransformer)
+- **Clinical Evaluation & NEDC Scoring**: Active development has moved to [SeizureTransformer](https://github.com/Clarity-Digital-Twin/SeizureTransformer)
 - **Core EEG Processing**: Remains in this repository
 
 ## What's New in v2.0.0
@@ -30,7 +30,7 @@ This repository (`brain-go-brrr`) will continue to maintain:
 - Core API infrastructure
 
 For active development on seizure detection and clinical evaluation:
-- **Please visit**: [github.com/The-Obstacle-Is-The-Way/SeizureTransformer](https://github.com/The-Obstacle-Is-The-Way/SeizureTransformer)
+- **Please visit**: [github.com/Clarity-Digital-Twin/SeizureTransformer](https://github.com/Clarity-Digital-Twin/SeizureTransformer)
 - **Features there**: NEDC scoring, clinical metrics, operating point optimization
 
 ## Breaking Changes
@@ -42,7 +42,7 @@ For active development on seizure detection and clinical evaluation:
 If you're working on seizure detection:
 ```bash
 # Clone the new repository
-git clone https://github.com/The-Obstacle-Is-The-Way/SeizureTransformer
+git clone https://github.com/Clarity-Digital-Twin/SeizureTransformer
 cd SeizureTransformer
 uv pip install -e .
 ```
