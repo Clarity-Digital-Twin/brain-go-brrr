@@ -43,10 +43,12 @@ curl http://localhost:8000/api/v1/health
 ### 📊 Performance
 | Component | Metric | Status |
 |-----------|--------|--------|
-| Sleep Staging | 87% accuracy | ✅ Production |
-| QC Agreement | 87% with experts | ✅ Production |
-| TUAB Abnormality | 83% AUROC | ✅ Complete |
-| API Response | <100ms cached | ✅ Production |
+| Sleep Staging | ≈87% (literature; YASA baseline) | ✅ Integrated |
+| QC (Autoreject) | ≈87% agreement (literature) | ✅ Integrated |
+| TUAB Abnormality | ≈0.83 AUROC (internal) | ✅ Complete |
+| API Response | <100ms cached | ✅ Integrated |
+
+Notes: Literature metrics reflect published baselines; internal results vary by dataset and setup.
 
 ### ⚠️ Archived
 - **TUEV Events**: Implementation correct but 22% BAC (vs 62% paper claim) - dataset has fatal class imbalance
@@ -81,7 +83,7 @@ brain-go-brrr/
 ## Data & Models
 
 ### Required Downloads
-1. **EEGPT Model** (~40MB): [Download from Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
+1. **EEGPT Model**: [Download from Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
    - Place in: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
 
 2. **Datasets** (obtain separately):
@@ -115,7 +117,7 @@ cd experiments/eegpt_linear_probe
 ## Key Technical Details
 
 - **Sampling**: 256Hz for EEGPT, 100Hz for YASA
-- **Windows**: 4 seconds for TUAB abnormality detection
+- **Windows**: 4 seconds (aligned to EEGPT pretraining)
 - **Channels**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
 - **Features**: EEGPT outputs 4×512 summary tokens, flattened to 2048 dims
 - **Architecture**: Clean separation - domain layer has zero infrastructure dependencies
