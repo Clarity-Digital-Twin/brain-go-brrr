@@ -73,12 +73,11 @@ class SeizureTransformer(nn.Module):
             in_channels=self.filters[0], out_channels=1, kernel_size=11, padding=5
         )
 
-    def forward(self, x: torch.Tensor, logits: bool = True) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass returning per-timestep probabilities.
 
         Args:
             x: Input tensor of shape (batch, channels, samples).
-            logits: Unused, kept for compatibility.
 
         Returns:
             Per-timestep predictions of shape (batch, samples).
@@ -137,9 +136,23 @@ class PositionalEncoding(nn.Module):
 
 
 class Encoder(nn.Module):
-    """Encoder stack"""
+    """Encoder stack."""
 
-    def __init__(self, input_channels, filters, kernel_sizes, in_samples):
+    def __init__(
+        self,
+        input_channels: int,
+        filters: list[int],
+        kernel_sizes: list[int],
+        in_samples: int,
+    ) -> None:
+        """Initialize Encoder.
+
+        Args:
+            input_channels: Number of input channels.
+            filters: List of filter sizes for each layer.
+            kernel_sizes: List of kernel sizes for each layer.
+            in_samples: Number of input samples.
+        """
         super().__init__()
 
         convs = []
@@ -147,7 +160,7 @@ class Encoder(nn.Module):
         elus = []
         self.paddings = []
         for in_channels, out_channels, kernel_size in zip(
-            [input_channels] + filters[:-1], filters, kernel_sizes, strict=False
+            [input_channels, *filters[:-1]], filters, kernel_sizes, strict=False
         ):
             convs.append(
                 nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
@@ -167,7 +180,15 @@ class Encoder(nn.Module):
         self.pools = nn.ModuleList(pools)
         self.elus = nn.ModuleList(elus)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, list[torch.Tensor]]:
+        """Forward pass through encoder.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Tuple of (encoded tensor, skip connections).
+        """
         skips = []
         for conv, pool, padding, elu in zip(
             self.convs, self.pools, self.paddings, self.elus, strict=False
@@ -183,14 +204,25 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
+    """Decoder stack."""
+
     def __init__(
         self,
-        input_channels,
-        filters,
-        kernel_sizes,
-        out_samples,
-        original_compatible=False,
-    ):
+        input_channels: int,
+        filters: list[int],
+        kernel_sizes: list[int],
+        out_samples: int,
+        original_compatible: bool = False,
+    ) -> None:
+        """Initialize Decoder.
+
+        Args:
+            input_channels: Number of input channels.
+            filters: List of filter sizes for each layer.
+            kernel_sizes: List of kernel sizes for each layer.
+            out_samples: Number of output samples.
+            original_compatible: Whether to use original-compatible mode.
+        """
         super().__init__()
 
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
@@ -208,7 +240,7 @@ class Decoder(nn.Module):
         convs = []
         elus = []
         for in_channels, out_channels, kernel_size in zip(
-            [input_channels] + filters[:-1], filters, kernel_sizes, strict=False
+            [input_channels, *filters[:-1]], filters, kernel_sizes, strict=False
         ):
             convs.append(
                 nn.Conv1d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
@@ -218,7 +250,16 @@ class Decoder(nn.Module):
         self.convs = nn.ModuleList(convs)
         self.elus = nn.ModuleList(elus)
 
-    def forward(self, x, skip_connections):
+    def forward(self, x: torch.Tensor, skip_connections: list[torch.Tensor]) -> torch.Tensor:
+        """Forward pass through decoder.
+
+        Args:
+            x: Input tensor.
+            skip_connections: Skip connections from encoder.
+
+        Returns:
+            Decoded tensor.
+        """
         for i, (conv, elu) in enumerate(zip(self.convs, self.elus, strict=False)):
             x = self.upsample(x)
             if self.original_compatible:
@@ -236,7 +277,16 @@ class Decoder(nn.Module):
 
 
 class ResCNNStack(nn.Module):
-    def __init__(self, kernel_sizes, filters, drop_rate):
+    """Residual CNN stack."""
+
+    def __init__(self, kernel_sizes: list[int], filters: int, drop_rate: float) -> None:
+        """Initialize ResCNNStack.
+
+        Args:
+            kernel_sizes: List of kernel sizes for residual blocks.
+            filters: Number of filters.
+            drop_rate: Dropout rate.
+        """
         super().__init__()
 
         members = []
@@ -244,14 +294,31 @@ class ResCNNStack(nn.Module):
             members.append(ResCNNBlock(filters, ker, drop_rate))
         self.members = nn.ModuleList(members)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through residual stack.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor.
+        """
         for member in self.members:
             x = member(x)
         return x
 
 
 class ResCNNBlock(nn.Module):
-    def __init__(self, filters, ker, drop_rate):
+    """Residual CNN block."""
+
+    def __init__(self, filters: int, ker: int, drop_rate: float) -> None:
+        """Initialize ResCNNBlock.
+
+        Args:
+            filters: Number of filters.
+            ker: Kernel size.
+            drop_rate: Dropout rate.
+        """
         super().__init__()
 
         self.manual_padding = False
@@ -271,7 +338,15 @@ class ResCNNBlock(nn.Module):
         self.norm2 = nn.BatchNorm1d(filters, eps=1e-3)
         self.conv2 = nn.Conv1d(filters, filters, ker, padding=padding)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through residual block.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Output tensor with residual connection.
+        """
         y = self.norm1(x)
         y = F.relu(y)
         y = self.dropout(y)
@@ -290,13 +365,28 @@ class ResCNNBlock(nn.Module):
 
 
 class SpatialDropout1d(nn.Module):
-    def __init__(self, drop_rate):
+    """1D spatial dropout layer."""
+
+    def __init__(self, drop_rate: float) -> None:
+        """Initialize SpatialDropout1d.
+
+        Args:
+            drop_rate: Dropout rate.
+        """
         super().__init__()
 
         self.drop_rate = drop_rate
         self.dropout = nn.Dropout2d(drop_rate)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply spatial dropout.
+
+        Args:
+            x: Input tensor.
+
+        Returns:
+            Tensor with spatial dropout applied.
+        """
         x = x.unsqueeze(dim=-1)  # Add fake dimension
         x = self.dropout(x)
         x = x.squeeze(dim=-1)  # Remove fake dimension
