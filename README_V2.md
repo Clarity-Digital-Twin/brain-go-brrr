@@ -12,8 +12,9 @@
 
 A Python wrapper around the EEGPT foundation model (10M parameters) for EEG analysis, providing:
 - **EEGPT Features**: 2048-dimensional embeddings from transformer model
-- **Sleep Analysis**: 87% accuracy using YASA integration
-- **Quality Control**: Automated artifact rejection via Autoreject
+- **Sleep Analysis**: 87% accuracy using YASA (off-the-shelf)
+- **Quality Control**: Autoreject for bad channel/artifact detection
+- **Abnormality Detection**: Linear probe on TUAB dataset (training)
 - **REST API**: FastAPI with Redis caching
 
 ## Quick Start
@@ -43,12 +44,12 @@ curl http://localhost:8000/api/v1/health
 ### 📊 Performance
 | Component | Metric | Status |
 |-----------|--------|--------|
-| Sleep Staging | ≈87% (literature; YASA baseline) | ✅ Integrated |
-| QC (Autoreject) | ≈87% agreement (literature) | ✅ Integrated |
-| TUAB Abnormality | ≈0.83 AUROC (internal) | ✅ Complete |
-| API Response | <100ms cached | ✅ Integrated |
+| Sleep Staging | 87% accuracy (YASA paper) | ✅ Working |
+| QC (Autoreject) | 87% expert agreement (paper) | ✅ API only* |
+| TUAB Abnormality | 0.869 AUROC (EEGPT paper) | 🟡 Training |
+| API Response | <100ms cached | ✅ Working |
 
-Notes: Literature metrics reflect published baselines; internal results vary by dataset and setup.
+*QC integrated in API flows; training scripts bypass QC for speed
 
 ### ⚠️ Archived
 - **TUEV Events**: Implementation correct but 22% BAC (vs 62% paper claim) - dataset has fatal class imbalance
@@ -117,7 +118,7 @@ cd experiments/eegpt_linear_probe
 ## Key Technical Details
 
 - **Sampling**: 256Hz for EEGPT, 100Hz for YASA
-- **Windows**: 4 seconds (aligned to EEGPT pretraining)
+- **Windows**: 4 seconds for EEGPT (some legacy 8s code exists)
 - **Channels**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
 - **Features**: EEGPT outputs 4×512 summary tokens, flattened to 2048 dims
 - **Architecture**: Clean separation - domain layer has zero infrastructure dependencies
