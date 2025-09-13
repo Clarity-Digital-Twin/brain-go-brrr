@@ -22,8 +22,9 @@
 - **CI/CD Pipeline** - GitHub Actions on all branches
 
 ### 🟡 In Progress
-- **TUAB Abnormality Detection** - Linear probe training (AUROC improving toward 87% target)
 - **Documentation Cleanup** - Actively auditing and updating all docs
+### ✅ Recently Completed
+- **TUAB Abnormality Detection** - 0.83 AUROC achieved (target: 0.869)
 
 ### ❌ Not Implemented
 - **Event Detection** - Seizure/IED detection
@@ -89,7 +90,7 @@
 | Sleep Staging | 87% accuracy | ✅ Production |
 | QC Agreement | 87% with experts | ✅ Production |
 | API Response | <100ms cached | ✅ Production |
-| TUAB Target | 0.87 AUROC | 🟡 Training |
+| TUAB Abnormality | 0.83 AUROC achieved (target: 0.869) | ✅ Complete |
 | TUEV Events | 22% BAC | ⚠️ Correct but unusable |
 
 ## Repository Structure
