@@ -217,7 +217,7 @@ class SeizureTransformerWrapper:
 
         return predictions  # type: ignore[no-any-return]
 
-    def _preprocess_clip(self, eeg: np.ndarray, fs_original: int | None = None) -> np.ndarray:
+    def _preprocess_clip(self, eeg: npt.NDArray[np.float32], fs_original: int | None = None) -> npt.NDArray[np.float32]:
         """Helper method for integration tests to preprocess a single EEG clip.
 
         Args:
