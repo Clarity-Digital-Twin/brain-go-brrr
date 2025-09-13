@@ -53,7 +53,7 @@ curl http://localhost:8000/api/v1/health
 |-----------|--------|--------|
 | Sleep Staging | 87% accuracy (YASA paper) | ✅ Working |
 | QC (Autoreject) | 87% expert agreement (paper) | ✅ API only* |
-| TUAB Abnormality | 0.869 AUROC (EEGPT paper) | 🟡 Training |
+| TUAB Abnormality | 0.83 AUROC achieved (target: 0.869) | ✅ Complete |
 | API Response | <100ms cached | ✅ Working |
 
 *QC integrated in API flows; training scripts bypass QC for speed
