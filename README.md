@@ -18,7 +18,7 @@
 
 ## 🎯 Current Focus
 
-- **✅ TUEV Event Classification**: 6-class EEG event detection (22% BAC - within expected range for extreme class imbalance). Implementation verified correct.
+- **⚠️ TUEV Event Classification (ARCHIVED)**: Implementation correct but performance too poor (22% BAC) for practical use. See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
 - **📅 TUSZ Temporal Detection**: SeizureTransformer parity and evaluation
   - Spec: [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md)
   - Current: [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md)
@@ -121,8 +121,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
       [IF ABNORMAL]                       ▼
           │                        Sleep Metrics
           ▼                        (Efficiency, TST, etc.)
-    Event Detection (TUEV)
-    (6-class: SPSW/GPED/PLED/EYEM/ARTF/BCKG — 22% BAC verified)
+    Event Detection (TUEV) - ARCHIVED
+    (Implementation correct but 22% BAC too poor for use)
 ```
 
 **Key Design Principles:**
@@ -305,7 +305,7 @@ uv run pytest tests/unit/domain/sleep -v
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | Archived | ⛔ See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
+| Event Detection (TUEV) | 22% BAC | ⚠️ Correct but unusable - [Details](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |

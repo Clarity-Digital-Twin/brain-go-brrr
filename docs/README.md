@@ -66,8 +66,8 @@
       [IF ABNORMAL]
           │
           ▼
-    Event Detection (TUEV)
-    (6-class: SPSW/GPED/PLED/EYEM/ARTF/BCKG — 22% BAC, implementation verified correct)
+    Event Detection (TUEV) - ARCHIVED
+    (Implementation verified correct but 22% BAC too poor for practical use)
 ```
 
 **Key Insights**:
@@ -90,7 +90,7 @@
 | QC Agreement | 87% with experts | ✅ Production |
 | API Response | <100ms cached | ✅ Production |
 | TUAB Target | 0.87 AUROC | 🟡 Training |
-| TUEV Events | 22% BAC | ✅ Implementation verified |
+| TUEV Events | 22% BAC | ⚠️ Correct but unusable |
 
 ## Repository Structure
 

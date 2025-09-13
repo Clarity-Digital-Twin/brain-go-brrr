@@ -308,14 +308,14 @@ brain-go-brrr/
 - **FIXED**: Channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)
 - **STATUS**: Training with 4s windows @ 256Hz - `tmux attach -t tuab_training`
 
-### 3. Event Detection (TUEV) ✅ WORKING
+### 3. Event Detection (TUEV) ⚠️ ARCHIVED
 
-- **6-class EEG event classification**: SPSW, GPED, PLED, Eye Movement, Artifact, Background
-- **Performance**: 22% BAC (within expected 22-25% range due to extreme class imbalance)
-- **Implementation**: Complete TUEV pipeline in `experiments/eegpt_linear_probe/`
-- **Status**: VERIFIED CORRECT - matches reference repository specifications exactly
-- **Note**: Dataset has fatal class imbalance (24 samples for minority class vs 2,121 for majority)
-- **EEGPT Features**: 30,720 dimensions (15×4×512 temporal patches, flattened)
+- **What**: 6-class EEG event classification (SPSW, GPED, PLED, Eye Movement, Artifact, Background)
+- **Implementation Status**: ✅ Verified correct (matches reference specs exactly)
+- **Performance**: 22% BAC (too poor for practical use)
+- **Why Archived**: Dataset has fatal class imbalance (24 samples for minority class)
+- **Paper Claims**: 62% BAC appears unreproducible
+- **Recommendation**: DO NOT USE - focus on TUAB or other balanced datasets
 
 ### 4. Sleep Analysis ✅ WORKING
 
