@@ -131,8 +131,10 @@ class PositionalEncoding(nn.Module):
         Returns:
             Tensor with positional encoding added.
         """
-        x = x + self.pe[: x.size(0)]
-        return self.dropout(x)
+        # Cast self.pe to Tensor to satisfy type checker
+        pe = self.pe  # type: torch.Tensor
+        x = x + pe[: x.size(0)]
+        return self.dropout(x)  # type: ignore[no-any-return]
 
 
 class Encoder(nn.Module):
@@ -361,7 +363,7 @@ class ResCNNBlock(nn.Module):
             y = F.pad(y, (0, 1), "constant", 0)
         y = self.conv2(y)
 
-        return x + y
+        return x + y  # type: ignore[no-any-return]
 
 
 class SpatialDropout1d(nn.Module):
