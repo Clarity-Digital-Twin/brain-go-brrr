@@ -73,8 +73,10 @@ class SeizureTransformerWrapper:
             self.model = model
         else:
             if build_fn is None:
-                # Use the local implementation by default
-                from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
+                # Use the Wu 2025 implementation for pretrained weights
+                from brain_go_brrr.infra.ml_models.seizure_transformer_wu2025 import (
+                    SeizureTransformer,
+                )
 
                 self.model = SeizureTransformer(
                     in_channels=self.n_channels,
@@ -88,6 +90,17 @@ class SeizureTransformerWrapper:
             p = Path(weights_path)
             if not p.exists():
                 raise FileNotFoundError(f"Weights file not found: {p}")
+
+            # CI GUARD: Ensure Wu 2025 architecture when loading pretrained weights
+            if ("wu2025" in str(p).lower() or "seizure_transformer" in str(p).lower()) and (
+                not hasattr(self.model, "encoder") or not hasattr(self.model, "res_cnn_stack")
+            ):
+                raise RuntimeError(
+                    f"Architecture mismatch: Weights from {p.name} require Wu 2025 architecture "
+                    f"but model is {type(self.model).__name__}. "
+                    f"Use SeizureTransformerWrapper(weights_path=...) for automatic architecture selection."
+                )
+
             ckpt = torch.load(p, map_location="cpu", weights_only=False)  # nosec: Bypass for model weights
             self._load_weights_strict(self.model, ckpt)
         self.model.to(self.device)
@@ -203,6 +216,21 @@ class SeizureTransformerWrapper:
             predictions = self.postprocessor.postprocess(predictions)
 
         return predictions  # type: ignore[no-any-return]
+
+    def _preprocess_clip(self, eeg: np.ndarray, fs_original: int | None = None) -> np.ndarray:
+        """Helper method for integration tests to preprocess a single EEG clip.
+
+        Args:
+            eeg: Raw EEG data of shape (C, T)
+            fs_original: Original sampling rate (defaults to self.fs if not provided)
+
+        Returns:
+            Preprocessed EEG data ready for model input
+        """
+        # Ensure canonical channel ordering
+        eeg = self._ensure_canonical_channels(eeg)
+        # Apply SSOT preprocessing
+        return self.preprocessor.preprocess(eeg, fs_original or self.fs)
 
 
 __all__ = ["SeizureTransformerWrapper"]

@@ -18,8 +18,11 @@
 
 ## 🎯 Current Focus
 
-- **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
-- **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
+- **⚠️ TUEV Event Classification (ARCHIVED)**: Implementation correct but performance too poor (22% BAC) for practical use. See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
+- **📅 TUSZ Temporal Detection**: SeizureTransformer parity and evaluation
+  - Spec: [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md)
+  - Current: [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md)
+  - Plan: [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md)
 - **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
 
 ## 🧠 The Problem: Making Sense of Brain Waves
@@ -118,9 +121,13 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
       [IF ABNORMAL]                       ▼
           │                        Sleep Metrics
           ▼                        (Efficiency, TST, etc.)
-    Event Detection (Archived)
-    (TUEV: SPSW/GPED/PLED/etc — see Final Verdict)
+    Event Detection (TUEV) - ARCHIVED
+    (Implementation correct but 22% BAC too poor for use)
 ```
+
+Notes for clarity (no behavior change):
+- QC/Autoreject runs in the API and example analysis flows. Training/eval scripts and the archived TUEV classifier do not use the QC controller.
+- EEGPT sampling/windows: TUAB abnormality uses 256 Hz with 4 s windows. TUEV (archived) used 200 Hz with 5 s windows per the EEGPT reference; no Autoreject or normalization there.
 
 **Key Design Principles:**
 - **Parallel, not sequential** - EEGPT and YASA run independently
@@ -132,8 +139,8 @@ We use **parallel processing pipelines** optimized for different analysis tasks:
 
 - **EEGPT features**: 2048 dims for probes (4×512 flattened, not 512 summary)
 - **Channel names**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
-- **Sampling**: 256 Hz for EEGPT pipeline (resampled if needed)
-- **Window size**: 4 seconds (1024 samples at 256 Hz)
+- **Sampling**: 256 Hz for EEGPT TUAB pipeline (resampled if needed). TUEV (archived) used 200 Hz per reference.
+- **Window size**: 4 s for TUAB. TUEV (archived) used 5 s event-centered windows.
 
 ## 🔬 For Researchers
 
@@ -261,6 +268,9 @@ uv run pytest tests/unit/domain/sleep -v
 ### 📊 Datasets & Development
 | Guide | Description |
 |-------|------------|
+| [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md) | SeizureTransformer spec (reference) |
+| [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md) | Current implementation (single source of truth) |
+| [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md) | Gaps vs spec and fix plan |
 | [TUH_CORPUS_GUIDE.md](docs/TUH_CORPUS_GUIDE.md) | Temple University Hospital EEG datasets |
 | [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions CI/CD pipeline |
 | [ROADMAP.md](ROADMAP.md) | Project roadmap and priorities |
@@ -299,7 +309,7 @@ uv run pytest tests/unit/domain/sleep -v
 |--------|-------|--------|
 | Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
 | Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | Archived | ⛔ See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
+| Event Detection (TUEV) | 22% BAC | ⚠️ Correct but unusable - [Details](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
 | Test Coverage | High | ✅ All tests passing |
 | API Response Time | <100ms | ✅ With Redis caching |
 | Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |

@@ -159,7 +159,9 @@ class TUSZDetectionDataset(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     """Sliding-window temporal detection dataset for TUSZ.
 
     Yields: (window, label) where window is a `(C, T)` float32 tensor in Volts at `cfg.fs`,
-    and label is a scalar int64 tensor (`1` for seizure, `0` for background).
+    and label is either:
+    - A `(T,)` float32 mask when `return_timestep_labels=True` (per-timestep labels)
+    - A scalar int64 tensor when `return_timestep_labels=False` (`1` for seizure, `0` for background)
     """
 
     def __init__(

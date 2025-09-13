@@ -1,16 +1,18 @@
-"""SeizureTransformer architecture from Wu et al. 2025.
+"""DEPRECATED: Toy Vision Transformer for seizure detection - DO NOT USE IN PRODUCTION.
 
-This is a self-contained implementation based on the reference paper.
-The model is a Vision Transformer-based architecture optimized for
-seizure detection on EEG signals.
+⚠️ WARNING: This is a SIMPLIFIED TOY MODEL that is NOT compatible with Wu 2025 pretrained weights.
+⚠️ This model uses a naive Vision Transformer architecture that does NOT match the paper.
+⚠️ For production use, use SeizureTransformerWrapper which loads the correct Wu 2025 architecture.
 
-Architecture:
-- Input: (batch, 19 channels, 15360 samples) at 256Hz
-- Patch embedding: 1D convolution with kernel_size=256 (1 second patches)
-- Transformer encoder: 6 layers, 8 heads, 512 dim
-- Output: Per-timestep seizure predictions
+This toy implementation was created for experimental ablations only.
+It has the WRONG architecture (Vision Transformer instead of CNN+Transformer).
+It will NEVER work with pretrained weights from Wu et al. 2025.
 
-This implementation follows the SOLID principles and DRY pattern.
+CORRECT USAGE:
+    from brain_go_brrr.infra.ml_models.seizure_transformer_wrapper import SeizureTransformerWrapper
+    model = SeizureTransformerWrapper(weights_path="path/to/seizure_transformer_wu2025.pth")
+
+DO NOT USE THIS FILE.
 """
 
 from __future__ import annotations
@@ -29,7 +31,7 @@ class PatchEmbedding(nn.Module):
         in_channels: int = 19,
         patch_size: int = 256,  # 1 second at 256Hz
         embed_dim: int = 512,
-    ):
+    ) -> None:
         super().__init__()
         self.patch_size = patch_size
         self.proj = nn.Conv1d(in_channels, embed_dim, kernel_size=patch_size, stride=patch_size)
@@ -53,7 +55,7 @@ class PatchEmbedding(nn.Module):
 class PositionalEncoding(nn.Module):
     """Learnable positional encoding for patches."""
 
-    def __init__(self, n_patches: int, embed_dim: int):
+    def __init__(self, n_patches: int, embed_dim: int) -> None:
         super().__init__()
         self.pos_embed = nn.Parameter(torch.randn(1, n_patches, embed_dim) * 0.02)
 
@@ -71,7 +73,7 @@ class TransformerBlock(nn.Module):
         n_heads: int = 8,
         mlp_ratio: float = 4.0,
         dropout: float = 0.1,
-    ):
+    ) -> None:
         super().__init__()
 
         # Multi-head self-attention
@@ -118,7 +120,7 @@ class SeizureTransformer(nn.Module):
         n_heads: int = 8,
         mlp_ratio: float = 4.0,
         drop_rate: float = 0.1,
-    ):
+    ) -> None:
         """Initialize SeizureTransformer.
 
         Args:

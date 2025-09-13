@@ -66,8 +66,8 @@
       [IF ABNORMAL]
           │
           ▼
-    Event Detection (Archived)
-    (TUEV: SPSW/GPED/PLED/etc — see [TUEV_FINAL_VERDICT.md](tuev/archived/TUEV_FINAL_VERDICT.md))
+    Event Detection (TUEV) - ARCHIVED
+    (Implementation verified correct but 22% BAC too poor for practical use)
 ```
 
 **Key Insights**:
@@ -90,6 +90,7 @@
 | QC Agreement | 87% with experts | ✅ Production |
 | API Response | <100ms cached | ✅ Production |
 | TUAB Target | 0.87 AUROC | 🟡 Training |
+| TUEV Events | 22% BAC | ⚠️ Correct but unusable |
 
 ## Repository Structure
 

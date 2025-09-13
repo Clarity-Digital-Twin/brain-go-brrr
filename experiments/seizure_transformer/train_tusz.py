@@ -9,6 +9,7 @@ This replicates the training setup from Wu et al. 2025:
 """
 
 import os
+import random
 from pathlib import Path
 
 import numpy as np
@@ -22,6 +23,7 @@ from brain_go_brrr.infra.data.tusz_detection_dataset import (
     TUSZDetectionDataset,
     WindowConfig,
 )
+from brain_go_brrr.infra.ml_models.seizure_transformer_utils import SeizurePreprocessor
 
 
 def train_epoch(
@@ -68,25 +70,26 @@ def validate(
     with torch.no_grad():
         for x, y in tqdm(dataloader, desc="Validating"):
             x = x.to(device)
-            y = y.to(device).float()
+            y = y.to(device).float()  # Now scalar labels (B,)
 
             # Forward pass
-            logits = model(x)
+            logits = model(x)  # (B, 15360)
             probs = torch.sigmoid(logits)
 
-            # Compute loss
+            # Compute loss - expand scalar labels to match timesteps
             y_expanded = y.unsqueeze(1).expand(-1, logits.shape[1])
             loss = nn.functional.binary_cross_entropy_with_logits(logits, y_expanded)
             total_loss += loss.item()
 
-            # Store predictions for AUROC
-            all_preds.append(probs.cpu().numpy())
+            # Store window-level predictions for AUROC
+            window_probs = probs.mean(dim=1)  # Average across timesteps
+            all_preds.append(window_probs.cpu().numpy())
             all_labels.append(y.cpu().numpy())
 
     # Compute AUROC
     from sklearn.metrics import roc_auc_score
 
-    all_preds = np.concatenate([p.mean(axis=1) for p in all_preds])  # Average per window
+    all_preds = np.concatenate(all_preds)  # Already window-level
     all_labels = np.concatenate(all_labels)
 
     # Handle case where only one class is present
@@ -99,7 +102,20 @@ def validate(
     return total_loss / len(dataloader), auroc
 
 
+def set_seeds(seed: int = 42):
+    """Set all random seeds for reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def main():
+    # Set seeds for reproducibility
+    set_seeds(42)
+
     # Configuration
     data_root = os.environ.get(
         "BGB_DATA_ROOT", "/mnt/c/Users/JJ/Desktop/Clarity-Digital-Twin/brain-go-brrr/data"
@@ -119,13 +135,18 @@ def main():
         positive_fraction=0.2,  # Balance positive samples
     )
 
+    # Create SSOT preprocessor
+    preprocessor = SeizurePreprocessor(target_fs=256)
+
     # Create datasets with memory-efficient loading
     print("Loading TUSZ training set (memory-efficient mode)...")
     train_ds = TUSZDetectionDataset(
         root_dir=tusz_root,
         split="train",
         cfg=cfg,
-        max_windows=10000,  # Start with 10k windows to avoid memory crash
+        max_windows=1000,  # Start with 1k windows for quick testing
+        preprocessor=preprocessor,  # Use SSOT preprocessing
+        ensure_unipolar=False,  # TUSZ has mixed montages
         return_timestep_labels=True,  # Use per-timestep labels for training
     )
 
@@ -139,8 +160,10 @@ def main():
             stride_sec=30.0,  # Some overlap to get more windows
             positive_fraction=0.2,  # Same as training
         ),
-        max_windows=5000,  # More windows for better class balance
-        return_timestep_labels=True,  # Use per-timestep labels for validation
+        max_windows=500,  # Smaller validation set for quick testing
+        preprocessor=preprocessor,  # Use SSOT preprocessing
+        ensure_unipolar=False,  # TUSZ has mixed montages
+        return_timestep_labels=False,  # Use scalar labels for validation AUROC
     )
 
     print(f"Train samples: {len(train_ds)}, Val samples: {len(val_ds)}")
@@ -168,11 +191,11 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Use SeizureTransformer from src - NO EXTERNAL DEPENDENCIES
-    print("Loading SeizureTransformer from src...")
-    from brain_go_brrr.infra.ml_models.seizure_transformer import SeizureTransformer
+    # Use SeizureTransformerWrapper for correct Wu 2025 architecture
+    print("Loading SeizureTransformer Wu 2025 architecture...")
+    from brain_go_brrr.infra.ml_models.seizure_transformer_wu2025 import SeizureTransformer
 
-    # Create the actual model
+    # Create the actual model (Wu 2025 architecture with CNN+Transformer)
     model = SeizureTransformer(
         in_channels=19,
         in_samples=15360,  # 60s @ 256Hz

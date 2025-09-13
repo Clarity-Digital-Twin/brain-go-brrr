@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Quick test of SeizureTransformer with minimal data."""
+"""Quick test of SeizureTransformer Wu 2025 architecture."""
 
 import torch
-from wu_2025.architecture import SeizureTransformer
 
-# Test the model works
+from brain_go_brrr.infra.ml_models.seizure_transformer_wu2025 import SeizureTransformer
+
+# Test the Wu 2025 model architecture
 model = SeizureTransformer(
     in_channels=19,
     in_samples=15360,  # 60s @ 256Hz

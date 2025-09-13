@@ -64,7 +64,7 @@ def evaluate_pretrained_model() -> float:
         split="eval",
         cfg=cfg,
         preprocessor=wrapper.preprocessor,
-        ensure_unipolar=True,
+        ensure_unipolar=False,  # TUSZ has mixed montages
     )
 
     loader = DataLoader(ds, batch_size=8, shuffle=False, num_workers=0)

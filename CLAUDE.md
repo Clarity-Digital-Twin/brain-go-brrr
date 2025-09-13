@@ -308,12 +308,14 @@ brain-go-brrr/
 - **FIXED**: Channel mapping (T3→T7, T4→T8, T5→P7, T6→P8)
 - **STATUS**: Training with 4s windows @ 256Hz - `tmux attach -t tuab_training`
 
-### 3. Event Detection
+### 3. Event Detection (TUEV) ⚠️ ARCHIVED
 
-- Epileptiform discharge identification
-- GPED/PLED pattern detection
-- Time-stamped events with confidence
-- Implementation pending
+- **What**: 6-class EEG event classification (SPSW, GPED, PLED, Eye Movement, Artifact, Background)
+- **Implementation Status**: ✅ Verified correct (matches reference specs exactly)
+- **Performance**: 22% BAC (too poor for practical use)
+- **Why Archived**: Dataset has fatal class imbalance (24 samples for minority class)
+- **Paper Claims**: 62% BAC appears unreproducible
+- **Recommendation**: DO NOT USE - focus on TUAB or other balanced datasets
 
 ### 4. Sleep Analysis ✅ WORKING
 
