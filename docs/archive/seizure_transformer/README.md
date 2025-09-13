@@ -1,0 +1,21 @@
+# Archived SeizureTransformer/TUSZ Docs
+
+These documents were consolidated to reduce drift. They remain available for reference.
+
+Archived files now live in this folder:
+
+- CURRENT_SEIZURE_TRANSFORMER_DATAFLOW.md
+- INTENDED_SEIZURE_TRANSFORMER_APPLICATION.md
+- SEIZURE_TRANSFORMER_CONSOLIDATION_PLAN.md
+- SEIZURE_TRANSFORMER_POSTMORTEM.md
+- TUSZ_IMPLEMENTATION.md
+- TUSZ_OSS_SUMMARY.md
+- TUSZ_ROADMAP.md
+- TUSZ_SPEC.md
+
+Canonical docs kept at repo root:
+
+- IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md
+- SEIZURE_TRANSFORMER_CURRENT_STATUS.md
+- SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md
+

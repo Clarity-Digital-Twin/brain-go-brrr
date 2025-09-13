@@ -19,7 +19,10 @@
 ## 🎯 Current Focus
 
 - **⛔ TUEV Event Classification (ARCHIVED)**: Unreproducible in our environment (best BAC ≈ 22% vs 62% claim). See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
-- **📅 TUSZ Temporal Detection**: Next priority - SeizureTransformer wrapper planned - See [`TUSZ_*.md`](.) files
+- **📅 TUSZ Temporal Detection**: SeizureTransformer parity and evaluation
+  - Spec: [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md)
+  - Current: [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md)
+  - Plan: [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md)
 - **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
 
 ## 🧠 The Problem: Making Sense of Brain Waves
@@ -261,6 +264,9 @@ uv run pytest tests/unit/domain/sleep -v
 ### 📊 Datasets & Development
 | Guide | Description |
 |-------|------------|
+| [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md) | SeizureTransformer spec (reference) |
+| [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md) | Current implementation (single source of truth) |
+| [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md) | Gaps vs spec and fix plan |
 | [TUH_CORPUS_GUIDE.md](docs/TUH_CORPUS_GUIDE.md) | Temple University Hospital EEG datasets |
 | [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions CI/CD pipeline |
 | [ROADMAP.md](ROADMAP.md) | Project roadmap and priorities |
