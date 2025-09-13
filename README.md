@@ -1,463 +1,194 @@
 # Brain-Go-Brrr ⚡
 
-**Research-Grade EEG Analysis with State-of-the-Art Deep Learning**
-
-> 📢 **Repository Update**: Active seizure detection development has moved to [SeizureTransformer](https://github.com/Clarity-Digital-Twin/SeizureTransformer) for clinical evaluation and NEDC scoring. This repository continues to maintain core EEG processing capabilities.
-
-> 🚧 **Work in Progress** - This repository is under active development for research purposes.
-> Not a medical device. Not for clinical use. External validation pending.
+**Production-Ready EEG Analysis with EEGPT Foundation Model**
 
 [![CI/CD Pipeline](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml/badge.svg)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr/actions)
-[![Coverage](https://img.shields.io/badge/coverage-high-brightgreen)](https://github.com/Clarity-Digital-Twin/brain-go-brrr)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## 📖 Quick Navigation
+> 📢 Note: Active seizure detection development has moved to SeizureTransformer (https://github.com/Clarity-Digital-Twin/SeizureTransformer). This repository maintains core EEG processing infrastructure.
 
-[**Quick Start**](#-quick-start) • [**How It Works**](#-how-it-works) • [**Documentation**](#-documentation) • [**For Researchers**](#-for-researchers) • [**For Developers**](#-for-developers) • [**API Reference**](docs/API.md) • [**Training Guide**](docs/TRAINING.md)
+## What This Is
 
-## 🎯 Current Focus
+A Python wrapper around the EEGPT foundation model (10M parameters) for EEG analysis, providing:
+- EEGPT Features: 4×512 token embeddings (2048-d flattened for training; 512-d pooled in API by default)
+- Sleep Analysis: 87% accuracy using YASA (off-the-shelf)
+- Quality Control: Autoreject for bad channel/artifact detection
+- Abnormality Detection: Linear probe on TUAB dataset (training)
+- REST API: FastAPI with Redis caching
 
-- **⚠️ TUEV Event Classification (ARCHIVED)**: Implementation correct but performance too poor (22% BAC) for practical use. See [TUEV_FINAL_VERDICT.md](docs/tuev/archived/TUEV_FINAL_VERDICT.md).
-- **📅 TUSZ Temporal Detection**: SeizureTransformer parity and evaluation
-  - Spec: [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md)
-  - Current: [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md)
-  - Plan: [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md)
-- **📋 Technical Debt**: Single source of truth in [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
+## Quick Start
 
-## 🧠 The Problem: Making Sense of Brain Waves
+### Requirements
+- Python 3.11-3.12 (3.13 not supported - scipy issues)
+- 8GB+ RAM recommended (16GB for training)
+- GPU optional (speeds up training)
+- Ubuntu/WSL2 recommended
 
-**What is EEG?** Think of it as a "microphone for your brain" - small sensors on your scalp detect the tiny electrical signals your brain cells use to communicate. These signals contain rich information about sleep, seizures, mental states, and brain health.
-
-**🌊 The Challenge:** Raw EEG data is like trying to hear individual conversations in a packed stadium:
-- **Noisy**: Eye blinks, muscle movements, and electrical interference drown out brain signals
-- **Expert-Intensive**: Researchers spend days manually cleaning data for studies
-- **Variable**: Every brain is unique - what works for one person often fails for another
-- **Time-Consuming**: Manual preprocessing and analysis can take weeks per study
-
-**🚀 Why Now?** The same transformer technology that powers large language models is starting to work for brain analysis:
-- **Large datasets** of labeled EEG recordings are now available for training
-- **Foundation models** like EEGPT can learn patterns from thousands of patients
-- **Faster processing** compared to traditional manual review methods
-- **Research-grade accuracy** approaching expert performance on specific validated tasks
-
-**🎯 Our Mission:** Make research-grade EEG analysis accessible by combining the EEGPT foundation model with production-ready infrastructure and clinical validation pipelines.
-
-**What This Is Not:**
-- Not a medical device - not FDA approved for clinical decision-making
-- Not a replacement for neurologists - designed to assist, not diagnose
-- Not validated on all populations - trained on specific research datasets
-
-## 🛠️ What We Build
-
-A production-ready Python system that transforms raw brain recordings into structured insights:
-
-**👥 Current Users:**
-- **Research Labs**: Clean and analyze EEG data with reproducible pipelines
-- **Academic Teams**: Standardized analysis pipeline for EEG studies
-
-**🔮 Potential Applications:**
-- **Sleep Research**: Automated sleep staging using YASA integration
-- **BCI Development**: Feature extraction pipeline for brain-computer interfaces
-- **Mental Health Research**: Objective biomarkers for psychiatric conditions (active research area)
-
-**⚡ Key Capabilities:**
-- **Sleep Staging** - 87% accuracy reported in literature (YASA; Vallat & Walker 2021)
-- **Quality Control** - Artifact rejection and bad channel detection via Autoreject
-- **Abnormality Detection** - Binary classification (**✅ 83% AUROC achieved**)
-- **Fast Processing** - Target: <2 minutes for 20-minute recordings (hardware dependent)
-- **Clean Architecture** - Comprehensive test suite with high coverage
-
-## 🚀 Quick Start
-
-Want to see it in action? Get running in under a minute:
-
+### Install
 ```bash
-# Install (takes 30 seconds)
+# Clone and install
 git clone https://github.com/Clarity-Digital-Twin/brain-go-brrr.git
 cd brain-go-brrr
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
-# Run API server
+# Run API
 uv run uvicorn brain_go_brrr.api.main:app --reload
 
-# Test the system
+# Test
 curl http://localhost:8000/api/v1/health
 ```
 
-**Next Steps:**
-- 📖 [Full Setup Guide](docs/QUICK_START.md) - Detailed installation and configuration
-- 🏗️ [Architecture Overview](docs/ARCHITECTURE.md) - Understand the system design
-- 🔌 [API Documentation](docs/API.md) - REST endpoints and examples
+## Core Capabilities
 
-## 🧬 How It Works
+### ✅ Working Now
+- Sleep Staging: 5-stage classification (W, N1, N2, N3, REM) via YASA
+- Feature Extraction: EEGPT embeddings (4×512 tokens → 2048 dims)
+- Quality Control: Bad channel detection, artifact rejection
+- API Server: REST endpoints with async processing
 
-We use **parallel processing pipelines** optimized for different analysis tasks:
+### 📊 Performance
+| Component | Metric | Status |
+|-----------|--------|--------|
+| Sleep Staging | 87% accuracy (YASA paper) | ✅ Working |
+| QC (Autoreject) | 87% expert agreement (paper) | ✅ API only* |
+| TUAB Abnormality | 0.83 AUROC achieved (target: 0.869) | ✅ Complete |
+| API Response | <100ms cached | ✅ Working |
+
+*QC integrated in API flows; training scripts bypass QC for speed
+
+### ⚠️ Archived
+- TUEV Events: Implementation correct but 22% BAC (vs 62% paper claim) - dataset has fatal class imbalance
+
+## Architecture
 
 ```
-                    EEG Input (.edf files)
-                   (Any channel count)
-                          │
-                          ▼
-                   Quality Control (QC)
-                  [Autoreject + Bad Channels]
-                          │
-          ┌───────────────┴───────────────┐
-          │                               │
-    EEGPT Pipeline                  YASA Pipeline
-    (Requires 19+ ch)            (Works with ANY count)
-    (256Hz sampling)              (Resamples to 100Hz)
-          │                               │
-          ▼                               ▼
-    EEGPT Features               Channel Selection
-    (4×512 summary tokens →      (Picks best central)
-     2,048 flattened)
-          │                               │
-          ▼                               ▼
-    Abnormality Detection          Sleep Staging
-    (Normal vs Abnormal)           (5 stages: W,N1,N2,N3,REM)
-          │                               │
-      [IF ABNORMAL]                       ▼
-          │                        Sleep Metrics
-          ▼                        (Efficiency, TST, etc.)
-    Event Detection (TUEV) - ARCHIVED
-    (Implementation correct but 22% BAC too poor for use)
+EEG Input → Quality Control → Parallel Processing:
+                              ├── EEGPT (19+ channels, 256Hz) → Features → Abnormality Detection
+                              └── YASA (any channels, 100Hz) → Sleep Stages → Metrics
 ```
 
-Notes for clarity (no behavior change):
-- QC/Autoreject runs in the API and example analysis flows. Training/eval scripts and the archived TUEV classifier do not use the QC controller.
-- EEGPT sampling/windows: TUAB abnormality uses 256 Hz with 4 s windows. TUEV (archived) used 200 Hz with 5 s windows per the EEGPT reference; no Autoreject or normalization there.
+Key points:
+- EEGPT requires 19+ channels at 256Hz
+- YASA works with any channel count
+- Processing is parallel, not sequential
 
-**Key Design Principles:**
-- **Parallel, not sequential** - EEGPT and YASA run independently
-- **Flexible channel support** - YASA works with 1-256 channels
-- **Research accuracy** - 87% sleep staging (YASA), 83% abnormality AUROC (TUAB completed)
-- **Well-tested** - Clean architecture, dependency injection, comprehensive testing
+## Project Structure
 
-## 📐 Technical Notes
-
-- **EEGPT features**: 2048 dims for probes (4×512 flattened, not 512 summary)
-- **Channel names**: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
-- **Sampling**: 256 Hz for EEGPT TUAB pipeline (resampled if needed). TUEV (archived) used 200 Hz per reference.
-- **Window size**: 4 s for TUAB. TUEV (archived) used 5 s event-centered windows.
-
-## 🔬 For Researchers
-
-### Training Custom Models
-
-We provide training scripts for TUAB (abnormality). TUEV (events) has been archived:
-
-```bash
-# Train abnormality detection
-cd experiments/eegpt_linear_probe
-
-# Build preprocessed cache first
-./scripts/build_mne_cache.sh
-
-# Train with MNE preprocessing
-./scripts/launch_tuab_mne.sh  # For TUAB abnormality detection
-# (Archived) ./scripts/launch_tuev_mne.sh  # TUEV event detection — not recommended
-
-# Monitor training
-tmux attach -t tuab_training  # TUAB complete (83% AUROC)
-# (Archived) tmux attach -t tuev_training
-```
-
-See [TRAINING.md](docs/TRAINING.md) for detailed instructions.
-
-### Datasets & Pretrained Models
-
-**EEGPT Foundation Model:**
-- Download from [Figshare](https://figshare.com/s/e37df4f8a907a866df4b)
-- Place in `data/models/pretrained/`
-- 10M parameters, trained on 58 channels
-
-**Datasets** (not included due to size/licensing, obtain separately):
-
-- **TUAB/TUEV** - [Temple University](https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
-- **Sleep-EDF** - [PhysioNet](https://physionet.org/content/sleep-edfx/1.0.0/) (free with registration)
-
-## 💻 For Developers
-
-### System Requirements
-
-- **Python:** 3.11 or 3.12
-- **RAM:** 16GB minimum
-- **GPU:** Optional (speeds up training)
-- **OS:** Linux, macOS, Windows (WSL2)
-
-### Project Structure
 ```
 brain-go-brrr/
-├── src/brain_go_brrr/     # Main package
-│   ├── domain/            # Business logic (pure, no dependencies)
-│   ├── application/       # Use cases and orchestration
-│   ├── infra/            # External adapters (EEGPT, YASA, etc.)
-│   └── api/              # REST API endpoints
-├── experiments/          # Training scripts and research
-├── tests/               # Comprehensive unit, integration, and smoke tests
-└── docs/               # Comprehensive documentation
+├── src/brain_go_brrr/
+│   ├── domain/          # Pure business logic
+│   ├── application/     # Use cases
+│   ├── infra/          # External adapters (EEGPT, YASA)
+│   └── api/            # REST endpoints
+├── experiments/        # Training scripts
+├── tests/             # Unit & integration tests
+└── docs/              # Documentation
 ```
 
-### Development Workflow
+## Data & Models
+
+### Required Downloads
+1. EEGPT Model: Download from Figshare (https://figshare.com/s/e37df4f8a907a866df4b)
+   - Place in: `data/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt`
+
+2. Datasets (obtain separately):
+   - TUAB: Temple University (https://isip.piconepress.com/projects/nedc/html/tuh_eeg/) (requires agreement)
+   - Sleep-EDF: PhysioNet (https://physionet.org/content/sleep-edfx/1.0.0/) (free registration)
+
+### Configuration
 ```bash
-# Run tests with coverage
+# Required
+export BGB_DATA_ROOT=/path/to/data
+
+# Optional
+export BGB_TUAB_VERSION=""         # Versionless layout
+export BGB_CACHE_DIR=$BGB_DATA_ROOT/cache  # Cache location
+export BGB_SLEEP_EDF_FILE=/path/to/file.edf  # Specific test file
+export EEGPT_CKPT_PATH=$BGB_DATA_ROOT/models/pretrained/eegpt_mcae_58chs_4s_large4E.ckpt  # Override checkpoint
+```
+
+## Development
+
+### Core Commands
+```bash
+# Run tests
 make test
 
-# Check code quality
-make lint typecheck
-
-# Watch tests during development
+# Watch tests (TDD mode)
 make test-watch
 
-# Full CI/CD check before pushing
+# Code quality
+make lint        # Ruff linting
+make typecheck   # Mypy checking
+make format      # Auto-format code
+
+# Full CI check (MUST PASS before push)
 make check-all
 ```
 
-### Configuration & Data Paths
-
-**Environment Variables:**
-
-Configure data paths for your datasets:
-
-- `BGB_DATA_ROOT` - Root data directory (default: "data")
-- `BGB_SLEEP_EDF_VERSION` - Sleep-EDF dataset version (default: "sleep-edf-database-expanded-1.0.0")
-- `BGB_SLEEP_EDF_DIR` - Override entire Sleep-EDF root directory
-- `BGB_SLEEP_EDF_FILE` - Specific PSG file to use (for testing)
-- `BGB_TUAB_VERSION` - TUAB dataset version (use "" for versionless layout)
-- `BGB_TUEV_VERSION` - TUEV dataset version (use "" for versionless layout)
-
-**Running with Real Data:**
-
+### Training Models
 ```bash
-# Set data root directory
-export BGB_DATA_ROOT=/path/to/your/data
+# Build cache and train TUAB
+cd experiments/eegpt_linear_probe
+./scripts/build_mne_cache.sh
+./scripts/launch_tuab_mne.sh
+```
 
-# For versionless directory layouts (e.g., tuab/edf instead of tuab/v3.0.1/edf)
-export BGB_TUAB_VERSION=""
-export BGB_TUEV_VERSION=""
+### Integration Tests
+```bash
+# With real data
+uv run pytest -m "integration and data" --run-integration --run-data
 
-# Run integration tests with real data
-uv run pytest -m "integration and data" --run-integration --run-data \
-    tests/integration/test_tuab_real_data.py
-
-# Use specific Sleep-EDF file for testing
-export BGB_SLEEP_EDF_FILE=/path/to/specific/file.edf
+# Specific dataset
+export BGB_SLEEP_EDF_FILE=/path/to/file.edf
 uv run pytest tests/unit/domain/sleep -v
 ```
 
-## 📚 Documentation
+## Key Technical Details
 
-### 🚀 Getting Started
-| Guide | Description |
-|-------|------------|
-| [QUICK_START.md](docs/QUICK_START.md) | Get running in 5 minutes |
-| [API.md](docs/API.md) | REST endpoint reference |
-| [TRAINING.md](docs/TRAINING.md) | Model training guide for TUAB (TUEV archived) |
+- Sampling: 256Hz for EEGPT, 100Hz for YASA
+- Windows: 4 seconds for EEGPT (some legacy 8s code exists)
+- Channels: Modern naming (T7/T8/P7/P8), not legacy (T3/T4/T5/T6)
+- Features: EEGPT outputs 4×512 summary tokens, flattened to 2048 dims
+- Architecture: Clean separation - domain layer has zero infrastructure dependencies
 
-### 🏗️ Architecture & Design
-| Guide | Description |
-|-------|------------|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and patterns |
-| [TESTING.md](docs/TESTING.md) | Test philosophy and TDD guidelines |
-| [CHANNELS.md](docs/CHANNELS.md) | EEG channel handling and mapping |
-| [UNITS.md](docs/UNITS.md) | Physical units (μV, V) and scaling |
-| [EVALUATION_METRICS.md](docs/EVALUATION_METRICS.md) | Performance benchmarks and metrics |
+## Related Work
 
-### 📊 Datasets & Development
-| Guide | Description |
-|-------|------------|
-| [IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md](IDEAL_REFERENCE_SEIZURE_TRANSFORMER_DATAFLOW.md) | SeizureTransformer spec (reference) |
-| [SEIZURE_TRANSFORMER_CURRENT_STATUS.md](SEIZURE_TRANSFORMER_CURRENT_STATUS.md) | Current implementation (single source of truth) |
-| [SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md](SEIZURE_TRANSFORMER_GAPS_AND_FIX_PLAN.md) | Gaps vs spec and fix plan |
-| [TUH_CORPUS_GUIDE.md](docs/TUH_CORPUS_GUIDE.md) | Temple University Hospital EEG datasets |
-| [CI_CD_SETUP.md](docs/CI_CD_SETUP.md) | GitHub Actions CI/CD pipeline |
-| [ROADMAP.md](ROADMAP.md) | Project roadmap and priorities |
-| [CHANGELOG.md](CHANGELOG.md) | Version history and breaking changes |
+- SeizureTransformer: Wu 2025 CNN+Transformer implementation moved to separate repo (https://github.com/Clarity-Digital-Twin/SeizureTransformer)
+- Clinical Evaluation: NEDC scoring and metrics in SeizureTransformer repo
 
-### 🔧 Technical Debt & Maintenance
-| Guide | Description |
-|-------|------------|
-| [REMAINING_DEBT.md](REMAINING_DEBT.md) | Optional Sprint 4-5 enhancements |
-| [CODEBASE_AUDIT.md](CODEBASE_AUDIT.md) | Current technical debt tracking |
-| [Archived Debt](docs/archive/technical-debt/) | Completed P0-P2 sprints documentation |
+## Documentation
 
-## 🚦 Current Status & Roadmap
+| Guide | Purpose |
+|-------|---------|
+| docs/ARCHITECTURE.md | System design patterns |
+| docs/API.md | REST endpoint reference |
+| docs/TRAINING.md | Model training guide |
+| docs/QUICK_START.md | Detailed setup |
+| docs/CI_CD_SETUP.md | GitHub Actions pipeline |
+| ROADMAP.md | Future plans |
 
-### ✅ Completed
-- Sleep staging integration (YASA baseline, 87% accuracy)
-- Quality control pipeline (Autoreject + MNE)
-- REST API with Redis caching
-- Comprehensive test suite with CI/CD
+## Limitations
 
-### ✅ Recently Completed
-- **TUAB abnormality detection**: 83% AUROC achieved ✅
+- Research software, not a medical device
+- Not FDA approved for clinical use
+- Models trained on specific datasets - generalization pending validation
+- Performance varies across EEG systems and populations
 
-### 🚧 In Progress
-- MNE preprocessing pipeline optimization
+## License & Citation
 
-### 📋 Planned
-- External validation on holdout datasets
-- Multi-site performance evaluation
-- Clinical validation study
-- Real-time streaming support
+Apache 2.0 License. See LICENSE.
 
-## 📊 Performance Metrics
-
-| Metric | Value | Status |
-|--------|-------|--------|
-| Sleep Staging | 87% accuracy | ✅ Using YASA baseline |
-| Abnormality Detection | **83% AUROC** | ✅ Training complete |
-| Event Detection (TUEV) | 22% BAC | ⚠️ Correct but unusable - [Details](docs/tuev/archived/TUEV_FINAL_VERDICT.md) |
-| Test Coverage | High | ✅ All tests passing |
-| API Response Time | <100ms | ✅ With Redis caching |
-| Processing Speed | <2 min/20min EEG | 🎯 Target (hardware dependent) |
-
-¹ BAC = Balanced Accuracy (not weighted F1). See [TUEV_METRICS_SSOT.md](docs/tuev/archived/TUEV_METRICS_SSOT.md) for details.
-
-## 🤝 Contributing
-
-We welcome contributions! Whether you're fixing bugs, adding features, or improving documentation:
-
-1. **Fork & Clone** the repository
-2. **Read** [ARCHITECTURE.md](docs/ARCHITECTURE.md) to understand the design
-3. **Follow** [TESTING.md](docs/TESTING.md) for test guidelines
-4. **Create** a pull request with clear description
-
-**Good First Issues:**
-- Improve test coverage (currently 86%, target 90%)
-- Add more preprocessing options
-- Enhance documentation
-- Create example notebooks
-
-## ⚠️ Limitations & Disclaimers
-
-- **Research Software**: This is an active research project, not a medical device
-- **No Clinical Use**: Not validated for clinical decision-making
-- **Performance Variability**: Results may vary across different EEG systems and populations
-- **Training Data**: Models trained on specific datasets; generalization to other data pending validation
-- **External Validation**: Independent validation studies not yet conducted
-
-## 📄 License & Citations
-
-**License:** Apache 2.0 - See [LICENSE](LICENSE)
-
-**If you use this software in research, please cite:**
-
-### Datasets
-*For any TUH EEG dataset usage, please also cite the foundational corpus: Obeid & Picone (2016)*
-<details>
-<summary>TUH Abnormal EEG Corpus (TUAB) (click to expand)</summary>
-
-```bibtex
-@mastersthesis{lopez2017automated,
-  title={Automated Identification of Abnormal EEGs},
-  author={Lopez, Silvia},
-  year={2017},
-  school={Temple University},
-  url={https://www.isip.piconepress.com/publications/ms_theses/2017/abnormal/thesis/}
-}
-
-@article{obeid2016temple,
-  title={The Temple University Hospital EEG Data Corpus},
-  author={Obeid, Iyad and Picone, Joseph},
-  journal={Frontiers in Neuroscience},
-  volume={10},
-  pages={196},
-  year={2016},
-  doi={10.3389/fnins.2016.00196}
-}
-```
-</details>
-
-<details>
-<summary>TUH EEG Events Corpus (TUEV) — Archived (click to expand)</summary>
-
-```bibtex
-@inproceedings{harati2015improved,
-  title={Improved EEG Event Classification Using Differential Energy},
-  author={Harati, Amir and Golmohammadi, Meysam and Lopez, Silvia and Obeid, Iyad and Picone, Joseph},
-  booktitle={IEEE Signal Processing in Medicine and Biology Symposium (SPMB)},
-  pages={1--4},
-  year={2015},
-  organization={IEEE},
-  url={https://www.isip.piconepress.com/publications/conference_proceedings/2015/ieee_spmb/denergy/}
-}
-```
-</details>
-
-### Processing Libraries
-<details>
-<summary>MNE-Python (click to expand)</summary>
-
-```bibtex
-@article{gramfort2013mne,
-  title={MEG and EEG data analysis with MNE-Python},
-  author={Gramfort, Alexandre and Luessi, Martin and Larson, Eric and Engemann, Denis A and Strohmeier, Daniel and Brodbeck, Christian and Goj, Roman and Jas, Mainak and Brooks, Teon and Parkkonen, Lauri and H{\"a}m{\"a}l{\"a}inen, Matti},
-  journal={Frontiers in Neuroscience},
-  volume={7},
-  pages={267},
-  year={2013},
-  doi={10.3389/fnins.2013.00267}
-}
-```
-</details>
-
-<details>
-<summary>Autoreject (click to expand)</summary>
-
-```bibtex
-@article{jas2017autoreject,
-  title={Autoreject: Automated artifact rejection for MEG and EEG data},
-  author={Jas, Mainak and Engemann, Denis A and Bekhti, Yousra and Raimondo, Federico and Gramfort, Alexandre},
-  journal={NeuroImage},
-  volume={159},
-  pages={417--429},
-  year={2017}
-}
-```
-</details>
-
-### Models
-<details>
-<summary>EEGPT Model (click to expand)</summary>
-
-```bibtex
-@inproceedings{wang2024eegpt,
-  title={EEGPT: Pretrained Transformer for Universal and Reliable Representation of EEG Signals},
-  author={Wang, Guangyu and He, Yuhong and Ma, Lin and Liu, Wenchao and Xu, Cong and Li, Haifeng},
-  booktitle={38th Conference on Neural Information Processing Systems (NeurIPS 2024)},
-  year={2024}
-}
-```
-</details>
-
-<details>
-<summary>YASA Sleep Staging (click to expand)</summary>
-
-```bibtex
-@article{vallat2021yasa,
-  title={YASA: Yet Another Spindle Algorithm},
-  author={Vallat, Raphael and Walker, Matthew P},
-  journal={bioRxiv},
-  year={2021},
-  doi={10.1101/2021.05.28.446165}
-}
-```
-</details>
-
-
-## 🤝 Support & Community
-
-- **Issues:** [GitHub Issues](https://github.com/Clarity-Digital-Twin/brain-go-brrr/issues)
-- **Discussions:** Coming soon
-- **Email:** See maintainer profiles
+If using in research, please cite:
+- EEGPT: Wang et al. (2024) NeurIPS
+- YASA: Vallat & Walker (2021) bioRxiv
+- MNE-Python: Gramfort et al. (2013) Frontiers
+- Datasets: See documentation for specific citations
 
 ---
 
-*Built with ❤️ by the Clarity Digital Twin team*
+For AI assistants: See CLAUDE.md for development context
 
-*For AI assistants: See [CLAUDE.md](CLAUDE.md) for context and guidelines*
